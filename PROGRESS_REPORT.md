@@ -992,3 +992,17 @@
 - **Файлы изменены:** `backend/server.js`.
 - **Проверка:** `node --check backend/server.js` ✅, `git push origin main` ✅.
 - **Баги остались:** —
+
+#### P11 — Hotfix: 405 ошибка на /api/auth/login (CORS preflight)
+- **Дата:** 2026-07-30
+- **Статус:** ✅ Выполнен
+- **Что сделано:**
+  - В `backend/server.js` обновлён порядок middleware:
+    - `cors` настроен ДО всех роутов с `methods`, `allowedHeaders`, `credentials: true`.
+    - Добавлен `app.options('*', cors())` для обработки preflight-запросов.
+    - `express.json()` и парсеры тела перенесены ДО rate limiters и роутов.
+  - В `backend/routes/auth.js` добавлен `console.log('Login attempt:', email)` для диагностики.
+  - Изменения запушены в GitHub: `main`.
+- **Файлы изменены:** `backend/server.js`, `backend/routes/auth.js`.
+- **Проверка:** `node --check backend/server.js` ✅, `node --check backend/routes/auth.js` ✅, `git push origin main` ✅.
+- **Баги остались:** —

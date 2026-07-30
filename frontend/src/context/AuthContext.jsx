@@ -62,13 +62,13 @@ export const AuthProvider = ({ children }) => {
         }
     }
 
-    const register = async (name, email, password, role = 'creator', consent = {}) => {
+    const register = async (name, email, password, consent = {}) => {
         try {
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name, email, password, role,
+                    name, email, password,
                     acceptedTerms: !!consent.acceptedTerms,
                     acceptedPrivacy: !!consent.acceptedPrivacy,
                     acceptedConsent: !!consent.acceptedConsent,

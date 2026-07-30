@@ -6,9 +6,18 @@ import { sendVerificationEmail, sendPasswordReset } from '../services/emailServi
 
 const router = express.Router()
 
+const FORBIDDEN_REGISTRATION_ROLES = ['owner', 'admin', 'staff']
+
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult } = req.body
+    const { name, email, password, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult } = req.body
+
+    // Security: clients cannot self-register privileged roles
+    if (FORBIDDEN_REGISTRATION_ROLES.includes(req.body.role)) {
+      console.warn('[security] attempt to register privileged role:', req.body.role)
+      return res.status(403).json({ success: false, message: 'Forbidden role' })
+    }
+    const role = 'creator'
 
     if (!acceptedTerms || !acceptedPrivacy || !acceptedConsent || !isAdult) {
       return res.status(400).json({

@@ -7,7 +7,6 @@ function RegisterForm({ onSuccess }) {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
-    const [role, setRole] = useState('creator')
     const [consent, setConsent] = useState({
         acceptedTerms: false,
         acceptedPrivacy: false,
@@ -46,7 +45,7 @@ function RegisterForm({ onSuccess }) {
         setLoading(true)
 
         try {
-            const result = await register(name, email, password, role, consent)
+            const result = await register(name, email, password, consent)
             if (result.success) {
                 onSuccess?.()
             } else {
@@ -115,21 +114,6 @@ function RegisterForm({ onSuccess }) {
                     placeholder="Повторите пароль"
                     required
                 />
-            </div>
-
-            <div>
-                <label className="block text-sm text-gray-400 mb-1">Роль (только для теста)</label>
-                <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00ff41]/30 focus:ring-1 focus:ring-[#00ff41]/20 transition-colors"
-                >
-                    <option value="creator" className="bg-[#0a0a0a]">Пользователь (creator)</option>
-                    <option value="admin" className="bg-[#0a0a0a]">Админ (admin)</option>
-                    <option value="staff" className="bg-[#0a0a0a]">Сотрудник (staff)</option>
-                    <option value="advertiser" className="bg-[#0a0a0a]">Рекламодатель (advertiser)</option>
-                    <option value="owner" className="bg-[#0a0a0a]">Владелец (owner)</option>
-                </select>
             </div>
 
             <div className="space-y-3 pt-2">
