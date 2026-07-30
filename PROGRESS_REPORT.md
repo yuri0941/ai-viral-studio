@@ -979,3 +979,16 @@
 - **Файлы изменены:** `backend/server.js`.
 - **Проверка:** `node --check backend/server.js` ✅, `git push origin main` ✅.
 - **Баги остались:** —
+
+#### P11 — Hotfix: CORS для Cloudflare Pages
+- **Дата:** 2026-07-30
+- **Статус:** ✅ Выполнен
+- **Что сделано:**
+  - В `backend/server.js` обновлена настройка CORS:
+    - Добавлены явные origin'ы: `http://localhost:3000`, `http://localhost:5173`, `https://ai-viral-studio.pages.dev`, а также `process.env.FRONTEND_URL`.
+    - Добавлена динамическая проверка `*.pages.dev`.
+    - Сохранено `credentials: true`.
+  - Изменения запушены в GitHub: `main`.
+- **Файлы изменены:** `backend/server.js`.
+- **Проверка:** `node --check backend/server.js` ✅, `git push origin main` ✅.
+- **Баги остались:** —

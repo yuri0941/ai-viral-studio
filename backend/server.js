@@ -56,8 +56,19 @@ app.use(cors({
         if (/^https:\/\/[^/]+\.pages\.dev$/.test(origin)) return callback(null, true)
         callback(new Error('Not allowed by CORS'))
     },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
 }))
+
+// Preflight for all routes
+app.options('*', cors())
+
+// Body parsing — BEFORE routes
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: true }))
+app.use(cookieParser())
+app.use(compression())
 
 // Rate limiting (relaxed in development)
 const limiter = rateLimit({
@@ -84,12 +95,6 @@ const loginLimiter = rateLimit({
     legacyHeaders: false,
 })
 app.use('/api/auth/login', loginLimiter)
-
-// Body parsing
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true }))
-app.use(cookieParser())
-app.use(compression())
 
 // Health check
 app.get('/health', (req, res) => {
