@@ -7,7 +7,7 @@ import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
-import { connectDB } from './config/database.js'
+import { connectDB, isConnected } from './config/database.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
 // Routes
@@ -36,9 +36,15 @@ const PORT = parseInt(process.env.PORT) || 5000
 // Connect to database before starting server
 await connectDB()
 
-// Security middleware
-app.use(helmet())
+if (!isConnected) {
+    console.error('❌ Cannot start server without MongoDB connection')
+    if (process.env.NODE_ENV === 'production') {
+        process.exit(1)
+    }
+    console.warn('⚠️  Continuing in fallback/demo mode (development only)')
+}
 
+// CORS must be first — before any route or body parser
 // CORS: explicit origins + dynamic Cloudflare Pages subdomains
 const allowedOrigins = [
     'http://localhost:3000',
@@ -63,6 +69,9 @@ app.use(cors({
 
 // Preflight for all routes
 app.options('*', cors())
+
+// Helmet after CORS so security headers apply without blocking preflight
+app.use(helmet())
 
 // Body parsing — BEFORE routes
 app.use(express.json({ limit: '10mb' }))
@@ -137,7 +146,8 @@ app.use((req, res) => {
 })
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`)
+    console.log(`🚀 Server started on port ${PORT}`)
+    console.log(`✅ MongoDB connected: ${isConnected ? 'Yes' : 'No'}`)
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
     console.log(`🔑 JWT Secret loaded: ${process.env.JWT_SECRET ? '✅ Yes' : '❌ No'}`)
     console.log(`🤖 AI Providers: Groq=${process.env.GROQ_ENABLED}, OpenRouter=${process.env.OPENROUTER_ENABLED}, DeepSeek=${process.env.DEEPSEEK_ENABLED}`)

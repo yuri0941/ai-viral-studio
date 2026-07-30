@@ -1006,3 +1006,23 @@
 - **Файлы изменены:** `backend/server.js`, `backend/routes/auth.js`.
 - **Проверка:** `node --check backend/server.js` ✅, `node --check backend/routes/auth.js` ✅, `git push origin main` ✅.
 - **Баги остались:** —
+
+#### P11 — Security fix: убрана возможность выбора роли при регистрации
+- **Дата:** 2026-07-30
+- **Статус:** ✅ Выполнен
+- **Что сделано:**
+  - `backend/routes/auth.js`:
+    - Убран `role` из деструктуризации `req.body`.
+    - Все новые регистрации принудительно получают `role = 'creator'`.
+    - Добавлена проверка: если клиент всё же передаёт `role` в `['owner', 'admin', 'staff']` — возвращается 403 `Forbidden role`.
+  - `frontend/src/components/auth/RegisterForm.jsx`:
+    - Удалён выпадающий список ролей.
+    - Удалён `role` из вызова `register`.
+    - Форма содержит только: Имя, Email, Пароль, Подтверждение пароля, согласия.
+  - `frontend/src/context/AuthContext.jsx`:
+    - Убран параметр `role` из функции `register`.
+  - `npm run build` (frontend) ✅.
+  - Изменения запушены в GitHub: `main`.
+- **Файлы изменены:** `backend/routes/auth.js`, `frontend/src/components/auth/RegisterForm.jsx`, `frontend/src/context/AuthContext.jsx`.
+- **Проверка:** `node --check backend/routes/auth.js` ✅, `node --check backend/server.js` ✅, `npm run build` ✅, `git push origin main` ✅.
+- **Баги остались:** —
