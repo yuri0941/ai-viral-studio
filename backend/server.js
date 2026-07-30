@@ -38,9 +38,25 @@ await connectDB()
 
 // Security middleware
 app.use(helmet())
+
+// CORS: explicit origins + dynamic Cloudflare Pages subdomains
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://ai-viral-studio.pages.dev',
+    process.env.FRONTEND_URL,
+].filter(Boolean)
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true
+    origin: function (origin, callback) {
+        // Allow requests with no origin (curl, server-to-server, mobile apps)
+        if (!origin) return callback(null, true)
+        if (allowedOrigins.includes(origin)) return callback(null, true)
+        // Allow any *.pages.dev subdomain
+        if (/^https:\/\/[^/]+\.pages\.dev$/.test(origin)) return callback(null, true)
+        callback(new Error('Not allowed by CORS'))
+    },
+    credentials: true,
 }))
 
 // Rate limiting (relaxed in development)

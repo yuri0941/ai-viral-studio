@@ -968,3 +968,14 @@
 - **Сборка:** ✅ `npm run build` (frontend) успешно.
 - **Backend:** ✅ порт 5000, регистрация, login, `/api/public/legal-info`, OMEGA Guard работают.
 - **Следующий этап:** P11 — Деплой и релиз (требуется подтверждение/учётные данные Render/Vercel/MongoDB Atlas).
+
+#### P11 — Hotfix: порядок подключения MongoDB в server.js
+- **Дата:** 2026-07-30
+- **Статус:** ✅ Выполнен
+- **Что сделано:**
+  - В `backend/server.js` изменён порядок: `await connectDB()` теперь вызывается ДО `app.listen()`.
+  - Это устраняет ошибку на Render: `Cannot call ownerlegalinfos.findOne() before initial connection is complete if bufferCommands = false`.
+  - Изменения запушены в GitHub: `main`.
+- **Файлы изменены:** `backend/server.js`.
+- **Проверка:** `node --check backend/server.js` ✅, `git push origin main` ✅.
+- **Баги остались:** —
