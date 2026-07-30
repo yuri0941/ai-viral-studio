@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { API_URL } from '../config.js'
 
 // Создаём контекст
 const AuthContext = createContext(null)
@@ -23,7 +24,7 @@ export const AuthProvider = ({ children }) => {
             const token = localStorage.getItem('token')
             if (token) {
                 try {
-                    const response = await fetch('/api/auth/me', {
+                    const response = await fetch(`${API_URL}/auth/me`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     })
                     const data = await response.json()
@@ -44,7 +45,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -64,7 +65,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (name, email, password, consent = {}) => {
         try {
-            const response = await fetch('/api/auth/register', {
+            const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -106,7 +107,7 @@ export const AuthProvider = ({ children }) => {
     const updatePreferences = async (preferences) => {
         try {
             const token = localStorage.getItem('token')
-            const response = await fetch('/api/users/me', {
+            const response = await fetch(`${API_URL}/users/me`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

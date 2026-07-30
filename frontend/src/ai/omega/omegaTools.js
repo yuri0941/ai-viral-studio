@@ -3,6 +3,8 @@
 // Версия: 1.0 Lite (фундамент для OMEGA v5)
 // ============================================
 
+import { API_BASE_URL } from '../../config.js'
+
 /**
  * Встроенные инструменты OMEGA.
  * Каждый инструмент описывает контракт params + execute(params, omega).
@@ -187,7 +189,7 @@ export const OMEGA_TOOLS = [
         description: 'Запускает простой перформанс-тест.',
         params: { endpoint: 'string', duration: 'number' },
         execute: async (params) => ({
-            endpoint: params.endpoint || '/api/health',
+            endpoint: params.endpoint || `${API_BASE_URL}/health`,
             duration: params.duration || 30,
             requests: 1000,
             avgLatency: 45,

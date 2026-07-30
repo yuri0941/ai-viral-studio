@@ -2,7 +2,9 @@
 // API Service — обёртки для backend эндпоинтов
 // ============================================
 
-const API_BASE = '/api'
+import { API_URL } from '../config.js'
+
+const API_BASE = API_URL
 
 function getAuthHeaders() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null

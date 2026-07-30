@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { API_BASE_URL } from '../config.js'
 
 const AdContext = createContext()
 
@@ -71,7 +72,7 @@ export const AdProvider = ({ children }) => {
         trackImpression: async (slot, page) => {
             try {
                 const token = localStorage.getItem('token')
-                await fetch('http://localhost:5000/api/ads/impression', {
+                await fetch(`${API_BASE_URL}/ads/impression`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -90,7 +91,7 @@ export const AdProvider = ({ children }) => {
         trackClick: async (impressionId) => {
             try {
                 const token = localStorage.getItem('token')
-                await fetch(`http://localhost:5000/api/ads/click/${impressionId}`, {
+                await fetch(`${API_BASE_URL}/ads/click/${impressionId}`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`

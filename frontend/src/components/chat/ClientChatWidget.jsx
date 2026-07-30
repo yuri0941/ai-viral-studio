@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { MessageSquare, X, Send, Paperclip, Bot, User, CheckCircle, ChevronRight, Loader2 } from 'lucide-react'
 import { omegaApi } from '../../services/api'
+import { API_URL } from '../../config.js'
 
 const STEPS = [
     { key: 'greeting', label: 'Приветствие' },
@@ -143,7 +144,7 @@ export function ClientChatWidget() {
     const submitRequest = useCallback(async () => {
         setStatus('submitted')
         try {
-            const res = await fetch('/api/ad-requests', {
+            const res = await fetch(`${API_URL}/ad-requests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

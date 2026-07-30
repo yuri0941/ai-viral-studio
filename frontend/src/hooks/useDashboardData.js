@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
+import { API_BASE_URL } from '../config.js'
+
 const FALLBACK_DATA = {
     overview: {
         totalUsers: 0,
@@ -20,11 +22,11 @@ const FALLBACK_DATA = {
 }
 
 const ENDPOINTS = {
-    overview: '/api/owner/overview',
-    finance: '/api/owner/finance',
-    team: '/api/owner/team',
-    servers: '/api/owner/servers',
-    subscriptions: '/api/owner/subscriptions'
+    overview: `${API_BASE_URL}/owner/overview`,
+    finance: `${API_BASE_URL}/owner/finance`,
+    team: `${API_BASE_URL}/owner/team`,
+    servers: `${API_BASE_URL}/owner/servers`,
+    subscriptions: `${API_BASE_URL}/owner/subscriptions`
 }
 
 export function useDashboardData(key, options = {}) {

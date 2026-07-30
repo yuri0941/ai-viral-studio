@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 import {
     User, Diamond, Link2, Bell, Shield, Palette, LogOut,
@@ -99,7 +100,7 @@ function SettingsPage() {
     const handleStripePayment = async (plan) => {
         try {
             setPaymentLoading(true);
-            const response = await fetch('http://localhost:5000/api/payments/create-checkout-session', {
+            const response = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -126,7 +127,7 @@ function SettingsPage() {
     const handleCryptoPayment = async (plan) => {
         try {
             setPaymentLoading(true);
-            const response = await fetch('http://localhost:5000/api/payments/crypto-charge', {
+            const response = await fetch(`${API_BASE_URL}/payments/crypto-charge`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

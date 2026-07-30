@@ -1026,3 +1026,32 @@
 - **Файлы изменены:** `backend/routes/auth.js`, `frontend/src/components/auth/RegisterForm.jsx`, `frontend/src/context/AuthContext.jsx`.
 - **Проверка:** `node --check backend/routes/auth.js` ✅, `node --check backend/server.js` ✅, `npm run build` ✅, `git push origin main` ✅.
 - **Баги остались:** —
+
+#### P11 — Production audit: CORS, auth role security, MongoDB Atlas, endpoints
+- **Дата:** 2026-07-30
+- **Статус:** ✅ Выполнен
+- **Что сделано:**
+  - `backend/server.js`:
+    - CORS middleware перемещён ПЕРВЫМ, до `helmet()` и роутов.
+    - Добавлены origins: `localhost:3000`, `localhost:5173`, `https://ai-viral-studio.pages.dev`, `process.env.FRONTEND_URL`, `*.pages.dev`.
+    - Добавлен `app.options('*', cors())` для preflight.
+    - Указаны `methods`, `allowedHeaders`, `credentials: true`.
+    - `helmet()` теперь после CORS, чтобы не блокировать preflight.
+    - Добавлена проверка `isConnected` после `connectDB()`: в production сервер не стартует без MongoDB.
+    - Добавлено логирование `Server started on port X` и `MongoDB connected: Yes/No`.
+  - `backend/routes/auth.js`:
+    - `role` принудительно `creator` для всех новых регистраций.
+    - Попытка передать `owner`/`admin`/`staff` возвращает 403 `Forbidden role`.
+  - `frontend/.gitignore` создан: исключает `node_modules`, `dist`, `.env`, логи.
+  - Проверка production backend:
+    - `GET https://aiviral-backend.onrender.com/health` → `{"status":"ok"}`.
+    - `GET /api/public/legal-info` → returns fallback legal info.
+    - `OPTIONS /api/auth/login` → 204 с CORS-заголовками.
+    - `POST /api/auth/login` (owner@ai-viral.com) → token, role=owner.
+    - `POST /api/auth/register` (liveclient2026@example.com) → token, role=creator.
+    - `POST /api/omega/chat` → ответ OMEGA (provider=demo, т.к. API keys не настроены на Render).
+  - Изменения запушены в GitHub: `main`.
+- **Файлы изменены:** `backend/server.js`, `frontend/.gitignore`, `PROGRESS_REPORT.md`.
+- **Проверка:** `node --check backend/server.js` ✅, `git push origin main` ✅, production curl tests ✅.
+- **Баги остались / требуют ручной настройки:**
+  - OMEGA отвечает в demo-режиме — нужно добавить API-ключи в Environment Variables Render (Groq/OpenRouter/Gemini/GitHub) или в коллекцию `apikeys` Atlas.
