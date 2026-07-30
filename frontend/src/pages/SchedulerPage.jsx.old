@@ -1,0 +1,561 @@
+import { useState, useRef, useCallback } from 'react'
+import { format, addDays, startOfWeek, isSameDay } from 'date-fns'
+import { ru } from 'date-fns/locale'
+
+function SchedulerPage() {
+    const [currentDate, setCurrentDate] = useState(new Date())
+    const [view, setView] = useState('week')
+    const [selectedSlot, setSelectedSlot] = useState(null)
+    const [showModal, setShowModal] = useState(false)
+    const [dragActive, setDragActive] = useState(false)
+    const [uploadedFile, setUploadedFile] = useState(null)
+    const fileInputRef = useRef(null)
+
+    // Посты в календаре
+    const [posts, setPosts] = useState([
+        {
+            id: 1,
+            title: 'Топ 5 лайфхаков',
+            platform: 'TikTok',
+            date: new Date(2026, 6, 21, 18, 0),
+            status: 'scheduled',
+            type: 'video',
+            file: null
+        },
+        {
+            id: 2,
+            title: 'Обзор гаджета',
+            platform: 'YouTube',
+            date: new Date(2026, 6, 22, 12, 0),
+            status: 'scheduled',
+            type: 'video',
+            file: null
+        },
+        {
+            id: 3,
+            title: 'Мотивация понедельника',
+            platform: 'Instagram',
+            date: new Date(2026, 6, 23, 9, 0),
+            status: 'draft',
+            type: 'image',
+            file: null
+        },
+        {
+            id: 4,
+            title: 'Тред о продуктивности',
+            platform: 'Twitter',
+            date: new Date(2026, 6, 24, 15, 0),
+            status: 'scheduled',
+            type: 'text',
+            file: null
+        },
+        {
+            id: 5,
+            title: 'Behind the scenes',
+            platform: 'TikTok',
+            date: new Date(2026, 6, 21, 20, 0),
+            status: 'published',
+            type: 'video',
+            file: null
+        }
+    ])
+
+    // Форма нового поста
+    const [newPost, setNewPost] = useState({
+        title: '',
+        description: '',
+        platforms: [],
+        hashtags: '',
+        scheduledDate: '',
+        scheduledTime: '',
+        file: null
+    })
+
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+    const timeSlots = Array.from({ length: 24 }, (_, i) => i)
+
+    const platformColors = {
+        TikTok: 'bg-[#00ff41]/20 text-[#00ff41] border-[#00ff41]/30',
+        YouTube: 'bg-red-500/20 text-red-400 border-red-500/30',
+        Instagram: 'bg-[#2563eb]/20 text-[#2563eb] border-[#2563eb]/30',
+        Twitter: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        Facebook: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+        Telegram: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
+        VK: 'bg-blue-600/20 text-blue-500 border-blue-600/30'
+    }
+
+    const platformIcons = {
+        TikTok: '🎵',
+        YouTube: '▶️',
+        Instagram: '📷',
+        Twitter: '🐦',
+        Facebook: '👥',
+        Telegram: '✈️',
+        VK: '🔵'
+    }
+
+    const statusIcons = {
+        scheduled: '⏰',
+        draft: '📝',
+        published: '✅'
+    }
+
+    const getPostsForDay = (day) => {
+        return posts.filter(post => isSameDay(post.date, day))
+    }
+
+    const getPostsForHour = (day, hour) => {
+        return posts.filter(post =>
+            isSameDay(post.date, day) &&
+            post.date.getHours() === hour
+        )
+    }
+
+    const handleSlotClick = (day, hour) => {
+        setSelectedSlot({ day, hour })
+        setNewPost({
+            ...newPost,
+            scheduledDate: format(day, 'yyyy-MM-dd'),
+            scheduledTime: String(hour).padStart(2, '0') + ':00'
+        })
+        setUploadedFile(null)
+        setShowModal(true)
+    }
+
+    // Drag & Drop handlers
+    const handleDrag = useCallback((e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (e.type === 'dragenter' || e.type === 'dragover') {
+            setDragActive(true)
+        } else if (e.type === 'dragleave') {
+            setDragActive(false)
+        }
+    }, [])
+
+    const handleDrop = useCallback((e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDragActive(false)
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0])
+        }
+    }, [])
+
+    const handleFile = (file) => {
+        setUploadedFile({
+            name: file.name,
+            size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+            type: file.type,
+            preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+        })
+        setNewPost({ ...newPost, file })
+    }
+
+    const handleFileInput = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0])
+        }
+    }
+
+    const handleCreatePost = (e) => {
+        e.preventDefault()
+        const [year, month, day] = newPost.scheduledDate.split('-').map(Number)
+        const [hours, minutes] = newPost.scheduledTime.split(':').map(Number)
+
+        const post = {
+            id: posts.length + 1,
+            title: newPost.title,
+            platform: newPost.platforms[0] || 'TikTok',
+            date: new Date(year, month - 1, day, hours, minutes),
+            status: 'scheduled',
+            type: uploadedFile ? (uploadedFile.type.startsWith('video/') ? 'video' : 'image') : 'text',
+            file: uploadedFile,
+            description: newPost.description,
+            hashtags: newPost.hashtags,
+            platforms: newPost.platforms
+        }
+
+        setPosts([...posts, post])
+        setShowModal(false)
+        setNewPost({
+            title: '',
+            description: '',
+            platforms: [],
+            hashtags: '',
+            scheduledDate: '',
+            scheduledTime: '',
+            file: null
+        })
+        setUploadedFile(null)
+    }
+
+    const togglePlatform = (platform) => {
+        setNewPost(prev => ({
+            ...prev,
+            platforms: prev.platforms.includes(platform)
+                ? prev.platforms.filter(p => p !== platform)
+                : [...prev.platforms, platform]
+        }))
+    }
+
+    const generateHashtags = () => {
+        const tags = ['#viral', '#trending', '#content', '#creator', '#growth', '#socialmedia', '#marketing']
+        const shuffled = tags.sort(() => 0.5 - Math.random())
+        setNewPost({ ...newPost, hashtags: shuffled.slice(0, 5).join(' ') })
+    }
+
+    return (
+        <div className="min-h-screen bg-[#0a0a0f] text-white">
+
+            <main className="lg:ml-64 min-h-screen">
+                <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2">📅 Планировщик</h1>
+                            <p className="text-gray-400">Управляй публикациями и контент-планом</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setCurrentDate(addDays(currentDate, -7))}
+                                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            <span className="text-lg font-medium min-w-[200px] text-center">
+                                {format(weekStart, 'd MMMM', { locale: ru })} - {format(addDays(weekStart, 6), 'd MMMM yyyy', { locale: ru })}
+                            </span>
+                            <button
+                                onClick={() => setCurrentDate(addDays(currentDate, 7))}
+                                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                            <button
+                                onClick={() => setCurrentDate(new Date())}
+                                className="ml-2 px-4 py-2 rounded-xl bg-[#00ff41]/10 text-[#00ff41] hover:bg-[#00ff41]/20 transition-colors text-sm font-medium"
+                            >
+                                Сегодня
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+                        {[
+                            { label: 'Запланировано', value: posts.filter(p => p.status === 'scheduled').length, color: 'text-[#00ff41]' },
+                            { label: 'Черновики', value: posts.filter(p => p.status === 'draft').length, color: 'text-yellow-400' },
+                            { label: 'Опубликовано', value: posts.filter(p => p.status === 'published').length, color: 'text-blue-400' },
+                            { label: 'На этой неделе', value: posts.filter(p => isSameDay(p.date, currentDate) || p.date > currentDate).length, color: 'text-white' },
+                            { label: 'Платформ', value: [...new Set(posts.map(p => p.platform))].length, color: 'text-purple-400' },
+                        ].map((stat, i) => (
+                            <div key={i} className="bg-white/5 border border-white/5 rounded-2xl p-4 text-center">
+                                <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
+                                <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Quick Upload Zone */}
+                    <div
+                        className={`mb-8 p-8 rounded-2xl border-2 border-dashed transition-all cursor-pointer ${dragActive
+                            ? 'border-[#00ff41] bg-[#00ff41]/5'
+                            : 'border-white/10 bg-white/5 hover:border-white/20'
+                            }`}
+                        onDragEnter={handleDrag}
+                        onDragLeave={handleDrag}
+                        onDragOver={handleDrag}
+                        onDrop={handleDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            accept="image/*,video/*,audio/*"
+                            onChange={handleFileInput}
+                        />
+                        <div className="text-center">
+                            <div className="text-4xl mb-3">📁</div>
+                            <p className="text-lg font-medium mb-1">
+                                {dragActive ? 'Отпустите файл здесь' : 'Перетащите файл или нажмите для загрузки'}
+                            </p>
+                            <p className="text-sm text-gray-400">
+                                Поддерживаются: JPG, PNG, MP4, MOV, MP3 (до 500MB)
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden">
+                        {/* Days Header */}
+                        <div className="grid grid-cols-8 border-b border-white/5">
+                            <div className="p-4 text-sm text-gray-500 font-medium border-r border-white/5">Время</div>
+                            {weekDays.map((day, i) => (
+                                <div key={i} className={`p-4 text-center border-r border-white/5 last:border-r-0 ${isSameDay(day, new Date()) ? 'bg-[#00ff41]/5' : ''
+                                    }`}>
+                                    <p className="text-xs text-gray-500 uppercase">{format(day, 'EEE', { locale: ru })}</p>
+                                    <p className={`text-lg font-bold mt-1 ${isSameDay(day, new Date()) ? 'text-[#00ff41]' : ''}`}>
+                                        {format(day, 'd')}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Time Slots */}
+                        <div className="max-h-[600px] overflow-y-auto">
+                            {timeSlots.map(hour => (
+                                <div key={hour} className="grid grid-cols-8 border-b border-white/5 min-h-[80px]">
+                                    <div className="p-3 text-xs text-gray-500 font-medium border-r border-white/5 flex items-start justify-center pt-2">
+                                        {String(hour).padStart(2, '0')}:00
+                                    </div>
+                                    {weekDays.map((day, dayIndex) => {
+                                        const hourPosts = getPostsForHour(day, hour)
+                                        return (
+                                            <div
+                                                key={dayIndex}
+                                                onClick={() => hourPosts.length === 0 && handleSlotClick(day, hour)}
+                                                className={`p-2 border-r border-white/5 last:border-r-0 relative group ${isSameDay(day, new Date()) ? 'bg-[#00ff41]/[0.02]' : ''
+                                                    } ${hourPosts.length === 0 ? 'cursor-pointer hover:bg-white/5' : ''}`}
+                                            >
+                                                {hourPosts.map(post => (
+                                                    <div
+                                                        key={post.id}
+                                                        className={`p-2 rounded-lg border text-xs mb-1 ${platformColors[post.platform]}`}
+                                                    >
+                                                        <div className="flex items-center gap-1 mb-1">
+                                                            <span>{statusIcons[post.status]}</span>
+                                                            <span className="font-medium truncate">{post.title}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 opacity-70">
+                                                            <span>{format(post.date, 'HH:mm')}</span>
+                                                            <span>•</span>
+                                                            <span>{post.platform}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {hourPosts.length === 0 && (
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <span className="text-2xl text-gray-600">+</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Upcoming List */}
+                    <div className="mt-8 bg-white/5 border border-white/5 rounded-2xl p-6">
+                        <h3 className="font-bold mb-4">🚀 Ближайшие публикации</h3>
+                        <div className="space-y-3">
+                            {posts
+                                .filter(p => p.status !== 'published')
+                                .sort((a, b) => a.date - b.date)
+                                .map(post => (
+                                    <div key={post.id} className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] hover:bg-white/5 transition-colors">
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg ${platformColors[post.platform]}`}>
+                                            {platformIcons[post.platform]}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium truncate">{post.title}</p>
+                                            <p className="text-sm text-gray-400">
+                                                {format(post.date, 'd MMMM, HH:mm', { locale: ru })} • {post.platform}
+                                            </p>
+                                        </div>
+                                        <span className={`text-xs px-3 py-1.5 rounded-full ${post.status === 'scheduled' ? 'bg-[#00ff41]/10 text-[#00ff41]' :
+                                            post.status === 'draft' ? 'bg-yellow-500/10 text-yellow-400' :
+                                                'bg-blue-500/10 text-blue-400'
+                                            }`}>
+                                            {post.status === 'scheduled' ? 'Запланировано' :
+                                                post.status === 'draft' ? 'Черновик' : 'Опубликовано'}
+                                        </span>
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            {/* Create Post Modal */}
+            {showModal && selectedSlot && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowModal(false)}>
+                    <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-2xl font-bold mb-2">🆕 Новая публикация</h3>
+                        <p className="text-gray-400 mb-6">
+                            {format(selectedSlot.day, 'd MMMM', { locale: ru })} в {String(selectedSlot.hour).padStart(2, '0')}:00
+                        </p>
+
+                        <form onSubmit={handleCreatePost} className="space-y-5">
+                            {/* File Upload */}
+                            <div
+                                className={`p-6 rounded-xl border-2 border-dashed transition-all cursor-pointer ${dragActive
+                                    ? 'border-[#00ff41] bg-[#00ff41]/5'
+                                    : 'border-white/10 bg-white/5 hover:border-white/20'
+                                    }`}
+                                onDragEnter={handleDrag}
+                                onDragLeave={handleDrag}
+                                onDragOver={handleDrag}
+                                onDrop={handleDrop}
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*,video/*,audio/*"
+                                    onChange={handleFileInput}
+                                />
+                                {uploadedFile ? (
+                                    <div className="text-center">
+                                        {uploadedFile.preview ? (
+                                            <img src={uploadedFile.preview} alt="Preview" className="max-h-40 mx-auto rounded-lg mb-3" />
+                                        ) : (
+                                            <div className="text-4xl mb-3">📄</div>
+                                        )}
+                                        <p className="font-medium">{uploadedFile.name}</p>
+                                        <p className="text-sm text-gray-400">{uploadedFile.size}</p>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setUploadedFile(null)
+                                                setNewPost({ ...newPost, file: null })
+                                            }}
+                                            className="mt-2 text-sm text-red-400 hover:text-red-300"
+                                        >
+                                            Удалить файл
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="text-center">
+                                        <div className="text-3xl mb-2">📁</div>
+                                        <p className="text-sm text-gray-400">
+                                            {dragActive ? 'Отпустите файл' : 'Перетащите файл или нажмите'}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Title */}
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Название</label>
+                                <input
+                                    type="text"
+                                    value={newPost.title}
+                                    onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                                    placeholder="Название поста"
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#00ff41]/30"
+                                    required
+                                />
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Описание</label>
+                                <textarea
+                                    value={newPost.description}
+                                    onChange={(e) => setNewPost({ ...newPost, description: e.target.value })}
+                                    placeholder="Опишите контент..."
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#00ff41]/30 h-24 resize-none"
+                                />
+                            </div>
+
+                            {/* Platforms */}
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Платформы</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.keys(platformColors).map(platform => (
+                                        <button
+                                            key={platform}
+                                            type="button"
+                                            onClick={() => togglePlatform(platform)}
+                                            className={`px-4 py-2 rounded-xl border text-sm transition-all ${newPost.platforms.includes(platform)
+                                                ? platformColors[platform]
+                                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                                                }`}
+                                        >
+                                            {platformIcons[platform]} {platform}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Hashtags */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-sm text-gray-400">Хэштеги</label>
+                                    <button
+                                        type="button"
+                                        onClick={generateHashtags}
+                                        className="text-xs text-[#00ff41] hover:text-[#00ff41]/80"
+                                    >
+                                        ✨ Сгенерировать AI
+                                    </button>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={newPost.hashtags}
+                                    onChange={(e) => setNewPost({ ...newPost, hashtags: e.target.value })}
+                                    placeholder="#viral #trending #content"
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#00ff41]/30"
+                                />
+                            </div>
+
+                            {/* Date & Time */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-2">Дата</label>
+                                    <input
+                                        type="date"
+                                        value={newPost.scheduledDate}
+                                        onChange={(e) => setNewPost({ ...newPost, scheduledDate: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00ff41]/30"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-2">Время</label>
+                                    <input
+                                        type="time"
+                                        value={newPost.scheduledTime}
+                                        onChange={(e) => setNewPost({ ...newPost, scheduledTime: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00ff41]/30"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="flex-1 py-3 rounded-xl bg-white/5 text-white hover:bg-white/10 transition-colors"
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 py-3 rounded-xl bg-[#00ff41] text-black font-semibold hover:bg-[#00ff41]/90 transition-colors"
+                                >
+                                    Запланировать
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
+export default SchedulerPage

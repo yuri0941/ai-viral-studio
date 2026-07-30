@@ -1,0 +1,258 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: #00ff41;
+    --primary-dark: #00cc33;
+    --secondary: #2563eb;
+    --accent: #f0883e;
+    --bg-dark: #0a0a0f;
+    --bg-card: rgba(255, 255, 255, 0.03);
+    --glass: rgba(255, 255, 255, 0.05);
+    --glass-hover: rgba(255, 255, 255, 0.08);
+    --text: #ffffff;
+    --text-muted: rgba(255, 255, 255, 0.6);
+    --border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Glow backgrounds */
+.glow-green {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0, 255, 65, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.glow-blue {
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+@layer components {
+    .glass {
+        background: var(--glass);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+    }
+
+    .glass:hover {
+        background: var(--glass-hover);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .gradient-text {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .btn {
+        padding: 14px 28px;
+        border-radius: 12px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: #000;
+        box-shadow: 0 4px 15px rgba(0, 255, 65, 0.3);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 255, 65, 0.5);
+    }
+
+    .btn-secondary {
+        background: var(--glass);
+        color: var(--text);
+        border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .section-title {
+        font-size: 3rem;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .section-subtitle {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        text-align: center;
+        margin-bottom: 4rem;
+    }
+}
+
+/* Animations */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 4s ease-in-out infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+/* Selection */
+::selection {
+    background: rgba(0, 255, 65, 0.3);
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .section-title {
+        font-size: 2rem;
+    }
+}
+/* Тёмные стили для option в select */
+select option {
+    background-color: #0f0f1a;
+    color: white;
+}
+
+select option:hover,
+select option:focus {
+    background-color: #1a1a2e;
+}
+
+/* Legal pages typography */
+.legal-page-content h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text, #f5f5f7);
+    margin-bottom: 1rem;
+}
+.legal-page-content h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text, #f5f5f7);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+.legal-page-content p {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+.legal-page-content ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+.legal-page-content li {
+    margin-bottom: 0.25rem;
+}
+.legal-page-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+.legal-page-content th,
+.legal-page-content td {
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 0.5rem;
+    text-align: left;
+}
+.legal-page-content th {
+    background: rgba(255,255,255,0.05);
+    font-weight: 600;
+}
+.legal-page-content strong {
+    font-weight: 600;
+    color: var(--text, #f5f5f7);
+}

@@ -1,0 +1,439 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+    Calendar, ChevronLeft, ChevronRight, Plus, Clock,
+    Video, Image, FileText, Trash2, Edit3, Upload,
+    Sparkles, Hash, Type, AlertCircle
+} from 'lucide-react';
+
+function SchedulerPage() {
+    const navigate = useNavigate();
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [posts, setPosts] = useState([
+        { id: 1, title: 'Обзор iPhone 16', platform: 'youtube', date: '2026-07-21', time: '15:00', type: 'video', status: 'scheduled' },
+        { id: 2, title: 'Тренды TikTok', platform: 'tiktok', date: '2026-07-22', time: '12:00', type: 'short', status: 'draft' },
+        { id: 3, title: 'Reels о путешествиях', platform: 'instagram', date: '2026-07-23', time: '18:00', type: 'reels', status: 'scheduled' },
+    ]);
+    const [showModal, setShowModal] = useState(false);
+    const [editingPost, setEditingPost] = useState(null);
+    const [formData, setFormData] = useState({
+        title: '', platform: 'youtube', date: '', time: '', type: 'video', description: '', tags: ''
+    });
+    const [activeTab, setActiveTab] = useState('week');
+    const [dragOver, setDragOver] = useState(false);
+
+    const platforms = [
+        { id: 'youtube', name: 'YouTube', color: '#FF0000', icon: '▶️' },
+        { id: 'tiktok', name: 'TikTok', color: '#00f2ea', icon: '🎵' },
+        { id: 'instagram', name: 'Instagram', color: '#E4405F', icon: '📷' },
+        { id: 'twitter', name: 'Twitter', color: '#1DA1F2', icon: '🐦' },
+        { id: 'telegram', name: 'Telegram', color: '#0088cc', icon: '✈️' },
+        { id: 'vk', name: 'VK', color: '#4C75A3', icon: '🔵' },
+    ];
+
+    const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+    const getWeekStart = (date) => {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(d.setDate(diff));
+    };
+
+    const weekStart = getWeekStart(currentDate);
+    const weekDates = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + i);
+        return d;
+    });
+
+    const getPostsForDate = (date) => {
+        const dateStr = date.toISOString().split('T')[0];
+        return posts.filter(p => p.date === dateStr);
+    };
+
+    const getPlatformIcon = (platform) => {
+        const p = platforms.find(pl => pl.id === platform);
+        return p ? p.icon : '📱';
+    };
+
+    const getPlatformColor = (platform) => {
+        const p = platforms.find(pl => pl.id === platform);
+        return p ? p.color : '#666';
+    };
+
+    const getTypeIcon = (type) => {
+        switch (type) {
+            case 'video': return <Video size={14} />;
+            case 'short': return <Sparkles size={14} />;
+            case 'reels': return <Image size={14} />;
+            default: return <FileText size={14} />;
+        }
+    };
+
+    const handlePrevWeek = () => {
+        const d = new Date(currentDate);
+        d.setDate(d.getDate() - 7);
+        setCurrentDate(d);
+    };
+
+    const handleNextWeek = () => {
+        const d = new Date(currentDate);
+        d.setDate(d.getDate() + 7);
+        setCurrentDate(d);
+    };
+
+    const handleToday = () => setCurrentDate(new Date());
+
+    const openModal = (post = null, date = null) => {
+        if (post) {
+            setEditingPost(post);
+            setFormData({
+                title: post.title,
+                platform: post.platform,
+                date: post.date,
+                time: post.time,
+                type: post.type,
+                description: post.description || '',
+                tags: post.tags || ''
+            });
+        } else {
+            setEditingPost(null);
+            setFormData({
+                title: '',
+                platform: 'youtube',
+                date: date || new Date().toISOString().split('T')[0],
+                time: '12:00',
+                type: 'video',
+                description: '',
+                tags: ''
+            });
+        }
+        setShowModal(true);
+    };
+
+    const handleSave = () => {
+        if (!formData.title.trim()) return;
+        if (editingPost) {
+            setPosts(posts.map(p => p.id === editingPost.id ? { ...p, ...formData } : p));
+        } else {
+            setPosts([...posts, { ...formData, id: Date.now(), status: 'scheduled' }]);
+        }
+        setShowModal(false);
+    };
+
+    const handleDelete = (id) => {
+        setPosts(posts.filter(p => p.id !== id));
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setDragOver(true);
+    };
+
+    const handleDragLeave = () => setDragOver(false);
+
+    const handleDrop = (e, date) => {
+        e.preventDefault();
+        setDragOver(false);
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            const dateStr = date.toISOString().split('T')[0];
+            openModal(null, dateStr);
+        }
+    };
+
+    const generateAI = (type) => {
+        if (type === 'tags') {
+            setFormData({ ...formData, tags: '#viral #trending #content #creator #studio' });
+        } else if (type === 'desc') {
+            setFormData({ ...formData, description: 'Крутой контент для вашей аудитории! Подписывайтесь и ставьте лайки!' });
+        }
+    };
+
+    const totalPosts = posts.length;
+    const scheduledPosts = posts.filter(p => p.status === 'scheduled').length;
+    const draftPosts = posts.filter(p => p.status === 'draft').length;
+    const platformCounts = platforms.map(p => ({
+        ...p,
+        count: posts.filter(post => post.platform === p.id).length
+    })).filter(p => p.count > 0);
+
+    return (
+        <div className="min-h-screen bg-[#0a0a0f] text-white p-4 md:p-6">
+            {/* Header */}
+            <div className="mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                        <Calendar size={20} className="text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold">Планировщик</h1>
+                        <p className="text-gray-400 text-sm">Создавайте и планируйте публикации</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                <div className="bg-[#1a1a24] rounded-xl p-4 border border-emerald-500/20">
+                    <div className="text-emerald-400 text-xs font-medium mb-1">Всего постов</div>
+                    <div className="text-2xl font-bold">{totalPosts}</div>
+                </div>
+                <div className="bg-[#1a1a24] rounded-xl p-4 border border-yellow-500/20">
+                    <div className="text-yellow-400 text-xs font-medium mb-1">Запланировано</div>
+                    <div className="text-2xl font-bold">{scheduledPosts}</div>
+                </div>
+                <div className="bg-[#1a1a24] rounded-xl p-4 border border-blue-500/20">
+                    <div className="text-blue-400 text-xs font-medium mb-1">Черновики</div>
+                    <div className="text-2xl font-bold">{draftPosts}</div>
+                </div>
+                {platformCounts.slice(0, 2).map(p => (
+                    <div key={p.id} className="bg-[#1a1a24] rounded-xl p-4 border border-white/5">
+                        <div className="text-xs font-medium mb-1" style={{ color: p.color }}>{p.name}</div>
+                        <div className="text-2xl font-bold">{p.count}</div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+                <div className="flex items-center gap-2">
+                    <button onClick={handlePrevWeek} className="p-2 rounded-lg bg-[#1a1a24] hover:bg-[#252530] transition-colors">
+                        <ChevronLeft size={18} />
+                    </button>
+                    <div className="px-4 py-2 bg-[#1a1a24] rounded-lg font-medium min-w-[200px] text-center">
+                        {weekDates[0].getDate()} {monthNames[weekDates[0].getMonth()]} — {weekDates[6].getDate()} {monthNames[weekDates[6].getMonth()]} {weekDates[6].getFullYear()}
+                    </div>
+                    <button onClick={handleNextWeek} className="p-2 rounded-lg bg-[#1a1a24] hover:bg-[#252530] transition-colors">
+                        <ChevronRight size={18} />
+                    </button>
+                    <button onClick={handleToday} className="px-3 py-2 rounded-lg bg-emerald-600/20 text-emerald-400 text-sm font-medium hover:bg-emerald-600/30 transition-colors">
+                        Сегодня
+                    </button>
+                </div>
+                <button
+                    onClick={() => openModal()}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-105"
+                >
+                    <Plus size={18} /> Новый пост
+                </button>
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="bg-[#1a1a24] rounded-xl border border-white/5 overflow-hidden">
+                <div className="grid grid-cols-7 border-b border-white/5">
+                    {weekDays.map((day, i) => {
+                        const date = weekDates[i];
+                        const isToday = new Date().toDateString() === date.toDateString();
+                        return (
+                            <div key={day} className={`p-3 text-center border-r border-white/5 last:border-r-0 ${isToday ? 'bg-emerald-500/10' : ''}`}>
+                                <div className="text-xs text-gray-400 mb-1">{day}</div>
+                                <div className={`text-lg font-bold ${isToday ? 'text-emerald-400' : ''}`}>{date.getDate()}</div>
+                                {isToday && <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full mx-auto mt-1"></div>}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="grid grid-cols-7 min-h-[400px]">
+                    {weekDates.map((date, i) => {
+                        const dayPosts = getPostsForDate(date);
+                        const isToday = new Date().toDateString() === date.toDateString();
+                        return (
+                            <div
+                                key={i}
+                                className={`border-r border-white/5 last:border-r-0 p-2 min-h-[400px] relative ${isToday ? 'bg-emerald-500/5' : ''} ${dragOver ? 'bg-emerald-500/10' : ''}`}
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => handleDrop(e, date)}
+                            >
+                                {dayPosts.length === 0 ? (
+                                    <button
+                                        onClick={() => openModal(null, date.toISOString().split('T')[0])}
+                                        className="w-full h-full flex flex-col items-center justify-center text-gray-600 hover:text-gray-400 transition-colors group"
+                                    >
+                                        <Plus size={20} className="mb-2 group-hover:scale-110 transition-transform" />
+                                        <span className="text-xs">Добавить</span>
+                                    </button>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {dayPosts.map(post => (
+                                            <div
+                                                key={post.id}
+                                                className="p-2 rounded-lg bg-[#252530] border border-white/5 hover:border-emerald-500/30 cursor-pointer transition-all hover:scale-[1.02] group"
+                                                onClick={() => openModal(post)}
+                                            >
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-sm">{getPlatformIcon(post.platform)}</span>
+                                                    <span className="text-xs font-medium truncate flex-1">{post.title}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-1 text-gray-500">
+                                                        <Clock size={10} />
+                                                        <span className="text-[10px]">{post.time}</span>
+                                                    </div>
+                                                    <div className="text-gray-500">{getTypeIcon(post.type)}</div>
+                                                </div>
+                                                <div className="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); openModal(post); }}
+                                                        className="p-1 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                                                    >
+                                                        <Edit3 size={10} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(post.id); }}
+                                                        className="p-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                                                    >
+                                                        <Trash2 size={10} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <button
+                                            onClick={() => openModal(null, date.toISOString().split('T')[0])}
+                                            className="w-full p-2 rounded-lg border border-dashed border-white/10 text-gray-500 hover:border-emerald-500/30 hover:text-emerald-400 transition-all text-xs flex items-center justify-center gap-1"
+                                        >
+                                            <Plus size={12} /> Ещё
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold">{editingPost ? 'Редактировать пост' : 'Новый пост'}</h2>
+                                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">✕</button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm text-gray-400 mb-1 block">Название</label>
+                                    <input
+                                        type="text"
+                                        value={formData.title}
+                                        onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                        placeholder="Название поста"
+                                        className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-sm text-gray-400 mb-1 block">Платформа</label>
+                                        <select
+                                            value={formData.platform}
+                                            onChange={e => setFormData({ ...formData, platform: e.target.value })}
+                                            className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                                        >
+                                            {platforms.map(p => <option key={p.id} value={p.id}>{p.icon} {p.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-gray-400 mb-1 block">Тип</label>
+                                        <select
+                                            value={formData.type}
+                                            onChange={e => setFormData({ ...formData, type: e.target.value })}
+                                            className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                                        >
+                                            <option value="video">Видео</option>
+                                            <option value="short">Shorts</option>
+                                            <option value="reels">Reels</option>
+                                            <option value="post">Пост</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-sm text-gray-400 mb-1 block">Дата</label>
+                                        <input
+                                            type="date"
+                                            value={formData.date}
+                                            onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                            className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-gray-400 mb-1 block">Время</label>
+                                        <input
+                                            type="time"
+                                            value={formData.time}
+                                            onChange={e => setFormData({ ...formData, time: e.target.value })}
+                                            className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="text-sm text-gray-400">Описание</label>
+                                        <button onClick={() => generateAI('desc')} className="text-xs text-emerald-400 flex items-center gap-1 hover:underline">
+                                            <Sparkles size={12} /> AI
+                                        </button>
+                                    </div>
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder="Описание поста..."
+                                        rows={3}
+                                        className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none resize-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="text-sm text-gray-400">Теги</label>
+                                        <button onClick={() => generateAI('tags')} className="text-xs text-emerald-400 flex items-center gap-1 hover:underline">
+                                            <Hash size={12} /> AI
+                                        </button>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={formData.tags}
+                                        onChange={e => setFormData({ ...formData, tags: e.target.value })}
+                                        placeholder="#теги #через #пробел"
+                                        className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                                    />
+                                </div>
+
+                                <div className="border-2 border-dashed border-white/10 rounded-xl p-6 text-center hover:border-emerald-500/30 transition-colors cursor-pointer">
+                                    <Upload size={24} className="mx-auto mb-2 text-gray-400" />
+                                    <p className="text-sm text-gray-400">Перетащите файл или нажмите для загрузки</p>
+                                    <p className="text-xs text-gray-600 mt-1">JPG, PNG, MP4, MOV (до 500MB)</p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    className="flex-1 px-4 py-2 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors"
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    className="flex-1 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-[1.02]"
+                                >
+                                    {editingPost ? 'Сохранить' : 'Создать'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default SchedulerPage;

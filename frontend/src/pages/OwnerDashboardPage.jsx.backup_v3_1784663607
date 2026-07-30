@@ -1,0 +1,1448 @@
+import { useState, useRef } from 'react'
+import { useAuth } from '../context/AuthContext'
+import {
+    LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area
+} from 'recharts'
+import {
+    Plus, Trash2, KeyRound, Download, Save, Wallet, ArrowUpRight,
+    Check, X, AlertCircle, UserPlus, Users, CreditCard, Building2,
+    FileText, Shield, Eye, EyeOff, LogIn, BarChart3, MessageSquare,
+    Calendar, Settings, Lock, Unlock, Activity, Briefcase, Crown,
+    ChevronRight, ExternalLink, Ban, RefreshCw, Mail, Phone,
+    MapPin, Globe, Award, TrendingUp, Clock, CheckCircle2, XCircle,
+    PauseCircle, PlayCircle, Filter, Search, MoreHorizontal, Megaphone
+, Server, Cpu, HardDrive, Zap, Upload, Gift, Newspaper, Share2,
+    Tag, Copy, Link2, ImageIcon, Send, AtSign, Percent, Ticket,
+    PenTool, Hash, DollarSign, UserCheck, Monitor, Wifi,
+    Power, Terminal, Package, Rocket, Star, ThumbsUp, MessageCircle,
+    Repeat, MousePointer, Award as AwardIcon, Bell, FileCode, Layers} from 'lucide-react'
+
+function OwnerDashboard() {
+    const { user, logout } = useAuth()
+    const [activeTab, setActiveTab] = useState('overview')
+    const [toast, setToast] = useState(null)
+    const fileInputRef = useRef(null)
+
+    const [showAddStaffModal, setShowAddStaffModal] = useState(false)
+    const [showWithdrawModal, setShowWithdrawModal] = useState(false)
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+    const [showCabinetModal, setShowCabinetModal] = useState(false)
+    const [showCabinetDetailsModal, setShowCabinetDetailsModal] = useState(false)
+    const [impersonatedCabinet, setImpersonatedCabinet] = useState(null)
+    const [editingApiKey, setEditingApiKey] = useState(null)
+    const [newApiKeyValue, setNewApiKeyValue] = useState('')
+    const [selectedStaff, setSelectedStaff] = useState(null)
+    const [selectedCabinet, setSelectedCabinet] = useState(null)
+
+    const [newStaffForm, setNewStaffForm] = useState({ name: '', email: '', role: 'staff', password: '' })
+    const [newCabinetForm, setNewCabinetForm] = useState({
+        name: '', email: '', role: 'staff', password: '',
+        department: 'support', permissions: ['chat', 'tickets'],
+        phone: '', location: '', workHours: '9:00-18:00',
+        maxConcurrentChats: 5, canWithdraw: false, canManageUsers: false,
+        canViewAnalytics: false, canManageContent: false
+    })
+    const [withdrawForm, setWithdrawForm] = useState({ amount: '', method: 'wire', account: '' })
+    const [showPassword, setShowPassword] = useState(false)
+    const [cabinetFilter, setCabinetFilter] = useState('all')
+    const [cabinetSearch, setCabinetSearch] = useState('')
+
+    const [serverFilter, setServerFilter] = useState('all')
+    const [promoFilter, setPromoFilter] = useState('all')
+    const [newsFilter, setNewsFilter] = useState('all')
+    const [referralFilter, setReferralFilter] = useState('all')
+    const revenueData = [
+        { month: 'Янв', revenue: 12000, expenses: 8000, profit: 4000 },
+        { month: 'Фев', revenue: 15000, expenses: 9000, profit: 6000 },
+        { month: 'Мар', revenue: 18000, expenses: 10000, profit: 8000 },
+        { month: 'Апр', revenue: 22000, expenses: 11000, profit: 11000 },
+        { month: 'Май', revenue: 28000, expenses: 12000, profit: 16000 },
+        { month: 'Июн', revenue: 35000, expenses: 14000, profit: 21000 },
+    ]
+
+    const planData = [
+        { name: 'Free', users: 450, color: '#6b7280' },
+        { name: 'Creator', users: 280, color: '#2563eb' },
+        { name: 'Pro', users: 150, color: '#8b5cf6' },
+        { name: 'Agency', users: 80, color: '#00ff41' },
+        { name: 'Enterprise', users: 40, color: '#f0883e' },
+    ]
+
+    const [staff, setStaff] = useState([
+        { id: 1, name: 'Иван Петров', role: 'admin', email: 'admin@ai-viral.com', status: 'active', lastActive: '2 мин назад', tasks: 45 },
+        { id: 2, name: 'Мария Сидорова', role: 'staff', email: 'maria@ai-viral.com', status: 'active', lastActive: '15 мин назад', tasks: 32 },
+        { id: 3, name: 'Алексей Иванов', role: 'staff', email: 'alex@ai-viral.com', status: 'offline', lastActive: '3 часа назад', tasks: 28 },
+        { id: 4, name: 'Ольга Козлова', role: 'advertiser', email: 'olga@ai-viral.com', status: 'active', lastActive: '5 мин назад', tasks: 12 },
+    ])
+
+    const [cabinets, setCabinets] = useState([
+        {
+            id: 1, name: 'Мария Сидорова', email: 'maria.cabinet@ai-viral.com', role: 'staff',
+            department: 'support', status: 'active', lastActive: '2 мин назад', avatar: 'М',
+            phone: '+7 (999) 123-45-67', location: 'Москва, РФ', workHours: '9:00-18:00',
+            joinedDate: '15.03.2026', permissions: ['chat', 'tickets', 'analytics_view'],
+            maxConcurrentChats: 5, canWithdraw: false, canManageUsers: false,
+            canViewAnalytics: true, canManageContent: false,
+            stats: { totalChats: 1247, resolvedTickets: 892, avgResponseTime: '2.3 мин', satisfactionRate: 94.5, monthlyMessages: 3450, activeNow: true },
+            activity: [
+                { date: '21 июл', chats: 45, tickets: 12, hours: 7.5 },
+                { date: '20 июл', chats: 38, tickets: 8, hours: 8.0 },
+                { date: '19 июл', chats: 52, tickets: 15, hours: 7.0 },
+                { date: '18 июл', chats: 41, tickets: 10, hours: 8.0 },
+                { date: '17 июл', chats: 35, tickets: 7, hours: 6.5 },
+                { date: '16 июл', chats: 48, tickets: 14, hours: 7.5 },
+                { date: '15 июл', chats: 39, tickets: 9, hours: 8.0 },
+            ],
+            recentActions: [
+                { action: 'Ответила на тикет #4567', time: '2 мин назад', type: 'success' },
+                { action: 'Закрыла чат с клиентом', time: '15 мин назад', type: 'info' },
+                { action: 'Эскалировала тикет #4568', time: '1 час назад', type: 'warning' },
+            ]
+        },
+        {
+            id: 2, name: 'Алексей Иванов', email: 'alex.cabinet@ai-viral.com', role: 'staff',
+            department: 'content', status: 'active', lastActive: '5 мин назад', avatar: 'А',
+            phone: '+7 (999) 234-56-78', location: 'Санкт-Петербург, РФ', workHours: '10:00-19:00',
+            joinedDate: '01.04.2026', permissions: ['content', 'scheduler', 'analytics_view'],
+            maxConcurrentChats: 3, canWithdraw: false, canManageUsers: false,
+            canViewAnalytics: true, canManageContent: true,
+            stats: { totalChats: 678, resolvedTickets: 445, avgResponseTime: '3.1 мин', satisfactionRate: 91.2, monthlyMessages: 1890, activeNow: true },
+            activity: [
+                { date: '21 июл', chats: 25, tickets: 8, hours: 6.0 },
+                { date: '20 июл', chats: 32, tickets: 12, hours: 7.5 },
+                { date: '19 июл', chats: 28, tickets: 6, hours: 8.0 },
+                { date: '18 июл', chats: 35, tickets: 10, hours: 7.0 },
+                { date: '17 июл', chats: 22, tickets: 5, hours: 6.0 },
+                { date: '16 июл', chats: 30, tickets: 9, hours: 7.5 },
+                { date: '15 июл', chats: 27, tickets: 7, hours: 8.0 },
+            ],
+            recentActions: [
+                { action: 'Опубликовал 3 поста в планировщик', time: '5 мин назад', type: 'success' },
+                { action: 'Проанализировал контент клиента', time: '45 мин назад', type: 'info' },
+                { action: 'Обновил базу знаний', time: '2 часа назад', type: 'info' },
+            ]
+        },
+        {
+            id: 3, name: 'Ольга Козлова', email: 'olga.cabinet@ai-viral.com', role: 'advertiser',
+            department: 'sales', status: 'paused', lastActive: '2 дня назад', avatar: 'О',
+            phone: '+7 (999) 345-67-89', location: 'Казань, РФ', workHours: '9:00-18:00',
+            joinedDate: '10.05.2026', permissions: ['campaigns', 'analytics_view', 'chat'],
+            maxConcurrentChats: 8, canWithdraw: false, canManageUsers: false,
+            canViewAnalytics: true, canManageContent: false,
+            stats: { totalChats: 2100, resolvedTickets: 1567, avgResponseTime: '1.8 мин', satisfactionRate: 96.8, monthlyMessages: 5200, activeNow: false },
+            activity: [
+                { date: '21 июл', chats: 0, tickets: 0, hours: 0 },
+                { date: '20 июл', chats: 0, tickets: 0, hours: 0 },
+                { date: '19 июл', chats: 62, tickets: 18, hours: 8.0 },
+                { date: '18 июл', chats: 55, tickets: 15, hours: 7.5 },
+                { date: '17 июл', chats: 48, tickets: 12, hours: 8.0 },
+                { date: '16 июл', chats: 58, tickets: 20, hours: 7.0 },
+                { date: '15 июл', chats: 51, tickets: 14, hours: 8.0 },
+            ],
+            recentActions: [
+                { action: 'Кабинет приостановлен владельцем', time: '2 дня назад', type: 'warning' },
+                { action: 'Закрыла сделку на $5,000', time: '3 дня назад', type: 'success' },
+                { action: 'Создала рекламную кампанию #234', time: '4 дня назад', type: 'info' },
+            ]
+        },
+        {
+            id: 4, name: 'Дмитрий Смирнов', email: 'dmitry.cabinet@ai-viral.com', role: 'admin',
+            department: 'tech', status: 'active', lastActive: '30 сек назад', avatar: 'Д',
+            phone: '+7 (999) 456-78-90', location: 'Новосибирск, РФ', workHours: '8:00-17:00',
+            joinedDate: '01.01.2026', permissions: ['all'],
+            maxConcurrentChats: 10, canWithdraw: true, canManageUsers: true,
+            canViewAnalytics: true, canManageContent: true,
+            stats: { totalChats: 3200, resolvedTickets: 2890, avgResponseTime: '1.2 мин', satisfactionRate: 98.1, monthlyMessages: 7800, activeNow: true },
+            activity: [
+                { date: '21 июл', chats: 72, tickets: 25, hours: 8.5 },
+                { date: '20 июл', chats: 68, tickets: 22, hours: 8.0 },
+                { date: '19 июл', chats: 75, tickets: 28, hours: 9.0 },
+                { date: '18 июл', chats: 65, tickets: 20, hours: 8.0 },
+                { date: '17 июл', chats: 70, tickets: 24, hours: 8.5 },
+                { date: '16 июл', chats: 63, tickets: 18, hours: 8.0 },
+                { date: '15 июл', chats: 71, tickets: 26, hours: 8.5 },
+            ],
+            recentActions: [
+                { action: 'Обновил систему безопасности', time: '30 сек назад', type: 'success' },
+                { action: 'Добавил нового сотрудника', time: '2 часа назад', type: 'info' },
+                { action: 'Провёл аудит логов', time: '5 часов назад', type: 'info' },
+            ]
+        },
+    ])
+
+    
+    const servers = [
+        { id: 1, name: 'API Server #1', region: 'Франкфурт', status: 'online', cpu: 45, ram: 62, disk: 38, uptime: '99.97%', load: 'medium' },
+        { id: 2, name: 'API Server #2', region: 'Франкфурт', status: 'online', cpu: 38, ram: 55, disk: 42, uptime: '99.95%', load: 'medium' },
+        { id: 3, name: 'AI Worker #1', region: 'Амстердам', status: 'online', cpu: 78, ram: 81, disk: 25, uptime: '99.91%', load: 'high' },
+        { id: 4, name: 'AI Worker #2', region: 'Амстердам', status: 'warning', cpu: 92, ram: 89, disk: 67, uptime: '99.82%', load: 'critical' },
+        { id: 5, name: 'DB Primary', region: 'Лондон', status: 'online', cpu: 32, ram: 48, disk: 72, uptime: '99.99%', load: 'low' },
+        { id: 6, name: 'DB Replica', region: 'Лондон', status: 'offline', cpu: 0, ram: 0, disk: 0, uptime: '0%', load: 'offline' },
+    ]
+
+    const updates = [
+        { id: 1, version: 'v2.4.0', date: '21.07.2026', status: 'published', forced: false, rollout: 100, changes: ['Новый AI анализатор', 'Улучшенный Viral Chat', 'Исправления багов'] },
+        { id: 2, version: 'v2.3.2', date: '18.07.2026', status: 'published', forced: true, rollout: 100, changes: ['Критическое исправление безопасности', 'Обновление зависимостей'] },
+        { id: 3, version: 'v2.5.0-beta', date: '20.07.2026', status: 'beta', forced: false, rollout: 15, changes: ['Реферальная система', 'Новые тарифы', 'API v3'] },
+    ]
+
+    const promotions = [
+        { id: 1, name: 'Летняя распродажа', type: 'discount', value: '-30%', code: 'SUMMER30', usage: 234, maxUsage: 500, status: 'active', startDate: '01.07.2026', endDate: '31.07.2026' },
+        { id: 2, name: 'Приведи друга', type: 'referral', value: '+3 анализа', code: 'FRIEND2026', usage: 89, maxUsage: 1000, status: 'active', startDate: '15.07.2026', endDate: '15.09.2026' },
+        { id: 3, name: 'Pro Giveaway', type: 'giveaway', value: '1 год Pro', code: 'PROGIVE', usage: 567, maxUsage: 1000, status: 'active', startDate: '10.07.2026', endDate: '25.07.2026' },
+        { id: 4, name: 'Чёрная пятница', type: 'discount', value: '-50%', code: 'BLACK50', usage: 0, maxUsage: 2000, status: 'scheduled', startDate: '28.11.2026', endDate: '30.11.2026' },
+    ]
+
+    const newsItems = [
+        { id: 1, title: 'Запуск нового AI Анализатора', content: 'Мы обновили нейросеть для анализа вирусности контента. Точность предсказаний выросла на 23%.', date: '21.07.2026', type: 'update', image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600' },
+        { id: 2, title: '10 000 активных пользователей!', content: 'Наша платформа перешагнула отметку в 10 тысяч активных пользователей. Спасибо за доверие!', date: '18.07.2026', type: 'achievement', image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600' },
+        { id: 3, title: 'Новая интеграция TikTok', content: 'Теперь можно анализировать TikTok видео прямо по ссылке. Поддержка Reels и Shorts в разработке.', date: '15.07.2026', type: 'update', image: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=600' },
+    ]
+
+    const referrals = [
+        { id: 1, code: 'FRIEND2026', type: 'analysis', bonus: '+3 анализа', usage: 234, conversions: 189, revenue: '$4,680', status: 'active' },
+        { id: 2, code: 'VIP2026', type: 'discount', bonus: '-20%', usage: 89, conversions: 67, revenue: '$2,010', status: 'active' },
+        { id: 3, code: 'PROGIFT', type: 'month', bonus: '1 мес Pro', usage: 45, conversions: 38, revenue: '$1,140', status: 'paused' },
+        { id: 4, code: 'STARTER', type: 'chat', bonus: '+10 Viral Chat', usage: 12, conversions: 8, revenue: '$240', status: 'active' },
+    ]
+    const [legalData, setLegalData] = useState({
+        companyName: 'AI Viral Studio LLC', taxId: '7701234567',
+        address: 'г. Москва, ул. Примерная, д. 1', account: '40702810100000001234',
+        bank: 'Сбербанк России', bik: '044525225', swift: 'SABRRUMM', iban: 'RU12345678901234567890',
+    })
+
+    const kpi = [
+        { label: 'MRR', value: '$35,000', change: '+23%', positive: true },
+        { label: 'Пользователи', value: '1,247', change: '+156', positive: true },
+        { label: 'Конверсия', value: '12.4%', change: '+2.1%', positive: true },
+        { label: 'Churn', value: '3.2%', change: '-0.8%', positive: true },
+        { label: 'AI запросов/день', value: '45.2K', change: '+18%', positive: true },
+        { label: 'Рекламный доход', value: '$8,400', change: '+34%', positive: true },
+    ]
+
+    const tabs = [
+        { id: 'overview', label: 'Обзор', icon: '\ud83d\udcca' },
+        { id: 'team', label: 'Команда', icon: '\ud83d\udc65' },
+        { id: 'cabinets', label: 'Кабинеты сотрудников', icon: '\ud83c\udfe2' },
+        { id: 'finance', label: 'Финансы', icon: '\ud83d\udcb0' },
+        { id: 'legal', label: 'Юр. лицо', icon: '\ud83d\udccb' },
+        { id: 'audit', label: 'Аудит', icon: '\ud83d\udd0d' },
+        { id: 'servers', label: 'Серверы', icon: '🔧' },
+        { id: 'updates', label: 'Обновления', icon: '🚀' },
+        { id: 'promotions', label: 'Промо', icon: '🎁' },
+        { id: 'news', label: 'Новости', icon: '📰' },
+        { id: 'referrals', label: 'Рефералы', icon: '🔗' },
+    ]
+
+    const departments = [
+        { id: 'support', name: 'Поддержка', color: '#00ff41' },
+        { id: 'content', name: 'Контент', color: '#2563eb' },
+        { id: 'sales', name: 'Продажи', color: '#f0883e' },
+        { id: 'tech', name: 'Технический', color: '#8b5cf6' },
+        { id: 'marketing', name: 'Маркетинг', color: '#ec4899' },
+    ]
+
+    const allPermissions = [
+        { id: 'chat', name: 'Чат поддержки', icon: MessageSquare },
+        { id: 'tickets', name: 'Тикеты', icon: FileText },
+        { id: 'content', name: 'Контент', icon: Briefcase },
+        { id: 'scheduler', name: 'Планировщик', icon: Calendar },
+        { id: 'campaigns', name: 'Кампании', icon: Megaphone },
+        { id: 'analytics_view', name: 'Просмотр аналитики', icon: BarChart3 },
+        { id: 'analytics_full', name: 'Полная аналитика', icon: TrendingUp },
+        { id: 'users', name: 'Управление пользователями', icon: Users },
+        { id: 'settings', name: 'Настройки', icon: Settings },
+    ]
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type })
+        setTimeout(() => setToast(null), 3000)
+    }
+
+    const handleAddStaff = () => {
+        if (!newStaffForm.name || !newStaffForm.email || !newStaffForm.password) {
+            showToast('Заполните все поля', 'error'); return
+        }
+        const newMember = { id: Date.now(), name: newStaffForm.name, email: newStaffForm.email, role: newStaffForm.role, status: 'active', lastActive: 'Только что', tasks: 0 }
+        setStaff([...staff, newMember])
+        setNewStaffForm({ name: '', email: '', role: 'staff', password: '' })
+        setShowAddStaffModal(false)
+        showToast(`Сотрудник ${newMember.name} добавлен`)
+    }
+
+    const handleDeleteStaff = (id) => {
+        if (window.confirm('Удалить сотрудника?')) {
+            setStaff(staff.filter(s => s.id !== id))
+            showToast('Сотрудник удалён')
+        }
+    }
+
+    const handleResetPassword = () => {
+        setShowResetPasswordModal(false)
+        showToast(`Пароль для ${selectedStaff?.name} сброшен`)
+        setSelectedStaff(null)
+    }
+
+    const handleAddCabinet = () => {
+        if (!newCabinetForm.name || !newCabinetForm.email || !newCabinetForm.password) {
+            showToast('Заполните все обязательные поля', 'error'); return
+        }
+        const newCabinet = {
+            id: Date.now(), name: newCabinetForm.name, email: newCabinetForm.email, role: newCabinetForm.role,
+            department: newCabinetForm.department, status: 'active', lastActive: 'Только что', avatar: newCabinetForm.name[0],
+            phone: newCabinetForm.phone, location: newCabinetForm.location, workHours: newCabinetForm.workHours,
+            joinedDate: new Date().toLocaleDateString('ru-RU'), permissions: newCabinetForm.permissions,
+            maxConcurrentChats: newCabinetForm.maxConcurrentChats, canWithdraw: newCabinetForm.canWithdraw,
+            canManageUsers: newCabinetForm.canManageUsers, canViewAnalytics: newCabinetForm.canViewAnalytics,
+            canManageContent: newCabinetForm.canManageContent,
+            stats: { totalChats: 0, resolvedTickets: 0, avgResponseTime: '0 мин', satisfactionRate: 0, monthlyMessages: 0, activeNow: false },
+            activity: [], recentActions: [{ action: 'Кабинет создан', time: 'Только что', type: 'success' }],
+        }
+        setCabinets([...cabinets, newCabinet])
+        setNewCabinetForm({ name: '', email: '', role: 'staff', password: '', department: 'support', permissions: ['chat', 'tickets'], phone: '', location: '', workHours: '9:00-18:00', maxConcurrentChats: 5, canWithdraw: false, canManageUsers: false, canViewAnalytics: false, canManageContent: false })
+        setShowCabinetModal(false)
+        showToast(`Личный кабинет для ${newCabinet.name} создан`)
+    }
+
+    const handleToggleCabinetStatus = (id) => {
+        setCabinets(prev => prev.map(c => {
+            if (c.id === id) {
+                const newStatus = c.status === 'active' ? 'paused' : 'active'
+                showToast(`Кабинет ${c.name} ${newStatus === 'active' ? 'активирован' : 'приостановлен'}`, newStatus === 'active' ? 'success' : 'warning')
+                return { ...c, status: newStatus }
+            }
+            return c
+        }))
+    }
+
+    const handleDeleteCabinet = (id) => {
+        if (window.confirm('Удалить личный кабинет сотрудника? Все данные будут потеряны!')) {
+            setCabinets(cabinets.filter(c => c.id !== id))
+            showToast('Кабинет удалён')
+        }
+    }
+
+    const handleImpersonate = (cabinet) => {
+        setImpersonatedCabinet(cabinet)
+        showToast(`Вход в кабинет ${cabinet.name}`, 'success')
+    }
+
+    const handleExitImpersonation = () => {
+        setImpersonatedCabinet(null)
+        setActiveTab('overview')
+        showToast('Возврат в панель владельца', 'info')
+    }
+
+    const togglePermission = (permId) => {
+        setNewCabinetForm(prev => {
+            const perms = prev.permissions.includes(permId) ? prev.permissions.filter(p => p !== permId) : [...prev.permissions, permId]
+            return { ...prev, permissions: perms }
+        })
+    }
+
+    const handleWithdraw = () => {
+        if (!withdrawForm.amount || parseFloat(withdrawForm.amount) <= 0) { showToast('Введите сумму', 'error'); return }
+        if (!withdrawForm.account) { showToast('Введите реквизиты', 'error'); return }
+        setShowWithdrawModal(false)
+        showToast(`Вывод $${withdrawForm.amount} на ${withdrawForm.method.toUpperCase()} инициирован`)
+        setWithdrawForm({ amount: '', method: 'wire', account: '' })
+    }
+
+    const handleSaveLegal = () => { showToast('Реквизиты сохранены') }
+
+    const handleDownloadLegal = () => {
+        const data = `AI Viral Studio LLC\nИНН: ${legalData.taxId}\nАдрес: ${legalData.address}\nР/с: ${legalData.account}\nБанк: ${legalData.bank}\nБИК: ${legalData.bik}\nSWIFT: ${legalData.swift}\nIBAN: ${legalData.iban}`.trim()
+        const blob = new Blob([data], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url; a.download = 'requisites_AI_Viral_Studio.txt'; a.click()
+        URL.revokeObjectURL(url)
+        showToast('Реквизиты скачаны')
+    }
+
+    const filteredCabinets = cabinets.filter(c => {
+        if (cabinetFilter !== 'all' && c.status !== cabinetFilter) return false
+        if (cabinetSearch && !c.name.toLowerCase().includes(cabinetSearch.toLowerCase()) && !c.email.toLowerCase().includes(cabinetSearch.toLowerCase())) return false
+        return true
+    })
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'active': return 'bg-[#00ff41]/10 text-[#00ff41] border-[#00ff41]/20'
+            case 'paused': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+            case 'offline': return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+            default: return 'bg-gray-500/10 text-gray-400'
+        }
+    }
+
+    
+    const getServerStatusColor = (status) => {
+        switch (status) {
+            case 'online': return 'bg-[#00ff41]/10 text-[#00ff41] border-[#00ff41]/20'
+            case 'warning': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+            case 'offline': return 'bg-red-500/10 text-red-400 border-red-500/20'
+            default: return 'bg-gray-500/10 text-gray-400'
+        }
+    }
+
+    const getLoadColor = (load) => {
+        switch (load) {
+            case 'low': return 'bg-[#00ff41]'
+            case 'medium': return 'bg-yellow-400'
+            case 'high': return 'bg-orange-400'
+            case 'critical': return 'bg-red-400'
+            default: return 'bg-gray-500'
+        }
+    }
+
+    const getPromoStatusColor = (status) => {
+        switch (status) {
+            case 'active': return 'bg-[#00ff41]/10 text-[#00ff41] border-[#00ff41]/20'
+            case 'scheduled': return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+            case 'ended': return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+            default: return 'bg-gray-500/10 text-gray-400'
+        }
+    }
+
+    const getReferralStatusColor = (status) => {
+        switch (status) {
+            case 'active': return 'bg-[#00ff41]/10 text-[#00ff41] border-[#00ff41]/20'
+            case 'paused': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+            default: return 'bg-gray-500/10 text-gray-400'
+        }
+    }
+
+    const getReferralStatusText = (status) => {
+        switch (status) {
+            case 'active': return 'Активен'
+            case 'paused': return 'Приостановлен'
+            default: return status
+        }
+    }
+
+    const getStatusDot = (status) => {
+        switch (status) {
+            case 'active': return 'bg-[#00ff41]'
+            case 'paused': return 'bg-yellow-400'
+            case 'offline': return 'bg-gray-500'
+            default: return 'bg-gray-500'
+        }
+    }
+
+    return (
+        <div className="min-h-screen bg-[#0a0a0f] text-white">
+            {toast && (
+                <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl flex items-center gap-2 shadow-lg transition-all ${toast.type === 'error' ? 'bg-red-500/90 text-white' : toast.type === 'warning' ? 'bg-yellow-500/90 text-black' : 'bg-emerald-500/90 text-black'}`}>
+                    {toast.type === 'error' || toast.type === 'warning' ? <AlertCircle size={18} /> : <Check size={18} />}
+                    <span className="font-medium">{toast.message}</span>
+                </div>
+            )}
+
+            
+            {/* SIDEBAR - Кабинеты сотрудников */}
+            <aside className="fixed left-0 top-0 h-full w-64 bg-[#0f0f1a] border-r border-white/[0.06] z-40 hidden lg:flex flex-col">
+                <div className="p-4 border-b border-white/[0.06]">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00ff41] to-[#2563eb] flex items-center justify-center">
+                            <span className="text-black font-bold text-sm">AI</span>
+                        </div>
+                        <span className="font-bold text-white">Viral Studio</span>
+                    </div>
+                    <p className="text-xs text-gray-500">Панель владельца</p>
+                </div>
+
+                <div className="p-3">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 px-2">Кабинеты сотрудников</p>
+                    <div className="space-y-1">
+                        {cabinets.map(cabinet => (
+                            <button 
+                                key={cabinet.id}
+                                onClick={() => { setSelectedCabinet(cabinet); setShowCabinetDetailsModal(true); }}
+                                className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-white/[0.04] transition-all group text-left"
+                            >
+                                <div className="relative">
+                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2563eb] to-[#7c3aed] flex items-center justify-center text-xs font-bold">
+                                        {cabinet.avatar}
+                                    </div>
+                                    <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0f0f1a] ${cabinet.stats.activeNow ? 'bg-[#00ff41]' : cabinet.status === 'paused' ? 'bg-yellow-400' : 'bg-gray-500'}`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-white truncate">{cabinet.name}</p>
+                                    <p className="text-[10px] text-gray-500 truncate">{departments.find(d => d.id === cabinet.department)?.name || cabinet.department}</p>
+                                </div>
+                                <ChevronRight size={14} className="text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="mt-auto p-3 border-t border-white/[0.06]">
+                    <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-white/[0.02]">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00ff41] to-[#2563eb] flex items-center justify-center text-xs font-bold text-black">
+                            {user?.name?.[0] || 'O'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white truncate">{user?.name || 'Владелец'}</p>
+                            <p className="text-[10px] text-[#00ff41]">Онлайн</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+<main className="lg:ml-64 min-h-screen">
+                <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className="px-3 py-1 rounded-full bg-gradient-to-r from-[#00ff41] to-[#2563eb] text-black text-xs font-bold">OWNER</span>
+                                <h1 className="text-3xl font-bold">Панель владельца</h1>
+                            </div>
+                            <p className="text-gray-400">Полный контроль над бизнесом и кабинетами сотрудников</p>
+                        </div>
+                        <button onClick={logout} className="flex items-center gap-2 px-4 py-2 bg-[#1a1a24] rounded-lg hover:bg-[#252530] transition-colors text-sm">
+                            <ArrowUpRight size={16} /> Выйти
+                        </button>
+                    </div>
+
+                    <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+                        {tabs.map(tab => (
+                            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-[#00ff41]/10 text-[#00ff41] border border-[#00ff41]/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+                                <span>{tab.icon}</span><span className="font-medium">{tab.label}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Overview Tab */}
+                    {activeTab === 'overview' && (
+                        <div className="space-y-8">
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                {kpi.map((item, i) => (
+                                    <div key={i} className="glass rounded-2xl p-5 border border-white/5">
+                                        <p className="text-sm text-gray-400 mb-2">{item.label}</p>
+                                        <div className="flex items-end gap-3">
+                                            <span className="text-2xl font-black">{item.value}</span>
+                                            <span className={`text-sm font-medium mb-1 ${item.positive ? 'text-[#00ff41]' : 'text-red-400'}`}>{item.change}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="grid lg:grid-cols-2 gap-6">
+                                <div className="glass rounded-2xl p-6 border-white/5">
+                                    <h3 className="font-bold mb-6">Финансы (P&L)</h3>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <AreaChart data={revenueData}>
+                                            <defs>
+                                                <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00ff41" stopOpacity={0.3}/><stop offset="95%" stopColor="#00ff41" stopOpacity={0}/></linearGradient>
+                                                <linearGradient id="profGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/><stop offset="95%" stopColor="#2563eb" stopOpacity={0}/></linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                            <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={12} />
+                                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} />
+                                            <Tooltip contentStyle={{ background: '#0f0f1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                                            <Legend />
+                                            <Area type="monotone" dataKey="revenue" stroke="#00ff41" fill="url(#revGrad)" name="Доход" />
+                                            <Area type="monotone" dataKey="profit" stroke="#2563eb" fill="url(#profGrad)" name="Прибыль" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="glass rounded-2xl p-6 border-white/5">
+                                    <h3 className="font-bold mb-6">Распределение по тарифам</h3>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie data={planData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="users">
+                                                {planData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ background: '#0f0f1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                                            <Legend />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Team Tab */}
+                    {activeTab === 'team' && (
+                        <div className="glass rounded-2xl p-6 border-white/5">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-bold text-lg">Команда</h3>
+                                <button onClick={() => setShowAddStaffModal(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-105 text-sm">
+                                    <UserPlus size={16} /> Добавить сотрудника
+                                </button>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead><tr className="border-b border-white/5">
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Сотрудник</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Роль</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Статус</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Активность</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">Задачи</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">Действия</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        {staff.map(member => (
+                                            <tr key={member.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                                                <td className="py-4 px-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#7c3aed] flex items-center justify-center font-bold">{member.name[0]}</div>
+                                                        <div><p className="font-medium">{member.name}</p><p className="text-xs text-gray-500">{member.email}</p></div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4"><span className={`text-xs px-2.5 py-1 rounded-full ${member.role === 'admin' ? 'bg-red-500/10 text-red-400' : member.role === 'owner' ? 'bg-[#00ff41]/10 text-[#00ff41]' : 'bg-blue-500/10 text-blue-400'}`}>{member.role}</span></td>
+                                                <td className="py-4 px-4"><span className={`flex items-center gap-1.5 text-sm ${member.status === 'active' ? 'text-[#00ff41]' : 'text-gray-500'}`}><span className={`w-2 h-2 rounded-full ${member.status === 'active' ? 'bg-[#00ff41]' : 'bg-gray-500'}`} />{member.status === 'active' ? 'Онлайн' : 'Оффлайн'}</span></td>
+                                                <td className="py-4 px-4 text-sm text-gray-400">{member.lastActive}</td>
+                                                <td className="py-4 px-4 text-right font-medium">{member.tasks}</td>
+                                                <td className="py-4 px-4 text-right">
+                                                    <button onClick={() => { setSelectedStaff(member); setShowResetPasswordModal(true) }} className="text-sm text-emerald-400 hover:underline mr-3 inline-flex items-center gap-1"><KeyRound size={14} /> Сбросить</button>
+                                                    <button onClick={() => handleDeleteStaff(member.id)} className="text-sm text-red-400 hover:underline inline-flex items-center gap-1"><Trash2 size={14} /> Удалить</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* CABINETS TAB */}
+                    {activeTab === 'cabinets' && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="glass rounded-2xl p-5 border border-white/5"><p className="text-sm text-gray-400 mb-1">Всего кабинетов</p><p className="text-2xl font-black text-white">{cabinets.length}</p></div>
+                                <div className="glass rounded-2xl p-5 border border-white/5"><p className="text-sm text-gray-400 mb-1">Активных</p><p className="text-2xl font-black text-[#00ff41]">{cabinets.filter(c => c.status === 'active').length}</p></div>
+                                <div className="glass rounded-2xl p-5 border border-white/5"><p className="text-sm text-gray-400 mb-1">Приостановленных</p><p className="text-2xl font-black text-yellow-400">{cabinets.filter(c => c.status === 'paused').length}</p></div>
+                                <div className="glass rounded-2xl p-5 border border-white/5"><p className="text-sm text-gray-400 mb-1">Онлайн сейчас</p><p className="text-2xl font-black text-blue-400">{cabinets.filter(c => c.stats.activeNow).length}</p></div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                        <input type="text" value={cabinetSearch} onChange={e => setCabinetSearch(e.target.value)} placeholder="Поиск..." className="pl-10 pr-4 py-2 bg-[#1a1a24] rounded-xl border border-white/10 text-sm text-white placeholder-gray-500 outline-none focus:border-[#00ff41]/30 w-64" />
+                                    </div>
+                                    <select value={cabinetFilter} onChange={e => setCabinetFilter(e.target.value)} className="px-4 py-2 bg-[#1a1a24] rounded-xl border border-white/10 text-sm text-white outline-none focus:border-[#00ff41]/30">
+                                        <option value="all">Все статусы</option><option value="active">Активные</option><option value="paused">Приостановленные</option>
+                                    </select>
+                                </div>
+                                <button onClick={() => setShowCabinetModal(true)} className="flex items-center gap-2 px-5 py-2.5 bg-[#00ff41] hover:bg-[#00cc33] text-black font-semibold rounded-xl transition-all hover:scale-[1.02] text-sm">
+                                    <Plus size={16} /> Создать кабинет
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {filteredCabinets.map(cabinet => (
+                                    <div key={cabinet.id} className="glass rounded-2xl p-5 border border-white/5 hover:border-white/[0.1] transition-all group">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#7c3aed] flex items-center justify-center text-lg font-bold">{cabinet.avatar}</div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="font-semibold text-white">{cabinet.name}</h3>
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${getStatusColor(cabinet.status)}`}>{cabinet.status === 'active' ? 'Активен' : 'Приостановлен'}</span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500">{cabinet.email}</p>
+                                                    <div className="flex items-center gap-3 mt-1">
+                                                        <span className="text-[10px] text-gray-500 flex items-center gap-1"><Briefcase className="w-3 h-3" /> {departments.find(d => d.id === cabinet.department)?.name || cabinet.department}</span>
+                                                        <span className="text-[10px] text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" /> {cabinet.workHours}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => { setSelectedCabinet(cabinet); setShowCabinetDetailsModal(true) }} className="p-2 rounded-lg hover:bg-white/5 transition-colors text-gray-400 hover:text-white" title="Подробности"><Eye size={16} /></button>
+                                                <button onClick={() => handleImpersonate(cabinet)} className="p-2 rounded-lg hover:bg-white/5 transition-colors text-gray-400 hover:text-[#00ff41]" title="Войти в кабинет"><LogIn size={16} /></button>
+                                                <button onClick={() => handleToggleCabinetStatus(cabinet.id)} className="p-2 rounded-lg hover:bg-white/5 transition-colors text-gray-400 hover:text-yellow-400" title={cabinet.status === 'active' ? 'Приостановить' : 'Активировать'}>{cabinet.status === 'active' ? <PauseCircle size={16} /> : <PlayCircle size={16} />}</button>
+                                                <button onClick={() => handleDeleteCabinet(cabinet.id)} className="p-2 rounded-lg hover:bg-white/5 transition-colors text-gray-400 hover:text-red-400" title="Удалить"><Trash2 size={16} /></button>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-4 gap-2 mb-4">
+                                            <div className="p-2 rounded-lg bg-white/[0.02] text-center"><p className="text-lg font-bold text-white">{cabinet.stats.totalChats}</p><p className="text-[10px] text-gray-500">Чатов</p></div>
+                                            <div className="p-2 rounded-lg bg-white/[0.02] text-center"><p className="text-lg font-bold text-[#00ff41]">{cabinet.stats.resolvedTickets}</p><p className="text-[10px] text-gray-500">Тикетов</p></div>
+                                            <div className="p-2 rounded-lg bg-white/[0.02] text-center"><p className="text-lg font-bold text-blue-400">{cabinet.stats.avgResponseTime}</p><p className="text-[10px] text-gray-500">Ответ</p></div>
+                                            <div className="p-2 rounded-lg bg-white/[0.02] text-center"><p className="text-lg font-bold text-purple-400">{cabinet.stats.satisfactionRate}%</p><p className="text-[10px] text-gray-500">CSAT</p></div>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-1.5 mb-3">
+                                            {cabinet.permissions.map(perm => {
+                                                const permInfo = allPermissions.find(p => p.id === perm)
+                                                return <span key={perm} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/[0.06]">{permInfo?.name || perm}</span>
+                                            })}
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            {cabinet.recentActions.slice(0, 2).map((action, i) => (
+                                                <div key={i} className="flex items-center gap-2 text-xs">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${action.type === 'success' ? 'bg-[#00ff41]' : action.type === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'}`} />
+                                                    <span className="text-gray-400 flex-1 truncate">{action.action}</span>
+                                                    <span className="text-gray-600">{action.time}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="mt-4 pt-4 border-t border-white/[0.04]">
+                                            <p className="text-[10px] text-gray-500 mb-2">Активность за 7 дней</p>
+                                            <div className="flex items-end gap-1 h-12">
+                                                {cabinet.activity.map((day, i) => (
+                                                    <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
+                                                        <div className="w-full bg-[#00ff41]/20 rounded-t hover:bg-[#00ff41]/40 transition-all relative" style={{ height: `${(day.chats / 80) * 100}%`, minHeight: '4px' }}>
+                                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#1a1a24] px-2 py-0.5 rounded text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10">{day.chats} чатов</div>
+                                                        </div>
+                                                        <span className="text-[9px] text-gray-600">{day.date.split(' ')[0]}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Finance Tab */}
+                    {activeTab === 'finance' && (
+                        <div className="space-y-6">
+                            <div className="grid lg:grid-cols-3 gap-6">
+                                <div className="glass rounded-2xl p-6 border-white/5">
+                                    <p className="text-sm text-gray-400 mb-2">Баланс</p>
+                                    <p className="text-3xl font-black text-[#00ff41]">$47,250</p>
+                                    <p className="text-xs text-gray-500 mt-2">Доступно для вывода</p>
+                                    <button onClick={() => setShowWithdrawModal(true)} className="w-full mt-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-[1.02] text-sm flex items-center justify-center gap-2"><Wallet size={16} /> Вывести</button>
+                                </div>
+                                <div className="glass rounded-2xl p-6 border-white/5">
+                                    <p className="text-sm text-gray-400 mb-2">Ожидается</p>
+                                    <p className="text-3xl font-black text-[#2563eb]">$12,800</p>
+                                    <p className="text-xs text-gray-500 mt-2">В обработке</p>
+                                </div>
+                                <div className="glass rounded-2xl p-6 border-white/5">
+                                    <p className="text-sm text-gray-400 mb-2">Расходы/мес</p>
+                                    <p className="text-3xl font-black text-[#f0883e]">$14,000</p>
+                                    <p className="text-xs text-gray-500 mt-2">Серверы, AI API, зарплаты</p>
+                                </div>
+                            </div>
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <h3 className="font-bold mb-6">История выплат</h3>
+                                <div className="space-y-3">
+                                    {[{ date: '20 июл 2026', amount: '$15,000', status: 'completed', method: 'Wire Transfer' }, { date: '15 июл 2026', amount: '$8,500', status: 'completed', method: 'PayPal' }, { date: '10 июл 2026', amount: '$12,000', status: 'completed', method: 'Wire Transfer' }, { date: '5 июл 2026', amount: '$5,200', status: 'pending', method: 'Crypto (USDT)' }].map((payout, i) => (
+                                        <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02]">
+                                            <div><p className="font-medium">{payout.date}</p><p className="text-sm text-gray-500">{payout.method}</p></div>
+                                            <div className="text-right"><p className="font-bold">{payout.amount}</p><span className={`text-xs px-2 py-0.5 rounded-full ${payout.status === 'completed' ? 'bg-[#00ff41]/10 text-[#00ff41]' : 'bg-yellow-500/10 text-yellow-400'}`}>{payout.status === 'completed' ? 'Выполнено' : 'В обработке'}</span></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Legal Tab */}
+                    {activeTab === 'legal' && (
+                        <div className="space-y-6">
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <h3 className="font-bold mb-6">Юридическая информация</h3>
+                                <div className="grid lg:grid-cols-2 gap-6">
+                                    {[{ label: 'Название компании', key: 'companyName' }, { label: 'ИНН / Tax ID', key: 'taxId' }, { label: 'Юридический адрес', key: 'address' }, { label: 'Расчётный счёт', key: 'account' }, { label: 'Банк', key: 'bank' }, { label: 'БИК', key: 'bik' }].map(field => (
+                                        <div key={field.key}>
+                                            <label className="block text-sm text-gray-400 mb-2">{field.label}</label>
+                                            <input type="text" value={legalData[field.key]} onChange={e => setLegalData({ ...legalData, [field.key]: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500/30" />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-6 pt-6 border-t border-white/5">
+                                    <h4 className="font-bold mb-4">Реквизиты для выплат (международные)</h4>
+                                    <div className="grid lg:grid-cols-2 gap-6">
+                                        {[{ label: 'SWIFT / BIC', key: 'swift' }, { label: 'IBAN', key: 'iban' }].map(field => (
+                                            <div key={field.key}>
+                                                <label className="block text-sm text-gray-400 mb-2">{field.label}</label>
+                                                <input type="text" value={legalData[field.key]} onChange={e => setLegalData({ ...legalData, [field.key]: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500/30" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex gap-4 mt-6">
+                                    <button onClick={handleSaveLegal} className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-[1.02]"><Save size={16} /> Сохранить</button>
+                                    <button onClick={handleDownloadLegal} className="flex items-center gap-2 px-6 py-2.5 bg-[#252530] hover:bg-[#303040] text-white rounded-lg transition-colors"><Download size={16} /> Скачать реквизиты</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Audit Tab */}
+                    {activeTab === 'audit' && (
+                        <div className="glass rounded-2xl p-6 border-white/5">
+                            <h3 className="font-bold mb-6">Лог действий</h3>
+                            <div className="space-y-3">
+                                {[{ user: 'Иван Петров (admin)', action: 'Изменил роль пользователя', target: 'alex@ai-viral.com → staff', time: '2 мин назад', type: 'warning' }, { user: 'Система', action: 'Автоматический бэкап', target: 'База данных', time: '15 мин назад', type: 'info' }, { user: 'Ольга Козлова (advertiser)', action: 'Создала рекламную кампанию', target: 'Кампания #234', time: '32 мин назад', type: 'success' }, { user: 'Мария Сидорова (staff)', action: 'Ответила на тикет', target: 'Поддержка #4567', time: '1 час назад', type: 'info' }, { user: 'Иван Петров (admin)', action: 'Сбросил пароль', target: 'maria@ai-viral.com', time: '2 часа назад', type: 'warning' }, { user: 'Система', action: 'Выплата владельцу', target: '$15,000', time: '3 часа назад', type: 'success' }, { user: 'Алексей Иванов (staff)', action: 'Удалил пост', target: 'Post #1234', time: '5 часов назад', type: 'danger' }].map((log, i) => (
+                                    <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02]">
+                                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${log.type === 'success' ? 'bg-[#00ff41]' : log.type === 'warning' ? 'bg-yellow-400' : log.type === 'danger' ? 'bg-red-400' : 'bg-[#2563eb]'}`} />
+                                        <div className="flex-1 min-w-0"><p className="text-sm"><span className="font-medium">{log.user}</span>{' '}{log.action}{' '}<span className="text-gray-400">{log.target}</span></p></div>
+                                        <span className="text-xs text-gray-500 flex-shrink-0">{log.time}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {/* SERVERS TAB */}
+                    {activeTab === 'servers' && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="glass rounded-2xl p-5 border border-white/5">
+                                    <div className="flex items-center gap-2 mb-2"><Server className="w-5 h-5 text-[#00ff41]" /><p className="text-sm text-gray-400">Всего серверов</p></div>
+                                    <p className="text-2xl font-black text-white">{servers.length}</p>
+                                </div>
+                                <div className="glass rounded-2xl p-5 border border-white/5">
+                                    <div className="flex items-center gap-2 mb-2"><Wifi className="w-5 h-5 text-[#00ff41]" /><p className="text-sm text-gray-400">Онлайн</p></div>
+                                    <p className="text-2xl font-black text-[#00ff41]">{servers.filter(s => s.status === 'online').length}</p>
+                                </div>
+                                <div className="glass rounded-2xl p-5 border border-white/5">
+                                    <div className="flex items-center gap-2 mb-2"><AlertCircle className="w-5 h-5 text-yellow-400" /><p className="text-sm text-gray-400">Предупреждения</p></div>
+                                    <p className="text-2xl font-black text-yellow-400">{servers.filter(s => s.status === 'warning').length}</p>
+                                </div>
+                                <div className="glass rounded-2xl p-5 border border-white/5">
+                                    <div className="flex items-center gap-2 mb-2"><Power className="w-5 h-5 text-red-400" /><p className="text-sm text-gray-400">Оффлайн</p></div>
+                                    <p className="text-2xl font-black text-red-400">{servers.filter(s => s.status === 'offline').length}</p>
+                                </div>
+                            </div>
+
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-bold text-lg flex items-center gap-2"><Monitor className="w-5 h-5 text-[#00ff41]" /> Мониторинг серверов</h3>
+                                    <button onClick={() => showToast('Мониторинг обновлён')} className="flex items-center gap-2 px-4 py-2 bg-[#1a1a24] rounded-lg hover:bg-[#252530] transition-colors text-sm text-gray-400 hover:text-white">
+                                        <RefreshCw size={14} /> Обновить
+                                    </button>
+                                </div>
+                                <div className="space-y-4">
+                                    {servers.map(server => (
+                                        <div key={server.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-2 h-2 rounded-full ${server.status === 'online' ? 'bg-[#00ff41]' : server.status === 'warning' ? 'bg-yellow-400' : 'bg-red-400'} ${server.status === 'online' ? 'animate-pulse' : ''}`} />
+                                                    <div>
+                                                        <h4 className="font-semibold text-white">{server.name}</h4>
+                                                        <p className="text-xs text-gray-500">{server.region} · Аптайм {server.uptime}</p>
+                                                    </div>
+                                                </div>
+                                                <span className={`text-xs px-2.5 py-1 rounded-full border ${getServerStatusColor(server.status)}`}>
+                                                    {server.status === 'online' ? 'Онлайн' : server.status === 'warning' ? 'Предупреждение' : 'Оффлайн'}
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1"><span className="text-xs text-gray-400">CPU</span><span className="text-xs font-medium text-white">{server.cpu}%</span></div>
+                                                    <div className="h-2 bg-white/5 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${getLoadColor(server.load)}`} style={{ width: `${server.cpu}%` }} /></div>
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1"><span className="text-xs text-gray-400">RAM</span><span className="text-xs font-medium text-white">{server.ram}%</span></div>
+                                                    <div className="h-2 bg-white/5 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${getLoadColor(server.load)}`} style={{ width: `${server.ram}%` }} /></div>
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1"><span className="text-xs text-gray-400">Диск</span><span className="text-xs font-medium text-white">{server.disk}%</span></div>
+                                                    <div className="h-2 bg-white/5 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${getLoadColor(server.load)}`} style={{ width: `${server.disk}%` }} /></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <h3 className="font-bold mb-6 flex items-center gap-2"><KeyRound className="w-5 h-5 text-[#00ff41]" /> API Ключи</h3>
+                                <div className="space-y-3">
+                                    {[{ name: 'OpenAI API', key: 'sk-••••••••••••••••••••••••••••••', status: 'active' }, { name: 'Anthropic API', key: 'sk-ant-•••••••••••••••••••••••••', status: 'active' }, { name: 'Stability AI', key: 'sk-••••••••••••••••••••••••••••••', status: 'active' }, { name: 'Replicate API', key: 'r8_••••••••••••••••••••••••••••••', status: 'warning' }].map((api, i) => (
+                                        <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02]">
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <Terminal className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-medium text-white">{api.name}</p>
+                                                    {editingApiKey === i ? (
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <input 
+                                                                type="text" 
+                                                                value={newApiKeyValue}
+                                                                onChange={e => setNewApiKeyValue(e.target.value)}
+                                                                placeholder="Введите новый API ключ..."
+                                                                className="flex-1 px-3 py-1.5 bg-[#1a1a24] rounded-lg border border-[#00ff41]/30 text-xs font-mono text-white outline-none focus:border-[#00ff41]"
+                                                            />
+                                                            <button onClick={() => { showToast(`Ключ ${api.name} обновлён`, 'success'); setEditingApiKey(null); }} className="p-1.5 rounded-lg bg-[#00ff41]/10 text-[#00ff41] hover:bg-[#00ff41]/20 transition-all">
+                                                                <Check size={14} />
+                                                            </button>
+                                                            <button onClick={() => setEditingApiKey(null)} className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-all">
+                                                                <X size={14} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-gray-500 font-mono truncate">{api.key}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                                                <span className={`text-xs px-2 py-0.5 rounded-full border ${api.status === 'active' ? 'bg-[#00ff41]/10 text-[#00ff41] border-[#00ff41]/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>{api.status === 'active' ? 'Активен' : 'Требует обновления'}</span>
+                                                <button onClick={() => { setEditingApiKey(i); setNewApiKeyValue(api.key); }} className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-blue-400 transition-all" title="Редактировать">
+                                                    <PenTool size={14} />
+                                                </button>
+                                                <button onClick={() => showToast('Ключ скопирован')} className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-all" title="Копировать">
+                                                    <Copy size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* UPDATES TAB */}
+                    {activeTab === 'updates' && (
+                        <div className="space-y-6">
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-bold text-lg flex items-center gap-2"><Rocket className="w-5 h-5 text-[#00ff41]" /> Опубликовать обновление</h3>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="grid lg:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-2">Версия</label>
+                                            <input type="text" placeholder="v2.5.0" className="w-full px-4 py-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-2">Rollout %</label>
+                                            <input type="number" placeholder="15" className="w-full px-4 py-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm" />
+                                        </div>
+                                        <div className="flex items-end">
+                                            <div className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1a24] border border-white/10 w-full">
+                                                <input type="checkbox" id="forcedUpdate" className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-[#00ff41]" />
+                                                <label htmlFor="forcedUpdate" className="text-sm cursor-pointer">Принудительное обновление</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Changelog</label>
+                                        <textarea placeholder="- Новая функция&#10;- Исправление бага&#10;- Улучшение производительности" className="w-full px-4 py-3 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm h-32 resize-none" />
+                                    </div>
+                                    <button onClick={() => showToast('Обновление опубликовано')} className="flex items-center gap-2 px-6 py-2.5 bg-[#00ff41] hover:bg-[#00cc33] text-black font-semibold rounded-xl transition-all hover:scale-[1.02] text-sm">
+                                        <Upload size={16} /> Опубликовать
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <h3 className="font-bold mb-6">История обновлений</h3>
+                                <div className="space-y-4">
+                                    {updates.map(update => (
+                                        <div key={update.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="px-3 py-1 bg-[#00ff41]/10 text-[#00ff41] font-mono text-sm rounded-lg border border-[#00ff41]/20">{update.version}</span>
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full border ${update.status === 'published' ? 'bg-[#00ff41]/10 text-[#00ff41] border-[#00ff41]/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>{update.status === 'published' ? 'Опубликовано' : 'Бета'}</span>
+                                                    {update.forced && <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">Принудительно</span>}
+                                                </div>
+                                                <span className="text-xs text-gray-500">{update.date}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <span className="text-xs text-gray-400">Rollout:</span>
+                                                <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden max-w-[200px]">
+                                                    <div className="h-full bg-[#00ff41] rounded-full" style={{ width: `${update.rollout}%` }} />
+                                                </div>
+                                                <span className="text-xs text-[#00ff41] font-medium">{update.rollout}%</span>
+                                            </div>
+                                            <ul className="space-y-1">
+                                                {update.changes.map((change, i) => (
+                                                    <li key={i} className="text-sm text-gray-400 flex items-center gap-2"><ChevronRight size={12} className="text-[#00ff41]" />{change}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PROMOTIONS TAB */}
+                    {activeTab === 'promotions' && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="glass rounded-2xl p-5 border border-white/5">
+                                    <div className="flex items-center gap-2 mb-2"><Gift className="w-5 h-5 text-[#00ff41]" /><p className="text-sm text-gray-400">Всего промо</p></div>
+                                    <p className="text-2xl font-black text-white">{promotions.length}</p>
+                                </div>
+                                <div className="glass rounded-2xl p-5 border border-white/5">
+                                    <div className="flex items-center gap-2 mb-2"><Zap className="w-5 h-5 text-[#00ff41]" /><p className="text-sm text-gray-400">Активные</p></div>
+                                    <p className="text-2xl font-black text-[#00ff41]">{promotions.filter(p => p.status === 'active').length}</p>
+                                </div>
+                                <div className="glass rounded-2xl p-5 border border-white/5">
+                                    <div className="flex items-center gap-2 mb-2"><Users className="w-5 h-5 text-blue-400" /><p className="text-sm text-gray-400">Использований</p></div>
+                                    <p className="text-2xl font-black text-blue-400">{promotions.reduce((sum, p) => sum + p.usage, 0)}</p>
+                                </div>
+                                <div className="glass rounded-2xl p-5 border border-white/5">
+                                    <div className="flex items-center gap-2 mb-2"><DollarSign className="w-5 h-5 text-purple-400" /><p className="text-sm text-gray-400">Доход</p></div>
+                                    <p className="text-2xl font-black text-purple-400">$12.4K</p>
+                                </div>
+                            </div>
+
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-bold text-lg flex items-center gap-2"><Megaphone className="w-5 h-5 text-[#00ff41]" /> Создать промо</h3>
+                                </div>
+                                <div className="grid lg:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Название</label>
+                                        <input type="text" placeholder="Летняя распродажа" className="w-full px-4 py-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Тип</label>
+                                        <select className="w-full px-4 py-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm">
+                                            <option value="discount">Скидка</option><option value="referral">Реферал</option><option value="giveaway">Giveaway</option><option value="bonus">Бонус</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Промо-код</label>
+                                        <div className="flex gap-2">
+                                            <input type="text" placeholder="PROMO2026" className="flex-1 px-4 py-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm font-mono" />
+                                            <button onClick={() => showToast('Код сгенерирован')} className="p-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-gray-400 hover:text-[#00ff41] transition-all"><RefreshCw size={16} /></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="grid lg:grid-cols-2 gap-4 mt-4">
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Значение</label>
+                                        <input type="text" placeholder="-30%" className="w-full px-4 py-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Лимит использований</label>
+                                        <input type="number" placeholder="500" className="w-full px-4 py-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm" />
+                                    </div>
+                                </div>
+                                <button onClick={() => showToast('Промо создано')} className="mt-4 flex items-center gap-2 px-6 py-2.5 bg-[#00ff41] hover:bg-[#00cc33] text-black font-semibold rounded-xl transition-all hover:scale-[1.02] text-sm">
+                                    <Plus size={16} /> Создать промо
+                                </button>
+                            </div>
+
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-bold">Активные промо</h3>
+                                    <select value={promoFilter} onChange={e => setPromoFilter(e.target.value)} className="px-4 py-2 bg-[#1a1a24] rounded-xl border border-white/10 text-sm text-white outline-none focus:border-[#00ff41]/30">
+                                        <option value="all">Все</option><option value="active">Активные</option><option value="scheduled">Запланированные</option><option value="ended">Завершённые</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-3">
+                                    {promotions.filter(p => promoFilter === 'all' || p.status === promoFilter).map(promo => (
+                                        <div key={promo.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <h4 className="font-semibold text-white">{promo.name}</h4>
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full border ${getPromoStatusColor(promo.status)}`}>{promo.status === 'active' ? 'Активно' : promo.status === 'scheduled' ? 'Запланировано' : 'Завершено'}</span>
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full border ${promo.type === 'discount' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : promo.type === 'referral' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-orange-500/10 text-orange-400 border-orange-500/20'}`}>{promo.type === 'discount' ? 'Скидка' : promo.type === 'referral' ? 'Реферал' : 'Giveaway'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <button onClick={() => showToast('Код скопирован')} className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-all"><Copy size={14} /></button>
+                                                    <button onClick={() => showToast('Промо удалено')} className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-red-400 transition-all"><Trash2 size={14} /></button>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-sm mb-2">
+                                                <span className="px-3 py-1 bg-[#00ff41]/10 text-[#00ff41] font-mono rounded-lg border border-[#00ff41]/20 text-xs">{promo.code}</span>
+                                                <span className="text-gray-400">{promo.value}</span>
+                                                <span className="text-gray-500">{promo.startDate} — {promo.endDate}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-gray-500">Использований: {promo.usage} / {promo.maxUsage}</span>
+                                                <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden max-w-[150px]">
+                                                    <div className="h-full bg-[#00ff41] rounded-full" style={{ width: `${(promo.usage / promo.maxUsage) * 100}%` }} />
+                                                </div>
+                                                <span className="text-xs text-[#00ff41]">{Math.round((promo.usage / promo.maxUsage) * 100)}%</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* NEWS TAB */}
+                    {activeTab === 'news' && (
+                        <div className="space-y-6">
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-bold text-lg flex items-center gap-2"><Newspaper className="w-5 h-5 text-[#00ff41]" /> Новости и сообщество</h3>
+                                    <button onClick={() => showToast('Редактор новостей')} className="flex items-center gap-2 px-4 py-2 bg-[#00ff41] hover:bg-[#00cc33] text-black font-semibold rounded-xl transition-all hover:scale-[1.02] text-sm">
+                                        <Plus size={16} /> Добавить новость
+                                    </button>
+                                </div>
+                                <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-5">
+                                    <h4 className="text-white font-medium mb-3 flex items-center gap-2"><Send className="w-4 h-4 text-[#00ff41]" /> Опубликовать в Telegram</h4>
+                                    <div className="space-y-3">
+                                        <input type="text" placeholder="Заголовок новости..." className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-[#00ff41]/30 outline-none text-sm" />
+                                        <textarea placeholder="Текст новости... Поддерживается Markdown" className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff41]/30 outline-none text-sm h-24 resize-none" />
+                                        <div className="flex gap-3 flex-wrap">
+                                            <button onClick={() => showToast('Изображение добавлено')} className="flex items-center gap-2 px-3 py-2 bg-[#1a1a24] border border-white/10 rounded-lg text-xs text-gray-400 hover:text-white transition-all">
+                                                <ImageIcon className="w-4 h-4" /> Добавить изображение
+                                            </button>
+                                            <button onClick={() => showToast('Ссылка добавлена')} className="flex items-center gap-2 px-3 py-2 bg-[#1a1a24] border border-white/10 rounded-lg text-xs text-gray-400 hover:text-white transition-all">
+                                                <Link2 className="w-4 h-4" /> Добавить ссылку
+                                            </button>
+                                            <button onClick={() => showToast('Упоминание добавлено')} className="flex items-center gap-2 px-3 py-2 bg-[#1a1a24] border border-white/10 rounded-lg text-xs text-gray-400 hover:text-white transition-all">
+                                                <AtSign className="w-4 h-4" /> Упоминание
+                                            </button>
+                                        </div>
+                                        <button onClick={() => showToast('Опубликовано в Telegram')} className="w-full py-2.5 bg-[#00ff41] hover:bg-[#00cc33] text-black rounded-xl text-sm font-semibold transition-all hover:scale-[1.02]">
+                                            Опубликовать в Telegram канал
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                {newsItems.map(n => (
+                                    <div key={n.id} className="glass rounded-2xl overflow-hidden border border-white/5 hover:border-white/[0.1] transition-all">
+                                        <div className="h-48 bg-[#1a1a24] overflow-hidden">
+                                            <img src={n.image} alt="" className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
+                                        </div>
+                                        <div className="p-5">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs border ${n.type === 'update' ? 'bg-[#00ff41]/10 text-[#00ff41] border-[#00ff41]/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
+                                                    {n.type === 'update' ? 'Обновление' : 'Достижение'}
+                                                </span>
+                                                <span className="text-gray-500 text-xs">{n.date}</span>
+                                            </div>
+                                            <h4 className="text-white font-semibold mb-2">{n.title}</h4>
+                                            <p className="text-gray-400 text-sm">{n.content}</p>
+                                            <div className="flex gap-2 mt-4">
+                                                <button onClick={() => showToast('Редактирование')} className="px-3 py-1.5 bg-[#1a1a24] border border-white/10 rounded-lg text-xs text-gray-400 hover:text-white transition-all">Редактировать</button>
+                                                <button onClick={() => showToast('Статистика')} className="px-3 py-1.5 bg-[#1a1a24] border border-white/10 rounded-lg text-xs text-gray-400 hover:text-white transition-all">Статистика</button>
+                                                <button onClick={() => showToast('Новость удалена')} className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400 hover:bg-red-500/20 transition-all">Удалить</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* REFERRALS TAB */}
+                    {activeTab === 'referrals' && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                {[
+                                    { label: 'Всего рефералов', value: '1,245', icon: Share2 },
+                                    { label: 'Конверсии', value: '456', icon: UserCheck },
+                                    { label: 'Доход', value: '$12,450', icon: DollarSign },
+                                    { label: 'Активные коды', value: '12', icon: Tag },
+                                ].map((s, i) => (
+                                    <div key={i} className="glass rounded-2xl p-5 border border-white/5">
+                                        <s.icon className="w-5 h-5 text-[#00ff41] mb-2" />
+                                        <div className="text-2xl font-bold text-white">{s.value}</div>
+                                        <div className="text-gray-500 text-xs">{s.label}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="font-bold text-lg flex items-center gap-2"><Gift className="w-5 h-5 text-[#00ff41]" /> Создать реферальную программу</h3>
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Название промо</label>
+                                        <input type="text" placeholder="Приведи друга — получи бонус" className="w-full px-4 py-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Тип бонуса</label>
+                                        <select className="w-full px-4 py-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm">
+                                            <option value="analysis">+3 Анализа</option>
+                                            <option value="chat">+10 Viral Chat</option>
+                                            <option value="discount">50% скидка</option>
+                                            <option value="month">1 месяц Pro</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Реферальный код</label>
+                                        <div className="flex gap-2">
+                                            <input type="text" placeholder="FRIEND2026" className="flex-1 px-4 py-2.5 bg-[#1a1a24] rounded-xl border border-white/10 text-white focus:border-[#00ff41]/30 outline-none text-sm font-mono" />
+                                            <button onClick={() => showToast('Код обновлён')} className="px-3 py-2 bg-[#1a1a24] border border-white/10 rounded-lg text-gray-400 hover:text-[#00ff41] transition-all">
+                                                <RefreshCw className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-4">
+                                    <label className="block text-sm text-gray-400 mb-2">Условия (все тарифы)</label>
+                                    <div className="p-4 rounded-xl bg-white/[0.02] text-sm text-gray-400 border border-white/[0.04]">
+                                        При регистрации по реферальной ссылке, <span className="text-[#00ff41]">и реферал, и пригласивший</span> получают бонус в зависимости от тарифа:
+                                        <ul className="mt-3 space-y-1.5 text-xs">
+                                            <li className="flex items-center gap-2"><Check size={12} className="text-[#00ff41]" /><b>Free</b> → +2 Анализа, +5 Viral Chat</li>
+                                            <li className="flex items-center gap-2"><Check size={12} className="text-[#00ff41]" /><b>Pro</b> → +3 Анализа, +10 Viral Chat</li>
+                                            <li className="flex items-center gap-2"><Check size={12} className="text-[#00ff41]" /><b>Agency</b> → +5 Анализов, +20 Viral Chat</li>
+                                            <li className="flex items-center gap-2"><Check size={12} className="text-[#00ff41]" /><b>Enterprise</b> → +10 Анализов, +50 Viral Chat</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <button onClick={() => showToast('Реферальная ссылка сгенерирована')} className="mt-4 w-full py-2.5 bg-[#00ff41] hover:bg-[#00cc33] text-black rounded-xl text-sm font-semibold transition-all hover:scale-[1.02]">
+                                    Сгенерировать реферальную ссылку
+                                </button>
+                            </div>
+
+                            <div className="glass rounded-2xl p-6 border-white/5">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-bold flex items-center gap-2"><Tag className="w-5 h-5 text-[#00ff41]" /> Активные реферальные коды</h3>
+                                    <select value={referralFilter} onChange={e => setReferralFilter(e.target.value)} className="px-4 py-2 bg-[#1a1a24] rounded-xl border border-white/10 text-sm text-white outline-none focus:border-[#00ff41]/30">
+                                        <option value="all">Все</option><option value="active">Активные</option><option value="paused">Приостановленные</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-3">
+                                    {referrals.filter(r => referralFilter === 'all' || r.status === referralFilter).map(r => (
+                                        <div key={r.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="px-3 py-1 bg-[#00ff41]/10 text-[#00ff41] font-mono text-sm rounded-lg border border-[#00ff41]/20">{r.code}</span>
+                                                    <span className={`px-2 py-0.5 rounded-lg border text-xs ${getReferralStatusColor(r.status)}`}>{getReferralStatusText(r.status)}</span>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    <button onClick={() => showToast('Код скопирован')} className="p-2 bg-[#1a1a24] border border-white/10 rounded-lg text-gray-400 hover:text-[#00ff41] transition-all">
+                                                        <Copy className="w-3 h-3" />
+                                                    </button>
+                                                    <button onClick={() => showToast('Статус изменён')} className="p-2 bg-[#1a1a24] border border-white/10 rounded-lg text-gray-400 hover:text-yellow-400 transition-all">
+                                                        {r.status === 'active' ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                                                <div><div className="text-gray-500 text-xs">Тип</div><div className="text-white capitalize">{r.type}</div></div>
+                                                <div><div className="text-gray-500 text-xs">Бонус</div><div className="text-[#00ff41]">{r.bonus}</div></div>
+                                                <div><div className="text-gray-500 text-xs">Использований</div><div className="text-white">{r.usage}</div></div>
+                                                <div><div className="text-gray-500 text-xs">Конверсии</div><div className="text-white">{r.conversions} ({Math.round(r.conversions/r.usage*100)}%)</div></div>
+                                            </div>
+                                            <div className="mt-2 text-gray-500 text-xs">Доход: <span className="text-white">{r.revenue}</span></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </main>
+
+            {/* ===== MODALS ===== */}
+            {showAddStaffModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold flex items-center gap-2"><UserPlus size={20} /> Добавить сотрудника</h2>
+                                <button onClick={() => setShowAddStaffModal(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                            </div>
+                            <div className="space-y-4">
+                                <div><label className="text-sm text-gray-400 mb-1 block">Имя</label><input type="text" value={newStaffForm.name} onChange={e => setNewStaffForm({ ...newStaffForm, name: e.target.value })} placeholder="Иван Иванов" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" /></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Email</label><input type="email" value={newStaffForm.email} onChange={e => setNewStaffForm({ ...newStaffForm, email: e.target.value })} placeholder="ivan@ai-viral.com" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" /></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Роль</label><select value={newStaffForm.role} onChange={e => setNewStaffForm({ ...newStaffForm, role: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"><option value="staff">Staff</option><option value="admin">Admin</option><option value="creator">Creator</option><option value="advertiser">Advertiser</option><option value="business">Business</option></select></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Пароль</label><div className="relative"><input type={showPassword ? "text" : "password"} value={newStaffForm.password} onChange={e => setNewStaffForm({ ...newStaffForm, password: e.target.value })} placeholder="Минимум 6 символов" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none pr-10" /><button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></div>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button onClick={() => setShowAddStaffModal(false)} className="flex-1 px-4 py-2 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors">Отмена</button>
+                                <button onClick={handleAddStaff} disabled={!newStaffForm.name || !newStaffForm.email || !newStaffForm.password} className="flex-1 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-600 text-black font-medium rounded-lg transition-all">Добавить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showResetPasswordModal && selectedStaff && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-sm">
+                        <div className="p-6 text-center">
+                            <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center mx-auto mb-4"><KeyRound size={24} className="text-yellow-400" /></div>
+                            <h2 className="text-xl font-bold mb-2">Сбросить пароль?</h2>
+                            <p className="text-gray-400 text-sm mb-6">Новый пароль будет отправлен на {selectedStaff.email}</p>
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowResetPasswordModal(false)} className="flex-1 px-4 py-2 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors">Отмена</button>
+                                <button onClick={handleResetPassword} className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-medium rounded-lg transition-all">Сбросить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showWithdrawModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold flex items-center gap-2"><Wallet size={20} /> Вывод средств</h2>
+                                <button onClick={() => setShowWithdrawModal(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                            </div>
+                            <div className="bg-emerald-500/10 rounded-lg p-4 mb-4 border border-emerald-500/20"><p className="text-sm text-gray-400">Доступно для вывода</p><p className="text-2xl font-bold text-emerald-400">$47,250</p></div>
+                            <div className="space-y-4">
+                                <div><label className="text-sm text-gray-400 mb-1 block">Сумма</label><input type="number" value={withdrawForm.amount} onChange={e => setWithdrawForm({ ...withdrawForm, amount: e.target.value })} placeholder="1000" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" /></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Способ вывода</label><select value={withdrawForm.method} onChange={e => setWithdrawForm({ ...withdrawForm, method: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"><option value="wire">Wire Transfer</option><option value="paypal">PayPal</option><option value="crypto">Crypto (USDT)</option><option value="card">Банковская карта</option></select></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Реквизиты</label><input type="text" value={withdrawForm.account} onChange={e => setWithdrawForm({ ...withdrawForm, account: e.target.value })} placeholder="Счёт / Кошелёк / Карта" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" /></div>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button onClick={() => setShowWithdrawModal(false)} className="flex-1 px-4 py-2 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors">Отмена</button>
+                                <button onClick={handleWithdraw} disabled={!withdrawForm.amount || !withdrawForm.account} className="flex-1 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-600 text-black font-medium rounded-lg transition-all">Вывести</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CREATE CABINET MODAL */}
+            {showCabinetModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-2xl my-8">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold flex items-center gap-2"><Building2 size={20} /> Создать личный кабинет</h2>
+                                <button onClick={() => setShowCabinetModal(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                            </div>
+                            <div className="grid lg:grid-cols-2 gap-4">
+                                <div><label className="text-sm text-gray-400 mb-1 block">Имя сотрудника *</label><input type="text" value={newCabinetForm.name} onChange={e => setNewCabinetForm({ ...newCabinetForm, name: e.target.value })} placeholder="Иван Иванов" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-[#00ff41] outline-none" /></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Email кабинета *</label><input type="email" value={newCabinetForm.email} onChange={e => setNewCabinetForm({ ...newCabinetForm, email: e.target.value })} placeholder="ivan.cabinet@ai-viral.com" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-[#00ff41] outline-none" /></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Роль</label><select value={newCabinetForm.role} onChange={e => setNewCabinetForm({ ...newCabinetForm, role: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-[#00ff41] outline-none"><option value="staff">Staff</option><option value="admin">Admin</option><option value="creator">Creator</option><option value="advertiser">Advertiser</option></select></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Отдел</label><select value={newCabinetForm.department} onChange={e => setNewCabinetForm({ ...newCabinetForm, department: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-[#00ff41] outline-none">{departments.map(d => (<option key={d.id} value={d.id}>{d.name}</option>))}</select></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Телефон</label><input type="tel" value={newCabinetForm.phone} onChange={e => setNewCabinetForm({ ...newCabinetForm, phone: e.target.value })} placeholder="+7 (999) 123-45-67" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-[#00ff41] outline-none" /></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Локация</label><input type="text" value={newCabinetForm.location} onChange={e => setNewCabinetForm({ ...newCabinetForm, location: e.target.value })} placeholder="Москва, РФ" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-[#00ff41] outline-none" /></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Рабочие часы</label><input type="text" value={newCabinetForm.workHours} onChange={e => setNewCabinetForm({ ...newCabinetForm, workHours: e.target.value })} placeholder="9:00-18:00" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-[#00ff41] outline-none" /></div>
+                                <div><label className="text-sm text-gray-400 mb-1 block">Пароль *</label><div className="relative"><input type={showPassword ? "text" : "password"} value={newCabinetForm.password} onChange={e => setNewCabinetForm({ ...newCabinetForm, password: e.target.value })} placeholder="Минимум 8 символов" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-[#00ff41] outline-none pr-10" /><button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></div>
+                            </div>
+
+                            <div className="mt-6">
+                                <label className="text-sm text-gray-400 mb-2 block">Права доступа</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {allPermissions.map(perm => {
+                                        const Icon = perm.icon
+                                        const isSelected = newCabinetForm.permissions.includes(perm.id)
+                                        return (
+                                            <button key={perm.id} onClick={() => togglePermission(perm.id)} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all ${isSelected ? 'border-[#00ff41] bg-[#00ff41]/10 text-white' : 'border-white/10 bg-[#252530] text-gray-400 hover:border-white/20'}`}>
+                                                <Icon size={14} />{perm.name}{isSelected && <Check size={12} className="ml-auto text-[#00ff41]" />}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="mt-6 grid grid-cols-2 gap-4">
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-[#252530] border border-white/10">
+                                    <input type="checkbox" id="canWithdraw" checked={newCabinetForm.canWithdraw} onChange={e => setNewCabinetForm({ ...newCabinetForm, canWithdraw: e.target.checked })} className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-[#00ff41]" />
+                                    <label htmlFor="canWithdraw" className="text-sm cursor-pointer">Может выводить средства</label>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-[#252530] border border-white/10">
+                                    <input type="checkbox" id="canManageUsers" checked={newCabinetForm.canManageUsers} onChange={e => setNewCabinetForm({ ...newCabinetForm, canManageUsers: e.target.checked })} className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-[#00ff41]" />
+                                    <label htmlFor="canManageUsers" className="text-sm cursor-pointer">Управление пользователями</label>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-[#252530] border border-white/10">
+                                    <input type="checkbox" id="canViewAnalytics" checked={newCabinetForm.canViewAnalytics} onChange={e => setNewCabinetForm({ ...newCabinetForm, canViewAnalytics: e.target.checked })} className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-[#00ff41]" />
+                                    <label htmlFor="canViewAnalytics" className="text-sm cursor-pointer">Просмотр аналитики</label>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-[#252530] border border-white/10">
+                                    <input type="checkbox" id="canManageContent" checked={newCabinetForm.canManageContent} onChange={e => setNewCabinetForm({ ...newCabinetForm, canManageContent: e.target.checked })} className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-[#00ff41]" />
+                                    <label htmlFor="canManageContent" className="text-sm cursor-pointer">Управление контентом</label>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 mt-6">
+                                <button onClick={() => setShowCabinetModal(false)} className="flex-1 px-4 py-2 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors">Отмена</button>
+                                <button onClick={handleAddCabinet} disabled={!newCabinetForm.name || !newCabinetForm.email || !newCabinetForm.password} className="flex-1 px-4 py-2 bg-[#00ff41] hover:bg-[#00cc33] disabled:bg-gray-600 text-black font-medium rounded-lg transition-all">Создать кабинет</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CABINET DETAILS MODAL */}
+            {showCabinetDetailsModal && selectedCabinet && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-3xl my-8">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#7c3aed] flex items-center justify-center text-2xl font-bold">{selectedCabinet.avatar}</div>
+                                    <div>
+                                        <h2 className="text-xl font-bold">{selectedCabinet.name}</h2>
+                                        <p className="text-sm text-gray-400">{selectedCabinet.email}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${getStatusColor(selectedCabinet.status)}`}>{selectedCabinet.status === 'active' ? 'Активен' : 'Приостановлен'}</span>
+                                            <span className="text-[10px] text-gray-500">{selectedCabinet.stats.activeNow ? '🟢 Онлайн' : '⚫ Оффлайн'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowCabinetDetailsModal(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                            </div>
+
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]"><p className="text-xs text-gray-500">Всего чатов</p><p className="text-xl font-bold text-white">{selectedCabinet.stats.totalChats}</p></div>
+                                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]"><p className="text-xs text-gray-500">Тикетов решено</p><p className="text-xl font-bold text-[#00ff41]">{selectedCabinet.stats.resolvedTickets}</p></div>
+                                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]"><p className="text-xs text-gray-500">Средний ответ</p><p className="text-xl font-bold text-blue-400">{selectedCabinet.stats.avgResponseTime}</p></div>
+                                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]"><p className="text-xs text-gray-500">CSAT</p><p className="text-xl font-bold text-purple-400">{selectedCabinet.stats.satisfactionRate}%</p></div>
+                            </div>
+
+                            <div className="grid lg:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <h3 className="text-sm font-semibold mb-3 text-gray-300">Контактная информация</h3>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center gap-2 text-gray-400"><Phone size={14} />{selectedCabinet.phone || 'Не указан'}</div>
+                                        <div className="flex items-center gap-2 text-gray-400"><MapPin size={14} />{selectedCabinet.location || 'Не указана'}</div>
+                                        <div className="flex items-center gap-2 text-gray-400"><Clock size={14} />{selectedCabinet.workHours}</div>
+                                        <div className="flex items-center gap-2 text-gray-400"><Calendar size={14} />Присоединился: {selectedCabinet.joinedDate}</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-semibold mb-3 text-gray-300">Права доступа</h3>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {selectedCabinet.permissions.map(perm => {
+                                            const permInfo = allPermissions.find(p => p.id === perm)
+                                            return <span key={perm} className="text-[10px] px-2 py-0.5 rounded-full bg-[#00ff41]/10 text-[#00ff41] border border-[#00ff41]/20">{permInfo?.name || perm}</span>
+                                        })}
+                                    </div>
+                                    <div className="mt-3 space-y-1 text-xs text-gray-500">
+                                        {selectedCabinet.canWithdraw && <div className="flex items-center gap-1"><Check size={10} className="text-[#00ff41]" /> Может выводить средства</div>}
+                                        {selectedCabinet.canManageUsers && <div className="flex items-center gap-1"><Check size={10} className="text-[#00ff41]" /> Управление пользователями</div>}
+                                        {selectedCabinet.canViewAnalytics && <div className="flex items-center gap-1"><Check size={10} className="text-[#00ff41]" /> Просмотр аналитики</div>}
+                                        {selectedCabinet.canManageContent && <div className="flex items-center gap-1"><Check size={10} className="text-[#00ff41]" /> Управление контентом</div>}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mb-6">
+                                <h3 className="text-sm font-semibold mb-3 text-gray-300">Активность за 7 дней</h3>
+                                <div className="flex items-end gap-2 h-20">
+                                    {selectedCabinet.activity.map((day, i) => (
+                                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                                            <div className="w-full flex gap-0.5">
+                                                <div className="flex-1 bg-[#00ff41]/30 rounded-t" style={{ height: `${(day.chats / 80) * 100}px`, minHeight: '4px' }} />
+                                                <div className="flex-1 bg-blue-400/30 rounded-t" style={{ height: `${(day.tickets / 30) * 100}px`, minHeight: '4px' }} />
+                                            </div>
+                                            <span className="text-[9px] text-gray-600">{day.date.split(' ')[0]}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1"><div className="w-2 h-2 bg-[#00ff41]/50 rounded" /> Чаты</span>
+                                    <span className="flex items-center gap-1"><div className="w-2 h-2 bg-blue-400/50 rounded" /> Тикеты</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-semibold mb-3 text-gray-300">Последние действия</h3>
+                                <div className="space-y-2">
+                                    {selectedCabinet.recentActions.map((action, i) => (
+                                        <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02]">
+                                            <div className={`w-2 h-2 rounded-full ${action.type === 'success' ? 'bg-[#00ff41]' : action.type === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'}`} />
+                                            <span className="text-sm text-gray-300 flex-1">{action.action}</span>
+                                            <span className="text-xs text-gray-500">{action.time}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 mt-6 pt-6 border-t border-white/[0.06]">
+                                <button onClick={() => handleImpersonate(selectedCabinet)} className="flex items-center gap-2 px-5 py-2.5 bg-[#00ff41] hover:bg-[#00cc33] text-black font-medium rounded-lg transition-all hover:scale-[1.02]"><LogIn size={16} /> Войти в кабинет</button>
+                                <button onClick={() => { handleToggleCabinetStatus(selectedCabinet.id); setShowCabinetDetailsModal(false); }} className="flex items-center gap-2 px-5 py-2.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded-lg transition-all border border-yellow-500/20">{selectedCabinet.status === 'active' ? <><PauseCircle size={16} /> Приостановить</> : <><PlayCircle size={16} /> Активировать</>}</button>
+                                <button onClick={() => { handleDeleteCabinet(selectedCabinet.id); setShowCabinetDetailsModal(false); }} className="flex items-center gap-2 px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all border border-red-500/20 ml-auto"><Trash2 size={16} /> Удалить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
+export default OwnerDashboard

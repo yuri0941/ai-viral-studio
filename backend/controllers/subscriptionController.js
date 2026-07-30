@@ -1,0 +1,200 @@
+import { Subscription } from '../models/index.js';
+
+const PLANS = [
+  { id: 'free', name: 'Free', priceRUB: 0, priceUSD: 0, priceEUR: 0, description: 'Базовый набор для старта' },
+  { id: 'starter', name: 'Starter', priceRUB: 2900, priceUSD: 29, priceEUR: 29, description: 'Для начинающих авторов' },
+  { id: 'creator', name: 'Creator', priceRUB: 4300, priceUSD: 43, priceEUR: 43, description: 'Рекомендуемый для creators' },
+  { id: 'pro', name: 'Pro', priceRUB: 7900, priceUSD: 79, priceEUR: 79, description: 'Для профессионалов' },
+  { id: 'agency', name: 'Agency', priceRUB: 19900, priceUSD: 199, priceEUR: 199, description: 'Для агентств и команд' },
+  { id: 'enterprise', name: 'Enterprise', priceRUB: 47500, priceUSD: 475, priceEUR: 475, description: 'Кастомное решение' },
+];
+
+export const isStripeEnabled = false;
+
+function getPlanPrice(planId, currency = 'RUB') {
+  const plan = PLANS.find((p) => p.id === planId);
+  if (!plan) return 0;
+  if (currency === 'USD') return plan.priceUSD;
+  if (currency === 'EUR') return plan.priceEUR;
+  return plan.priceRUB;
+}
+
+export const getPlans = async (req, res) => {
+  try {
+    const currency = req.query.currency || 'RUB';
+    const plans = PLANS.map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: currency === 'USD' ? p.priceUSD : currency === 'EUR' ? p.priceEUR : p.priceRUB,
+      currency,
+      description: p.description,
+      interval: 'month',
+      yearlyDiscountPercent: 20,
+    }));
+    return res.json({ success: true, plans });
+  } catch (err) {
+    console.error('[subscriptionController:getPlans]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+export const getCurrentSubscription = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const subscription = await Subscription.findOne({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!subscription) {
+      const free = {
+        userId,
+        plan: 'free',
+        status: 'active',
+        price: 0,
+        currency: 'RUB',
+        interval: 'month',
+        autoRenew: false,
+        startDate: new Date(),
+      };
+      return res.json({ success: true, subscription: free });
+    }
+
+    return res.json({ success: true, subscription });
+  } catch (err) {
+    console.error('[subscriptionController:getCurrentSubscription]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+export const getSubscriptionHistory = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const history = await Subscription.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    return res.json({ success: true, history });
+  } catch (err) {
+    console.error('[subscriptionController:getSubscriptionHistory]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+export const createSubscription = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const { plan, interval, currency, paymentMethod, provider, autoRenew, isTrial } = req.body || {};
+    const planId = PLANS.find((p) => p.id === plan)?.id || 'free';
+    const curr = ['USD', 'EUR'].includes(currency) ? currency : 'RUB';
+    const price = getPlanPrice(planId, curr);
+
+    const now = new Date();
+    const endDate = new Date(now);
+    if (interval === 'year') {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    } else {
+      endDate.setMonth(endDate.getMonth() + 1);
+    }
+
+    // Deactivate previous subscriptions for this user
+    await Subscription.updateMany(
+      { userId, status: { $in: ['active', 'trialing'] } },
+      { $set: { status: 'inactive' } }
+    );
+
+    const subscription = await Subscription.create({
+      userId,
+      plan: planId,
+      status: isTrial ? 'trialing' : 'active',
+      price,
+      currency: curr,
+      interval: interval === 'year' ? 'year' : 'month',
+      startDate: now,
+      endDate,
+      trialEndsAt: isTrial ? endDate : undefined,
+      autoRenew: autoRenew !== false,
+      paymentMethod: paymentMethod || 'none',
+      provider: provider || 'internal',
+      isTrial: !!isTrial,
+    });
+
+    return res.status(201).json({ success: true, subscription });
+  } catch (err) {
+    console.error('[subscriptionController:createSubscription]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+export const updateSubscription = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const { id } = req.params;
+    const allowed = ['status', 'autoRenew', 'paymentMethod', 'provider', 'providerPaymentId'];
+    const update = {};
+    allowed.forEach((key) => {
+      if (req.body[key] !== undefined) update[key] = req.body[key];
+    });
+
+    const subscription = await Subscription.findOneAndUpdate(
+      { _id: id, userId },
+      { $set: update },
+      { new: true }
+    ).lean();
+
+    if (!subscription) return res.status(404).json({ success: false, error: 'Not found' });
+    return res.json({ success: true, subscription });
+  } catch (err) {
+    console.error('[subscriptionController:updateSubscription]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+export const cancelSubscription = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const { id } = req.params;
+    const subscription = await Subscription.findOneAndUpdate(
+      { _id: id, userId, status: { $in: ['active', 'trialing'] } },
+      { $set: { status: 'canceled', autoRenew: false } },
+      { new: true }
+    ).lean();
+
+    if (!subscription) return res.status(404).json({ success: false, error: 'Not found' });
+    return res.json({ success: true, subscription });
+  } catch (err) {
+    console.error('[subscriptionController:cancelSubscription]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+export const checkTrialEnding = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const inThreeDays = new Date();
+    inThreeDays.setDate(inThreeDays.getDate() + 3);
+
+    const ending = await Subscription.find({
+      userId,
+      status: 'trialing',
+      trialEndsAt: { $lte: inThreeDays, $gte: new Date() },
+    }).lean();
+
+    return res.json({ success: true, endingSoon: ending.length > 0, subscriptions: ending });
+  } catch (err) {
+    console.error('[subscriptionController:checkTrialEnding]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};

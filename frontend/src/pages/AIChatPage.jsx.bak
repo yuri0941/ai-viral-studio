@@ -1,0 +1,343 @@
+import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import {
+    Send, Plus, MessageSquare, Sparkles, Bot, User,
+    Trash2, Copy, Check, Settings, ChevronDown, Menu
+} from 'lucide-react';
+
+function AIChatPage() {
+    const { user } = useAuth();
+    const [chats, setChats] = useState([
+        {
+            id: 1, title: 'Скрипт для TikTok', date: 'Сегодня', messages: [
+                { role: 'user', content: 'Напиши скрипт для TikTok про продуктивность' },
+                { role: 'assistant', content: 'Вот скрипт для TikTok:\n\n**Хук (0-3 сек):**\n"Ты тратишь 4 часа в день на телефон — а мог бы заработать $1000"\n\n**Основная часть:**\n1. Покажи статистику экранного времени\n2. Расскажи про метод Pomodoro\n3. Дай 3 конкретных совета\n\n**Призыв к действию:**\n"Подпишись, если хочешь больше лайфхаков"\n\n**Хэштеги:** #продуктивность #лайфхаки #тайменеджмент' }
+            ]
+        },
+        {
+            id: 2, title: 'Хуки для YouTube', date: 'Сегодня', messages: [
+                { role: 'user', content: 'Придумай 5 хуков для видео о криптовалюте' },
+                { role: 'assistant', content: '1. "Я потерял $50,000 на крипте — вот что я понял"\n2. "Этот альткоин вырастет в 100 раз до конца года"\n3. "Биткоин умер? Нет, вот почему"\n4. "Как я зарабатываю $5000/мес на стейкинге"\n5. "3 крипто-скама, которые крутятся прямо сейчас"' }
+            ]
+        },
+        {
+            id: 3, title: 'Тренды в фитнесе', date: 'Вчера', messages: [
+                { role: 'user', content: 'Какие тренды в фитнесе сейчас популярны?' },
+                { role: 'assistant', content: 'Топ трендов фитнеса 2026:\n\n1. **Микро-тренировки** — 5-10 минутные сессии\n2. **Виртуальные тренеры** с AI\n3. **Групповые онлайн-занятия**\n4. **Recovery-фокус** — восстановление важнее тренировок\n5. **Biohacking** — трекеры, суплементы, оптимизация' }
+            ]
+        },
+        {
+            id: 4, title: 'Теги для блога', date: 'Вчера', messages: [
+                { role: 'user', content: 'Сгенерируй SEO-теги для статьи о React' },
+                { role: 'assistant', content: 'SEO-теги для статьи о React:\n\n**Title:** React 19: Полный гид для разработчиков 2026\n\n**Meta description:** Узнайте всё о React 19 — новые фичи, хуки, производительность. Подробный гид с примерами кода.\n\n**H1-H3:**\n- React 19 что нового\n- Как использовать React Server Components\n- React 19 vs Vue 3\n\n**Keywords:** react, react 19, javascript, frontend, web development' }
+            ]
+        },
+        {
+            id: 5, title: 'Сценарий Reels', date: '3 дня назад', messages: [
+                { role: 'user', content: 'Напиши сценарий Reels для кофейни' },
+                { role: 'assistant', content: 'Сценарий Reels для кофейни:\n\n**Кадр 1 (0-2с):** Близкий план кофе с латте-артом\n**Текст:** "POV: ты нашёл лучшую кофейню в городе"\n\n**Кадр 2 (2-5с):** Процесс приготовления, бариста за работой\n**Текст:** "Свежая обжарка каждый день"\n\n**Кадр 3 (5-8с):** Клиенты с улыбками, атмосфера\n**Текст:** "Уют, который ты запомнишь"\n\n**Кадр 4 (8-10с):** Акция — "Первый кофе бесплатно"\n**Текст:** "Покажи этот Reels — получи скидку 20%"' }
+            ]
+        },
+    ]);
+
+    const [activeChat, setActiveChat] = useState(1);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [copiedId, setCopiedId] = useState(null);
+    const messagesEndRef = useRef(null);
+    const inputRef = useRef(null);
+
+    const currentChat = chats.find(c => c.id === activeChat);
+    const currentMessages = currentChat?.messages || [];
+
+    const providers = [
+        { id: 'auto', name: 'Авто (рекомендуется)', icon: '🔮' },
+        { id: 'groq', name: 'Groq API', icon: '⚡' },
+        { id: 'openrouter', name: 'OpenRouter', icon: '🌐' },
+    ];
+    const [selectedProvider, setSelectedProvider] = useState('auto');
+    const [providerDropdown, setProviderDropdown] = useState(false);
+
+    const quickActions = [
+        { label: 'Скрипт', icon: '📝', prompt: 'Напиши скрипт для видео на тему: ' },
+        { label: 'Хуки', icon: '🎣', prompt: 'Придумай 5 хуков для: ' },
+        { label: 'Тренды', icon: '📈', prompt: 'Какие тренды в нише: ' },
+        { label: 'Теги', icon: '🏷️', prompt: 'Сгенерируй теги для: ' },
+        { label: 'Reels', icon: '🎬', prompt: 'Сценарий Reels для: ' },
+        { label: 'Shorts', icon: '⏱️', prompt: 'Сценарий Shorts для: ' },
+    ];
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [currentMessages]);
+
+    const createNewChat = () => {
+        const newChat = {
+            id: Date.now(),
+            title: 'Новый чат',
+            date: 'Сейчас',
+            messages: []
+        };
+        setChats([newChat, ...chats]);
+        setActiveChat(newChat.id);
+        setInput('');
+        inputRef.current?.focus();
+    };
+
+    const deleteChat = (id, e) => {
+        e.stopPropagation();
+        const filtered = chats.filter(c => c.id !== id);
+        setChats(filtered);
+        if (activeChat === id && filtered.length > 0) {
+            setActiveChat(filtered[0].id);
+        }
+    };
+
+    const copyMessage = (content, id) => {
+        navigator.clipboard.writeText(content);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    const sendMessage = async () => {
+        if (!input.trim() || isLoading) return;
+
+        const userMessage = { role: 'user', content: input };
+        const updatedChats = chats.map(c =>
+            c.id === activeChat
+                ? { ...c, messages: [...c.messages, userMessage], title: c.messages.length === 0 ? input.slice(0, 30) + '...' : c.title }
+                : c
+        );
+        setChats(updatedChats);
+        setInput('');
+        setIsLoading(true);
+
+        // Имитация AI ответа
+        setTimeout(() => {
+            const aiResponse = {
+                role: 'assistant',
+                content: `Отличный запрос! Вот что я подготовил по теме "${input}":\n\n**Ключевые моменты:**\n1. Анализируйте аудиторию перед созданием контента\n2. Используйте трендовые хэштеги и звуки\n3. Публикуйте в оптимальное время (18:00-21:00)\n4. Взаимодействуйте с комментариями в первый час\n\n**Рекомендации:**\n- Создайте серию из 3-5 связанных постов\n- Используйте призывы к действию\n- Добавьте интерактивные элементы (опросы, вопросы)\n\nНужна помощь с чем-то конкретным?`
+            };
+            setChats(prev => prev.map(c =>
+                c.id === activeChat
+                    ? { ...c, messages: [...c.messages, aiResponse] }
+                    : c
+            ));
+            setIsLoading(false);
+        }, 1500);
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    };
+
+    const handleQuickAction = (prompt) => {
+        setInput(prompt);
+        inputRef.current?.focus();
+    };
+
+    return (
+        <div className="h-screen bg-[#0a0a0f] text-white flex overflow-hidden">
+            {/* Chat Sidebar */}
+            <div className={`${sidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 bg-[#0f0f17] border-r border-white/5 flex flex-col flex-shrink-0 overflow-hidden`}>
+                <div className="p-4">
+                    <button
+                        onClick={createNewChat}
+                        className="w-full flex items-center gap-2 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold rounded-xl transition-all hover:scale-[1.02]"
+                    >
+                        <Plus size={18} /> Новый чат
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-3 space-y-1">
+                    {chats.map(chat => (
+                        <button
+                            key={chat.id}
+                            onClick={() => setActiveChat(chat.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all group relative
+                ${activeChat === chat.id
+                                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-white'
+                                    : 'hover:bg-white/5 text-gray-400 hover:text-white border border-transparent'
+                                }
+              `}
+                        >
+                            <MessageSquare size={16} className={activeChat === chat.id ? 'text-emerald-400' : ''} />
+                            <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{chat.title}</div>
+                                <div className="text-xs text-gray-500">{chat.date}</div>
+                            </div>
+                            <button
+                                onClick={(e) => deleteChat(chat.id, e)}
+                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 text-red-400 transition-all"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Main Chat Area */}
+            <div className="flex-1 flex flex-col min-w-0">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+                        >
+                            <Menu size={18} />
+                        </button>
+                        <div>
+                            <h2 className="font-semibold">AI Chat</h2>
+                            <div className="flex items-center gap-1 text-xs text-emerald-400">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                                Groq API • Ответ ~2 сек
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="relative">
+                        <button
+                            onClick={() => setProviderDropdown(!providerDropdown)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1a24] rounded-lg text-sm border border-white/10 hover:border-white/20 transition-colors"
+                        >
+                            <span>{providers.find(p => p.id === selectedProvider)?.icon}</span>
+                            <span className="hidden sm:inline">{providers.find(p => p.id === selectedProvider)?.name}</span>
+                            <ChevronDown size={14} />
+                        </button>
+                        {providerDropdown && (
+                            <div className="absolute right-0 top-full mt-2 w-56 bg-[#1a1a24] rounded-xl border border-white/10 shadow-xl z-50">
+                                {providers.map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => { setSelectedProvider(p.id); setProviderDropdown(false); }}
+                                        className={`w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-white/5 transition-colors ${selectedProvider === p.id ? 'text-emerald-400' : ''}`}
+                                    >
+                                        <span>{p.icon}</span> {p.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+                    {currentMessages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4">
+                                <Sparkles size={32} className="text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Привет! Я AI Viral Studio</h3>
+                            <p className="text-gray-400 mb-6 max-w-md">Что будем создавать сегодня?</p>
+                            <div className="text-left space-y-2 text-sm text-gray-300">
+                                <p>Я могу:</p>
+                                <ul className="space-y-1 ml-4">
+                                    <li>• Написать скрипт для видео</li>
+                                    <li>• Придумать хуки и заголовки</li>
+                                    <li>• Проанализировать тренды</li>
+                                    <li>• Сгенерировать описание и теги</li>
+                                    <li>• Создать сценарий для Reels/Shorts</li>
+                                </ul>
+                            </div>
+                        </div>
+                    ) : (
+                        currentMessages.map((msg, idx) => (
+                            <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
+                  ${msg.role === 'user'
+                                        ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                                        : 'bg-gradient-to-br from-purple-500 to-pink-600'
+                                    }
+                `}>
+                                    {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                                </div>
+                                <div className={`max-w-[80%] px-4 py-3 rounded-2xl relative group
+                  ${msg.role === 'user'
+                                        ? 'bg-emerald-500/10 border border-emerald-500/20'
+                                        : 'bg-[#1a1a24] border border-white/5'
+                                    }
+                `}>
+                                    <div className="text-sm whitespace-pre-line">{msg.content}</div>
+                                    <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => copyMessage(msg.content, idx)}
+                                            className="p-1 rounded hover:bg-white/10 text-gray-400"
+                                        >
+                                            {copiedId === idx ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                    {isLoading && (
+                        <div className="flex gap-4">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                                <Bot size={16} />
+                            </div>
+                            <div className="bg-[#1a1a24] border border-white/5 px-4 py-3 rounded-2xl">
+                                <div className="flex gap-1">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce"></div>
+                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
+
+                {/* Quick Actions */}
+                <div className="px-4 pb-2">
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        {quickActions.map((action, i) => (
+                            <button
+                                key={i}
+                                onClick={() => handleQuickAction(action.prompt)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a24] border border-white/10 rounded-lg text-sm whitespace-nowrap hover:border-emerald-500/30 hover:text-emerald-400 transition-all"
+                            >
+                                <span>{action.icon}</span> {action.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Input */}
+                <div className="p-4 border-t border-white/5">
+                    <div className="flex items-end gap-2 bg-[#1a1a24] border border-white/10 rounded-2xl px-4 py-3 focus-within:border-emerald-500/50 transition-colors">
+                        <textarea
+                            ref={inputRef}
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Напиши задачу для AI..."
+                            rows={1}
+                            className="flex-1 bg-transparent outline-none resize-none max-h-32 text-sm"
+                            style={{ minHeight: '24px' }}
+                        />
+                        <button
+                            onClick={sendMessage}
+                            disabled={!input.trim() || isLoading}
+                            className={`p-2 rounded-xl transition-all ${input.trim() && !isLoading ? 'bg-emerald-500 text-black hover:bg-emerald-600' : 'bg-gray-700 text-gray-500'}`}
+                        >
+                            <Send size={18} />
+                        </button>
+                    </div>
+                    <p className="text-xs text-gray-600 text-center mt-2">AI может ошибаться. Проверяйте важную информацию.</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default AIChatPage;

@@ -1,0 +1,829 @@
+import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
+import {
+    Headphones, TicketCheck, Clock, Star, Shield, BookOpen, Zap,
+    Search, Send, Check, X, AlertCircle, MessageSquare, User,
+    ChevronDown, ChevronUp, Tag, ArrowUpRight, Filter,
+    AlertTriangle, CheckCircle2, Clock4, Lock, Unlock, Layout, List
+} from 'lucide-react'
+
+function StaffDashboardPage() {
+    const { user } = useAuth()
+    const [toast, setToast] = useState(null)
+    const [activeFilter, setActiveFilter] = useState('all')
+    const [searchQuery, setSearchQuery] = useState('')
+
+    // --- TICKETS STATE ---
+    const [tickets, setTickets] = useState([
+        {
+            id: 1,
+            user: 'user1@mail.com',
+            subject: 'Не работает AI Chat',
+            status: 'open',
+            priority: 'high',
+            time: '10 мин назад',
+            messages: [
+                { from: 'user', text: 'Привет! AI Chat перестал отвечать. Пишу запрос, а в ответ тишина. Помогите!', time: '10 мин назад' },
+                { from: 'staff', text: 'Здравствуйте! Проверяю подключение к API. Какой провайдер выбран у вас?', time: '8 мин назад' },
+                { from: 'user', text: 'Авто (рекомендуется)', time: '7 мин назад' },
+            ],
+            assignedTo: null
+        },
+        {
+            id: 2,
+            user: 'creator99@mail.com',
+            subject: 'Ошибка оплаты',
+            status: 'open',
+            priority: 'medium',
+            time: '1 час назад',
+            messages: [
+                { from: 'user', text: 'Пытаюсь оплатить тариф Pro, но выдаёт ошибку "Payment failed". Карта рабочая.', time: '1 час назад' },
+            ],
+            assignedTo: null
+        },
+        {
+            id: 3,
+            user: 'biz@company.com',
+            subject: 'Как подключить YouTube?',
+            status: 'in_progress',
+            priority: 'low',
+            time: '3 часа назад',
+            messages: [
+                { from: 'user', text: 'Не понимаю как подключить YouTube канал к планировщику. Где найти API ключ?', time: '3 часа назад' },
+                { from: 'staff', text: 'Добрый день! Перейдите в Настройки → Соцсети → YouTube. Там будет кнопка "Подключить".', time: '2 часа назад' },
+                { from: 'user', text: 'Спасибо! Нашёл. А где взять API ключ?', time: '1 час назад' },
+            ],
+            assignedTo: 'staff@ai-viral.com'
+        },
+        {
+            id: 4,
+            user: 'test@mail.com',
+            subject: 'Проблема с входом',
+            status: 'closed',
+            priority: 'high',
+            time: 'Вчера',
+            messages: [
+                { from: 'user', text: 'Не могу войти в аккаунт. Пишет "Неверный пароль", хотя я уверен что пароль правильный.', time: 'Вчера' },
+                { from: 'staff', text: 'Попробуйте сбросить пароль через кнопку "Забыли пароль?" на странице входа.', time: 'Вчера' },
+                { from: 'user', text: 'Помогло! Спасибо большое!', time: 'Вчера' },
+            ],
+            assignedTo: 'staff@ai-viral.com'
+        }
+    ])
+
+    const [replyText, setReplyText] = useState('')
+
+    // --- MODALS ---
+    const [showTicketModal, setShowTicketModal] = useState(false)
+    const [selectedTicket, setSelectedTicket] = useState(null)
+    const [showModerationModal, setShowModerationModal] = useState(false)
+    const [showKnowledgeModal, setShowKnowledgeModal] = useState(false)
+    const [showEscalationModal, setShowEscalationModal] = useState(false)
+    const [escalationForm, setEscalationForm] = useState({ reason: '', priority: 'medium', notes: '' })
+    const [viewMode, setViewMode] = useState('table')
+
+    const stats = {
+        openTickets: tickets.filter(t => t.status === 'open').length,
+        inProgressTickets: tickets.filter(t => t.status === 'in_progress').length,
+        closedTickets: tickets.filter(t => t.status === 'closed').length,
+        resolvedToday: tickets.filter(t => t.status === 'closed').length,
+        avgResponse: '15 мин',
+        satisfaction: 94
+    }
+
+    const changeStatus = (ticketId, newStatus) => {
+        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus, assignedTo: t.assignedTo || (user?.email || 'staff@ai-viral.com') } : t))
+        showToast(`Статус изменён на «${getStatusLabel(newStatus)}»`)
+    }
+
+    const changePriority = (ticketId, newPriority) => {
+        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, priority: newPriority } : t))
+        showToast(`Приоритет изменён на ${getPriorityLabel(newPriority)}`)
+    }
+
+    const assignToMe = (ticketId) => {
+        const me = user?.email || 'staff@ai-viral.com'
+        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignedTo: me } : t))
+        showToast('Тикет назначен на вас')
+    }
+
+    const setTicketStatus = (newStatus) => {
+        setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, status: newStatus } : t))
+        setSelectedTicket({ ...selectedTicket, status: newStatus })
+        showToast(`Статус изменён на «${getStatusLabel(newStatus)}»`)
+    }
+
+    const setTicketPriority = (newPriority) => {
+        setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, priority: newPriority } : t))
+        setSelectedTicket({ ...selectedTicket, priority: newPriority })
+        showToast(`Приоритет изменён на ${getPriorityLabel(newPriority)}`)
+    }
+
+    const assignSelectedToMe = () => {
+        const me = user?.email || 'staff@ai-viral.com'
+        setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, assignedTo: me } : t))
+        setSelectedTicket({ ...selectedTicket, assignedTo: me })
+        showToast('Тикет назначен на вас')
+    }
+
+    const insertQuickReply = (text) => {
+        setReplyText(text)
+    }
+
+    // --- TOAST ---
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type })
+        setTimeout(() => setToast(null), 3000)
+    }
+
+    // --- FILTERS ---
+    const filteredTickets = tickets.filter(t => {
+        const matchesSearch = t.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            t.subject.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesFilter = activeFilter === 'all' ? true :
+            activeFilter === 'open' ? t.status === 'open' :
+                activeFilter === 'in_progress' ? t.status === 'in_progress' :
+                    activeFilter === 'closed' ? t.status === 'closed' :
+                        activeFilter === 'mine' ? t.assignedTo === (user?.email || 'staff@ai-viral.com') :
+                            true
+        return matchesSearch && matchesFilter
+    })
+
+    // --- STATUS/PRIORITY STYLES ---
+    const getStatusStyle = (status) => {
+        switch (status) {
+            case 'open': return 'bg-red-500/10 text-red-400 border-red-500/20'
+            case 'in_progress': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+            case 'waiting': return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+            case 'closed': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+            default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+        }
+    }
+
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case 'open': return 'Открыт'
+            case 'in_progress': return 'В работе'
+            case 'waiting': return 'Ожидает ответа'
+            case 'closed': return 'Закрыт'
+            default: return status
+        }
+    }
+
+    const getStatusIcon = (status) => {
+        switch (status) {
+            case 'open': return <AlertCircle size={14} />
+            case 'in_progress': return <Clock4 size={14} />
+            case 'waiting': return <Clock size={14} />
+            case 'closed': return <CheckCircle2 size={14} />
+            default: return null
+        }
+    }
+
+    const getPriorityStyle = (priority) => {
+        switch (priority) {
+            case 'high': return 'text-red-400 bg-red-500/10 border-red-500/20'
+            case 'medium': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
+            case 'low': return 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+            default: return 'text-gray-400 bg-gray-500/10 border-gray-500/20'
+        }
+    }
+
+    const getPriorityLabel = (priority) => {
+        switch (priority) {
+            case 'high': return 'Высокий'
+            case 'medium': return 'Средний'
+            case 'low': return 'Низкий'
+            default: return priority
+        }
+    }
+
+    // --- TICKET ACTIONS ---
+    const openTicket = (ticket) => {
+        setSelectedTicket(ticket)
+        setReplyText('')
+        setShowTicketModal(true)
+    }
+
+    const sendReply = () => {
+        if (!replyText.trim()) return
+        const updatedTickets = tickets.map(t => {
+            if (t.id === selectedTicket.id) {
+                return {
+                    ...t,
+                    messages: [...t.messages, { from: 'staff', text: replyText, time: 'Только что' }],
+                    status: t.status === 'closed' ? 'open' : 'waiting',
+                    assignedTo: user?.email || 'staff@ai-viral.com'
+                }
+            }
+            return t
+        })
+        setTickets(updatedTickets)
+        setSelectedTicket({
+            ...selectedTicket,
+            messages: [...selectedTicket.messages, { from: 'staff', text: replyText, time: 'Только что' }],
+            status: selectedTicket.status === 'closed' ? 'open' : 'waiting',
+            assignedTo: user?.email || 'staff@ai-viral.com'
+        })
+        setReplyText('')
+        showToast('Ответ отправлен')
+    }
+
+    const closeTicket = () => {
+        const updatedTickets = tickets.map(t => {
+            if (t.id === selectedTicket.id) {
+                return { ...t, status: 'closed' }
+            }
+            return t
+        })
+        setTickets(updatedTickets)
+        setSelectedTicket({ ...selectedTicket, status: 'closed' })
+        showToast('Тикет закрыт')
+    }
+
+    const reopenTicket = () => {
+        const updatedTickets = tickets.map(t => {
+            if (t.id === selectedTicket.id) {
+                return { ...t, status: 'open' }
+            }
+            return t
+        })
+        setTickets(updatedTickets)
+        setSelectedTicket({ ...selectedTicket, status: 'open' })
+        showToast('Тикет открыт заново')
+    }
+
+    // --- ESCALATION ---
+    const handleEscalation = () => {
+        if (!escalationForm.reason) {
+            showToast('Укажите причину эскалации', 'error')
+            return
+        }
+        setShowEscalationModal(false)
+        setEscalationForm({ reason: '', priority: 'medium', notes: '' })
+        showToast('Тикет передан администратору')
+    }
+
+    // --- KNOWLEDGE BASE ---
+    const [kbSearch, setKbSearch] = useState('')
+    const [kbCategory, setKbCategory] = useState('all')
+    const kbArticles = [
+        { id: 1, category: 'auth', title: 'Не могу войти в аккаунт', content: 'Попробуйте сбросить пароль через кнопку "Забыли пароль?". Если не помогает — проверьте правильность email.', views: 234 },
+        { id: 2, category: 'payments', title: 'Ошибка оплаты тарифа', content: 'Проверьте баланс карты и лимиты. Попробуйте другой способ оплаты (PayPal, Crypto).', views: 189 },
+        { id: 3, category: 'ai', title: 'AI Chat не отвечает', content: 'Проверьте подключение к интернету. Попробуйте переключить провайдера в настройках чата (Groq / OpenRouter).', views: 456 },
+        { id: 4, category: 'scheduler', title: 'Как подключить YouTube', content: 'Перейдите в Настройки → Соцсети → YouTube. Нажмите "Подключить" и авторизуйтесь через Google.', views: 312 },
+        { id: 5, category: 'scheduler', title: 'Пост не опубликовался', content: 'Проверьте дату и время публикации. Убедитесь что выбрана хотя бы одна платформа.', views: 178 },
+        { id: 6, category: 'account', title: 'Как сменить тариф', content: 'Перейдите в Настройки → Подписка. Выберите новый тариф и нажмите "Выбрать".', views: 267 },
+    ]
+
+    const kbCategories = [
+        { id: 'all', label: 'Все', icon: BookOpen },
+        { id: 'auth', label: 'Авторизация', icon: Lock },
+        { id: 'payments', label: 'Оплата', icon: Tag },
+        { id: 'ai', label: 'AI Chat', icon: MessageSquare },
+        { id: 'scheduler', label: 'Планировщик', icon: Clock },
+        { id: 'account', label: 'Аккаунт', icon: User },
+    ]
+
+    const filteredKb = kbArticles.filter(a => {
+        const matchesSearch = a.title.toLowerCase().includes(kbSearch.toLowerCase()) ||
+            a.content.toLowerCase().includes(kbSearch.toLowerCase())
+        const matchesCategory = kbCategory === 'all' || a.category === kbCategory
+        return matchesSearch && matchesCategory
+    })
+
+    // --- MODERATION REPORTS ---
+    const [reports, setReports] = useState([
+        { id: 1, user: 'user1@mail.com', content: 'Нецензурный контент в комментариях', platform: 'YouTube', date: '10 мин назад', status: 'pending' },
+        { id: 2, user: 'spammer@bot.ru', content: 'Массовая рассылка спама', platform: 'Telegram', date: '1 час назад', status: 'pending' },
+        { id: 3, user: 'creator99@mail.com', content: 'Нарушение авторских прав (музыка)', platform: 'TikTok', date: '3 часа назад', status: 'reviewed' },
+    ])
+
+    const handleReportAction = (reportId, action) => {
+        if (action === 'ban') {
+            setReports(reports.filter(r => r.id !== reportId))
+            showToast('Пользователь заблокирован')
+        } else if (action === 'dismiss') {
+            setReports(reports.filter(r => r.id !== reportId))
+            showToast('Жалоба отклонена')
+        } else if (action === 'warn') {
+            setReports(reports.map(r => r.id === reportId ? { ...r, status: 'warned' } : r))
+            showToast('Предупреждение отправлено')
+        }
+    }
+
+    return (
+        <div className="min-h-screen bg-[#0a0a0f] text-white p-4 md:p-6">
+            {/* Toast */}
+            {toast && (
+                <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl flex items-center gap-2 shadow-lg transition-all ${toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-emerald-500/90 text-black'
+                    }`}>
+                    {toast.type === 'error' ? <AlertCircle size={18} /> : <Check size={18} />}
+                    <span className="font-medium">{toast.message}</span>
+                </div>
+            )}
+
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                <div className="flex items-center gap-3">
+                    <Headphones size={28} className="text-blue-400" />
+                    <div>
+                        <h1 className="text-3xl font-bold">Staff Panel</h1>
+                        <p className="text-gray-400 text-sm">Поддержка пользователей и модерация</p>
+                    </div>
+                </div>
+                <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400 text-sm font-semibold border border-blue-500/20">
+                    {user?.name || 'Staff'}
+                </span>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+                {[
+                    { label: 'Открытых тикетов', value: stats.openTickets, icon: TicketCheck, color: 'text-red-400', bg: 'bg-red-500/10' },
+                    { label: 'Решено сегодня', value: stats.resolvedToday, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+                    { label: 'Среднее время', value: stats.avgResponse, icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+                    { label: 'Удовлетворённость', value: `${stats.satisfaction}%`, icon: Star, color: 'text-purple-400', bg: 'bg-purple-500/10' }
+                ].map((stat, i) => {
+                    const Icon = stat.icon
+                    return (
+                        <div key={i} className={`${stat.bg} border border-white/10 rounded-2xl p-5 hover:border-white/20 transition-all`}>
+                            <Icon size={22} className={`mb-2 ${stat.color}`} />
+                            <p className="text-2xl font-bold">{stat.value}</p>
+                            <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
+                        </div>
+                    )
+                })}
+            </div>
+
+            {/* Tickets Table */}
+            <div className="bg-[#1a1a24] border border-white/10 rounded-2xl overflow-hidden mb-8">
+                <div className="p-5 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <MessageSquare size={18} className="text-blue-400" /> Тикеты поддержки
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {[
+                            { id: 'all', label: 'Все' },
+                            { id: 'open', label: 'Открытые' },
+                            { id: 'in_progress', label: 'В работе' },
+                            { id: 'waiting', label: 'Ожидают' },
+                            { id: 'closed', label: 'Закрытые' },
+                            { id: 'mine', label: 'Мои' },
+                        ].map(filter => (
+                            <button
+                                key={filter.id}
+                                onClick={() => setActiveFilter(filter.id)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeFilter === filter.id
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                    : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-transparent'
+                                    }`}
+                            >
+                                {filter.label}
+                            </button>
+                        ))}
+                        <div className="h-5 w-px bg-white/10 mx-1" />
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={`p-1.5 rounded-lg text-xs transition-colors ${viewMode === 'table' ? 'bg-emerald-500/10 text-emerald-400' : 'text-gray-400 hover:text-white'}`}
+                            title="Таблица"
+                        >
+                            <List size={16} />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('kanban')}
+                            className={`p-1.5 rounded-lg text-xs transition-colors ${viewMode === 'kanban' ? 'bg-emerald-500/10 text-emerald-400' : 'text-gray-400 hover:text-white'}`}
+                            title="Kanban"
+                        >
+                            <Layout size={16} />
+                        </button>
+                    </div>
+                </div>
+                <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row items-center gap-3">
+                    <div className="relative flex-1 max-w-md">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <input
+                            type="text"
+                            placeholder="Поиск по тикетам..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#252530] border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500/30"
+                        />
+                    </div>
+                    <p className="text-xs text-gray-500">{filteredTickets.length} тикетов</p>
+                </div>
+
+                {viewMode === 'table' && (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="text-left text-gray-500 text-sm border-b border-white/5">
+                                    <th className="p-4">ID</th>
+                                    <th className="p-4">Пользователь</th>
+                                    <th className="p-4">Тема</th>
+                                    <th className="p-4">Приоритет</th>
+                                    <th className="p-4">Статус</th>
+                                    <th className="p-4">Назначен</th>
+                                    <th className="p-4">Время</th>
+                                    <th className="p-4">Действие</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredTickets.map((ticket) => (
+                                    <tr key={ticket.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                        <td className="p-4 text-gray-400 text-sm">#{ticket.id}</td>
+                                        <td className="p-4 text-white text-sm">{ticket.user}</td>
+                                        <td className="p-4 text-gray-300 text-sm">{ticket.subject}</td>
+                                        <td className="p-4">
+                                            <select
+                                                value={ticket.priority}
+                                                onChange={e => changePriority(ticket.id, e.target.value)}
+                                                className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getPriorityStyle(ticket.priority)}`}
+                                            >
+                                                <option value="high" className="bg-[#1a1a24]">Высокий</option>
+                                                <option value="medium" className="bg-[#1a1a24]">Средний</option>
+                                                <option value="low" className="bg-[#1a1a24]">Низкий</option>
+                                            </select>
+                                        </td>
+                                        <td className="p-4">
+                                            <select
+                                                value={ticket.status}
+                                                onChange={e => changeStatus(ticket.id, e.target.value)}
+                                                className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getStatusStyle(ticket.status)}`}
+                                            >
+                                                <option value="open" className="bg-[#1a1a24]">Открыт</option>
+                                                <option value="in_progress" className="bg-[#1a1a24]">В работе</option>
+                                                <option value="waiting" className="bg-[#1a1a24]">Ожидает ответа</option>
+                                                <option value="closed" className="bg-[#1a1a24]">Закрыт</option>
+                                            </select>
+                                        </td>
+                                        <td className="p-4 text-gray-300 text-xs">
+                                            {ticket.assignedTo ? ticket.assignedTo.split('@')[0] : '—'}
+                                        </td>
+                                        <td className="p-4 text-gray-500 text-sm">{ticket.time}</td>
+                                        <td className="p-4">
+                                            <button
+                                                onClick={() => openTicket(ticket)}
+                                                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
+                                            >
+                                                <ArrowUpRight size={12} /> Открыть
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {filteredTickets.length === 0 && (
+                            <div className="p-8 text-center text-gray-500">
+                                <Search size={32} className="mx-auto mb-3 opacity-50" />
+                                <p>Тикеты не найдены</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {viewMode === 'kanban' && (
+                    <div className="p-4 overflow-x-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 min-w-[600px]">
+                            {[
+                                { id: 'open', label: 'Открытые', color: 'border-red-500/20' },
+                                { id: 'in_progress', label: 'В работе', color: 'border-yellow-500/20' },
+                                { id: 'waiting', label: 'Ожидают', color: 'border-blue-500/20' },
+                                { id: 'closed', label: 'Закрытые', color: 'border-emerald-500/20' },
+                            ].map(col => (
+                                <div key={col.id} className={`bg-[#0f0f1a]/50 rounded-xl border ${col.color} flex flex-col max-h-[500px]`}>
+                                    <div className="p-3 border-b border-white/5 flex items-center justify-between">
+                                        <span className="text-sm font-medium text-white">{col.label}</span>
+                                        <span className="text-xs text-gray-500">{filteredTickets.filter(t => t.status === col.id).length}</span>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                                        {filteredTickets.filter(t => t.status === col.id).map(ticket => (
+                                            <button
+                                                key={ticket.id}
+                                                onClick={() => openTicket(ticket)}
+                                                className="w-full text-left bg-[#1a1a24] rounded-lg p-3 border border-white/5 hover:border-white/10 transition-colors"
+                                            >
+                                                <p className="text-sm font-medium text-white mb-1">{ticket.subject}</p>
+                                                <p className="text-xs text-gray-500 mb-2">{ticket.user}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] border ${getPriorityStyle(ticket.priority)}`}>
+                                                        {getPriorityLabel(ticket.priority)}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-500">{ticket.time}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                    { label: 'Модерация контента', icon: Shield, desc: '5 жалоб на рассмотрении', color: 'from-red-500/20 to-red-600/10', border: 'border-red-500/20', onClick: () => setShowModerationModal(true) },
+                    { label: 'База знаний', icon: BookOpen, desc: 'Ответы на частые вопросы', color: 'from-blue-500/20 to-blue-600/10', border: 'border-blue-500/20', onClick: () => setShowKnowledgeModal(true) },
+                    { label: 'Эскалация', icon: Zap, desc: 'Передать администратору', color: 'from-yellow-500/20 to-yellow-600/10', border: 'border-yellow-500/20', onClick: () => setShowEscalationModal(true) }
+                ].map((action, i) => {
+                    const Icon = action.icon
+                    return (
+                        <button
+                            key={i}
+                            onClick={action.onClick}
+                            className={`group relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br ${action.color} border ${action.border} hover:border-white/30 transition-all hover:scale-[1.02] text-left`}
+                        >
+                            <Icon size={28} className="mb-3 text-white/80" />
+                            <h3 className="text-white font-semibold mb-1">{action.label}</h3>
+                            <p className="text-gray-400 text-sm">{action.desc}</p>
+                        </button>
+                    )
+                })}
+            </div>
+
+            {/* ===== MODALS ===== */}
+
+            {/* Ticket Detail Modal */}
+            {showTicketModal && selectedTicket && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[85vh] flex flex-col">
+                        {/* Header */}
+                        <div className="p-5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <div>
+                                    <h2 className="text-lg font-bold">Тикет #{selectedTicket.id}</h2>
+                                    <p className="text-sm text-gray-400">{selectedTicket.subject}</p>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded-full text-xs border ${getStatusStyle(selectedTicket.status)}`}>
+                                    {getStatusLabel(selectedTicket.status)}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={selectedTicket.status}
+                                    onChange={e => setTicketStatus(e.target.value)}
+                                    className={`px-2 py-1 rounded-lg text-xs border bg-[#252530] outline-none ${getStatusStyle(selectedTicket.status)}`}
+                                >
+                                    <option value="open" className="bg-[#1a1a24]">Открыт</option>
+                                    <option value="in_progress" className="bg-[#1a1a24]">В работе</option>
+                                    <option value="waiting" className="bg-[#1a1a24]">Ожидает ответа</option>
+                                    <option value="closed" className="bg-[#1a1a24]">Закрыт</option>
+                                </select>
+                                <select
+                                    value={selectedTicket.priority}
+                                    onChange={e => setTicketPriority(e.target.value)}
+                                    className={`px-2 py-1 rounded-lg text-xs border bg-[#252530] outline-none ${getPriorityStyle(selectedTicket.priority)}`}
+                                >
+                                    <option value="high" className="bg-[#1a1a24]">Высокий</option>
+                                    <option value="medium" className="bg-[#1a1a24]">Средний</option>
+                                    <option value="low" className="bg-[#1a1a24]">Низкий</option>
+                                </select>
+                                <button onClick={() => setShowTicketModal(false)} className="text-gray-400 hover:text-white ml-1"><X size={20} /></button>
+                            </div>
+                        </div>
+                        {/* Messages */}
+                        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                            <div className="flex items-center gap-2 text-sm text-gray-400 mb-4 pb-3 border-b border-white/5">
+                                <User size={14} />
+                                <span>{selectedTicket.user}</span>
+                                <span className="mx-2">•</span>
+                                <Clock size={14} />
+                                <span>{selectedTicket.time}</span>
+                                {selectedTicket.assignedTo && (
+                                    <>
+                                        <span className="mx-2">•</span>
+                                        <span className="text-emerald-400">Назначен: {selectedTicket.assignedTo}</span>
+                                    </>
+                                )}
+                            </div>
+                            {selectedTicket.messages.map((msg, i) => (
+                                <div key={i} className={`flex gap-3 ${msg.from === 'staff' ? 'flex-row-reverse' : ''}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${msg.from === 'staff' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'
+                                        }`}>
+                                        {msg.from === 'staff' ? 'S' : 'U'}
+                                    </div>
+                                    <div className={`max-w-[70%] p-3 rounded-2xl text-sm ${msg.from === 'staff'
+                                        ? 'bg-emerald-500/10 text-white rounded-tr-sm'
+                                        : 'bg-[#252530] text-gray-300 rounded-tl-sm'
+                                        }`}>
+                                        <p>{msg.text}</p>
+                                        <p className={`text-xs mt-1 ${msg.from === 'staff' ? 'text-emerald-400/60' : 'text-gray-500'}`}>{msg.time}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {/* Reply */}
+                        {selectedTicket.status !== 'closed' && (
+                            <div className="p-5 border-t border-white/10 flex-shrink-0">
+                                <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+                                    {[
+                                        { label: 'Приветствие', text: 'Здравствуйте! Спасибо за обращение. Я разбираюсь в вашем вопросе и скоро вернусь с ответом.' },
+                                        { label: 'Решено', text: 'Проблема решена. Проверьте, пожалуйста, и напишите, если останутся вопросы.' },
+                                        { label: 'Нужны данные', text: 'Уточните, пожалуйста, ваш email аккаунта и скриншот ошибки — это поможет быстрее разобраться.' },
+                                    ].map(q => (
+                                        <button
+                                            key={q.label}
+                                            onClick={() => insertQuickReply(q.text)}
+                                            className="px-2 py-1 rounded-lg bg-white/5 text-gray-400 text-xs hover:bg-white/10 hover:text-white transition-colors whitespace-nowrap"
+                                        >
+                                            {q.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={replyText}
+                                        onChange={e => setReplyText(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && sendReply()}
+                                        placeholder="Напишите ответ..."
+                                        className="flex-1 px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-sm"
+                                    />
+                                    <button
+                                        onClick={sendReply}
+                                        disabled={!replyText.trim()}
+                                        className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-600 text-black rounded-lg transition-all flex items-center gap-2"
+                                    >
+                                        <Send size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {/* Actions */}
+                        <div className="p-5 border-t border-white/10 flex gap-2 flex-shrink-0">
+                            {selectedTicket.status !== 'closed' ? (
+                                <button onClick={closeTicket} className="flex-1 px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                                    <CheckCircle2 size={14} /> Закрыть тикет
+                                </button>
+                            ) : (
+                                <button onClick={reopenTicket} className="flex-1 px-4 py-2 bg-yellow-500/10 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                                    <Unlock size={14} /> Открыть заново
+                                </button>
+                            )}
+                            <button onClick={assignSelectedToMe} className="flex-1 px-4 py-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                                <User size={14} /> Назначить на меня
+                            </button>
+                            <button onClick={() => { setShowTicketModal(false); setShowEscalationModal(true) }} className="flex-1 px-4 py-2 bg-yellow-500/10 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                                <Zap size={14} /> Эскалировать
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Moderation Modal */}
+            {showModerationModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold flex items-center gap-2"><Shield size={20} className="text-red-400" /> Модерация контента</h2>
+                                <button onClick={() => setShowModerationModal(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                            </div>
+                            <div className="space-y-3">
+                                {reports.map(report => (
+                                    <div key={report.id} className="bg-[#252530] rounded-xl p-4 border border-white/5">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="text-sm font-medium">{report.user}</span>
+                                                    <span className="text-xs text-gray-500">{report.platform}</span>
+                                                    <span className={`text-xs px-1.5 py-0.5 rounded ${report.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                                        {report.status === 'pending' ? 'На рассмотрении' : 'Рассмотрено'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-400">{report.content}</p>
+                                                <p className="text-xs text-gray-500 mt-1">{report.date}</p>
+                                            </div>
+                                            <div className="flex gap-1 flex-shrink-0">
+                                                <button onClick={() => handleReportAction(report.id, 'warn')} className="px-2 py-1 rounded bg-yellow-500/10 text-yellow-400 text-xs hover:bg-yellow-500/20">Предупр.</button>
+                                                <button onClick={() => handleReportAction(report.id, 'ban')} className="px-2 py-1 rounded bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20">Блок</button>
+                                                <button onClick={() => handleReportAction(report.id, 'dismiss')} className="px-2 py-1 rounded bg-gray-500/10 text-gray-400 text-xs hover:bg-gray-500/20">Отклонить</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {reports.length === 0 && (
+                                    <div className="text-center text-gray-500 py-8">
+                                        <CheckCircle2 size={32} className="mx-auto mb-3 text-emerald-400" />
+                                        <p>Все жалобы обработаны!</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Knowledge Base Modal */}
+            {showKnowledgeModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[80vh] flex flex-col">
+                        <div className="p-6 border-b border-white/10 flex-shrink-0">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold flex items-center gap-2"><BookOpen size={20} className="text-blue-400" /> База знаний</h2>
+                                <button onClick={() => setShowKnowledgeModal(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                            </div>
+                            <div className="relative mb-4">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                                <input
+                                    type="text"
+                                    placeholder="Поиск по базе знаний..."
+                                    value={kbSearch}
+                                    onChange={e => setKbSearch(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#252530] border border-white/10 focus:border-emerald-500 outline-none text-sm"
+                                />
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                                {kbCategories.map(cat => {
+                                    const Icon = cat.icon
+                                    return (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => setKbCategory(cat.id)}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${kbCategory === cat.id
+                                                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                                : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-transparent'
+                                                }`}
+                                        >
+                                            <Icon size={12} /> {cat.label}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <div className="space-y-3">
+                                {filteredKb.map(article => (
+                                    <div key={article.id} className="bg-[#252530] rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="font-medium text-sm">{article.title}</h3>
+                                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                                                <Eye size={12} /> {article.views}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-400">{article.content}</p>
+                                    </div>
+                                ))}
+                                {filteredKb.length === 0 && (
+                                    <div className="text-center text-gray-500 py-8">
+                                        <Search size={32} className="mx-auto mb-3 opacity-50" />
+                                        <p>Статьи не найдены</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Escalation Modal */}
+            {showEscalationModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold flex items-center gap-2"><Zap size={20} className="text-yellow-400" /> Эскалация</h2>
+                                <button onClick={() => setShowEscalationModal(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm text-gray-400 mb-1 block">Причина эскалации</label>
+                                    <select value={escalationForm.reason} onChange={e => setEscalationForm({ ...escalationForm, reason: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none">
+                                        <option value="">Выберите причину...</option>
+                                        <option value="technical">Техническая проблема</option>
+                                        <option value="payment">Проблема с оплатой</option>
+                                        <option value="abuse">Нарушение правил</option>
+                                        <option value="feature">Запрос функции</option>
+                                        <option value="other">Другое</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-gray-400 mb-1 block">Приоритет</label>
+                                    <select value={escalationForm.priority} onChange={e => setEscalationForm({ ...escalationForm, priority: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none">
+                                        <option value="low">Низкий</option>
+                                        <option value="medium">Средний</option>
+                                        <option value="high">Высокий</option>
+                                        <option value="critical">Критический</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-gray-400 mb-1 block">Примечания</label>
+                                    <textarea value={escalationForm.notes} onChange={e => setEscalationForm({ ...escalationForm, notes: e.target.value })} placeholder="Дополнительная информация..." rows={3} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none resize-none text-sm" />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button onClick={() => setShowEscalationModal(false)} className="flex-1 px-4 py-2 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors">Отмена</button>
+                                <button onClick={handleEscalation} disabled={!escalationForm.reason} className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 text-black font-medium rounded-lg transition-all">Передать админу</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
+export default StaffDashboardPage

@@ -1,0 +1,150 @@
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './context/AuthContext'
+import LandingPage from './pages/LandingPage'
+import LoginForm from './components/auth/LoginForm'
+import RegisterForm from './components/auth/RegisterForm'
+import Sidebar from './components/layout/Sidebar'
+
+// Дашборды по ролям
+import OwnerDashboardPage from './pages/OwnerDashboardPage'
+import AdminDashboardPage from './pages/AdminDashboardPage'
+import StaffDashboardPage from './pages/StaffDashboardPage'
+import AdvertiserDashboardPage from './pages/AdvertiserDashboardPage'
+import CreatorDashboardPage from './pages/CreatorDashboardPage'
+
+// Общие страницы
+import AIChatPage from './pages/AIChatPage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import SchedulerPage from './pages/SchedulerPage'
+import SettingsPage from './pages/SettingsPage'
+
+// Защита роутов по роли
+function ProtectedRoute({ children, allowedRoles }) {
+    const { user, isAuthenticated, loading } = useAuth()
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-2 border-[#00ff41] border-t-transparent rounded-full" />
+            </div>
+        )
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/" replace />
+    }
+
+    if (allowedRoles && !allowedRoles.includes(user?.role)) {
+        return <Navigate to="/unauthorized" replace />
+    }
+
+    return (
+        <div className="flex min-h-screen bg-[#0a0a0f]">
+            <Sidebar />
+            <main className="flex-1 ml-64 p-8">
+                {children}
+            </main>
+        </div>
+    )
+}
+
+// Редирект по роли после входа
+function RoleRedirect() {
+    const { user } = useAuth()
+
+    switch (user?.role) {
+        case 'owner':
+            return <Navigate to="/owner" replace />
+        case 'admin':
+            return <Navigate to="/admin" replace />
+        case 'staff':
+            return <Navigate to="/staff" replace />
+        case 'advertiser':
+            return <Navigate to="/advertiser" replace />
+        default:
+            return <Navigate to="/dashboard" replace />
+    }
+}
+
+function App() {
+    return (
+        <Routes>
+            {/* Публичные роуты */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LandingPage showLogin={true} />} />
+            <Route path="/register" element={<LandingPage showRegister={true} />} />
+
+            {/* Редирект по роли */}
+            <Route path="/redirect" element={<RoleRedirect />} />
+
+            {/* Owner */}
+            <Route path="/owner" element={
+                <ProtectedRoute allowedRoles={['owner']}>
+                    <OwnerDashboardPage />
+                </ProtectedRoute>
+            } />
+
+            {/* Admin */}
+            <Route path="/admin" element={
+                <ProtectedRoute allowedRoles={['admin', 'owner']}>
+                    <AdminDashboardPage />
+                </ProtectedRoute>
+            } />
+
+            {/* Staff */}
+            <Route path="/staff" element={
+                <ProtectedRoute allowedRoles={['staff', 'admin', 'owner']}>
+                    <StaffDashboardPage />
+                </ProtectedRoute>
+            } />
+
+            {/* Advertiser */}
+            <Route path="/advertiser" element={
+                <ProtectedRoute allowedRoles={['advertiser', 'owner']}>
+                    <AdvertiserDashboardPage />
+                </ProtectedRoute>
+            } />
+
+            {/* Creator (стандартный dashboard) */}
+            <Route path="/dashboard" element={
+                <ProtectedRoute allowedRoles={['creator', 'business', 'owner']}>
+                    <CreatorDashboardPage />
+                </ProtectedRoute>
+            } />
+
+            {/* Общие страницы (доступны всем авторизованным) */}
+            <Route path="/ai-chat" element={
+                <ProtectedRoute>
+                    <AIChatPage />
+                </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+                <ProtectedRoute>
+                    <AnalyticsPage />
+                </ProtectedRoute>
+            } />
+            <Route path="/scheduler" element={
+                <ProtectedRoute>
+                    <SchedulerPage />
+                </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+                <ProtectedRoute>
+                    <SettingsPage />
+                </ProtectedRoute>
+            } />
+
+            {/* 404 */}
+            <Route path="*" element={
+                <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white">
+                    <div className="text-center">
+                        <h1 className="text-6xl font-bold text-[#00ff41] mb-4">404</h1>
+                        <p className="text-gray-400">Страница не найдена</p>
+                    </div>
+                </div>
+            } />
+        </Routes>
+    )
+}
+
+export default App

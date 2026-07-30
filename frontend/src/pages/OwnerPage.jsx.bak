@@ -1,0 +1,551 @@
+import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import {
+    Crown, Users, DollarSign, FileText, Search, AlertTriangle,
+    Plus, X, Save, Download, Check, ChevronRight, Clock,
+    TrendingUp, CreditCard, Building2, Landmark
+} from 'lucide-react';
+
+function OwnerPage() {
+    const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState('overview');
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const [withdrawn, setWithdrawn] = useState(false);
+
+    const [staff, setStaff] = useState([
+        { id: 1, name: 'Иван Петров', email: 'admin@ai-viral.com', role: 'admin', status: 'online', lastActive: '2 мин назад', tasks: 45 },
+        { id: 2, name: 'Мария Сидорова', email: 'maria@ai-viral.com', role: 'staff', status: 'online', lastActive: '15 мин назад', tasks: 32 },
+        { id: 3, name: 'Алексей Иванов', email: 'alex@ai-viral.com', role: 'staff', status: 'offline', lastActive: '3 часа назад', tasks: 28 },
+        { id: 4, name: 'Ольга Козлова', email: 'olga@ai-viral.com', role: 'advertiser', status: 'online', lastActive: '5 мин назад', tasks: 12 },
+    ]);
+
+    const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'staff' });
+    const [withdrawAmount, setWithdrawAmount] = useState('');
+    const [withdrawMethod, setWithdrawMethod] = useState('bank');
+
+    const [companyInfo, setCompanyInfo] = useState({
+        name: 'AI Viral Studio LLC',
+        inn: '7701234567',
+        address: 'г. Москва, ул. Примерная, д. 1',
+        account: '40702810100000001234',
+        bank: 'Сбербанк России',
+        bik: '044525225',
+        swift: 'SABRRUMM',
+        iban: 'RU12345678901234567890'
+    });
+
+    const [payments] = useState([
+        { date: '20 июл 2026', method: 'Wire Transfer', amount: 15000, status: 'completed' },
+        { date: '15 июл 2026', method: 'PayPal', amount: 8500, status: 'completed' },
+        { date: '10 июл 2026', method: 'Wire Transfer', amount: 12000, status: 'completed' },
+        { date: '5 июл 2026', method: 'Crypto (USDT)', amount: 5200, status: 'pending' },
+    ]);
+
+    const [auditLogs] = useState([
+        { action: 'Вход в систему', user: 'Иван Петров', time: '2 мин назад', type: 'info' },
+        { action: 'Создан пост #1245', user: 'Мария Сидорова', time: '15 мин назад', type: 'success' },
+        { action: 'Ошибка API', user: 'Система', time: '1 час назад', type: 'error' },
+        { action: 'Обновление тарифа', user: 'Алексей Иванов', time: '3 часа назад', type: 'warning' },
+    ]);
+
+    const tabs = [
+        { id: 'overview', label: 'Обзор', icon: TrendingUp },
+        { id: 'team', label: 'Команда', icon: Users },
+        { id: 'finance', label: 'Финансы', icon: DollarSign },
+        { id: 'legal', label: 'Юр. лицо', icon: Building2 },
+        { id: 'audit', label: 'Аудит', icon: AlertTriangle },
+    ];
+
+    const handleAddStaff = () => {
+        if (!newStaff.name.trim() || !newStaff.email.trim()) return;
+        const staffMember = {
+            id: Date.now(),
+            name: newStaff.name,
+            email: newStaff.email,
+            role: newStaff.role,
+            status: 'offline',
+            lastActive: 'Только что',
+            tasks: 0
+        };
+        setStaff([...staff, staffMember]);
+        setNewStaff({ name: '', email: '', role: 'staff' });
+        setShowAddModal(false);
+    };
+
+    const handleWithdraw = () => {
+        if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return;
+        setWithdrawn(true);
+        setTimeout(() => {
+            setWithdrawn(false);
+            setShowWithdrawModal(false);
+            setWithdrawAmount('');
+        }, 2000);
+    };
+
+    const handleSaveCompany = () => {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+    };
+
+    const handleDownloadRequisites = () => {
+        const data = `Реквизиты ${companyInfo.name}
+ИНН: ${companyInfo.inn}
+Адрес: ${companyInfo.address}
+Р/с: ${companyInfo.account}
+Банк: ${companyInfo.bank}
+БИК: ${companyInfo.bik}
+SWIFT: ${companyInfo.swift}
+IBAN: ${companyInfo.iban}`;
+        const blob = new Blob([data], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'requisites.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const getRoleBadge = (role) => {
+        const styles = {
+            admin: 'bg-red-500/20 text-red-400 border-red-500/30',
+            staff: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+            advertiser: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+        };
+        return styles[role] || styles.staff;
+    };
+
+    const renderOverview = () => (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[
+                    { label: 'Баланс', value: '$47,250', color: 'text-emerald-400', sub: 'Доступно для вывода' },
+                    { label: 'Ожидается', value: '$12,800', color: 'text-blue-400', sub: 'В обработке' },
+                    { label: 'Расходы/мес', value: '$14,000', color: 'text-orange-400', sub: 'Серверы, AI API, зарплаты' },
+                    { label: 'Сотрудники', value: staff.length, color: 'text-purple-400', sub: 'Активных' },
+                ].map((stat, i) => (
+                    <div key={i} className="bg-[#1a1a24] rounded-xl p-5 border border-white/5">
+                        <div className="text-sm text-gray-400 mb-1">{stat.label}</div>
+                        <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+                        <div className="text-xs text-gray-500 mt-1">{stat.sub}</div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <TrendingUp size={18} className="text-emerald-400" /> Рост за последние 30 дней
+                </h3>
+                <div className="h-48 flex items-end gap-2">
+                    {[40, 55, 45, 70, 65, 85, 90, 75, 95, 100, 80, 110].map((h, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                            <div
+                                className="w-full bg-gradient-to-t from-emerald-500/20 to-emerald-500/60 rounded-t-lg transition-all hover:from-emerald-500/30 hover:to-emerald-500/80"
+                                style={{ height: `${h}%` }}
+                            ></div>
+                            <span className="text-[10px] text-gray-500">{i + 1}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderTeam = () => (
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg">Команда</h3>
+                <button
+                    onClick={() => setShowAddModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-105"
+                >
+                    <Plus size={18} /> Добавить сотрудника
+                </button>
+            </div>
+
+            <div className="bg-[#1a1a24] rounded-xl border border-white/5 overflow-hidden">
+                <div className="grid grid-cols-12 gap-4 px-4 py-3 text-sm text-gray-400 border-b border-white/5 font-medium">
+                    <div className="col-span-3">Сотрудник</div>
+                    <div className="col-span-2">Роль</div>
+                    <div className="col-span-2">Статус</div>
+                    <div className="col-span-2">Активность</div>
+                    <div className="col-span-1">Задачи</div>
+                    <div className="col-span-2 text-right">Действия</div>
+                </div>
+                {staff.map(member => (
+                    <div key={member.id} className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-white/5 last:border-b-0 hover:bg-white/5 transition-colors items-center">
+                        <div className="col-span-3 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center font-bold text-sm">
+                                {member.name.charAt(0)}
+                            </div>
+                            <div>
+                                <div className="font-medium">{member.name}</div>
+                                <div className="text-xs text-gray-500">{member.email}</div>
+                            </div>
+                        </div>
+                        <div className="col-span-2">
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${getRoleBadge(member.role)}`}>
+                                {member.role}
+                            </span>
+                        </div>
+                        <div className="col-span-2 flex items-center gap-1.5">
+                            <div className={`w-2 h-2 rounded-full ${member.status === 'online' ? 'bg-emerald-400' : 'bg-gray-500'}`}></div>
+                            <span className="text-sm">{member.status === 'online' ? 'Онлайн' : 'Офлайн'}</span>
+                        </div>
+                        <div className="col-span-2 text-sm text-gray-400">{member.lastActive}</div>
+                        <div className="col-span-1 font-medium">{member.tasks}</div>
+                        <div className="col-span-2 flex justify-end gap-2">
+                            <button className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">Сбросить пароль</button>
+                            <button className="text-sm text-red-400 hover:text-red-300 transition-colors">Удалить</button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    const renderFinance = () => (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-[#1a1a24] rounded-xl p-5 border border-emerald-500/20">
+                    <div className="text-sm text-gray-400 mb-1">Баланс</div>
+                    <div className="text-3xl font-bold text-emerald-400">$47,250</div>
+                    <div className="text-xs text-gray-500 mt-1">Доступно для вывода</div>
+                    <button
+                        onClick={() => setShowWithdrawModal(true)}
+                        className="w-full mt-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+                    >
+                        <DollarSign size={16} /> Вывести
+                    </button>
+                </div>
+                <div className="bg-[#1a1a24] rounded-xl p-5 border border-blue-500/20">
+                    <div className="text-sm text-gray-400 mb-1">Ожидается</div>
+                    <div className="text-3xl font-bold text-blue-400">$12,800</div>
+                    <div className="text-xs text-gray-500 mt-1">В обработке</div>
+                </div>
+                <div className="bg-[#1a1a24] rounded-xl p-5 border border-orange-500/20">
+                    <div className="text-sm text-gray-400 mb-1">Расходы/мес</div>
+                    <div className="text-3xl font-bold text-orange-400">$14,000</div>
+                    <div className="text-xs text-gray-500 mt-1">Серверы, AI API, зарплаты</div>
+                </div>
+            </div>
+
+            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
+                <h3 className="font-semibold mb-4">История выплат</h3>
+                <div className="space-y-3">
+                    {payments.map((payment, i) => (
+                        <div key={i} className="flex items-center justify-between p-4 bg-[#252530] rounded-xl hover:bg-[#303040] transition-colors">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-lg bg-[#1a1a24] flex items-center justify-center">
+                                    <CreditCard size={18} className="text-gray-400" />
+                                </div>
+                                <div>
+                                    <div className="font-medium">{payment.date}</div>
+                                    <div className="text-sm text-gray-400">{payment.method}</div>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="font-bold">${payment.amount.toLocaleString()}</div>
+                                <div className={`text-xs ${payment.status === 'completed' ? 'text-emerald-400' : 'text-yellow-400'}`}>
+                                    {payment.status === 'completed' ? 'Выполнено' : 'В обработке'}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderLegal = () => (
+        <div className="space-y-6">
+            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <Building2 size={18} className="text-emerald-400" /> Юридическая информация
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-sm text-gray-400 mb-1 block">Название компании</label>
+                        <input
+                            value={companyInfo.name}
+                            onChange={e => setCompanyInfo({ ...companyInfo, name: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm text-gray-400 mb-1 block">ИНН / Tax ID</label>
+                        <input
+                            value={companyInfo.inn}
+                            onChange={e => setCompanyInfo({ ...companyInfo, inn: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm text-gray-400 mb-1 block">Юридический адрес</label>
+                        <input
+                            value={companyInfo.address}
+                            onChange={e => setCompanyInfo({ ...companyInfo, address: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm text-gray-400 mb-1 block">Расчётный счёт</label>
+                        <input
+                            value={companyInfo.account}
+                            onChange={e => setCompanyInfo({ ...companyInfo, account: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm text-gray-400 mb-1 block">Банк</label>
+                        <input
+                            value={companyInfo.bank}
+                            onChange={e => setCompanyInfo({ ...companyInfo, bank: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm text-gray-400 mb-1 block">БИК</label>
+                        <input
+                            value={companyInfo.bik}
+                            onChange={e => setCompanyInfo({ ...companyInfo, bik: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
+                <h3 className="font-semibold mb-4">Реквизиты для выплат (международные)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label className="text-sm text-gray-400 mb-1 block">SWIFT / BIC</label>
+                        <input
+                            value={companyInfo.swift}
+                            onChange={e => setCompanyInfo({ ...companyInfo, swift: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm text-gray-400 mb-1 block">IBAN</label>
+                        <input
+                            value={companyInfo.iban}
+                            onChange={e => setCompanyInfo({ ...companyInfo, iban: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                        />
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <button
+                        onClick={handleSaveCompany}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-[1.02]"
+                    >
+                        {saved ? <><Check size={16} /> Сохранено!</> : <><Save size={16} /> Сохранить</>}
+                    </button>
+                    <button
+                        onClick={handleDownloadRequisites}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-[#252530] hover:bg-[#303040] text-white font-medium rounded-lg transition-all border border-white/10"
+                    >
+                        <Download size={16} /> Скачать реквизиты
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderAudit = () => (
+        <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <AlertTriangle size={18} className="text-emerald-400" /> Логи аудита
+            </h3>
+            <div className="space-y-3">
+                {auditLogs.map((log, i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 bg-[#252530] rounded-xl">
+                        <div className={`w-2 h-2 rounded-full ${log.type === 'error' ? 'bg-red-400' :
+                            log.type === 'warning' ? 'bg-yellow-400' :
+                                log.type === 'success' ? 'bg-emerald-400' : 'bg-blue-400'
+                            }`}></div>
+                        <div className="flex-1">
+                            <div className="font-medium">{log.action}</div>
+                            <div className="text-sm text-gray-400">{log.user}</div>
+                        </div>
+                        <div className="text-sm text-gray-500 flex items-center gap-1">
+                            <Clock size={12} /> {log.time}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    const renderContent = () => {
+        switch (activeTab) {
+            case 'overview': return renderOverview();
+            case 'team': return renderTeam();
+            case 'finance': return renderFinance();
+            case 'legal': return renderLegal();
+            case 'audit': return renderAudit();
+            default: return renderOverview();
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-[#0a0a0f] text-white p-4 md:p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-xs font-bold uppercase">
+                        OWNER
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold">Панель владельца</h1>
+                        <p className="text-gray-400 text-sm">Полный контроль над бизнесом</p>
+                    </div>
+                </div>
+                <button className="px-4 py-2 bg-[#1a1a24] border border-white/10 rounded-lg text-sm hover:bg-[#252530] transition-colors">
+                    Выйти
+                </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                {tabs.map(tab => {
+                    const Icon = tab.icon;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap
+                ${activeTab === tab.id
+                                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                                    : 'bg-[#1a1a24] border border-white/5 text-gray-400 hover:text-white hover:border-white/10'
+                                }
+              `}
+                        >
+                            <Icon size={16} /> {tab.label}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Content */}
+            {renderContent()}
+
+            {/* Add Staff Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold">Добавить сотрудника</h2>
+                            <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-white">✕</button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">Имя</label>
+                                <input
+                                    value={newStaff.name}
+                                    onChange={e => setNewStaff({ ...newStaff, name: e.target.value })}
+                                    placeholder="Иван Петров"
+                                    className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">Email</label>
+                                <input
+                                    value={newStaff.email}
+                                    onChange={e => setNewStaff({ ...newStaff, email: e.target.value })}
+                                    placeholder="ivan@ai-viral.com"
+                                    className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">Роль</label>
+                                <select
+                                    value={newStaff.role}
+                                    onChange={e => setNewStaff({ ...newStaff, role: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                                >
+                                    <option value="staff">Staff</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="advertiser">Advertiser</option>
+                                </select>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors">
+                                    Отмена
+                                </button>
+                                <button
+                                    onClick={handleAddStaff}
+                                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all"
+                                >
+                                    Добавить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Withdraw Modal */}
+            {showWithdrawModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold">Вывод средств</h2>
+                            <button onClick={() => setShowWithdrawModal(false)} className="text-gray-400 hover:text-white">✕</button>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
+                                <div className="text-sm text-gray-400">Доступно для вывода</div>
+                                <div className="text-2xl font-bold text-emerald-400">$47,250</div>
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">Сумма</label>
+                                <input
+                                    type="number"
+                                    value={withdrawAmount}
+                                    onChange={e => setWithdrawAmount(e.target.value)}
+                                    placeholder="1000"
+                                    className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">Способ вывода</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['bank', 'paypal', 'crypto'].map(method => (
+                                        <button
+                                            key={method}
+                                            onClick={() => setWithdrawMethod(method)}
+                                            className={`p-3 rounded-xl border transition-all text-sm capitalize
+                        ${withdrawMethod === method
+                                                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                                                    : 'border-white/10 hover:border-white/20'
+                                                }
+                      `}
+                                        >
+                                            {method === 'bank' ? 'Банк' : method === 'paypal' ? 'PayPal' : 'Crypto'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button onClick={() => setShowWithdrawModal(false)} className="flex-1 py-2.5 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors">
+                                    Отмена
+                                </button>
+                                <button
+                                    onClick={handleWithdraw}
+                                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all"
+                                >
+                                    {withdrawn ? <><Check size={16} /> Заявка создана!</> : 'Вывести'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default OwnerPage;

@@ -1,0 +1,50 @@
+/* Shimmer loading effect */
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Адаптивность рекламы */
+@media (max-width: 768px) {
+    .ad-sidebar {
+        display: none !important;
+    }
+
+    .ad-banner {
+        margin: 8px -16px !important;
+        border-radius: 0 !important;
+    }
+
+    .ad-native {
+        padding: 12px !important;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .ad-sidebar {
+        display: none !important;
+    }
+}
+
+/* Скрываем рекламу при печати */
+@media print {
+
+    .ad-container,
+    .ad-banner,
+    .ad-sidebar {
+        display: none !important;
+    }
+}
+
+/* Уменьшаем движение для accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .ad-skeleton {
+        animation: none !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+    }
+}

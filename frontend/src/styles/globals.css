@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --bg: #f8f9fa;
+        --bg-secondary: #ffffff;
+        --card: #ffffff;
+        --card-hover: #f1f3f5;
+        --text: #111827;
+        --text-muted: #6b7280;
+        --border: rgba(0, 0, 0, 0.08);
+        --glass: rgba(0, 0, 0, 0.03);
+        --primary: #00cc33;
+    }
+
+    .dark {
+        --bg: #0a0a0f;
+        --bg-secondary: #0f0f1a;
+        --card: #1a1a24;
+        --card-hover: #252530;
+        --text: #ffffff;
+        --text-muted: #9ca3af;
+        --border: rgba(255, 255, 255, 0.08);
+        --glass: rgba(255, 255, 255, 0.05);
+        --primary: #00ff41;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    html,
+    html.dark,
+    html.light {
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    body {
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: 'Inter', system-ui, sans-serif;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-dark-900;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-primary-600 rounded-full;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        @apply bg-primary-500;
+    }
+
+    /* Selection */
+    ::selection {
+        @apply bg-primary-500/30 text-white;
+    }
+}
+
+@layer components {
+    .glass-card {
+        @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+    }
+
+    .glass-card-strong {
+        @apply bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl;
+        box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.1);
+    }
+
+    .neon-button {
+        @apply relative overflow-hidden bg-primary-600 text-white font-medium px-6 py-3 rounded-xl transition-all duration-300;
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .neon-button:hover {
+        @apply bg-primary-500;
+        box-shadow: 0 0 40px rgba(139, 92, 246, 0.5);
+        transform: translateY(-2px);
+    }
+
+    .neon-button:active {
+        transform: translateY(0);
+    }
+
+    .gradient-text {
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-fuchsia-400;
+    }
+
+    .shimmer-bg {
+        background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+        background-size: 200% 100%;
+        animation: shimmer 2s linear infinite;
+    }
+}
+
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+}

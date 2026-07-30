@@ -1,0 +1,139 @@
+import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
+
+function StaffDashboardPage() {
+    const { user } = useAuth()
+    const [tickets, setTickets] = useState([
+        { id: 1, user: 'user1@mail.com', subject: 'Не работает AI Chat', status: 'open', priority: 'high', time: '10 мин назад' },
+        { id: 2, user: 'creator99@mail.com', subject: 'Ошибка оплаты', status: 'open', priority: 'medium', time: '1 час назад' },
+        { id: 3, user: 'biz@company.com', subject: 'Как подключить YouTube?', status: 'in_progress', priority: 'low', time: '3 часа назад' },
+        { id: 4, user: 'test@mail.com', subject: 'Проблема с входом', status: 'closed', priority: 'high', time: 'Вчера' }
+    ])
+
+    const stats = {
+        openTickets: 12,
+        resolvedToday: 8,
+        avgResponse: '15 мин',
+        satisfaction: 94
+    }
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'open': return 'bg-red-500/20 text-red-400'
+            case 'in_progress': return 'bg-yellow-500/20 text-yellow-400'
+            case 'closed': return 'bg-[#00ff41]/20 text-[#00ff41]'
+            default: return 'bg-gray-500/20 text-gray-400'
+        }
+    }
+
+    const getPriorityColor = (priority) => {
+        switch (priority) {
+            case 'high': return 'text-red-400'
+            case 'medium': return 'text-yellow-400'
+            case 'low': return 'text-blue-400'
+            default: return 'text-gray-400'
+        }
+    }
+
+    return (
+        <div className="space-y-8">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">
+                        Staff Panel 🎧
+                    </h1>
+                    <p className="text-gray-400">Поддержка пользователей и модерация</p>
+                </div>
+                <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400 text-sm font-semibold">
+                    {user?.name || 'Staff'}
+                </span>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {[
+                    { label: 'Открытых тикетов', value: stats.openTickets, icon: '🎫', color: 'text-red-400' },
+                    { label: 'Решено сегодня', value: stats.resolvedToday, icon: '✅', color: 'text-[#00ff41]' },
+                    { label: 'Среднее время ответа', value: stats.avgResponse, icon: '⏱️', color: 'text-yellow-400' },
+                    { label: 'Удовлетворённость', value: `${stats.satisfaction}%`, icon: '⭐', color: 'text-purple-400' }
+                ].map((stat, i) => (
+                    <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                        <span className="text-2xl mb-2 block">{stat.icon}</span>
+                        <p className="text-2xl font-bold text-white">{stat.value}</p>
+                        <p className="text-sm text-gray-400">{stat.label}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Tickets Table */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-white">Тикеты поддержки</h2>
+                    <div className="flex gap-2">
+                        <button className="px-3 py-1 rounded-lg bg-[#00ff41]/10 text-[#00ff41] text-sm">Все</button>
+                        <button className="px-3 py-1 rounded-lg bg-white/5 text-gray-400 text-sm hover:bg-white/10">Открытые</button>
+                        <button className="px-3 py-1 rounded-lg bg-white/5 text-gray-400 text-sm hover:bg-white/10">Мои</button>
+                    </div>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="text-left text-gray-500 text-sm border-b border-white/5">
+                                <th className="p-4">ID</th>
+                                <th className="p-4">Пользователь</th>
+                                <th className="p-4">Тема</th>
+                                <th className="p-4">Приоритет</th>
+                                <th className="p-4">Статус</th>
+                                <th className="p-4">Время</th>
+                                <th className="p-4">Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {tickets.map((ticket) => (
+                                <tr key={ticket.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                    <td className="p-4 text-gray-400">#{ticket.id}</td>
+                                    <td className="p-4 text-white">{ticket.user}</td>
+                                    <td className="p-4 text-gray-300">{ticket.subject}</td>
+                                    <td className="p-4">
+                                        <span className={`text-sm font-semibold ${getPriorityColor(ticket.priority)}`}>
+                                            {ticket.priority === 'high' ? '🔴 Высокий' : ticket.priority === 'medium' ? '🟡 Средний' : '🔵 Низкий'}
+                                        </span>
+                                    </td>
+                                    <td className="p-4">
+                                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(ticket.status)}`}>
+                                            {ticket.status === 'open' ? 'Открыт' : ticket.status === 'in_progress' ? 'В работе' : 'Закрыт'}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-gray-500 text-sm">{ticket.time}</td>
+                                    <td className="p-4">
+                                        <button className="px-3 py-1 rounded-lg bg-[#00ff41]/10 text-[#00ff41] text-sm hover:bg-[#00ff41]/20 transition-colors">
+                                            Открыть
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                    { label: 'Модерация контента', icon: '🛡️', desc: 'Проверить жалобы' },
+                    { label: 'База знаний', icon: '📚', desc: 'Ответы на частые вопросы' },
+                    { label: 'Эскалация', icon: '⚡', desc: 'Передать админу' }
+                ].map((action, i) => (
+                    <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors cursor-pointer">
+                        <span className="text-3xl mb-3 block">{action.icon}</span>
+                        <h3 className="text-white font-semibold mb-1">{action.label}</h3>
+                        <p className="text-gray-400 text-sm">{action.desc}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+export default StaffDashboardPage
