@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import LoginForm from '../components/auth/LoginForm'
-import RegisterForm from '../components/auth/RegisterForm'
+import AuthModal from '../components/auth/AuthModal'
 import { ClientChatWidget } from '../components/chat/ClientChatWidget'
 import { PWAInstallButton } from '../components/pwa/PWAInstallButton'
 import { ownerLegalInfoApi } from '../services/api.js'
 
 function LandingPage() {
-    const [showLogin, setShowLogin] = useState(false)
-    const [showRegister, setShowRegister] = useState(false)
+    const [authModalOpen, setAuthModalOpen] = useState(false)
+    const [authModalMode, setAuthModalMode] = useState('login')
     const [scrolled, setScrolled] = useState(false)
     const [activeFeature, setActiveFeature] = useState(0)
     const [legalInfo, setLegalInfo] = useState(null)
@@ -162,13 +161,13 @@ function LandingPage() {
                             <a href="#pricing" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Тарифы</a>
                             <PWAInstallButton />
                             <button
-                                onClick={() => setShowLogin(true)}
+                                onClick={() => { setAuthModalMode('login'); setAuthModalOpen(true) }}
                                 className="btn btn-secondary text-sm px-6 py-2.5"
                             >
                                 Вход
                             </button>
                             <button
-                                onClick={() => setShowRegister(true)}
+                                onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true) }}
                                 className="btn btn-primary text-sm px-6 py-2.5"
                             >
                                 Регистрация
@@ -211,7 +210,7 @@ function LandingPage() {
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
                         <button
-                            onClick={() => setShowRegister(true)}
+                            onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true) }}
                             className="btn btn-primary text-lg px-10 py-4"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -333,7 +332,7 @@ function LandingPage() {
                                     ))}
                                 </ul>
                                 <button
-                                    onClick={() => setShowRegister(true)}
+                                    onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true) }}
                                     className={`w-full btn ${plan.popular ? 'btn-primary' : 'btn-secondary'} py-3`}
                                 >
                                     {plan.cta}
@@ -357,7 +356,7 @@ function LandingPage() {
                                 Присоединяйся к 10,000+ создателей, которые уже используют AI Viral Studio для роста аудитории
                             </p>
                             <button
-                                onClick={() => setShowRegister(true)}
+                                onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true) }}
                                 className="btn btn-primary text-lg px-10 py-4"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -434,42 +433,13 @@ function LandingPage() {
                 </div>
             </footer>
 
-            {/* Modals */}
-            {showLogin && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowLogin(false)}>
-                    <div className="glass rounded-2xl p-8 max-w-md w-full relative border-white/10" onClick={e => e.stopPropagation()}>
-                        <button
-                            onClick={() => setShowLogin(false)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <h2 className="text-2xl font-bold mb-2 text-center">С возвращением</h2>
-                        <p className="text-gray-400 text-center mb-8 text-sm">Войди в свой аккаунт AI Viral Studio</p>
-                        <LoginForm onSuccess={() => { setShowLogin(false); navigate('/dashboard') }} />
-                    </div>
-                </div>
-            )}
-
-            {showRegister && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowRegister(false)}>
-                    <div className="glass rounded-2xl p-8 max-w-md w-full relative border-white/10" onClick={e => e.stopPropagation()}>
-                        <button
-                            onClick={() => setShowRegister(false)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <h2 className="text-2xl font-bold mb-2 text-center">Создать аккаунт</h2>
-                        <p className="text-gray-400 text-center mb-8 text-sm">Начни создавать вирусный контент бесплатно</p>
-                        <RegisterForm onSuccess={() => { setShowRegister(false); navigate('/dashboard') }} />
-                    </div>
-                </div>
-            )}
+            {/* Auth Modal */}
+            <AuthModal
+                isOpen={authModalOpen}
+                onClose={() => setAuthModalOpen(false)}
+                defaultMode={authModalMode}
+                onSuccess={() => { setAuthModalOpen(false); navigate('/dashboard') }}
+            />
 
             {/* Client chat widget */}
             <ClientChatWidget />

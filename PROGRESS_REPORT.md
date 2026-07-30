@@ -1055,3 +1055,30 @@
 - **Проверка:** `node --check backend/server.js` ✅, `git push origin main` ✅, production curl tests ✅.
 - **Баги остались / требуют ручной настройки:**
   - OMEGA отвечает в demo-режиме — нужно добавить API-ключи в Environment Variables Render (Groq/OpenRouter/Gemini/GitHub) или в коллекцию `apikeys` Atlas.
+
+#### P11 — Critical fix: все API-запросы frontend теперь идут на Render backend
+- **Дата:** 2026-07-30
+- **Статус:** ✅ Выполнен
+- **Что сделано:**
+  - Создан `frontend/src/config.js`:
+    - `export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aiviral-backend.onrender.com/api'`
+    - `export const API_URL = API_BASE_URL`
+    - `export const APP_URL = import.meta.env.VITE_APP_URL || 'https://ai-viral-studio.pages.dev'`
+  - Исправлены ВСЕ места с относительными API-запросами и хардкодом `localhost:5000`:
+    - `frontend/src/services/api.js` — `API_BASE` теперь `API_URL` (полный URL).
+    - `frontend/src/context/AuthContext.jsx` — `/api/auth/me`, `/api/auth/login`, `/api/auth/register`, `/api/users/me` заменены на `${API_URL}/...`.
+    - `frontend/src/services/authService.js` — убран хардкод `http://localhost:5000/api/auth`, используется `API_URL`.
+    - `frontend/src/hooks/useDashboardData.js` — ENDPOINTS теперь полные URL.
+    - `frontend/src/components/chat/ClientChatWidget.jsx` — `/api/ad-requests` → `${API_URL}/ad-requests`.
+    - `frontend/src/context/AdContext.jsx` — `/api/ads/impression`, `/api/ads/click/...` → полные URL.
+    - `frontend/src/pages/SettingsPage.jsx` — `/api/payments/...` → полные URL.
+    - `frontend/src/ai/omega/omegaTools.js` — default endpoint `/api/health` → полный URL.
+  - Убраны все вхождения `localhost:5000` из frontend/src.
+  - `npm run build` (frontend) ✅.
+  - Изменения запушены в GitHub: `main`.
+- **Файлы изменены:** `frontend/src/config.js`, `frontend/src/services/api.js`, `frontend/src/context/AuthContext.jsx`, `frontend/src/services/authService.js`, `frontend/src/hooks/useDashboardData.js`, `frontend/src/components/chat/ClientChatWidget.jsx`, `frontend/src/context/AdContext.jsx`, `frontend/src/pages/SettingsPage.jsx`, `frontend/src/ai/omega/omegaTools.js`.
+- **Проверка:** `npm run build` ✅, `git push origin main` ✅, Grep по `['/"]\s*/api` и `localhost:5000` в `frontend/src` — совпадений нет.
+- **Баги остались:** —
+- **Ручные действия, необходимые для Cloudflare Pages:**
+  - В `dash.cloudflare.com → Workers & Pages → ai-viral-studio → Settings → Environment variables` добавить `VITE_API_URL = https://aiviral-backend.onrender.com/api`.
+  - Пересобрать/ redeploy frontend.
