@@ -33,8 +33,8 @@ import emailRoutes from './routes/email.js'  // ← P10: Email
 const app = express()
 const PORT = parseInt(process.env.PORT) || 5000
 
-// Connect to database
-connectDB()
+// Connect to database before starting server
+await connectDB()
 
 // Security middleware
 app.use(helmet())
