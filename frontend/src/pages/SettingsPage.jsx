@@ -14,7 +14,17 @@ function SettingsPage() {
     const [activeTab, setActiveTab] = useState('profile');
     const [saved, setSaved] = useState(false);
     const [theme, setTheme] = useState('dark');
-    const [showPassword, setShowPassword] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState('');
+    const [passwordLoading, setPasswordLoading] = useState(false);
     const [twoFA, setTwoFA] = useState(false);
     const [isYearly, setIsYearly] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState(false);
@@ -559,25 +569,131 @@ function SettingsPage() {
         </div>
     );
 
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        setPasswordError('');
+        setPasswordSuccess('');
+
+        const { currentPassword, newPassword, confirmPassword } = passwordForm;
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            setPasswordError('Заполните все поля');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            setPasswordError('Пароли не совпадают');
+            return;
+        }
+        if (newPassword.length < 6) {
+            setPasswordError('Пароль минимум 6 символов');
+            return;
+        }
+
+        setPasswordLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/users/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+            const data = await response.json();
+            if (data.success) {
+                setPasswordSuccess('Пароль успешно изменён');
+                setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            } else {
+                setPasswordError(data.message || 'Ошибка смены пароля');
+            }
+        } catch (err) {
+            setPasswordError('Ошибка сервера');
+        } finally {
+            setPasswordLoading(false);
+        }
+    };
+
     const renderSecurity = () => (
         <div className="space-y-6">
             <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Lock size={18} className="text-emerald-400" /> Смена пароля
                 </h3>
-                <div className="space-y-3">
+                <form onSubmit={handlePasswordChange} className="space-y-3">
+                    {passwordError && (
+                        <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+                            {passwordError}
+                        </div>
+                    )}
+                    {passwordSuccess && (
+                        <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+                            {passwordSuccess}
+                        </div>
+                    )}
+
                     <div className="relative">
-                        <input type={showPassword ? "text" : "password"} placeholder="Текущий пароль" className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none pr-10" />
-                        <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        <input
+                            type={showCurrentPassword ? 'text' : 'password'}
+                            value={passwordForm.currentPassword}
+                            onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                            placeholder="Текущий пароль"
+                            className="w-full pl-4 pr-12 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-white placeholder-gray-500"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(v => !v)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                            aria-label={showCurrentPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        >
+                            {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                     </div>
-                    <input type="password" placeholder="Новый пароль" className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" />
-                    <input type="password" placeholder="Подтвердите пароль" className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" />
-                    <button className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all">
-                        Обновить пароль
+
+                    <div className="relative">
+                        <input
+                            type={showNewPassword ? 'text' : 'password'}
+                            value={passwordForm.newPassword}
+                            onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                            placeholder="Новый пароль"
+                            className="w-full pl-4 pr-12 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-white placeholder-gray-500"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowNewPassword(v => !v)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                            aria-label={showNewPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        >
+                            {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    </div>
+
+                    <div className="relative">
+                        <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            value={passwordForm.confirmPassword}
+                            onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                            placeholder="Подтвердите пароль"
+                            className="w-full pl-4 pr-12 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-white placeholder-gray-500"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(v => !v)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                            aria-label={showConfirmPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        >
+                            {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={passwordLoading}
+                        className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-black font-medium rounded-lg transition-all"
+                    >
+                        {passwordLoading ? 'Сохранение...' : 'Обновить пароль'}
                     </button>
-                </div>
+                </form>
             </div>
 
             <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">

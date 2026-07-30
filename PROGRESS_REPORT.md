@@ -1082,3 +1082,33 @@
 - **Ручные действия, необходимые для Cloudflare Pages:**
   - В `dash.cloudflare.com → Workers & Pages → ai-viral-studio → Settings → Environment variables` добавить `VITE_API_URL = https://aiviral-backend.onrender.com/api`.
   - Пересобрать/ redeploy frontend.
+
+#### P11 — Mobile auth UI fix: глазик пароля, ошибки не сдвигают форму, табы Вход/Регистрация
+- **Дата:** 2026-07-30
+- **Статус:** ✅ Выполнен
+- **Что сделано:**
+  - `frontend/src/components/auth/LoginForm.jsx`:
+    - Добавлена кнопка-глазик (Eye/EyeOff) внутри поля пароля (44×44px touch target).
+    - Добавлен `showPassword` state с переключением `type="password" ↔ type="text"`.
+    - Блок ошибки обёрнут в `min-h-[3rem]` — форма не прыгает при появлении ошибки.
+    - Текст ошибки `text-xs`, красный на тёмном фоне.
+  - `frontend/src/components/auth/RegisterForm.jsx`:
+    - Глазик добавлен для полей "Пароль" и "Подтвердите пароль".
+    - `showPassword` / `showConfirmPassword` states.
+    - Блок ошибки с `min-h-[3rem]`.
+    - Увеличены отступы `mb-1.5` между label и input.
+    - Поля `w-full max-w-full` — не выходят за экран.
+  - Создан `frontend/src/components/auth/AuthModal.jsx`:
+    - Единая модалка с табами [Вход] [Регистрация].
+    - Активная таба — зелёная (#00ff41), неактивная — полупрозрачная.
+    - Переключение без перезагрузки.
+    - Модалка адаптирована под мобильные: `max-w-md`, `max-h-[90vh]`, `overflow-y-auto`, paddings.
+  - `frontend/src/pages/LandingPage.jsx`:
+    - Удалены два отдельных модальных окна (Login / Register).
+    - Вместо них используется `<AuthModal />` с `authModalOpen` и `authModalMode`.
+    - Все кнопки "Войти" / "Регистрация" теперь открывают AuthModal в нужном режиме.
+  - `npm run build` (frontend) ✅.
+  - Изменения запушены в GitHub: `main`.
+- **Файлы изменены:** `frontend/src/components/auth/LoginForm.jsx`, `frontend/src/components/auth/RegisterForm.jsx`, `frontend/src/components/auth/AuthModal.jsx`, `frontend/src/pages/LandingPage.jsx`.
+- **Проверка:** `npm run build` ✅, `git push origin main` ✅.
+- **Баги остались:** —

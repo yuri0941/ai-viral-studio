@@ -150,6 +150,18 @@ app.listen(PORT, () => {
     console.log(`✅ MongoDB connected: ${isConnected ? 'Yes' : 'No'}`)
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
     console.log(`🔑 JWT Secret loaded: ${process.env.JWT_SECRET ? '✅ Yes' : '❌ No'}`)
-    console.log(`🤖 AI Providers: Groq=${process.env.GROQ_ENABLED}, OpenRouter=${process.env.OPENROUTER_ENABLED}, DeepSeek=${process.env.DEEPSEEK_ENABLED}`)
+    console.log('🤖 AI ENV CHECK:', {
+        groq: !!process.env.GROQ_API_KEY,
+        openrouter: !!process.env.OPENROUTER_API_KEY,
+        deepseek: !!process.env.DEEPSEEK_API_KEY,
+        gemini: !!process.env.GEMINI_API_KEY,
+        github: !!process.env.GITHUB_API_KEY,
+        huggingface: !!process.env.HUGGINGFACE_API_KEY,
+        cloudflare: !!process.env.CLOUDFLARE_API_KEY,
+        fireworks: !!process.env.FIREWORKS_API_KEY,
+        mistral: !!process.env.MISTRAL_API_KEY,
+        cohere: !!process.env.COHERE_API_KEY,
+    })
+    console.log(`🤖 AI Providers enabled: Groq=${process.env.GROQ_ENABLED}, OpenRouter=${process.env.OPENROUTER_ENABLED}, DeepSeek=${process.env.DEEPSEEK_ENABLED}`)
     console.log(`📺 YouTube API: ${process.env.YOUTUBE_API_KEY ? '✅ Connected' : '❌ No key'}`)
 })

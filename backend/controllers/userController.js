@@ -1,5 +1,4 @@
 import { User } from '../models/index.js'
-import { protect } from '../middleware/auth.js'
 
 export const getMe = async (req, res) => {
   try {
@@ -79,5 +78,36 @@ export const updateMe = async (req, res) => {
     })
   } catch (err) {
     res.status(500).json({ success: false, message: err.message })
+  }
+}
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {}
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Текущий и новый пароль обязательны' })
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Новый пароль должен быть минимум 6 символов' })
+    }
+
+    const user = await User.findById(req.user.id).select('+password')
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Пользователь не найден' })
+    }
+
+    const isMatch = await user.comparePassword(currentPassword)
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Неверный текущий пароль' })
+    }
+
+    user.password = newPassword
+    await user.save()
+
+    res.json({ success: true, message: 'Пароль успешно изменён' })
+  } catch (err) {
+    console.error('[changePassword]', err)
+    res.status(500).json({ success: false, message: 'Ошибка сервера' })
   }
 }
