@@ -57,7 +57,6 @@ if (!isConnected) {
     }
     console.warn('⚠️  Continuing in fallback/demo mode (development only)')
 } else {
-    // Seed OMEGA agents and start self-improvement loop
     try {
         await seedAgents()
         startSelfImprovementCron()
@@ -66,8 +65,8 @@ if (!isConnected) {
     }
 }
 
-// CORS must be first — before any route or body parser
-// CORS: explicit origins + dynamic Cloudflare Pages subdomains
+// ========== CORS ==========
+// Убран app.options('*', cors()) — он ломал preflight в Express 5
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5173',
@@ -77,31 +76,28 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (curl, server-to-server, mobile apps)
         if (!origin) return callback(null, true)
         if (allowedOrigins.includes(origin)) return callback(null, true)
-        // Allow any *.pages.dev subdomain
         if (/^https:\/\/[^/]+\.pages\.dev$/.test(origin)) return callback(null, true)
         callback(new Error('Not allowed by CORS'))
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 200,
 }))
 
-// Preflight for all routes
-app.options('*', cors())
-
-// Helmet after CORS so security headers apply without blocking preflight
+// Helmet
 app.use(helmet())
 
-// Body parsing — BEFORE routes
+// Body parsing
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(compression())
 
-// Rate limiting (middleware/rateLimiter.js)
+// Rate limiting
 app.use('/api/omega', omegaLimiter)
 app.use('/api/users', usersLimiter)
 app.use('/api/admin', adminLimiter)
@@ -127,10 +123,10 @@ app.get('/api/health', (req, res) => {
     })
 })
 
-// Public legal info endpoint (for privacy policy, terms, footer)
+// Public legal info
 app.get('/api/public/legal-info', getPublicLegalInfo)
 
-// AI providers status (for Owner Dashboard API Keys tab)
+// AI providers status
 app.get('/api/admin/ai-providers/status', (req, res) => {
     res.json({
         groq: !!process.env.GROQ_API_KEY,
@@ -148,29 +144,29 @@ app.use('/api/ai', aiRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/scheduler', schedulerRoutes)
 app.use('/api/users', userRoutes)
-app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
-app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
-app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API
-app.use('/api/omega', omegaRoutes)  // ← НОВОЕ: OMEGA Core API
-app.use('/api/ad-requests', adRequestRoutes)  // ← НОВОЕ: AdRequests / Client chat
-app.use('/api/subscriptions', subscriptionRoutes)  // ← P10: Подписки
-app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета
-app.use('/api/owner-requisites', ownerRequisitesRoutes)  // ← P10: Реквизиты
-app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Owner legal info
-app.use('/api/yookassa', yookassaRoutes)  // ← P10: ЮKassa
-app.use('/api/stripe', stripeRoutes)  // ← P10: Stripe (выключено по умолчанию)
-app.use('/api/email', emailRoutes)  // ← P10: Email
+app.use('/api/youtube', youtubeRoutes)
+app.use('/api/payments', paymentRoutes)
+app.use('/api/owner', ownerRoutes)
+app.use('/api/omega', omegaRoutes)
+app.use('/api/ad-requests', adRequestRoutes)
+app.use('/api/subscriptions', subscriptionRoutes)
+app.use('/api/invoices', invoiceRoutes)
+app.use('/api/owner-requisites', ownerRequisitesRoutes)
+app.use('/api/owner/legal-info', ownerLegalInfoRoutes)
+app.use('/api/yookassa', yookassaRoutes)
+app.use('/api/stripe', stripeRoutes)
+app.use('/api/email', emailRoutes)
 app.use('/api/admin', adminRoutes)
 
 // Error handling
 app.use((err, req, res, next) => {
     rollbar.error(err, req)
     alertOwner(`🚨 ОШИБКА 500!\n📍 ${req.method} ${req.path}\n❌ ${err.message}\n⏰ ${new Date().toLocaleString('ru-RU')}`)
-        .catch(() => {})
+        .catch(() => { })
     errorHandler(err, req, res, next)
 })
 
-// 404 handler
+// 404
 app.use((req, res) => {
     res.status(404).json({ status: 'error', message: 'Route not found' })
 })
@@ -195,7 +191,6 @@ app.listen(PORT, () => {
     console.log(`🤖 AI Providers enabled: Groq=${process.env.GROQ_ENABLED}, OpenRouter=${process.env.OPENROUTER_ENABLED}, DeepSeek=${process.env.DEEPSEEK_ENABLED}`)
     console.log(`📺 YouTube API: ${process.env.YOUTUBE_API_KEY ? '✅ Connected' : '❌ No key'}`)
 
-    // Start background services
     if (isConnected) {
         try {
             startAutopilot()
