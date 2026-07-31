@@ -1,3 +1,11 @@
+### 2026-07-31 — Owner Dashboard: клиентские разделы
+- [x] AppSidebar.jsx: добавлена группа "КЛИЕНТСКИЙ ВИД" с 📊 Аналитика, 🤖 AI Chat, 🔍 Анализ контента, 📅 Планировщик, 💬 Viral Chat
+- [x] OwnerDashboardPage.jsx: импорты страниц, TAB_ICONS, case renderTab для analytics/aiChat/contentAnalyzer/scheduler/viralChat
+- [x] initialData.js: TAB_LABELS для новых вкладок
+- [x] constants.js: TABS_ORDER обновлён
+- [x] Build frontend: успешно ✅
+- [x] Git push: [выполняется]
+
 ### 2026-07-31 — VisualCalendar + Kanban + 50 Templates + BrandVoice
 - [x] VisualCalendar.jsx: миниатюры, цветные плашки, drag&drop, статусы draft/scheduled/published
 - [x] SchedulerPage.jsx: заменён старый grid на VisualCalendar

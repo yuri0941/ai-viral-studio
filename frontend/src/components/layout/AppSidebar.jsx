@@ -112,6 +112,17 @@ const OWNER_GROUPS = [
         ],
     },
     {
+        id: 'client',
+        title: 'КЛИЕНТСКИЙ ВИД',
+        items: [
+            { id: 'analytics', label: '📊 Аналитика', icon: BarChart3 },
+            { id: 'aiChat', label: '🤖 AI Chat', icon: Bot },
+            { id: 'contentAnalyzer', label: '🔍 Анализ контента', icon: Search },
+            { id: 'scheduler', label: '📅 Планировщик', icon: Calendar },
+            { id: 'viralChat', label: '💬 Viral Chat', icon: TrendingUp },
+        ],
+    },
+    {
         id: 'settings',
         title: 'НАСТРОЙКИ',
         items: [

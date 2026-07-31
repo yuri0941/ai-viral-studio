@@ -36,8 +36,13 @@ import { OmegaFinanceTab } from './components/tabs/OmegaFinanceTab'
 import { OmegaSkillsTab } from './components/tabs/OmegaSkillsTab'
 import { OmegaMemoryTab } from './components/tabs/OmegaMemoryTab'
 import { OwnerRequisitesTab } from './components/tabs/OwnerRequisitesTab'
-
 import { LegalSettingsTab } from './components/tabs/LegalSettingsTab'
+
+import AnalyticsPage from '../AnalyticsPage'
+import AIChatPage from '../AIChatPage'
+import ContentAnalyzerPage from '../ContentAnalyzerPage'
+import SchedulerPage from '../SchedulerPage'
+import ViralChatPage from '../ViralChatPage'
 
 // Modals
 import { AddStaffModal } from './components/modals/AddStaffModal'
@@ -94,6 +99,11 @@ const TAB_ICONS = {
     omegaSkills: BrainCircuit,
     omegaMemory: Database,
     legalSettings: Scale,
+    analytics: BarChart3,
+    aiChat: Bot,
+    contentAnalyzer: Search,
+    scheduler: Calendar,
+    viralChat: TrendingUp,
 }
 
 export default function OwnerDashboardPage() {
@@ -144,6 +154,11 @@ export default function OwnerDashboardPage() {
             case 'omegaMemory': return <OmegaMemoryTab data={ownerData} />
             case 'requisites': return <OwnerRequisitesTab data={ownerData} />
             case 'legalSettings': return <LegalSettingsTab data={ownerData} />
+            case 'analytics': return <AnalyticsPage />
+            case 'aiChat': return <AIChatPage />
+            case 'contentAnalyzer': return <ContentAnalyzerPage />
+            case 'scheduler': return <SchedulerPage />
+            case 'viralChat': return <ViralChatPage />
             default: return <OverviewTab data={ownerData} />
         }
     }

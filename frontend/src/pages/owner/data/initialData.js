@@ -179,4 +179,9 @@ export const TAB_LABELS = {
     omegaSkills: '🧠 OMEGA Skills',
     omegaMemory: '🗄️ OMEGA Memory',
     legalSettings: '⚖️ Юр. настройки',
+    analytics: '📊 Аналитика',
+    aiChat: '🤖 AI Chat',
+    contentAnalyzer: '🔍 Анализ контента',
+    scheduler: '📅 Планировщик',
+    viralChat: '💬 Viral Chat',
 }
