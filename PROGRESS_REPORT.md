@@ -1,3 +1,19 @@
+### 2026-07-31 — OMEGA Agents + WebSearch + Vectorize + SelfImprovement + Voice
+- [x] agentsRegistry.js: TrendScout, CompetitorSpy, ContentForge, ViralPredictor
+- [x] agentRunner.js: анализ запроса → выбор агента → результат в prompt
+- [x] skillsSystem.js: level up 10/50/100
+- [x] webSearch.js: DuckDuckGo/RSS парсинг, интеграция в OMEGA
+- [x] Self-Improvement: авто-анализ 24ч, авто-прокачка, autonomyScore
+- [x] vectorizeService.js: Cloudflare Vectorize, индекс omega-memory, upsert/search
+- [x] aiGatewayService.js: единый шлюз AI, логирование, rate limit 100 req/min
+- [x] Workers AI fallback: llama-3.1-8b-instruct (provider 'workersai' в цепочке)
+- [x] Omega Chat UI: 👍/👎, бейджи источников (Brain/Web/AI/Шаблон), голосовой ввод 🎤, озвучка ответа
+- [x] emailService.js: добавлены недостающие exports (sendEmail, sendPaymentSuccess и др.) — backend стартует
+- [x] Build frontend: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] curl /api/omega/stats: успешно ✅
+- [x] Git push: выполнен ✅
+
 ### 2026-07-31 — OMEGA Brain + Mobile polish
 - [x] memoryStore.js: omega_memories коллекция (OmegaBrainMemory)
 - [x] contextEngine.js: контекст перед ответом
