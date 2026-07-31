@@ -2,7 +2,6 @@ import './config/env.js'
 
 // ============ ИМПОРТЫ ============
 import express from 'express'
-import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
@@ -46,22 +45,17 @@ import { startSelfHealing, stopSelfHealing } from './services/selfHealing.js'
 
 const app = express()
 
-// CORS — САМЫЙ ПЕРВЫЙ, до всего остального
-app.use(cors({
-  origin: function (origin, callback) {
-    const allowed = ['https://ai-viral-studio.pages.dev', 'http://localhost:5173', 'http://localhost:3000'];
-    if (!origin || allowed.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','X-Requested-With']
-}))
-
-app.options('*', cors())
+// Cross-origin headers — must be first
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://ai-viral-studio.pages.dev');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 const PORT = parseInt(process.env.PORT) || 5000
 
 // Connect to database before starting server
