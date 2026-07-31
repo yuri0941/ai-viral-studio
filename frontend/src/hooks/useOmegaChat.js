@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useOmega } from './useOmega.js'
+import { omegaApi } from '../services/api.js'
 
 const STORAGE_KEY = 'omega_chat_history'
 
@@ -68,6 +69,8 @@ export function useOmegaChat(options = {}) {
                 role: 'omega',
                 text: data.response || '...',
                 provider: data.provider,
+                memoryId: data.memoryId,
+                cached: data.cached,
                 decision: data.decision,
                 timestamp: new Date().toISOString(),
             }
@@ -97,6 +100,17 @@ export function useOmegaChat(options = {}) {
         setMessages(prev => prev.filter(m => m.id !== id))
     }, [])
 
+    const rateMessage = useCallback(async (messageId, rating) => {
+        const msg = messages.find(m => m.id === messageId)
+        if (!msg?.memoryId) return
+        try {
+            await omegaApi.rate(msg.memoryId, rating)
+            setMessages(prev => prev.map(m => m.id === messageId ? { ...m, userRating: rating } : m))
+        } catch (err) {
+            console.error('[useOmegaChat] rate failed:', err)
+        }
+    }, [messages])
+
     return {
         ...omega,
         messages,
@@ -107,6 +121,7 @@ export function useOmegaChat(options = {}) {
         sendMessage,
         clearHistory,
         removeMessage,
+        rateMessage,
     }
 }
 

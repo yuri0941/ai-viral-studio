@@ -2,6 +2,8 @@ import { createOmegaBackend } from '../ai/omega/index.js'
 import { OmegaMemory, OmegaSkill, ApiKey } from '../models/index.js'
 import { chatWithAI } from '../services/aiService.js'
 import { checkOmegaGuard, logOmegaGuardEvent } from '../ai/omega/omegaGuard.js'
+import { selectResponse } from '../services/omegaBrain/responseSelector.js'
+import { rateMemory } from '../services/omegaBrain/memoryStore.js'
 import axios from 'axios'
 
 let omegaCore = null
@@ -48,17 +50,18 @@ export async function chat(req, res) {
         const core = await getOmegaCore()
         const decision = await core.decide({ message, history })
 
-        const aiHistory = history.map(h => ({
-            role: h.role === 'user' ? 'user' : 'assistant',
-            content: h.content || h.text || ''
-        }))
-
-        const result = await chatWithAI(message, aiHistory, lang)
-
-        let responseText = result.reply
-        if (!result.success && !responseText) {
-            responseText = 'Извините, AI-сервисы временно недоступны. Попробуйте позже или проверьте API-ключи.'
+        const userId = req.user?._id || req.user?.id
+        const userContext = {
+            name: req.user?.name || 'пользователь',
+            niche: req.user?.preferences?.niche || 'контент',
+            language: lang,
         }
+
+        const result = userId
+            ? await selectResponse(userId, message, userContext)
+            : await chatWithAI(message, history.map(h => ({ role: h.role, content: h.content || h.text })), lang)
+
+        const responseText = result.reply || (result.success ? result.reply : 'AI временно недоступен. Попробуйте позже.')
 
         res.json({
             status: 'success',
@@ -66,7 +69,9 @@ export async function chat(req, res) {
                 response: responseText,
                 decision,
                 provider: result.provider || core.activeProvider || null,
+                memoryId: result.memoryId || null,
                 usage: result.usage || null,
+                cached: result.cached || false,
             },
         })
     } catch (err) {
@@ -167,6 +172,22 @@ export async function learnSkill(req, res) {
                 experience: skill?.experience || 0,
             },
         })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function rate(req, res) {
+    try {
+        const { memoryId, rating } = req.body
+        if (!memoryId || typeof rating !== 'number') {
+            return res.status(400).json({ status: 'error', message: 'memoryId and rating are required' })
+        }
+        const doc = await rateMemory(memoryId, rating)
+        if (!doc) {
+            return res.status(404).json({ status: 'error', message: 'memory not found' })
+        }
+        res.json({ status: 'success', data: { memoryId, rating: doc.rating } })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

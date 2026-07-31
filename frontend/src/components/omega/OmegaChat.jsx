@@ -3,7 +3,7 @@
 // ============================================
 
 import { useRef, useEffect } from 'react'
-import { Bot, User, Send, Trash2, KeyRound, ArrowRight } from 'lucide-react'
+import { Bot, User, Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useOmegaChat } from '../../hooks/useOmegaChat.js'
 
 export function OmegaChatContainer(props) {
@@ -11,7 +11,7 @@ export function OmegaChatContainer(props) {
     return <OmegaChat {...chat} {...props} />
 }
 
-export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendMessage, clearHistory, apiKeys = [], onOpenApiKeys }) {
+export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendMessage, clearHistory, apiKeys = [], onOpenApiKeys, rateMessage }) {
     const endRef = useRef(null)
 
     useEffect(() => {
@@ -75,45 +75,79 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                         Напишите OMEGA — например, «анализ цен» или «прогноз доходов».
                     </div>
                 )}
-                {messages.map(msg => (
-                    <div
-                        key={msg.id}
-                        className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-                    >
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                            msg.role === 'user' ? 'bg-emerald-500/20' : 'bg-purple-500/20'
-                        }`}>
-                            {msg.role === 'user' ? <User size={14} className="text-emerald-400" /> : <Bot size={14} className="text-purple-400" />}
+                {messages.map(msg => {
+                    const isUser = msg.role === 'user'
+                    const isBrain = msg.provider === 'brain'
+                    const isTemplate = msg.provider === 'template'
+                    const sourceLabel = isBrain ? '🧠 Brain' : isTemplate ? '📋 Шаблон' : msg.provider ? `🤖 ${msg.provider}` : ''
+                    return (
+                        <div
+                            key={msg.id}
+                            className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
+                        >
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                                isUser ? 'bg-emerald-500/20' : 'bg-purple-500/20'
+                            }`}>
+                                {isUser ? <User size={14} className="text-emerald-400" /> : <Bot size={14} className="text-purple-400" />}
+                            </div>
+                            <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm ${
+                                isUser
+                                    ? 'bg-emerald-500/10 text-emerald-100 border border-emerald-500/20'
+                                    : msg.error || msg.demo
+                                        ? 'bg-yellow-500/10 text-yellow-100 border border-yellow-500/20'
+                                        : 'bg-white/5 text-gray-200 border border-white/5'
+                            }`}>
+                                {msg.text}
+                                {!isUser && sourceLabel && (
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-400 border border-white/10">
+                                            {sourceLabel}
+                                        </span>
+                                        {msg.cached && (
+                                            <span className="text-[10px] text-gray-500">cached</span>
+                                        )}
+                                    </div>
+                                )}
+                                {msg.demo && (
+                                    <div className="mt-1 text-[10px] text-yellow-500/70 flex items-center gap-1">
+                                        <span className="w-1 h-1 rounded-full bg-yellow-500" />
+                                        Demo Mode
+                                    </div>
+                                )}
+                                {msg.error && !msg.demo && (
+                                    <div className="mt-1 text-[10px] text-red-400">Error: {msg.error}</div>
+                                )}
+                                {!isUser && msg.memoryId && !msg.demo && (
+                                    <div className="mt-2 flex items-center gap-1">
+                                        <button
+                                            onClick={() => rateMessage?.(msg.id, 1)}
+                                            className={`p-1.5 rounded-lg transition-colors ${msg.userRating === 1 ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-emerald-400 hover:bg-white/5'}`}
+                                            title="Полезно"
+                                            aria-label="Полезно"
+                                        >
+                                            <ThumbsUp size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => rateMessage?.(msg.id, -1)}
+                                            className={`p-1.5 rounded-lg transition-colors ${msg.userRating === -1 ? 'bg-red-500/20 text-red-400' : 'text-gray-500 hover:text-red-400 hover:bg-white/5'}`}
+                                            title="Не полезно"
+                                            aria-label="Не полезно"
+                                        >
+                                            <ThumbsDown size={14} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm ${
-                            msg.role === 'user'
-                                ? 'bg-emerald-500/10 text-emerald-100 border border-emerald-500/20'
-                                : msg.error || msg.demo
-                                    ? 'bg-yellow-500/10 text-yellow-100 border border-yellow-500/20'
-                                    : 'bg-white/5 text-gray-200 border border-white/5'
-                        }`}>
-                            {msg.text}
-                            {msg.provider && (
-                                <div className="mt-1 text-[10px] text-gray-500">via {msg.provider}</div>
-                            )}
-                            {msg.demo && (
-                                <div className="mt-1 text-[10px] text-yellow-500/70 flex items-center gap-1">
-                                    <span className="w-1 h-1 rounded-full bg-yellow-500" />
-                                    Demo Mode
-                                </div>
-                            )}
-                            {msg.error && !msg.demo && (
-                                <div className="mt-1 text-[10px] text-red-400">Error: {msg.error}</div>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                    )
+                })}
                 {isTyping && (
                     <div className="flex gap-3">
                         <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center">
                             <Bot size={14} className="text-purple-400" />
                         </div>
-                        <div className="px-4 py-2.5 rounded-2xl bg-white/5 border border-white/5 text-sm text-gray-400">
+                        <div className="px-4 py-2.5 rounded-2xl bg-white/5 border border-white/5 text-sm text-gray-400 flex items-center gap-2">
+                            <span className="text-xs text-gray-500">OMEGA думает</span>
                             <span className="inline-flex gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" />
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.1s]" />

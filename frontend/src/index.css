@@ -256,3 +256,14 @@ select option:focus {
     font-weight: 600;
     color: var(--text, #f5f5f7);
 }
+
+/* Mobile touch target */
+button,
+[role="button"],
+a,
+select,
+input[type="checkbox"],
+input[type="radio"] {
+  min-width: 44px;
+  min-height: 44px;
+}

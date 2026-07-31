@@ -6,6 +6,7 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#8b5cf6" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="description" content="AI Viral Studio - Create, analyze, and monetize viral content" />
     <title>AI Viral Studio</title>
     <script>
@@ -25,12 +26,21 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
-  <script type="module" crossorigin src="/assets/index-CEmt_Qtw.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-BXsizcGT.css">
+  <script type="module" crossorigin src="/assets/index-C-si28yL.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Dn7cEo6j.css">
 <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
 
 <body class="antialiased">
     <div id="root"></div>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => {
+                    console.warn('[SW] registration failed:', err)
+                })
+            })
+        }
+    </script>
 </body>
 
 </html>

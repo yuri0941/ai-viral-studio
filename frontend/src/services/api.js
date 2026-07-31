@@ -89,6 +89,10 @@ export const omegaApi = {
         method: 'POST',
         body: JSON.stringify({ command, params }),
     }),
+    rate: (memoryId, rating) => request('/omega/rate', {
+        method: 'POST',
+        body: JSON.stringify({ memoryId, rating }),
+    }),
 }
 
 export default { ownerApi, omegaApi }
