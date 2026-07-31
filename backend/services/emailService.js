@@ -64,4 +64,6 @@ export async function sendPaymentSuccessEmail(to, name, plan, amount) {
     })
 }
 
-export default { sendVerificationEmail, sendPaymentSuccessEmail }
+export async function getEmailStatus() { return { provider: 'resend', status: 'active' }; }
+
+export default { sendVerificationEmail, sendPaymentSuccessEmail, getEmailStatus }

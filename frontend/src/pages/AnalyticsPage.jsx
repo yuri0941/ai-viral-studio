@@ -82,6 +82,12 @@ function AnalyticsPage() {
         { time: '00:00', online: 8900 },
     ]
 
+    const formatNumber = (num) => {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
+        return num.toString()
+    }
+
     const metrics = useMemo(() => [
         { label: 'Всего просмотров', value: formatNumber(stats?.views ?? 0), change: '+23%', positive: true, icon: Eye },
         { label: 'Средний CTR', value: `${stats?.ctr ?? 0}%`, change: '+1.2%', positive: true, icon: Target },
@@ -95,12 +101,6 @@ function AnalyticsPage() {
         { label: 'Сохранения', value: formatNumber(stats?.clicks ?? 0), change: '+32%', positive: true, icon: Award },
         { label: 'Репосты', value: formatNumber(stats?.shares ?? 0), change: '+8%', positive: true, icon: Share2 },
     ], [stats])
-
-    const formatNumber = (num) => {
-        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
-        return num.toString()
-    }
 
     const handleExport = (format) => {
         setShowExportMenu(false)

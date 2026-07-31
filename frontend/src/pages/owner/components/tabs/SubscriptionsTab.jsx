@@ -244,7 +244,9 @@ export function SubscriptionsTab({ data }) {
                     </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    {safePlans.map((plan) => {
+                    {(() => {
+                        const safeData = Array.isArray(plans) ? plans : []
+                        return safeData.map((plan) => {
                         const isCurrent = currentPlanId === plan.id
                         const isFree = plan.id === 'free'
                         const displayPrice = isYearly
@@ -315,7 +317,7 @@ export function SubscriptionsTab({ data }) {
                                 </button>
                             </div>
                         )
-                    })}
+                    })})()}
                 </div>
             </div>
 
