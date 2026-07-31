@@ -111,3 +111,57 @@ export const changePassword = async (req, res) => {
     res.status(500).json({ success: false, message: 'Ошибка сервера' })
   }
 }
+
+export const changeEmail = async (req, res) => {
+  try {
+    const { newEmail, currentPassword } = req.body || {}
+
+    if (!newEmail || !currentPassword) {
+      return res.status(400).json({ success: false, message: 'Новый email и текущий пароль обязательны' })
+    }
+    if (!/^\S+@\S+\.\S+$/.test(newEmail)) {
+      return res.status(400).json({ success: false, message: 'Некорректный email' })
+    }
+
+    const normalizedEmail = newEmail.toLowerCase().trim()
+
+    const existing = await User.findOne({ email: normalizedEmail })
+    if (existing && existing._id.toString() !== req.user.id) {
+      return res.status(409).json({ success: false, message: 'Этот email уже используется' })
+    }
+
+    const user = await User.findById(req.user.id).select('+password')
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Пользователь не найден' })
+    }
+
+    const isMatch = await user.comparePassword(currentPassword)
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Неверный текущий пароль' })
+    }
+
+    user.email = normalizedEmail
+    user.isVerified = false
+    await user.save()
+
+    const token = user.generateToken()
+
+    res.json({
+      success: true,
+      message: 'Email успешно изменён',
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      }
+    })
+  } catch (err) {
+    console.error('[changeEmail]', err)
+    if (err.code === 11000) {
+      return res.status(409).json({ success: false, message: 'Этот email уже используется' })
+    }
+    res.status(500).json({ success: false, message: 'Ошибка сервера' })
+  }
+}

@@ -1112,3 +1112,42 @@
 - **Файлы изменены:** `frontend/src/components/auth/LoginForm.jsx`, `frontend/src/components/auth/RegisterForm.jsx`, `frontend/src/components/auth/AuthModal.jsx`, `frontend/src/pages/LandingPage.jsx`.
 - **Проверка:** `npm run build` ✅, `git push origin main` ✅.
 - **Баги остались:** —
+
+#### P11 — Задачи 1–4: глазик смены пароля, change-password endpoint, AI env check
+- **Дата:** 2026-07-30
+- **Статус:** ✅ Выполнен
+- **Что сделано:**
+  - **Задача 1 — Глазик в настройках безопасности (`frontend/src/pages/SettingsPage.jsx`):**
+    - Добавлены кнопки-глазики (Eye/EyeOff) для полей "Текущий пароль", "Новый пароль", "Подтвердите пароль".
+    - Touch target 44×44px, иконка 20px, позиционирование справа внутри input (`pr-12`).
+    - Переключение `type="password" ↔ type="text"`.
+  - **Задача 2 — Смена пароля backend + frontend:**
+    - `backend/controllers/userController.js`: добавлен `changePassword` — проверяет текущий пароль через `bcrypt.compare`, валидирует новый пароль (min 6), сохраняет хеш.
+    - `backend/routes/users.js`: добавлен `POST /api/users/change-password` (защищён `protect`).
+    - `frontend/src/pages/SettingsPage.jsx`: форма смены пароля теперь state-driven, валидирует совпадение/длину, шлёт запрос на `${API_BASE_URL}/users/change-password`, показывает success/error сообщения.
+  - **Задача 3 — AI Keys env check (`backend/server.js`):**
+    - Добавлен `console.log('🤖 AI ENV CHECK:', {...})` с флагами наличия ключей: groq, openrouter, deepseek, gemini, github, huggingface, cloudflare, fireworks, mistral, cohere.
+    - dotenv загружается через `config/env.js` ДО старта сервера.
+    - Убедились, что `aiService.js` читает `process.env.{PROVIDER}_API_KEY`.
+  - **Задача 4 — OMEGA не demo-режим:**
+    - `aiService.js` уже использует живую цепочку провайдеров (`PROVIDER_CHAIN`) и падает в demo только при полном отказе всех провайдеров.
+    - После redeploy на Render логи `AI ENV CHECK` покажут, какие ключи действительно подхвачены.
+  - `npm run build` (frontend) ✅.
+  - Изменения запушены в GitHub: `main`.
+- **Файлы изменены:** `frontend/src/pages/SettingsPage.jsx`, `backend/controllers/userController.js`, `backend/routes/users.js`, `backend/server.js`.
+- **Проверка:** `node --check` для backend файлов ✅, `npm run build` ✅, `git push origin main` ✅.
+- **Баги остались:** —
+- **Ручные действия:**
+  - В Render Environment Variables добавьте рабочие AI-ключи (Groq/OpenRouter/Gemini/GitHub/HuggingFace/Cloudflare) и redeploy backend.
+  - После redeploy проверьте логи Render: блок `AI ENV CHECK` должен показывать `true` для используемых провайдеров.
+
+## 🚀 Critical Fix — 2026-07-31
+
+| Блок | Статус | Описание |
+|------|--------|----------|
+| Smart Data (Finance, Analytics, Subscriptions, OMEGA Memory) | ✅ Выполнен | useSmartData hook, демо-данные с бейджами, загрузка реальных данных |
+| AI Keys статус + Pollinations | ✅ Выполнен | GET /api/admin/ai-providers/status, карточка Pollinations AI |
+| Смена email | ✅ Выполнен | POST /api/users/change-email, UI в SettingsPage |
+| ЮKassa тестовый платёж | ✅ Выполнен | paymentController.js, Payment model, /api/payments/create, /api/payments/webhook, PaymentSuccess.jsx |
+| Resend email | ✅ Выполнен | emailService.js, письмо после регистрации и оплаты, повторная отправка |
+| Сборка frontend | ✅ Выполнен | `npm run build` прошёл успешно |

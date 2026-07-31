@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 function SettingsPage() {
-    const { user, logout } = useAuth();
+    const { user, logout, updateUser } = useAuth();
     const [activeTab, setActiveTab] = useState('profile');
     const [saved, setSaved] = useState(false);
     const [theme, setTheme] = useState('dark');
@@ -25,6 +25,11 @@ function SettingsPage() {
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
     const [passwordLoading, setPasswordLoading] = useState(false);
+    const [emailForm, setEmailForm] = useState({ newEmail: '', currentPassword: '' });
+    const [emailError, setEmailError] = useState('');
+    const [emailSuccess, setEmailSuccess] = useState('');
+    const [emailLoading, setEmailLoading] = useState(false);
+    const [showEmailPassword, setShowEmailPassword] = useState(false);
     const [twoFA, setTwoFA] = useState(false);
     const [isYearly, setIsYearly] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState(false);
@@ -614,6 +619,49 @@ function SettingsPage() {
         }
     };
 
+    const handleEmailChange = async (e) => {
+        e.preventDefault();
+        setEmailError('');
+        setEmailSuccess('');
+
+        const { newEmail, currentPassword } = emailForm;
+        if (!newEmail || !currentPassword) {
+            setEmailError('Заполните все поля');
+            return;
+        }
+        if (!/^\S+@\S+\.\S+$/.test(newEmail)) {
+            setEmailError('Некорректный email');
+            return;
+        }
+
+        setEmailLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/users/change-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ newEmail, currentPassword })
+            });
+            const data = await response.json();
+            if (data.success) {
+                setEmailSuccess('Email успешно изменён');
+                localStorage.setItem('token', data.token);
+                updateUser({ email: data.user.email });
+                setEmailForm({ newEmail: '', currentPassword: '' });
+                setTimeout(() => window.location.reload(), 1200);
+            } else {
+                setEmailError(data.message || 'Ошибка смены email');
+            }
+        } catch (err) {
+            setEmailError('Ошибка сервера');
+        } finally {
+            setEmailLoading(false);
+        }
+    };
+
     const renderSecurity = () => (
         <div className="space-y-6">
             <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
@@ -692,6 +740,62 @@ function SettingsPage() {
                         className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-black font-medium rounded-lg transition-all"
                     >
                         {passwordLoading ? 'Сохранение...' : 'Обновить пароль'}
+                    </button>
+                </form>
+            </div>
+
+            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Mail size={18} className="text-emerald-400" /> Смена email
+                </h3>
+                <form onSubmit={handleEmailChange} className="space-y-3">
+                    {emailError && (
+                        <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+                            {emailError}
+                        </div>
+                    )}
+                    {emailSuccess && (
+                        <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+                            {emailSuccess}
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="text-sm text-gray-400 mb-1 block">Новый email</label>
+                        <input
+                            type="email"
+                            value={emailForm.newEmail}
+                            onChange={e => setEmailForm({ ...emailForm, newEmail: e.target.value })}
+                            placeholder="new@example.com"
+                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-white placeholder-gray-500"
+                        />
+                    </div>
+
+                    <div className="relative">
+                        <label className="text-sm text-gray-400 mb-1 block">Текущий пароль</label>
+                        <input
+                            type={showEmailPassword ? 'text' : 'password'}
+                            value={emailForm.currentPassword}
+                            onChange={e => setEmailForm({ ...emailForm, currentPassword: e.target.value })}
+                            placeholder="Текущий пароль"
+                            className="w-full pl-4 pr-12 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-white placeholder-gray-500"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowEmailPassword(v => !v)}
+                            className="absolute right-2 top-[30px] w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                            aria-label={showEmailPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        >
+                            {showEmailPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={emailLoading}
+                        className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-black font-medium rounded-lg transition-all"
+                    >
+                        {emailLoading ? 'Сохранение...' : 'Сохранить'}
                     </button>
                 </form>
             </div>

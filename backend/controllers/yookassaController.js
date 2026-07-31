@@ -1,5 +1,6 @@
 import { createPayment, checkPayment, handleWebhook, createInvoicePayment } from '../services/yookassaService.js';
-import { Subscription, Invoice } from '../models/index.js';
+import { Subscription, Invoice, User } from '../models/index.js';
+import { sendPaymentSuccessEmail } from '../services/emailService.js';
 
 const RETURN_URL = process.env.YOOKASSA_RETURN_URL || 'http://localhost:3000/dashboard/finance';
 
@@ -201,6 +202,27 @@ export const yookassaWebhook = async (req, res) => {
             $set: { status: 'active', providerPaymentId: paymentId },
           });
         }
+      }
+
+      // Send payment success email
+      try {
+        const userId = metadata?.userId;
+        if (userId) {
+          const user = await User.findById(userId);
+          const subscription = metadata?.subscriptionId
+            ? await Subscription.findById(metadata.subscriptionId).lean()
+            : null;
+          const invoice = metadata?.invoiceId
+            ? await Invoice.findById(metadata.invoiceId).lean()
+            : null;
+          const plan = subscription?.plan || metadata?.plan || '—';
+          const amount = subscription?.price || invoice?.amount || 0;
+          if (user) {
+            await sendPaymentSuccessEmail(user.email, user.name, plan, amount);
+          }
+        }
+      } catch (emailErr) {
+        console.error('[yookassaController:webhook] payment success email failed:', emailErr.message);
       }
     } else if (action === 'mark_canceled') {
       if (metadata?.invoiceId) {

@@ -118,6 +118,18 @@ app.get('/health', (req, res) => {
 // Public legal info endpoint (for privacy policy, terms, footer)
 app.get('/api/public/legal-info', getPublicLegalInfo)
 
+// AI providers status (for Owner Dashboard API Keys tab)
+app.get('/api/admin/ai-providers/status', (req, res) => {
+    res.json({
+        groq: !!process.env.GROQ_API_KEY,
+        openrouter: !!process.env.OPENROUTER_API_KEY,
+        deepseek: !!process.env.DEEPSEEK_API_KEY,
+        hf: !!(process.env.HF_API_KEY || process.env.HUGGINGFACE_API_KEY),
+        cloudflare: !!(process.env.CLOUDFLARE_API_KEY && process.env.CLOUDFLARE_ACCOUNT_ID),
+        pollinations: true,
+    })
+})
+
 // API Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/ai', aiRoutes)

@@ -1,5 +1,7 @@
 import express from 'express'
 import Stripe from 'stripe'
+import { protect } from '../middleware/auth.js'
+import { createYookassaPayment, yookassaWebhookHandler, getPaymentStatus } from '../controllers/paymentController.js'
 
 const router = express.Router()
 
@@ -16,6 +18,24 @@ if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('s
 const COINBASE_API_KEY = process.env.COINBASE_API_KEY || ''
 
 // ============ ROUTES ============
+
+/**
+ * POST /api/payments/create
+ * Создаёт тестовый платёж через ЮKassa
+ */
+router.post('/create', protect, createYookassaPayment)
+
+/**
+ * POST /api/payments/webhook
+ * Webhook от ЮKassa
+ */
+router.post('/webhook', yookassaWebhookHandler)
+
+/**
+ * GET /api/payments/status
+ * Статус платежа
+ */
+router.get('/status', protect, getPaymentStatus)
 
 /**
  * POST /api/payments/create-checkout-session

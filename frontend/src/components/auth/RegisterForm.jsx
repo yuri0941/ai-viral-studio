@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Link } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Mail, RefreshCw } from 'lucide-react'
+import { API_BASE_URL } from '../../config.js'
 
 function RegisterForm({ onSuccess }) {
     const [name, setName] = useState('')
@@ -18,7 +19,16 @@ function RegisterForm({ onSuccess }) {
     })
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+    const [registered, setRegistered] = useState(false)
+    const [resendSeconds, setResendSeconds] = useState(60)
+    const [resendLoading, setResendLoading] = useState(false)
     const { register } = useAuth()
+
+    useEffect(() => {
+        if (!registered || resendSeconds <= 0) return
+        const t = setInterval(() => setResendSeconds(s => s - 1), 1000)
+        return () => clearInterval(t)
+    }, [registered, resendSeconds])
 
     const allConsentsChecked = Object.values(consent).every(Boolean)
 
@@ -50,7 +60,8 @@ function RegisterForm({ onSuccess }) {
         try {
             const result = await register(name, email, password, consent)
             if (result.success) {
-                onSuccess?.()
+                setRegistered(true)
+                setResendSeconds(60)
             } else {
                 setError(result.message || 'Ошибка регистрации')
             }
@@ -61,7 +72,75 @@ function RegisterForm({ onSuccess }) {
         }
     }
 
+    const handleResend = async () => {
+        if (resendSeconds > 0) return
+        setResendLoading(true)
+        try {
+            const token = localStorage.getItem('token')
+            const res = await fetch(`${API_BASE_URL}/auth/send-verification`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+            })
+            const data = await res.json()
+            if (data.success) {
+                setResendSeconds(60)
+            } else {
+                setError(data.message || 'Не удалось отправить письмо')
+            }
+        } catch (err) {
+            setError('Ошибка сервера')
+        } finally {
+            setResendLoading(false)
+        }
+    }
+
     const checkboxClass = "w-4 h-4 rounded border border-white/20 bg-white/5 text-[#00ff41] focus:ring-[#00ff41]/30 focus:ring-offset-0"
+
+    if (registered) {
+        return (
+            <div className="space-y-5 text-center">
+                <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
+                    <Mail className="w-7 h-7 text-emerald-400" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Письмо отправлено</h3>
+                    <p className="text-sm text-gray-400">
+                        Письмо отправлено на email. Проверьте почту и подтвердите регистрацию.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resendSeconds > 0 || resendLoading}
+                    className="w-full py-3 px-4 rounded-xl bg-[#252530] hover:bg-[#303040] text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                    {resendLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : resendSeconds > 0 ? (
+                        <>
+                            <RefreshCw className="w-4 h-4" />
+                            Отправить повторно через {resendSeconds} сек
+                        </>
+                    ) : (
+                        <>
+                            <RefreshCw className="w-4 h-4" />
+                            Отправить повторно
+                        </>
+                    )}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onSuccess?.()}
+                    className="text-sm text-[#00ff41] hover:underline"
+                >
+                    Продолжить без подтверждения
+                </button>
+            </div>
+        )
+    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">

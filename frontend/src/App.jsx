@@ -23,6 +23,7 @@ import SettingsPage from './pages/SettingsPage'
 import ContentAnalyzerPage from './pages/ContentAnalyzerPage'
 import ViralChatPage from './pages/ViralChatPage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
+import PaymentSuccess from './pages/PaymentSuccess'
 import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/legal/LegalPage'
 
 const PAGE_TITLES = {
@@ -196,6 +197,7 @@ function App() {
                 </ProtectedRoute>
             } />
 
+            <Route path="/payment/success" element={<PaymentSuccess />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/terms-of-service" element={<TermsOfServicePage />} />
             <Route path="/consent" element={<ConsentPage />} />

@@ -3,20 +3,52 @@ import { DataTable } from '../common/DataTable'
 import { KPICard } from '../common/KPICard'
 import { formatCurrency, formatDate, getSparklineData } from '../../utils/helpers'
 import { invoicesApi, yookassaApi } from '../../../../services/api.js'
+import { useSmartData } from '../../../../hooks/useSmartData'
+import { API_BASE_URL } from '../../../../config.js'
 import {
-    DollarSign, RefreshCcw, TrendingDown, TrendingUp, Wallet,
+    TrendingDown, TrendingUp, Wallet,
     Receipt, Plus, Loader2, ExternalLink, CreditCard
 } from 'lucide-react'
 
+const DEMO_TRANSACTIONS = [
+    { date: '25.07.2026', source: 'Подписки Pro', amount: 5600, status: 'В обработке' },
+    { date: '24.07.2026', source: 'Подписки Creator', amount: 2900, status: 'Успешно' },
+    { date: '23.07.2026', source: 'Реклама', amount: -1200, status: 'Выполнено' },
+    { date: '22.07.2026', source: 'Подписки Pro', amount: 5600, status: 'Успешно' },
+    { date: '21.07.2026', source: 'Подписки Agency', amount: 14300, status: 'Успешно' },
+]
+
+function normalizeTransaction(t) {
+    const rawAmount = t.amount ?? 0
+    const amount = Math.abs(rawAmount)
+    const type = t.type || (rawAmount < 0 ? 'expense' : 'income')
+    return { ...t, amount, type }
+}
+
+function isCompletedStatus(status) {
+    return status === 'completed' || status === 'Успешно' || status === 'Выполнено'
+}
+
+function isPendingStatus(status) {
+    return status === 'pending' || status === 'В обработке'
+}
+
 export function FinanceTab({ data }) {
-    const { payments, toasts, setToasts, resetDemoData } = data
+    const { toasts, setToasts } = data
+
+    const { data: transactions, isDemo } = useSmartData(`${API_BASE_URL}/finance/transactions`, DEMO_TRANSACTIONS)
+
+    const normalizedTransactions = useMemo(() => {
+        const list = Array.isArray(transactions) ? transactions : []
+        return list.map(normalizeTransaction)
+    }, [transactions])
 
     const stats = useMemo(() => {
-        const income = payments.filter(p => p.type === 'income').reduce((a, b) => a + b.amount, 0)
-        const expense = payments.filter(p => p.type === 'expense').reduce((a, b) => a + b.amount, 0)
+        const income = normalizedTransactions.filter(p => p.type === 'income').reduce((a, b) => a + b.amount, 0)
+        const expense = normalizedTransactions.filter(p => p.type === 'expense').reduce((a, b) => a + b.amount, 0)
         const profit = income - expense
         return { income, expense, profit }
-    }, [payments])
+    }, [normalizedTransactions])
 
     const columns = [
         { key: 'date', label: 'Дата', render: (row) => <span className="text-xs text-[var(--text-muted)]">{formatDate(row.date)}</span> },
@@ -31,11 +63,21 @@ export function FinanceTab({ data }) {
                 {row.type === 'income' ? '+' : '-'}{formatCurrency(row.amount)}
             </span>
         )},
-        { key: 'status', label: 'Статус', render: (row) => (
-            <span className={`text-xs px-2 py-1 rounded-full border ${row.status === 'completed' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'}`}>
-                {row.status === 'completed' ? 'Выполнен' : 'В обработке'}
-            </span>
-        )},
+        { key: 'status', label: 'Статус', render: (row) => {
+            const completed = isCompletedStatus(row.status)
+            const pending = isPendingStatus(row.status)
+            return (
+                <span className={`text-xs px-2 py-1 rounded-full border ${
+                    completed
+                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                        : pending
+                            ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
+                            : 'text-gray-400 bg-gray-500/10 border-gray-500/20'
+                }`}>
+                    {row.status || '—'}
+                </span>
+            )
+        }},
     ]
 
     // Invoices
@@ -120,13 +162,13 @@ export function FinanceTab({ data }) {
         <div className="space-y-8 p-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-[var(--text)]">Финансы</h2>
-                <button
-                    onClick={resetDemoData}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--card)] border border-[var(--border)] text-xs text-[var(--text)] hover:bg-[var(--card-hover)] transition-colors"
-                >
-                    <RefreshCcw size={14} /> Сбросить демо-данные
-                </button>
             </div>
+
+            {isDemo && (
+                <div className="bg-yellow-900/30 text-yellow-400 text-sm rounded-lg px-3 py-2 mb-4">
+                    📊 Пример данных — появятся после первой оплаты
+                </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <KPICard title="Доходы" value={stats.income} prefix="$" icon={TrendingUp} color="emerald" change={15.2} sparklineData={getSparklineData(stats.income, 7, 500)} />
@@ -134,7 +176,7 @@ export function FinanceTab({ data }) {
                 <KPICard title="Прибыль" value={stats.profit} prefix="$" icon={Wallet} color="blue" change={22.1} sparklineData={getSparklineData(stats.profit, 7, 300)} />
             </div>
 
-            <DataTable data={payments} columns={columns} searchable exportable emptyText="Нет транзакций" />
+            <DataTable data={normalizedTransactions} columns={columns} searchable exportable emptyText="Нет транзакций" />
 
             {/* Invoices Section */}
             <div className="space-y-4">

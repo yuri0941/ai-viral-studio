@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
-import { Database, Search, Layers, Trash2, ChevronRight } from 'lucide-react'
+import { useEffect, useState, useMemo } from 'react'
+import { Database, Search, Layers, Trash2, ChevronRight, MessageSquare } from 'lucide-react'
 import { useOmegaMemory } from '../../../../hooks/useOmegaMemory'
+import { omegaApi } from '../../../../services/api.js'
 
 const LEVEL_META = {
     short_term: { label: 'Short-term', color: 'blue', description: 'Текущий диалог' },
@@ -20,6 +21,47 @@ export function OmegaMemoryTab() {
     const [activeLevel, setActiveLevel] = useState('short_term')
     const [query, setQuery] = useState('')
     const [newEntry, setNewEntry] = useState('')
+    const [apiLoading, setApiLoading] = useState(true)
+    const [apiEmpty, setApiEmpty] = useState(false)
+
+    useEffect(() => {
+        let cancelled = false
+        setApiLoading(true)
+        omegaApi.getMemory('', 1000)
+            .then(payload => {
+                if (cancelled) return
+                const entries = Array.isArray(payload) ? payload : payload?.entries || payload?.data || []
+                setApiEmpty(entries.length === 0)
+                if (entries.length > 0) {
+                    const grouped = Object.fromEntries(
+                        Object.keys(memory.memory.levels || {}).map(level => [level, []])
+                    )
+                    entries.forEach(entry => {
+                        if (!entry.level || !grouped[entry.level]) return
+                        grouped[entry.level].push({
+                            id: entry.id || memory.memory.generateId(),
+                            level: entry.level,
+                            content: entry.content,
+                            tags: entry.tags || [],
+                            weight: entry.weight ?? 1,
+                            createdAt: entry.createdAt || new Date().toISOString(),
+                            accessCount: 0,
+                            lastAccessed: new Date().toISOString(),
+                            expiresAt: entry.expiresAt || null,
+                        })
+                    })
+                    memory.memory.levels = grouped
+                    memory.memory.persist()
+                    memory.refresh()
+                }
+            })
+            .catch(err => {
+                console.error('[OmegaMemoryTab] getMemory error:', err)
+                setApiEmpty(true)
+            })
+            .finally(() => setApiLoading(false))
+        return () => { cancelled = true }
+    }, [memory])
 
     const summary = memory.summary
     const entries = useMemo(() => {
@@ -114,7 +156,22 @@ export function OmegaMemoryTab() {
 
                 {/* Timeline */}
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                    {entries.length === 0 && <div className="text-center text-gray-500 text-sm py-8">Нет записей</div>}
+                    {entries.length === 0 && (
+                        <div className="text-center text-gray-500 text-sm py-8 space-y-3">
+                            <p>История диалогов появится здесь</p>
+                            <button
+                                onClick={() => {
+                                    const text = window.prompt('Напишите сообщение OMEGA:')
+                                    if (text?.trim()) {
+                                        memory.store('short_term', { content: text.trim(), tags: ['manual', 'short_term'], weight: 1 })
+                                    }
+                                }}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-500/10 text-purple-400 text-xs hover:bg-purple-500/20 transition-colors"
+                            >
+                                <MessageSquare size={14} /> Написать OMEGA
+                            </button>
+                        </div>
+                    )}
                     {entries.slice().reverse().map(entry => (
                         <div key={entry.id} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
                             <ChevronRight size={14} className="text-gray-500 mt-0.5 shrink-0" />

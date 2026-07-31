@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Key, Eye, EyeOff, Copy, Check, RefreshCw, Shield, Server } from 'lucide-react'
+import { Key, Eye, EyeOff, Copy, Check, RefreshCw, Shield, Server, Wind } from 'lucide-react'
 import { StatusBadge } from '../common/StatusBadge'
+import { API_BASE_URL } from '../../../../config.js'
 
 const STORAGE_KEY = 'owner_api_keys'
 const PLACEHOLDER = '••••••••••••••••'
@@ -20,6 +21,7 @@ const DEFAULT_KEYS = [
 const SYSTEM_PROVIDERS = [
     { id: 'huggingface', name: 'HuggingFace', env: 'HUGGINGFACE_API_KEY', type: 'system', status: 'active' },
     { id: 'cloudflare', name: 'Cloudflare Workers AI', env: 'CLOUDFLARE_API_KEY', type: 'system', status: 'active' },
+    { id: 'pollinations', name: 'Pollinations AI', env: null, type: 'system', status: 'active', description: 'Бесплатный fallback AI. Не требует API-ключа.' },
 ]
 
 function isPlaceholder(value) {
@@ -63,10 +65,22 @@ export function ApiKeysTab({ data }) {
     const [visible, setVisible] = useState({})
     const [copied, setCopied] = useState(null)
     const [editing, setEditing] = useState({})
+    const [backendStatus, setBackendStatus] = useState({})
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(keys))
     }, [keys])
+
+    useEffect(() => {
+        let cancelled = false
+        fetch(`${API_BASE_URL}/admin/ai-providers/status`)
+            .then(r => r.ok ? r.json() : {})
+            .then(data => {
+                if (!cancelled) setBackendStatus(data || {})
+            })
+            .catch(err => console.error('[ApiKeysTab] status fetch error:', err))
+        return () => { cancelled = true }
+    }, [])
 
     const saveKeys = useCallback((next) => {
         setKeys(next)
@@ -101,10 +115,17 @@ export function ApiKeysTab({ data }) {
         }
     }
 
-    const activeCount = keys.filter(k => k.status === 'active').length
-    const totalCount = keys.length + SYSTEM_PROVIDERS.length
+    function getEffectiveStatus(provider) {
+        if (provider.id === 'pollinations') return 'active'
+        if (backendStatus[provider.id] !== undefined) {
+            return backendStatus[provider.id] ? 'active' : 'missing'
+        }
+        return provider.status
+    }
 
     const allProviders = [...keys, ...SYSTEM_PROVIDERS]
+    const activeCount = allProviders.filter(p => getEffectiveStatus(p) === 'active').length
+    const totalCount = allProviders.length
 
     return (
         <div className="space-y-6">
@@ -122,29 +143,32 @@ export function ApiKeysTab({ data }) {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                {allProviders.map(apiKey => (
+                {allProviders.map(apiKey => {
+                    const effectiveStatus = getEffectiveStatus(apiKey)
+                    const isPollinations = apiKey.id === 'pollinations'
+                    return (
                     <div key={apiKey.id} className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5">
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                                    {apiKey.type === 'system' ? <Server size={18} className="text-blue-400" /> : <Key size={18} className="text-purple-400" />}
+                                    {isPollinations ? <Wind size={18} className="text-emerald-400" /> : apiKey.type === 'system' ? <Server size={18} className="text-blue-400" /> : <Key size={18} className="text-purple-400" />}
                                 </div>
                                 <div>
                                     <div className="text-sm font-medium text-white">{apiKey.name}</div>
-                                    <div className="text-[10px] text-gray-500">{apiKey.env}</div>
+                                    <div className="text-[10px] text-gray-500">{apiKey.env || '—'}</div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className={`w-2 h-2 rounded-full ${apiKey.status === 'active' ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                                <StatusBadge status={apiKey.status === 'active' ? 'active' : 'error'} label={apiKey.status === 'active' ? 'Active' : 'Missing'} />
+                                <span className={`w-2 h-2 rounded-full ${effectiveStatus === 'active' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                                <StatusBadge status={effectiveStatus === 'active' ? 'active' : 'error'} label={effectiveStatus === 'active' ? 'Active' : 'Missing'} />
                             </div>
                         </div>
 
                         {apiKey.type === 'system' ? (
                             <div className="mb-4">
-                                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
-                                    <Server size={14} />
-                                    Системный провайдер (ключ в .env backend)
+                                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs ${isPollinations ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-blue-500/10 border-blue-500/20 text-blue-300'}`}>
+                                    {isPollinations ? <Wind size={14} /> : <Server size={14} />}
+                                    {apiKey.description || 'Системный провайдер (ключ в .env backend)'}
                                 </div>
                             </div>
                         ) : (
@@ -192,7 +216,7 @@ export function ApiKeysTab({ data }) {
                             )}
                         </div>
                     </div>
-                ))}
+                )})}
             </div>
         </div>
     )

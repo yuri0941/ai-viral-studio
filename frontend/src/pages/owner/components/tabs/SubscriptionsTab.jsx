@@ -1,11 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { StatusBadge } from '../common/StatusBadge'
 import { subscriptionsApi, yookassaApi, stripeApi } from '../../../../services/api.js'
 import { useAuth } from '../../../../context/AuthContext.jsx'
+import { useSmartData } from '../../../../hooks/useSmartData'
+import { API_BASE_URL } from '../../../../config.js'
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
     ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe
 } from 'lucide-react'
+
+const DEMO_PLANS = [
+    { id: 'creator', name: 'Creator', price: 2900, period: 'month', currency: 'RUB' },
+    { id: 'pro', name: 'Pro', price: 4300, period: 'month', currency: 'RUB' },
+    { id: 'agency', name: 'Agency', price: 7900, period: 'month', currency: 'RUB' },
+    { id: 'enterprise', name: 'Enterprise', price: 19900, period: 'month', currency: 'RUB' },
+    { id: 'whitelabel', name: 'White Label', price: 47500, period: 'month', currency: 'RUB' },
+]
 
 const FEATURES = {
     free: ['1 проект', 'Базовая аналитика', 'Email поддержка'],
@@ -44,26 +54,29 @@ export function SubscriptionsTab({ data }) {
     const { toasts, setToasts } = data
     const { user, updatePreferences } = useAuth()
     const [currency, setCurrency] = useState(user?.preferences?.currency || 'RUB')
-    const [plans, setPlans] = useState([])
     const [current, setCurrent] = useState(null)
     const [history, setHistory] = useState([])
     const [isYearly, setIsYearly] = useState(false)
     const [loading, setLoading] = useState(true)
     const [paying, setPaying] = useState(null)
 
-    useEffect(() => {
-        loadData()
+    const plansUrl = useMemo(() => {
+        return `${API_BASE_URL}/subscriptions/plans${currency ? `?currency=${currency}` : ''}`
     }, [currency])
 
-    async function loadData() {
+    const { data: plans, isDemo } = useSmartData(plansUrl, DEMO_PLANS)
+
+    useEffect(() => {
+        loadCurrentAndHistory()
+    }, [currency])
+
+    async function loadCurrentAndHistory() {
         setLoading(true)
         try {
-            const [plansRes, currentRes, historyRes] = await Promise.all([
-                subscriptionsApi.plans(currency),
+            const [currentRes, historyRes] = await Promise.all([
                 subscriptionsApi.current(),
                 subscriptionsApi.history(),
             ])
-            setPlans(plansRes.plans || [])
             setCurrent(currentRes.subscription || null)
             setHistory(historyRes.history || [])
         } catch (err) {
@@ -93,21 +106,36 @@ export function SubscriptionsTab({ data }) {
             return
         }
 
+        const plan = (Array.isArray(plans) ? plans : []).find(p => p.id === planId)
+        if (!plan || plan.price <= 0) {
+            pushToast('error', 'Бесплатный тариф не требует оплаты')
+            return
+        }
+
         setPaying(planId)
         try {
-            const res = await yookassaApi.paySubscription({
-                plan: planId,
-                interval: isYearly ? 'year' : 'month',
-                currency: 'RUB',
-            })
+            const token = localStorage.getItem('token')
+            const amount = isYearly ? Math.round(plan.price * 12 * 0.8) : plan.price
+            const res = await fetch(`${API_BASE_URL}/payments/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    planId,
+                    amount,
+                    description: `Подписка ${plan.name}`,
+                }),
+            }).then(r => r.json())
 
-            if (res.paymentUrl) {
+            if (res.success && res.confirmationUrl) {
                 pushToast('success', 'Перенаправляем на страницу оплаты…')
-                window.location.href = res.paymentUrl
+                window.location.href = res.confirmationUrl
                 return
             }
 
-            pushToast('error', 'Не удалось создать платёж')
+            pushToast('error', res.error || 'Не удалось создать платёж')
         } catch (err) {
             console.error('[SubscriptionsTab:handleSubscribe]', err)
             pushToast('error', err.message || 'Ошибка при создании платежа')
@@ -207,6 +235,11 @@ export function SubscriptionsTab({ data }) {
             {/* Plans */}
             <div>
                 <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Доступные тарифы</h3>
+                {isDemo && (
+                    <div className="bg-yellow-900/30 text-yellow-400 text-sm rounded-lg px-3 py-2 mb-4">
+                        💎 Тарифы-пример — подключите ЮKassa для реальных цен
+                    </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     {plans.map((plan) => {
                         const isCurrent = currentPlanId === plan.id

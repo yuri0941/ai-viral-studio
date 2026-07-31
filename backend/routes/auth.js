@@ -47,7 +47,7 @@ router.post('/register', async (req, res) => {
     })
 
     try {
-      await sendVerificationEmail(user, user.verificationToken)
+      await sendVerificationEmail(user.email, user.name, user.verificationToken)
     } catch (emailErr) {
       console.error('[auth:register] verification email failed:', emailErr.message)
     }
@@ -181,6 +181,30 @@ router.get('/verify-email/:token', async (req, res) => {
     res.json({ success: true, message: 'Email успешно подтверждён' })
   } catch (error) {
     console.error('Verify email error:', error)
+    res.status(500).json({ success: false, message: 'Ошибка сервера' })
+  }
+})
+
+router.post('/send-verification', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Пользователь не найден' })
+    }
+
+    user.verificationToken = crypto.randomBytes(32).toString('hex')
+    user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    await user.save()
+
+    try {
+      await sendVerificationEmail(user.email, user.name, user.verificationToken)
+    } catch (emailErr) {
+      console.error('[auth:send-verification] email failed:', emailErr.message)
+    }
+
+    res.json({ success: true, message: 'Письмо отправлено' })
+  } catch (error) {
+    console.error('Send verification error:', error)
     res.status(500).json({ success: false, message: 'Ошибка сервера' })
   }
 })

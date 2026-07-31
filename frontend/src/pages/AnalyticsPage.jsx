@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
     LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -8,10 +8,16 @@ import {
     Calendar, ArrowUpRight, ArrowDownRight, Filter, ChevronDown,
     Play, Clock, Users, Target, Zap, BarChart3, Globe, Award
 } from 'lucide-react'
+import { useSmartData } from '../hooks/useSmartData'
+import { API_BASE_URL } from '../config.js'
+
+const DEMO_STATS = { views: 1400000, ctr: 8.4, subscribers: 12500, engagement: 6.8, reach: 2100000, clicks: 45000, shares: 12000 }
 
 function AnalyticsPage() {
     const [period, setPeriod] = useState('7d')
     const [showExportMenu, setShowExportMenu] = useState(false)
+
+    const { data: stats, isDemo } = useSmartData(`${API_BASE_URL}/analytics/overview`, DEMO_STATS)
 
     // Данные по периодам
     const dataByPeriod = {
@@ -75,21 +81,19 @@ function AnalyticsPage() {
         { time: '00:00', online: 8900 },
     ]
 
-    // Метрики
-    const metrics = [
-        { label: 'Всего просмотров', value: '1.4M', change: '+23%', positive: true, icon: Eye },
-        { label: 'Средний CTR', value: '8.4%', change: '+1.2%', positive: true, icon: Target },
+    const metrics = useMemo(() => [
+        { label: 'Всего просмотров', value: formatNumber(stats?.views ?? 0), change: '+23%', positive: true, icon: Eye },
+        { label: 'Средний CTR', value: `${stats?.ctr ?? 0}%`, change: '+1.2%', positive: true, icon: Target },
         { label: 'Время просмотра', value: '4:32', change: '+18%', positive: true, icon: Clock },
-        { label: 'Подписчики', value: '12.5K', change: '+324', positive: true, icon: Users },
-    ]
+        { label: 'Подписчики', value: formatNumber(stats?.subscribers ?? 0), change: '+324', positive: true, icon: Users },
+    ], [stats])
 
-    // Доп. метрики для заполнения пустоты
-    const extraMetrics = [
-        { label: 'Вовлечённость', value: '6.8%', change: '+0.5%', positive: true, icon: Heart },
-        { label: 'Охват', value: '2.1M', change: '+15%', positive: true, icon: Globe },
-        { label: 'Сохранения', value: '45K', change: '+32%', positive: true, icon: Award },
-        { label: 'Репосты', value: '12K', change: '+8%', positive: true, icon: Share2 },
-    ]
+    const extraMetrics = useMemo(() => [
+        { label: 'Вовлечённость', value: `${stats?.engagement ?? 0}%`, change: '+0.5%', positive: true, icon: Heart },
+        { label: 'Охват', value: formatNumber(stats?.reach ?? 0), change: '+15%', positive: true, icon: Globe },
+        { label: 'Сохранения', value: formatNumber(stats?.clicks ?? 0), change: '+32%', positive: true, icon: Award },
+        { label: 'Репосты', value: formatNumber(stats?.shares ?? 0), change: '+8%', positive: true, icon: Share2 },
+    ], [stats])
 
     const formatNumber = (num) => {
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
@@ -149,6 +153,12 @@ function AnalyticsPage() {
                         </select>
                     </div>
                 </div>
+
+                {isDemo && (
+                    <div className="bg-yellow-900/30 text-yellow-400 text-sm rounded-lg px-3 py-2 mb-4">
+                        📈 Пример аналитики — начните публикацию, чтобы увидеть свои данные
+                    </div>
+                )}
 
                 {/* Main Metrics */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
