@@ -2,6 +2,7 @@ import './config/env.js'
 
 // ============ ИМПОРТЫ ============
 import express from 'express'
+import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
@@ -45,23 +46,15 @@ import { startSelfHealing, stopSelfHealing } from './services/selfHealing.js'
 
 const app = express()
 
+app.use(cors({
+  origin: 'https://ai-viral-studio.pages.dev',
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
+}));
+
 app.set('trust proxy', 1);
 
-const allowedOrigin = 'https://ai-viral-studio.pages.dev';
-
-app.use((req, res, next) => {
-  console.log(`[CORS DEBUG] Method=${req.method} Path=${req.path}`);
-  res.set('Access-Control-Allow-Origin', allowedOrigin);
-  res.set('Access-Control-Allow-Credentials', 'true');
-  res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-  res.set('Vary', 'Origin');
-  if (req.method === 'OPTIONS') {
-    console.log('[CORS DEBUG] OPTIONS detected -> returning 200');
-    return res.sendStatus(200);
-  }
-  next();
-});
 
 const PORT = parseInt(process.env.PORT) || 5000
 
