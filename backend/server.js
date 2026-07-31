@@ -117,6 +117,14 @@ app.get('/health', (req, res) => {
     })
 })
 
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString()
+    })
+})
+
 // Public legal info endpoint (for privacy policy, terms, footer)
 app.get('/api/public/legal-info', getPublicLegalInfo)
 

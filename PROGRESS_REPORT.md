@@ -1,3 +1,10 @@
+### 2026-07-31 — HOTFIX: /api/health endpoint + sidebar hover/toggle
+- [x] /api/health endpoint для UptimeRobot (backend/server.js)
+- [x] Sidebar: hover-разворачивание (260px ↔ 60px), кнопка << / >> toggle, localStorage sidebar_expanded, z-50
+- [x] Build frontend: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: [выполняется]
+
 ### 2026-07-31 — Security: Telegram bot + Rollbar + RateLimit + EmergencyStop
 - [x] Telegram-бот: backend/services/ownerBot.js (/start, /status, alertOwner)
 - [x] Алерты владельцу: регистрация (authController.js), оплата (paymentController.js), ошибки 500 (server.js)
@@ -7,7 +14,7 @@
 - [x] PaymentProviders: backend/models/PaymentProvider.js + /api/admin/payment-providers endpoints
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
-- [x] Git push: [выполняется]
+- [x] Git push: выполнен ✅
 
 ### 2026-07-31 — HOTFIX: emailService sendEmail export
 - [x] Проверен emailService.js: sendEmail уже экспортирован (object signature)

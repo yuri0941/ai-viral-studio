@@ -6,7 +6,7 @@ import {
     Users, Monitor, CheckSquare, Bot, Newspaper, Gift, MessageSquare,
     KeyRound, Lock, Scale, ShieldCheck, Server, RefreshCw, Plug,
     BarChart3, FileText, Bell, HelpCircle, Heart, Rocket,
-    Crown, LogOut, Pin, PinOff, X, ChevronDown, Globe,
+    Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
 } from 'lucide-react'
 
@@ -165,21 +165,14 @@ export function AppSidebar({
     const [searchParams] = useSearchParams()
     const ownerTab = searchParams.get('tab')
 
-    const [pinned, setPinned] = useLocalStorage('sidebar_pinned', true)
-    const [collapsed, setCollapsed] = useState(() => {
-        try {
-            const saved = localStorage.getItem('sidebar_collapsed')
-            return saved !== null ? JSON.parse(saved) : !pinned
-        } catch {
-            return !pinned
-        }
-    })
+    const [expanded, setExpanded] = useLocalStorage('sidebar_expanded', true)
+    const [hovered, setHovered] = useState(false)
     const [openGroups, setOpenGroups] = useLocalStorage('sidebar_open_groups', {
         overview: true, omega: true, finance: true, team: true, content: true, settings: true,
     })
 
     const isOwner = userRole === 'owner'
-    const expanded = isMobile ? true : !collapsed
+    const isExpanded = isMobile ? true : (expanded || hovered)
 
     const roleMenu = menuItems || ROLE_MENU[userRole] || ROLE_MENU.creator
 
@@ -209,17 +202,9 @@ export function AppSidebar({
         setOpenGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }))
     }
 
-    const togglePin = () => {
-        const next = !pinned
-        setPinned(next)
-        setCollapsed(!next)
+    const toggleExpanded = () => {
+        setExpanded(prev => !prev)
     }
-
-    useEffect(() => {
-        try {
-            localStorage.setItem('sidebar_collapsed', JSON.stringify(collapsed))
-        } catch {}
-    }, [collapsed])
 
     const initials = (user?.name || userRole || 'U')
         .split(' ')
@@ -230,8 +215,10 @@ export function AppSidebar({
 
     return (
         <div
-            className={`flex flex-col h-full bg-[#0f0f1a] border-r border-white/[0.06] transition-all duration-300 ${
-                expanded ? 'w-[260px]' : 'w-[72px]'
+            onMouseEnter={() => !isMobile && setHovered(true)}
+            onMouseLeave={() => !isMobile && setHovered(false)}
+            className={`flex flex-col h-full bg-[#0f0f1a] border-r border-white/[0.06] transition-[width] duration-300 z-50 relative ${
+                isExpanded ? 'w-[260px]' : 'w-[60px]'
             }`}
         >
             {/* Header */}
@@ -240,7 +227,7 @@ export function AppSidebar({
                     <div className="w-9 h-9 rounded-xl bg-[#8B5CF6]/20 flex items-center justify-center flex-shrink-0">
                         <Crown className="w-5 h-5 text-[#8B5CF6]" />
                     </div>
-                    {expanded && (
+                    {isExpanded && (
                         <div className="min-w-0">
                             <h1 className="text-white font-bold text-sm leading-tight truncate">AI Viral</h1>
                             <p className="text-gray-500 text-[10px]">Studio</p>
@@ -248,13 +235,13 @@ export function AppSidebar({
                     )}
                 </div>
                 <div className="flex items-center gap-1">
-                    {!isMobile && expanded && (
+                    {!isMobile && (
                         <button
-                            onClick={togglePin}
+                            onClick={toggleExpanded}
                             className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
-                            title={pinned ? 'Открепить' : 'Закрепить'}
+                            title={isExpanded ? 'Свернуть' : 'Развернуть'}
                         >
-                            {pinned ? <Pin className="w-4 h-4 text-[#8B5CF6]" /> : <PinOff className="w-4 h-4" />}
+                            {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                         </button>
                     )}
                     {onClose && isMobile && (
@@ -272,7 +259,7 @@ export function AppSidebar({
             <nav className="flex-1 overflow-y-auto p-3 space-y-4">
                 {groups.map(group => (
                     <div key={group.id}>
-                        {expanded ? (
+                        {isExpanded ? (
                             <button
                                 onClick={() => toggleGroup(group.id)}
                                 className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold text-gray-500 tracking-wider uppercase hover:text-gray-400 transition-colors"
@@ -287,7 +274,7 @@ export function AppSidebar({
                                 <div className="h-px bg-white/10" />
                             </div>
                         )}
-                        {(openGroups[group.id] !== false || !expanded) && (
+                        {(openGroups[group.id] !== false || !isExpanded) && (
                             <div className="space-y-1">
                                 {group.items.map(item => {
                                     const Icon = item.icon
@@ -300,7 +287,7 @@ export function AppSidebar({
                                                 active
                                                     ? 'text-white bg-[#8B5CF6]/10'
                                                     : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                            } ${expanded ? '' : 'justify-center'}`}
+                                            } ${isExpanded ? '' : 'justify-center'}`}
                                             title={item.label}
                                         >
                                             {active && (
@@ -310,7 +297,7 @@ export function AppSidebar({
                                                 />
                                             )}
                                             <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-[#8B5CF6]' : ''}`} />
-                                            {expanded && <span className="truncate">{item.label}</span>}
+                                            {isExpanded && <span className="truncate">{item.label}</span>}
                                         </button>
                                     )
                                 })}
@@ -322,11 +309,11 @@ export function AppSidebar({
 
             {/* User */}
             <div className="p-3 border-t border-white/[0.06]">
-                <div className={`flex items-center gap-3 px-3 py-2 ${expanded ? '' : 'justify-center'}`}>
+                <div className={`flex items-center gap-3 px-3 py-2 ${isExpanded ? '' : 'justify-center'}`}>
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                         {initials || <Globe className="w-4 h-4" />}
                     </div>
-                    {expanded && (
+                    {isExpanded && (
                         <div className="min-w-0">
                             <p className="text-white text-sm font-medium truncate">{user?.name || userRole}</p>
                             <p className="text-gray-500 text-[10px] truncate">{user?.email || `${userRole}@ai-viral.com`}</p>
@@ -336,12 +323,12 @@ export function AppSidebar({
                 <button
                     onClick={onLogout}
                     className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-all text-left ${
-                        expanded ? '' : 'justify-center'
+                        isExpanded ? '' : 'justify-center'
                     }`}
                     title="Выйти"
                 >
                     <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-                    {expanded && <span>Выйти</span>}
+                    {isExpanded && <span>Выйти</span>}
                 </button>
             </div>
         </div>
