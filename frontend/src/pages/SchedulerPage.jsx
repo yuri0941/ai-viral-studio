@@ -9,6 +9,7 @@ import {
     ToggleLeft, ToggleRight, Bot
 } from 'lucide-react';
 import { omegaApi } from '../services/api';
+import VisualCalendar from '../components/scheduler/VisualCalendar';
 
 const PLATFORM_COLORS = {
     youtube: '#FF0000',
@@ -284,6 +285,12 @@ function SchedulerPage() {
         }
     };
 
+    const handlePostMove = (postId, dateStr) => {
+        if (!postId) return;
+        setPosts(prev => prev.map(p => p.id === Number(postId) ? { ...p, date: dateStr } : p));
+        setDraggedPostId(null);
+    };
+
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (file) setUploadedFile(file);
@@ -476,61 +483,15 @@ function SchedulerPage() {
                     })}
                 </div>
 
-                <div className="grid grid-cols-7">
-                    {weekDates.map((date, i) => {
-                        const dayPosts = getPostsForDate(date);
-                        const isToday = new Date().toDateString() === date.toDateString();
-                        return (
-                            <div
-                                key={i}
-                                className={`border-r border-white/5 last:border-r-0 p-2 min-h-[140px] relative transition-colors ${isToday ? 'bg-emerald-500/5' : ''} ${dragOver ? 'bg-emerald-500/10' : ''}`}
-                                onDragOver={handleDayDragOver}
-                                onDragLeave={handleDayDragLeave}
-                                onDrop={(e) => handleDayDrop(e, date)}
-                            >
-                                {dayPosts.length === 0 ? (
-                                    <button onClick={() => openModal(null, formatDateInput(date))} className="w-full h-full min-h-[120px] flex flex-col items-center justify-center text-gray-600 hover:text-gray-400 transition-colors group">
-                                        <Plus size={20} className="mb-2 group-hover:scale-110 transition-transform" />
-                                        <span className="text-xs">Добавить</span>
-                                    </button>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {dayPosts.map(post => (
-                                            <div
-                                                key={post.id}
-                                                draggable
-                                                onDragStart={(e) => handlePostDragStart(e, post.id)}
-                                                className={`p-2 rounded-lg bg-[#252530] border border-white/5 hover:border-emerald-500/30 cursor-move transition-all hover:scale-[1.02] group ${post.status === 'published' ? 'opacity-60' : ''}`}
-                                            >
-                                                <div className="flex items-center gap-1 mb-1 flex-wrap">
-                                                    {post.platforms?.map(pid => (
-                                                        <span key={pid} className="text-[10px] px-1 rounded" style={{ backgroundColor: getPlatformColor(pid) + '30', color: getPlatformColor(pid) }}>
-                                                            {PLATFORMS.find(p => p.id === pid)?.name}
-                                                        </span>
-                                                    ))}
-                                                    {post.status === 'published' && <span className="text-[10px] px-1 rounded bg-purple-500/20 text-purple-400">опубликовано</span>}
-                                                </div>
-                                                <div className="text-xs font-medium truncate mb-1" onClick={() => openModal(post)}>{post.title}</div>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-1 text-gray-500"><Clock size={10} /><span className="text-[10px]">{post.time}</span></div>
-                                                    <div className="flex gap-0.5">{post.types?.map(tid => <span key={tid} className="text-gray-500">{getTypeIcon(tid)}</span>)}</div>
-                                                </div>
-                                                <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={(e) => { e.stopPropagation(); openModal(post); }} className="p-1 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"><Edit3 size={10} /></button>
-                                                    {post.status === 'scheduled' && (
-                                                        <button onClick={(e) => { e.stopPropagation(); publishNow(post); }} className="p-1 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30" title="Опубликовать сейчас"><Send size={10} /></button>
-                                                    )}
-                                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(post.id); }} className="p-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"><Trash2 size={10} /></button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        <button onClick={() => openModal(null, formatDateInput(date))} className="w-full p-1.5 rounded-lg border border-dashed border-white/10 text-gray-500 hover:border-emerald-500/30 hover:text-emerald-400 transition-all text-xs flex items-center justify-center gap-1"><Plus size={12} /> Ещё</button>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
+                <VisualCalendar
+                    posts={posts}
+                    weekDates={weekDates}
+                    onDateClick={(dateStr) => openModal(null, dateStr)}
+                    onPostClick={openModal}
+                    onPostMove={handlePostMove}
+                    platformColors={PLATFORM_COLORS}
+                    platformIcons={PLATFORMS.reduce((acc, p) => { acc[p.id] = p.icon; return acc; }, {})}
+                />
             </div>
 
             {/* Media queue */}

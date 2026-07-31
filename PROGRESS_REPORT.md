@@ -1,9 +1,22 @@
+### 2026-07-31 — VisualCalendar + Kanban + 50 Templates + BrandVoice
+- [x] VisualCalendar.jsx: миниатюры, цветные плашки, drag&drop, статусы draft/scheduled/published
+- [x] SchedulerPage.jsx: заменён старый grid на VisualCalendar
+- [x] KanbanBoard.jsx: ToDo/InProgress/Review/Done, drag&drop, фильтры поиск/исполнитель, localStorage
+- [x] TasksTab.jsx: интегрирован KanbanBoard
+- [x] templatesLibrary.js: 50 шаблонов (hooks, AIDA, PAS, email, shorts)
+- [x] /api/omega/generate-template endpoint + /api/omega/templates
+- [x] brandVoice.js: анализ стиля через AI + локальные эвристики, сохранение в User.brandVoice
+- [x] OMEGA chat: brandVoice prompt добавляется в контекст
+- [x] Build frontend: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: [выполняется]
+
 ### 2026-07-31 — HOTFIX: /api/health endpoint + sidebar hover/toggle
 - [x] /api/health endpoint для UptimeRobot (backend/server.js)
 - [x] Sidebar: hover-разворачивание (260px ↔ 60px), кнопка << / >> toggle, localStorage sidebar_expanded, z-50
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
-- [x] Git push: [выполняется]
+- [x] Git push: выполнен ✅
 
 ### 2026-07-31 — Security: Telegram bot + Rollbar + RateLimit + EmergencyStop
 - [x] Telegram-бот: backend/services/ownerBot.js (/start, /status, alertOwner)

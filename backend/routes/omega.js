@@ -9,6 +9,9 @@ import {
     sendCommand,
     rate,
     stats,
+    generateTemplate,
+    listTemplateLibrary,
+    analyzeBrandVoice,
 } from '../controllers/omegaController.js'
 
 const router = express.Router()
@@ -22,5 +25,8 @@ router.post('/skills/learn', learnSkill)
 router.post('/command', sendCommand)
 router.post('/rate', rate)
 router.get('/stats', stats)
+router.post('/generate-template', generateTemplate)
+router.get('/templates', listTemplateLibrary)
+router.post('/brand-voice/analyze', analyzeBrandVoice)
 
 export default router

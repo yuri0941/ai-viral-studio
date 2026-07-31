@@ -80,7 +80,16 @@ const userSchema = new mongoose.Schema(
         }],
         lastLogin: Date,
         loginAttempts: { type: Number, default: 0 },
-        lockUntil: Date
+        lockUntil: Date,
+        brandVoice: {
+            tone: String,
+            keywords: [String],
+            sentenceLength: String,
+            emojiStyle: String,
+            description: String,
+            examples: [String],
+            updatedAt: { type: Date, default: Date.now },
+        },
     },
     {
         timestamps: true

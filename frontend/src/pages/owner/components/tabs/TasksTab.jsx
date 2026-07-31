@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { StatusBadge } from '../common/StatusBadge'
 import { Plus, MoreHorizontal, Calendar, User } from 'lucide-react'
+import KanbanBoard from '../../../../components/kanban/KanbanBoard'
 
 const COLUMNS = [
     { id: 'todo', label: 'To Do', color: 'gray' },
@@ -57,12 +58,6 @@ export function TasksTab({ data }) {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-white">Задачи и заявки</h2>
-                <button
-                    onClick={addTask}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs hover:bg-emerald-500/20 transition-colors"
-                >
-                    <Plus size={14} /> Новая задача
-                </button>
             </div>
 
             {/* Ad requests as cards */}
@@ -87,45 +82,8 @@ export function TasksTab({ data }) {
                 </div>
             )}
 
-            {/* Kanban */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {COLUMNS.map(col => (
-                    <div
-                        key={col.id}
-                        className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-4 min-h-[300px]"
-                        onDragOver={onDragOver}
-                        onDrop={() => onDrop(col.id)}
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-semibold text-white">{col.label}</h3>
-                            <span className="text-xs text-gray-500">{tasks.filter(t => t.status === col.id).length}</span>
-                        </div>
-                        <div className="space-y-3">
-                            {tasks.filter(t => t.status === col.id).map(task => (
-                                <div
-                                    key={task.id}
-                                    draggable
-                                    onDragStart={() => onDragStart(task.id)}
-                                    className="p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/15 cursor-grab active:cursor-grabbing transition-all"
-                                >
-                                    <div className="flex items-start justify-between gap-2 mb-2">
-                                        <span className="text-xs text-white">{task.title}</span>
-                                        <MoreHorizontal size={14} className="text-gray-500 shrink-0" />
-                                    </div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <StatusBadge status={task.priority} label={task.priority} />
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400">{task.tag}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-[10px] text-gray-500">
-                                        <span className="flex items-center gap-1"><User size={10} /> {task.assignee}</span>
-                                        <span className="flex items-center gap-1"><Calendar size={10} /> {task.due}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
+            {/* Kanban Board */}
+            <KanbanBoard />
         </div>
     )
 }

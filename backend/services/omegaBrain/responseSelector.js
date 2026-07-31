@@ -4,14 +4,16 @@ import { pickTemplate, classifyQuestion } from './templates.js'
 import aiService from '../aiService.js'
 import { runAgentsForQuery, formatAgentResults } from '../omegaAgents/agentRunner.js'
 import { searchWeb, formatWebResults, isWebSearchQuery } from '../webSearch.js'
+import { buildBrandVoicePrompt } from '../brandVoice.js'
 
 const BRAIN_MIN_RATING = 2
 
 function buildEnhancedPrompt(userContext, question, extra = {}) {
-    const { name = 'пользователь', niche = 'контент', language = 'ru' } = userContext
+    const { name = 'пользователь', niche = 'контент', language = 'ru', brandVoice = '' } = userContext
     const parts = []
     parts.push(`Ты — AI Viral Studio OMEGA. Язык: ${language}.`)
     parts.push(`Контекст: пользователь ${name}, ниша ${niche}.`)
+    if (brandVoice) parts.push(`Стиль бренда: ${brandVoice}`)
     if (extra.context) parts.push(extra.context)
     if (extra.vectorResults) parts.push(extra.vectorResults)
     if (extra.webResults) parts.push(extra.webResults)

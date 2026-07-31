@@ -3,9 +3,11 @@ import { OmegaMemory, OmegaSkill, ApiKey } from '../models/index.js'
 import { chatWithAI } from '../services/aiService.js'
 import { checkOmegaGuard, logOmegaGuardEvent } from '../ai/omega/omegaGuard.js'
 import { selectResponse } from '../services/omegaBrain/responseSelector.js'
-import { rateMemory } from '../services/omegaBrain/memoryStore.js'
-import { OmegaBrainMemory } from '../services/omegaBrain/memoryStore.js'
+import { rateMemory, OmegaBrainMemory } from '../services/omegaBrain/memoryStore.js'
 import { getSkillLevels } from '../services/omegaAgents/skillsSystem.js'
+import { generateFromTemplate, listTemplates } from '../services/templatesLibrary.js'
+import { analyzeBrandVoiceWithAI, buildBrandVoicePrompt } from '../services/brandVoice.js'
+import User from '../models/User.js'
 import axios from 'axios'
 
 let omegaCore = null
@@ -53,10 +55,24 @@ export async function chat(req, res) {
         const decision = await core.decide({ message, history })
 
         const userId = req.user?._id || req.user?.id
+
+        let brandVoicePrompt = ''
+        if (userId) {
+            try {
+                const user = await User.findById(userId).select('brandVoice').lean()
+                if (user?.brandVoice) {
+                    brandVoicePrompt = buildBrandVoicePrompt(user.brandVoice)
+                }
+            } catch (err) {
+                console.warn('[omegaController:chat] brandVoice load failed:', err.message)
+            }
+        }
+
         const userContext = {
             name: req.user?.name || 'пользователь',
             niche: req.user?.preferences?.niche || 'контент',
             language: lang,
+            brandVoice: brandVoicePrompt,
         }
 
         const result = userId
@@ -251,6 +267,58 @@ export async function sendCommand(req, res) {
                 provider: core.activeProvider,
             },
         })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function generateTemplate(req, res) {
+    try {
+        const { templateId, variables = {} } = req.body
+        if (!templateId) {
+            return res.status(400).json({ status: 'error', message: 'templateId is required' })
+        }
+        const result = generateFromTemplate(templateId, variables)
+        if (!result) {
+            return res.status(404).json({ status: 'error', message: 'template not found' })
+        }
+        res.json({ status: 'success', data: result })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function listTemplateLibrary(req, res) {
+    try {
+        res.json({ status: 'success', data: listTemplates() })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function analyzeBrandVoice(req, res) {
+    try {
+        const { texts, niche } = req.body
+        if (!Array.isArray(texts) || texts.length === 0) {
+            return res.status(400).json({ status: 'error', message: 'texts array is required' })
+        }
+        const analysis = await analyzeBrandVoiceWithAI(texts, niche)
+        if (!analysis) {
+            return res.status(400).json({ status: 'error', message: 'unable to analyze brand voice' })
+        }
+
+        const userId = req.user?._id || req.user?.id
+        if (userId) {
+            try {
+                await User.findByIdAndUpdate(userId, {
+                    brandVoice: { ...analysis, updatedAt: new Date() },
+                })
+            } catch (err) {
+                console.warn('[omegaController:analyzeBrandVoice] save failed:', err.message)
+            }
+        }
+
+        res.json({ status: 'success', data: analysis })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }
