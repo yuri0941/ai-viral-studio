@@ -64,7 +64,7 @@ import {
     CreditCard, Server, RefreshCw, Gift, Newspaper, Share2,
     Megaphone, Lock, Plug, Brain, FileText, Bot, MessageSquare,
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
-    BrainCircuit, Database, Scale,
+    BrainCircuit, Database, Scale, BarChart, Search, Calendar, TrendingUp,
     X
 } from 'lucide-react'
 

@@ -1,3 +1,14 @@
+### 2026-07-31 — HOTFIX: BarChart import in OwnerDashboardPage + dashboards checked
+- [x] OwnerDashboardPage.jsx: добавлены BarChart, Search, Calendar, TrendingUp в импорт lucide-react (строки 102-106)
+- [x] CreatorDashboardPage.jsx: BarChart переименован в BarChartIcon (исправлен конфликт с recharts)
+- [x] AnalyticsPage.jsx: BarChart as BarChartIcon + recharts BarChart — конфликтов нет
+- [x] AdvertiserDashboardPage.jsx: BarChart as BarChartIcon + recharts BarChart — конфликтов нет
+- [x] AdminDashboardPage.jsx: BarChart из lucide — конфликтов нет
+- [x] ContentAnalyzerPage.jsx: BarChart из lucide — конфликтов нет
+- [x] Build frontend: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+
 ### 2026-07-31 — HOTFIX: BarChart3 import fix v2 (CreatorDashboard conflict)
 - [x] CreatorDashboardPage.jsx: BarChart из lucide переименован в BarChartIcon, убран конфликт с recharts BarChart
 - [x] Build frontend: успешно ✅
