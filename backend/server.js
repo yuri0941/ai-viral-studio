@@ -66,31 +66,13 @@ if (!isConnected) {
     }
 }
 
-// CORS must be first — before any route or body parser
-// CORS: explicit origins + dynamic Cloudflare Pages subdomains
-const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://ai-viral-studio.pages.dev',
-    process.env.FRONTEND_URL,
-].filter(Boolean)
-
+// CORS — must be first, before any route or body parser
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (curl, server-to-server, mobile apps)
-        if (!origin) return callback(null, true)
-        if (allowedOrigins.includes(origin)) return callback(null, true)
-        // Allow any *.pages.dev subdomain
-        if (/^https:\/\/[^/]+\.pages\.dev$/.test(origin)) return callback(null, true)
-        callback(new Error('Not allowed by CORS'))
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
+  origin: ['https://ai-viral-studio.pages.dev','http://localhost:5173'],
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
 }))
-
-// Preflight for all routes
-app.options('*', cors())
 
 // Helmet after CORS so security headers apply without blocking preflight
 app.use(helmet())
