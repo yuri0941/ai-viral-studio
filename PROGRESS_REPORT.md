@@ -1,10 +1,22 @@
+### 2026-07-31 — AutoPilot + Self-Healing + YouTube AI
+- [x] autoPilot.js: cron каждые 30 мин, публикация scheduled постов, Telegram алерт
+- [x] ScheduledPost.js модель для запланированных постов
+- [x] selfHealing.js: мониторинг /api/health каждые 5 мин, process.exit(1) при 2 ошибках, AI-провайдер fallback
+- [x] youtubeAI.js: анализ канала, генерация Shorts-сценариев, авто-титры (Whisper), лучшее время публикации
+- [x] OMEGACoreTab.jsx: тумблер AutoPilot ON/OFF
+- [x] server.js: запуск/остановка cron-сервисов, SIGTERM/SIGINT cleanup
+- [x] omega.js routes: /autopilot, /self-healing, /youtube/* endpoints
+- [x] Build frontend: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: [выполняется]
+
 ### 2026-07-31 — Owner Dashboard: клиентские разделы
 - [x] AppSidebar.jsx: добавлена группа "КЛИЕНТСКИЙ ВИД" с 📊 Аналитика, 🤖 AI Chat, 🔍 Анализ контента, 📅 Планировщик, 💬 Viral Chat
 - [x] OwnerDashboardPage.jsx: импорты страниц, TAB_ICONS, case renderTab для analytics/aiChat/contentAnalyzer/scheduler/viralChat
 - [x] initialData.js: TAB_LABELS для новых вкладок
 - [x] constants.js: TABS_ORDER обновлён
 - [x] Build frontend: успешно ✅
-- [x] Git push: [выполняется]
+- [x] Git push: выполнен ✅
 
 ### 2026-07-31 — VisualCalendar + Kanban + 50 Templates + BrandVoice
 - [x] VisualCalendar.jsx: миниатюры, цветные плашки, drag&drop, статусы draft/scheduled/published

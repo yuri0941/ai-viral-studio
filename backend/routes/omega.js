@@ -12,6 +12,14 @@ import {
     generateTemplate,
     listTemplateLibrary,
     analyzeBrandVoice,
+    getAutopilotStatus,
+    setAutopilotStatus,
+    createAutopilotPost,
+    getSelfHealingStatus,
+    analyzeYouTube,
+    generateShorts,
+    generateSubtitles,
+    recommendPublishTime,
 } from '../controllers/omegaController.js'
 
 const router = express.Router()
@@ -28,5 +36,13 @@ router.get('/stats', stats)
 router.post('/generate-template', generateTemplate)
 router.get('/templates', listTemplateLibrary)
 router.post('/brand-voice/analyze', analyzeBrandVoice)
+router.get('/autopilot', getAutopilotStatus)
+router.post('/autopilot', setAutopilotStatus)
+router.post('/autopilot/post', createAutopilotPost)
+router.get('/self-healing', getSelfHealingStatus)
+router.get('/youtube/analyze', analyzeYouTube)
+router.post('/youtube/shorts', generateShorts)
+router.post('/youtube/subtitles', generateSubtitles)
+router.get('/youtube/best-time', recommendPublishTime)
 
 export default router

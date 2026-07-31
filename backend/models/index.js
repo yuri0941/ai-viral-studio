@@ -19,6 +19,7 @@ export { default as Subscription } from './Subscription.js'
 export { default as Invoice } from './Invoice.js'
 export { default as OwnerRequisites } from './OwnerRequisites.js'
 export { default as OwnerLegalInfo } from './OwnerLegalInfo.js'
+export { default as ScheduledPost } from './ScheduledPost.js'
 
 export { default as User } from './User.js'
 export { default as Chat } from './Chat.js'

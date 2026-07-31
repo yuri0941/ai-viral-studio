@@ -7,6 +7,9 @@ import { rateMemory, OmegaBrainMemory } from '../services/omegaBrain/memoryStore
 import { getSkillLevels } from '../services/omegaAgents/skillsSystem.js'
 import { generateFromTemplate, listTemplates } from '../services/templatesLibrary.js'
 import { analyzeBrandVoiceWithAI, buildBrandVoicePrompt } from '../services/brandVoice.js'
+import { isAutopilotEnabled, setAutopilotEnabled, startAutopilot, scheduleAutoPost } from '../services/autoPilot.js'
+import { getPreferredProvider } from '../services/selfHealing.js'
+import { analyzeChannel, generateShortsScript, generateAutoSubtitles, recommendBestTime } from '../services/youtubeAI.js'
 import User from '../models/User.js'
 import axios from 'axios'
 
@@ -319,6 +322,78 @@ export async function analyzeBrandVoice(req, res) {
         }
 
         res.json({ status: 'success', data: analysis })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function getAutopilotStatus(req, res) {
+    res.json({ status: 'success', data: { enabled: isAutopilotEnabled() } })
+}
+
+export async function setAutopilotStatus(req, res) {
+    try {
+        const { enabled } = req.body
+        const next = setAutopilotEnabled(!!enabled)
+        res.json({ status: 'success', data: { enabled: next } })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function createAutopilotPost(req, res) {
+    try {
+        const userId = req.user?._id || req.user?.id
+        if (!userId) return res.status(401).json({ status: 'error', message: 'Unauthorized' })
+
+        const post = await scheduleAutoPost({ userId, ...req.body })
+        res.json({ status: 'success', data: post })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function getSelfHealingStatus(req, res) {
+    res.json({ status: 'success', data: { preferredProvider: getPreferredProvider() } })
+}
+
+export async function analyzeYouTube(req, res) {
+    try {
+        const { channelId } = req.query
+        const result = await analyzeChannel(channelId)
+        res.json(result)
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function generateShorts(req, res) {
+    try {
+        const { topic, niche, duration } = req.body
+        if (!topic) return res.status(400).json({ status: 'error', message: 'topic is required' })
+        const result = await generateShortsScript(topic, niche, duration)
+        res.json(result)
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function generateSubtitles(req, res) {
+    try {
+        const { videoUrl } = req.body
+        if (!videoUrl) return res.status(400).json({ status: 'error', message: 'videoUrl is required' })
+        const result = await generateAutoSubtitles(videoUrl)
+        res.json(result)
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function recommendPublishTime(req, res) {
+    try {
+        const { channelId } = req.query
+        const result = await recommendBestTime(channelId)
+        res.json(result)
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

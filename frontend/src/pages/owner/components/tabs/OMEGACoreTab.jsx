@@ -3,7 +3,7 @@ import { KPICard } from '../common/KPICard'
 import { StatusBadge } from '../common/StatusBadge'
 import {
     Brain, Activity, Zap, RefreshCw, Trash2, Terminal,
-    AlertTriangle, Server, Bot, Play, FileText, Wifi
+    AlertTriangle, Server, Bot, Play, FileText, Wifi, ToggleLeft, ToggleRight
 } from 'lucide-react'
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -21,6 +21,37 @@ export function OMEGACoreTab({ data }) {
     const { agents, servers, systemLogs, aiAnalytics, showToast, clearOldLogs, setAgents } = data
     const logEndRef = useRef(null)
     const [testLoading, setTestLoading] = useState(null)
+    const [autopilotEnabled, setAutopilotEnabled] = useState(false)
+    const [autopilotLoading, setAutopilotLoading] = useState(false)
+
+    useEffect(() => {
+        fetch('/api/omega/autopilot')
+            .then(r => r.ok ? r.json() : null)
+            .then(json => {
+                if (json?.data?.enabled !== undefined) setAutopilotEnabled(json.data.enabled)
+            })
+            .catch(() => {})
+    }, [])
+
+    const toggleAutopilot = async () => {
+        setAutopilotLoading(true)
+        try {
+            const res = await fetch('/api/omega/autopilot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: !autopilotEnabled }),
+            })
+            const json = await res.json()
+            if (json?.data?.enabled !== undefined) {
+                setAutopilotEnabled(json.data.enabled)
+                showToast(json.data.enabled ? 'AutoPilot включён' : 'AutoPilot выключен')
+            }
+        } catch {
+            showToast('Ошибка переключения AutoPilot', 'error')
+        } finally {
+            setAutopilotLoading(false)
+        }
+    }
 
     const activeAgents = agents.filter(a => a.status === 'active').length
     const pausedAgents = agents.filter(a => a.status === 'paused').length
@@ -97,6 +128,18 @@ export function OMEGACoreTab({ data }) {
                     <StatusBadge status="active" label="ONLINE" pulse />
                 </div>
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={toggleAutopilot}
+                        disabled={autopilotLoading}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-colors ${
+                            autopilotEnabled
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
+                                : 'bg-gray-500/10 border-gray-500/20 text-gray-400 hover:bg-gray-500/20'
+                        }`}
+                    >
+                        {autopilotEnabled ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                        🤖 AutoPilot: {autopilotEnabled ? 'ON' : 'OFF'}
+                    </button>
                     <button
                         onClick={handleRecalcForecast}
                         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-400 hover:bg-purple-500/20 transition-colors"

@@ -41,6 +41,8 @@ import emailRoutes from './routes/email.js'
 import adminRoutes from './routes/admin.js'
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import { startSelfImprovementCron } from './services/omegaBrain/selfImprovement.js'
+import { startAutopilot, stopAutopilot } from './services/autoPilot.js'
+import { startSelfHealing, stopSelfHealing } from './services/selfHealing.js'
 
 const app = express()
 const PORT = parseInt(process.env.PORT) || 5000
@@ -192,4 +194,28 @@ app.listen(PORT, () => {
     })
     console.log(`🤖 AI Providers enabled: Groq=${process.env.GROQ_ENABLED}, OpenRouter=${process.env.OPENROUTER_ENABLED}, DeepSeek=${process.env.DEEPSEEK_ENABLED}`)
     console.log(`📺 YouTube API: ${process.env.YOUTUBE_API_KEY ? '✅ Connected' : '❌ No key'}`)
+
+    // Start background services
+    if (isConnected) {
+        try {
+            startAutopilot()
+            startSelfHealing()
+            console.log('🤖 AutoPilot cron started')
+            console.log('🛡️ Self-Healing cron started')
+        } catch (err) {
+            console.warn('[server] failed to start background services:', err.message)
+        }
+    }
+})
+
+process.on('SIGTERM', () => {
+    stopAutopilot()
+    stopSelfHealing()
+    process.exit(0)
+})
+
+process.on('SIGINT', () => {
+    stopAutopilot()
+    stopSelfHealing()
+    process.exit(0)
 })
