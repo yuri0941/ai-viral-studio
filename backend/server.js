@@ -50,12 +50,14 @@ app.set('trust proxy', 1);
 const allowedOrigin = 'https://ai-viral-studio.pages.dev';
 
 app.use((req, res, next) => {
+  console.log(`[CORS DEBUG] Method=${req.method} Path=${req.path}`);
   res.set('Access-Control-Allow-Origin', allowedOrigin);
   res.set('Access-Control-Allow-Credentials', 'true');
   res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   res.set('Vary', 'Origin');
   if (req.method === 'OPTIONS') {
+    console.log('[CORS DEBUG] OPTIONS detected -> returning 200');
     return res.sendStatus(200);
   }
   next();
