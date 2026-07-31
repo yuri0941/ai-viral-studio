@@ -77,7 +77,10 @@ if (!isConnected) {
     }
 }
 
-app.use(helmet())
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}))
 
 // Body parsing — BEFORE routes
 app.use(express.json({ limit: '10mb' }))
