@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { upsertMemory as upsertVector, searchMemory as searchVector } from '../vectorize/vectorizeService.js'
 
 const OmegaMemorySchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -14,18 +15,27 @@ const OmegaMemorySchema = new mongoose.Schema({
 export const OmegaBrainMemory = mongoose.models.OmegaBrainMemory || mongoose.model('OmegaBrainMemory', OmegaMemorySchema, 'omega_memories')
 
 export async function saveFact(userId, content) {
-    return OmegaBrainMemory.create({ userId, type: 'fact', content })
+    const doc = await OmegaBrainMemory.create({ userId, type: 'fact', content })
+    await upsertVector(String(doc._id), content, { userId: String(userId), type: 'fact' }).catch(() => {})
+    return doc
 }
 
 export async function saveDialog(userId, question, answer, provider) {
-    return OmegaBrainMemory.create({
+    const text = `${question}\n---\n${answer}`
+    const doc = await OmegaBrainMemory.create({
         userId,
         type: 'dialog',
-        content: `${question}\n---\n${answer}`,
+        content: text,
         question,
         answer,
         provider,
     })
+    await upsertVector(String(doc._id), text, { userId: String(userId), type: 'dialog', provider }).catch(() => {})
+    return doc
+}
+
+export async function searchVectorMemory(query, limit = 5) {
+    return searchVector(query, limit)
 }
 
 export async function getMemory(userId, options = {}) {
@@ -54,4 +64,4 @@ export async function findSimilarDialog(userId, question, limit = 5) {
         .lean()
 }
 
-export default { OmegaBrainMemory, saveFact, saveDialog, getMemory, rateMemory, findSimilarDialog }
+export default { OmegaBrainMemory, saveFact, saveDialog, getMemory, rateMemory, findSimilarDialog, searchVectorMemory }

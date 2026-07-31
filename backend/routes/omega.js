@@ -8,6 +8,7 @@ import {
     learnSkill,
     sendCommand,
     rate,
+    stats,
 } from '../controllers/omegaController.js'
 
 const router = express.Router()
@@ -20,5 +21,6 @@ router.get('/skills', getSkills)
 router.post('/skills/learn', learnSkill)
 router.post('/command', sendCommand)
 router.post('/rate', rate)
+router.get('/stats', stats)
 
 export default router

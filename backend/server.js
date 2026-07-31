@@ -29,6 +29,8 @@ import { getPublicLegalInfo } from './controllers/ownerLegalInfoController.js'  
 import yookassaRoutes from './routes/yookassa.js'  // ← P10: ЮKassa
 import stripeRoutes from './routes/stripe.js'  // ← P10: Stripe (выключено по умолчанию)
 import emailRoutes from './routes/email.js'  // ← P10: Email
+import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
+import { startSelfImprovementCron } from './services/omegaBrain/selfImprovement.js'
 
 const app = express()
 const PORT = parseInt(process.env.PORT) || 5000
@@ -42,6 +44,14 @@ if (!isConnected) {
         process.exit(1)
     }
     console.warn('⚠️  Continuing in fallback/demo mode (development only)')
+} else {
+    // Seed OMEGA agents and start self-improvement loop
+    try {
+        await seedAgents()
+        startSelfImprovementCron()
+    } catch (err) {
+        console.warn('[server] OMEGA init failed:', err.message)
+    }
 }
 
 // CORS must be first — before any route or body parser

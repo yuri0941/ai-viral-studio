@@ -66,4 +66,56 @@ export async function sendPaymentSuccessEmail(to, name, plan, amount) {
 
 export async function getEmailStatus() { return { provider: 'resend', status: 'active' }; }
 
-export default { sendVerificationEmail, sendPaymentSuccessEmail, getEmailStatus }
+export async function sendEmail({ to, subject, text, html }) {
+    if (!resend) {
+        console.warn('[emailService] RESEND_API_KEY not configured, skipping email')
+        return { skipped: true }
+    }
+    return resend.emails.send({ from: FROM, to, subject, text, html })
+}
+
+export async function sendPaymentSuccess(to, name, plan, amount) {
+    return sendPaymentSuccessEmail(to, name, plan, amount)
+}
+
+export async function sendTrialEnding(user, subscription = {}) {
+    if (!resend || !user?.email) return { skipped: true }
+    return resend.emails.send({
+        from: FROM,
+        to: user.email,
+        subject: 'Завершается пробный период — AI Viral Studio',
+        html: `<p>Привет, ${user.name || 'пользователь'}!</p><p>Ваш пробный период завершается ${subscription.trialEndsAt ? new Date(subscription.trialEndsAt).toLocaleDateString('ru-RU') : 'скоро'}.</p>`,
+    })
+}
+
+export async function sendSubscriptionCanceled(user, subscription = {}) {
+    if (!resend || !user?.email) return { skipped: true }
+    return resend.emails.send({
+        from: FROM,
+        to: user.email,
+        subject: 'Подписка отменена — AI Viral Studio',
+        html: `<p>Привет, ${user.name || 'пользователь'}!</p><p>Ваша подписка отменена. Действует до ${subscription.endDate ? new Date(subscription.endDate).toLocaleDateString('ru-RU') : '—'}.</p>`,
+    })
+}
+
+export async function sendRefundRequest(user, reason) {
+    if (!resend || !user?.email) return { skipped: true }
+    return resend.emails.send({
+        from: FROM,
+        to: user.email,
+        subject: 'Запрос на возврат — AI Viral Studio',
+        html: `<p>Привет, ${user.name || 'пользователь'}!</p><p>Мы получили ваш запрос на возврат: ${reason || '—'}.</p>`,
+    })
+}
+
+export async function sendNewTicket(user, ticket) {
+    if (!resend || !user?.email) return { skipped: true }
+    return resend.emails.send({
+        from: FROM,
+        to: user.email,
+        subject: 'Новый тикет — AI Viral Studio',
+        html: `<p>Привет, ${user.name || 'пользователь'}!</p><p>Создан тикет: ${ticket?.subject || '—'}.</p>`,
+    })
+}
+
+export default { sendVerificationEmail, sendPaymentSuccessEmail, getEmailStatus, sendEmail, sendPaymentSuccess, sendTrialEnding, sendSubscriptionCanceled, sendRefundRequest, sendNewTicket }

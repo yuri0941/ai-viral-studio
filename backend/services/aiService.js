@@ -369,6 +369,29 @@ async function chatWithCloudflare(messages) {
     return { reply, provider: 'cloudflare', usage: null }
 }
 
+async function chatWithWorkersAI(messages) {
+    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
+    const key = await getKey('cloudflare') || process.env.CLOUDFLARE_API_TOKEN
+    if (!accountId) throw new Error('Cloudflare account ID missing')
+    if (!key) throw new Error('Cloudflare token missing')
+    const model = '@cf/meta/llama-3.1-8b-instruct'
+    console.log('🚀 Calling Cloudflare Workers AI (llama-3.1-8b-instruct)...')
+    const response = await axios.post(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`,
+        { messages },
+        {
+            headers: {
+                'Authorization': `Bearer ${key}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 30000
+        }
+    )
+    const result = response.data?.result
+    const reply = typeof result === 'string' ? result : (result?.response || result?.content || 'No response')
+    return { reply, provider: 'workersai', usage: null }
+}
+
 async function chatWithFireworks(messages) {
     const key = await getKey('fireworks') || process.env.FIREWORKS_API_KEY
     if (!key) throw new Error('Fireworks key missing')
@@ -415,7 +438,8 @@ const PROVIDER_CHAIN = [
     { id: 'gemini', name: 'Gemini', fn: chatWithGemini },
     { id: 'github', name: 'GitHub Models', fn: chatWithGitHubModels },
     { id: 'huggingface', name: 'HuggingFace', fn: chatWithHuggingFace },
-    { id: 'cloudflare', name: 'Cloudflare Workers AI', fn: chatWithCloudflare },
+    { id: 'workersai', name: 'Cloudflare Workers AI', fn: chatWithWorkersAI, noKey: false },
+    { id: 'cloudflare', name: 'Cloudflare Workers AI (legacy)', fn: chatWithCloudflare },
     { id: 'fireworks', name: 'Fireworks AI', fn: chatWithFireworks },
     { id: 'mistral', name: 'Mistral', fn: chatWithMistral },
     { id: 'cohere', name: 'Cohere', fn: chatWithCohere },

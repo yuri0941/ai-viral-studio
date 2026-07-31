@@ -4,6 +4,8 @@ import { chatWithAI } from '../services/aiService.js'
 import { checkOmegaGuard, logOmegaGuardEvent } from '../ai/omega/omegaGuard.js'
 import { selectResponse } from '../services/omegaBrain/responseSelector.js'
 import { rateMemory } from '../services/omegaBrain/memoryStore.js'
+import { OmegaBrainMemory } from '../services/omegaBrain/memoryStore.js'
+import { getSkillLevels } from '../services/omegaAgents/skillsSystem.js'
 import axios from 'axios'
 
 let omegaCore = null
@@ -188,6 +190,36 @@ export async function rate(req, res) {
             return res.status(404).json({ status: 'error', message: 'memory not found' })
         }
         res.json({ status: 'success', data: { memoryId, rating: doc.rating } })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function stats(req, res) {
+    try {
+        const totalDialogs = await OmegaBrainMemory.countDocuments({ type: 'dialog' })
+        const brainResponses = await OmegaBrainMemory.countDocuments({ type: 'dialog', provider: 'brain' })
+        const webFactsCount = await OmegaBrainMemory.countDocuments({ type: 'fact' })
+        const agentLevels = await getSkillLevels()
+
+        const autonomyScore = totalDialogs > 0 ? Math.round((brainResponses / totalDialogs) * 100) : 0
+
+        res.json({
+            status: 'success',
+            data: {
+                autonomyScore,
+                brainCount: brainResponses,
+                totalResponses: totalDialogs,
+                webFactsCount,
+                agentLevels: agentLevels.map(a => ({
+                    name: a.name,
+                    level: a.level,
+                    usageCount: a.usageCount,
+                    unlockedSkills: a.unlockedSkills,
+                    status: a.status,
+                })),
+            },
+        })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

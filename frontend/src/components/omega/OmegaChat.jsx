@@ -2,8 +2,8 @@
 // OmegaChat — чат-интерфейс с OMEGA
 // ============================================
 
-import { useRef, useEffect } from 'react'
-import { Bot, User, Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { useRef, useEffect, useState } from 'react'
+import { Bot, User, Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown, Mic, Globe, Volume2 } from 'lucide-react'
 import { useOmegaChat } from '../../hooks/useOmegaChat.js'
 
 export function OmegaChatContainer(props) {
@@ -13,6 +13,7 @@ export function OmegaChatContainer(props) {
 
 export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendMessage, clearHistory, apiKeys = [], onOpenApiKeys, rateMessage }) {
     const endRef = useRef(null)
+    const [isListening, setIsListening] = useState(false)
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -21,6 +22,34 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
     const handleSubmit = (e) => {
         e.preventDefault()
         sendMessage(input)
+    }
+
+    const startVoiceInput = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+        if (!SpeechRecognition) {
+            alert('Голосовой ввод не поддерживается в этом браузере')
+            return
+        }
+        const recognition = new SpeechRecognition()
+        recognition.lang = 'ru-RU'
+        recognition.interimResults = false
+        recognition.maxAlternatives = 1
+        recognition.onstart = () => setIsListening(true)
+        recognition.onend = () => setIsListening(false)
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript
+            setInput(prev => (prev ? prev + ' ' : '') + transcript)
+        }
+        recognition.onerror = () => setIsListening(false)
+        recognition.start()
+    }
+
+    const speakLastOmegaReply = () => {
+        const lastOmega = [...messages].reverse().find(m => m.role === 'omega' && m.text)
+        if (!lastOmega) return
+        const utterance = new SpeechSynthesisUtterance(lastOmega.text)
+        utterance.lang = 'ru-RU'
+        window.speechSynthesis.speak(utterance)
     }
 
     const hasActiveKey = apiKeys.some(k => k.value && (k.status === 'active' || k.status === 'ok'))
@@ -79,7 +108,8 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                     const isUser = msg.role === 'user'
                     const isBrain = msg.provider === 'brain'
                     const isTemplate = msg.provider === 'template'
-                    const sourceLabel = isBrain ? '🧠 Brain' : isTemplate ? '📋 Шаблон' : msg.provider ? `🤖 ${msg.provider}` : ''
+                    const isWeb = msg.provider === 'web' || (msg.provider && /duckduckgo|web|search/i.test(msg.provider))
+                    const sourceLabel = isBrain ? '🧠 Brain' : isWeb ? '🌐 Web' : isTemplate ? '📋 Шаблон' : msg.provider ? `🤖 ${msg.provider}` : ''
                     return (
                         <div
                             key={msg.id}
@@ -106,6 +136,14 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                                         {msg.cached && (
                                             <span className="text-[10px] text-gray-500">cached</span>
                                         )}
+                                        <button
+                                            onClick={speakLastOmegaReply}
+                                            className="text-gray-500 hover:text-white transition-colors"
+                                            title="Озвучить"
+                                            aria-label="Озвучить"
+                                        >
+                                            <Volume2 size={12} />
+                                        </button>
                                     </div>
                                 )}
                                 {msg.demo && (
@@ -162,6 +200,15 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
             {/* Input */}
             <form onSubmit={handleSubmit} className="p-3 border-t border-white/5">
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/5 focus-within:border-purple-500/30 transition-colors">
+                    <button
+                        type="button"
+                        onClick={startVoiceInput}
+                        className={`p-2 rounded-lg transition-colors ${isListening ? 'bg-red-500/20 text-red-400' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                        title={isListening ? 'Слушаю...' : 'Голосовой ввод'}
+                        aria-label="Голосовой ввод"
+                    >
+                        <Mic size={16} />
+                    </button>
                     <input
                         value={input}
                         onChange={e => setInput(e.target.value)}
