@@ -45,6 +45,23 @@ import { startAutopilot, stopAutopilot } from './services/autoPilot.js'
 import { startSelfHealing, stopSelfHealing } from './services/selfHealing.js'
 
 const app = express()
+
+// CORS — САМЫЙ ПЕРВЫЙ, до всего остального
+app.use(cors({
+  origin: function (origin, callback) {
+    const allowed = ['https://ai-viral-studio.pages.dev', 'http://localhost:5173', 'http://localhost:3000'];
+    if (!origin || allowed.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','X-Requested-With']
+}))
+
+app.options('*', cors())
 const PORT = parseInt(process.env.PORT) || 5000
 
 // Connect to database before starting server
@@ -66,21 +83,6 @@ if (!isConnected) {
     }
 }
 
-// CORS — must be first, before any route or body parser
-app.use(cors({
-  origin: ['https://ai-viral-studio.pages.dev','http://localhost:5173'],
-  credentials: true,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
-}))
-
-// Explicit OPTIONS preflight handler for all routes
-app.options('*', cors({
-  origin: ['https://ai-viral-studio.pages.dev','http://localhost:5173'],
-  credentials: true
-}))
-
-// Helmet after CORS so security headers apply without blocking preflight
 app.use(helmet())
 
 // Body parsing — BEFORE routes
