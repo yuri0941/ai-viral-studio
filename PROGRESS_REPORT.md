@@ -9,7 +9,7 @@
 - [x] OMEGA chat: brandVoice prompt добавляется в контекст
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
-- [x] Git push: [выполняется]
+- [x] Git push: выполнен ✅
 
 ### 2026-07-31 — HOTFIX: /api/health endpoint + sidebar hover/toggle
 - [x] /api/health endpoint для UptimeRobot (backend/server.js)
