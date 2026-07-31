@@ -74,6 +74,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type','Authorization']
 }))
 
+// Explicit OPTIONS preflight handler for all routes
+app.options('*', cors({
+  origin: ['https://ai-viral-studio.pages.dev','http://localhost:5173'],
+  credentials: true
+}))
+
 // Helmet after CORS so security headers apply without blocking preflight
 app.use(helmet())
 
