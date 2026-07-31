@@ -1,8 +1,6 @@
 import './config/env.js'
 
-// ============ ИМПОРТЫ ============
 import express from 'express'
-import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
@@ -19,7 +17,6 @@ import {
     generalLimiter
 } from './middleware/rateLimiter.js'
 
-// Routes
 import authRoutes from './routes/auth.js'
 import aiRoutes from './routes/ai.js'
 import analyticsRoutes from './routes/analytics.js'
@@ -47,7 +44,6 @@ import { startSelfHealing, stopSelfHealing } from './services/selfHealing.js'
 const app = express()
 const PORT = parseInt(process.env.PORT) || 5000
 
-// Connect to database before starting server
 await connectDB()
 
 if (!isConnected) {
@@ -65,31 +61,26 @@ if (!isConnected) {
     }
 }
 
-// ========== CORS ==========
-// Убран app.options('*', cors()) — он ломал preflight в Express 5
-const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://ai-viral-studio.pages.dev',
-    process.env.FRONTEND_URL,
-].filter(Boolean)
+// ========== РУЧНОЙ CORS (нативный Node.js) ==========
+const allowedOrigin = 'https://ai-viral-studio.pages.dev'
 
-app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin) return callback(null, true)
-        if (allowedOrigins.includes(origin)) return callback(null, true)
-        if (/^https:\/\/[^/]+\.pages\.dev$/.test(origin)) return callback(null, true)
-        callback(new Error('Not allowed by CORS'))
-    },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 200,
-}))
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    res.setHeader('Vary', 'Origin')
 
-// Helmet
-app.use(helmet())
+    if (req.method === 'OPTIONS') {
+        res.writeHead(200)
+        res.end()
+        return
+    }
+    next()
+})
+
+// Helmet временно отключен — проверим CORS без него
+// app.use(helmet())
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }))
@@ -123,10 +114,8 @@ app.get('/api/health', (req, res) => {
     })
 })
 
-// Public legal info
 app.get('/api/public/legal-info', getPublicLegalInfo)
 
-// AI providers status
 app.get('/api/admin/ai-providers/status', (req, res) => {
     res.json({
         groq: !!process.env.GROQ_API_KEY,
@@ -138,7 +127,6 @@ app.get('/api/admin/ai-providers/status', (req, res) => {
     })
 })
 
-// API Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/analytics', analyticsRoutes)
@@ -158,7 +146,6 @@ app.use('/api/stripe', stripeRoutes)
 app.use('/api/email', emailRoutes)
 app.use('/api/admin', adminRoutes)
 
-// Error handling
 app.use((err, req, res, next) => {
     rollbar.error(err, req)
     alertOwner(`🚨 ОШИБКА 500!\n📍 ${req.method} ${req.path}\n❌ ${err.message}\n⏰ ${new Date().toLocaleString('ru-RU')}`)
@@ -166,7 +153,6 @@ app.use((err, req, res, next) => {
     errorHandler(err, req, res, next)
 })
 
-// 404
 app.use((req, res) => {
     res.status(404).json({ status: 'error', message: 'Route not found' })
 })
