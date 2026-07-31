@@ -1,6 +1,7 @@
 import { Payment } from '../models/index.js'
 import { createPayment } from '../services/yookassaService.js'
 import { sendPaymentSuccessEmail } from '../services/emailService.js'
+import { alertOwner } from '../services/ownerBot.js'
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000'
 
@@ -86,6 +87,9 @@ export const yookassaWebhookHandler = async (req, res) => {
                 } catch (emailErr) {
                     console.error('[paymentController:webhook] payment success email failed:', emailErr.message)
                 }
+
+                alertOwner(`💰 Успешная оплата!\n💳 ${object.amount?.value || paymentDoc?.amount || 0} RUB\n📦 Тариф: ${planId}\n📧 ${user.email}`)
+                    .catch(() => {})
             }
         }
 

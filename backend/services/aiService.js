@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { ApiKey } from '../models/index.js'
+import { emergencyStop } from '../routes/admin.js'
 
 // ============ HELPERS ============
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -487,6 +488,10 @@ const tryProviders = async (messages) => {
 
 // ============ EXPORTS ============
 export const chatWithAI = async (message, history = [], lang = 'ru') => {
+    if (emergencyStop) {
+        return { success: true, reply: '⛔ OMEGA временно остановлена владельцем. Попробуйте позже.', provider: 'system' }
+    }
+
     const cached = getCached(message, lang)
     if (cached) {
         console.log('♻️ Returning cached response')

@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import User from '../models/User.js'
 import { sendVerificationEmail } from '../services/emailService.js'
+import { alertOwner } from '../services/ownerBot.js'
 
 // Generate tokens
 const generateTokens = (userId) => {
@@ -68,6 +69,9 @@ export const register = async (req, res) => {
 
         // Generate tokens
         const { accessToken, refreshToken } = generateTokens(user._id)
+
+        alertOwner(`🎉 Новый пользователь!\n📧 ${user.email}\n👤 ${user.name || '—'}`)
+            .catch(() => {})
 
         res.status(201).json({
             status: 'success',

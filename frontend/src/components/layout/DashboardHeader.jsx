@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Bell, Search, User, Globe, Shield, Briefcase, Headphones, Megaphone, UserCircle, ChevronDown, Sun, Moon } from 'lucide-react'
+import { Menu, Bell, Search, User, Globe, Shield, Briefcase, Headphones, Megaphone, UserCircle, ChevronDown, Sun, Moon, OctagonAlert, Play } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 const ROLE_CONFIG = {
@@ -39,8 +39,8 @@ export function DashboardHeader({
     const { updateUser } = useAuth()
     const navigate = useNavigate()
     const [roleOpen, setRoleOpen] = useState(false)
-
     const [langOpen, setLangOpen] = useState(false)
+    const [emergencyStopped, setEmergencyStopped] = useState(false)
 
     const availableRoles = getAvailableRoles(user?.role)
     const currentRole = ROLE_CONFIG[user?.role] || ROLE_CONFIG.creator
@@ -60,6 +60,25 @@ export function DashboardHeader({
         updateUser({ role })
         navigate(config.route, { replace: true })
         setRoleOpen(false)
+    }
+
+    const handleEmergencyToggle = async () => {
+        if (!confirm(emergencyStopped ? 'Снять Emergency Stop и возобновить OMEGA?' : 'Аварийно остановить OMEGA? Все AI-операции будут приостановлены.')) return
+        const token = localStorage.getItem('token')
+        const endpoint = emergencyStopped ? '/api/admin/emergency-resume' : '/api/admin/emergency-stop'
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            })
+            if (res.ok) {
+                setEmergencyStopped(!emergencyStopped)
+            } else {
+                alert('Ошибка переключения Emergency Stop')
+            }
+        } catch (e) {
+            alert('Ошибка сети')
+        }
     }
 
     return (
@@ -170,6 +189,21 @@ export function DashboardHeader({
                             </span>
                         )}
                     </button>
+
+                    {user?.role === 'owner' && (
+                        <button
+                            onClick={handleEmergencyToggle}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                emergencyStopped
+                                    ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                                    : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                            }`}
+                            title={emergencyStopped ? 'RESUME OMEGA' : 'STOP OMEGA'}
+                        >
+                            {emergencyStopped ? <Play className="w-3.5 h-3.5" /> : <OctagonAlert className="w-3.5 h-3.5" />}
+                            <span className="hidden sm:inline">{emergencyStopped ? '▶️ RESUME' : '🛑 STOP'}</span>
+                        </button>
+                    )}
 
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5">
                         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#00ff41] to-[#00cc33] flex items-center justify-center text-xs font-bold text-black">

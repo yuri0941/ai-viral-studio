@@ -1,3 +1,14 @@
+### 2026-07-31 — Security: Telegram bot + Rollbar + RateLimit + EmergencyStop
+- [x] Telegram-бот: backend/services/ownerBot.js (/start, /status, alertOwner)
+- [x] Алерты владельцу: регистрация (authController.js), оплата (paymentController.js), ошибки 500 (server.js)
+- [x] Rollbar: backend/services/rollbarService.js + frontend/src/main.jsx Rollbar.init
+- [x] Rate Limiting: backend/middleware/rateLimiter.js + замена inline-лимитов в server.js
+- [x] Emergency Stop: backend/routes/admin.js + проверка в aiService.js + кнопка 🛑 STOP в DashboardHeader.jsx
+- [x] PaymentProviders: backend/models/PaymentProvider.js + /api/admin/payment-providers endpoints
+- [x] Build frontend: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: [выполняется]
+
 ### 2026-07-31 — HOTFIX: emailService sendEmail export
 - [x] Проверен emailService.js: sendEmail уже экспортирован (object signature)
 - [x] Проверен emailController.js: импорты соответствуют exports

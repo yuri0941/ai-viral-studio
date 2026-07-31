@@ -6,9 +6,18 @@ import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
-import rateLimit from 'express-rate-limit'
 import { connectDB, isConnected } from './config/database.js'
 import { errorHandler } from './middleware/errorHandler.js'
+import { rollbar } from './services/rollbarService.js'
+import { alertOwner } from './services/ownerBot.js'
+import {
+    registerLimiter,
+    loginLimiter,
+    omegaLimiter,
+    usersLimiter,
+    adminLimiter,
+    generalLimiter
+} from './middleware/rateLimiter.js'
 
 // Routes
 import authRoutes from './routes/auth.js'
@@ -16,19 +25,20 @@ import aiRoutes from './routes/ai.js'
 import analyticsRoutes from './routes/analytics.js'
 import schedulerRoutes from './routes/scheduler.js'
 import userRoutes from './routes/users.js'
-import youtubeRoutes from './routes/youtube.js'  // ← НОВОЕ: YouTube API
-import paymentRoutes from './routes/payments.js'  // ← НОВОЕ: Платежи
-import ownerRoutes from './routes/owner.js'  // ← НОВОЕ: Owner Dashboard API
-import omegaRoutes from './routes/omega.js'  // ← НОВОЕ: OMEGA Core API
-import adRequestRoutes from './routes/adRequests.js'  // ← НОВОЕ: AdRequests / Client chat
-import subscriptionRoutes from './routes/subscriptions.js'  // ← P10: Подписки
-import invoiceRoutes from './routes/invoices.js'  // ← P10: Счета
-import ownerRequisitesRoutes from './routes/ownerRequisites.js'  // ← P10: Реквизиты
-import ownerLegalInfoRoutes from './routes/ownerLegalInfo.js'  // ← Legal Shield: Owner legal info
-import { getPublicLegalInfo } from './controllers/ownerLegalInfoController.js'  // ← Public legal info
-import yookassaRoutes from './routes/yookassa.js'  // ← P10: ЮKassa
-import stripeRoutes from './routes/stripe.js'  // ← P10: Stripe (выключено по умолчанию)
-import emailRoutes from './routes/email.js'  // ← P10: Email
+import youtubeRoutes from './routes/youtube.js'
+import paymentRoutes from './routes/payments.js'
+import ownerRoutes from './routes/owner.js'
+import omegaRoutes from './routes/omega.js'
+import adRequestRoutes from './routes/adRequests.js'
+import subscriptionRoutes from './routes/subscriptions.js'
+import invoiceRoutes from './routes/invoices.js'
+import ownerRequisitesRoutes from './routes/ownerRequisites.js'
+import ownerLegalInfoRoutes from './routes/ownerLegalInfo.js'
+import { getPublicLegalInfo } from './controllers/ownerLegalInfoController.js'
+import yookassaRoutes from './routes/yookassa.js'
+import stripeRoutes from './routes/stripe.js'
+import emailRoutes from './routes/email.js'
+import adminRoutes from './routes/admin.js'
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import { startSelfImprovementCron } from './services/omegaBrain/selfImprovement.js'
 
@@ -89,51 +99,12 @@ app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(compression())
 
-// Rate limiting (relaxed in development)
-const omegaLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: process.env.NODE_ENV === 'production' ? 300 : 10000,
-    message: 'Too many requests from this IP, please try again later.'
-})
+// Rate limiting (middleware/rateLimiter.js)
 app.use('/api/omega', omegaLimiter)
-
-const usersLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: process.env.NODE_ENV === 'production' ? 50 : 1000,
-    message: 'Too many requests from this IP, please try again later.'
-})
 app.use('/api/users', usersLimiter)
-
-const adminLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: process.env.NODE_ENV === 'production' ? 100 : 1000,
-    message: 'Too many requests from this IP, please try again later.'
-})
 app.use('/api/admin', adminLimiter)
-
-const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: process.env.NODE_ENV === 'production' ? 1000 : 10000,
-    message: 'Too many requests from this IP, please try again later.'
-})
 app.use('/api/', generalLimiter)
-
-const registerLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 5,
-    message: 'Слишком много попыток регистрации. Попробуйте позже.',
-    standardHeaders: true,
-    legacyHeaders: false,
-})
 app.use('/api/auth/register', registerLimiter)
-
-const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
-    message: 'Слишком много попыток входа. Попробуйте позже.',
-    standardHeaders: true,
-    legacyHeaders: false,
-})
 app.use('/api/auth/login', loginLimiter)
 
 // Health check
@@ -179,9 +150,15 @@ app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Own
 app.use('/api/yookassa', yookassaRoutes)  // ← P10: ЮKassa
 app.use('/api/stripe', stripeRoutes)  // ← P10: Stripe (выключено по умолчанию)
 app.use('/api/email', emailRoutes)  // ← P10: Email
+app.use('/api/admin', adminRoutes)
 
 // Error handling
-app.use(errorHandler)
+app.use((err, req, res, next) => {
+    rollbar.error(err, req)
+    alertOwner(`🚨 ОШИБКА 500!\n📍 ${req.method} ${req.path}\n❌ ${err.message}\n⏰ ${new Date().toLocaleString('ru-RU')}`)
+        .catch(() => {})
+    errorHandler(err, req, res, next)
+})
 
 // 404 handler
 app.use((req, res) => {
