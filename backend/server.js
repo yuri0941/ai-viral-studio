@@ -45,17 +45,15 @@ import { startSelfHealing, stopSelfHealing } from './services/selfHealing.js'
 
 const app = express()
 
-// Cross-origin headers — must be first
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'https://ai-viral-studio.pages.dev');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (req.method === 'OPTIONS') return res.status(200).end();
   next();
 });
+
 const PORT = parseInt(process.env.PORT) || 5000
 
 // Connect to database before starting server
