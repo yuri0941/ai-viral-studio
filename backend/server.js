@@ -2,6 +2,7 @@ import './config/env.js'
 
 // ============ ИМПОРТЫ ============
 import express from 'express'
+import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
@@ -44,28 +45,6 @@ import { startAutopilot, stopAutopilot } from './services/autoPilot.js'
 import { startSelfHealing, stopSelfHealing } from './services/selfHealing.js'
 
 const app = express()
-
-function corsMiddleware(req, res, next) {
-  console.log(`[CORS] ${req.method} ${req.path} Origin=${req.headers.origin}`);
-  res.setHeader('Access-Control-Allow-Origin', 'https://ai-viral-studio.pages.dev');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Vary', 'Origin');
-  if (req.method === 'OPTIONS') {
-    console.log('[CORS] OPTIONS -> 200');
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-  next();
-}
-
-app.use(corsMiddleware);
-
-app.set('trust proxy', 1);
-
-
 const PORT = parseInt(process.env.PORT) || 5000
 
 // Connect to database before starting server
@@ -87,10 +66,34 @@ if (!isConnected) {
     }
 }
 
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-  crossOriginEmbedderPolicy: false
+// CORS must be first — before any route or body parser
+// CORS: explicit origins + dynamic Cloudflare Pages subdomains
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://ai-viral-studio.pages.dev',
+    process.env.FRONTEND_URL,
+].filter(Boolean)
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (curl, server-to-server, mobile apps)
+        if (!origin) return callback(null, true)
+        if (allowedOrigins.includes(origin)) return callback(null, true)
+        // Allow any *.pages.dev subdomain
+        if (/^https:\/\/[^/]+\.pages\.dev$/.test(origin)) return callback(null, true)
+        callback(new Error('Not allowed by CORS'))
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
 }))
+
+// Preflight for all routes
+app.options('*', cors())
+
+// Helmet after CORS so security headers apply without blocking preflight
+app.use(helmet())
 
 // Body parsing — BEFORE routes
 app.use(express.json({ limit: '10mb' }))
@@ -163,7 +166,7 @@ app.use('/api/admin', adminRoutes)
 app.use((err, req, res, next) => {
     rollbar.error(err, req)
     alertOwner(`🚨 ОШИБКА 500!\n📍 ${req.method} ${req.path}\n❌ ${err.message}\n⏰ ${new Date().toLocaleString('ru-RU')}`)
-        .catch(() => { })
+        .catch(() => {})
     errorHandler(err, req, res, next)
 })
 
