@@ -1,3 +1,14 @@
+### 2026-07-31 — OMEGA Brain + Mobile polish
+- [x] memoryStore.js: omega_memories коллекция (OmegaBrainMemory)
+- [x] contextEngine.js: контекст перед ответом
+- [x] responseSelector.js: приоритет Brain → AI → Шаблон
+- [x] templates.js: 55 шаблонов с переменными {name}, {niche}
+- [x] OmegaChat UI: 👍/👎, источник ответа (🧠 Brain / 🤖 AI / 📋 Шаблон), typing indicator "OMEGA думает"
+- [x] Mobile: touch targets 44px, PWA manifest.json + sw.js + регистрация, index.html link manifest
+- [x] Build frontend: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+
 ### 2026-07-31 — HOTFIX: 3 критических ошибки
 - [x] emailService.js: добавлен getEmailStatus export
 - [x] AnalyticsPage.jsx: исправлен порядок инициализации (Cannot access 'y')
