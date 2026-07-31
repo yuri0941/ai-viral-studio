@@ -45,8 +45,10 @@ import { startSelfHealing, stopSelfHealing } from './services/selfHealing.js'
 
 const app = express()
 
+const allowedOrigin = process.env.CORS_ORIGIN || 'https://ai-viral-studio.pages.dev';
+
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://ai-viral-studio.pages.dev');
+  res.header('Access-Control-Allow-Origin', allowedOrigin);
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
