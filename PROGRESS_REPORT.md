@@ -1,3 +1,8 @@
+### 2026-07-31 — HOTFIX: CORS middleware
+- [x] CORS: добавлен cors middleware
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+
 ### 2026-07-31 — HOTFIX: BarChart import in OwnerDashboardPage + dashboards checked
 - [x] OwnerDashboardPage.jsx: добавлены BarChart, Search, Calendar, TrendingUp в импорт lucide-react (строки 102-106)
 - [x] CreatorDashboardPage.jsx: BarChart переименован в BarChartIcon (исправлен конфликт с recharts)
