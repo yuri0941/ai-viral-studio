@@ -45,10 +45,10 @@ import { startSelfHealing, stopSelfHealing } from './services/selfHealing.js'
 
 const app = express()
 
-const allowedOrigin = process.env.CORS_ORIGIN || 'https://ai-viral-studio.pages.dev';
+app.set('trust proxy', 1);
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', allowedOrigin);
+  res.header('Access-Control-Allow-Origin', 'https://ai-viral-studio.pages.dev');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
@@ -77,10 +77,7 @@ if (!isConnected) {
     }
 }
 
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  crossOriginEmbedderPolicy: false
-}))
+// app.use(helmet())
 
 // Body parsing — BEFORE routes
 app.use(express.json({ limit: '10mb' }))
@@ -89,12 +86,12 @@ app.use(cookieParser())
 app.use(compression())
 
 // Rate limiting (middleware/rateLimiter.js)
-app.use('/api/omega', omegaLimiter)
-app.use('/api/users', usersLimiter)
-app.use('/api/admin', adminLimiter)
-app.use('/api/', generalLimiter)
-app.use('/api/auth/register', registerLimiter)
-app.use('/api/auth/login', loginLimiter)
+// app.use('/api/omega', omegaLimiter)
+// app.use('/api/users', usersLimiter)
+// app.use('/api/admin', adminLimiter)
+// app.use('/api/', generalLimiter)
+// app.use('/api/auth/register', registerLimiter)
+// app.use('/api/auth/login', loginLimiter)
 
 // Health check
 app.get('/health', (req, res) => {
