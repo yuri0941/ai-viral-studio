@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
     LayoutDashboard, Video, Eye, Users, Heart, DollarSign,
-    Plus, Calendar, BarChart3, Bot, TrendingUp, Clock,
+    Plus, Calendar, BarChart as BarChartIcon, Bot, TrendingUp, Clock,
     Play, Instagram, Youtube, Music2, MessageCircle,
     ChevronRight, Sparkles, Award
 } from 'lucide-react'
@@ -231,7 +231,7 @@ function CreatorDashboardPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <QuickAction icon={Plus} label="Создать пост" color="from-emerald-500 to-emerald-700" onClick={() => {}} />
                     <QuickAction icon={Calendar} label="Запланировать" color="from-blue-500 to-blue-700" onClick={() => {}} />
-                    <QuickAction icon={BarChart3} label="Анализ конкурента" color="from-purple-500 to-purple-700" onClick={() => {}} />
+                    <QuickAction icon={BarChartIcon} label="Анализ конкурента" color="from-purple-500 to-purple-700" onClick={() => {}} />
                     <QuickAction icon={Bot} label="AI Chat" color="from-amber-500 to-amber-700" onClick={() => {}} />
                 </div>
             </div>

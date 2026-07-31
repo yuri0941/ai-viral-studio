@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
     Send, Sparkles, TrendingUp, Link2, MessageSquare, User, Bot,
     Copy, ThumbsUp, ThumbsDown, Bookmark, Share2, ExternalLink,
-    Zap, Clock, Hash, Lightbulb, Target, BarChart3, ChevronRight,
+    Zap, Clock, Hash, Lightbulb, Target, BarChart, ChevronRight,
     Loader2, RefreshCw, Image as ImageIcon, Video, Mic, Paperclip,
     X, Check, Star, Flame, ArrowUpRight, MoreHorizontal
 } from 'lucide-react'

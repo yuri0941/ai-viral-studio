@@ -140,7 +140,7 @@ export const INITIAL_COMPANY = {
 }
 export const AI_AGENTS = [
     { id: 'pricing', name: 'Pricing Agent', role: 'Анализ цен', status: 'active', icon: 'TrendingUp', description: 'Анализирует цены конкурентов и рекомендует оптимальные тарифы' },
-    { id: 'revenue', name: 'Revenue Agent', role: 'Прогноз доходов', status: 'active', icon: 'BarChart3', description: 'Прогнозирует MRR, churn и LTV на основе истории' },
+    { id: 'revenue', name: 'Revenue Agent', role: 'Прогноз доходов', status: 'active', icon: 'BarChart', description: 'Прогнозирует MRR, churn и LTV на основе истории' },
     { id: 'security', name: 'Security Agent', role: 'Мониторинг', status: 'active', icon: 'Shield', description: 'Отслеживает подозрительную активность и алерты' },
     { id: 'growth', name: 'Growth Agent', role: 'Рекомендации', status: 'paused', icon: 'Zap', description: 'Анализирует метрики роста и даёт рекомендации' },
     { id: 'support', name: 'Support Agent', role: 'Авто-ответы', status: 'active', icon: 'MessageSquare', description: 'Автоматически отвечает на типовые тикеты' },

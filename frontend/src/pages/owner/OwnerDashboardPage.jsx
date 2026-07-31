@@ -99,7 +99,7 @@ const TAB_ICONS = {
     omegaSkills: BrainCircuit,
     omegaMemory: Database,
     legalSettings: Scale,
-    analytics: BarChart3,
+    analytics: BarChart,
     aiChat: Bot,
     contentAnalyzer: Search,
     scheduler: Calendar,

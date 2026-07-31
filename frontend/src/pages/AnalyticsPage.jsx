@@ -6,7 +6,7 @@ import {
 import {
     TrendingUp, Eye, Heart, MessageCircle, Share2, Download,
     Calendar, ArrowUpRight, ArrowDownRight, Filter, ChevronDown,
-    Play, Clock, Users, Target, Zap, BarChart3, Globe, Award
+    Play, Clock, Users, Target, Zap, BarChart as BarChartIcon, Globe, Award
 } from 'lucide-react'
 import { useSmartData } from '../hooks/useSmartData'
 import { API_BASE_URL } from '../config.js'
@@ -320,7 +320,7 @@ function AnalyticsPage() {
                 {/* Engagement Stats Bar Chart */}
                 <div className="bg-[#1a1a24] rounded-2xl p-6 border border-white/5 mb-6">
                     <h3 className="font-bold mb-6 flex items-center gap-2">
-                        <BarChart3 size={18} className="text-blue-400" />
+                        <BarChartIcon size={18} className="text-blue-400" />
                         Статистика взаимодействий
                     </h3>
                     <ResponsiveContainer width="100%" height={250}>

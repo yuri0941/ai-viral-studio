@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import {
-    Link2, Search, Sparkles, BarChart3, Eye, Heart, MessageCircle, Share2,
+    Link2, Search, Sparkles, BarChart, Eye, Heart, MessageCircle, Share2,
     Play, Clock, Hash, TrendingUp, AlertTriangle, CheckCircle2, XCircle,
     Loader2, Download, Copy, ChevronDown, ChevronUp, Star, Zap, Target,
     Users, ThumbsUp, ThumbsDown, Bookmark, ExternalLink, RefreshCw,
@@ -366,7 +366,7 @@ function ContentAnalyzerPage() {
                             placeholder="Ссылка для сравнения (опционально)"
                             className="w-full px-4 py-3 pl-11 bg-[#252530] rounded-xl border border-white/10 focus:border-[#00ff41] outline-none text-sm transition-all"
                         />
-                        <BarChart3 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                        <BarChart className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     </div>
                 </div>
 
@@ -452,7 +452,7 @@ function ContentAnalyzerPage() {
                     {/* Comparison banner */}
                     {result.compare && (
                         <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/[0.06] rounded-2xl p-5">
-                            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-blue-400" /> Сравнение с конкурентом</h3>
+                            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><BarChart className="w-4 h-4 text-blue-400" /> Сравнение с конкурентом</h3>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="p-3 rounded-xl bg-white/5">
                                     <div className="text-xs text-gray-500 mb-1">AI Оценка</div>

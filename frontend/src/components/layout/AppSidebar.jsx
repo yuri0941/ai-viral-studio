@@ -5,7 +5,7 @@ import {
     DollarSign, CreditCard, Building2, Megaphone, Share2,
     Users, Monitor, CheckSquare, Bot, Newspaper, Gift, MessageSquare,
     KeyRound, Lock, Scale, ShieldCheck, Server, RefreshCw, Plug,
-    BarChart3, FileText, Bell, HelpCircle, Heart, Rocket,
+    BarChart, FileText, Bell, HelpCircle, Heart, Rocket,
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
 } from 'lucide-react'
@@ -13,7 +13,7 @@ import {
 const ROLE_MENU = {
     owner: [
         { path: '/owner', label: 'Owner Panel', icon: Crown },
-        { path: '/analytics', label: 'Аналитика', icon: BarChart3 },
+        { path: '/analytics', label: 'Аналитика', icon: BarChart },
         { path: '/ai-chat', label: 'AI Chat', icon: Bot },
         { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/viral-chat', label: 'Viral Chat', icon: TrendingUp },
@@ -23,7 +23,7 @@ const ROLE_MENU = {
     ],
     admin: [
         { path: '/admin', label: 'Admin Panel', icon: Shield },
-        { path: '/analytics', label: 'Аналитика', icon: BarChart3 },
+        { path: '/analytics', label: 'Аналитика', icon: BarChart },
         { path: '/ai-chat', label: 'AI Chat', icon: Bot },
         { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/viral-chat', label: 'Viral Chat', icon: TrendingUp },
@@ -39,7 +39,7 @@ const ROLE_MENU = {
     ],
     advertiser: [
         { path: '/advertiser', label: 'Advertiser Panel', icon: Megaphone },
-        { path: '/analytics', label: 'Аналитика', icon: BarChart3 },
+        { path: '/analytics', label: 'Аналитика', icon: BarChart },
         { path: '/ai-chat', label: 'AI Chat', icon: Bot },
         { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/viral-chat', label: 'Viral Chat', icon: TrendingUp },
@@ -47,7 +47,7 @@ const ROLE_MENU = {
     ],
     creator: [
         { path: '/dashboard', label: 'Dashboard', icon: Home },
-        { path: '/analytics', label: 'Аналитика', icon: BarChart3 },
+        { path: '/analytics', label: 'Аналитика', icon: BarChart },
         { path: '/ai-chat', label: 'AI Chat', icon: Bot },
         { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/viral-chat', label: 'Viral Chat', icon: TrendingUp },
@@ -56,7 +56,7 @@ const ROLE_MENU = {
     ],
     business: [
         { path: '/dashboard', label: 'Dashboard', icon: Home },
-        { path: '/analytics', label: 'Аналитика', icon: BarChart3 },
+        { path: '/analytics', label: 'Аналитика', icon: BarChart },
         { path: '/ai-chat', label: 'AI Chat', icon: Bot },
         { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/viral-chat', label: 'Viral Chat', icon: TrendingUp },
@@ -115,7 +115,7 @@ const OWNER_GROUPS = [
         id: 'client',
         title: 'КЛИЕНТСКИЙ ВИД',
         items: [
-            { id: 'analytics', label: '📊 Аналитика', icon: BarChart3 },
+            { id: 'analytics', label: '📊 Аналитика', icon: BarChart },
             { id: 'aiChat', label: '🤖 AI Chat', icon: Bot },
             { id: 'contentAnalyzer', label: '🔍 Анализ контента', icon: Search },
             { id: 'scheduler', label: '📅 Планировщик', icon: Calendar },
@@ -134,7 +134,7 @@ const OWNER_GROUPS = [
             { id: 'servers', label: 'Серверы', icon: Server },
             { id: 'updates', label: 'Обновления', icon: RefreshCw },
             { id: 'integrations', label: 'Интеграции', icon: Plug },
-            { id: 'aiAnalytics', label: 'AI Аналитика', icon: BarChart3 },
+            { id: 'aiAnalytics', label: 'AI Аналитика', icon: BarChart },
             { id: 'logs', label: 'Логи системы', icon: FileText },
             { id: 'notifications', label: 'Уведомления', icon: Bell },
             { id: 'help', label: 'Помощь', icon: HelpCircle },

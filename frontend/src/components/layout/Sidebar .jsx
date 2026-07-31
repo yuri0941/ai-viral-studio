@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
-    Crown, Shield, BarChart3, Bot, Calendar, Settings,
+    Crown, Shield, BarChart, Bot, Calendar, Settings,
     LogOut, ChevronLeft, ChevronRight, Sparkles, Menu, X,
     Users, CreditCard, Briefcase, Eye, Bell, Search, MessageSquare,
     Check, X as XIcon
@@ -64,7 +64,7 @@ function Sidebar() {
     const menuItems = [
         { path: '/owner', label: 'Owner Panel', icon: Crown, role: 'owner', color: 'text-yellow-400' },
         { path: '/admin', label: 'Admin Panel', icon: Shield, role: 'admin', color: 'text-blue-400' },
-        { path: '/analytics', label: 'Аналитика', icon: BarChart3, role: 'all', color: 'text-emerald-400' },
+        { path: '/analytics', label: 'Аналитика', icon: BarChart, role: 'all', color: 'text-emerald-400' },
         { path: '/ai-chat', label: 'AI Chat', icon: Bot, role: 'all', color: 'text-purple-400' },
         { path: '/scheduler', label: 'Планировщик', icon: Calendar, role: 'all', color: 'text-pink-400' },
         { path: '/advertiser-requests', label: 'Реклама', icon: MessageSquare, role: 'owner', color: 'text-orange-400' },

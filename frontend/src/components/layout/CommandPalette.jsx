@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
-    Search, Home, BarChart3, Bot, Calendar, Settings, User, LogOut,
+    Search, Home, BarChart, Bot, Calendar, Settings, User, LogOut,
     Crown, Shield, Briefcase, Megaphone, DollarSign, CreditCard,
     CheckSquare, Brain, KeyRound, Bell, HelpCircle, Zap, MessageSquare,
     FileText, Server, RefreshCw, Plug, Newspaper, Gift, Share2, Lock,
@@ -14,7 +14,7 @@ const ALL_ACTIONS = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, route: '/dashboard', section: 'pages' },
     { id: 'owner', label: 'Owner Dashboard', icon: Crown, route: '/owner?tab=overview', section: 'pages' },
     { id: 'admin', label: 'Admin Panel', icon: Shield, route: '/admin', section: 'pages' },
-    { id: 'analytics', label: 'Аналитика', icon: BarChart3, route: '/analytics', section: 'pages' },
+    { id: 'analytics', label: 'Аналитика', icon: BarChart, route: '/analytics', section: 'pages' },
     { id: 'ai-chat', label: 'AI Chat', icon: Bot, route: '/ai-chat', section: 'pages' },
     { id: 'analyzer', label: 'Анализ контента', icon: Search, route: '/analyzer', section: 'pages' },
     { id: 'viral-chat', label: 'Viral Chat', icon: MessageSquare, route: '/viral-chat', section: 'pages' },

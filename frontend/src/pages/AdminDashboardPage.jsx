@@ -4,7 +4,7 @@ import {
     Shield, Users, Activity, Star, AlertTriangle, FileText,
     Settings, DollarSign, Search, Plus, Pencil, Lock, Unlock,
     Trash2, Check, X, AlertCircle, Eye, EyeOff, Save,
-    LogOut, BarChart3, Terminal, Wrench, TrendingUp, Filter,
+    LogOut, BarChart, Terminal, Wrench, TrendingUp, Filter,
     CheckSquare, Square
 } from 'lucide-react'
 
@@ -703,7 +703,7 @@ function AdminDashboardPage() {
                             </div>
                             <div className="space-y-6">
                                 <div className="bg-[#252530] rounded-xl p-4 border border-white/5">
-                                    <h3 className="font-semibold mb-3 flex items-center gap-2"><BarChart3 size={16} className="text-blue-400" /> API Лимиты</h3>
+                                    <h3 className="font-semibold mb-3 flex items-center gap-2"><BarChart size={16} className="text-blue-400" /> API Лимиты</h3>
                                     <div className="space-y-3">
                                         <div>
                                             <div className="flex justify-between text-sm mb-1"><span className="text-gray-400">Запросов в минуту</span><span>850 / 1000</span></div>

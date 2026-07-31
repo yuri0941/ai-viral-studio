@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { Brain, Zap, Shield, TrendingUp, BarChart3, MessageSquare, Eye, Code, Bot, Loader2 } from 'lucide-react'
+import { Brain, Zap, Shield, TrendingUp, BarChart, MessageSquare, Eye, Code, Bot, Loader2 } from 'lucide-react'
 
 const ICONS = {
-    TrendingUp, BarChart3, Shield, Zap, MessageSquare, Eye, Code, Bot,
+    TrendingUp, BarChart, Shield, Zap, MessageSquare, Eye, Code, Bot,
 }
 
 const INITIAL_SKILLS = [
     { id: 'pricing', name: 'Pricing Agent', category: 'finance', icon: 'TrendingUp', level: 3, maxLevel: 10, xp: 240, xpToNext: 500, description: 'Анализ цен конкурентов' },
-    { id: 'revenue', name: 'Revenue Agent', category: 'finance', icon: 'BarChart3', level: 4, maxLevel: 10, xp: 380, xpToNext: 500, description: 'Прогноз доходов' },
+    { id: 'revenue', name: 'Revenue Agent', category: 'finance', icon: 'BarChart', level: 4, maxLevel: 10, xp: 380, xpToNext: 500, description: 'Прогноз доходов' },
     { id: 'security', name: 'Security Agent', category: 'security', icon: 'Shield', level: 5, maxLevel: 10, xp: 420, xpToNext: 500, description: 'Мониторинг угроз' },
     { id: 'growth', name: 'Growth Agent', category: 'marketing', icon: 'Zap', level: 2, maxLevel: 10, xp: 120, xpToNext: 500, description: 'Рекомендации по росту' },
     { id: 'support', name: 'Support Agent', category: 'support', icon: 'MessageSquare', level: 6, maxLevel: 10, xp: 560, xpToNext: 500, description: 'Авто-ответы' },

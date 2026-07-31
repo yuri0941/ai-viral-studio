@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../../context/AuthContext'
 import {
-    DollarSign, Users, Brain, Calendar, BarChart3, Bell, KeyRound, Zap,
+    DollarSign, Users, Brain, Calendar, BarChart, Bell, KeyRound, Zap,
     ArrowUpRight, TrendingUp, Server, CreditCard, CheckSquare, MessageSquare,
     Settings, Plus, Sparkles, Activity, Lock, Bot,
 } from 'lucide-react'
@@ -113,7 +113,7 @@ export function OverviewTab({ data }) {
                     title="Аналитика"
                     value={`${businessHealth}%`}
                     subtext="Индекс здоровья бизнеса"
-                    icon={BarChart3}
+                    icon={BarChart}
                     color="pink"
                     onClick={() => go('/owner?tab=aiAnalytics')}
                 />

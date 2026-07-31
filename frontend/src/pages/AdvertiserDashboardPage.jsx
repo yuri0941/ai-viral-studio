@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import {
     Plus, TrendingUp, Eye, MousePointer, Percent, DollarSign,
     Calendar, MessageSquare, FileText, Download, Mail, CheckCircle,
-    XCircle, Pause, Play, BarChart3, PieChart, ArrowUpRight,
+    XCircle, Pause, Play, BarChart as BarChartIcon, PieChart, ArrowUpRight,
     ArrowDownRight, Users, Target, Clock, ChevronDown, ChevronUp,
     Send, Paperclip, Image, Video, FileType, Printer, Search, Filter
 } from 'lucide-react'
@@ -276,7 +276,7 @@ AI Viral Studio`
         { id: 'campaigns', label: 'Кампании', icon: Target },
         { id: 'calendar', label: 'Календарь', icon: Calendar },
         { id: 'chat', label: 'Переговоры', icon: MessageSquare },
-        { id: 'reports', label: 'Отчёты', icon: BarChart3 },
+        { id: 'reports', label: 'Отчёты', icon: BarChartIcon },
         { id: 'tariffs', label: 'Тарифы', icon: DollarSign },
     ]
 
@@ -471,7 +471,7 @@ AI Viral Studio`
                                                         className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
                                                         title="Аналитика кампании"
                                                     >
-                                                        <BarChart3 className="w-3.5 h-3.5" />
+                                                        <BarChartIcon className="w-3.5 h-3.5" />
                                                     </button>
                                                     <button
                                                         onClick={() => toggleCampaignStatus(camp.id)}
@@ -694,7 +694,7 @@ AI Viral Studio`
                     <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 sm:p-6">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <BarChart3 className="w-5 h-5 text-[#00ff41]" />
+                                <BarChartIcon className="w-5 h-5 text-[#00ff41]" />
                                 Отчёты по рекламе
                             </h2>
                             <button
