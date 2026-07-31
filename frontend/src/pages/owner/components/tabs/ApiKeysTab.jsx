@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Key, Eye, EyeOff, Copy, Check, RefreshCw, Shield, Server, Wind } from 'lucide-react'
 import { StatusBadge } from '../common/StatusBadge'
-import { API_BASE_URL } from '../../../../config.js'
 
 const STORAGE_KEY = 'owner_api_keys'
 const PLACEHOLDER = '••••••••••••••••'
@@ -65,22 +64,10 @@ export function ApiKeysTab({ data }) {
     const [visible, setVisible] = useState({})
     const [copied, setCopied] = useState(null)
     const [editing, setEditing] = useState({})
-    const [backendStatus, setBackendStatus] = useState({})
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(keys))
     }, [keys])
-
-    useEffect(() => {
-        let cancelled = false
-        fetch(`${API_BASE_URL}/admin/ai-providers/status`)
-            .then(r => r.ok ? r.json() : {})
-            .then(data => {
-                if (!cancelled) setBackendStatus(data || {})
-            })
-            .catch(err => console.error('[ApiKeysTab] status fetch error:', err))
-        return () => { cancelled = true }
-    }, [])
 
     const saveKeys = useCallback((next) => {
         setKeys(next)
@@ -117,10 +104,8 @@ export function ApiKeysTab({ data }) {
 
     function getEffectiveStatus(provider) {
         if (provider.id === 'pollinations') return 'active'
-        if (backendStatus[provider.id] !== undefined) {
-            return backendStatus[provider.id] ? 'active' : 'missing'
-        }
-        return provider.status
+        if (provider.type === 'system') return 'active'
+        return isActive(provider.value) ? 'active' : 'missing'
     }
 
     const allProviders = [...keys, ...SYSTEM_PROVIDERS]

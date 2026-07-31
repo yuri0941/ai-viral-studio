@@ -3,12 +3,14 @@ import crypto from 'crypto'
 import User from '../models/User.js'
 import { protect } from '../middleware/auth.js'
 import { sendVerificationEmail, sendPasswordReset } from '../services/emailService.js'
+import { verifyTurnstile } from '../middleware/turnstile.js'
+import { validateRegister, validateLogin } from '../middleware/validation.js'
 
 const router = express.Router()
 
 const FORBIDDEN_REGISTRATION_ROLES = ['owner', 'admin', 'staff']
 
-router.post('/register', async (req, res) => {
+router.post('/register', validateRegister, verifyTurnstile, async (req, res) => {
   try {
     const { name, email, password, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult } = req.body
 
@@ -79,7 +81,7 @@ router.post('/register', async (req, res) => {
   }
 })
 
-router.post('/login', async (req, res) => {
+router.post('/login', validateLogin, verifyTurnstile, async (req, res) => {
   try {
     const { email, password } = req.body
     console.log('Login attempt:', email)

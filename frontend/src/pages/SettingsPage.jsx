@@ -621,6 +621,8 @@ function SettingsPage() {
 
     const handleEmailChange = async (e) => {
         e.preventDefault();
+        if (emailLoading) return;
+
         setEmailError('');
         setEmailSuccess('');
 
@@ -645,18 +647,24 @@ function SettingsPage() {
                 },
                 body: JSON.stringify({ newEmail, currentPassword })
             });
+
+            if (response.status === 429) {
+                setEmailError('Слишком много попыток. Подождите 1 минуту.');
+                return;
+            }
+
             const data = await response.json();
-            if (data.success) {
+            if (response.ok && data.success) {
                 setEmailSuccess('Email успешно изменён');
-                localStorage.setItem('token', data.token);
-                updateUser({ email: data.user.email });
+                if (data.token) localStorage.setItem('token', data.token);
+                if (data.user?.email) updateUser({ email: data.user.email });
                 setEmailForm({ newEmail: '', currentPassword: '' });
                 setTimeout(() => window.location.reload(), 1200);
             } else {
-                setEmailError(data.message || 'Ошибка смены email');
+                setEmailError(data.message || data.error || 'Ошибка смены email');
             }
         } catch (err) {
-            setEmailError('Ошибка сервера');
+            setEmailError('Ошибка сети. Попробуйте позже.');
         } finally {
             setEmailLoading(false);
         }

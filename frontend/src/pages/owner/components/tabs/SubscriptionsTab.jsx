@@ -53,6 +53,7 @@ function formatPrice(amount, currency) {
 export function SubscriptionsTab({ data }) {
     const { toasts, setToasts } = data
     const { user, updatePreferences } = useAuth()
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
     const [currency, setCurrency] = useState(user?.preferences?.currency || 'RUB')
     const [current, setCurrent] = useState(null)
     const [history, setHistory] = useState([])
@@ -64,7 +65,9 @@ export function SubscriptionsTab({ data }) {
         return `${API_BASE_URL}/subscriptions/plans${currency ? `?currency=${currency}` : ''}`
     }, [currency])
 
-    const { data: plans, isDemo } = useSmartData(plansUrl, DEMO_PLANS)
+    const { data: plans, isDemo } = useSmartData(plansUrl, DEMO_PLANS, token)
+    const safePlans = Array.isArray(plans) ? plans : []
+    const safeHistory = Array.isArray(history) ? history : []
 
     useEffect(() => {
         loadCurrentAndHistory()
@@ -237,11 +240,11 @@ export function SubscriptionsTab({ data }) {
                 <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Доступные тарифы</h3>
                 {isDemo && (
                     <div className="bg-yellow-900/30 text-yellow-400 text-sm rounded-lg px-3 py-2 mb-4">
-                        💎 Тарифы-пример — подключите ЮKassa для реальных цен
+                        📊 Пример тарифов — подключите платёжную систему
                     </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    {plans.map((plan) => {
+                    {safePlans.map((plan) => {
                         const isCurrent = currentPlanId === plan.id
                         const isFree = plan.id === 'free'
                         const displayPrice = isYearly
@@ -334,7 +337,7 @@ export function SubscriptionsTab({ data }) {
             </div>
 
             {/* History */}
-            {history.length > 0 && (
+            {safeHistory.length > 0 && (
                 <div>
                     <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Receipt className="w-5 h-5" />
@@ -352,7 +355,7 @@ export function SubscriptionsTab({ data }) {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--border)]">
-                                {history.map((item, idx) => (
+                                {safeHistory.map((item, idx) => (
                                     <tr key={idx} className="hover:bg-[var(--card-hover)]">
                                         <td className="px-4 py-3 text-[var(--text)] capitalize">{item.plan}</td>
                                         <td className="px-4 py-3"><StatusBadge status={item.status} label={item.status} /></td>

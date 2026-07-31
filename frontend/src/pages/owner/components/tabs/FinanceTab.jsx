@@ -35,8 +35,9 @@ function isPendingStatus(status) {
 
 export function FinanceTab({ data }) {
     const { toasts, setToasts } = data
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
-    const { data: transactions, isDemo } = useSmartData(`${API_BASE_URL}/finance/transactions`, DEMO_TRANSACTIONS)
+    const { data: transactions, isDemo } = useSmartData(`${API_BASE_URL}/finance/transactions`, DEMO_TRANSACTIONS, token)
 
     const normalizedTransactions = useMemo(() => {
         const list = Array.isArray(transactions) ? transactions : []
@@ -154,9 +155,11 @@ export function FinanceTab({ data }) {
         }
     }
 
-    const filteredInvoices = invoices.filter((inv) =>
+    const filteredInvoices = (Array.isArray(invoices) ? invoices : []).filter((inv) =>
         invoiceStatusFilter === 'all' ? true : inv.status === invoiceStatusFilter
     )
+
+    const safeFilteredInvoices = Array.isArray(filteredInvoices) ? filteredInvoices : []
 
     return (
         <div className="space-y-8 p-6">
@@ -166,7 +169,7 @@ export function FinanceTab({ data }) {
 
             {isDemo && (
                 <div className="bg-yellow-900/30 text-yellow-400 text-sm rounded-lg px-3 py-2 mb-4">
-                    📊 Пример данных — появятся после первой оплаты
+                    📊 Пример данных — появятся после первой реальной транзакции
                 </div>
             )}
 
@@ -243,7 +246,7 @@ export function FinanceTab({ data }) {
                     <div className="flex items-center gap-2 text-[var(--text-muted)]">
                         <Loader2 className="w-4 h-4 animate-spin" /> Загрузка счетов…
                     </div>
-                ) : filteredInvoices.length === 0 ? (
+                ) : safeFilteredInvoices.length === 0 ? (
                     <div className="text-sm text-[var(--text-muted)] p-4 border border-dashed border-[var(--border)] rounded-xl">
                         Нет счетов. Создайте первый счёт или оформите подписку.
                     </div>
@@ -261,7 +264,7 @@ export function FinanceTab({ data }) {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--border)]">
-                                {filteredInvoices.map((inv) => (
+                                {safeFilteredInvoices.map((inv) => (
                                     <tr key={inv._id} className="hover:bg-[var(--card-hover)]">
                                         <td className="px-4 py-3 text-[var(--text)] font-mono">{inv.invoiceNumber || inv._id?.slice(-6)}</td>
                                         <td className="px-4 py-3 text-[var(--text)]">{inv.description || '—'}</td>

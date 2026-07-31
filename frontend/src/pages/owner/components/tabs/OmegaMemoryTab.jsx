@@ -26,9 +26,13 @@ export function OmegaMemoryTab() {
 
     useEffect(() => {
         let cancelled = false
-        setApiLoading(true)
-        omegaApi.getMemory('', 1000)
-            .then(payload => {
+        let interval = null
+
+        async function loadMemory() {
+            if (document.hidden) return
+            setApiLoading(true)
+            try {
+                const payload = await omegaApi.getMemory('', 1000)
                 if (cancelled) return
                 const entries = Array.isArray(payload) ? payload : payload?.entries || payload?.data || []
                 setApiEmpty(entries.length === 0)
@@ -54,25 +58,38 @@ export function OmegaMemoryTab() {
                     memory.memory.persist()
                     memory.refresh()
                 }
-            })
-            .catch(err => {
+            } catch (err) {
                 console.error('[OmegaMemoryTab] getMemory error:', err)
-                setApiEmpty(true)
-            })
-            .finally(() => setApiLoading(false))
-        return () => { cancelled = true }
+                if (!cancelled) setApiEmpty(true)
+            } finally {
+                if (!cancelled) setApiLoading(false)
+            }
+        }
+
+        loadMemory()
+        interval = setInterval(() => {
+            if (!document.hidden) loadMemory()
+        }, 5000)
+
+        return () => {
+            cancelled = true
+            clearInterval(interval)
+        }
     }, [memory])
 
     const summary = memory.summary
     const entries = useMemo(() => {
         const list = memory.getLevel(activeLevel)
-        if (!query) return list
+        const safeList = Array.isArray(list) ? list : []
+        if (!query) return safeList
         const lower = query.toLowerCase()
-        return list.filter(e =>
+        return safeList.filter(e =>
             JSON.stringify(e.content).toLowerCase().includes(lower) ||
             e.tags?.some(t => t.toLowerCase().includes(lower))
         )
     }, [memory, activeLevel, query])
+
+    const safeEntries = Array.isArray(entries) ? entries : []
 
     const totalEntries = Object.values(summary).reduce((a, s) => a + s.count, 0)
 
@@ -156,7 +173,7 @@ export function OmegaMemoryTab() {
 
                 {/* Timeline */}
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                    {entries.length === 0 && (
+                    {safeEntries.length === 0 && (
                         <div className="text-center text-gray-500 text-sm py-8 space-y-3">
                             <p>История диалогов появится здесь</p>
                             <button
@@ -172,7 +189,7 @@ export function OmegaMemoryTab() {
                             </button>
                         </div>
                     )}
-                    {entries.slice().reverse().map(entry => (
+                    {safeEntries.slice().reverse().map(entry => (
                         <div key={entry.id} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
                             <ChevronRight size={14} className="text-gray-500 mt-0.5 shrink-0" />
                             <div className="flex-1 min-w-0">

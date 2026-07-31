@@ -80,12 +80,33 @@ app.use(cookieParser())
 app.use(compression())
 
 // Rate limiting (relaxed in development)
-const limiter = rateLimit({
+const omegaLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: process.env.NODE_ENV === 'production' ? 100 : 10000,
+    max: process.env.NODE_ENV === 'production' ? 300 : 10000,
     message: 'Too many requests from this IP, please try again later.'
 })
-app.use('/api/', limiter)
+app.use('/api/omega', omegaLimiter)
+
+const usersLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: process.env.NODE_ENV === 'production' ? 50 : 1000,
+    message: 'Too many requests from this IP, please try again later.'
+})
+app.use('/api/users', usersLimiter)
+
+const adminLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: process.env.NODE_ENV === 'production' ? 100 : 1000,
+    message: 'Too many requests from this IP, please try again later.'
+})
+app.use('/api/admin', adminLimiter)
+
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: process.env.NODE_ENV === 'production' ? 1000 : 10000,
+    message: 'Too many requests from this IP, please try again later.'
+})
+app.use('/api/', generalLimiter)
 
 const registerLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,

@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useOwnerData } from './hooks/useOwnerData'
 import { TAB_LABELS } from './data/initialData'
 
@@ -96,7 +98,16 @@ const TAB_ICONS = {
 
 export default function OwnerDashboardPage() {
     const ownerData = useOwnerData()
+    const [searchParams, setSearchParams] = useSearchParams()
     const { activeTab, setActiveTab, modal, setModal, toasts, setToasts } = ownerData
+
+    // Sync active tab with URL query
+    useEffect(() => {
+        const tabFromUrl = searchParams.get('tab')
+        if (tabFromUrl && tabFromUrl !== activeTab) {
+            setActiveTab(tabFromUrl)
+        }
+    }, [searchParams, activeTab, setActiveTab])
 
     const tabs = Object.keys(TAB_LABELS)
 
@@ -139,32 +150,6 @@ export default function OwnerDashboardPage() {
 
     return (
         <div className="min-h-screen bg-[#0a0a0f]">
-            {/* Tab Navigation */}
-            <div className="sticky top-0 z-20 bg-[#0a0a0f]/95 backdrop-blur-md border-b border-white/5">
-                <div className="px-4 py-3">
-                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
-                        {tabs.map(tab => {
-                            const Icon = TAB_ICONS[tab] || LayoutDashboard
-                            const isActive = activeTab === tab
-                            return (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
-                                        isActive
-                                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
-                                            : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
-                                    }`}
-                                >
-                                    <Icon size={14} />
-                                    {TAB_LABELS[tab]}
-                                </button>
-                            )
-                        })}
-                    </div>
-                </div>
-            </div>
-
             {/* Content */}
             <div className="p-4 lg:p-6 max-w-[1600px] mx-auto">
                 {renderTab()}

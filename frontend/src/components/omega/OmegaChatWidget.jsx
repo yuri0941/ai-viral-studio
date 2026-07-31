@@ -18,6 +18,7 @@ function useLocalApiKeys() {
 
     useEffect(() => {
         const handler = () => {
+            if (document.hidden) return
             try {
                 const saved = localStorage.getItem('owner_api_keys')
                 setKeys(saved ? JSON.parse(saved) : [])
@@ -26,7 +27,7 @@ function useLocalApiKeys() {
             }
         }
         window.addEventListener('storage', handler)
-        const interval = setInterval(handler, 1000)
+        const interval = setInterval(handler, 5000)
         return () => {
             window.removeEventListener('storage', handler)
             clearInterval(interval)

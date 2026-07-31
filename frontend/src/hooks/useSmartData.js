@@ -1,42 +1,45 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
-export function useSmartData(apiUrl, demoData, options = {}) {
+function isEmpty(value) {
+    if (value === null || value === undefined) return true
+    if (Array.isArray(value)) return value.length === 0
+    if (typeof value === 'object') return Object.keys(value).length === 0
+    return false
+}
+
+export function useSmartData(apiUrl, demoData, token) {
     const [realData, setRealData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
 
     useEffect(() => {
         let cancelled = false
         setLoading(true)
-        setError(null)
 
-        fetch(apiUrl)
-            .then(r => {
-                if (!r.ok) throw new Error(`HTTP ${r.status}`)
-                return r.json()
-            })
-            .then(payload => {
+        const headers = {}
+        if (token) headers.Authorization = `Bearer ${token}`
+
+        fetch(apiUrl, { headers })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
                 if (cancelled) return
-                const data = payload.data !== undefined ? payload.data : payload
-                setRealData(data)
+                let extracted = data
+                if (!Array.isArray(data) && data && typeof data === 'object') {
+                    extracted = data.data || data.items || data.plans || data.history || data.entries || data
+                }
+                setRealData(isEmpty(extracted) ? null : extracted)
                 setLoading(false)
             })
-            .catch(err => {
+            .catch(() => {
                 if (cancelled) return
-                setError(err)
                 setRealData(null)
                 setLoading(false)
             })
 
         return () => { cancelled = true }
-    }, [apiUrl])
+    }, [apiUrl, token])
 
-    const hasRealData = Array.isArray(realData)
-        ? realData.length > 0
-        : realData !== null && Object.keys(realData || {}).length > 0
-
-    const displayData = hasRealData ? realData : demoData
-    const isDemo = !hasRealData && !loading && !error
-
-    return { data: displayData, realData, loading, error, isDemo }
+    const hasReal = !isEmpty(realData)
+    return { data: hasReal ? realData : demoData, isDemo: !hasReal && !loading, loading }
 }
+
+export default useSmartData

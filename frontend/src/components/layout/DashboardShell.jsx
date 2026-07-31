@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../hooks/useTheme'
 import { AppSidebar } from './AppSidebar'
 import { DashboardHeader } from './DashboardHeader'
-import { TabNavigation } from './TabNavigation'
 import { MobileNotificationDrawer } from './MobileNotificationDrawer'
 
 function useViewport() {
@@ -40,9 +39,6 @@ export function DashboardShell({
     onDeleteNotification,
     children,
     title,
-    tabs,
-    activeTab,
-    onTabChange,
     unreadCount = 0,
 }) {
     const location = useLocation()
@@ -144,6 +140,7 @@ export function DashboardShell({
                     user={user}
                     onLogout={onLogout}
                     onClose={() => setSidebarOpen(false)}
+                    isMobile={viewport.isMobile}
                 />
             </aside>
 
@@ -170,14 +167,6 @@ export function DashboardShell({
                     onMenuClick={() => setSidebarOpen(true)}
                     onNotificationsClick={() => setMobileNotifOpen(true)}
                 />
-
-                {tabs && (
-                    <TabNavigation
-                        tabs={tabs}
-                        activeTab={activeTab}
-                        onChange={onTabChange}
-                    />
-                )}
 
                 <div className={`${viewport.isMobile ? 'px-3 py-4' : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>
                     {children}

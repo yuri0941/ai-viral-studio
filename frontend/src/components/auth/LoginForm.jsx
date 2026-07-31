@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { Turnstile } from '@marsidev/react-turnstile'
 
 function LoginForm({ onSuccess }) {
     const [email, setEmail] = useState('')
@@ -9,20 +10,25 @@ function LoginForm({ onSuccess }) {
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+    const [turnstileToken, setTurnstileToken] = useState('')
     const { login } = useAuth()
     const navigate = useNavigate()
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         setError('')
+
+        if (!turnstileToken) {
+            setError('Пройдите проверку Turnstile')
+            return
+        }
+
         setLoading(true)
 
         try {
-            const result = await login(email, password)
+            const result = await login(email, password, turnstileToken)
             if (result.success) {
-                // Редирект по роли произойдёт через AuthContext или здесь
                 onSuccess?.()
-                // Небольшая задержка для обновления состояния
                 setTimeout(() => {
                     navigate('/redirect')
                 }, 100)
@@ -79,6 +85,12 @@ function LoginForm({ onSuccess }) {
                     </button>
                 </div>
             </div>
+
+            <Turnstile
+                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAECRR8t_7EdD8onI'}
+                onSuccess={setTurnstileToken}
+                className="mx-auto"
+            />
 
             <button
                 type="submit"

@@ -16,8 +16,9 @@ const DEMO_STATS = { views: 1400000, ctr: 8.4, subscribers: 12500, engagement: 6
 function AnalyticsPage() {
     const [period, setPeriod] = useState('7d')
     const [showExportMenu, setShowExportMenu] = useState(false)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
-    const { data: stats, isDemo } = useSmartData(`${API_BASE_URL}/analytics/overview`, DEMO_STATS)
+    const { data: stats, isDemo } = useSmartData(`${API_BASE_URL}/analytics/overview`, DEMO_STATS, token)
 
     // Данные по периодам
     const dataByPeriod = {

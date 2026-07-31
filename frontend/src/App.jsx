@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext'
 
 // Layout
 import { DashboardShell } from './components/layout/DashboardShell'
+import { CommandPalette } from './components/layout/CommandPalette'
 
 // Hooks
 import { useNotifications } from './hooks/useNotifications'
@@ -130,7 +131,8 @@ function App() {
     }, [])
 
     return (
-        <Routes>
+        <>
+            <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LandingPage showLogin={true} />} />
             <Route path="/register" element={<LandingPage showRegister={true} />} />
@@ -211,7 +213,10 @@ function App() {
                 </div>
             } />
         </Routes>
-    )
+
+        <CommandPalette />
+    </>
+)
 }
 
 export default App

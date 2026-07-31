@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Link } from 'react-router-dom'
 import { Eye, EyeOff, Mail, RefreshCw } from 'lucide-react'
+import { Turnstile } from '@marsidev/react-turnstile'
 import { API_BASE_URL } from '../../config.js'
 
 function RegisterForm({ onSuccess }) {
@@ -22,6 +23,7 @@ function RegisterForm({ onSuccess }) {
     const [registered, setRegistered] = useState(false)
     const [resendSeconds, setResendSeconds] = useState(60)
     const [resendLoading, setResendLoading] = useState(false)
+    const [turnstileToken, setTurnstileToken] = useState('')
     const { register } = useAuth()
 
     useEffect(() => {
@@ -55,10 +57,15 @@ function RegisterForm({ onSuccess }) {
             return
         }
 
+        if (!turnstileToken) {
+            setError('Пройдите проверку Turnstile')
+            return
+        }
+
         setLoading(true)
 
         try {
-            const result = await register(name, email, password, consent)
+            const result = await register(name, email, password, consent, turnstileToken)
             if (result.success) {
                 setRegistered(true)
                 setResendSeconds(60)
@@ -275,6 +282,12 @@ function RegisterForm({ onSuccess }) {
                     </span>
                 </label>
             </div>
+
+            <Turnstile
+                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAECRR8t_7EdD8onI'}
+                onSuccess={setTurnstileToken}
+                className="mx-auto"
+            />
 
             <button
                 type="submit"

@@ -1,3 +1,29 @@
+## ✅ ВЫПОЛНЕННЫЕ ЗАДАЧИ — 2026-07-31
+
+### UX v2: Sidebar + Command Palette + Bento + Mobile + Lang + Omega fix
+- [x] Статус: ВЫПОЛНЕНО
+- [x] Что реализовано:
+  - AppSidebar.jsx: вертикальный sidebar 260px, группы (ОБЗОР, OMEGA, ФИНАНСЫ, КОМАНДА, КОНТЕНТ, НАСТРОЙКИ), сворачивающиеся группы, pin 📌, active индикатор #8B5CF6, состояние в localStorage
+  - DashboardShell.jsx: убраны горизонтальные табы, вставлен AppSidebar слева
+  - CommandPalette.jsx: Cmd+K overlay, поиск, быстрые действия, недавние, все разделы, ↑↓/Enter/Escape
+  - App.jsx: глобальный горячий вызов CommandPalette через Cmd/Ctrl+K
+  - OverviewTab.jsx: BentoGrid 8 виджетов (Доход, Команда, OMEGA, Планировщик, Аналитика, Уведомления, API Keys, Быстрые действия), glassmorphism, hover scale-[1.02], приветствие по времени суток
+  - DashboardHeader.jsx: dropdown RU/EN 🌐 с сохранением в localStorage, мобильная кнопка ☰ уже в хедере
+  - OwnerDashboardPage.jsx: удалён inline-таббар, активная вкладка синхронизируется с URL `?tab=...` для бокового меню
+  - Bento адаптивен: 1 колонка на мобильном, 2 на планшете, 3 на десктопе
+  - Сборка: npm run build ✅
+  - Backend: node --check server.js ✅
+- [x] Изменённые файлы:
+  - frontend/src/components/layout/AppSidebar.jsx
+  - frontend/src/components/layout/DashboardShell.jsx
+  - frontend/src/components/layout/CommandPalette.jsx
+  - frontend/src/components/layout/DashboardHeader.jsx
+  - frontend/src/App.jsx
+  - frontend/src/pages/owner/OwnerDashboardPage.jsx
+  - frontend/src/pages/owner/components/tabs/OverviewTab.jsx
+- [x] Что НЕ получилось / TODO:
+  - Нет
+
 # PROGRESS REPORT — AI Viral Studio (kilo2)
 # Автообновляется Kimi Code после каждого этапа
 
@@ -1151,3 +1177,5 @@
 | ЮKassa тестовый платёж | ✅ Выполнен | paymentController.js, Payment model, /api/payments/create, /api/payments/webhook, PaymentSuccess.jsx |
 | Resend email | ✅ Выполнен | emailService.js, письмо после регистрации и оплаты, повторная отправка |
 | Сборка frontend | ✅ Выполнен | `npm run build` прошёл успешно |
+
+| Hotfix Payment.js named export | ✅ Выполнен | 2026-07-31 | Исправлен export в models/Payment.js под models/index.js; синтаксис backend проверен |

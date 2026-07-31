@@ -43,12 +43,12 @@ export const AuthProvider = ({ children }) => {
         checkAuth()
     }, [])
 
-    const login = async (email, password) => {
+    const login = async (email, password, turnstileToken = '') => {
         try {
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password, turnstileToken })
             })
             const data = await response.json()
             if (data.success) {
@@ -57,13 +57,13 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true)
                 return { success: true }
             }
-            return { success: false, message: data.message }
+            return { success: false, message: data.message || data.error }
         } catch (error) {
             return { success: false, message: 'Ошибка сервера' }
         }
     }
 
-    const register = async (name, email, password, consent = {}) => {
+    const register = async (name, email, password, consent = {}, turnstileToken = '') => {
         try {
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
@@ -74,6 +74,7 @@ export const AuthProvider = ({ children }) => {
                     acceptedPrivacy: !!consent.acceptedPrivacy,
                     acceptedConsent: !!consent.acceptedConsent,
                     isAdult: !!consent.isAdult,
+                    turnstileToken,
                 })
             })
             const data = await response.json()
@@ -83,7 +84,7 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true)
                 return { success: true }
             }
-            return { success: false, message: data.message }
+            return { success: false, message: data.message || data.error }
         } catch (error) {
             return { success: false, message: 'Ошибка сервера' }
         }
