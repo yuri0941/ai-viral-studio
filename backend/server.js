@@ -50,11 +50,14 @@ app.set('trust proxy', 1);
 const allowedOrigin = 'https://ai-viral-studio.pages.dev';
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', allowedOrigin);
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  res.set('Access-Control-Allow-Origin', allowedOrigin);
+  res.set('Access-Control-Allow-Credentials', 'true');
+  res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.set('Vary', 'Origin');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
   next();
 });
 
@@ -79,7 +82,10 @@ if (!isConnected) {
     }
 }
 
-app.use(helmet())
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginEmbedderPolicy: false
+}))
 
 // Body parsing — BEFORE routes
 app.use(express.json({ limit: '10mb' }))
@@ -152,7 +158,7 @@ app.use('/api/admin', adminRoutes)
 app.use((err, req, res, next) => {
     rollbar.error(err, req)
     alertOwner(`🚨 ОШИБКА 500!\n📍 ${req.method} ${req.path}\n❌ ${err.message}\n⏰ ${new Date().toLocaleString('ru-RU')}`)
-        .catch(() => {})
+        .catch(() => { })
     errorHandler(err, req, res, next)
 })
 
