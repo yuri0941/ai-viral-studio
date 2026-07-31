@@ -1,5 +1,7 @@
 ### 2026-07-31 — HOTFIX: CORS middleware
 - [x] CORS: добавлен cors middleware
+- [x] CORS: добавлен обработчик OPTIONS preflight (`app.options('*', cors(...))`)
+- [x] CORS стоит ДО express-rate-limit
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
 
