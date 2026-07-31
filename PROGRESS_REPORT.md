@@ -1,3 +1,9 @@
+### 2026-07-31 — HOTFIX: emailService sendEmail export
+- [x] Проверен emailService.js: sendEmail уже экспортирован (object signature)
+- [x] Проверен emailController.js: импорты соответствуют exports
+- [x] Backend запускается локально: node --check server.js ✅, node server.js + /health ✅
+- [x] Git push: выполнен ✅
+
 ### 2026-07-31 — OMEGA Agents + WebSearch + Vectorize + SelfImprovement + Voice
 - [x] agentsRegistry.js: TrendScout, CompetitorSpy, ContentForge, ViralPredictor
 - [x] agentRunner.js: анализ запроса → выбор агента → результат в prompt
