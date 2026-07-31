@@ -2,7 +2,6 @@ import './config/env.js'
 
 // ============ ИМПОРТЫ ============
 import express from 'express'
-import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
@@ -46,12 +45,23 @@ import { startSelfHealing, stopSelfHealing } from './services/selfHealing.js'
 
 const app = express()
 
-app.use(cors({
-  origin: 'https://ai-viral-studio.pages.dev',
-  credentials: true,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
-}));
+function corsMiddleware(req, res, next) {
+  console.log(`[CORS] ${req.method} ${req.path} Origin=${req.headers.origin}`);
+  res.setHeader('Access-Control-Allow-Origin', 'https://ai-viral-studio.pages.dev');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Vary', 'Origin');
+  if (req.method === 'OPTIONS') {
+    console.log('[CORS] OPTIONS -> 200');
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+  next();
+}
+
+app.use(corsMiddleware);
 
 app.set('trust proxy', 1);
 
