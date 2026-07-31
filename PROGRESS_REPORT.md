@@ -1,3 +1,11 @@
+### 2026-07-31 — HOTFIX: 3 критических ошибки
+- [x] emailService.js: добавлен getEmailStatus export
+- [x] AnalyticsPage.jsx: исправлен порядок инициализации (Cannot access 'y')
+- [x] SubscriptionsTab.jsx: добавлена Array.isArray защита (.map crash)
+- [x] Build frontend: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+
 ## ✅ ВЫПОЛНЕННЫЕ ЗАДАЧИ — 2026-07-31
 
 ### UX v2: Sidebar + Command Palette + Bento + Mobile + Lang + Omega fix
