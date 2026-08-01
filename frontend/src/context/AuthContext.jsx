@@ -19,6 +19,10 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
 
+    const detectTimezone = () => {
+        try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return 'UTC' }
+    }
+
     useEffect(() => {
         const checkAuth = async () => {
             const token = localStorage.getItem('token')
@@ -31,6 +35,9 @@ export const AuthProvider = ({ children }) => {
                     if (data.success) {
                         setUser(data.user)
                         setIsAuthenticated(true)
+                        if (!data.user?.preferences?.timezone) {
+                            updatePreferences({ timezone: detectTimezone() })
+                        }
                     } else {
                         localStorage.removeItem('token')
                     }
@@ -45,10 +52,11 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password, turnstileToken = '') => {
         try {
+            const timezone = detectTimezone()
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, turnstileToken })
+                body: JSON.stringify({ email, password, turnstileToken, timezone })
             })
             const data = await response.json()
             if (data.success) {
@@ -65,11 +73,13 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (name, email, password, consent = {}, turnstileToken = '') => {
         try {
+            const timezone = detectTimezone()
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name, email, password,
+                    timezone,
                     acceptedTerms: !!consent.acceptedTerms,
                     acceptedPrivacy: !!consent.acceptedPrivacy,
                     acceptedConsent: !!consent.acceptedConsent,

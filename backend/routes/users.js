@@ -1,6 +1,6 @@
 import express from 'express'
 import { protect } from '../middleware/auth.js'
-import { getMe, updateMe, changePassword, changeEmail } from '../controllers/userController.js'
+import { getMe, updateMe, changePassword, changeEmail, deleteMyData, exportMyData } from '../controllers/userController.js'
 
 const router = express.Router()
 
@@ -9,6 +9,8 @@ router.put('/me', protect, updateMe)
 router.patch('/me', protect, updateMe)
 router.post('/change-password', protect, changePassword)
 router.post('/change-email', protect, changeEmail)
+router.delete('/me/data', protect, deleteMyData)
+router.get('/me/export', protect, exportMyData)
 
 router.get('/profile', (req, res) => {
     res.json({ status: 'success', message: 'User profile' })

@@ -17,6 +17,7 @@ export const getMe = async (req, res) => {
         avatar: user.avatar,
         socialAccounts: user.socialAccounts,
         preferences: user.preferences,
+        timezone: user.preferences?.timezone,
         phone: user.phone,
         telegram: user.telegram,
         acceptedTerms: user.acceptedTerms,
@@ -54,6 +55,7 @@ export const updateMe = async (req, res) => {
         updates.preferences.theme = preferences.theme
       }
       if (typeof preferences.notifications === 'boolean') updates.preferences.notifications = preferences.notifications
+      if (preferences.timezone && typeof preferences.timezone === 'string') updates.preferences.timezone = preferences.timezone
     }
 
     const user = await User.findByIdAndUpdate(userId, { $set: updates }, { new: true })
@@ -72,6 +74,7 @@ export const updateMe = async (req, res) => {
         avatar: user.avatar,
         socialAccounts: user.socialAccounts,
         preferences: user.preferences,
+        timezone: user.preferences?.timezone,
         phone: user.phone,
         telegram: user.telegram,
         acceptedTerms: user.acceptedTerms,
@@ -169,5 +172,32 @@ export const changeEmail = async (req, res) => {
       return res.status(409).json({ success: false, message: 'Этот email уже используется' })
     }
     res.status(500).json({ success: false, message: 'Ошибка сервера' })
+  }
+}
+
+export const deleteMyData = async (req, res) => {
+  try {
+    const userId = req.user.id
+    const deletionAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    await User.findByIdAndUpdate(userId, { deletionScheduledAt: deletionAt, isActive: false })
+    res.json({ success: true, message: 'Account scheduled for deletion in 30 days', deletionAt })
+  } catch (err) {
+    console.error('[deleteMyData]', err)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+}
+
+export const exportMyData = async (req, res) => {
+  try {
+    const userId = req.user.id
+    const user = await User.findById(userId).select('-password -verificationToken -resetPasswordToken -resetPasswordExpires').lean()
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' })
+    await User.findByIdAndUpdate(userId, { dataExportRequestedAt: new Date() })
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Content-Disposition', 'attachment; filename="my-data-export.json"')
+    res.json({ success: true, exportedAt: new Date().toISOString(), data: user })
+  } catch (err) {
+    console.error('[exportMyData]', err)
+    res.status(500).json({ success: false, message: 'Server error' })
   }
 }

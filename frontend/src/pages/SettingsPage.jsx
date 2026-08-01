@@ -48,7 +48,8 @@ function SettingsPage() {
         email: user?.email || 'owner@ai-viral.com',
         bio: '',
         niche: '',
-        language: 'ru'
+        language: user?.preferences?.language || 'ru',
+        timezone: user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'
     });
     const [socials, setSocials] = useState({
         youtube: '',
@@ -58,6 +59,12 @@ function SettingsPage() {
         telegram: '',
         vk: ''
     });
+
+    useEffect(() => {
+        if (user?.preferences?.timezone && user.preferences.timezone !== profile.timezone) {
+            setProfile(p => ({ ...p, timezone: user.preferences.timezone }))
+        }
+    }, [user?.preferences?.timezone])
 
     // Проверяем статус платежа из URL (после редиректа от Stripe)
     useEffect(() => {
@@ -133,6 +140,34 @@ function SettingsPage() {
             }
         } catch (err) {
             showToast('Ошибка оплаты: ' + err.message, 'error');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
+    // ============ ОПЛАТА ЧЕРЕЗ PAYPAL ============
+    const handlePayPalPayment = async (plan) => {
+        try {
+            setPaymentLoading(true);
+            const token = localStorage.getItem('token') || '';
+            const response = await fetch(`${API_BASE_URL}/paypal/create-order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    planId: plan.name,
+                    amount: isYearly ? getYearlyPrice(plan.price) : plan.price,
+                    currency: 'USD',
+                    description: `${isYearly ? 'Yearly' : 'Monthly'} ${plan.name} subscription`,
+                })
+            });
+            const data = await response.json();
+            if (data.approvalUrl) {
+                window.location.href = data.approvalUrl;
+            } else {
+                showToast('PayPal error: ' + (data.message || data.error || 'Unknown'), 'error');
+            }
+        } catch (err) {
+            showToast('PayPal error: ' + err.message, 'error');
         } finally {
             setPaymentLoading(false);
         }
@@ -239,7 +274,11 @@ function SettingsPage() {
         { id: 'vk', name: 'VK', icon: Globe, color: '#4C75A3', placeholder: 'vk.com/username' },
     ];
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (updateUser) updateUser({ name: profile.name })
+        if (updatePreferences) {
+            await updatePreferences({ language: profile.language, timezone: profile.timezone })
+        }
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
     };
@@ -327,6 +366,18 @@ function SettingsPage() {
                             <option value="ru">Русский</option>
                             <option value="en">English</option>
                             <option value="es">Español</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-sm text-gray-400 mb-1 block">Часовой пояс</label>
+                        <select
+                            value={profile.timezone}
+                            onChange={e => setProfile({ ...profile, timezone: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none transition-colors"
+                        >
+                            {['UTC', 'Europe/Moscow', 'Europe/London', 'America/New_York', 'America/Los_Angeles', 'Asia/Dubai', 'Asia/Shanghai', 'Asia/Tokyo'].map(tz => (
+                                <option key={tz} value={tz}>{tz}</option>
+                            ))}
                         </select>
                     </div>
                 </div>
@@ -453,6 +504,14 @@ function SettingsPage() {
                                     >
                                         <Bitcoin size={16} className="text-orange-400" />
                                         {paymentLoading ? 'Загрузка...' : 'Крипта (USDT/BTC/ETH)'}
+                                    </button>
+                                    <button
+                                        onClick={() => handlePayPalPayment(plan)}
+                                        disabled={paymentLoading}
+                                        className="w-full py-2 rounded-lg font-medium transition-all bg-[#003087] hover:bg-[#002a6e] text-white flex items-center justify-center gap-2"
+                                    >
+                                        <Wallet size={16} />
+                                        {paymentLoading ? 'Загрузка...' : 'PayPal'}
                                     </button>
                                 </div>
                             ) : (

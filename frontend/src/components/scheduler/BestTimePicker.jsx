@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Clock, Loader2, Bot, ChevronDown, Globe } from 'lucide-react'
 import { omegaApi } from '../../services/api'
+import { useAuth } from '../../context/AuthContext'
 
 const PLATFORMS = [
     { id: 'instagram', name: 'Instagram' },
@@ -14,8 +15,10 @@ const PLATFORMS = [
 const TIMEZONES = ['UTC', 'Europe/Moscow', 'Europe/London', 'America/New_York', 'Asia/Dubai', 'Asia/Shanghai']
 
 export function BestTimePicker({ onSelect, defaultPlatform = 'instagram' }) {
+    const { user } = useAuth()
+    const defaultTimezone = user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
     const [platform, setPlatform] = useState(defaultPlatform)
-    const [timezone, setTimezone] = useState('Europe/Moscow')
+    const [timezone, setTimezone] = useState(defaultTimezone)
     const [niche, setNiche] = useState('')
     const [loading, setLoading] = useState(false)
     const [result, setResult] = useState(null)

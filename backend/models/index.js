@@ -26,6 +26,8 @@ export { WhiteLabel } from './WhiteLabel.js'
 export { ProjectWorkspace } from './ProjectWorkspace.js'
 export { DeveloperApiKey, generateApiKey } from './DeveloperApiKey.js'
 
+export { Waitlist } from './Waitlist.js'
+
 export { default as User } from './User.js'
 export { default as Chat } from './Chat.js'
 export { AIProviderSetting } from './AIProviderSetting.js'

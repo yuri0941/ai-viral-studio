@@ -38,6 +38,8 @@ import pushRoutes from './routes/push.js'  // Push notifications
 import whiteLabelRoutes from './routes/whiteLabel.js'  // ← White-Label Agency
 import projectWorkspaceRoutes from './routes/projectWorkspace.js'  // ← Multi-Project Workspaces
 import omegaAPIRoutes from './routes/api/v1/omegaAPI.js'  // ← B2B2B OMEGA API
+import paypalRoutes from './routes/paypal.js'  // ← PayPal
+import launchRoutes from './routes/launch.js'  // ← Product Hunt waitlist
 
 const app = express()
 app.set('trust proxy', 1)
@@ -182,6 +184,8 @@ app.use('/api/push', pushRoutes)  // Push notifications
 app.use('/api/white-label', whiteLabelRoutes)
 app.use('/api/workspaces', projectWorkspaceRoutes)
 app.use('/api/v1/omega', omegaAPIRoutes)
+app.use('/api/paypal', paypalRoutes)
+app.use('/api/launch', launchRoutes)
 
 // Error handling
 app.use(errorHandler)

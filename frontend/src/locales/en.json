@@ -124,5 +124,45 @@
     "processing": "Processing...",
     "error": "Error creating payment",
     "success": "Payment initiated. Subscription will be activated after confirmation."
+  },
+  "paypal": {
+    "title": "Pay with PayPal",
+    "pay": "Pay with PayPal",
+    "processing": "Processing...",
+    "error": "PayPal error",
+    "success": "PayPal order created."
+  },
+  "cookieConsent": {
+    "message": "We use cookies to improve your experience.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "settings": "Settings"
+  },
+  "gdpr": {
+    "title": "Privacy & Data",
+    "subtitle": "Manage your personal data",
+    "exportTitle": "Export Data",
+    "exportDescription": "Download all data we store about you in JSON format.",
+    "exportButton": "Download my data",
+    "deleteTitle": "Right to be forgotten",
+    "deleteDescription": "Request account deletion. Data will be fully removed in 30 days.",
+    "deleteButton": "Delete all my data",
+    "deleteConfirm": "Are you sure? Your account will be deleted in 30 days. This action is irreversible.",
+    "deleted": "Account scheduled for deletion in 30 days.",
+    "timezone": "Timezone"
+  },
+  "launch": {
+    "title": "Launching soon on Product Hunt",
+    "subtitle": "Subscribe to be the first to know",
+    "emailPlaceholder": "Your email",
+    "notifyButton": "Notify me at launch",
+    "waitlist": "already on waitlist",
+    "shareTwitter": "Share on Twitter",
+    "shareLinkedIn": "Share on LinkedIn",
+    "countdown": "Launching in"
+  },
+  "timezone": {
+    "label": "Timezone",
+    "detect": "Detect automatically"
   }
 }

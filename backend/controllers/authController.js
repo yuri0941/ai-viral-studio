@@ -27,7 +27,7 @@ const generateTokens = (userId) => {
 // @access  Public
 export const register = async (req, res) => {
     try {
-        const { email, password, name, role, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult } = req.body
+        const { email, password, name, role, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult, timezone } = req.body
 
         if (!acceptedTerms || !acceptedPrivacy || !acceptedConsent || !isAdult) {
             return res.status(400).json({
@@ -58,12 +58,13 @@ export const register = async (req, res) => {
             acceptedAt: new Date(),
             isVerified: false,
             verificationToken: crypto.randomBytes(32).toString('hex'),
-            verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+            verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            preferences: { timezone: timezone || 'Europe/Moscow' }
         })
 
         // Send verification email
         try {
-            await sendVerificationEmail(user, user.verificationToken)
+            await sendVerificationEmail(user.email, user.name, user.verificationToken, user.preferences?.language || 'ru')
         } catch (emailErr) {
             console.error('[authController:register] verification email failed:', emailErr.message)
         }
@@ -118,7 +119,7 @@ export const register = async (req, res) => {
 // @access  Public
 export const login = async (req, res) => {
     try {
-        const { email, password } = req.body
+        const { email, password, timezone } = req.body
 
         // Check if user exists
         const user = await User.findOne({ email }).select('+password')
@@ -146,8 +147,11 @@ export const login = async (req, res) => {
             })
         }
 
-        // Update last login
+        // Update last login and timezone if provided
         user.lastLogin = new Date()
+        if (timezone && typeof timezone === 'string' && (!user.preferences?.timezone || user.preferences.timezone !== timezone)) {
+            user.preferences = { ...user.preferences, timezone }
+        }
         await user.save()
 
         // Generate tokens

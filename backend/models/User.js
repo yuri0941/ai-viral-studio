@@ -51,6 +51,7 @@ const userSchema = new mongoose.Schema(
             currency: { type: String, enum: ['RUB', 'USD', 'EUR'], default: 'RUB' },
             theme: { type: String, enum: ['dark', 'light', 'system'], default: 'dark' },
             notifications: { type: Boolean, default: true },
+            timezone: { type: String, default: 'Europe/Moscow' },
         },
         acceptedTerms: { type: Boolean, default: false },
         acceptedPrivacy: { type: Boolean, default: false },
@@ -62,6 +63,8 @@ const userSchema = new mongoose.Schema(
         verificationTokenExpires: Date,
         resetPasswordToken: String,
         resetPasswordExpires: Date,
+        deletionScheduledAt: Date,
+        dataExportRequestedAt: Date,
         socialAccounts: {
             tiktok: { username: String, connected: { type: Boolean, default: false } },
             youtube: { channelId: String, connected: { type: Boolean, default: false } },

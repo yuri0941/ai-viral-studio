@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Flame, RefreshCw, Loader2, Calendar, ThumbsUp, ThumbsDown, Sparkles, TrendingUp } from 'lucide-react'
 import { omegaApi } from '../../../../services/api'
+import { useAuth } from '../../../../context/AuthContext'
 
 export function ScoutTab() {
+    const { user } = useAuth()
+    const timezone = user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
     const [niche, setNiche] = useState('')
     const [loading, setLoading] = useState(false)
     const [trends, setTrends] = useState([])
@@ -78,7 +81,7 @@ export function ScoutTab() {
                                 </div>
                                 <div className="text-xs text-gray-500 uppercase tracking-wider">{trend.platform}</div>
                             </div>
-                            <div className="text-[10px] text-gray-600">{new Date(trend.date).toLocaleDateString()}</div>
+                            <div className="text-[10px] text-gray-600">{new Date(trend.date).toLocaleDateString(undefined, { timeZone: timezone, dateStyle: 'medium' })}</div>
                         </div>
 
                         <h3 className="text-base font-semibold text-white">{trend.topic}</h3>

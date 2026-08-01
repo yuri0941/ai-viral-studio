@@ -28,6 +28,9 @@ import OwnerAppPage from './pages/owner-app/index'
 import PaymentSuccess from './pages/PaymentSuccess'
 import StripeCheckoutPage from './pages/StripeCheckoutPage'
 import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/legal/LegalPage'
+import { CookieConsent } from './components/CookieConsent'
+import GDPRPage from './pages/GDPRPage'
+import LaunchPage from './pages/LaunchPage'
 
 const PAGE_TITLES = {
     '/owner': 'Owner Dashboard',
@@ -239,6 +242,17 @@ function App() {
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms-of-service" element={<TermsOfServicePage />} />
                 <Route path="/consent" element={<ConsentPage />} />
+                <Route path="/gdpr" element={
+                    <ProtectedRoute>
+                        <GDPRPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/data-export" element={
+                    <ProtectedRoute>
+                        <Navigate to="/gdpr" replace />
+                    </ProtectedRoute>
+                } />
+                <Route path="/launch" element={<LaunchPage />} />
 
                 <Route path="*" element={
                     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white">
@@ -251,6 +265,7 @@ function App() {
             </Routes>
             </Suspense>
 
+            <CookieConsent />
         <CommandPalette />
     </>
 )

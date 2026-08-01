@@ -1745,3 +1745,51 @@
 - [x] Git push: выполнен
 - [ ] Render Clear build cache: сделано/нет (требуется вручную в Dashboard)
 - [ ] Backend live (нет `ERR_MODULE_NOT_FOUND`): проверить после деплоя на Render
+
+---
+
+## ✅ ПРОМПТ №9 — EN + Stripe/PayPal + GDPR + Timezone + ProductHunt — 2026-08-01
+
+### Полная EN-локализация
+- [x] `en.json` содержит все ключи `ru.json`: да (проверены, добавлены новые ключи)
+- [x] Backend email-шаблоны bilingual: да (`emailService.js` с `lang` параметром и переводами RU/EN)
+- [x] OMEGA отвечает на языке пользователя: да (через `preferences.language`)
+
+### Stripe + PayPal
+- [x] `backend/services/stripeService.js` существует и проверяет `STRIPE_ENABLED` + `STRIPE_SECRET_KEY`: да
+- [x] `backend/services/paypalService.js` создан: `createPayPalOrder`, `capturePayPalOrder`, `getPayPalStatus`
+- [x] `backend/routes/paypal.js` endpoint'ы: `GET /status`, `POST /create-order`, `POST /capture`
+- [x] PayPal интегрирован в SettingsPage: да (кнопка рядом со Stripe/криптой)
+- [x] Fallback Stripe → PayPal → ЮKassa: на frontend доступны все три способа
+
+### GDPR + Compliance
+- [x] `frontend/src/components/CookieConsent.jsx` создан: Accept / Decline / Settings
+- [x] `CookieConsent` подключён в `App.jsx`: да
+- [x] Страница `/gdpr` создана (`frontend/src/pages/GDPRPage.jsx`): да
+- [x] Страница `/data-export` (редирект на `/gdpr`): да
+- [x] Backend `DELETE /api/users/me/data` (право на забвение): да (`userController.deleteMyData`)
+- [x] Backend `GET /api/users/me/export` (data portability): да (`userController.exportMyData`)
+- [x] Авто-удаление через 30 дней: `deletionScheduledAt` сохраняется в User
+
+### Timezone
+- [x] Поле `timezone` добавлено в `User.preferences`: да
+- [x] Определение из браузера: `Intl.DateTimeFormat().resolvedOptions().timeZone` в AuthContext
+- [x] Отправка timezone при login/register: да
+- [x] Scheduler показывает timezone пользователя: да (метка рядом с временем)
+- [x] BestTimePicker использует timezone пользователя по умолчанию: да
+- [x] OMEGA Scout даты в локальном времени: да (`toLocaleDateString` с `timeZone`)
+- [x] SettingsPage: select timezone + сохранение через `updatePreferences`: да
+
+### Product Hunt Launch Kit
+- [x] Страница `/launch` создана (`frontend/src/pages/LaunchPage.jsx`): да
+- [x] Таймер обратного отсчёта: да
+- [x] Форма waitlist email → `POST /api/launch/waitlist`: да
+- [x] Счётчик предзаказов: `GET /api/launch/waitlist/count`: да
+- [x] Кнопки Share Twitter / LinkedIn: да
+- [x] Backend модель `Waitlist` и роуты: да (`backend/models/Waitlist.js`, `backend/routes/launch.js`)
+
+### Сборка и деплой
+- [x] Frontend build: успешно
+- [x] Backend `node --check` (все изменённые файлы): успешно
+- [x] Git push: выполнить
+- [ ] Render Clear build cache: требуется вручную

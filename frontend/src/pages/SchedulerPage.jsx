@@ -9,6 +9,7 @@ import {
     ToggleLeft, ToggleRight, Bot
 } from 'lucide-react';
 import { omegaApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import VisualCalendar from '../components/scheduler/VisualCalendar';
 import BestTimePicker from '../components/scheduler/BestTimePicker';
 import PostPreview from '../components/scheduler/PostPreview';
@@ -64,6 +65,8 @@ function getWeekStart(date) {
 }
 
 function SchedulerPage() {
+    const { user } = useAuth();
+    const userTimezone = user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     const [currentDate, setCurrentDate] = useState(new Date());
     const [posts, setPosts] = useState([
         { id: 1, title: 'Обзор iPhone 16', platforms: ['youtube'], date: formatDateInput(new Date()), time: '15:00', types: ['video'], status: 'scheduled', description: '', tags: '', autoDelete: false, autoDeleteTime: '24', fileName: null },
@@ -732,7 +735,7 @@ function SchedulerPage() {
                                     </div>
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
-                                            <label className="text-sm text-gray-400">Время</label>
+                                            <label className="text-sm text-gray-400">Время <span className="text-[10px] text-gray-500">({userTimezone})</span></label>
                                             <BestTimePicker
                                                 defaultPlatform={formData.platforms[0] || 'instagram'}
                                                 onSelect={(time) => setFormData(prev => ({ ...prev, time }))}
