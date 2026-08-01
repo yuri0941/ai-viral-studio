@@ -1,3 +1,9 @@
+### 2026-07-31 — HOTFIX: express-rate-limit X-Forwarded-For trust proxy
+- [x] backend/server.js: добавлено `app.set('trust proxy', 1)` сразу после `const app = express()`
+- [x] backend/server.js: в общем rate limiter добавлены `standardHeaders: true` и `legacyHeaders: false`
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+
 ### 2026-07-31 — HOTFIX: Render EADDRINUSE (port 10000 conflict)
 - [x] backend/server.js: PORT берётся из `process.env.PORT` с fallback `10000`
 - [x] backend/server.js: `app.listen` возвращает `server`, добавлены graceful shutdown обработчики `SIGTERM` и `SIGINT`
