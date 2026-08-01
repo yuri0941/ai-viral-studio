@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, User, Mail, Phone, MessageCircle, Camera } from 'lucide-react'
+import { X, User, Mail, Phone, MessageCircle, Camera, Trophy, TrendingUp } from 'lucide-react'
 
 export function UserProfileModal({ user, isOpen, onClose, onSave }) {
     const [form, setForm] = useState({ name: '', email: '', avatar: '', phone: '', telegram: '' })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [leaderboard, setLeaderboard] = useState(null)
     const fileInputRef = useRef(null)
 
     useEffect(() => {
@@ -18,6 +19,19 @@ export function UserProfileModal({ user, isOpen, onClose, onSave }) {
             })
         }
     }, [isOpen, user])
+
+    useEffect(() => {
+        if (!isOpen) return
+        const token = localStorage.getItem('token')
+        fetch('/api/gamification/predictions/leaderboard', {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') setLeaderboard(data.data)
+            })
+            .catch(() => {})
+    }, [isOpen])
 
     if (!isOpen) return null
 
@@ -109,6 +123,33 @@ export function UserProfileModal({ user, isOpen, onClose, onSave }) {
                         />
                         <p className="text-xs text-gray-500">Нажмите на аватар, чтобы загрузить</p>
                     </div>
+
+                    {leaderboard && (
+                        <div className="rounded-xl bg-[#0a0a0f] border border-white/10 p-4 space-y-3">
+                            <div className="flex items-center gap-2 text-sm text-white font-medium">
+                                <Trophy size={16} className="text-yellow-400" />
+                                Точность OMEGA
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-bold text-white">{leaderboard.accuracy}%</span>
+                                <span className="text-xs text-gray-500">({leaderboard.correct}/{leaderboard.total} споров)</span>
+                            </div>
+                            {(leaderboard.creditsEarned > 0 || leaderboard.discountsEarned > 0) && (
+                                <div className="flex flex-wrap gap-2 text-xs">
+                                    {leaderboard.creditsEarned > 0 && (
+                                        <span className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center gap-1">
+                                            <TrendingUp size={12} /> +{leaderboard.creditsEarned} кредитов
+                                        </span>
+                                    )}
+                                    {leaderboard.discountsEarned > 0 && (
+                                        <span className="px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400">
+                                            {leaderboard.discountsEarned} скидок 20%
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="space-y-3">
                         <div>

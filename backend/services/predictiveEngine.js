@@ -74,12 +74,14 @@ ${content}
 
   try {
     const ai = await chatWithAI(prompt, [], 'ru')
+    const aiText = ai.reply || ai.content || ''
 
     let result
     try {
-      result = JSON.parse(ai.content || '{}')
+      const jsonMatch = aiText.match(/\{[\s\S]*\}/)
+      result = JSON.parse(jsonMatch ? jsonMatch[0] : '{}')
     } catch {
-      result = { score: 50, confidence: 30, estimatedViews: 'не удалось распарсить', reasoning: ai.content || '' }
+      result = { score: 50, confidence: 30, estimatedViews: 'не удалось распарсить', reasoning: aiText }
     }
 
     return {

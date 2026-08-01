@@ -2016,3 +2016,38 @@
 - [x] Исправлено: добавлен `export const paypalApi = { status, createOrder, capture }` перед `emailApi`
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (`c847b99a`)
+
+
+## ✅ ПРОМПТ №13 — Геймификация — 2026-08-01
+
+### Gamified Predictions
+- [x] Сервис предсказаний: да (`backend/services/predictionGame.js`)
+- [x] Споры с OMEGA (больше/меньше): да (`POST /api/gamification/predictions/:id/wager`)
+- [x] Начисление кредитов/скидок: да (+10 кредитов при верном прогнозе, скидка 20% при ошибке)
+- [x] Авторазрешение через 48 часов: да (`autoResolveOldPredictions`)
+- [x] Интеграция в планировщик: да (`PredictionCard` в `SchedulerPage`)
+- [x] Leaderboard в профиле: да (`UserProfileModal` показывает точность OMEGA)
+
+### AI vs Human
+- [x] Еженедельный раунд: да (`backend/services/aiVsHuman.js`)
+- [x] Генерация AI-поста по теме: да (`generateContent`)
+- [x] Human-пост от пользователя: да (`POST /api/gamification/aivshuman/human-post`)
+- [x] Анонимное голосование: да (`POST /api/gamification/aivshuman/vote`)
+- [x] Автораскрытие через 48 часов: да (`autoRevealRounds`)
+- [x] Архив + статистика: да (`GET /api/gamification/aivshuman/archive`, `GET /api/gamification/aivshuman/stats`)
+- [x] AI Champion badge (3 победы подряд): да (`stats.aiChampion`)
+
+### Leaderboard / Stats
+- [x] Модель `PredictionStats`: да (`backend/models/PredictionStats.js`)
+- [x] Модель `AiVsHumanRound`: да (`backend/models/AiVsHumanRound.js`)
+- [x] Точность OMEGA по неделям: да (`GET /api/gamification/predictions/accuracy`)
+- [x] По платформам/нишам: да (`leaderboard.byPlatform`, `leaderboard.byNiche`)
+
+### Routes
+- [x] `backend/routes/gamification.js` создан и подключён в `server.js` (`/api/gamification`)
+- [x] Frontend: `/ai-vs-human` route + пункт меню для всех ролей
+
+### Сборка
+- [x] Frontend build: успешно (есть warnings по chunk size)
+- [x] Backend `node --check` (все новые файлы): успешно
+- [x] Git push: выполнить

@@ -22,6 +22,7 @@ const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
 const SchedulerPage = lazy(() => import('./pages/SchedulerPage'))
 import SettingsPage from './pages/SettingsPage'
 const ContentAnalyzerPage = lazy(() => import('./pages/ContentAnalyzerPage'))
+const AIvsHumanPage = lazy(() => import('./pages/owner/AIvsHumanPage'))
 import ViralChatPage from './pages/ViralChatPage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
 import OwnerAppPage from './pages/owner-app/index'
@@ -44,6 +45,7 @@ const PAGE_TITLES = {
     '/settings': 'Settings',
     '/analyzer': 'Content Analyzer',
     '/viral-chat': 'Viral Chat',
+    '/ai-vs-human': 'AI vs Human',
     '/advertiser-requests': 'Заявки на рекламу',
 }
 
@@ -196,6 +198,11 @@ function App() {
                 <Route path="/analyzer" element={
                     <ProtectedRoute>
                         <ContentAnalyzerPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/ai-vs-human" element={
+                    <ProtectedRoute>
+                        <AIvsHumanPage />
                     </ProtectedRoute>
                 } />
                 <Route path="/viral-chat" element={

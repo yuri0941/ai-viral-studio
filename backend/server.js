@@ -49,6 +49,7 @@ import fleetRoutes from './routes/fleet.js'  // ← P11: Fleet dashboard
 import qrController from './controllers/qrController.js'  // ← P11: QR redirect
 import deliveryRoutes from './routes/delivery.js'  // ← P11: Delivery deep links
 import monitoringRoutes from './routes/monitoring.js'  // ← P12: Self-healing + crisis + self-reflection
+import gamificationRoutes from './routes/gamification.js'  // ← P13: Gamification + AI vs Human
 
 const app = express()
 app.set('trust proxy', 1)
@@ -207,6 +208,7 @@ app.use('/api/franchise', franchiseRoutes)
 app.use('/api/fleet', fleetRoutes)
 app.use('/api/delivery', deliveryRoutes)
 app.use('/api/monitoring', monitoringRoutes)
+app.use('/api/gamification', gamificationRoutes)
 
 // Public QR short-link redirect (must be outside /api rate limiting)
 app.get('/qr/:shortCode', qrController.redirectScan)

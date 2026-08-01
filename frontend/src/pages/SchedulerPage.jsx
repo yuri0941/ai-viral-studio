@@ -15,6 +15,7 @@ import BestTimePicker from '../components/scheduler/BestTimePicker';
 import PostPreview from '../components/scheduler/PostPreview';
 import ABTestModal from '../components/scheduler/ABTestModal';
 import { EmptyState } from '../components/common/EmptyState.jsx';
+import PredictionCard from '../components/omega/PredictionCard.jsx';
 
 const PLATFORM_COLORS = {
     youtube: '#FF0000',
@@ -760,6 +761,12 @@ function SchedulerPage() {
                                     </div>
                                     <input type="text" value={formData.tags} onChange={e => setFormData({ ...formData, tags: e.target.value })} placeholder="#теги #через #пробел" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" />
                                 </div>
+
+                                <PredictionCard
+                                    postId={editingPost?._id || editingPost?.id}
+                                    content={`${formData.title || ''}\n${formData.description || ''}\n${formData.tags || ''}`}
+                                    platform={formData.platforms?.[0] || 'tiktok'}
+                                />
 
                                 <div className="bg-[#252530] rounded-lg p-4 border border-white/5">
                                     <div className="flex items-center gap-3 mb-3">
