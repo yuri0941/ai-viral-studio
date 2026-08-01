@@ -2178,3 +2178,21 @@
 - [ ] Render Clear build cache: требуется вручную в Dashboard
 - [ ] Ошибка `Cpu` ушла в production: проверить после деплоя
 - [ ] Ошибка `paypalApi` ушла в production: проверить после деплоя
+
+
+### 2026-08-01 — HOTFIX: "timezone is not allowed"
+- [x] User.js проверен: timezone внутри preferences: да (`preferences.timezone`)
+- [x] User.js: убран дублирующий index (если был): не было
+- [x] auth.js/register: timezone передаётся внутрь preferences: да (`preferences: { timezone: req.body.timezone || 'Europe/Moscow' }`)
+- [x] auth.js/login: timezone обновляет preferences.timezone: да (`user.preferences = { ...user.preferences, timezone }`)
+- [x] userController.js: patch принимает preferences.timezone: да (`updates.preferences.timezone`)
+- [x] AuthContext.jsx: timezone отправляется в правильном формате: да (top-level `timezone` — backend теперь принимает)
+- [x] api.js: Content-Type application/json, не FormData: да
+- [x] validation.js: Joi-схемы register/login разрешают timezone: да (`timezone: Joi.string().optional()`)
+- [x] Backend check (node --check): успешно
+- [x] Frontend build: успешно (warnings по chunk size / dynamic imports)
+- [x] Git push: выполнить
+- [ ] Render Clear build cache: требуется вручную в Dashboard
+- [ ] Регистрация возвращает 200: проверить после деплоя
+- [ ] Login возвращает 200: проверить после деплоя
+- [x] PROGRESS_REPORT.md обновлён: да

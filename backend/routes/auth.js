@@ -12,7 +12,7 @@ const FORBIDDEN_REGISTRATION_ROLES = ['owner', 'admin', 'staff']
 
 router.post('/register', validateRegister, /* verifyTurnstile, */ async (req, res) => {
   try {
-    const { name, email, password, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult } = req.body
+    const { name, email, password, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult, timezone } = req.body
 
     // Security: clients cannot self-register privileged roles
     if (FORBIDDEN_REGISTRATION_ROLES.includes(req.body.role)) {
@@ -45,7 +45,8 @@ router.post('/register', validateRegister, /* verifyTurnstile, */ async (req, re
       acceptedAt: new Date(),
       isVerified: false,
       verificationToken: crypto.randomBytes(32).toString('hex'),
-      verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      preferences: { timezone: timezone || 'Europe/Moscow' }
     })
 
     try {
@@ -83,7 +84,7 @@ router.post('/register', validateRegister, /* verifyTurnstile, */ async (req, re
 
 router.post('/login', validateLogin, /* verifyTurnstile, */ async (req, res) => {
   try {
-    const { email, password } = req.body
+    const { email, password, timezone } = req.body
     console.log('Login attempt:', email)
 
     if (!email || !password) {
@@ -105,6 +106,9 @@ router.post('/login', validateLogin, /* verifyTurnstile, */ async (req, res) => 
     }
 
     user.lastLogin = new Date()
+    if (timezone && typeof timezone === 'string' && (!user.preferences?.timezone || user.preferences.timezone !== timezone)) {
+      user.preferences = { ...user.preferences, timezone }
+    }
     await user.save()
 
     const token = user.generateToken()
