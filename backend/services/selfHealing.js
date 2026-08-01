@@ -1,7 +1,6 @@
 import cron from 'node-cron'
 import axios from 'axios'
 import { alertOwner } from './ownerBot.js'
-import { chatWithAI } from './aiService.js'
 
 let healingJob = null
 let consecutiveErrors = 0
@@ -25,28 +24,6 @@ async function checkHealth() {
   }
 }
 
-async function checkAIProviders() {
-  const providers = ['groq', 'openrouter', 'deepseek']
-  for (const provider of providers) {
-    try {
-      const messages = [
-        { role: 'system', content: 'You are a health check assistant. Reply with OK.' },
-        { role: 'user', content: 'OK?' },
-      ]
-      const result = await chatWithAI('OK?', messages)
-      if (result?.success && result?.provider === provider) {
-        if (preferredProvider !== provider) {
-          preferredProvider = provider
-          await alertOwner(`🔄 Self-Healing: переключён AI-провайдер на ${provider}`).catch(() => {})
-        }
-        return
-      }
-    } catch (err) {
-      console.warn(`[selfHealing] provider ${provider} check failed:`, err.message)
-    }
-  }
-}
-
 async function runHealingTick() {
   const healthy = await checkHealth()
 
@@ -55,8 +32,6 @@ async function runHealingTick() {
     console.error('[selfHealing] max errors reached, restarting process...')
     process.exit(1)
   }
-
-  await checkAIProviders().catch(err => console.error('[selfHealing] AI provider check failed:', err.message))
 }
 
 export function startSelfHealing() {

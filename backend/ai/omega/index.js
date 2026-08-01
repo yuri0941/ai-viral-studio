@@ -17,7 +17,7 @@ export async function createOmegaBackend(config = {}) {
         {
             id: 'groq',
             name: 'Groq',
-            enabled: process.env.GROQ_ENABLED === 'true',
+            enabled: !!process.env.GROQ_API_KEY,
             hasKey: !!process.env.GROQ_API_KEY,
             reliability: 0.96,
             latency: 120,
@@ -26,7 +26,7 @@ export async function createOmegaBackend(config = {}) {
         {
             id: 'openrouter',
             name: 'OpenRouter',
-            enabled: process.env.OPENROUTER_ENABLED === 'true',
+            enabled: !!process.env.OPENROUTER_API_KEY,
             hasKey: !!process.env.OPENROUTER_API_KEY,
             reliability: 0.94,
             latency: 180,
@@ -35,7 +35,7 @@ export async function createOmegaBackend(config = {}) {
         {
             id: 'deepseek',
             name: 'DeepSeek',
-            enabled: process.env.DEEPSEEK_ENABLED === 'true',
+            enabled: !!process.env.DEEPSEEK_API_KEY,
             hasKey: !!process.env.DEEPSEEK_API_KEY,
             reliability: 0.92,
             latency: 250,

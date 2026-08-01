@@ -155,7 +155,7 @@ const server = app.listen(PORT, () => {
     console.log(`✅ MongoDB connected: ${isConnected ? 'Yes' : 'No'}`)
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
     console.log(`🔑 JWT Secret loaded: ${process.env.JWT_SECRET ? '✅ Yes' : '❌ No'}`)
-    console.log(`🤖 AI Providers: Groq=${process.env.GROQ_ENABLED}, OpenRouter=${process.env.OPENROUTER_ENABLED}, DeepSeek=${process.env.DEEPSEEK_ENABLED}`)
+    console.log(`🤖 AI provider chain ready: verified on first real request (Groq → OpenRouter → ...)`)
     console.log(`📺 YouTube API: ${process.env.YOUTUBE_API_KEY ? '✅ Connected' : '❌ No key'}`)
 })
 

@@ -64,7 +64,14 @@ export class OmegaCore {
     }
 
     setProviders(providers) {
-        this.providers = providers.filter(p => p.enabled && p.hasKey)
+        this.providers = providers.filter(p => {
+            if (!p.hasKey) {
+                console.log(`[OMEGA] Provider ${p.id?.toUpperCase() || p.name} skipped — no key`)
+                return false
+            }
+            console.log(`[OMEGA] Provider ${p.id?.toUpperCase() || p.name} active — key found`)
+            return true
+        })
         if (!this.activeProvider && this.providers.length > 0) {
             this.activeProvider = this.providers[0].id
         }

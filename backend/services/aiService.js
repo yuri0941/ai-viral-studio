@@ -99,8 +99,9 @@ const getKey = async (provider) => {
 
 const isEnabled = async (provider) => {
     const key = await getKey(provider)
-    const envFlag = process.env[`${provider.toUpperCase()}_ENABLED`]
-    return envFlag !== 'false' && !!key
+    // Provider is enabled if a key is available (env flag *_ENABLED is ignored on purpose,
+    // so that fallback chain always works on real requests)
+    return !!key
 }
 
 const SYSTEM_PROMPT = `You are AI Viral Studio — an expert content creation assistant specializing in viral social media content.

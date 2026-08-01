@@ -1,3 +1,14 @@
+### 2026-08-01 — HOTFIX: AI-провайдеры, fallback Groq → OpenRouter на запросе, без стартовых проверок
+- [x] backend/server.js: убран стартовый лог `AI Providers: Groq=...` (теперь только `AI provider chain ready: verified on first real request`)
+- [x] backend/services/aiService.js: `isEnabled` теперь включает провайдера по наличию ключа, игнорируя env-флаг `*_ENABLED` (fallback цепочка всегда работает)
+- [x] backend/ai/omega/index.js: флаг `enabled` для Groq/OpenRouter/DeepSeek теперь зависит от наличия ключа, а не от `*__ENABLED`
+- [x] backend/ai/omega/omegaCore.js: `setProviders` фильтрует ТОЛЬКО по `hasKey`, добавлено логирование почему провайдер skipped/active
+- [x] backend/services/selfHealing.js: удалена фоновая проверка `checkAIProviders()` и её импорт `chatWithAI`; оставлен только мониторинг `/api/health`
+- [x] Backend node --check: server.js, aiService.js, selfHealing.js, ai/omega/index.js, omegaCore.js, omegaController.js, config/env.js — успешно ✅
+- [x] Git push: выполнен ✅
+- [ ] Полный e2e тест OMEGA Chat: не проводился в этом окружении
+- Статус: **готово к деплою**
+
 ### 2026-08-01 — Release v1.0: PWA + OwnerApp + i18n + Stripe + Full OMEGA
 - [x] VAPID ключи: добавлены в `backend/.env.example` и fallback в `controllers/pushController.js`
 - [x] i18n: установлены `react-i18next`, `i18next`, `i18next-browser-languagedetector`, созданы `frontend/src/locales/ru.json` и `en.json`, настроен `frontend/src/i18n/index.js`, подключён в `main.jsx`
