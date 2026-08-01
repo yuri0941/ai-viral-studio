@@ -67,7 +67,6 @@ if (!isConnected) {
 }
 
 // CORS must be first — before any route or body parser
-// CORS: explicit origins + dynamic Cloudflare Pages subdomains
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5173',
@@ -77,23 +76,20 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (curl, server-to-server, mobile apps)
         if (!origin) return callback(null, true)
         if (allowedOrigins.includes(origin)) return callback(null, true)
-        // Allow any *.pages.dev subdomain
         if (/^https:\/\/[^/]+\.pages\.dev$/.test(origin)) return callback(null, true)
         callback(new Error('Not allowed by CORS'))
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 200,
 }))
 
-// Preflight for all routes
-app.options('*', cors())
-
-// Helmet after CORS so security headers apply without blocking preflight
-app.use(helmet())
+// Helmet временно отключен — проверим CORS без него
+// app.use(helmet())
 
 // Body parsing — BEFORE routes
 app.use(express.json({ limit: '10mb' }))
@@ -148,25 +144,25 @@ app.use('/api/ai', aiRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/scheduler', schedulerRoutes)
 app.use('/api/users', userRoutes)
-app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
-app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
-app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API
-app.use('/api/omega', omegaRoutes)  // ← НОВОЕ: OMEGA Core API
-app.use('/api/ad-requests', adRequestRoutes)  // ← НОВОЕ: AdRequests / Client chat
-app.use('/api/subscriptions', subscriptionRoutes)  // ← P10: Подписки
-app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета
-app.use('/api/owner-requisites', ownerRequisitesRoutes)  // ← P10: Реквизиты
-app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Owner legal info
-app.use('/api/yookassa', yookassaRoutes)  // ← P10: ЮKassa
-app.use('/api/stripe', stripeRoutes)  // ← P10: Stripe (выключено по умолчанию)
-app.use('/api/email', emailRoutes)  // ← P10: Email
+app.use('/api/youtube', youtubeRoutes)
+app.use('/api/payments', paymentRoutes)
+app.use('/api/owner', ownerRoutes)
+app.use('/api/omega', omegaRoutes)
+app.use('/api/ad-requests', adRequestRoutes)
+app.use('/api/subscriptions', subscriptionRoutes)
+app.use('/api/invoices', invoiceRoutes)
+app.use('/api/owner-requisites', ownerRequisitesRoutes)
+app.use('/api/owner/legal-info', ownerLegalInfoRoutes)
+app.use('/api/yookassa', yookassaRoutes)
+app.use('/api/stripe', stripeRoutes)
+app.use('/api/email', emailRoutes)
 app.use('/api/admin', adminRoutes)
 
 // Error handling
 app.use((err, req, res, next) => {
     rollbar.error(err, req)
     alertOwner(`🚨 ОШИБКА 500!\n📍 ${req.method} ${req.path}\n❌ ${err.message}\n⏰ ${new Date().toLocaleString('ru-RU')}`)
-        .catch(() => {})
+        .catch(() => { })
     errorHandler(err, req, res, next)
 })
 
@@ -219,5 +215,3 @@ process.on('SIGINT', () => {
     stopSelfHealing()
     process.exit(0)
 })
-
-
