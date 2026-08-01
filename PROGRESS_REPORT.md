@@ -2010,3 +2010,9 @@
 - [x] Git push: выполнен (`67e5b71c`)
 - [ ] Render Clear build cache: требуется вручную в Dashboard
 - [ ] Backend live (нет SyntaxError): проверить после деплоя на Render
+
+### Фикс api.js — paypalApi undefined
+- [x] Ошибка найдена: `frontend/src/services/api.js` default export содержал `paypalApi`, но объект не был определён
+- [x] Исправлено: добавлен `export const paypalApi = { status, createOrder, capture }` перед `emailApi`
+- [x] Frontend build: успешно
+- [x] Git push: выполнен (`c847b99a`)
