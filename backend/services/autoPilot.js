@@ -4,6 +4,7 @@ import { Integration } from '../models/Integration.js'
 import ScheduledPost from '../models/ScheduledPost.js'
 import { alertOwner } from './ownerBot.js'
 import { google } from 'googleapis'
+import { emergencyStop } from '../routes/admin.js'
 
 let autopilotJob = null
 
@@ -118,6 +119,10 @@ async function publishPost(post, ownerId) {
 }
 
 async function runAutopilotTick() {
+  if (emergencyStop) {
+    console.log('[AutoPilot] emergency stop active, skipping tick')
+    return
+  }
   const now = new Date()
   try {
     const enabledSettings = await OwnerSettings.find({ 'features.autopilot': true }).lean()

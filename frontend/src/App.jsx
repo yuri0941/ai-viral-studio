@@ -23,6 +23,8 @@ const SchedulerPage = lazy(() => import('./pages/SchedulerPage'))
 import SettingsPage from './pages/SettingsPage'
 const ContentAnalyzerPage = lazy(() => import('./pages/ContentAnalyzerPage'))
 const AIvsHumanPage = lazy(() => import('./pages/owner/AIvsHumanPage'))
+const BoardroomPage = lazy(() => import('./pages/owner/BoardroomPage'))
+const BusinessSpawnerPage = lazy(() => import('./pages/owner/BusinessSpawnerPage'))
 import ViralChatPage from './pages/ViralChatPage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
 import OwnerAppPage from './pages/owner-app/index'
@@ -46,6 +48,8 @@ const PAGE_TITLES = {
     '/analyzer': 'Content Analyzer',
     '/viral-chat': 'Viral Chat',
     '/ai-vs-human': 'AI vs Human',
+    '/boardroom': 'AI Boardroom',
+    '/business-spawner': 'Business Spawner',
     '/advertiser-requests': 'Заявки на рекламу',
 }
 
@@ -203,6 +207,16 @@ function App() {
                 <Route path="/ai-vs-human" element={
                     <ProtectedRoute>
                         <AIvsHumanPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/boardroom" element={
+                    <ProtectedRoute allowedRoles={['owner', 'admin', 'business']}>
+                        <BoardroomPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/business-spawner" element={
+                    <ProtectedRoute allowedRoles={['owner', 'admin', 'business']}>
+                        <BusinessSpawnerPage />
                     </ProtectedRoute>
                 } />
                 <Route path="/viral-chat" element={

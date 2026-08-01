@@ -319,6 +319,7 @@ export const franchiseApi = {
 export const fleetApi = {
     summary: () => request('/fleet/summary'),
     emergencyStop: () => request('/fleet/emergency-stop', { method: 'POST' }),
+    emergencyResume: (pin) => request('/admin/emergency-resume', { method: 'POST', body: JSON.stringify({ pin }) }),
 }
 
 // ============================================

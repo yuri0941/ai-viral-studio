@@ -2062,3 +2062,46 @@
 - [x] Git push: выполнить
 - [ ] Render Clear build cache: требуется вручную в Dashboard
 - [ ] Ошибка `Cpu` ушла в production: проверить после деплоя
+
+
+## ✅ ПРОМПТ №14 — Boardroom + Business Spawning + Fleet Stop — 2026-08-01
+
+### AI Boardroom
+- [x] 5 агентов (CEO/CMO/CTO/CFO/CHRO): да (`backend/services/boardroom.js`)
+- [x] 3 раунда дебатов: да
+- [x] Голосование ЗА/ПРОТИВ/Воздержался: да
+- [x] Консенсус (4/5 ЗА): да
+- [x] Frontend страница `/boardroom`: да
+- [x] Кнопка «Принять рекомендацию» → локальная задача: да
+
+### Business Spawning
+- [x] Agency-only проверка (`agency`, `enterprise`, `business`): да
+- [x] Boardroom-консенсус перед стартом: да
+- [x] 5 шагов (48 часов — исследование, бренд, лендинг, тарифы, контент): да
+- [x] Генерация HTML-лендинга: да
+- [x] Брендбук (название, цвета, tone of voice): да
+- [x] Контент-план (10 постов): да
+- [x] ZIP-архив для скачивания (jszip + file-saver): да
+- [x] Frontend страница `/business-spawner`: да
+
+### Fleet Emergency Stop
+- [x] Централизованный флаг `emergencyStop` в `admin.js`: да
+- [x] `AutoPilot` проверяет флаг и пропускает тик: да (`backend/services/autoPilot.js`)
+- [x] `aiService.chatWithAI` останавливается при флаге: да
+- [x] Кнопка STOP в Owner App: да (`OwnerAppPage.jsx`)
+- [x] Кнопка STOP FLEET в FleetTab: да (`FleetTab.jsx`)
+- [x] PIN-код для возобновления (`EMERGENCY_PIN`): да (`/admin/emergency-resume`)
+- [x] Статус Emergency Stop: да (`/admin/emergency-status`)
+- [x] `adminRoutes` подключены в `server.js`: да
+
+### Routes и меню
+- [x] `/api/boardroom/run`: да
+- [x] `/api/business-spawner/spawn`: да
+- [x] `/api/admin/*` (emergency): да
+- [x] Меню Owner: Boardroom + Business Spawner в группе OMEGA: да
+- [x] Меню admin/business: Boardroom + Business Spawner: да
+
+### Сборка
+- [x] Frontend build: успешно (warnings по chunk size)
+- [x] Backend `node --check`: успешно
+- [x] Git push: выполнить

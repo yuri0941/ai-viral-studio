@@ -5,6 +5,7 @@ import {
     Calendar, ArrowRight, X
 } from 'lucide-react'
 import { fleetApi, workspaceApi } from '../../../../services/api.js'
+import { API_URL } from '../../../../config.js'
 
 function Modal({ title, onClose, children }) {
     return (
@@ -43,11 +44,33 @@ export function FleetTab() {
         }
     }
 
+    const [emergencyStopped, setEmergencyStopped] = useState(false)
+
+    useEffect(() => {
+        fetch(`${API_URL}/admin/emergency-status`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+            .then(r => r.json())
+            .then(data => setEmergencyStopped(!!data?.emergencyStop))
+            .catch(() => {})
+    }, [])
+
     const emergencyStop = async () => {
         if (!confirm('Остановить все AI-операции для всего Fleet?')) return
         try {
             await fleetApi.emergencyStop()
+            setEmergencyStopped(true)
             alert('Emergency Stop активирован')
+        } catch (err) {
+            alert(err.message)
+        }
+    }
+
+    const emergencyResume = async () => {
+        const pin = window.prompt('Введите PIN-код для снятия Emergency Stop:')
+        if (!pin) return
+        try {
+            await fleetApi.emergencyResume(pin)
+            setEmergencyStopped(false)
+            alert('Emergency Stop снят')
         } catch (err) {
             alert(err.message)
         }
@@ -90,10 +113,15 @@ export function FleetTab() {
                         <Plus className="w-4 h-4" /> Создать проект
                     </button>
                     <button
-                        onClick={emergencyStop}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 rounded-xl text-white font-medium text-sm transition-colors"
+                        onClick={emergencyStopped ? emergencyResume : emergencyStop}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-colors ${
+                            emergencyStopped
+                                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                                : 'bg-red-500 hover:bg-red-600 text-white'
+                        }`}
                     >
-                        <OctagonAlert className="w-4 h-4" /> STOP FLEET
+                        <OctagonAlert className="w-4 h-4" />
+                        {emergencyStopped ? 'RESUME FLEET (PIN)' : 'STOP FLEET'}
                     </button>
                 </div>
             </div>

@@ -26,12 +26,42 @@ export default function OwnerAppPage() {
         ownerApi.agents().then(() => setOmegaStatus('online')).catch(() => setOmegaStatus('offline'))
     }, [])
 
+    const [emergencyStopped, setEmergencyStopped] = useState(false)
+
+    useEffect(() => {
+        fetch(`${API_URL}/admin/emergency-status`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+            .then(r => r.json())
+            .then(data => setEmergencyStopped(!!data?.emergencyStop))
+            .catch(() => {})
+    }, [])
+
     const handleEmergencyStop = async () => {
         if (!confirm(t('ownerApp.emergencyConfirm'))) return
         setEmergencyLoading(true)
         try {
-            const res = await fetch(`${API_URL}/omega/emergency-stop`, { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+            const res = await fetch(`${API_URL}/admin/emergency-stop`, { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+            if (res.ok) setEmergencyStopped(true)
             alert(res.ok ? t('ownerApp.emergencyActivated') : t('ownerApp.emergencyError'))
+        } finally {
+            setEmergencyLoading(false)
+        }
+    }
+
+    const handleEmergencyResume = async () => {
+        const pin = window.prompt('Введите PIN-код для снятия Emergency Stop:')
+        if (!pin) return
+        setEmergencyLoading(true)
+        try {
+            const res = await fetch(`${API_URL}/admin/emergency-resume`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+                body: JSON.stringify({ pin }),
+            })
+            if (res.ok) setEmergencyStopped(false)
+            alert(res.ok ? 'Emergency Stop снят' : 'Неверный PIN-код или ошибка сервера')
         } finally {
             setEmergencyLoading(false)
         }
@@ -97,11 +127,16 @@ export default function OwnerAppPage() {
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('ownerApp.quickActions')}</h2>
             <div className="space-y-3">
                 <button
-                    onClick={handleEmergencyStop}
+                    onClick={emergencyStopped ? handleEmergencyResume : handleEmergencyStop}
                     disabled={emergencyLoading}
-                    className="w-full min-h-[56px] bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl font-semibold active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+                    className={`w-full min-h-[56px] rounded-2xl font-semibold active:scale-[0.98] transition-transform flex items-center justify-center gap-2 ${
+                        emergencyStopped
+                            ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                            : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                    }`}
                 >
-                    🛑 {emergencyLoading ? t('ownerApp.stopping') : t('ownerApp.emergencyStop')}
+                    {emergencyStopped ? '▶️' : '🛑'}
+                    {emergencyLoading ? t('ownerApp.stopping') : emergencyStopped ? 'Возобновить OMEGA (PIN)' : t('ownerApp.emergencyStop')}
                 </button>
                 <button
                     onClick={handleTelegramStatus}

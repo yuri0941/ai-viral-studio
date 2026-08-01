@@ -6,18 +6,25 @@ const router = express.Router()
 
 // In-memory emergency stop flag (NOT process.env)
 let emergencyStop = false
+const EMERGENCY_PIN = process.env.EMERGENCY_PIN || '0000'
 
 router.post('/emergency-stop', protect, authorize('owner'), (req, res) => {
   emergencyStop = true
-  res.json({ success: true, message: 'Emergency Stop активирован' })
+  console.log('[EMERGENCY STOP] activated by', req.user.email)
+  res.json({ success: true, message: 'Emergency Stop активирован. Все AI-операции, публикации и AutoPilot остановлены.' })
 })
 
 router.post('/emergency-resume', protect, authorize('owner'), (req, res) => {
+  const { pin } = req.body || {}
+  if (pin !== EMERGENCY_PIN) {
+    return res.status(403).json({ success: false, message: 'Неверный PIN-код' })
+  }
   emergencyStop = false
+  console.log('[EMERGENCY STOP] resumed by', req.user.email)
   res.json({ success: true, message: 'Emergency Stop снят' })
 })
 
-router.get('/emergency-status', protect, authorize('owner'), (req, res) => {
+router.get('/emergency-status', protect, authorize('owner', 'admin'), (req, res) => {
   res.json({ success: true, emergencyStop })
 })
 

@@ -50,6 +50,9 @@ import qrController from './controllers/qrController.js'  // ← P11: QR redirec
 import deliveryRoutes from './routes/delivery.js'  // ← P11: Delivery deep links
 import monitoringRoutes from './routes/monitoring.js'  // ← P12: Self-healing + crisis + self-reflection
 import gamificationRoutes from './routes/gamification.js'  // ← P13: Gamification + AI vs Human
+import boardroomRoutes from './routes/boardroom.js'  // ← P14: AI Boardroom
+import businessSpawnerRoutes from './routes/businessSpawner.js'  // ← P14: Business Spawning
+import adminRoutes from './routes/admin.js'  // Admin + emergency stop
 
 const app = express()
 app.set('trust proxy', 1)
@@ -209,6 +212,9 @@ app.use('/api/fleet', fleetRoutes)
 app.use('/api/delivery', deliveryRoutes)
 app.use('/api/monitoring', monitoringRoutes)
 app.use('/api/gamification', gamificationRoutes)
+app.use('/api/boardroom', boardroomRoutes)
+app.use('/api/business-spawner', businessSpawnerRoutes)
+app.use('/api/admin', adminRoutes)
 
 // Public QR short-link redirect (must be outside /api rate limiting)
 app.get('/qr/:shortCode', qrController.redirectScan)
