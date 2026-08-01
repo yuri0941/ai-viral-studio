@@ -34,8 +34,8 @@ export async function saveDialog(userId, question, answer, provider) {
     return doc
 }
 
-export async function searchVectorMemory(query, limit = 5) {
-    return searchVector(query, limit)
+export async function searchVectorMemory(query, limit = 5, userId = null) {
+    return searchVector(query, limit, userId)
 }
 
 export async function getMemory(userId, options = {}) {

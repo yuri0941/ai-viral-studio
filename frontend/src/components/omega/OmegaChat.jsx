@@ -5,6 +5,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { Bot, User, Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown, Mic, Globe, Volume2 } from 'lucide-react'
 import { useOmegaChat } from '../../hooks/useOmegaChat.js'
+import { VectorStoreStatus } from './VectorStoreStatus.jsx'
 
 export function OmegaChatContainer(props) {
     const chat = useOmegaChat(props)
@@ -70,6 +71,9 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                         </div>
                     </div>
                 </div>
+                <div className="hidden sm:block">
+                    <VectorStoreStatus />
+                </div>
                 <button
                     onClick={clearHistory}
                     className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-white/5 transition-colors"
@@ -100,8 +104,12 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                     </div>
                 )}
                 {messages.length === 0 && hasActiveKey && (
-                    <div className="text-center text-gray-500 text-sm py-8">
-                        Напишите OMEGA — например, «анализ цен» или «прогноз доходов».
+                    <div className="text-center text-gray-500 text-sm py-8 space-y-2">
+                        <div>Напишите OMEGA — например, «анализ цен» или «прогноз доходов».</div>
+                        <div className="inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                            Память пуста — OMEGA запомнит этот разговор
+                        </div>
                     </div>
                 )}
                 {messages.map(msg => {

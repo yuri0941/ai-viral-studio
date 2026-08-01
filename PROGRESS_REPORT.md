@@ -1502,3 +1502,55 @@
 | Сборка frontend | ✅ Выполнен | `npm run build` прошёл успешно |
 
 | Hotfix Payment.js named export | ✅ Выполнен | 2026-07-31 | Исправлен export в models/Payment.js под models/index.js; синтаксис backend проверен |
+
+
+## ✅ RAG + Per-Channel Analytics + Audience Insights + Preview + A/B + Code Splitting — 2026-08-01
+
+### RAG + Vector Store
+- [x] `backend/services/vectorStore.js` создан с In-Memory fallback (лимит 1000 записей, cosine similarity)
+- [x] `backend/services/vectorize/vectorizeService.js` обновлён: fallback на `vectorStore.js` при отсутствии Cloudflare Vectorize
+- [x] `backend/services/omegaBrain/memoryStore.js` + `responseSelector.js` передают `userId` в поиск
+- [x] OMEGA Chat сохраняет диалоги в векторную память (через `saveDialog` → `upsertVector`)
+- [x] UI: `frontend/src/components/omega/VectorStoreStatus.jsx` показывает бэкенд и лимит
+- [x] Бейдж «Память пуста — OMEGA запомнит этот разговор» в пустом чате
+
+### Per-Channel Analytics
+- [x] `backend/services/channelAnalytics.js` создан с проверкой `Integration` (connected + accessToken/apiKey)
+- [x] Endpoints: `GET /api/analytics/channels`, `GET /api/analytics/channels/:platform`
+- [x] Нет фейковых 2.5M просмотров — показывает «Подключите аккаунт» + 3 шага
+- [x] Frontend: `frontend/src/components/analytics/ChannelAnalyticsTab.jsx` с под-вкладками [Обзор] [YouTube] [Instagram] [TikTok] [Telegram]
+- [x] Интегрировано в `AnalyticsPage.jsx` (таб «По платформам»)
+
+### Audience Insights
+- [x] `backend/services/audienceService.js` создан с проверкой прав доступа
+- [x] Endpoints: `GET /api/analytics/audience`, `GET /api/analytics/audience/:platform`
+- [x] Frontend: `frontend/src/components/analytics/AudienceInsightsTab.jsx` — pie charts (возраст, пол), heatmap активности, топ страны
+- [x] Плейсхолдеры с подписью «Ваши данные появятся здесь после подключения»
+- [x] Интегрировано в `AnalyticsPage.jsx` (таб «Аудитория»)
+
+### Preview Before Publish
+- [x] `frontend/src/components/scheduler/PostPreview.jsx` создан — макеты Instagram (1:1), Telegram, YouTube (16:9), TikTok (9:16)
+- [x] Кнопка «Предпросмотр» в модалке создания поста `SchedulerPage.jsx`
+- [x] Показывает текст, хэштеги, медиа, кнопки-заглушки лайк/коммент
+
+### A/B Tests
+- [x] `backend/services/abTestService.js` создан — требует AI (Groq/OpenRouter), генерирует 2 варианта, сохраняет в `ScheduledPost`
+- [x] Endpoints: `POST /api/analytics/ab-test`, `POST /api/analytics/ab-test/:id/select`, `GET /api/analytics/ab-test/ai-required`
+- [x] Frontend: `frontend/src/components/scheduler/ABTestModal.jsx` — кнопка в Scheduler, 2 карточки, выбор, регенерация
+- [x] Если AI нет — модалка с редиректом на API Keys
+
+### Code Splitting + React Query
+- [x] `frontend/vite.config.js` — `manualChunks`: vendor, ui, omega
+- [x] `npm install @tanstack/react-query` — добавлен в зависимости
+- [x] `frontend/src/main.jsx` — обёрнут в `QueryClientProvider` с `staleTime: 5min`, `cacheTime: 10min`, `retry: 1`
+
+### Сборка и деплой
+- [x] Frontend build: успешно
+- [x] Backend `node --check` для всех изменённых файлов: успешно
+- [x] Git push: выполнен
+- [x] PROGRESS_REPORT.md обновлён
+
+### Ручные действия
+- Добавить `CHROMADB_URL` или `CLOUDFLARE_VECTORIZE_API_KEY` в Render env для безлимитной векторной памяти (иначе In-Memory, 1000 записей)
+- Добавить рабочие API ключи для соцсетей в интеграции, чтобы Channel Analytics / Audience Insights возвращали реальные данные
+- Убедиться, что `ScheduledPost` модель поддерживает поля `variants` и `abTest` (добавлены при создании A/B теста)

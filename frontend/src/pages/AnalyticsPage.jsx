@@ -10,11 +10,20 @@ import {
 } from 'lucide-react'
 import { useSmartData } from '../hooks/useSmartData'
 import { API_BASE_URL } from '../config.js'
+import { ChannelAnalyticsTab } from '../components/analytics/ChannelAnalyticsTab'
+import { AudienceInsightsTab } from '../components/analytics/AudienceInsightsTab'
 
-const DEMO_STATS = { views: 1400000, ctr: 8.4, subscribers: 12500, engagement: 6.8, reach: 2100000, clicks: 45000, shares: 12000 }
+const TABS = [
+    { id: 'overview', label: 'Обзор' },
+    { id: 'channels', label: 'По платформам' },
+    { id: 'audience', label: 'Аудитория' },
+]
+
+const DEMO_STATS = { views: 0, ctr: 0, subscribers: 0, engagement: 0, reach: 0, clicks: 0, shares: 0 }
 
 function AnalyticsPage() {
     const [period, setPeriod] = useState('7d')
+    const [activeTab, setActiveTab] = useState('overview')
     const [showExportMenu, setShowExportMenu] = useState(false)
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
@@ -160,6 +169,25 @@ function AnalyticsPage() {
                         📈 Пример аналитики — начните публикацию, чтобы увидеть свои данные
                     </div>
                 )}
+
+                <div className="flex flex-wrap gap-2 mb-6">
+                    {TABS.map(t => (
+                        <button
+                            key={t.id}
+                            onClick={() => setActiveTab(t.id)}
+                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                                activeTab === t.id
+                                    ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30'
+                                    : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-transparent'
+                            }`}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
+
+                {activeTab === 'overview' && (
+                    <>
 
                 {/* Main Metrics */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -446,8 +474,13 @@ function AnalyticsPage() {
                         <p className="text-sm text-gray-300">Увеличь частоту публикаций в TikTok на 20% для роста охвата</p>
                     </div>
                 </div>
-            </div>
+            </>
+            )}
+
+            {activeTab === 'channels' && <ChannelAnalyticsTab />}
+            {activeTab === 'audience' && <AudienceInsightsTab />}
         </div>
+    </div>
     )
 }
 

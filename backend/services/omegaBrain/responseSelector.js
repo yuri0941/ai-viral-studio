@@ -46,7 +46,7 @@ export async function selectResponse(userId, question, userContext = {}) {
     // 2) Vector memory search
     let vectorResults = ''
     try {
-        const matches = await searchVectorMemory(question, 3)
+        const matches = await searchVectorMemory(question, 3, userId)
         if (matches?.length > 0) {
             vectorResults = 'Похожие воспоминания OMEGA:\n' + matches.map(m => `- ${m.text}`).join('\n')
         }

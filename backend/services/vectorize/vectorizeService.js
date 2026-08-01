@@ -1,8 +1,13 @@
 import axios from 'axios'
+import vectorStore from '../vectorStore.js'
 
 const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID
 const API_KEY = process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN
 const INDEX_NAME = 'omega-memory'
+
+export function isVectorizeConfigured() {
+    return !!(ACCOUNT_ID && API_KEY)
+}
 
 function getHeaders() {
     return {
@@ -41,10 +46,11 @@ export async function ensureIndex() {
 }
 
 export async function upsertMemory(id, text, metadata = {}) {
-    if (!ACCOUNT_ID || !API_KEY) return null
+    if (!isVectorizeConfigured()) {
+        await vectorStore.addDocument({ id, text, userId: metadata.userId, metadata })
+        return { id, text }
+    }
     try {
-        // In production, generate an embedding via Cloudflare Workers AI embedding model.
-        // Here we use a deterministic hash-based vector stub for fallback/demo.
         const vector = await generateStubVector(text)
         await axios.post(
             `${baseUrl()}/upsert`,
@@ -54,12 +60,15 @@ export async function upsertMemory(id, text, metadata = {}) {
         return { id, text }
     } catch (err) {
         console.warn('[vectorizeService] upsert failed:', err.response?.data?.errors || err.message)
-        return null
+        await vectorStore.addDocument({ id, text, userId: metadata.userId, metadata }).catch(() => {})
+        return { id, text }
     }
 }
 
-export async function searchMemory(query, limit = 5) {
-    if (!ACCOUNT_ID || !API_KEY) return []
+export async function searchMemory(query, limit = 5, userId = null) {
+    if (!isVectorizeConfigured()) {
+        return vectorStore.searchSimilar({ query, userId, limit })
+    }
     try {
         const vector = await generateStubVector(query)
         const { data } = await axios.post(
@@ -75,7 +84,7 @@ export async function searchMemory(query, limit = 5) {
         })) || []
     } catch (err) {
         console.warn('[vectorizeService] search failed:', err.response?.data?.errors || err.message)
-        return []
+        return vectorStore.searchSimilar({ query, userId, limit })
     }
 }
 

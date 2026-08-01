@@ -11,6 +11,8 @@ import {
 import { omegaApi } from '../services/api';
 import VisualCalendar from '../components/scheduler/VisualCalendar';
 import BestTimePicker from '../components/scheduler/BestTimePicker';
+import PostPreview from '../components/scheduler/PostPreview';
+import ABTestModal from '../components/scheduler/ABTestModal';
 
 const PLATFORM_COLORS = {
     youtube: '#FF0000',
@@ -78,6 +80,9 @@ function SchedulerPage() {
     const [autoPublish, setAutoPublish] = useState(true);
     const [aiTimeLoading, setAiTimeLoading] = useState(false);
     const [previewIndex, setPreviewIndex] = useState(null);
+    const [previewPost, setPreviewPost] = useState(null);
+    const [showPreview, setShowPreview] = useState(false);
+    const [showABTest, setShowABTest] = useState(false);
     const [imageZoom, setImageZoom] = useState(1);
     const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -710,6 +715,26 @@ function SchedulerPage() {
 
                             <div className="flex gap-3 mt-6">
                                 <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors">Отмена</button>
+                                <button
+                                    onClick={() => {
+                                        setPreviewPost({
+                                            platform: formData.platforms[0],
+                                            content: formData.description,
+                                            hashtags: formData.tags.split(/\s+/).filter(Boolean),
+                                            mediaUrl: uploadedFile ? URL.createObjectURL(uploadedFile) : null,
+                                        })
+                                        setShowPreview(true)
+                                    }}
+                                    className="flex-1 px-4 py-2 bg-[#1a1a24] border border-white/10 rounded-lg hover:bg-white/5 text-white text-sm transition-colors"
+                                >
+                                    Предпросмотр
+                                </button>
+                                <button
+                                    onClick={() => setShowABTest(true)}
+                                    className="flex-1 px-4 py-2 bg-[#1a1a24] border border-white/10 rounded-lg hover:bg-white/5 text-white text-sm transition-colors"
+                                >
+                                    A/B тест
+                                </button>
                                 <button onClick={handleSave} disabled={!formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="flex-1 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-medium rounded-lg transition-all hover:scale-[1.02]">{editingPost ? 'Сохранить' : 'Создать'}</button>
                             </div>
                         </div>
@@ -808,6 +833,17 @@ function SchedulerPage() {
                     </div>
                 </div>
             )}
+
+            <PostPreview
+                isOpen={showPreview}
+                onClose={() => setShowPreview(false)}
+                post={previewPost}
+            />
+            <ABTestModal
+                isOpen={showABTest}
+                onClose={() => setShowABTest(false)}
+                postParams={{ topic: formData.title || formData.description || 'вирусный контент' }}
+            />
         </div>
     );
 }
