@@ -1,3 +1,58 @@
+## ✅ КОНКУРЕНТНЫЕ ФИЧИ — 2026-08-01
+
+### Brand Voice v2
+- [x] Backend сервис существует: да (`backend/services/brandVoice.js`)
+- [x] Endpoint `/api/omega/brand-voice/analyze`: да
+- [x] Frontend вкладка/модалка: да (`frontend/src/pages/owner/components/tabs/BrandVoiceTab.jsx`)
+- [x] AI анализирует тон (не заглушка): да (`analyzeBrandVoiceWithAI` → Groq/OpenRouter)
+- [x] Сохраняется в БД: да (`User.brandVoice`)
+- [x] Используется в OMEGA Chat: да (`buildBrandVoicePrompt` в `responseSelector`)
+- [x] Тумблер вкл/выкл Brand Voice: да (`/api/omega/brand-voice/toggle`)
+
+### 50 AI-шаблонов
+- [x] Файл с шаблонами существует: да (`backend/services/templatesLibrary.js` + `backend/data/omegaTemplates.json`)
+- [x] Количество шаблонов: 50
+- [x] Категории (Хуки, AIDA, PAS, Email, Shorts): да
+- [x] Endpoint `/api/omega/templates`: да
+- [x] Endpoint `/api/omega/templates/:id/generate`: да
+- [x] Frontend библиотека шаблонов: да (`frontend/src/pages/owner/components/tabs/TemplatesTab.jsx`)
+- [x] Генерация через AI (не просто подстановка): да (`autoExpand` через `chatWithAI`)
+
+### Best Time to Post
+- [x] Backend сервис: да (`backend/services/bestTimeService.js`)
+- [x] Endpoint `/api/omega/best-time`: да
+- [x] Кнопка в Scheduler: да (`frontend/src/components/scheduler/BestTimePicker.jsx`)
+- [x] AI советует время (не рандом): да (Groq/OpenRouter + fallback дефолты)
+
+### Visual Calendar
+- [x] Миниатюры на календаре: да (`VisualCalendar.jsx` показывает `thumbnailUrl/mediaUrl`)
+- [x] Цветовая кодировка платформ: да (`PLATFORM_COLORS`)
+- [x] Статусы (черновик/запланирован/опубликован): да (серый/жёлтый/зелёный + красный для ошибки)
+- [x] Drag & drop между днями: да
+
+### OMEGA Scout (Real-time тренды)
+- [x] Backend сканер: да (`backend/services/trendScanner.js`)
+- [x] Endpoint `/api/omega/scout/trends`: да
+- [x] Frontend виджет/вкладка: да (`frontend/src/pages/owner/components/tabs/ScoutTab.jsx`)
+- [x] Реальные тренды (не заглушки): да (DuckDuckGo + AI-анализ, fallback дефолты)
+- [x] Кнопка «Создать пост из тренда»: да (драфт в `localStorage` + редирект в Scheduler)
+- [x] Кэш 6 часов: да
+
+### AI-обложки
+- [x] Backend генератор: да (`backend/services/imageGeneration.js`)
+- [x] Endpoint `/api/omega/generate-cover`: да
+- [x] Frontend кнопка «AI Обложка»: да (`frontend/src/components/content/AICoverGenerator.jsx`)
+- [x] Работает через Pollinations/Replicate: да (Pollinations.ai, fallback прямой URL)
+- [x] Сохраняется в медиа-очередь: да (кнопка «Использовать в посте»)
+- [x] История сгенерированных обложек: да
+
+### Сборка
+- [x] Frontend build: успешно
+- [x] Backend check: успешно
+- [x] Git push: выполнен
+
+---
+
 ## ✅ ПРОВЕРЕНО И ДОРАБОТАНО — 2026-08-01
 
 ### AI Chat
