@@ -1684,3 +1684,44 @@
 - Для сборки Android: `cd frontend && npx cap open android` → Android Studio → Build APK
 - Для сборки iOS нужна macOS + Xcode: `cd frontend && npx cap add ios && npx cap open ios`
 - Для Tauri build нужен установленный Rust: `cd desktop && npm install && npm run tauri build`
+
+---
+
+## ✅ ПРОМПТ №8 — White-Label Agency + OMEGA API + Multi-Project Workspaces — 2026-08-01
+
+### White-Label Agency
+- [x] Backend модель `WhiteLabel`: да (`backend/models/WhiteLabel.js`)
+- [x] Middleware `detectWhiteLabel` по host: да (`backend/middleware/whiteLabel.js`)
+- [x] Controller CRUD/preview: да (`backend/controllers/whiteLabelController.js`)
+- [x] Routes `/api/white-label/...`: да (`backend/routes/whiteLabel.js`)
+- [x] Frontend вкладка: да (`frontend/src/pages/owner/components/tabs/WhiteLabelTab.jsx`)
+- [x] Проверка Agency/owner/admin: да
+- [x] Подключено в `server.js`: да
+
+### OMEGA API (B2B2B)
+- [x] Backend модель `DeveloperApiKey`: да (`backend/models/DeveloperApiKey.js`)
+- [x] Controller с валидацией ключа, rate limit, billing: да (`backend/controllers/omegaAPIController.js`)
+- [x] Routes `/api/v1/omega/...`: да (`backend/routes/api/v1/omegaAPI.js`)
+- [x] Endpoints: `GET /status`, `POST /chat`, `POST /generate`: да
+- [x] Key management: да (`GET/POST/PATCH/DELETE /keys` + webhooks)
+- [x] OpenAPI docs `/api/v1/omega/docs`: да (статичный JSON)
+- [x] Frontend Developer tab: да (`frontend/src/pages/owner/components/tabs/DeveloperTab.jsx`)
+- [x] Подключено в `server.js`: да
+
+### Multi-Project Workspaces
+- [x] Backend модель `ProjectWorkspace`: да (`backend/models/ProjectWorkspace.js`)
+- [x] Controller CRUD + default: да (`backend/controllers/projectWorkspaceController.js`)
+- [x] Routes `/api/workspaces/...`: да (`backend/routes/projectWorkspace.js`)
+- [x] Frontend вкладка Workspaces: да (`frontend/src/pages/owner/components/tabs/WorkspacesTab.jsx`)
+- [x] Переключатель проектов в шапке: да (`DashboardHeader` + `workspaceApi`)
+- [x] Подключено в `server.js`: да
+
+### Интеграция в Owner Dashboard
+- [x] Tabs `whiteLabel`, `workspaces`, `developer` добавлены в `OwnerDashboardPage.jsx`
+- [x] Labels/icons в `initialData.js`: да
+- [x] Routes `/developer`, `/white-label`, `/workspaces` в `App.jsx`: да
+
+### Сборка и деплой
+- [x] Frontend build: успешно
+- [x] Backend check: успешно (server.js + все новые файлы)
+- [x] Git push: выполнен

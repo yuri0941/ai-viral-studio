@@ -13,6 +13,8 @@ import { errorHandler } from './middleware/errorHandler.js'
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import bot from './services/ownerBot.js'
 
+import { detectWhiteLabel, whiteLabelHeaders, getWhiteLabelConfig } from './middleware/whiteLabel.js'
+
 // Routes
 import authRoutes from './routes/auth.js'
 import aiRoutes from './routes/ai.js'
@@ -33,6 +35,9 @@ import yookassaRoutes from './routes/yookassa.js'  // ← P10: ЮKassa
 import stripeRoutes from './routes/stripe.js'  // ← P10: Stripe (выключено по умолчанию)
 import emailRoutes from './routes/email.js'  // ← P10: Email
 import pushRoutes from './routes/push.js'  // Push notifications
+import whiteLabelRoutes from './routes/whiteLabel.js'  // ← White-Label Agency
+import projectWorkspaceRoutes from './routes/projectWorkspace.js'  // ← Multi-Project Workspaces
+import omegaAPIRoutes from './routes/api/v1/omegaAPI.js'  // ← B2B2B OMEGA API
 
 const app = express()
 app.set('trust proxy', 1)
@@ -120,6 +125,10 @@ const limiter = rateLimit({
 })
 app.use('/api/', limiter)
 
+// White-label detection — applies to all requests so custom branding can be detected
+app.use(detectWhiteLabel)
+app.use(whiteLabelHeaders)
+
 const registerLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 5,
@@ -170,6 +179,9 @@ app.use('/api/yookassa', yookassaRoutes)  // ← P10: ЮKassa
 app.use('/api/stripe', stripeRoutes)  // ← P10: Stripe (выключено по умолчанию)
 app.use('/api/email', emailRoutes)  // ← P10: Email
 app.use('/api/push', pushRoutes)  // Push notifications
+app.use('/api/white-label', whiteLabelRoutes)
+app.use('/api/workspaces', projectWorkspaceRoutes)
+app.use('/api/v1/omega', omegaAPIRoutes)
 
 // Error handling
 app.use(errorHandler)

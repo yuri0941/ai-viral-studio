@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Bell, Search, User, Globe, Shield, Briefcase, Headphones, Megaphone, UserCircle, ChevronDown, Sun, Moon, OctagonAlert, Play } from 'lucide-react'
+import { Menu, Bell, Search, User, Globe, Shield, Briefcase, Headphones, Megaphone, UserCircle, ChevronDown, Sun, Moon, OctagonAlert, Play, Folder, Check } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { UserProfileModal } from './UserProfileModal'
+import { workspaceApi } from '../../services/api'
 
 const ROLE_CONFIG = {
     owner: { label: 'Owner', icon: Shield, color: 'text-yellow-400', route: '/owner' },
@@ -44,6 +45,31 @@ export function DashboardHeader({
     const [emergencyStopped, setEmergencyStopped] = useState(false)
     const [profileOpen, setProfileOpen] = useState(false)
     const [pushSubscribed, setPushSubscribed] = useState(false)
+    const [workspaces, setWorkspaces] = useState([])
+    const [activeWorkspace, setActiveWorkspace] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('active_workspace')) } catch { return null }
+    })
+    const [wsOpen, setWsOpen] = useState(false)
+
+    useEffect(() => {
+        if (['owner', 'admin', 'business'].includes(user?.role)) {
+            workspaceApi.list().then(res => {
+                const list = res.data || []
+                setWorkspaces(list)
+                const def = list.find(w => w.isDefault) || list[0]
+                if (def && !activeWorkspace) {
+                    setActiveWorkspace(def)
+                    localStorage.setItem('active_workspace', JSON.stringify(def))
+                }
+            }).catch(() => {})
+        }
+    }, [user?.role])
+
+    const handleWorkspaceChange = (ws) => {
+        setActiveWorkspace(ws)
+        localStorage.setItem('active_workspace', JSON.stringify(ws))
+        setWsOpen(false)
+    }
 
     useEffect(() => {
         if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -223,6 +249,36 @@ export function DashboardHeader({
                             </div>
                         )}
                     </div>
+
+                    {workspaces.length > 0 && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setWsOpen(o => !o)}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-xs font-medium text-white/80"
+                                aria-label="Выбрать проект"
+                            >
+                                <Folder className="w-3.5 h-3.5 text-[#8b5cf6]" />
+                                <span className="hidden sm:inline truncate max-w-[120px]">{activeWorkspace?.name || 'Проект'}</span>
+                                <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${wsOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            {wsOpen && (
+                                <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[#0f0f1a] border border-white/10 shadow-xl overflow-hidden z-50">
+                                    {workspaces.map(ws => (
+                                        <button
+                                            key={ws._id}
+                                            onClick={() => handleWorkspaceChange(ws)}
+                                            className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-white/5 transition-colors ${
+                                                activeWorkspace?._id === ws._id ? 'bg-white/[0.03] text-white' : 'text-gray-300'
+                                            }`}
+                                        >
+                                            {activeWorkspace?._id === ws._id ? <Check className="w-3.5 h-3.5 text-[#8b5cf6]" /> : <div className="w-3.5" />}
+                                            {ws.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <button
                         onClick={handleNotificationsClick}

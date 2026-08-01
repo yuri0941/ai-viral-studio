@@ -195,4 +195,7 @@ export const TAB_LABELS = {
     brandVoice: '🎨 Brand Voice',
     templates: '📋 Шаблоны',
     scout: '🔥 Scout',
+    whiteLabel: '🏷️ White-Label',
+    workspaces: '📁 Workspaces',
+    developer: '👨‍💻 Developer API',
 }

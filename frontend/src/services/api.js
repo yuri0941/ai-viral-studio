@@ -76,9 +76,9 @@ export const ownerApi = {
 // ============================================
 export const omegaApi = {
     status: () => request('/omega/status'),
-    chat: (message, history = []) => request('/omega/chat', {
+    chat: (message, history = [], lang = 'ru') => request('/omega/chat', {
         method: 'POST',
-        body: JSON.stringify({ message, history }),
+        body: JSON.stringify({ message, history, lang }),
     }),
     getMemory: (query, limit) => {
         const params = new URLSearchParams()
@@ -133,7 +133,40 @@ export const omegaApi = {
     }),
 }
 
-export default { ownerApi, omegaApi }
+// ============================================
+// White-Label API
+// ============================================
+export const whiteLabelApi = {
+    get: () => request('/white-label/me'),
+    save: (data) => request('/white-label/me', { method: 'PUT', body: JSON.stringify(data) }),
+    preview: (data) => request('/white-label/preview', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+// ============================================
+// Workspaces API
+// ============================================
+export const workspaceApi = {
+    list: () => request('/workspaces'),
+    create: (data) => request('/workspaces', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => request(`/workspaces/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    delete: (id) => request(`/workspaces/${id}`, { method: 'DELETE' }),
+    setDefault: (id) => request(`/workspaces/${id}/default`, { method: 'POST' }),
+}
+
+// ============================================
+// Developer / OMEGA B2B API
+// ============================================
+export const developerApi = {
+    docs: () => request('/v1/omega/docs'),
+    keys: () => request('/v1/omega/keys'),
+    createKey: (data) => request('/v1/omega/keys', { method: 'POST', body: JSON.stringify(data) }),
+    updateKey: (id, data) => request(`/v1/omega/keys/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    deleteKey: (id) => request(`/v1/omega/keys/${id}`, { method: 'DELETE' }),
+    addWebhook: (id, data) => request(`/v1/omega/keys/${id}/webhooks`, { method: 'POST', body: JSON.stringify(data) }),
+    removeWebhook: (id, webhookId) => request(`/v1/omega/keys/${id}/webhooks/${webhookId}`, { method: 'DELETE' }),
+}
+
+export default { ownerApi, omegaApi, whiteLabelApi, workspaceApi, developerApi }
 
 // ============================================
 // Subscriptions API

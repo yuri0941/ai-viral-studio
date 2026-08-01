@@ -40,6 +40,9 @@ import { LegalSettingsTab } from './components/tabs/LegalSettingsTab'
 import { BrandVoiceTab } from './components/tabs/BrandVoiceTab'
 import { TemplatesTab } from './components/tabs/TemplatesTab'
 import { ScoutTab } from './components/tabs/ScoutTab'
+import { WhiteLabelTab } from './components/tabs/WhiteLabelTab'
+import { WorkspacesTab } from './components/tabs/WorkspacesTab'
+import { DeveloperTab } from './components/tabs/DeveloperTab'
 
 import AnalyticsPage from '../AnalyticsPage'
 import AIChatPage from '../AIChatPage'
@@ -69,7 +72,7 @@ import {
     Megaphone, Lock, Plug, Brain, FileText, Bot, MessageSquare,
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
     BrainCircuit, Database, Scale, BarChart, Search, Calendar, TrendingUp,
-    X, Palette, LayoutTemplate, Flame
+    X, Palette, LayoutTemplate, Flame, Tag, Folder, Code
 } from 'lucide-react'
 
 const TAB_ICONS = {
@@ -111,6 +114,9 @@ const TAB_ICONS = {
     brandVoice: Palette,
     templates: LayoutTemplate,
     scout: Flame,
+    whiteLabel: Tag,
+    workspaces: Folder,
+    developer: Code,
 }
 
 export default function OwnerDashboardPage() {
@@ -164,6 +170,9 @@ export default function OwnerDashboardPage() {
             case 'brandVoice': return <BrandVoiceTab data={ownerData} />
             case 'templates': return <TemplatesTab data={ownerData} />
             case 'scout': return <ScoutTab data={ownerData} />
+            case 'whiteLabel': return <WhiteLabelTab data={ownerData} />
+            case 'workspaces': return <WorkspacesTab data={ownerData} />
+            case 'developer': return <DeveloperTab data={ownerData} />
             case 'analytics': return <AnalyticsPage />
             case 'aiChat': return <AIChatPage />
             case 'contentAnalyzer': return <ContentAnalyzerPage />

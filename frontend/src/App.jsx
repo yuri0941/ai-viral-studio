@@ -212,6 +212,24 @@ function App() {
                     </ProtectedRoute>
                 } />
 
+                <Route path="/developer" element={
+                    <ProtectedRoute allowedRoles={['owner', 'admin', 'business']}>
+                        <Navigate to="/owner?tab=developer" replace />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/white-label" element={
+                    <ProtectedRoute allowedRoles={['owner', 'admin']}>
+                        <Navigate to="/owner?tab=whiteLabel" replace />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/workspaces" element={
+                    <ProtectedRoute allowedRoles={['owner', 'admin', 'business']}>
+                        <Navigate to="/owner?tab=workspaces" replace />
+                    </ProtectedRoute>
+                } />
+
                 <Route path="/payment/success" element={<PaymentSuccess />} />
                 <Route path="/stripe-checkout" element={
                     <ProtectedRoute>
