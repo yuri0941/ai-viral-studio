@@ -20,6 +20,8 @@ export { default as Invoice } from './Invoice.js'
 export { default as OwnerRequisites } from './OwnerRequisites.js'
 export { default as OwnerLegalInfo } from './OwnerLegalInfo.js'
 export { default as ScheduledPost } from './ScheduledPost.js'
+export { UsageQuota } from './UsageQuota.js'
+export { Referral } from './Referral.js'
 
 export { default as User } from './User.js'
 export { default as Chat } from './Chat.js'

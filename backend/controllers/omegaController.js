@@ -15,6 +15,7 @@ import { getTrends, invalidateTrendCache } from '../services/trendScanner.js'
 import { generateCover } from '../services/imageGeneration.js'
 import User from '../models/User.js'
 import axios from 'axios'
+import { checkQuota, consumeGeneration } from '../services/usageQuotaService.js'
 
 let omegaCore = null
 
@@ -62,6 +63,23 @@ export async function chat(req, res) {
 
         const userId = req.user?._id || req.user?.id
 
+        if (userId) {
+            const quota = await checkQuota(userId)
+            if (quota.blocked) {
+                return res.status(402).json({
+                    status: 'error',
+                    code: 'QUOTA_EXCEEDED',
+                    message: 'Генерации исчерпаны. Докупите пакет, чтобы продолжить.',
+                    data: {
+                        used: quota.used,
+                        limit: quota.limit,
+                        topUpPackSize: quota.topUpPackSize,
+                        topUpPackPrice: quota.topUpPackPrice,
+                    },
+                })
+            }
+        }
+
         let brandVoicePrompt = ''
         if (userId) {
             try {
@@ -84,6 +102,14 @@ export async function chat(req, res) {
         const result = userId
             ? await selectResponse(userId, message, userContext)
             : await chatWithAI(message, history.map(h => ({ role: h.role, content: h.content || h.text })), lang)
+
+        if (userId) {
+            try {
+                await consumeGeneration(userId)
+            } catch (err) {
+                console.warn('[omegaController:chat] consumeGeneration failed:', err.message)
+            }
+        }
 
         const responseText = result.reply || (result.success ? result.reply : 'AI временно недоступен. Попробуйте позже.')
 

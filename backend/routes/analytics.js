@@ -4,8 +4,63 @@ import channelAnalytics, { getAllChannelAnalytics } from '../services/channelAna
 import audienceService, { getAllAudienceInsights } from '../services/audienceService.js'
 import vectorStore from '../services/vectorStore.js'
 import abTestService from '../services/abTestService.js'
+import { checkQuota, consumeGeneration, topUpGenerations, updateQuotaSettings } from '../services/usageQuotaService.js'
+import { getReferralData, registerReferral } from '../services/referralService.js'
+import { generateCaseStudy, findCaseStudyCandidates } from '../services/caseStudyGenerator.js'
+import { generateReport } from '../services/pdfGenerator.js'
+import { authorize } from '../middleware/auth.js'
 
 const router = express.Router()
+
+// Quota
+router.get('/quota', protect, async (req, res) => {
+    try {
+        const data = await checkQuota(req.user._id)
+        res.json({ status: 'success', data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.post('/quota/topup', protect, async (req, res) => {
+    try {
+        const packs = parseInt(req.body.packs) || 1
+        const data = await topUpGenerations(req.user._id, packs)
+        res.json({ status: 'success', data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.put('/quota/settings', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const data = await updateQuotaSettings(req.body)
+        res.json({ status: 'success', data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+// Referrals
+router.get('/referrals', protect, async (req, res) => {
+    try {
+        const data = await getReferralData(req.user._id)
+        res.json({ status: 'success', data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.post('/referrals/apply', protect, async (req, res) => {
+    try {
+        const { code } = req.body
+        const result = await registerReferral(req.user._id, code)
+        if (!result) return res.status(400).json({ status: 'error', message: 'Invalid referral code' })
+        res.json({ status: 'success', data: result })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
 
 // Channel analytics per platform
 router.get('/channels/:platform', protect, async (req, res) => {
@@ -91,6 +146,45 @@ router.post('/ab-test/:id/select', protect, async (req, res) => {
 router.get('/ab-test/ai-required', protect, async (req, res) => {
     const data = await abTestService.checkAIRequired()
     res.json({ status: 'success', data })
+})
+
+// Case studies
+router.get('/case-studies/candidates', protect, async (req, res) => {
+    try {
+        const data = await findCaseStudyCandidates(parseFloat(req.query.minGrowth) || 20)
+        res.json({ status: 'success', data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.post('/case-studies/generate', protect, async (req, res) => {
+    try {
+        const { userId: targetUserId } = req.body
+        const data = await generateCaseStudy(targetUserId || req.user._id)
+        res.json(data)
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+// Reports
+router.post('/reports/generate', protect, async (req, res) => {
+    try {
+        const { type = 'weekly', channels = ['instagram', 'tiktok'], format = 'pdf' } = req.body
+        const result = await generateReport({ userId: req.user._id, type, channels, format })
+        if (result.status === 'no_data') {
+            return res.status(400).json(result)
+        }
+        if (format === 'pdf') {
+            res.setHeader('Content-Type', 'application/pdf')
+            res.setHeader('Content-Disposition', `attachment; filename="report-${Date.now()}.pdf"`)
+            return res.send(result.buffer)
+        }
+        res.json({ status: 'success', data: result.data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
 })
 
 // Legacy platform routes (keep for compatibility)

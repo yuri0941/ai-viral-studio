@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import User from '../models/User.js'
 import { sendVerificationEmail } from '../services/emailService.js'
 import { alertOwner } from '../services/ownerBot.js'
+import { registerReferral } from '../services/referralService.js'
 
 // Generate tokens
 const generateTokens = (userId) => {
@@ -65,6 +66,15 @@ export const register = async (req, res) => {
             await sendVerificationEmail(user, user.verificationToken)
         } catch (emailErr) {
             console.error('[authController:register] verification email failed:', emailErr.message)
+        }
+
+        // Apply referral code if provided
+        if (req.body.referralCode) {
+            try {
+                await registerReferral(user._id, req.body.referralCode)
+            } catch (refErr) {
+                console.warn('[authController:register] referral apply failed:', refErr.message)
+            }
         }
 
         // Generate tokens
