@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, raw } from 'express';
 import { protect } from '../middleware/auth.js';
 import {
   status,
@@ -9,8 +9,8 @@ import {
 
 const router = Router();
 
-// Public Stripe webhook (raw body should be used in server.js for this route)
-router.post('/webhook', webhook);
+// Stripe webhook requires raw body for signature verification
+router.post('/webhook', raw({ type: 'application/json' }), webhook);
 
 // Protected routes
 router.get('/status', protect, status);
