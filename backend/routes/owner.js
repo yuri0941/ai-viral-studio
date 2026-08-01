@@ -14,6 +14,8 @@ import {
     updateEntity,
     deleteEntity,
 } from '../controllers/ownerController.js'
+import { protect, authorize } from '../middleware/auth.js'
+import { getProviderStatus, toggleProvider } from '../controllers/aiProviderController.js'
 
 const router = express.Router()
 
@@ -28,6 +30,10 @@ router.get('/agents', getAgents)
 router.get('/promos', getPromos)
 router.get('/news', getNews)
 router.get('/subscriptions', getSubscriptions)
+
+// AI Provider toggles & real status
+router.get('/ai-providers/status', protect, authorize('owner', 'admin'), getProviderStatus)
+router.post('/ai-providers/:id/toggle', protect, authorize('owner', 'admin'), toggleProvider)
 
 // Generic CRUD for owner entities
 router.post('/:entity', createEntity)

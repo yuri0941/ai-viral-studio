@@ -47,6 +47,11 @@ export const ownerApi = {
     promos: () => request('/owner/promos'),
     news: () => request('/owner/news'),
     subscriptions: () => request('/owner/subscriptions'),
+    aiProviderStatus: () => request('/owner/ai-providers/status'),
+    toggleAiProvider: (id, enabled) => request(`/owner/ai-providers/${id}/toggle`, {
+        method: 'POST',
+        body: JSON.stringify({ enabled }),
+    }),
 
     create: (entity, data) => request(`/owner/${entity}`, {
         method: 'POST',

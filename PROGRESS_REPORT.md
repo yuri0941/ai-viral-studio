@@ -1,3 +1,21 @@
+### 2026-08-01 — FIX: AI-провайдеры — модели, статусы, тумблеры владельца
+- [x] backend/services/aiService.js: Groq модель исправлена на `llama-3.3-70b-versatile` (env `llama-3.1-70b-versatile` игнорируется); OpenRouter модель исправлена на `meta-llama/llama-3.3-70b-instruct:free` (env `google/gemini-2.0-flash-lite-preview-02-05:free` игнорируется)
+- [x] backend/services/aiService.js: добавлен `PROVIDER_META` — по умолчанию включены только `groq`, `openrouter`, `pollinations`; остальные (`gemini`, `github`, `huggingface`, `cloudflare`, `fireworks`, `mistral`, `cohere`, `deepseek`, `replicate`) отключены
+- [x] backend/services/aiService.js: `tryProviders` обновляет реальный статус (`active`/`error`/`disabled`/`missing`) после каждой попытки
+- [x] backend/services/aiService.js: добавлены экспорты `getProviderStatuses()` и `toggleProviderSetting()`
+- [x] backend/models/AIProviderSetting.js: новая модель для хранения `enabled`/`lastStatus`/`lastError` провайдеров
+- [x] backend/models/index.js: экспорт `AIProviderSetting`
+- [x] backend/controllers/aiProviderController.js: `getProviderStatus` и `toggleProvider`
+- [x] backend/routes/owner.js: эндпоинты `GET /owner/ai-providers/status` и `POST /owner/ai-providers/:id/toggle` (только owner/admin)
+- [x] frontend/src/services/api.js: `ownerApi.aiProviderStatus()` и `ownerApi.toggleAiProvider(id, enabled)`
+- [x] frontend/src/pages/owner/components/tabs/ApiKeysTab.jsx: тумблеры вкл/выкл для каждого провайдера, синхронизация статуса с backend, бейджи Active/Error/Missing/Disabled
+- [x] frontend/src/pages/owner/utils/helpers.js: добавлены цвета для `missing` и `disabled`
+- [x] Frontend build: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+- Fallback-цепочка: Groq → OpenRouter → Pollinations
+- Статус: **готово к деплою**
+
 ### 2026-08-01 — HOTFIX: временно отключён Turnstile
 - [x] frontend/src/components/auth/LoginForm.jsx: Turnstile рендерится только на `*.pages.dev`; на остальных доменах `turnstileToken` принудительно выставлен в `'disabled'`
 - [x] frontend/src/components/auth/RegisterForm.jsx: аналогично — капча скрыта вне `pages.dev`, отправляется placeholder токен

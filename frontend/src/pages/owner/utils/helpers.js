@@ -42,7 +42,9 @@ export const getStatusColor = (status) => {
         paused: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
         offline: 'text-gray-400 bg-gray-500/10 border-gray-500/20',
         warning: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
-        error: 'text-red-400 bg-red-500/10 border-red-500/20',
+        error: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+        missing: 'text-red-400 bg-red-500/10 border-red-500/20',
+        disabled: 'text-gray-400 bg-gray-500/10 border-gray-500/20',
         online: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
         success: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
         pending: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
@@ -54,6 +56,7 @@ export const getStatusColor = (status) => {
         high: 'text-red-400 bg-red-500/10 border-red-500/20',
         medium: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
         low: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+        gray: 'text-gray-400 bg-gray-500/10 border-gray-500/20',
     }
     return map[status] || map.gray
 }

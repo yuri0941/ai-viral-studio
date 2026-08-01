@@ -3,7 +3,7 @@ import axios from 'axios'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { ApiKey } from '../models/index.js'
+import { ApiKey, AIProviderSetting } from '../models/index.js'
 import { emergencyStop } from '../routes/admin.js'
 
 // ============ HELPERS ============
@@ -97,12 +97,126 @@ const getKey = async (provider) => {
     return keys[provider] || envKey || ''
 }
 
-const isEnabled = async (provider) => {
-    const key = await getKey(provider)
-    // Provider is enabled if a key is available (env flag *_ENABLED is ignored on purpose,
-    // so that fallback chain always works on real requests)
-    return !!key
+// ============ PROVIDER REGISTRY & STATUS ============
+// Only Groq and OpenRouter are enabled by default for the fallback chain.
+// Pollinations is enabled as a no-key fallback. All others are disabled by default
+// and can be toggled by the owner in the UI.
+const PROVIDER_META = {
+    groq: { name: 'Groq', enabledByDefault: true, requiresKey: true },
+    openrouter: { name: 'OpenRouter', enabledByDefault: true, requiresKey: true },
+    gemini: { name: 'Google Gemini', enabledByDefault: false, requiresKey: true },
+    github: { name: 'GitHub Models', enabledByDefault: false, requiresKey: true },
+    huggingface: { name: 'HuggingFace', enabledByDefault: false, requiresKey: true },
+    workersai: { name: 'Cloudflare Workers AI', enabledByDefault: false, requiresKey: true },
+    cloudflare: { name: 'Cloudflare Workers AI (legacy)', enabledByDefault: false, requiresKey: true },
+    fireworks: { name: 'Fireworks AI', enabledByDefault: false, requiresKey: true },
+    mistral: { name: 'Mistral AI', enabledByDefault: false, requiresKey: true },
+    cohere: { name: 'Cohere', enabledByDefault: false, requiresKey: true },
+    deepseek: { name: 'DeepSeek', enabledByDefault: false, requiresKey: true },
+    pollinations: { name: 'Pollinations AI', enabledByDefault: true, requiresKey: false },
 }
+
+const providerStatusMap = new Map()
+
+function setProviderStatus(id, status, lastError = '') {
+    providerStatusMap.set(id, {
+        status,
+        lastError: String(lastError).slice(0, 200),
+        lastCheckedAt: new Date().toISOString(),
+    })
+}
+
+function initProviderStatuses() {
+    for (const id of Object.keys(PROVIDER_META)) {
+        if (!providerStatusMap.has(id)) {
+            setProviderStatus(id, 'missing', '')
+        }
+    }
+}
+initProviderStatuses()
+
+const isEnabled = async (provider) => {
+    const meta = PROVIDER_META[provider] || { enabledByDefault: false, requiresKey: true }
+    try {
+        const setting = await AIProviderSetting.findOne({ provider }).lean()
+        if (setting && setting.enabled === false) return false
+        if (setting && setting.enabled === true) {
+            // If explicitly enabled, also require a key when needed
+            if (meta.requiresKey) {
+                const key = await getKey(provider)
+                return !!key
+            }
+            return true
+        }
+    } catch (err) {
+        console.warn(`[aiService] failed to load provider setting for ${provider}:`, err.message)
+    }
+    // No explicit setting: use default
+    if (!meta.enabledByDefault) return false
+    if (meta.requiresKey) {
+        const key = await getKey(provider)
+        return !!key
+    }
+    return true
+}
+
+export async function getProviderStatuses() {
+    try {
+        const settings = await AIProviderSetting.find({}).lean()
+        const settingsMap = Object.fromEntries(settings.map(s => [s.provider, s]))
+        const result = []
+        for (const [id, meta] of Object.entries(PROVIDER_META)) {
+            const key = await getKey(id)
+            const setting = settingsMap[id]
+            const statusEntry = providerStatusMap.get(id) || { status: 'missing', lastError: '', lastCheckedAt: null }
+            let status = statusEntry.status
+            let enabled = setting ? setting.enabled : meta.enabledByDefault
+
+            if (!enabled) {
+                status = 'disabled'
+            } else if (!key && meta.requiresKey) {
+                status = 'missing'
+            } else if (key && status === 'missing') {
+                // Key exists but not tested yet
+                status = 'active'
+            }
+
+            result.push({
+                id,
+                name: meta.name,
+                enabled,
+                hasKey: !!key,
+                status,
+                lastError: statusEntry.lastError || '',
+                lastCheckedAt: statusEntry.lastCheckedAt || null,
+            })
+        }
+        return result
+    } catch (err) {
+        console.error('[aiService] getProviderStatuses failed:', err.message)
+        return Object.entries(PROVIDER_META).map(([id, meta]) => ({
+            id,
+            name: meta.name,
+            enabled: meta.enabledByDefault,
+            hasKey: false,
+            status: 'missing',
+            lastError: '',
+            lastCheckedAt: null,
+        }))
+    }
+}
+
+export async function toggleProviderSetting(provider, enabled) {
+    const setting = await AIProviderSetting.findOneAndUpdate(
+        { provider },
+        { provider, enabled },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+    )
+    setProviderStatus(provider, enabled ? 'missing' : 'disabled', '')
+    return { provider, enabled: setting.enabled }
+}
+
+export { isEnabled }
 
 const SYSTEM_PROMPT = `You are AI Viral Studio — an expert content creation assistant specializing in viral social media content.
 
@@ -139,7 +253,9 @@ async function chatWithGroq(messages) {
     const client = new Groq({ apiKey: key })
     const completion = await client.chat.completions.create({
         messages,
-        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+        model: process.env.GROQ_MODEL && !process.env.GROQ_MODEL.includes('llama-3.1-70b-versatile')
+            ? process.env.GROQ_MODEL
+            : 'llama-3.3-70b-versatile',
         temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
         max_tokens: parseInt(process.env.GROQ_MAX_TOKENS || '4096'),
         stream: false
@@ -158,7 +274,9 @@ async function chatWithOpenRouter(messages) {
     const response = await axios.post(
         (process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1') + '/chat/completions',
         {
-            model: process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
+            model: process.env.OPENROUTER_MODEL && !process.env.OPENROUTER_MODEL.includes('gemini-2.0-flash-lite-preview-02-05')
+                ? process.env.OPENROUTER_MODEL
+                : 'meta-llama/llama-3.3-70b-instruct:free',
             messages,
             temperature: parseFloat(process.env.OPENROUTER_TEMPERATURE || '0.7'),
             max_tokens: parseInt(process.env.OPENROUTER_MAX_TOKENS || '4096')
@@ -434,22 +552,24 @@ async function chatWithPollinationsText(messages) {
 }
 
 // ============ PROVIDER CHAIN ============
+// Order = fallback priority. Only providers with enabledByDefault=true and a key
+// (or noKey=true) will be tried unless the owner toggles them in the UI.
 const PROVIDER_CHAIN = [
-    { id: 'groq', name: 'Groq', fn: chatWithGroq },
-    { id: 'openrouter', name: 'OpenRouter', fn: chatWithOpenRouter },
-    { id: 'gemini', name: 'Gemini', fn: chatWithGemini },
-    { id: 'github', name: 'GitHub Models', fn: chatWithGitHubModels },
-    { id: 'huggingface', name: 'HuggingFace', fn: chatWithHuggingFace },
-    { id: 'workersai', name: 'Cloudflare Workers AI', fn: chatWithWorkersAI, noKey: false },
-    { id: 'cloudflare', name: 'Cloudflare Workers AI (legacy)', fn: chatWithCloudflare },
-    { id: 'fireworks', name: 'Fireworks AI', fn: chatWithFireworks },
-    { id: 'mistral', name: 'Mistral', fn: chatWithMistral },
-    { id: 'cohere', name: 'Cohere', fn: chatWithCohere },
-    { id: 'deepseek', name: 'DeepSeek', fn: chatWithDeepSeek },
-    { id: 'pollinations', name: 'Pollinations', fn: chatWithPollinationsText, noKey: true },
+    { id: 'groq', name: 'Groq', fn: chatWithGroq, requiresKey: true },
+    { id: 'openrouter', name: 'OpenRouter', fn: chatWithOpenRouter, requiresKey: true },
+    { id: 'pollinations', name: 'Pollinations', fn: chatWithPollinationsText, requiresKey: false },
+    { id: 'gemini', name: 'Gemini', fn: chatWithGemini, requiresKey: true },
+    { id: 'github', name: 'GitHub Models', fn: chatWithGitHubModels, requiresKey: true },
+    { id: 'huggingface', name: 'HuggingFace', fn: chatWithHuggingFace, requiresKey: true },
+    { id: 'workersai', name: 'Cloudflare Workers AI', fn: chatWithWorkersAI, requiresKey: true },
+    { id: 'cloudflare', name: 'Cloudflare Workers AI (legacy)', fn: chatWithCloudflare, requiresKey: true },
+    { id: 'fireworks', name: 'Fireworks AI', fn: chatWithFireworks, requiresKey: true },
+    { id: 'mistral', name: 'Mistral', fn: chatWithMistral, requiresKey: true },
+    { id: 'cohere', name: 'Cohere', fn: chatWithCohere, requiresKey: true },
+    { id: 'deepseek', name: 'DeepSeek', fn: chatWithDeepSeek, requiresKey: true },
 ]
 
-const RETRYABLE_STATUSES = [429, 403, 401, 500, 502, 503, 504]
+const RETRYABLE_STATUSES = [429, 500, 502, 503, 504]
 
 const isRetryableError = (error) => {
     if (!error.response) return true
@@ -460,15 +580,17 @@ const tryProviders = async (messages) => {
     const errors = []
 
     for (const provider of PROVIDER_CHAIN) {
-        const enabled = provider.noKey || await isEnabled(provider.id)
+        const enabled = await isEnabled(provider.id)
         if (!enabled) {
-            console.log(`⏭️ ${provider.name} skipped (no key or disabled)`)
+            console.log(`⏭️ ${provider.name} skipped (disabled or no key)`)
+            setProviderStatus(provider.id, 'disabled', '')
             continue
         }
         try {
             console.log(`🤖 Trying ${provider.name}...`)
             const result = await provider.fn(messages)
             console.log(`✅ ${provider.name} success!`)
+            setProviderStatus(provider.id, 'active', '')
             return { ...result, provider: provider.id }
         } catch (error) {
             const status = error.response?.status
@@ -476,6 +598,7 @@ const tryProviders = async (messages) => {
             if (error.response?.data) {
                 console.error(`   Data:`, JSON.stringify(error.response.data).substring(0, 300))
             }
+            setProviderStatus(provider.id, 'error', status || error.message)
             errors.push(`${provider.name}: ${error.message}`)
             if (!isRetryableError(error)) {
                 console.log(`🚫 ${provider.name} returned non-retryable error, continuing chain`)
@@ -564,7 +687,9 @@ export const streamChat = async (message, history = [], onChunk) => {
         const messages = formatMessages(message, history)
         const stream = await client.chat.completions.create({
             messages,
-            model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+            model: process.env.GROQ_MODEL && !process.env.GROQ_MODEL.includes('llama-3.1-70b-versatile')
+                ? process.env.GROQ_MODEL
+                : 'llama-3.3-70b-versatile',
             temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
             max_tokens: parseInt(process.env.GROQ_MAX_TOKENS || '4096'),
             stream: true

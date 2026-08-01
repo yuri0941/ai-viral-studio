@@ -23,3 +23,4 @@ export { default as ScheduledPost } from './ScheduledPost.js'
 
 export { default as User } from './User.js'
 export { default as Chat } from './Chat.js'
+export { AIProviderSetting } from './AIProviderSetting.js'
