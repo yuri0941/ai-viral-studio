@@ -57,7 +57,5 @@ const usageQuotaSchema = new mongoose.Schema({
     timestamps: true,
 })
 
-usageQuotaSchema.index({ userId: 1 })
-
 export const UsageQuota = mongoose.model('UsageQuota', usageQuotaSchema)
 export default UsageQuota

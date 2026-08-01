@@ -25,7 +25,5 @@ const ownerSettingsSchema = new mongoose.Schema({
     timestamps: true,
 })
 
-ownerSettingsSchema.index({ ownerId: 1 }, { unique: true })
-
 export const OwnerSettings = mongoose.models.OwnerSettings || mongoose.model('OwnerSettings', ownerSettingsSchema)
 export default OwnerSettings

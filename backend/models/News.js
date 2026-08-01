@@ -26,7 +26,6 @@ const newsSchema = new mongoose.Schema({
     authorId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        index: true,
     },
     ownerId: {
         type: mongoose.Schema.Types.ObjectId,
