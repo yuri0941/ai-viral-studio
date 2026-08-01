@@ -1,3 +1,10 @@
+### 2026-07-31 — HOTFIX: Render EADDRINUSE (port 10000 conflict)
+- [x] backend/server.js: PORT берётся из `process.env.PORT` с fallback `10000`
+- [x] backend/server.js: `app.listen` возвращает `server`, добавлены graceful shutdown обработчики `SIGTERM` и `SIGINT`
+- [x] backend/services/ownerBot.js: удалён webhook-блок, который пытался слушать тот же порт; бот теперь всегда использует polling
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+
 ### 2026-07-31 — HOTFIX: CORS middleware
 - [x] CORS: добавлен cors middleware
 - [x] CORS: добавлен обработчик OPTIONS preflight (`app.options('*', cors(...))`)
