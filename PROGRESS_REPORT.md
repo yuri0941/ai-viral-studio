@@ -1,3 +1,15 @@
+### 2026-07-31 — Release v1.0 Phase 1: PWA + Owner App + Push backend
+- [x] PWA: `manifest.json` дополнен description, categories, screenshots, shortcuts
+- [x] PWA: создана `offline.html` с fallback "Нет интернета. Некоторые функции недоступны."
+- [x] PWA: переключен на `injectManifest`, создан `src/sw.js` с push/notificationclick/offline handlers
+- [x] Owner App: создана мобильная страница `OwnerAppPage.jsx` с виджетами MRR, новые, OMEGA, ошибки и кнопками Emergency Stop, Telegram /status, redeploy
+- [x] Owner App: добавлен маршрут `/owner-app` в `App.jsx` (доступ owner)
+- [x] Push backend: установлен `web-push`, созданы `controllers/pushController.js`, `routes/push.js`, подключены к `server.js`
+- [x] Frontend: `src/lib/push.js` для подписки на push-уведомления
+- [x] Frontend build: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+
 ### 2026-07-31 — HOTFIX: express-rate-limit X-Forwarded-For trust proxy
 - [x] backend/server.js: добавлено `app.set('trust proxy', 1)` сразу после `const app = express()`
 - [x] backend/server.js: в общем rate limiter добавлены `standardHeaders: true` и `legacyHeaders: false`
