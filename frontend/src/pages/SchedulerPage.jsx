@@ -83,6 +83,8 @@ function SchedulerPage() {
     const [previewPost, setPreviewPost] = useState(null);
     const [showPreview, setShowPreview] = useState(false);
     const [showABTest, setShowABTest] = useState(false);
+    const [repurposingLoading, setRepurposingLoading] = useState(false);
+    const [repurposingResults, setRepurposingResults] = useState(null);
     const [imageZoom, setImageZoom] = useState(1);
     const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -188,14 +190,78 @@ function SchedulerPage() {
         }));
     };
 
+    const handleRepurpose = async () => {
+        if (!editingPost?._id) {
+            alert('Сначала сохраните пост в базе, чтобы репурпозить его')
+            return
+        }
+        setRepurposingLoading(true)
+        try {
+            const res = await fetch(`/api/scheduler/posts/${editingPost._id}/repurpose`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ formats: ['reels', 'shorts', 'stories', 'twitter-thread', 'carousel', 'telegram-post'] }),
+            })
+            const json = await res.json()
+            if (json.status === 'success') {
+                setRepurposingResults(json.data.results)
+                if (json.data.scheduled?.length) {
+                    setPosts(prev => [...json.data.scheduled, ...prev])
+                }
+            } else {
+                alert(json.message || 'Ошибка репурпозинга')
+            }
+        } catch (err) {
+            alert('Ошибка сети: ' + err.message)
+        } finally {
+            setRepurposingLoading(false)
+        }
+    }
+
     const handleSave = async () => {
         if (!formData.title.trim()) return;
         if (formData.platforms.length === 0) return;
         if (formData.types.length === 0) return;
 
+        const scheduledAt = new Date(`${formData.date}T${formData.time}`)
+        const backendPayload = {
+            title: formData.title,
+            content: formData.description,
+            platforms: formData.platforms,
+            types: formData.types,
+            tags: formData.tags,
+            scheduledAt: isNaN(scheduledAt) ? new Date() : scheduledAt,
+            mediaUrl: uploadedFile ? uploadedFile.name : (editingPost?.fileName || null),
+            status: 'scheduled',
+        }
+
+        let savedBackendPost = null
+        try {
+            if (editingPost?._id) {
+                const res = await fetch(`/api/scheduler/posts/${editingPost._id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(backendPayload),
+                })
+                const json = await res.json()
+                savedBackendPost = json?.data
+            } else {
+                const res = await fetch('/api/scheduler/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(backendPayload),
+                })
+                const json = await res.json()
+                savedBackendPost = json?.data
+            }
+        } catch (err) {
+            console.error('Backend save failed:', err)
+        }
+
         const postData = {
             ...formData,
             fileName: uploadedFile ? uploadedFile.name : (editingPost?.fileName || null),
+            _id: savedBackendPost?._id || editingPost?._id,
         };
 
         if (editingPost) {
@@ -735,8 +801,32 @@ function SchedulerPage() {
                                 >
                                     A/B тест
                                 </button>
+                                <button
+                                    onClick={handleRepurpose}
+                                    disabled={repurposingLoading || !editingPost?._id}
+                                    className="flex-1 px-4 py-2 bg-[#1a1a24] border border-white/10 rounded-lg hover:bg-white/5 text-blue-400 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {repurposingLoading ? 'Генерация...' : '♻️ Репурпозить'}
+                                </button>
                                 <button onClick={handleSave} disabled={!formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="flex-1 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-medium rounded-lg transition-all hover:scale-[1.02]">{editingPost ? 'Сохранить' : 'Создать'}</button>
                             </div>
+
+                            {/* Repurposing results */}
+                            {repurposingResults && (
+                                <div className="mt-4 rounded-xl bg-[#252530] border border-white/10 p-4">
+                                    <h4 className="text-sm font-semibold text-white mb-2">Результаты репурпозинга</h4>
+                                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                                        {repurposingResults.map((r, i) => (
+                                            <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                                <div className="text-xs font-semibold text-blue-400 mb-1">{r.format}</div>
+                                                <div className="text-sm text-white">{r.title}</div>
+                                                {r.content && <div className="text-xs text-gray-400 mt-1 line-clamp-3">{r.content}</div>}
+                                                {r.error && <div className="text-xs text-red-400 mt-1">{r.error}</div>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

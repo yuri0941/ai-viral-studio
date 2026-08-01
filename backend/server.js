@@ -37,6 +37,8 @@ import pushRoutes from './routes/push.js'  // Push notifications
 const app = express()
 app.set('trust proxy', 1)
 
+import { startAutopilot } from './services/autoPilot.js'
+
 // Connect to database before starting server
 await connectDB()
 
@@ -47,6 +49,9 @@ if (!isConnected) {
     }
     console.warn('⚠️  Continuing in fallback/demo mode (development only)')
 }
+
+// Start OMEGA AutoPilot cron (it checks enabled owners internally)
+startAutopilot()
 
 // Seed default OMEGA agents after DB connection
 if (isConnected) {

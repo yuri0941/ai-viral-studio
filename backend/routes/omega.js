@@ -25,6 +25,7 @@ import {
     generateShorts,
     generateSubtitles,
     recommendPublishTime,
+    speakVoice,
 } from '../controllers/omegaController.js'
 
 const router = express.Router()
@@ -55,5 +56,6 @@ router.get('/youtube/analyze', analyzeYouTube)
 router.post('/youtube/shorts', generateShorts)
 router.post('/youtube/subtitles', generateSubtitles)
 router.get('/youtube/best-time', recommendPublishTime)
+router.post('/voice/speak', speakVoice)
 
 export default router

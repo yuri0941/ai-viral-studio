@@ -10,6 +10,8 @@ import { generateCaseStudy, findCaseStudyCandidates } from '../services/caseStud
 import { generateReport } from '../services/pdfGenerator.js'
 import { authorize } from '../middleware/auth.js'
 
+import { predictViralScore } from '../services/predictiveEngine.js'
+
 const router = express.Router()
 
 // Quota
@@ -194,6 +196,19 @@ router.get('/tiktok/:username', (req, res) => {
 
 router.get('/youtube/:channelId', (req, res) => {
     res.json({ status: 'success', message: 'YouTube analytics' })
+})
+
+// Predictive viral score
+router.post('/predict', protect, async (req, res) => {
+    try {
+        const userId = req.user._id
+        const { content } = req.body
+        if (!content) return res.status(400).json({ status: 'error', message: 'Content is required' })
+        const data = await predictViralScore(userId, content)
+        res.json({ status: 'success', data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
 })
 
 export default router

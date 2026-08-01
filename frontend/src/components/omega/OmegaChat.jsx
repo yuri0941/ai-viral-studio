@@ -8,6 +8,8 @@ import { useOmegaChat } from '../../hooks/useOmegaChat.js'
 import { VectorStoreStatus } from './VectorStoreStatus.jsx'
 import { UsageQuotaWidget } from './UsageQuotaWidget.jsx'
 
+import { VoiceInterface } from './VoiceInterface.jsx'
+
 export function OmegaChatContainer(props) {
     const chat = useOmegaChat(props)
     return <OmegaChat {...chat} {...props} />
@@ -210,15 +212,10 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
             {/* Input */}
             <form onSubmit={handleSubmit} className="p-3 border-t border-white/5">
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/5 focus-within:border-purple-500/30 transition-colors">
-                    <button
-                        type="button"
-                        onClick={startVoiceInput}
-                        className={`p-2 rounded-lg transition-colors ${isListening ? 'bg-red-500/20 text-red-400' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
-                        title={isListening ? 'Слушаю...' : 'Голосовой ввод'}
-                        aria-label="Голосовой ввод"
-                    >
-                        <Mic size={16} />
-                    </button>
+                    <VoiceInterface
+                        compact
+                        onTranscript={(text) => setInput(prev => (prev ? prev + ' ' : '') + text)}
+                    />
                     <input
                         value={input}
                         onChange={e => setInput(e.target.value)}

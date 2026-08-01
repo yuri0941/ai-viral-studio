@@ -441,13 +441,22 @@ export async function generateCoverImage(req, res) {
 }
 
 export async function getAutopilotStatus(req, res) {
-    res.json({ status: 'success', data: { enabled: isAutopilotEnabled() } })
+    try {
+        const ownerId = req.user?._id || req.user?.id
+        if (!ownerId) return res.status(401).json({ status: 'error', message: 'Unauthorized' })
+        const enabled = await isAutopilotEnabled(ownerId)
+        res.json({ status: 'success', data: { enabled } })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
 }
 
 export async function setAutopilotStatus(req, res) {
     try {
+        const ownerId = req.user?._id || req.user?.id
+        if (!ownerId) return res.status(401).json({ status: 'error', message: 'Unauthorized' })
         const { enabled } = req.body
-        const next = setAutopilotEnabled(!!enabled)
+        const next = await setAutopilotEnabled(ownerId, !!enabled)
         res.json({ status: 'success', data: { enabled: next } })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
@@ -456,10 +465,10 @@ export async function setAutopilotStatus(req, res) {
 
 export async function createAutopilotPost(req, res) {
     try {
-        const userId = req.user?._id || req.user?.id
-        if (!userId) return res.status(401).json({ status: 'error', message: 'Unauthorized' })
+        const ownerId = req.user?._id || req.user?.id
+        if (!ownerId) return res.status(401).json({ status: 'error', message: 'Unauthorized' })
 
-        const post = await scheduleAutoPost({ userId, ...req.body })
+        const post = await scheduleAutoPost(ownerId, { ...req.body, userId: ownerId })
         res.json({ status: 'success', data: post })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
@@ -502,11 +511,26 @@ export async function generateSubtitles(req, res) {
     }
 }
 
+import { synthesizeSpeech } from '../services/voiceService.js'
+
 export async function recommendPublishTime(req, res) {
     try {
         const { channelId } = req.query
         const result = await recommendBestTime(channelId)
         res.json(result)
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function speakVoice(req, res) {
+    try {
+        const userId = req.user?._id || req.user?.id
+        if (!userId) return res.status(401).json({ status: 'error', message: 'Unauthorized' })
+        const { text } = req.body
+        if (!text) return res.status(400).json({ status: 'error', message: 'Text is required' })
+        const result = await synthesizeSpeech(userId, text)
+        res.json({ status: 'success', data: result })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

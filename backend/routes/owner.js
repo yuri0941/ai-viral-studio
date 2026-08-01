@@ -18,6 +18,8 @@ import { protect, authorize } from '../middleware/auth.js'
 import { getProviderStatus, toggleProvider } from '../controllers/aiProviderController.js'
 import { getAdPricing, updateAdPricing } from '../controllers/adPricingController.js'
 
+import { getOwnerSettings, updateOwnerSettings } from '../controllers/ownerSettingsController.js'
+
 const router = express.Router()
 
 // Owner dashboard data
@@ -31,6 +33,10 @@ router.get('/agents', getAgents)
 router.get('/promos', getPromos)
 router.get('/news', getNews)
 router.get('/subscriptions', getSubscriptions)
+
+// Owner settings (OMEGA features toggles)
+router.get('/settings', protect, authorize('owner', 'admin'), getOwnerSettings)
+router.put('/settings', protect, authorize('owner', 'admin'), updateOwnerSettings)
 
 // AI Provider toggles & real status
 router.get('/ai-providers/status', protect, authorize('owner', 'admin'), getProviderStatus)

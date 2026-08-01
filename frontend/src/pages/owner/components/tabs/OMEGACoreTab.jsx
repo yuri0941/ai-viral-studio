@@ -23,34 +23,48 @@ export function OMEGACoreTab({ data }) {
     const [testLoading, setTestLoading] = useState(null)
     const [autopilotEnabled, setAutopilotEnabled] = useState(false)
     const [autopilotLoading, setAutopilotLoading] = useState(false)
+    const [features, setFeatures] = useState({ autopilot: false, predictive: false, repurposing: false, voice: false })
+    const [featuresLoading, setFeaturesLoading] = useState(false)
 
     useEffect(() => {
-        fetch('/api/omega/autopilot')
+        fetch('/api/owner/settings')
             .then(r => r.ok ? r.json() : null)
             .then(json => {
-                if (json?.data?.enabled !== undefined) setAutopilotEnabled(json.data.enabled)
+                if (json?.data?.features) {
+                    setFeatures(json.data.features)
+                    setAutopilotEnabled(!!json.data.features.autopilot)
+                }
             })
             .catch(() => {})
     }, [])
 
-    const toggleAutopilot = async () => {
-        setAutopilotLoading(true)
+    const updateFeature = async (key, value) => {
+        setFeaturesLoading(true)
         try {
-            const res = await fetch('/api/omega/autopilot', {
-                method: 'POST',
+            const res = await fetch('/api/owner/settings', {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: !autopilotEnabled }),
+                body: JSON.stringify({ features: { ...features, [key]: value } }),
             })
             const json = await res.json()
-            if (json?.data?.enabled !== undefined) {
-                setAutopilotEnabled(json.data.enabled)
-                showToast(json.data.enabled ? 'AutoPilot включён' : 'AutoPilot выключен')
+            if (json?.data?.features) {
+                setFeatures(json.data.features)
+                if (key === 'autopilot') setAutopilotEnabled(!!json.data.features.autopilot)
+                showToast(`${key} ${value ? 'включён' : 'выключен'}`)
             }
         } catch {
-            showToast('Ошибка переключения AutoPilot', 'error')
+            showToast('Ошибка обновления настройки', 'error')
         } finally {
-            setAutopilotLoading(false)
+            setFeaturesLoading(false)
         }
+    }
+
+    const toggleAutopilot = async () => {
+        await updateFeature('autopilot', !autopilotEnabled)
+    }
+
+    const toggleFeature = (key) => async () => {
+        await updateFeature(key, !features[key])
     }
 
     const activeAgents = agents.filter(a => a.status === 'active').length
@@ -127,10 +141,11 @@ export function OMEGACoreTab({ data }) {
                     <h2 className="text-lg font-semibold text-white">OMEGA Core</h2>
                     <StatusBadge status="active" label="ONLINE" pulse />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <button
                         onClick={toggleAutopilot}
-                        disabled={autopilotLoading}
+                        disabled={featuresLoading}
+                        title="⚠️ OMEGA будет сама публиковать посты. Включайте только после проверки!"
                         className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-colors ${
                             autopilotEnabled
                                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
@@ -139,6 +154,42 @@ export function OMEGACoreTab({ data }) {
                     >
                         {autopilotEnabled ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                         🤖 AutoPilot: {autopilotEnabled ? 'ON' : 'OFF'}
+                    </button>
+                    <button
+                        onClick={toggleFeature('predictive')}
+                        disabled={featuresLoading}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-colors ${
+                            features.predictive
+                                ? 'bg-purple-500/10 border-purple-500/20 text-purple-400 hover:bg-purple-500/20'
+                                : 'bg-gray-500/10 border-gray-500/20 text-gray-400 hover:bg-gray-500/20'
+                        }`}
+                    >
+                        {features.predictive ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                        🔮 Predictive
+                    </button>
+                    <button
+                        onClick={toggleFeature('repurposing')}
+                        disabled={featuresLoading}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-colors ${
+                            features.repurposing
+                                ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20'
+                                : 'bg-gray-500/10 border-gray-500/20 text-gray-400 hover:bg-gray-500/20'
+                        }`}
+                    >
+                        {features.repurposing ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                        ♻️ Repurposing
+                    </button>
+                    <button
+                        onClick={toggleFeature('voice')}
+                        disabled={featuresLoading}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-colors ${
+                            features.voice
+                                ? 'bg-pink-500/10 border-pink-500/20 text-pink-400 hover:bg-pink-500/20'
+                                : 'bg-gray-500/10 border-gray-500/20 text-gray-400 hover:bg-gray-500/20'
+                        }`}
+                    >
+                        {features.voice ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                        🎤 Voice
                     </button>
                     <button
                         onClick={handleRecalcForecast}
@@ -153,6 +204,11 @@ export function OMEGACoreTab({ data }) {
                         <FileText size={14} /> Отчёт
                     </button>
                 </div>
+                {autopilotEnabled && (
+                    <div className="text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                        ⚠️ AutoPilot активен. OMEGA будет сама публиковать посты по расписанию. Убедитесь, что подключены соцсети и контент проверен.
+                    </div>
+                )}
             </div>
 
             {/* Alerts */}

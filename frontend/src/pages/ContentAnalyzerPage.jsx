@@ -140,7 +140,26 @@ function ContentAnalyzerPage() {
     const [aiOutput, setAiOutput] = useState('')
     const [aiPrompt, setAiPrompt] = useState('')
     const [coverOpen, setCoverOpen] = useState(false)
+    const [prediction, setPrediction] = useState(null)
+    const [predictionLoading, setPredictionLoading] = useState(false)
     const inputRef = useRef(null)
+
+    const fetchPrediction = useCallback(async (content) => {
+        setPredictionLoading(true)
+        try {
+            const res = await fetch('/api/analytics/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content }),
+            })
+            const json = await res.json()
+            setPrediction(json?.data || null)
+        } catch (err) {
+            console.error('Prediction error:', err)
+        } finally {
+            setPredictionLoading(false)
+        }
+    }, [])
 
     const buildMockAnalysis = useCallback((videoUrl, platform, id, isCompare = false) => {
         const thumb = platform === 'youtube'
@@ -233,6 +252,8 @@ function ContentAnalyzerPage() {
             setLoading(false)
             // pre-generate SEO block
             generateSEO(final, language)
+            // OMEGA predictive forecast
+            fetchPrediction(`${final.title}\n${final.aiSummary}`)
         }, 2000)
     }
 
@@ -451,6 +472,43 @@ function ContentAnalyzerPage() {
             {/* Results */}
             {result && !loading && (
                 <div className="space-y-6">
+                    {/* OMEGA Predictive Forecast */}
+                    <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-white/[0.06] rounded-2xl p-5">
+                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-purple-400" /> Прогноз OMEGA
+                        </h3>
+                        {predictionLoading ? (
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <Loader2 className="w-4 h-4 animate-spin" /> Анализирую паттерны...
+                            </div>
+                        ) : !prediction ? (
+                            <div className="text-xs text-gray-500">Прогноз появится после анализа.</div>
+                        ) : prediction.status === 'insufficient_data' ? (
+                            <div className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                                {prediction.message}
+                            </div>
+                        ) : prediction.status === 'error' ? (
+                            <div className="text-xs text-red-400">{prediction.message}</div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">Вирусность</div>
+                                    <div className="text-2xl font-bold text-white">{prediction.score}/100</div>
+                                    <div className="text-[10px] text-gray-500">точность {prediction.confidence}%</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">Прогноз просмотров</div>
+                                    <div className="text-lg font-semibold text-white">{prediction.estimatedViews}</div>
+                                    <div className="text-[10px] text-gray-500">±15%</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">Обоснование</div>
+                                    <div className="text-xs text-gray-300 line-clamp-3">{prediction.reasoning}</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Comparison banner */}
                     {result.compare && (
                         <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/[0.06] rounded-2xl p-5">
