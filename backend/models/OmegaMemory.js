@@ -37,7 +37,6 @@ const omegaMemorySchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        unique: true,
     },
     entries: {
         type: [memoryEntrySchema],
@@ -58,6 +57,7 @@ const omegaMemorySchema = new mongoose.Schema({
 })
 
 omegaMemorySchema.index({ ownerId: 1, 'entries.level': 1 })
+omegaMemorySchema.index({ ownerId: 1 }, { unique: true })
 
 export const OmegaMemory = mongoose.model('OmegaMemory', omegaMemorySchema)
 export default OmegaMemory

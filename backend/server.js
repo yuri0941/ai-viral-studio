@@ -93,11 +93,11 @@ app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(compression())
 
-// Telegram bot webhook endpoint (must be before rate limiters and before API routes)
-if (process.env.TELEGRAM_BOT_TOKEN) {
-    app.post(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, (req, res) => {
-        if (bot && bot.processUpdate) {
-            bot.processUpdate(req.body)
+// Telegram webhook handler
+if (process.env.TELEGRAM_BOT_TOKEN && process.env.NODE_ENV === 'production') {
+    app.post(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, express.json(), (req, res) => {
+        if (global.ownerBot && typeof global.ownerBot.processUpdate === 'function') {
+            global.ownerBot.processUpdate(req.body)
         }
         res.sendStatus(200)
     })

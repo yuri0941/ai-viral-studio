@@ -1,21 +1,29 @@
 import TelegramBot from 'node-telegram-bot-api'
 
 const token = process.env.TELEGRAM_BOT_TOKEN
-let bot
+let ownerBot
 
-if (token) {
+if (!token) {
+  console.log('⚠️ TELEGRAM_BOT_TOKEN not set, owner bot disabled')
+  // Возвращаем заглушку, чтобы не ломать импорты
+  ownerBot = {
+    sendMessage: () => Promise.resolve(),
+    onText: () => {},
+    on: () => {},
+    processUpdate: () => {},
+  }
+} else {
   const isDev = process.env.NODE_ENV !== 'production'
-  bot = new TelegramBot(token, {
-    polling: isDev,
-    webHook: !isDev ? { port: false } : false,
-  })
-  global.ownerBot = bot
 
-  // В production webhook (если есть RENDER_EXTERNAL_URL)
+  // В production НЕТ polling и НЕТ встроенного webhook-сервера
+  const bot = new TelegramBot(token, {
+    polling: isDev ? { interval: 300 } : false,
+  })
+
   if (!isDev && process.env.RENDER_EXTERNAL_URL) {
     const webhookUrl = `${process.env.RENDER_EXTERNAL_URL}/bot${token}`
     bot.setWebhook(webhookUrl).catch(err => {
-      console.log('Telegram webhook setup failed (non-critical):', err.message)
+      console.log('Telegram webhook setup failed:', err.message)
     })
   }
 
@@ -32,18 +40,22 @@ if (token) {
       bot.sendMessage(msg.chat.id, '❌ Ошибка получения статуса')
     }
   })
-} else {
-  console.warn('[ownerBot] TELEGRAM_BOT_TOKEN not set, bot disabled')
+
+  ownerBot = bot
 }
+
+global.ownerBot = ownerBot
+
+export { ownerBot }
+export default ownerBot
 
 export const alertOwner = async (message) => {
   const chatId = process.env.TELEGRAM_OWNER_CHAT_ID
-  if (!chatId || !bot) return
+  const bot = global.ownerBot
+  if (!chatId || !bot || typeof bot.sendMessage !== 'function') return
   try {
     await bot.sendMessage(chatId, message, { parse_mode: 'HTML' })
   } catch (e) {
     console.error('Telegram alert failed:', e.message)
   }
 }
-
-export default bot
