@@ -1,3 +1,52 @@
+## ✅ ПРОВЕРЕНО И ДОРАБОТАНО — 2026-08-01
+
+### AI Chat
+- [x] Groq модель исправлена на `llama-3.3-70b-versatile`
+- [x] OpenRouter модель исправлена на `meta-llama/llama-3.3-70b-instruct:free`
+- [x] Fallback цепочка проверена (Groq → OpenRouter)
+- [x] OmegaChat demo-mode проверен
+
+### Профиль владельца
+- [x] Модалка/страница профиля существует: да (`frontend/src/components/layout/UserProfileModal.jsx`)
+- [x] Клик на аватар открывает профиль: да
+- [x] Сохранение работает: да (`PATCH /api/users/me`)
+
+### Цены рекламы
+- [x] UI управления CPM/CPC/CPA существует: да (`frontend/src/pages/owner/components/tabs/AdvertisingTab.jsx`)
+- [x] Backend endpoint `/api/owner/ad-pricing`: да (`GET`/`PUT`)
+- [x] Цены сохраняются после reload: да
+
+### Адаптивная реклама
+- [x] Компонент `ResponsiveAdBanner` создан: да
+- [x] Desktop: баннер в sidebar/bottom: да
+- [x] Mobile: fixed bottom banner (не мешает): да
+- [x] Кнопка закрыть (×) работает: да
+
+### OMEGA Agents
+- [x] Количество агентов в реестре: 10 (`backend/services/omegaAgents/agentsRegistry.js`)
+- [x] Все 10 базовых агентов есть: да
+- [x] Видны в OMEGA Core табе: да
+
+### OMEGA Memory
+- [x] 8 слоёв памяти существуют: да (`backend/ai/omega/omegaMemory.js`)
+- [x] Интегрирована в чат: да (`responseSelector.js` подгружает контекст и извлекает факты)
+- [x] Тест: «Я кофейня» → «Чем я занимаюсь?» = «кофейня»: да (сохраняется в `semantic`)
+
+### i18n
+- [x] Все ключи sidebar в `ru.json`/`en.json`: да
+- [x] Переключатель меняет язык везде: да
+
+### Тема
+- [x] Глобальное переключение light/dark: да (`useTheme` + `DashboardShell`)
+- [x] Sidebar меняет цвета: да (`bg-[var(--bg)]`, `border-[var(--border)]`)
+
+### Сборка
+- [x] Frontend build: успешно
+- [x] Backend check: успешно
+- [x] Git push: выполнен
+
+---
+
 ### 2026-08-01 — FIX: AI-провайдеры — UI-тумблеры синхронизированы с backend, реальный статус, omegaCore фильтр по enabled
 - [x] backend/models/AIProviderSetting.js: `enabled` по умолчанию `false`
 - [x] backend/ai/omega/index.js: все AI-провайдеры из `PROVIDER_META` передаются в ядро; `enabled` берётся из `isEnabled()` (учитывает настройки владельца и `enabledByDefault`)
