@@ -341,9 +341,17 @@ ${base.text}
     }
 }
 
+import { getJSON, setJSON, cacheKey } from '../config/redis.js'
+
 export async function listTemplateLibrary(req, res) {
     try {
-        res.json({ status: 'success', data: listTemplates() })
+        const key = cacheKey('omega:templates', 'global')
+        const cached = await getJSON(key)
+        if (cached) return res.json({ status: 'success', data: cached, cached: true })
+
+        const data = listTemplates()
+        await setJSON(key, data, 3600)
+        res.json({ status: 'success', data })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

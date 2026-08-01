@@ -12,6 +12,21 @@ import { authorize } from '../middleware/auth.js'
 
 import { predictViralScore } from '../services/predictiveEngine.js'
 
+import { getJSON, setJSON, cacheKey } from '../config/redis.js'
+
+function cacheWrap(ttlSeconds) {
+    return async (req, res, next) => {
+        const key = cacheKey(`analytics:${req.path}`, { userId: req.user._id, query: req.query })
+        const cached = await getJSON(key)
+        if (cached) return res.json({ status: 'success', data: cached, cached: true })
+        res.sendCachedResponse = async (data) => {
+            await setJSON(key, data, ttlSeconds)
+            res.json({ status: 'success', data })
+        }
+        next()
+    }
+}
+
 const router = express.Router()
 
 // Quota
@@ -65,46 +80,46 @@ router.post('/referrals/apply', protect, async (req, res) => {
 })
 
 // Channel analytics per platform
-router.get('/channels/:platform', protect, async (req, res) => {
+router.get('/channels/:platform', protect, cacheWrap(300), async (req, res) => {
     try {
         const userId = req.user._id
         const { platform } = req.params
         const data = await getAllChannelAnalytics(userId)
         const result = data.find(d => d.platform === platform)
-        res.json({ status: 'success', data: result || { status: 'disconnected', platform } })
+        res.sendCachedResponse(result || { status: 'disconnected', platform })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }
 })
 
-router.get('/channels', protect, async (req, res) => {
+router.get('/channels', protect, cacheWrap(300), async (req, res) => {
     try {
         const userId = req.user._id
         const data = await getAllChannelAnalytics(userId)
-        res.json({ status: 'success', data })
+        res.sendCachedResponse(data)
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }
 })
 
 // Audience insights
-router.get('/audience/:platform', protect, async (req, res) => {
+router.get('/audience/:platform', protect, cacheWrap(300), async (req, res) => {
     try {
         const userId = req.user._id
         const { platform } = req.params
         const data = await getAllAudienceInsights(userId)
         const result = data.find(d => d.platform === platform)
-        res.json({ status: 'success', data: result || { status: 'no_permission', platform } })
+        res.sendCachedResponse(result || { status: 'no_permission', platform })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }
 })
 
-router.get('/audience', protect, async (req, res) => {
+router.get('/audience', protect, cacheWrap(300), async (req, res) => {
     try {
         const userId = req.user._id
         const data = await getAllAudienceInsights(userId)
-        res.json({ status: 'success', data })
+        res.sendCachedResponse(data)
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

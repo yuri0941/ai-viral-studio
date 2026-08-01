@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../../context/AuthContext'
+import { EmptyState } from '../../../../components/common/EmptyState.jsx'
 import {
     DollarSign, Users, Brain, Calendar, BarChart, Bell, KeyRound, Zap,
     ArrowUpRight, TrendingUp, Server, CreditCard, CheckSquare, MessageSquare,
@@ -56,6 +57,16 @@ export function OverviewTab({ data }) {
 
     return (
         <div className="space-y-6">
+            {payments.length === 0 && subscriptions.length === 0 && (
+                <EmptyState
+                    icon={CreditCard}
+                    title="Начните с первой подписки"
+                    description="Создайте тарифный план, чтобы начать получать платежи и отслеживать MRR."
+                    actionLabel="Создать тариф"
+                    onClick={() => go('/owner?tab=subscriptions')}
+                />
+            )}
+
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-semibold text-white">

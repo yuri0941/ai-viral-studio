@@ -75,8 +75,9 @@ export default defineConfig({
             output: {
                 manualChunks: {
                     vendor: ['react', 'react-dom', 'react-router-dom'],
-                    ui: ['lucide-react', 'recharts'],
-                    omega: ['@tanstack/react-query'],
+                    ui: ['lucide-react', 'recharts', 'framer-motion'],
+                    ai: ['@tanstack/react-query'],
+                    omega: ['./src/ai/omega'],
                 },
             },
         },

@@ -611,22 +611,33 @@ const tryProviders = async (messages) => {
 }
 
 // ============ EXPORTS ============
+import { getJSON, setJSON, cacheKey as redisCacheKey } from '../config/redis.js'
+
 export const chatWithAI = async (message, history = [], lang = 'ru') => {
     if (emergencyStop) {
         return { success: true, reply: '⛔ OMEGA временно остановлена владельцем. Попробуйте позже.', provider: 'system' }
     }
 
-    const cached = getCached(message, lang)
-    if (cached) {
-        console.log('♻️ Returning cached response')
-        return { success: true, ...cached, cached: true }
+    const localCached = getCached(message, lang)
+    if (localCached) {
+        console.log('♻️ Returning local cached response')
+        return { success: true, ...localCached, cached: true }
     }
 
     try {
+        const redisKey = redisCacheKey('ai:response', { message, lang, historyHash: JSON.stringify(history).slice(0, 200) })
+        const redisCached = await getJSON(redisKey)
+        if (redisCached) {
+            console.log('♻️ Returning Redis cached response')
+            setCached(message, lang, redisCached)
+            return { success: true, ...redisCached, cached: true, source: 'redis' }
+        }
+
         const messages = formatMessages(message, history)
         const result = await tryProviders(messages)
         const value = { reply: result.reply, provider: result.provider, usage: result.usage }
         setCached(message, lang, value)
+        await setJSON(redisKey, value, 3600)
         return { success: true, ...value }
     } catch (error) {
         console.error('AI Service Error:', error.message)

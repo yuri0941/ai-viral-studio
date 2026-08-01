@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, Suspense, lazy } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
@@ -18,10 +18,10 @@ import StaffDashboardPage from './pages/StaffDashboardPage'
 import AdvertiserDashboardPage from './pages/AdvertiserDashboardPage'
 import CreatorDashboardPage from './pages/CreatorDashboardPage'
 import AIChatPage from './pages/AIChatPage'
-import AnalyticsPage from './pages/AnalyticsPage'
-import SchedulerPage from './pages/SchedulerPage'
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
+const SchedulerPage = lazy(() => import('./pages/SchedulerPage'))
 import SettingsPage from './pages/SettingsPage'
-import ContentAnalyzerPage from './pages/ContentAnalyzerPage'
+const ContentAnalyzerPage = lazy(() => import('./pages/ContentAnalyzerPage'))
 import ViralChatPage from './pages/ViralChatPage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
 import OwnerAppPage from './pages/owner/OwnerAppPage'
@@ -134,98 +134,104 @@ function App() {
 
     return (
         <>
-            <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LandingPage showLogin={true} />} />
-            <Route path="/register" element={<LandingPage showRegister={true} />} />
-            <Route path="/redirect" element={<RoleRedirect />} />
-
-            <Route path="/owner" element={
-                <ProtectedRoute allowedRoles={['owner']}>
-                    <OwnerDashboardPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/admin" element={
-                <ProtectedRoute allowedRoles={['admin', 'owner']}>
-                    <AdminDashboardPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/staff" element={
-                <ProtectedRoute allowedRoles={['staff', 'admin', 'owner']}>
-                    <StaffDashboardPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/advertiser" element={
-                <ProtectedRoute allowedRoles={['advertiser', 'owner']}>
-                    <AdvertiserDashboardPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/dashboard" element={
-                <ProtectedRoute allowedRoles={['creator', 'business', 'owner']}>
-                    <CreatorDashboardPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/ai-chat" element={
-                <ProtectedRoute>
-                    <AIChatPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/analytics" element={
-                <ProtectedRoute>
-                    <AnalyticsPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/scheduler" element={
-                <ProtectedRoute>
-                    <SchedulerPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-                <ProtectedRoute>
-                    <SettingsPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/analyzer" element={
-                <ProtectedRoute>
-                    <ContentAnalyzerPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/viral-chat" element={
-                <ProtectedRoute>
-                    <ViralChatPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/advertiser-requests" element={
-                <ProtectedRoute allowedRoles={['owner', 'admin']}>
-                    <AdvertiserRequestsPage />
-                </ProtectedRoute>
-            } />
-
-            <Route path="/owner-app" element={
-                <ProtectedRoute allowedRoles={['owner']}>
-                    <OwnerAppPage />
-                </ProtectedRoute>
-            } />
-
-            <Route path="/payment/success" element={<PaymentSuccess />} />
-            <Route path="/stripe-checkout" element={
-                <ProtectedRoute>
-                    <StripeCheckoutPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-            <Route path="/consent" element={<ConsentPage />} />
-
-            <Route path="*" element={
-                <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white">
-                    <div className="text-center px-4">
-                        <h1 className="text-5xl sm:text-6xl font-bold text-[#00ff41] mb-4">404</h1>
-                        <p className="text-gray-400 text-sm sm:text-base">Страница не найдена</p>
-                    </div>
+            <Suspense fallback={
+                <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-[#00ff41] border-t-transparent rounded-full" />
                 </div>
-            } />
-        </Routes>
+            }>
+                <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LandingPage showLogin={true} />} />
+                <Route path="/register" element={<LandingPage showRegister={true} />} />
+                <Route path="/redirect" element={<RoleRedirect />} />
+
+                <Route path="/owner" element={
+                    <ProtectedRoute allowedRoles={['owner']}>
+                        <OwnerDashboardPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/admin" element={
+                    <ProtectedRoute allowedRoles={['admin', 'owner']}>
+                        <AdminDashboardPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/staff" element={
+                    <ProtectedRoute allowedRoles={['staff', 'admin', 'owner']}>
+                        <StaffDashboardPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/advertiser" element={
+                    <ProtectedRoute allowedRoles={['advertiser', 'owner']}>
+                        <AdvertiserDashboardPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/dashboard" element={
+                    <ProtectedRoute allowedRoles={['creator', 'business', 'owner']}>
+                        <CreatorDashboardPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/ai-chat" element={
+                    <ProtectedRoute>
+                        <AIChatPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/analytics" element={
+                    <ProtectedRoute>
+                        <AnalyticsPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/scheduler" element={
+                    <ProtectedRoute>
+                        <SchedulerPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                    <ProtectedRoute>
+                        <SettingsPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/analyzer" element={
+                    <ProtectedRoute>
+                        <ContentAnalyzerPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/viral-chat" element={
+                    <ProtectedRoute>
+                        <ViralChatPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/advertiser-requests" element={
+                    <ProtectedRoute allowedRoles={['owner', 'admin']}>
+                        <AdvertiserRequestsPage />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/owner-app" element={
+                    <ProtectedRoute allowedRoles={['owner']}>
+                        <OwnerAppPage />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/payment/success" element={<PaymentSuccess />} />
+                <Route path="/stripe-checkout" element={
+                    <ProtectedRoute>
+                        <StripeCheckoutPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+                <Route path="/consent" element={<ConsentPage />} />
+
+                <Route path="*" element={
+                    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white">
+                        <div className="text-center px-4">
+                            <h1 className="text-5xl sm:text-6xl font-bold text-[#00ff41] mb-4">404</h1>
+                            <p className="text-gray-400 text-sm sm:text-base">Страница не найдена</p>
+                        </div>
+                    </div>
+                } />
+            </Routes>
+            </Suspense>
 
         <CommandPalette />
     </>

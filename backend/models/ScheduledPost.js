@@ -17,5 +17,8 @@ const scheduledPostSchema = new mongoose.Schema({
 })
 
 scheduledPostSchema.index({ scheduledAt: 1, status: 1 })
+scheduledPostSchema.index({ userId: 1, status: 1 })
+scheduledPostSchema.index({ createdAt: -1 })
+scheduledPostSchema.index({ title: 'text', content: 'text' })
 
 export default mongoose.model('ScheduledPost', scheduledPostSchema)

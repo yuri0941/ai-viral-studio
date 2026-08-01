@@ -39,10 +39,12 @@ function handleError(res, err, fallback) {
     return res.status(500).json({ status: 'error', message: err.message })
 }
 
-async function safeFind(model, filter = {}, fallback = []) {
+import { getJSON, setJSON, cacheKey } from '../config/redis.js'
+
+async function safeFind(model, filter = {}, fallback = [], limit = 100) {
     try {
         if (!model) return fallback
-        const docs = await model.find(filter).sort({ createdAt: -1 }).lean()
+        const docs = await model.find(filter).sort({ createdAt: -1 }).limit(limit).lean()
         return docs.length > 0 ? docs : fallback
     } catch {
         return fallback
@@ -60,32 +62,36 @@ function getFinanceStats(payments = []) {
 // ============================================
 export async function getOverview(req, res) {
     try {
-        const payments = await safeFind(Payment, {}, INITIAL_PAYMENTS)
-        const subscriptions = await safeFind(SubscriptionPlan, {}, INITIAL_SUBSCRIPTIONS)
-        const servers = await safeFind(Server, {}, INITIAL_SERVERS)
-        const auditLogs = await safeFind(AuditLog, {}, INITIAL_AUDIT_LOGS)
-        const staff = await safeFind(null, {}, INITIAL_STAFF)
+        const cache = await getJSON(cacheKey('owner:overview', 'global'))
+        if (cache) return res.json({ status: 'success', data: cache, cached: true })
+
+        const payments = await safeFind(Payment, {}, INITIAL_PAYMENTS, 100)
+        const subscriptions = await safeFind(SubscriptionPlan, {}, INITIAL_SUBSCRIPTIONS, 100)
+        const servers = await safeFind(Server, {}, INITIAL_SERVERS, 100)
+        const auditLogs = await safeFind(AuditLog, {}, INITIAL_AUDIT_LOGS, 5)
+        const staff = await safeFind(null, {}, INITIAL_STAFF, 100)
 
         const totalUsers = subscriptions.reduce((a, b) => a + (b.users || 0), 0)
         const mrr = subscriptions.reduce((a, b) => a + ((b.price || 0) * (b.users || 0)), 0)
         const activeServers = servers.filter(s => s.status === 'online').length
         const { income, expense, profit } = getFinanceStats(payments)
 
-        res.json({
-            status: 'success',
-            data: {
-                totalUsers,
-                mrr,
-                activeServers,
-                totalServers: servers.length,
-                totalStaff: staff.length,
-                activeCabinets: INITIAL_CABINETS.filter(c => c.status === 'active').length,
-                income,
-                expense,
-                profit,
-                recentActivity: auditLogs.slice(0, 5),
-            },
-        })
+        const data = {
+            totalUsers,
+            mrr,
+            activeServers,
+            totalServers: servers.length,
+            totalStaff: staff.length,
+            activeCabinets: INITIAL_CABINETS.filter(c => c.status === 'active').length,
+            income,
+            expense,
+            profit,
+            recentActivity: auditLogs.slice(0, 5),
+        }
+
+        await setJSON(cacheKey('owner:overview', 'global'), data, 300)
+
+        res.json({ status: 'success', data })
     } catch (err) {
         handleError(res, err, {
             totalUsers: 0,

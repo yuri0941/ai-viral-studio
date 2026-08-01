@@ -13,6 +13,7 @@ import VisualCalendar from '../components/scheduler/VisualCalendar';
 import BestTimePicker from '../components/scheduler/BestTimePicker';
 import PostPreview from '../components/scheduler/PostPreview';
 import ABTestModal from '../components/scheduler/ABTestModal';
+import { EmptyState } from '../components/common/EmptyState.jsx';
 
 const PLATFORM_COLORS = {
     youtube: '#FF0000',
@@ -495,6 +496,18 @@ function SchedulerPage() {
                     </div>
                 </div>
             </div>
+
+            {totalPosts === 0 && (
+                <div className="mb-6">
+                    <EmptyState
+                        icon={Calendar}
+                        title="Запланируйте первый пост"
+                        description="Создайте публикацию, и OMEGA поможет выбрать лучшее время и форматы."
+                        actionLabel="Создать пост"
+                        onAction={() => openModal(null)}
+                    />
+                </div>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { StatusBadge } from '../common/StatusBadge'
-import { Plus, MoreHorizontal, Calendar, User } from 'lucide-react'
+import { EmptyState } from '../../../../components/common/EmptyState.jsx'
+import { Plus, MoreHorizontal, Calendar, User, CheckSquare } from 'lucide-react'
 import KanbanBoard from '../../../../components/kanban/KanbanBoard'
 
 const COLUMNS = [
@@ -83,7 +84,17 @@ export function TasksTab({ data }) {
             )}
 
             {/* Kanban Board */}
-            <KanbanBoard />
+            {tasks.length === 0 ? (
+                <EmptyState
+                    icon={CheckSquare}
+                    title="Создайте первую задачу"
+                    description="Начните планировать работу: брифы, публикации, проверки — всё в одном месте."
+                    actionLabel="Новая задача"
+                    onAction={addTask}
+                />
+            ) : (
+                <KanbanBoard />
+            )}
         </div>
     )
 }

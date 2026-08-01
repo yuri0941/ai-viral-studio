@@ -1592,3 +1592,56 @@
 ### Ручные действия
 - Подключить ЮKassa/Stripe для оплаты топ-апов (сейчас квота увеличивается напрямую через API, без реального платежа)
 - Добавить рабочие данные клиентов, чтобы Case Study Generator находил кандидатов с ростом {'>'}20%
+
+
+## ✅ ПРОМПТ №6 — Инфраструктура + Real-time + Красивые пустые состояния — 2026-08-01
+
+### Socket.io (real-time)
+- [x] `backend/socket.js` создан: JWT авторизация handshake, комнаты `user_{userId}`, `owner_{ownerId}`, `team_{teamId}`, fallback polling
+- [x] `frontend/src/hooks/useSocket.js` создан: подключение к Socket.io, JWT из localStorage, обработчики new_notification/chat_message/task_update/approval_request/omega_alert
+- [x] Интегрирован в `backend/server.js` через `http.createServer` + `initSocket`
+
+### Empty States (все 7 табов)
+- [x] `frontend/src/components/common/EmptyState.jsx` — универсальный компонент с иконкой, заголовком, подсказкой, CTA
+- [x] Overview: если нет платежей и подписок → «Начните с первой подписки» + CTA
+- [x] Analytics: если демо-данные → «Подключите Instagram в Интеграциях» + CTA
+- [x] Tasks: если нет задач → «Создайте первую задачу» + CTA
+- [x] Scheduler: если нет постов → «Запланируйте первый пост» + CTA
+- [x] OMEGA Core: если нет агентов → «Запустите AI-провайдеров в API Keys» + CTA
+- [x] AI Chat: уже имелся красивый пустой старт с бейджем «Память пуста»
+- [x] Стили Tailwind, glassmorphism, hover:scale-[1.02]
+
+### Performance
+- [x] `frontend/vite.config.js` — manualChunks: vendor, ui (framer-motion), ai (@tanstack/react-query), omega
+- [x] React.lazy() в `frontend/src/App.jsx` для AnalyticsPage, SchedulerPage, ContentAnalyzerPage
+- [x] Suspense fallback с loading spinner
+- [x] MongoDB индексы: добавлены в User, Payment, ScheduledPost; text index по title/content в ScheduledPost
+- [x] `ownerController.js` — `safeFind` с `.limit(100)` и `.lean()`
+- [x] `analytics.js` — кэширование 5 минут через `cacheWrap` middleware
+- [x] `omegaController.js` — кэширование шаблонов 1 час
+- [x] `aiService.js` — двухуровневый кэш AI-ответов (in-memory + Redis 1 час)
+
+### CDN / WebP
+- [ ] Полноценный конвертер загружаемых изображений не добавлен — в проекте нет активного upload-флоу с multer
+- [ ] Рекомендация: подключить `sharp` при добавлении загрузки аватаров/медиа
+
+### Redis / Upstash (кэш)
+- [x] `backend/config/redis.js` создан: ioredis + in-memory Map fallback с TTL 5 мин
+- [x] Если `REDIS_URL/UPSTASH_REDIS_URL` отсутствует — логируется fallback и используется память
+- [x] Кэш: `owner/overview`, `analytics/*`, `omega/templates`, AI-ответы
+
+### PWA Доработка
+- [x] `frontend/src/sw.js` — добавлен `sync` event listener для `sync-posts` и `sync-messages`
+- [x] `frontend/src/components/layout/DashboardHeader.jsx` — кнопка 🔔 запрашивает push-подписку через `PushManager`, подсвечивается зелёным при активной подписке
+- [x] Backend `backend/routes/push.js` + `pushController.js` уже имеет VAPID + web-push отправку
+
+### Сборка и деплой
+- [x] Frontend build: [успешно]
+- [x] Backend `node --check`: [успешно]
+- [x] Git push: [выполнен]
+- [x] PROGRESS_REPORT.md обновлён: [да]
+
+### Ручные действия
+- Добавить `REDIS_URL` или `UPSTASH_REDIS_URL` в Render env для персистентного кэша (иначе in-memory, сбросится при перезапуске)
+- Добавить `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` для production push-уведомлений
+- Добавить `SOCKET_URL` (или оставить проксирование) на фронтенде для Render deployment

@@ -37,6 +37,8 @@ import pushRoutes from './routes/push.js'  // Push notifications
 const app = express()
 app.set('trust proxy', 1)
 
+import http from 'http'
+import { initSocket } from './socket.js'
 import { startAutopilot } from './services/autoPilot.js'
 
 // Connect to database before starting server
@@ -177,9 +179,12 @@ app.use((req, res) => {
     res.status(404).json({ status: 'error', message: 'Route not found' })
 })
 
+const server = http.createServer(app)
+initSocket(server)
+
 const PORT = process.env.PORT || 10000;
 
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server started on port ${PORT}`);
 });
 

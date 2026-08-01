@@ -17,6 +17,16 @@ setCatchHandler(async ({ request }) => {
   return Response.error()
 })
 
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-posts' || event.tag === 'sync-messages') {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'SYNC_TRIGGERED', tag: event.tag }))
+      })
+    )
+  }
+})
+
 self.addEventListener('push', (event) => {
   if (!event.data) return
   const data = event.data.json()

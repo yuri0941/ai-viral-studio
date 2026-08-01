@@ -3,8 +3,9 @@ import { KPICard } from '../common/KPICard'
 import { StatusBadge } from '../common/StatusBadge'
 import {
     Brain, Activity, Zap, RefreshCw, Trash2, Terminal,
-    AlertTriangle, Server, Bot, Play, FileText, Wifi, ToggleLeft, ToggleRight
+    AlertTriangle, Server, Bot, Play, FileText, Wifi, ToggleLeft, ToggleRight, KeyRound,
 } from 'lucide-react'
+import { EmptyState } from '../../../../components/common/EmptyState.jsx'
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     CartesianGrid, Legend
@@ -242,36 +243,47 @@ export function OMEGACoreTab({ data }) {
                     <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                         <Bot size={16} className="text-purple-400" /> AI Агенты
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {agents.map(agent => (
-                            <div
-                                key={agent.id}
-                                className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all"
-                            >
-                                <div className="flex items-start justify-between mb-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
-                                            <Bot size={16} className="text-white" />
+                    {agents.length === 0 ? (
+                        <EmptyState
+                            icon={KeyRound}
+                            title="Запустите AI-провайдеров в API Keys"
+                            description="Добавьте ключи Groq, OpenRouter или других провайдеров, чтобы активировать AI-агентов OMEGA."
+                            actionLabel="Перейти в API Keys"
+                            onAction={() => window.location.href = '/owner?tab=apiKeys'}
+                            compact
+                        />
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {agents.map(agent => (
+                                <div
+                                    key={agent.id}
+                                    className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all"
+                                >
+                                    <div className="flex items-start justify-between mb-2">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+                                                <Bot size={16} className="text-white" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium text-white">{agent.name}</div>
+                                                <div className="text-[10px] text-gray-500">{agent.role}</div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div className="text-sm font-medium text-white">{agent.name}</div>
-                                            <div className="text-[10px] text-gray-500">{agent.role}</div>
-                                        </div>
+                                        <StatusBadge status={agent.status} pulse={agent.status === 'active'} />
                                     </div>
-                                    <StatusBadge status={agent.status} pulse={agent.status === 'active'} />
+                                    <p className="text-xs text-gray-400 line-clamp-2 mb-3">{agent.description}</p>
+                                    {agent.status !== 'active' && (
+                                        <button
+                                            onClick={() => handleRestartAgent(agent.id)}
+                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                                        >
+                                            <Play size={12} /> Запустить
+                                        </button>
+                                    )}
                                 </div>
-                                <p className="text-xs text-gray-400 line-clamp-2 mb-3">{agent.description}</p>
-                                {agent.status !== 'active' && (
-                                    <button
-                                        onClick={() => handleRestartAgent(agent.id)}
-                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                                    >
-                                        <Play size={12} /> Запустить
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Providers */}

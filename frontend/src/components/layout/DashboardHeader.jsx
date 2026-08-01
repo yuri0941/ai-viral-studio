@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Menu, Bell, Search, User, Globe, Shield, Briefcase, Headphones, Megaphone, UserCircle, ChevronDown, Sun, Moon, OctagonAlert, Play } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -43,6 +43,50 @@ export function DashboardHeader({
     const [langOpen, setLangOpen] = useState(false)
     const [emergencyStopped, setEmergencyStopped] = useState(false)
     const [profileOpen, setProfileOpen] = useState(false)
+    const [pushSubscribed, setPushSubscribed] = useState(false)
+
+    useEffect(() => {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            navigator.serviceWorker.ready.then(reg => {
+                reg.pushManager.getSubscription().then(sub => {
+                    setPushSubscribed(!!sub)
+                })
+            })
+        }
+    }, [])
+
+    const handleNotificationsClick = async () => {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            onNotificationsClick?.()
+            return
+        }
+        try {
+            const reg = await navigator.serviceWorker.ready
+            let sub = await reg.pushManager.getSubscription()
+            if (!sub) {
+                const publicKey = await fetch('/api/push/vapid-public-key').then(r => r.json()).then(j => j.publicKey).catch(() => null)
+                if (publicKey) {
+                    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) })
+                    await fetch('/api/push/subscribe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+                        body: JSON.stringify(sub),
+                    })
+                    setPushSubscribed(true)
+                }
+            }
+        } catch (e) {
+            console.error('Push subscribe failed:', e)
+        }
+        onNotificationsClick?.()
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+        const rawData = window.atob(base64)
+        return Uint8Array.from(rawData.split('').map(c => c.charCodeAt(0)))
+    }
 
     const availableRoles = getAvailableRoles(user?.role)
     const currentRole = ROLE_CONFIG[user?.role] || ROLE_CONFIG.creator
@@ -181,10 +225,10 @@ export function DashboardHeader({
                     </div>
 
                     <button
-                        onClick={onNotificationsClick}
+                        onClick={handleNotificationsClick}
                         className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors relative"
                     >
-                        <Bell className="w-5 h-5 text-white/70" />
+                        <Bell className={`w-5 h-5 ${pushSubscribed ? 'text-emerald-400' : 'text-white/70'}`} />
                         {unreadCount > 0 && (
                             <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
                                 {unreadCount > 9 ? '9+' : unreadCount}

@@ -14,6 +14,8 @@ import { ChannelAnalyticsTab } from '../components/analytics/ChannelAnalyticsTab
 import { AudienceInsightsTab } from '../components/analytics/AudienceInsightsTab'
 import { CaseStudyGenerator } from '../components/analytics/CaseStudyGenerator'
 import { ReportGenerator } from '../components/analytics/ReportGenerator'
+import { EmptyState } from '../components/common/EmptyState.jsx'
+import { useNavigate } from 'react-router-dom'
 
 const TABS = [
     { id: 'overview', label: 'Обзор' },
@@ -171,6 +173,18 @@ function AnalyticsPage() {
                 {isDemo && (
                     <div className="bg-yellow-900/30 text-yellow-400 text-sm rounded-lg px-3 py-2 mb-4">
                         📈 Пример аналитики — начните публикацию, чтобы увидеть свои данные
+                    </div>
+                )}
+
+                {isDemo && activeTab === 'overview' && (
+                    <div className="mb-6">
+                        <EmptyState
+                            icon={BarChartIcon}
+                            title="Нет данных для аналитики"
+                            description="Подключите Instagram, TikTok или YouTube в Интеграциях, чтобы получать реальную статистику."
+                            actionLabel="Перейти в Интеграции"
+                            onAction={() => navigate('/settings?tab=integrations')}
+                        />
                     </div>
                 )}
 
