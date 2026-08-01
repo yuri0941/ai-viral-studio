@@ -2051,3 +2051,14 @@
 - [x] Frontend build: успешно (есть warnings по chunk size)
 - [x] Backend `node --check` (все новые файлы): успешно
 - [x] Git push: выполнить
+
+
+### Исправления после деплоя — Промпт №13
+- [x] `AppSidebar.jsx`: `Cpu` импортирован: да
+- [x] Другие файлы №13 проверены на импорты: да (`PredictionCard.jsx`, `AIvsHumanPage.jsx`, `SchedulerPage.jsx`, `UserProfileModal.jsx`, `App.jsx`)
+- [x] Найдено ошибок импортов: 1 (`Cpu` в `AppSidebar.jsx`)
+- [x] Исправлено файлов: 1
+- [x] Frontend build: успешно
+- [x] Git push: выполнить
+- [ ] Render Clear build cache: требуется вручную в Dashboard
+- [ ] Ошибка `Cpu` ушла в production: проверить после деплоя

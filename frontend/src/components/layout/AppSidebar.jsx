@@ -9,7 +9,7 @@ import {
     BarChart, FileText, Bell, HelpCircle, Heart, Rocket,
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
-    Palette, LayoutTemplate, Flame,
+    Palette, LayoutTemplate, Flame, Cpu,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
