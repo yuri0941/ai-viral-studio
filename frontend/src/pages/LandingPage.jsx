@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import AuthModal from '../components/auth/AuthModal'
 import { ClientChatWidget } from '../components/chat/ClientChatWidget'
 import { PWAInstallButton } from '../components/pwa/PWAInstallButton'
+import { ResponsiveAdBanner } from '../components/ads/ResponsiveAdBanner'
 import { ownerLegalInfoApi } from '../services/api.js'
 
 function LandingPage() {
@@ -440,6 +441,9 @@ function LandingPage() {
                 defaultMode={authModalMode}
                 onSuccess={() => { setAuthModalOpen(false); navigate('/dashboard') }}
             />
+
+            {/* Responsive mobile ad banner */}
+            <ResponsiveAdBanner variant="landing-mobile" />
 
             {/* Client chat widget */}
             <ClientChatWidget />

@@ -5,6 +5,7 @@ import aiService from '../aiService.js'
 import { runAgentsForQuery, formatAgentResults } from '../omegaAgents/agentRunner.js'
 import { searchWeb, formatWebResults, isWebSearchQuery } from '../webSearch.js'
 import { buildBrandVoicePrompt } from '../brandVoice.js'
+import { getMemoryContext, extractAndSaveFacts } from '../../ai/omega/omegaMemory.js'
 
 const BRAIN_MIN_RATING = 2
 
@@ -14,6 +15,7 @@ function buildEnhancedPrompt(userContext, question, extra = {}) {
     parts.push(`Ты — AI Viral Studio OMEGA. Язык: ${language}.`)
     parts.push(`Контекст: пользователь ${name}, ниша ${niche}.`)
     if (brandVoice) parts.push(`Стиль бренда: ${brandVoice}`)
+    if (extra.memoryContext) parts.push(extra.memoryContext)
     if (extra.context) parts.push(extra.context)
     if (extra.vectorResults) parts.push(extra.vectorResults)
     if (extra.webResults) parts.push(extra.webResults)
@@ -52,7 +54,16 @@ export async function selectResponse(userId, question, userContext = {}) {
         console.warn('[responseSelector] vector search failed:', err.message)
     }
 
-    // 3) Agents + Web search enrichment
+    // 3) OMEGA 8-layer memory: extract facts and load context
+    let memoryContext = ''
+    try {
+        await extractAndSaveFacts(userId, question)
+        memoryContext = await getMemoryContext(userId, { question, limit: 5 })
+    } catch (err) {
+        console.warn('[responseSelector] memory context failed:', err.message)
+    }
+
+    // 4) Agents + Web search enrichment
     let webResults = ''
     let agentResults = ''
     try {
@@ -77,7 +88,7 @@ export async function selectResponse(userId, question, userContext = {}) {
     let aiError = null
     try {
         const context = await buildContext(userId, { question }).catch(() => '')
-        const prompt = buildEnhancedPrompt(userContext, question, { context, vectorResults, webResults, agentResults })
+        const prompt = buildEnhancedPrompt(userContext, question, { context, vectorResults, webResults, agentResults, memoryContext })
         aiResult = await aiService.chatWithAI(prompt, [], userContext.language || 'ru')
     } catch (err) {
         aiError = err

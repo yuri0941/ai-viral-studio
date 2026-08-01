@@ -72,6 +72,8 @@ const userSchema = new mongoose.Schema(
             pinterest: { username: String, connected: { type: Boolean, default: false } },
             vk: { userId: String, connected: { type: Boolean, default: false } }
         },
+        phone: { type: String, default: '' },
+        telegram: { type: String, default: '' },
         apiKeys: [{
             name: String,
             key: String,

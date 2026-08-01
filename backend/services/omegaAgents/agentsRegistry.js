@@ -19,6 +19,12 @@ const DEFAULT_AGENTS = [
     { name: 'CompetitorSpy', role: 'competitors', skills: ['instagram_scraper', 'youtube_api'], status: 'active', level: 1, usageCount: 0 },
     { name: 'ContentForge', role: 'content', skills: ['copywriting', 'seo', 'hashtags'], status: 'active', level: 1, usageCount: 0 },
     { name: 'ViralPredictor', role: 'predict', skills: ['analytics', 'ml_score'], status: 'paused', level: 1, usageCount: 0 },
+    { name: 'SEOAgent', role: 'seo', skills: ['seo_audit', 'keyword_research'], status: 'active', level: 1, usageCount: 0 },
+    { name: 'AnalyticsAgent', role: 'analytics', skills: ['metrics', 'dashboards'], status: 'active', level: 1, usageCount: 0 },
+    { name: 'SupportAgent', role: 'support', skills: ['auto_reply', 'ticket_classification'], status: 'active', level: 1, usageCount: 0 },
+    { name: 'DesignAgent', role: 'design', skills: ['thumbnail_ideas', 'visual_concepts'], status: 'active', level: 1, usageCount: 0 },
+    { name: 'LegalAgent', role: 'legal', skills: ['risk_check', 'compliance'], status: 'paused', level: 1, usageCount: 0 },
+    { name: 'FinanceAgent', role: 'finance', skills: ['revenue_forecast', 'payout_check'], status: 'active', level: 1, usageCount: 0 },
 ]
 
 export async function seedAgents() {

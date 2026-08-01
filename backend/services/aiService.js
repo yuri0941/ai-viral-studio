@@ -113,7 +113,7 @@ const PROVIDER_META = {
     mistral: { name: 'Mistral AI', enabledByDefault: false, requiresKey: true },
     cohere: { name: 'Cohere', enabledByDefault: false, requiresKey: true },
     deepseek: { name: 'DeepSeek', enabledByDefault: false, requiresKey: true },
-    pollinations: { name: 'Pollinations AI', enabledByDefault: true, requiresKey: false },
+    pollinations: { name: 'Pollinations AI', enabledByDefault: false, requiresKey: false },
 }
 
 const providerStatusMap = new Map()

@@ -18,7 +18,7 @@ const DEFAULT_PROVIDERS = [
     { id: 'youtube', name: 'YouTube Data API', env: 'YOUTUBE_API_KEY', value: '', status: 'missing', enabled: false, type: 'key', lastRotated: null },
     { id: 'huggingface', name: 'HuggingFace', env: 'HUGGINGFACE_API_KEY', value: '', status: 'missing', enabled: false, type: 'system', description: 'Отключён по умолчанию (Inference API устарел).' },
     { id: 'cloudflare', name: 'Cloudflare Workers AI', env: 'CLOUDFLARE_API_KEY', value: '', status: 'missing', enabled: false, type: 'system', description: 'Отключён по умолчанию (требует account_id + token).' },
-    { id: 'pollinations', name: 'Pollinations AI', env: null, value: '', status: 'missing', enabled: true, type: 'system', description: 'Бесплатный fallback AI. Не требует API-ключа.' },
+    { id: 'pollinations', name: 'Pollinations AI', env: null, value: '', status: 'missing', enabled: false, type: 'system', description: 'Бесплатный fallback AI. Не требует API-ключа. Временно отключён (431).' },
 ]
 
 function isPlaceholder(value) {

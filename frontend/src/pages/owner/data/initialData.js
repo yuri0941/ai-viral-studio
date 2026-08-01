@@ -145,6 +145,14 @@ export const AI_AGENTS = [
     { id: 'growth', name: 'Growth Agent', role: 'Рекомендации', status: 'paused', icon: 'Zap', description: 'Анализирует метрики роста и даёт рекомендации' },
     { id: 'support', name: 'Support Agent', role: 'Авто-ответы', status: 'active', icon: 'MessageSquare', description: 'Автоматически отвечает на типовые тикеты' },
     { id: 'content', name: 'Content Agent', role: 'Модерация', status: 'active', icon: 'Eye', description: 'Модерирует контент на наличие нарушений' },
+    { id: 'seo', name: 'SEO Agent', role: 'SEO', status: 'active', icon: 'Search', description: 'Оптимизирует теги, описания и структуру контента' },
+    { id: 'analytics', name: 'Analytics Agent', role: 'Аналитика', status: 'active', icon: 'BarChart2', description: 'Собирает и визуализирует ключевые метрики' },
+    { id: 'design', name: 'Design Agent', role: 'Дизайн', status: 'active', icon: 'Palette', description: 'Генерирует идеи миниатюр и визуальных концепций' },
+    { id: 'legal', name: 'Legal Agent', role: 'Юридический', status: 'paused', icon: 'Scale', description: 'Проверяет контент на риски и соответствие законам' },
+    { id: 'finance', name: 'Finance Agent', role: 'Финансы', status: 'active', icon: 'Wallet', description: 'Мониторит платежи, выплаты и финансовые риски' },
+    { id: 'trend', name: 'Trend Agent', role: 'Тренды', status: 'active', icon: 'TrendingUp', description: 'Отслеживает тренды в соцсетях и рекомендует темы' },
+    { id: 'competitor', name: 'Competitor Agent', role: 'Конкуренты', status: 'active', icon: 'Target', description: 'Анализирует конкурентов и их успешный контент' },
+    { id: 'viral', name: 'Viral Agent', role: 'Вирусность', status: 'active', icon: 'Flame', description: 'Оценивает вирусный потенциал идеи и контента' },
 ]
 
 export const TAB_LABELS = {

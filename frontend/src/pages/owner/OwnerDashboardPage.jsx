@@ -58,6 +58,7 @@ import { OmegaApprovalModal } from './components/modals/OmegaApprovalModal'
 
 // Floating widgets
 import { OmegaChatWidget } from '../../components/omega/OmegaChatWidget'
+import { ResponsiveAdBanner } from '../../components/ads/ResponsiveAdBanner'
 
 import {
     LayoutDashboard, Users, Monitor, DollarSign, Building2, ShieldCheck,
@@ -240,6 +241,11 @@ export default function OwnerDashboardPage() {
                         </button>
                     </div>
                 ))}
+            </div>
+
+            {/* Desktop bottom ad banner */}
+            <div className="hidden sm:block px-4 lg:px-6 pb-4 lg:pb-6">
+                <ResponsiveAdBanner variant="desktop-bottom" />
             </div>
 
             {/* Omega floating chat */}

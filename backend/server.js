@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
 import { connectDB, isConnected } from './config/database.js'
 import { errorHandler } from './middleware/errorHandler.js'
+import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 
 // Routes
 import authRoutes from './routes/auth.js'
@@ -44,6 +45,16 @@ if (!isConnected) {
         process.exit(1)
     }
     console.warn('⚠️  Continuing in fallback/demo mode (development only)')
+}
+
+// Seed default OMEGA agents after DB connection
+if (isConnected) {
+    try {
+        await seedAgents()
+        console.log('🤖 Default OMEGA agents seeded')
+    } catch (err) {
+        console.warn('[server] seedAgents failed:', err.message)
+    }
 }
 
 // CORS must be first — before any route or body parser

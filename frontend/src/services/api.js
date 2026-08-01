@@ -52,6 +52,11 @@ export const ownerApi = {
         method: 'POST',
         body: JSON.stringify({ enabled }),
     }),
+    adPricing: () => request('/owner/ad-pricing'),
+    saveAdPricing: (data) => request('/owner/ad-pricing', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }),
 
     create: (entity, data) => request(`/owner/${entity}`, {
         method: 'POST',

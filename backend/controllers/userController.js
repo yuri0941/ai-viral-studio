@@ -17,6 +17,8 @@ export const getMe = async (req, res) => {
         avatar: user.avatar,
         socialAccounts: user.socialAccounts,
         preferences: user.preferences,
+        phone: user.phone,
+        telegram: user.telegram,
         acceptedTerms: user.acceptedTerms,
         acceptedPrivacy: user.acceptedPrivacy,
         acceptedConsent: user.acceptedConsent,
@@ -34,11 +36,13 @@ export const getMe = async (req, res) => {
 export const updateMe = async (req, res) => {
   try {
     const userId = req.user.id
-    const { name, avatar, preferences, defaultAddAiLabel } = req.body || {}
+    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram } = req.body || {}
 
     const updates = {}
     if (name !== undefined) updates.name = name.trim()
     if (avatar !== undefined) updates.avatar = avatar.trim()
+    if (phone !== undefined) updates.phone = phone.trim()
+    if (telegram !== undefined) updates.telegram = telegram.trim()
     if (defaultAddAiLabel !== undefined) updates.defaultAddAiLabel = !!defaultAddAiLabel
     if (preferences && typeof preferences === 'object') {
       updates.preferences = {}
@@ -68,6 +72,8 @@ export const updateMe = async (req, res) => {
         avatar: user.avatar,
         socialAccounts: user.socialAccounts,
         preferences: user.preferences,
+        phone: user.phone,
+        telegram: user.telegram,
         acceptedTerms: user.acceptedTerms,
         acceptedPrivacy: user.acceptedPrivacy,
         acceptedConsent: user.acceptedConsent,

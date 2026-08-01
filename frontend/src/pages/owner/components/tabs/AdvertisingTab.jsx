@@ -1,13 +1,56 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DataTable } from '../common/DataTable'
 import { StatusBadge } from '../common/StatusBadge'
 import { formatCurrency } from '../../utils/helpers'
-import { Megaphone, Plus, MessageSquare, CheckCircle, XCircle, Pause, Play } from 'lucide-react'
+import { Megaphone, Plus, MessageSquare, CheckCircle, XCircle, Pause, Play, Banknote, Save } from 'lucide-react'
+import { ownerApi } from '../../../../services/api'
+
+const PRICING_LABELS = {
+    cpm: { label: 'CPM', hint: '₽ за 1000 показов' },
+    cpc: { label: 'CPC', hint: '₽ за клик' },
+    cpa: { label: 'CPA', hint: '₽ за действие' },
+    fixedMonth: { label: 'Фикс', hint: '₽ за месяц размещения' },
+}
 
 export function AdvertisingTab({ data }) {
     const { campaigns, updateCampaignStatus, addNegotiation, setModal } = data
     const [activeChat, setActiveChat] = useState(null)
     const [chatText, setChatText] = useState('')
+    const [pricing, setPricing] = useState({ cpm: 0, cpc: 0, cpa: 0, fixedMonth: 0, currency: 'RUB' })
+    const [pricingLoading, setPricingLoading] = useState(false)
+    const [pricingSaved, setPricingSaved] = useState(false)
+
+    useEffect(() => {
+        ownerApi.adPricing().then(res => {
+            const p = res?.data?.data || res?.data || {}
+            setPricing(prev => ({ ...prev, ...p }))
+        }).catch(err => console.warn('[AdvertisingTab] pricing load failed:', err.message))
+    }, [])
+
+    const handlePricingChange = (key, value) => {
+        const num = Number(value.replace(/[^0-9.]/g, ''))
+        setPricing(prev => ({ ...prev, [key]: isNaN(num) ? 0 : num }))
+        setPricingSaved(false)
+    }
+
+    const savePricing = async () => {
+        setPricingLoading(true)
+        try {
+            await ownerApi.saveAdPricing({
+                cpm: Number(pricing.cpm) || 0,
+                cpc: Number(pricing.cpc) || 0,
+                cpa: Number(pricing.cpa) || 0,
+                fixedMonth: Number(pricing.fixedMonth) || 0,
+                currency: pricing.currency || 'RUB',
+            })
+            setPricingSaved(true)
+            setTimeout(() => setPricingSaved(false), 2000)
+        } catch (err) {
+            console.error('[AdvertisingTab] save pricing failed:', err)
+        } finally {
+            setPricingLoading(false)
+        }
+    }
 
     const columns = [
         { key: 'name', label: 'Кампания', render: (row) => (
@@ -66,6 +109,41 @@ export function AdvertisingTab({ data }) {
                 </button>
             </div>
 
+            {/* Ad Pricing Panel */}
+            <div className="p-4 rounded-2xl bg-[#0f0f1a] border border-white/5 space-y-4">
+                <div className="flex items-center gap-2">
+                    <Banknote size={16} className="text-emerald-400" />
+                    <h3 className="text-sm font-semibold text-white">Цены рекламы</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {Object.entries(PRICING_LABELS).map(([key, meta]) => (
+                        <div key={key} className="space-y-1.5">
+                            <label className="text-xs text-gray-500">{meta.label} <span className="text-gray-600">({meta.hint})</span></label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    min={0}
+                                    value={pricing[key] || ''}
+                                    onChange={e => handlePricingChange(key, e.target.value)}
+                                    className="flex-1 px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500/30"
+                                />
+                                <span className="text-xs text-gray-500">{pricing.currency === 'USD' ? '$' : pricing.currency === 'EUR' ? '€' : '₽'}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={savePricing}
+                        disabled={pricingLoading}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
+                    >
+                        <Save size={14} /> {pricingLoading ? 'Сохранение...' : 'Сохранить'}
+                    </button>
+                    {pricingSaved && <span className="text-xs text-emerald-400">Сохранено</span>}
+                </div>
+            </div>
+
             <DataTable data={campaigns} columns={columns} searchable emptyText="Нет кампаний" />
 
             {/* Negotiations Chat Drawer */}
@@ -115,3 +193,5 @@ export function AdvertisingTab({ data }) {
         </div>
     )
 }
+
+export default AdvertisingTab

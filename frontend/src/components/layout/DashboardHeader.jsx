@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Menu, Bell, Search, User, Globe, Shield, Briefcase, Headphones, Megaphone, UserCircle, ChevronDown, Sun, Moon, OctagonAlert, Play } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { UserProfileModal } from './UserProfileModal'
 
 const ROLE_CONFIG = {
     owner: { label: 'Owner', icon: Shield, color: 'text-yellow-400', route: '/owner' },
@@ -41,6 +42,7 @@ export function DashboardHeader({
     const [roleOpen, setRoleOpen] = useState(false)
     const [langOpen, setLangOpen] = useState(false)
     const [emergencyStopped, setEmergencyStopped] = useState(false)
+    const [profileOpen, setProfileOpen] = useState(false)
 
     const availableRoles = getAvailableRoles(user?.role)
     const currentRole = ROLE_CONFIG[user?.role] || ROLE_CONFIG.creator
@@ -205,14 +207,26 @@ export function DashboardHeader({
                         </button>
                     )}
 
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5">
+                    <button
+                        onClick={() => setProfileOpen(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                    >
                         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#00ff41] to-[#00cc33] flex items-center justify-center text-xs font-bold text-black">
                             {user?.name?.[0]?.toUpperCase() || <User size={14} />}
                         </div>
                         <span className="text-sm text-white/80 hidden sm:inline">{user?.name || 'User'}</span>
-                    </div>
+                    </button>
                 </div>
             </div>
+            <UserProfileModal
+                user={user}
+                isOpen={profileOpen}
+                onClose={() => setProfileOpen(false)}
+                onSave={(updated) => {
+                    updateUser(updated)
+                    if (updated.name) localStorage.setItem('user_profile', JSON.stringify(updated))
+                }}
+            />
         </header>
     )
 }

@@ -6,6 +6,7 @@ const router = express.Router()
 
 router.get('/me', protect, getMe)
 router.put('/me', protect, updateMe)
+router.patch('/me', protect, updateMe)
 router.post('/change-password', protect, changePassword)
 router.post('/change-email', protect, changeEmail)
 

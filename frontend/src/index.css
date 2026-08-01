@@ -16,6 +16,8 @@
     --secondary: #2563eb;
     --accent: #f0883e;
     --bg-dark: #0a0a0f;
+    --bg: #0a0a0f;
+    --bg-light: #f5f5f7;
     --bg-card: rgba(255, 255, 255, 0.03);
     --glass: rgba(255, 255, 255, 0.05);
     --glass-hover: rgba(255, 255, 255, 0.08);
@@ -26,7 +28,7 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background: var(--bg-dark);
+    background: var(--bg);
     color: var(--text);
     min-height: 100vh;
     overflow-x: hidden;
@@ -175,7 +177,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--bg-dark);
+    background: var(--bg);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -199,7 +201,7 @@ body {
         font-size: 2rem;
     }
 }
-/* Тёмные стили для option в select */
+/* Г’ВёГ¬Г­Г»ГҐ Г±ГІГЁГ«ГЁ Г¤Г«Гї option Гў select */
 select option {
     background-color: #0f0f1a;
     color: white;
@@ -266,4 +268,17 @@ input[type="checkbox"],
 input[type="radio"] {
   min-width: 44px;
   min-height: 44px;
+}
+
+
+.dark {
+    --bg: var(--bg-dark);
+    --text: #ffffff;
+    --border: rgba(255, 255, 255, 0.1);
+}
+
+.light {
+    --bg: var(--bg-light);
+    --text: #111111;
+    --border: rgba(0, 0, 0, 0.1);
 }

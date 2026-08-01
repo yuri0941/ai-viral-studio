@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
     LayoutDashboard, Brain, Wallet, BrainCircuit, Database,
     DollarSign, CreditCard, Building2, Megaphone, Share2,
@@ -9,6 +10,7 @@ import {
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
 } from 'lucide-react'
+import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
 const ROLE_MENU = {
     owner: [
@@ -171,6 +173,7 @@ export function AppSidebar({
     onClose,
     isMobile = false,
 }) {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const location = useLocation()
     const [searchParams] = useSearchParams()
@@ -187,10 +190,7 @@ export function AppSidebar({
 
     const roleMenu = menuItems || ROLE_MENU[userRole] || ROLE_MENU.creator
 
-    const groups = useMemo(() => {
-        if (isOwner) return OWNER_GROUPS
-        return [{ id: 'main', title: 'МЕНЮ', items: roleMenu.map(item => ({ ...item, path: item.path })) }]
-    }, [isOwner, roleMenu])
+    const groups = isOwner ? OWNER_GROUPS : [{ id: 'main', title: t('sidebar.menu', 'МЕНЮ'), items: roleMenu.map(item => ({ ...item, path: item.path })) }]
 
     const isItemActive = (item) => {
         if (isOwner) {
@@ -224,23 +224,28 @@ export function AppSidebar({
         .slice(0, 2)
         .toUpperCase()
 
+    const itemLabel = (item) => {
+        if (item.id) return t(`sidebar.${item.id}`, item.label)
+        return item.label
+    }
+
     return (
         <div
             onMouseEnter={() => !isMobile && setHovered(true)}
             onMouseLeave={() => !isMobile && setHovered(false)}
-            className={`flex flex-col h-full bg-[#0f0f1a] border-r border-white/[0.06] transition-[width] duration-300 z-50 relative ${
+            className={`flex flex-col h-full bg-[var(--bg)] border-r border-[var(--border)] transition-[width] duration-300 z-50 relative ${
                 isExpanded ? 'w-[260px]' : 'w-[60px]'
             }`}
         >
             {/* Header */}
-            <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
+            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
                 <div className="flex items-center gap-3 overflow-hidden">
                     <div className="w-9 h-9 rounded-xl bg-[#8B5CF6]/20 flex items-center justify-center flex-shrink-0">
                         <Crown className="w-5 h-5 text-[#8B5CF6]" />
                     </div>
                     {isExpanded && (
                         <div className="min-w-0">
-                            <h1 className="text-white font-bold text-sm leading-tight truncate">AI Viral</h1>
+                            <h1 className="text-[var(--text)] font-bold text-sm leading-tight truncate">AI Viral</h1>
                             <p className="text-gray-500 text-[10px]">Studio</p>
                         </div>
                     )}
@@ -249,8 +254,8 @@ export function AppSidebar({
                     {!isMobile && (
                         <button
                             onClick={toggleExpanded}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
-                            title={isExpanded ? 'Свернуть' : 'Развернуть'}
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--text)] hover:bg-white/5 transition-colors"
+                            title={isExpanded ? t('sidebar.collapse', 'Свернуть') : t('sidebar.expand', 'Развернуть')}
                         >
                             {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                         </button>
@@ -258,7 +263,7 @@ export function AppSidebar({
                     {onClose && isMobile && (
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--text)] hover:bg-white/5 transition-colors"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -275,7 +280,7 @@ export function AppSidebar({
                                 onClick={() => toggleGroup(group.id)}
                                 className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold text-gray-500 tracking-wider uppercase hover:text-gray-400 transition-colors"
                             >
-                                {group.title}
+                                {t(`sidebar.groups.${group.id}`, group.title)}
                                 <ChevronDown
                                     className={`w-3 h-3 transition-transform ${openGroups[group.id] !== false ? 'rotate-180' : ''}`}
                                 />
@@ -296,10 +301,10 @@ export function AppSidebar({
                                             onClick={() => handleItemClick(item)}
                                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left relative ${
                                                 active
-                                                    ? 'text-white bg-[#8B5CF6]/10'
-                                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                                    ? 'text-[var(--text)] bg-[#8B5CF6]/10'
+                                                    : 'text-gray-400 hover:text-[var(--text)] hover:bg-white/5'
                                             } ${isExpanded ? '' : 'justify-center'}`}
-                                            title={item.label}
+                                            title={itemLabel(item)}
                                         >
                                             {active && (
                                                 <div
@@ -308,7 +313,7 @@ export function AppSidebar({
                                                 />
                                             )}
                                             <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-[#8B5CF6]' : ''}`} />
-                                            {isExpanded && <span className="truncate">{item.label}</span>}
+                                            {isExpanded && <span className="truncate">{itemLabel(item)}</span>}
                                         </button>
                                     )
                                 })}
@@ -319,27 +324,35 @@ export function AppSidebar({
             </nav>
 
             {/* User */}
-            <div className="p-3 border-t border-white/[0.06]">
+            <div className="p-3 border-t border-[var(--border)]">
                 <div className={`flex items-center gap-3 px-3 py-2 ${isExpanded ? '' : 'justify-center'}`}>
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                         {initials || <Globe className="w-4 h-4" />}
                     </div>
                     {isExpanded && (
                         <div className="min-w-0">
-                            <p className="text-white text-sm font-medium truncate">{user?.name || userRole}</p>
+                            <p className="text-[var(--text)] text-sm font-medium truncate">{user?.name || userRole}</p>
                             <p className="text-gray-500 text-[10px] truncate">{user?.email || `${userRole}@ai-viral.com`}</p>
                         </div>
                     )}
                 </div>
+
+                {/* Ad banner in sidebar (desktop expanded) */}
+                {isExpanded && !isMobile && (
+                    <div className="px-3 pb-3">
+                        <ResponsiveAdBanner variant="sidebar" />
+                    </div>
+                )}
+
                 <button
                     onClick={onLogout}
                     className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-all text-left ${
                         isExpanded ? '' : 'justify-center'
                     }`}
-                    title="Выйти"
+                    title={t('common.logout', 'Выйти')}
                 >
                     <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-                    {isExpanded && <span>Выйти</span>}
+                    {isExpanded && <span>{t('common.logout', 'Выйти')}</span>}
                 </button>
             </div>
         </div>
