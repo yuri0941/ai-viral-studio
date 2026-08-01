@@ -1,5 +1,5 @@
-import { DeveloperApiKey, generateApiKey } from '../../models/index.js'
-import { chatWithAI, generateContent, getProviderStatuses } from '../../services/aiService.js'
+import { DeveloperApiKey, generateApiKey } from '../models/index.js'
+import { chatWithAI, generateContent, getProviderStatuses } from '../services/aiService.js'
 import crypto from 'crypto'
 
 export async function validateApiKey(req, res, next) {
@@ -78,7 +78,7 @@ export async function postGenerate(req, res) {
         let result = null
         if (type === 'image') {
             const { prompt, style, size } = params
-            const { generateImage } = await import('../../services/aiService.js')
+            const { generateImage } = await import('../services/aiService.js')
             result = await generateImage(prompt, { style, size })
         } else {
             result = await generateContent(type, params)

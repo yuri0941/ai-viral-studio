@@ -1725,3 +1725,23 @@
 - [x] Frontend build: успешно
 - [x] Backend check: успешно (server.js + все новые файлы)
 - [x] Git push: выполнен
+
+---
+
+## ✅ ИСПРАВЛЕНИЕ ИМПОРТОВ — ПРОМПТ №8 — 2026-08-01
+
+### Исправления после деплоя (импорты)
+- [x] `omegaAPIController.js`: путь к models/services исправлен (`../../` → `../`)
+- [x] `whiteLabelController.js`: импорты проверены: да, ошибок: 0
+- [x] `projectWorkspaceController.js`: импорты проверены: да, ошибок: 0
+- [x] `whiteLabel.js` (routes): импорт контроллера исправлен: да (был верным)
+- [x] `projectWorkspace.js` (routes): импорт контроллера исправлен: да (был верным)
+- [x] `omegaAPI.js` (routes/api/v1): импорты исправлены: да (был верным)
+- [x] `whiteLabel.js` (middleware): импорт models исправлен: да (был верным)
+- [x] `server.js`: роуты не дублируются, порядок правильный: да
+- [x] Frontend tabs: импорты api исправлены: да, ошибок: 0
+- [x] Backend `node --check` (все новые файлы): успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен
+- [ ] Render Clear build cache: сделано/нет (требуется вручную в Dashboard)
+- [ ] Backend live (нет `ERR_MODULE_NOT_FOUND`): проверить после деплоя на Render
