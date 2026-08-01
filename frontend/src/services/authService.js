@@ -3,14 +3,15 @@ import { API_URL } from '../config.js'
 const AUTH_API_URL = `${API_URL}/auth`
 
 const authService = {
-    async register(name, email, password) {
+    async register(name, email, password, turnstileToken = '') {
         try {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
             const response = await fetch(`${AUTH_API_URL}/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ name, email, password }),
+                body: JSON.stringify({ name, email, password, timezone, turnstileToken }),
             })
 
             const data = await response.json()
@@ -31,14 +32,15 @@ const authService = {
         }
     },
 
-    async login(email, password) {
+    async login(email, password, turnstileToken = '') {
         try {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
             const response = await fetch(`${AUTH_API_URL}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, timezone, turnstileToken }),
             })
 
             const data = await response.json()

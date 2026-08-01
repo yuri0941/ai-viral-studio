@@ -2196,3 +2196,21 @@
 - [ ] Регистрация возвращает 200: проверить после деплоя
 - [ ] Login возвращает 200: проверить после деплоя
 - [x] PROGRESS_REPORT.md обновлён: да
+
+
+### 2026-08-01 — HOTFIX: 400 Bad Request POST /api/auth/login
+- [x] frontend/api.js (`authService.js`): body login показан: да (`{ email, password }` без timezone/turnstileToken)
+- [x] frontend AuthContext.jsx: body login показан: да (`{ email, password, turnstileToken: '', timezone }`)
+- [x] frontend шлёт timezone на корне/в preferences/не шлёт: корень (`timezone` top-level)
+- [x] backend/auth.js ожидает timezone на корне/в preferences/не ожидает: корень (деструктурит `timezone` из req.body)
+- [x] User.js: timezone только в preferences (убран с корня): да (не было на корне)
+- [x] Исправлено несоответствие body ↔ schema: да
+  * `validation.js`: `turnstileToken` сделан optional (`.allow('')`), добавлен `.unknown(true)` для login/register
+  * `authService.js`: login/register теперь отправляют `timezone` и `turnstileToken`
+  * `routes/auth.js`: login обновляет `user.preferences.timezone`, register сохраняет timezone в preferences
+- [x] Backend check: успешно
+- [x] Frontend build: успешно (warnings по chunk size / dynamic imports)
+- [x] Git push: выполнить
+- [ ] Render Clear build cache: требуется вручную в Dashboard
+- [ ] Login возвращает 200: проверить после деплоя
+- [x] PROGRESS_REPORT.md обновлён: да
