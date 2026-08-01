@@ -40,6 +40,7 @@ import projectWorkspaceRoutes from './routes/projectWorkspace.js'  // ← Multi-
 import omegaAPIRoutes from './routes/api/v1/omegaAPI.js'  // ← B2B2B OMEGA API
 import paypalRoutes from './routes/paypal.js'  // ← PayPal
 import launchRoutes from './routes/launch.js'  // ← Product Hunt waitlist
+import integrationsRoutes from './routes/integrations.js'  // ← External integrations
 
 const app = express()
 app.set('trust proxy', 1)
@@ -186,6 +187,7 @@ app.use('/api/workspaces', projectWorkspaceRoutes)
 app.use('/api/v1/omega', omegaAPIRoutes)
 app.use('/api/paypal', paypalRoutes)
 app.use('/api/launch', launchRoutes)
+app.use('/api/integrations', integrationsRoutes)
 
 // Error handling
 app.use(errorHandler)

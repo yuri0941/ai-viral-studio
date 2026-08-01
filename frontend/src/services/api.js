@@ -166,7 +166,26 @@ export const developerApi = {
     removeWebhook: (id, webhookId) => request(`/v1/omega/keys/${id}/webhooks/${webhookId}`, { method: 'DELETE' }),
 }
 
-export default { ownerApi, omegaApi, whiteLabelApi, workspaceApi, developerApi }
+// ============================================
+// Integrations API
+// ============================================
+export const integrationsApi = {
+    status: () => request('/integrations/status'),
+    sendWhatsApp: (data) => request('/integrations/whatsapp/send', { method: 'POST', body: JSON.stringify(data) }),
+    sendSlack: (data) => request('/integrations/slack/send', { method: 'POST', body: JSON.stringify(data) }),
+    sendDiscord: (data) => request('/integrations/discord/send', { method: 'POST', body: JSON.stringify(data) }),
+    createNotionPage: (data) => request('/integrations/notion/page', { method: 'POST', body: JSON.stringify(data) }),
+    createClickUpTask: (data) => request('/integrations/clickup/task', { method: 'POST', body: JSON.stringify(data) }),
+    createTrelloCard: (data) => request('/integrations/trello/card', { method: 'POST', body: JSON.stringify(data) }),
+    getShopifyProducts: (limit = 10) => request(`/integrations/shopify/products?limit=${limit}`),
+    webhooks: () => request('/integrations/webhooks'),
+    createWebhook: (data) => request('/integrations/webhooks', { method: 'POST', body: JSON.stringify(data) }),
+    updateWebhook: (id, data) => request(`/integrations/webhooks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    deleteWebhook: (id) => request(`/integrations/webhooks/${id}`, { method: 'DELETE' }),
+    triggerWebhooks: (event, payload) => request('/integrations/webhooks/trigger', { method: 'POST', body: JSON.stringify({ event, payload }) }),
+}
+
+export default { ownerApi, omegaApi, whiteLabelApi, workspaceApi, developerApi, integrationsApi }
 
 // ============================================
 // Subscriptions API

@@ -27,6 +27,7 @@ export { ProjectWorkspace } from './ProjectWorkspace.js'
 export { DeveloperApiKey, generateApiKey } from './DeveloperApiKey.js'
 
 export { Waitlist } from './Waitlist.js'
+export { Webhook } from './Webhook.js'
 
 export { default as User } from './User.js'
 export { default as Chat } from './Chat.js'

@@ -1793,3 +1793,62 @@
 - [x] Backend `node --check` (все изменённые файлы): успешно
 - [x] Git push: выполнить
 - [ ] Render Clear build cache: требуется вручную
+
+---
+
+## ✅ ПРОМПТ №10 — Интеграции с внешним миром — 2026-08-01
+
+### WhatsApp Business API
+- [x] Сервис существует: `backend/services/whatsappService.js` — да
+- [x] Активация через API Keys: да (переменные окружения `WHATSAPP_API_KEY`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`)
+- [x] Endpoint `POST /api/integrations/whatsapp/send`: да
+- [x] Endpoint `POST /api/integrations/whatsapp/webhook`: да (входящие сообщения)
+- [x] Frontend настройки: `IntegrationsTab.jsx` → вкладка «Внешние сервисы» → WhatsApp
+- [x] Тестовая отправка: форма в UI + backend handler
+
+### Slack / Discord
+- [x] Сервис существует: `backend/services/slackService.js` (совмещает Slack + Discord) — да
+- [x] Активация через API Keys: да (`SLACK_BOT_TOKEN`, `DISCORD_BOT_TOKEN`, `DISCORD_CHANNEL_ID`)
+- [x] Slack slash-команда / уведомления в канал: реализовано через `sendSlackMessage`
+- [x] Discord embed-уведомления: реализовано через `sendDiscordMessage`
+- [x] Frontend настройки: вкладка «Внешние сервисы» → Slack + Discord
+
+### Notion / ClickUp / Trello
+- [x] Сервисы существуют: `notionService.js`, `clickupService.js`, `trelloService.js` — да
+- [x] Активация через API Keys: да (`NOTION_TOKEN`, `CLICKUP_API_KEY`, `TRELLO_API_KEY`, `TRELLO_TOKEN`)
+- [x] Экспорт задач: `TasksTab.jsx` — кнопки «↗️ Notion / ClickUp / Trello»
+- [x] Создание контент-плана: `POST /api/integrations/notion/page`
+
+### Shopify / WooCommerce
+- [x] Сервис существует: `backend/services/shopifyService.js` — да
+- [x] Активация через API Keys: да (`SHOPIFY_STORE_URL`, `SHOPIFY_ACCESS_TOKEN`)
+- [x] Импорт товаров: `GET /api/integrations/shopify/products`
+- [x] Генерация поста из товара: интегрировано в OMEGA tools (`shopify_products`)
+
+### Webhooks / Zapier / Make
+- [x] Модель `Webhook` существует: `backend/models/Webhook.js` — да
+- [x] Сервис существует: `backend/services/webhookService.js` — да
+- [x] Endpoint'ы: `GET /api/integrations/webhooks`, `POST /api/integrations/webhooks`, `DELETE /api/integrations/webhooks/:id`, `POST /api/integrations/webhooks/:id/send-test` — да
+- [x] Подпись HMAC: `X-Webhook-Signature` для исходящих webhooks — да
+- [x] Предустановленные шаблоны: Google Sheets, CRM, Telegram-уведомление — в UI
+- [x] Frontend таб «Webhooks / Zapier» — да
+
+### OMEGA Core — инструменты интеграций
+- [x] `omegaTools.js` добавлены: `send_whatsapp`, `send_slack`, `create_notion_page`, `create_clickup_task`, `trigger_webhook`, `shopify_products` — да
+- [x] Проверка конфигурации перед вызовом: `isConfigured()` в каждом сервисе — да
+- [x] OMEGA отвечает инструкцией, если интеграция не подключена — да
+
+### Сборка и проверки
+- [x] Frontend build: успешно
+- [x] Backend `node --check` (server.js + 11 новых/изменённых файлов): успешно
+- [x] Git push: выполнить
+- [ ] Render Clear build cache: требуется вручную в Dashboard
+
+### Ручные действия
+- Для WhatsApp: добавить `WHATSAPP_API_KEY`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` в Render env
+- Для Slack: добавить `SLACK_BOT_TOKEN` и при необходимости `SLACK_CHANNEL`
+- Для Discord: добавить `DISCORD_BOT_TOKEN`, `DISCORD_CHANNEL_ID`
+- Для Notion: добавить `NOTION_TOKEN` и ID базы данных
+- Для ClickUp: добавить `CLICKUP_API_KEY` и ID списка
+- Для Trello: добавить `TRELLO_API_KEY`, `TRELLO_TOKEN`, `TRELLO_BOARD_ID`, `TRELLO_LIST_ID`
+- Для Shopify: добавить `SHOPIFY_STORE_URL`, `SHOPIFY_ACCESS_TOKEN`

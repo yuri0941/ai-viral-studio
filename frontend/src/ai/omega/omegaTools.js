@@ -245,6 +245,128 @@ export const OMEGA_TOOLS = [
         }),
     },
     {
+        id: 'send_whatsapp',
+        name: 'Отправить WhatsApp',
+        description: 'Отправляет сообщение через WhatsApp Business API (требует подключения).',
+        params: { phone: 'string', message: 'string' },
+        execute: async (params) => {
+            try {
+                const token = localStorage.getItem('token')
+                const res = await fetch(`${API_BASE_URL}/integrations/whatsapp/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ phone: params.phone, message: params.message }),
+                })
+                const data = await res.json()
+                if (!data.success) return { status: 'not_configured', message: data.message || 'WhatsApp not configured. Connect in Integrations → Meta for Developers.' }
+                return data
+            } catch (err) {
+                return { status: 'error', error: err.message }
+            }
+        },
+    },
+    {
+        id: 'send_slack',
+        name: 'Отправить Slack',
+        description: 'Отправляет сообщение в Slack-канал.',
+        params: { channel: 'string', text: 'string' },
+        execute: async (params) => {
+            try {
+                const token = localStorage.getItem('token')
+                const res = await fetch(`${API_BASE_URL}/integrations/slack/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ channel: params.channel, text: params.text }),
+                })
+                const data = await res.json()
+                if (!data.success) return { status: 'not_configured', message: data.message || 'Slack not configured. Connect in Integrations.' }
+                return data
+            } catch (err) {
+                return { status: 'error', error: err.message }
+            }
+        },
+    },
+    {
+        id: 'create_notion_page',
+        name: 'Создать страницу в Notion',
+        description: 'Создаёт страницу в базе Notion.',
+        params: { databaseId: 'string', title: 'string', content: 'string', tags: 'array' },
+        execute: async (params) => {
+            try {
+                const token = localStorage.getItem('token')
+                const res = await fetch(`${API_BASE_URL}/integrations/notion/page`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ databaseId: params.databaseId, title: params.title, content: params.content, tags: params.tags }),
+                })
+                const data = await res.json()
+                if (!data.success) return { status: 'not_configured', message: data.message || 'Notion not configured. Connect in Integrations.' }
+                return data
+            } catch (err) {
+                return { status: 'error', error: err.message }
+            }
+        },
+    },
+    {
+        id: 'create_clickup_task',
+        name: 'Создать задачу в ClickUp',
+        description: 'Создаёт задачу в списке ClickUp.',
+        params: { listId: 'string', name: 'string', description: 'string', dueDate: 'string' },
+        execute: async (params) => {
+            try {
+                const token = localStorage.getItem('token')
+                const res = await fetch(`${API_BASE_URL}/integrations/clickup/task`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ listId: params.listId, name: params.name, description: params.description, dueDate: params.dueDate }),
+                })
+                const data = await res.json()
+                if (!data.success) return { status: 'not_configured', message: data.message || 'ClickUp not configured. Connect in Integrations.' }
+                return data
+            } catch (err) {
+                return { status: 'error', error: err.message }
+            }
+        },
+    },
+    {
+        id: 'trigger_webhook',
+        name: 'Триггер вебхука',
+        description: 'Отправляет событие на все активные вебхуки (Zapier / Make).',
+        params: { event: 'string', payload: 'object' },
+        execute: async (params) => {
+            try {
+                const token = localStorage.getItem('token')
+                const res = await fetch(`${API_BASE_URL}/integrations/webhooks/trigger`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ event: params.event, payload: params.payload }),
+                })
+                return await res.json()
+            } catch (err) {
+                return { status: 'error', error: err.message }
+            }
+        },
+    },
+    {
+        id: 'shopify_products',
+        name: 'Товары Shopify',
+        description: 'Получает список товаров из Shopify.',
+        params: { limit: 'number' },
+        execute: async (params) => {
+            try {
+                const token = localStorage.getItem('token')
+                const res = await fetch(`${API_BASE_URL}/integrations/shopify/products?limit=${params.limit || 10}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                })
+                const data = await res.json()
+                if (!data.success) return { status: 'not_configured', message: data.message || 'Shopify not configured. Connect in Integrations.' }
+                return data
+            } catch (err) {
+                return { status: 'error', error: err.message }
+            }
+        },
+    },
+    {
         id: 'onboarding_design',
         name: 'Дизайн онбординга',
         description: 'Создаёт структуру онбординга для пользователя.',
