@@ -29,6 +29,7 @@ import { getPublicLegalInfo } from './controllers/ownerLegalInfoController.js'  
 import yookassaRoutes from './routes/yookassa.js'  // ← P10: ЮKassa
 import stripeRoutes from './routes/stripe.js'  // ← P10: Stripe (выключено по умолчанию)
 import emailRoutes from './routes/email.js'  // ← P10: Email
+import pushRoutes from './routes/push.js'  // Push notifications
 
 const app = express()
 app.set('trust proxy', 1)
@@ -139,6 +140,7 @@ app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Own
 app.use('/api/yookassa', yookassaRoutes)  // ← P10: ЮKassa
 app.use('/api/stripe', stripeRoutes)  // ← P10: Stripe (выключено по умолчанию)
 app.use('/api/email', emailRoutes)  // ← P10: Email
+app.use('/api/push', pushRoutes)  // Push notifications
 
 // Error handling
 app.use(errorHandler)

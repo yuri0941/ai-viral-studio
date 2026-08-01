@@ -1,6 +1,7 @@
 {
   "name": "AI Viral Studio",
   "short_name": "AI Viral",
+  "description": "AI-powered platform for viral content creation, analytics, and monetization",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0f",
@@ -8,6 +9,7 @@
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "ru",
+  "categories": ["productivity", "utilities", "business"],
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -20,6 +22,24 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "AI Viral Studio Dashboard"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "AI Chat",
+      "short_name": "Chat",
+      "description": "Open OMEGA AI chat",
+      "url": "/ai-chat",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     }
   ]
 }

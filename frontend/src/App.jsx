@@ -24,6 +24,7 @@ import SettingsPage from './pages/SettingsPage'
 import ContentAnalyzerPage from './pages/ContentAnalyzerPage'
 import ViralChatPage from './pages/ViralChatPage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
+import OwnerAppPage from './pages/owner/OwnerAppPage'
 import PaymentSuccess from './pages/PaymentSuccess'
 import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/legal/LegalPage'
 
@@ -196,6 +197,12 @@ function App() {
             <Route path="/advertiser-requests" element={
                 <ProtectedRoute allowedRoles={['owner', 'admin']}>
                     <AdvertiserRequestsPage />
+                </ProtectedRoute>
+            } />
+
+            <Route path="/owner-app" element={
+                <ProtectedRoute allowedRoles={['owner']}>
+                    <OwnerAppPage />
                 </ProtectedRoute>
             } />
 

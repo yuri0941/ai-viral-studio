@@ -34,6 +34,7 @@
         "resend": "^6.18.1",
         "rollbar": "^3.1.0",
         "stripe": "^22.3.2",
+        "web-push": "^3.6.7",
         "winston": "^3.13.1",
         "yookassa": "^0.1.1"
     },
