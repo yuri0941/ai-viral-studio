@@ -1,3 +1,18 @@
+### 2026-08-01 — Release v1.0: PWA + OwnerApp + i18n + Stripe + Full OMEGA
+- [x] VAPID ключи: добавлены в `backend/.env.example` и fallback в `controllers/pushController.js`
+- [x] i18n: установлены `react-i18next`, `i18next`, `i18next-browser-languagedetector`, созданы `frontend/src/locales/ru.json` и `en.json`, настроен `frontend/src/i18n/index.js`, подключён в `main.jsx`
+- [x] i18n: `DashboardShell` синхронизирует переключатель языка с `i18n.changeLanguage` и сохраняет в `localStorage`
+- [x] i18n: `OwnerAppPage` переведена на `useTranslation`
+- [x] Stripe Checkout: создана страница `/stripe-checkout`, добавлен маршрут в `App.jsx`, backend endpoint `/api/stripe/create-checkout-session` с `createCheckoutSession` в `stripeService`
+- [x] Stripe webhook: `/api/stripe/webhook` использует `raw({ type: 'application/json' })` для корректной верификации подписи
+- [x] Offline: `frontend/public/offline.html` кэшируется через `src/sw.js` и отдаётся при неудаче навигации
+- [x] Frontend build: успешно ✅
+- [x] Backend node --check: успешно ✅ (server.js, routes/stripe.js, controllers/stripeController.js, services/stripeService.js, routes/push.js, controllers/pushController.js)
+- [x] Git push: выполнен ✅
+- [ ] Полный e2e тест (регистрация → письмо → вход → OMEGA Chat → оплата → Telegram алерт): не проводился в этом окружении
+- [ ] EN-локализация: готов скелет, но не все компоненты переведены
+- Статус: **готово к деплою** с условием установки env vars на Render (STRIPE_SECRET_KEY, VAPID_*, MONGO_URI, JWT_SECRET, TELEGRAM_*, etc.)
+
 ### 2026-07-31 — Release v1.0 Phase 1.5: Stripe webhook + env template
 - [x] backend/routes/stripe.js: webhook endpoint теперь использует `raw({ type: 'application/json' })` для корректной верификации подписи Stripe
 - [x] Создан `backend/.env.example` с плейсхолдерами для VAPID, Stripe, Telegram, JWT, MongoDB
