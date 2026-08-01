@@ -1998,3 +1998,15 @@
 - Добавить `TELEGRAM_BOT_TOKEN` и `TELEGRAM_OWNER_CHAT_ID` для алертов и утреннего репорта
 - Clear build cache & deploy в Render Dashboard
 - Для живого мониторинга комментариев подключить соцсети в Интеграциях (Instagram, YouTube, Telegram)
+
+
+### Исправления после деплоя (импорты)
+- [x] Ошибка getPreferredProvider найдена: да (`omegaController.js:11` импортировал функцию, которой не было в `selfHealing.js`)
+- [x] Исправлено в: `selfHealing.js` (добавлен `export async function getPreferredProvider()`)
+- [x] `omegaController.js` node --check: успешно
+- [x] `selfHealing.js` node --check: успешно
+- [x] Остальные файлы №12 проверены (10 файлов): успешно
+- [x] Frontend build: успешно (warnings по chunk size и dynamic imports)
+- [x] Git push: выполнен (`67e5b71c`)
+- [ ] Render Clear build cache: требуется вручную в Dashboard
+- [ ] Backend live (нет SyntaxError): проверить после деплоя на Render
