@@ -31,7 +31,7 @@ import stripeRoutes from './routes/stripe.js'  // ← P10: Stripe (выключ�
 import emailRoutes from './routes/email.js'  // ← P10: Email
 
 const app = express()
-const PORT = parseInt(process.env.PORT) || 5000
+const PORT = parseInt(process.env.PORT) || 10000
 
 // Connect to database before starting server
 await connectDB()
@@ -145,11 +145,27 @@ app.use((req, res) => {
     res.status(404).json({ status: 'error', message: 'Route not found' })
 })
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`🚀 Server started on port ${PORT}`)
     console.log(`✅ MongoDB connected: ${isConnected ? 'Yes' : 'No'}`)
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
     console.log(`🔑 JWT Secret loaded: ${process.env.JWT_SECRET ? '✅ Yes' : '❌ No'}`)
     console.log(`🤖 AI Providers: Groq=${process.env.GROQ_ENABLED}, OpenRouter=${process.env.OPENROUTER_ENABLED}, DeepSeek=${process.env.DEEPSEEK_ENABLED}`)
     console.log(`📺 YouTube API: ${process.env.YOUTUBE_API_KEY ? '✅ Connected' : '❌ No key'}`)
+})
+
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully')
+    server.close(() => {
+        console.log('Process terminated')
+        process.exit(0)
+    })
+})
+
+process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully')
+    server.close(() => {
+        console.log('Process terminated')
+        process.exit(0)
+    })
 })
