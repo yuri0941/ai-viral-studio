@@ -198,4 +198,7 @@ export const TAB_LABELS = {
     whiteLabel: '🏷️ White-Label',
     workspaces: '📁 Workspaces',
     developer: '👨‍💻 Developer API',
+    qr: '📱 QR / Офлайн',
+    franchise: '🏪 Франшиза',
+    fleet: '🚀 Fleet',
 }

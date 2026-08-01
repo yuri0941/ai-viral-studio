@@ -267,3 +267,47 @@ export const emailApi = {
     test: () => request('/email/test', { method: 'POST' }),
     trialEnding: () => request('/email/trial-ending', { method: 'POST' }),
 }
+
+// ============================================
+// Physical World API (P11)
+// ============================================
+export const physicalApi = {
+    qr: {
+        list: () => request('/qr'),
+        generate: (data) => request('/qr/generate', { method: 'POST', body: JSON.stringify(data) }),
+        analytics: (id) => request(`/qr/${id}/analytics`),
+        download: (id, format = 'png') => `/api/qr/${id}/download?format=${format}`,
+        delete: (id) => request(`/qr/${id}`, { method: 'DELETE' }),
+    },
+    print: {
+        list: () => request('/print'),
+        order: (data) => request('/print/order', { method: 'POST', body: JSON.stringify(data) }),
+        status: (orderId) => request(`/print/status/${orderId}`),
+    },
+    booking: {
+        studios: (params = {}) => {
+            const query = new URLSearchParams(params).toString()
+            return request(`/booking/studios${query ? '?' + query : ''}`)
+        },
+        suggestions: (niche) => request(`/booking/suggestions${niche ? `?niche=${encodeURIComponent(niche)}` : ''}`),
+        list: () => request('/booking'),
+        create: (data) => request('/booking', { method: 'POST', body: JSON.stringify(data) }),
+        get: (id) => request(`/booking/${id}`),
+    },
+    delivery: {
+        deepLink: (data) => request('/delivery/deep-link', { method: 'POST', body: JSON.stringify(data) }),
+    },
+}
+
+export const franchiseApi = {
+    ready: () => request('/franchise/ready'),
+    list: () => request('/franchise'),
+    generate: (data) => request('/franchise/generate', { method: 'POST', body: JSON.stringify(data) }),
+    download: (id) => `/api/franchise/${id}/download`,
+    send: (id, recipients) => request(`/franchise/${id}/send`, { method: 'POST', body: JSON.stringify({ recipients }) }),
+}
+
+export const fleetApi = {
+    summary: () => request('/fleet/summary'),
+    emergencyStop: () => request('/fleet/emergency-stop', { method: 'POST' }),
+}

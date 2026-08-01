@@ -43,6 +43,9 @@ import { ScoutTab } from './components/tabs/ScoutTab'
 import { WhiteLabelTab } from './components/tabs/WhiteLabelTab'
 import { WorkspacesTab } from './components/tabs/WorkspacesTab'
 import { DeveloperTab } from './components/tabs/DeveloperTab'
+import { QRPrintTab } from './components/tabs/QRPrintTab'
+import { FranchiseTab } from './components/tabs/FranchiseTab'
+import { FleetTab } from './components/tabs/FleetTab'
 
 import AnalyticsPage from '../AnalyticsPage'
 import AIChatPage from '../AIChatPage'
@@ -72,7 +75,7 @@ import {
     Megaphone, Lock, Plug, Brain, FileText, Bot, MessageSquare,
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
     BrainCircuit, Database, Scale, BarChart, Search, Calendar, TrendingUp,
-    X, Palette, LayoutTemplate, Flame, Tag, Folder, Code
+    X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, QrCode, Store
 } from 'lucide-react'
 
 const TAB_ICONS = {
@@ -117,6 +120,9 @@ const TAB_ICONS = {
     whiteLabel: Tag,
     workspaces: Folder,
     developer: Code,
+    qr: QrCode,
+    franchise: Store,
+    fleet: Rocket,
 }
 
 export default function OwnerDashboardPage() {
@@ -173,6 +179,9 @@ export default function OwnerDashboardPage() {
             case 'whiteLabel': return <WhiteLabelTab data={ownerData} />
             case 'workspaces': return <WorkspacesTab data={ownerData} />
             case 'developer': return <DeveloperTab data={ownerData} />
+            case 'qr': return <QRPrintTab data={ownerData} />
+            case 'franchise': return <FranchiseTab data={ownerData} />
+            case 'fleet': return <FleetTab data={ownerData} />
             case 'analytics': return <AnalyticsPage />
             case 'aiChat': return <AIChatPage />
             case 'contentAnalyzer': return <ContentAnalyzerPage />

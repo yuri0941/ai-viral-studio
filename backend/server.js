@@ -41,6 +41,13 @@ import omegaAPIRoutes from './routes/api/v1/omegaAPI.js'  // ← B2B2B OMEGA API
 import paypalRoutes from './routes/paypal.js'  // ← PayPal
 import launchRoutes from './routes/launch.js'  // ← Product Hunt waitlist
 import integrationsRoutes from './routes/integrations.js'  // ← External integrations
+import qrRoutes from './routes/qr.js'  // ← P11: QR codes
+import printRoutes from './routes/print.js'  // ← P11: Print orders
+import bookingRoutes from './routes/booking.js'  // ← P11: Studio booking
+import franchiseRoutes from './routes/franchise.js'  // ← P11: Franchise generator
+import fleetRoutes from './routes/fleet.js'  // ← P11: Fleet dashboard
+import qrController from './controllers/qrController.js'  // ← P11: QR redirect
+import deliveryRoutes from './routes/delivery.js'  // ← P11: Delivery deep links
 
 const app = express()
 app.set('trust proxy', 1)
@@ -188,6 +195,15 @@ app.use('/api/v1/omega', omegaAPIRoutes)
 app.use('/api/paypal', paypalRoutes)
 app.use('/api/launch', launchRoutes)
 app.use('/api/integrations', integrationsRoutes)
+app.use('/api/qr', qrRoutes)
+app.use('/api/print', printRoutes)
+app.use('/api/booking', bookingRoutes)
+app.use('/api/franchise', franchiseRoutes)
+app.use('/api/fleet', fleetRoutes)
+app.use('/api/delivery', deliveryRoutes)
+
+// Public QR short-link redirect (must be outside /api rate limiting)
+app.get('/qr/:shortCode', qrController.redirectScan)
 
 // Error handling
 app.use(errorHandler)
