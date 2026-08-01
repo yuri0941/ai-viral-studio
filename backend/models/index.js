@@ -29,6 +29,8 @@ export { DeveloperApiKey, generateApiKey } from './DeveloperApiKey.js'
 export { Waitlist } from './Waitlist.js'
 export { Webhook } from './Webhook.js'
 
+export { CrisisEvent } from './CrisisEvent.js'
+
 export { QRCode } from './QRCode.js'
 export { PrintOrder } from './PrintOrder.js'
 export { FranchiseKit } from './FranchiseKit.js'

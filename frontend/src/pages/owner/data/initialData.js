@@ -201,4 +201,5 @@ export const TAB_LABELS = {
     qr: '📱 QR / Офлайн',
     franchise: '🏪 Франшиза',
     fleet: '🚀 Fleet',
+    selfHealing: '🔧 Self-Healing',
 }

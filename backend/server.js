@@ -48,6 +48,7 @@ import franchiseRoutes from './routes/franchise.js'  // ← P11: Franchise gener
 import fleetRoutes from './routes/fleet.js'  // ← P11: Fleet dashboard
 import qrController from './controllers/qrController.js'  // ← P11: QR redirect
 import deliveryRoutes from './routes/delivery.js'  // ← P11: Delivery deep links
+import monitoringRoutes from './routes/monitoring.js'  // ← P12: Self-healing + crisis + self-reflection
 
 const app = express()
 app.set('trust proxy', 1)
@@ -55,6 +56,8 @@ app.set('trust proxy', 1)
 import http from 'http'
 import { initSocket } from './socket.js'
 import { startAutopilot } from './services/autoPilot.js'
+import { startSelfHealing } from './services/selfHealing.js'
+import { startSelfReflectionCron } from './services/selfReflection.js'
 
 // Connect to database before starting server
 await connectDB()
@@ -69,6 +72,8 @@ if (!isConnected) {
 
 // Start OMEGA AutoPilot cron (it checks enabled owners internally)
 startAutopilot()
+startSelfHealing()
+startSelfReflectionCron()
 
 // Seed default OMEGA agents after DB connection
 if (isConnected) {
@@ -201,6 +206,7 @@ app.use('/api/booking', bookingRoutes)
 app.use('/api/franchise', franchiseRoutes)
 app.use('/api/fleet', fleetRoutes)
 app.use('/api/delivery', deliveryRoutes)
+app.use('/api/monitoring', monitoringRoutes)
 
 // Public QR short-link redirect (must be outside /api rate limiting)
 app.get('/qr/:shortCode', qrController.redirectScan)

@@ -185,7 +185,7 @@ export const integrationsApi = {
     triggerWebhooks: (event, payload) => request('/integrations/webhooks/trigger', { method: 'POST', body: JSON.stringify({ event, payload }) }),
 }
 
-export default { ownerApi, omegaApi, whiteLabelApi, workspaceApi, developerApi, integrationsApi, analyticsApi }
+export default { ownerApi, omegaApi, whiteLabelApi, workspaceApi, developerApi, integrationsApi, analyticsApi, subscriptionsApi, invoicesApi, ownerRequisitesApi, ownerLegalInfoApi, yookassaApi, stripeApi, paypalApi, emailApi, physicalApi, franchiseApi, fleetApi, monitoringApi }
 
 // ============================================
 // Analytics API
@@ -310,4 +310,20 @@ export const franchiseApi = {
 export const fleetApi = {
     summary: () => request('/fleet/summary'),
     emergencyStop: () => request('/fleet/emergency-stop', { method: 'POST' }),
+}
+
+// ============================================
+// Monitoring API (P12: Self-Healing + Crisis + Self-Reflection)
+// ============================================
+export const monitoringApi = {
+    selfHealingStatus: () => request('/monitoring/self-healing'),
+    toggleAutoHeal: (enabled) => request('/monitoring/self-healing/auto-heal', { method: 'PUT', body: JSON.stringify({ enabled }) }),
+    triggerSelfHeal: () => request('/monitoring/self-healing/trigger', { method: 'POST' }),
+    listCrises: () => request('/monitoring/crises'),
+    crisisSources: () => request('/monitoring/crises/sources'),
+    analyzeCrisis: (data) => request('/monitoring/crises/analyze', { method: 'POST', body: JSON.stringify(data) }),
+    resolveCrisis: (id, response, autoActions = []) => request(`/monitoring/crises/${id}/resolve`, { method: 'POST', body: JSON.stringify({ response, autoActions }) }),
+    rejectCrisis: (id) => request(`/monitoring/crises/${id}/reject`, { method: 'POST' }),
+    selfReflectionReport: () => request('/monitoring/self-reflection'),
+    sendSelfReflectionReport: () => request('/monitoring/self-reflection/send', { method: 'POST' }),
 }
