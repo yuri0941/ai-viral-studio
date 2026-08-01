@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Copy, Sparkles, LayoutTemplate, Calendar, Check, Loader2, Search } from 'lucide-react'
-import { omegaApi } from '../../../../services/api'
+import { Copy, Sparkles, LayoutTemplate, Calendar, Check, Loader2, Search, TrendingUp, Archive, Flame } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { omegaApi, selfImprovementApi } from '../../../../services/api'
 
 const CATEGORIES = {
     hooks: 'Хуки',
@@ -20,11 +21,24 @@ export function TemplatesTab() {
     const [copied, setCopied] = useState(false)
     const [search, setSearch] = useState('')
     const [activeCategory, setActiveCategory] = useState('all')
+    const [showProvenOnly, setShowProvenOnly] = useState(false)
+    const [stats, setStats] = useState(null)
     const [error, setError] = useState('')
 
     useEffect(() => {
-        omegaApi.templates().then(res => {
-            setTemplates(res?.data || [])
+        Promise.all([
+            omegaApi.templates(),
+            selfImprovementApi.templateStats().catch(() => null),
+        ]).then(([templatesRes, statsRes]) => {
+            const loaded = templatesRes?.data || []
+            // Merge badge/status from evolution stats if available
+            const byId = statsRes?.data?.byId || {}
+            setTemplates(loaded.map(t => ({
+                ...t,
+                badge: byId[t.id]?.badge || t.badge,
+                metrics: byId[t.id]?.metrics || t.metrics,
+            })))
+            setStats(statsRes?.data || null)
         }).catch(err => {
             setError(err.message || 'Не удалось загрузить шаблоны')
         }).finally(() => setLoading(false))
@@ -69,7 +83,8 @@ export function TemplatesTab() {
     const filtered = templates.filter(t => {
         const matchesCategory = activeCategory === 'all' || t.category === activeCategory
         const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase())
-        return matchesCategory && matchesSearch
+        const matchesProven = !showProvenOnly || t.metrics?.status === 'proven'
+        return matchesCategory && matchesSearch && matchesProven
     })
 
     if (loading) return <div className="p-8 text-center text-gray-500 text-sm"><Loader2 className="animate-spin mx-auto mb-2" /> Загрузка шаблонов...</div>
@@ -113,6 +128,54 @@ export function TemplatesTab() {
                 </div>
             </div>
 
+            {stats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3">
+                        <div className="text-xs text-gray-500">Всего</div>
+                        <div className="text-lg font-semibold text-white">{stats.total}</div>
+                    </div>
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3">
+                        <div className="text-xs text-emerald-400 flex items-center gap-1"><Flame size={10} /> Proven</div>
+                        <div className="text-lg font-semibold text-white">{stats.proven}</div>
+                    </div>
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3">
+                        <div className="text-xs text-yellow-400">New</div>
+                        <div className="text-lg font-semibold text-white">{stats.new}</div>
+                    </div>
+                    <div className="rounded-xl bg-white/5 border border-white/5 p-3">
+                        <div className="text-xs text-gray-400 flex items-center gap-1"><Archive size={10} /> Archived</div>
+                        <div className="text-lg font-semibold text-white">{stats.archived}</div>
+                    </div>
+                </div>
+            )}
+
+            {stats && Object.keys(stats.byCategory || {}).length > 0 && (
+                <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5">
+                    <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                        <TrendingUp size={16} className="text-purple-400" /> Эффективность по категориям
+                    </h3>
+                    <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={Object.entries(stats.byCategory).map(([name, data]) => ({ name, avgCtr: data.avgCtr, proven: data.proven }))}>
+                                <XAxis dataKey="name" stroke="#6b7280" fontSize={10} />
+                                <YAxis stroke="#6b7280" fontSize={10} />
+                                <Tooltip contentStyle={{ backgroundColor: '#0f0f1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                                <Bar dataKey="avgCtr" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
+
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={() => setShowProvenOnly(!showProvenOnly)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${showProvenOnly ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                >
+                    {showProvenOnly ? '✓ Только proven' : 'Показать только proven'}
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-1 space-y-2 max-h-[600px] overflow-y-auto pr-1">
                     {filtered.map(t => (
@@ -127,10 +190,30 @@ export function TemplatesTab() {
                         >
                             <div className="flex items-center justify-between mb-1">
                                 <span className="text-xs text-gray-400 uppercase tracking-wider">{CATEGORIES[t.category] || t.category}</span>
-                                <LayoutTemplate size={14} className="text-gray-500" />
+                                <div className="flex items-center gap-1.5">
+                                    {t.metrics?.status === 'proven' && (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-medium">
+                                            <Flame size={10} /> 🔥 Proven
+                                        </span>
+                                    )}
+                                    {t.metrics?.status === 'archived' && (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gray-500/10 text-gray-400 text-[10px] font-medium">
+                                            <Archive size={10} /> 📦 Archived
+                                        </span>
+                                    )}
+                                    {(!t.metrics?.status || t.metrics?.status === 'new') && (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/10 text-yellow-400 text-[10px] font-medium">
+                                            🆕 New
+                                        </span>
+                                    )}
+                                    <LayoutTemplate size={14} className="text-gray-500" />
+                                </div>
                             </div>
                             <div className="text-sm font-medium text-white">{t.name}</div>
                             <div className="text-xs text-gray-500 mt-1">Переменные: {t.variables.join(', ')}</div>
+                            {typeof t.metrics?.ctr === 'number' && (
+                                <div className="text-[10px] text-gray-500 mt-1">CTR: {t.metrics.ctr}% · Samples: {t.metrics.samples || 0}</div>
+                            )}
                         </button>
                     ))}
                 </div>

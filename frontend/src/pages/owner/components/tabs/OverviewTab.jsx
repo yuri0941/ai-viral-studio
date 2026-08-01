@@ -1,10 +1,12 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../../context/AuthContext'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
+import { selfImprovementApi } from '../../../../services/api'
 import {
     DollarSign, Users, Brain, Calendar, BarChart, Bell, KeyRound, Zap,
     ArrowUpRight, TrendingUp, Server, CreditCard, CheckSquare, MessageSquare,
-    Settings, Plus, Sparkles, Activity, Lock, Bot,
+    Settings, Plus, Sparkles, Activity, Lock, Bot, AlertTriangle, UserX,
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 
@@ -35,6 +37,28 @@ export function OverviewTab({ data }) {
     const { user } = useAuth()
 
     const { staff = [], payments = [], subscriptions = [], agents = [], tasks = [], apiKeys = [], notifications = [] } = data
+
+    const [churnStats, setChurnStats] = useState(null)
+    const [atRiskUsers, setAtRiskUsers] = useState([])
+    const [loadingChurn, setLoadingChurn] = useState(false)
+
+    useEffect(() => {
+        let mounted = true
+        setLoadingChurn(true)
+        Promise.all([
+            selfImprovementApi.churnStats().catch(() => null),
+            selfImprovementApi.churnAtRisk(6).catch(() => null),
+        ]).then(([statsRes, usersRes]) => {
+            if (!mounted) return
+            setChurnStats(statsRes?.data || null)
+            setAtRiskUsers(usersRes?.data || [])
+        }).catch(() => {
+            // non-critical
+        }).finally(() => {
+            if (mounted) setLoadingChurn(false)
+        })
+        return () => { mounted = false }
+    }, [])
 
     const totalIncome = payments.filter(p => p.type === 'income').reduce((a, b) => a + (b.amount || 0), 0)
     const totalExpenses = payments.filter(p => p.type === 'expense').reduce((a, b) => a + (b.amount || 0), 0)
@@ -199,6 +223,90 @@ export function OverviewTab({ data }) {
                         <div className="text-sm font-semibold text-white">{s.value}</div>
                     </div>
                 ))}
+            </div>
+
+            {/* Churn prediction section (P15) */}
+            <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-xl bg-rose-500/10">
+                            <UserX className="w-5 h-5 text-rose-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-semibold text-white">Отток клиентов</h3>
+                            <p className="text-xs text-gray-500">Предсказание OMEGA + бонусы до отписки</p>
+                        </div>
+                    </div>
+                    {churnStats && (
+                        <div className="flex items-center gap-3 text-xs">
+                            <span className="text-gray-500">Неделю: <span className="text-white font-medium">{churnStats.atRisk || 0}</span></span>
+                            <span className="text-emerald-400">Предотвращено: {churnStats.prevented || 0}</span>
+                            <span className="text-rose-400">Высокий риск: {churnStats.highRisk || 0}</span>
+                        </div>
+                    )}
+                </div>
+
+                {loadingChurn && (
+                    <div className="text-xs text-gray-500 text-center py-4">Загрузка данных об оттоке...</div>
+                )}
+
+                {!loadingChurn && atRiskUsers.length === 0 && (
+                    <EmptyState
+                        icon={AlertTriangle}
+                        title="Нет клиентов на грани оттока"
+                        description="OMEGA анализирует активность. Когда появится риск — вы увидите карточки здесь."
+                    />
+                )}
+
+                {!loadingChurn && atRiskUsers.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {atRiskUsers.map((u) => (
+                            <div key={u.userId} className="rounded-xl bg-white/[0.03] border border-white/5 p-4 hover:border-rose-500/20 transition-colors">
+                                <div className="flex items-start justify-between mb-2">
+                                    <div>
+                                        <div className="text-sm font-medium text-white">{u.name || '—'}</div>
+                                        <div className="text-[11px] text-gray-500">{u.email || '—'}</div>
+                                    </div>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                        u.risk === 'high'
+                                            ? 'bg-rose-500/10 text-rose-400'
+                                            : 'bg-yellow-500/10 text-yellow-400'
+                                    }`}>
+                                        {u.risk === 'high' ? 'Высокий риск' : 'Средний риск'}
+                                    </span>
+                                </div>
+                                <div className="space-y-1 mb-3">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-gray-500">Score</span>
+                                        <span className="text-white font-medium">{Math.round((u.score || 0) * 100)}%</span>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full ${u.risk === 'high' ? 'bg-rose-500' : 'bg-yellow-500'}`}
+                                            style={{ width: `${Math.min(100, (u.score || 0) * 100)}%` }}
+                                        />
+                                    </div>
+                                    <div className="text-[10px] text-gray-500">
+                                        Неактивен {u.factors?.daysInactive || 0} дн · Постов за 30 дн: {u.factors?.postsCount30d || 0}
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await selfImprovementApi.churnOffer(u.userId, 1)
+                                            alert(`Бонус отправлен для ${u.name || u.email}`)
+                                        } catch (err) {
+                                            alert('Ошибка отправки бонуса')
+                                        }
+                                    }}
+                                    className="w-full text-xs px-3 py-2 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-colors"
+                                >
+                                    Отправить персональный бонус
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     )

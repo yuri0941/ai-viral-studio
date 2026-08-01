@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
     LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -9,6 +9,7 @@ import {
     Play, Clock, Users, Target, Zap, BarChart as BarChartIcon, Globe, Award
 } from 'lucide-react'
 import { useSmartData } from '../hooks/useSmartData'
+import { selfImprovementApi } from '../services/api'
 import { API_BASE_URL } from '../config.js'
 import { ChannelAnalyticsTab } from '../components/analytics/ChannelAnalyticsTab'
 import { AudienceInsightsTab } from '../components/analytics/AudienceInsightsTab'
@@ -21,6 +22,7 @@ const TABS = [
     { id: 'overview', label: 'Обзор' },
     { id: 'channels', label: 'По платформам' },
     { id: 'audience', label: 'Аудитория' },
+    { id: 'niche', label: 'Моя ниша' },
     { id: 'reports', label: 'Отчёты' },
     { id: 'cases', label: 'Кейсы' },
 ]
@@ -31,9 +33,22 @@ function AnalyticsPage() {
     const [period, setPeriod] = useState('7d')
     const [activeTab, setActiveTab] = useState('overview')
     const [showExportMenu, setShowExportMenu] = useState(false)
+    const [nicheData, setNicheData] = useState(null)
+    const [nicheLoading, setNicheLoading] = useState(false)
+    const [nicheError, setNicheError] = useState('')
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
     const { data: stats, isDemo } = useSmartData(`${API_BASE_URL}/analytics/overview`, DEMO_STATS, token)
+
+    useEffect(() => {
+        if (activeTab !== 'niche') return
+        setNicheLoading(true)
+        setNicheError('')
+        selfImprovementApi.nicheMe()
+            .then(res => setNicheData(res?.data || null))
+            .catch(err => setNicheError(err.message || 'Не удалось загрузить данные по нише'))
+            .finally(() => setNicheLoading(false))
+    }, [activeTab])
 
     // Данные по периодам
     const dataByPeriod = {
@@ -497,6 +512,95 @@ function AnalyticsPage() {
 
             {activeTab === 'channels' && <ChannelAnalyticsTab />}
             {activeTab === 'audience' && <AudienceInsightsTab />}
+
+            {activeTab === 'niche' && (
+                <div className="space-y-6">
+                    {nicheLoading && <div className="text-center text-gray-500 text-sm py-10">Загрузка данных по нише...</div>}
+                    {nicheError && <div className="p-4 rounded-xl bg-red-500/10 text-red-400 text-sm">{nicheError}</div>}
+                    {!nicheLoading && !nicheError && !nicheData && (
+                        <EmptyState
+                            icon={BarChartIcon}
+                            title="Нет данных по нише"
+                            description="OMEGA ещё не накопила статистику. Публикуйте контент регулярно — через 30 дней появятся персональные рекомендации."
+                        />
+                    )}
+                    {!nicheLoading && nicheData && (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="bg-[#1a1a24] rounded-2xl p-5 border border-white/5">
+                                    <div className="text-xs text-gray-500 mb-1">Ваша ниша</div>
+                                    <div className="text-2xl font-bold text-white capitalize">{nicheData.userNiche}</div>
+                                </div>
+                                <div className="bg-[#1a1a24] rounded-2xl p-5 border border-white/5">
+                                    <div className="text-xs text-gray-500 mb-1">Ваш средний CTR</div>
+                                    <div className={`text-2xl font-bold ${nicheData.userCtr >= nicheData.nicheAvgCtr ? 'text-emerald-400' : 'text-yellow-400'}`}>{nicheData.userCtr}%</div>
+                                </div>
+                                <div className="bg-[#1a1a24] rounded-2xl p-5 border border-white/5">
+                                    <div className="text-xs text-gray-500 mb-1">Средний CTR по нише</div>
+                                    <div className="text-2xl font-bold text-white">{nicheData.nicheAvgCtr}%</div>
+                                </div>
+                            </div>
+
+                            {nicheData.formatRecommendations?.length > 0 && (
+                                <div className="bg-[#1a1a24] rounded-2xl p-6 border border-white/5">
+                                    <h3 className="font-bold mb-4 flex items-center gap-2">
+                                        <Zap size={18} className="text-amber-400" /> Эффективность форматов в вашей нише
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {nicheData.formatRecommendations.map((fmt, i) => (
+                                            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02]">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-lg font-bold text-gray-600">{i + 1}</span>
+                                                    <span className="text-sm font-medium text-white capitalize">{fmt.type}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-xs">
+                                                    <span className="text-gray-500">CTR {fmt.avgCtr}%</span>
+                                                    <span className={`${fmt.delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                        {fmt.delta >= 0 ? '+' : ''}{fmt.delta}% к среднему
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {nicheData.bestTimeSlots?.length > 0 && (
+                                <div className="bg-[#1a1a24] rounded-2xl p-6 border border-white/5">
+                                    <h3 className="font-bold mb-4 flex items-center gap-2">
+                                        <Clock size={18} className="text-blue-400" /> Лучшее время публикаций
+                                    </h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                        {nicheData.bestTimeSlots.map((slot, i) => (
+                                            <div key={i} className="p-3 rounded-xl bg-white/[0.02] text-center">
+                                                <div className="text-lg font-bold text-white">{slot.slot}</div>
+                                                <div className="text-xs text-gray-500">CTR {slot.avgCtr}%</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {nicheData.crossTrends?.length > 0 && (
+                                <div className="bg-[#1a1a24] rounded-2xl p-6 border border-white/5">
+                                    <h3 className="font-bold mb-4 flex items-center gap-2">
+                                        <Globe size={18} className="text-purple-400" /> Кросс-индустриальные идеи
+                                    </h3>
+                                    <ul className="space-y-2">
+                                        {nicheData.crossTrends.map((idea, i) => (
+                                            <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
+                                                <span className="text-purple-400 mt-0.5">•</span>
+                                                {idea}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
+
             {activeTab === 'reports' && <ReportGenerator />}
             {activeTab === 'cases' && <CaseStudyGenerator />}
         </div>

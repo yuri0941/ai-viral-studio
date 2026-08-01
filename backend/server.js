@@ -53,15 +53,19 @@ import gamificationRoutes from './routes/gamification.js'  // ← P13: Gamificat
 import boardroomRoutes from './routes/boardroom.js'  // ← P14: AI Boardroom
 import businessSpawnerRoutes from './routes/businessSpawner.js'  // ← P14: Business Spawning
 import adminRoutes from './routes/admin.js'  // Admin + emergency stop
+import selfImprovementRoutes from './routes/selfImprovement.js'  // ← P15: Self-improvement + churn + niche intelligence
 
 const app = express()
 app.set('trust proxy', 1)
 
 import http from 'http'
+import cron from 'node-cron'
 import { initSocket } from './socket.js'
 import { startAutopilot } from './services/autoPilot.js'
 import { startSelfHealing } from './services/selfHealing.js'
 import { startSelfReflectionCron } from './services/selfReflection.js'
+import { runEvolutionCron } from './services/templateEvolution.js'
+import { resolveABTests } from './services/abAutoLearning.js'
 
 // Connect to database before starting server
 await connectDB()
@@ -78,6 +82,31 @@ if (!isConnected) {
 startAutopilot()
 startSelfHealing()
 startSelfReflectionCron()
+
+// P15: Self-improvement crons
+if (isConnected) {
+    // Daily at 03:00 — analyze template CTR, archive losers, promote proven
+    cron.schedule('0 3 * * *', async () => {
+        try {
+            const result = await runEvolutionCron()
+            console.log('[cron] templateEvolution:', result)
+        } catch (err) {
+            console.error('[cron] templateEvolution failed:', err.message)
+        }
+    })
+
+    // Every 6 hours — resolve finished A/B tests and learn from results
+    cron.schedule('0 */6 * * *', async () => {
+        try {
+            const result = await resolveABTests()
+            console.log('[cron] abAutoLearning:', result)
+        } catch (err) {
+            console.error('[cron] abAutoLearning failed:', err.message)
+        }
+    })
+
+    console.log('🧠 Self-improvement crons scheduled')
+}
 
 // Seed default OMEGA agents after DB connection
 if (isConnected) {
@@ -215,6 +244,7 @@ app.use('/api/gamification', gamificationRoutes)
 app.use('/api/boardroom', boardroomRoutes)
 app.use('/api/business-spawner', businessSpawnerRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/self-improvement', selfImprovementRoutes)
 
 // Public QR short-link redirect (must be outside /api rate limiting)
 app.get('/qr/:shortCode', qrController.redirectScan)

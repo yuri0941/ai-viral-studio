@@ -185,8 +185,6 @@ export const integrationsApi = {
     triggerWebhooks: (event, payload) => request('/integrations/webhooks/trigger', { method: 'POST', body: JSON.stringify({ event, payload }) }),
 }
 
-export default { ownerApi, omegaApi, whiteLabelApi, workspaceApi, developerApi, integrationsApi, analyticsApi, subscriptionsApi, invoicesApi, ownerRequisitesApi, ownerLegalInfoApi, yookassaApi, stripeApi, paypalApi, emailApi, physicalApi, franchiseApi, fleetApi, monitoringApi }
-
 // ============================================
 // Analytics API
 // ============================================
@@ -323,6 +321,25 @@ export const fleetApi = {
 }
 
 // ============================================
+// Self-Improvement API (P15)
+// ============================================
+export const selfImprovementApi = {
+    templateStats: () => request('/self-improvement/templates/stats'),
+    evolveTemplates: () => request('/self-improvement/templates/evolve', { method: 'POST' }),
+    abEligible: () => request('/self-improvement/ab-learning/eligible'),
+    abPropose: (postId) => request('/self-improvement/ab-learning/propose', { method: 'POST', body: JSON.stringify({ postId }) }),
+    abApprove: (postId, choice) => request('/self-improvement/ab-learning/approve', { method: 'POST', body: JSON.stringify({ postId, choice }) }),
+    abResolve: () => request('/self-improvement/ab-learning/resolve', { method: 'POST' }),
+    churnMe: () => request('/self-improvement/churn/me'),
+    churnAtRisk: (limit) => request(`/self-improvement/churn/at-risk${limit ? '?limit=' + limit : ''}`),
+    churnOffer: (userId, day) => request(`/self-improvement/churn/offer/${userId}/${day}`),
+    churnExitOffer: (userId) => request(`/self-improvement/churn/exit-offer/${userId}`),
+    churnStats: () => request('/self-improvement/churn/stats'),
+    nicheAggregate: () => request('/self-improvement/niche/aggregate'),
+    nicheMe: () => request('/self-improvement/niche/me'),
+}
+
+// ============================================
 // Monitoring API (P12: Self-Healing + Crisis + Self-Reflection)
 // ============================================
 export const monitoringApi = {
@@ -336,4 +353,30 @@ export const monitoringApi = {
     rejectCrisis: (id) => request(`/monitoring/crises/${id}/reject`, { method: 'POST' }),
     selfReflectionReport: () => request('/monitoring/self-reflection'),
     sendSelfReflectionReport: () => request('/monitoring/self-reflection/send', { method: 'POST' }),
+}
+
+// ============================================
+// Default export (kept for compatibility)
+// ============================================
+export default {
+    ownerApi,
+    omegaApi,
+    whiteLabelApi,
+    workspaceApi,
+    developerApi,
+    integrationsApi,
+    analyticsApi,
+    subscriptionsApi,
+    invoicesApi,
+    ownerRequisitesApi,
+    ownerLegalInfoApi,
+    yookassaApi,
+    stripeApi,
+    paypalApi,
+    emailApi,
+    physicalApi,
+    franchiseApi,
+    fleetApi,
+    selfImprovementApi,
+    monitoringApi,
 }

@@ -2105,3 +2105,60 @@
 - [x] Frontend build: успешно (warnings по chunk size)
 - [x] Backend `node --check`: успешно
 - [x] Git push: выполнить
+
+
+## ✅ ПРОМПТ №15 — Самосовершенствование OMEGA — 2026-08-01
+
+### Template Evolution
+- [x] `backend/services/templateEvolution.js` существует: да
+- [x] Авто-анализ CTR шаблонов по опубликованным постам: да
+- [x] Бейджи proven / new / archived в `omegaTemplates.json`: да
+- [x] Бейджи на карточках шаблонов в `TemplatesTab.jsx`: да
+- [x] Gold Base (CTR ≥12%): да (`status: 'proven'`)
+- [x] Archive (CTR <3%, ≥5 сэмплов): да (`status: 'archived'`)
+- [x] Обновление `previewText` лучшим AI-вариантом: да
+- [x] График эффективности по категориям (Recharts) в `TemplatesTab.jsx`: да
+- [x] Cron ежедневно в 03:00 в `server.js`: да
+
+### A/B Auto-Learning
+- [x] `backend/services/abAutoLearning.js` существует: да
+- [x] Проверка eligibility (Pro/Agency, >30 дней, >1000 подписчиков): да
+- [x] `proposeABTest` генерирует вариант B через AI: да
+- [x] `approveABTest` создаёт scheduled-пост варианта B: да
+- [x] `resolveABTests` сверяет результаты через 48 часов: да
+- [x] Обучение на результатах (вызов `analyzeTemplatePerformance` если B победил): да
+- [x] Cron каждые 6 часов в `server.js`: да
+
+### Client Whisperer (Churn Prediction)
+- [x] `backend/services/churnPrediction.js` существует: да
+- [x] Score оттока по 4 факторам (login, posts, subscription, tickets): да
+- [x] Категории риска high/medium/low: да
+- [x] `GET /api/self-improvement/churn/at-risk`: да
+- [x] `GET /api/self-improvement/churn/stats`: да
+- [x] Авто-бонусы до отписки (день 1/3/5/7): да (`generateRetentionOffer`)
+- [x] Exit-опрос + offer 50% навсегда: да (`generateExitOffer`)
+- [x] Карточки «на грани оттока» в `OverviewTab.jsx`: да
+- [x] Кнопка «Отправить персональный бонус»: да
+
+### Niche Intelligence
+- [x] `backend/services/nicheIntelligence.js` существует: да
+- [x] Детекция ниши по тексту профиля/соцсетей: да
+- [x] Агрегация CTR по нишам, платформам, форматам, времени: да
+- [x] Топ форматов с дельтой к среднему по нише: да
+- [x] Кросс-индустриальные идеи: да (`generateCrossTrends`)
+- [x] Вкладка «Моя ниша» в `AnalyticsPage.jsx`: да
+- [x] Сравнение вашего CTR со средним по нише: да
+- [x] Рекомендации форматов и лучшего времени: да
+
+### Routes
+- [x] `backend/routes/selfImprovement.js` создан: да
+- [x] Подключён в `server.js` (`/api/self-improvement`): да
+- [x] `selfImprovementApi` добавлен в `frontend/src/services/api.js`: да
+- [x] Фикс default export `api.js` (перенесён в конец файла): да
+
+### Сборка
+- [x] Frontend build: успешно (warnings по chunk size и dynamic imports)
+- [x] Backend `node --check` (server.js + 4 сервиса + routes): успешно
+- [x] Git push: выполнить
+- [ ] Render Clear build cache: требуется вручную в Dashboard
+- [ ] Backend live (нет SyntaxError): проверить после деплоя на Render
