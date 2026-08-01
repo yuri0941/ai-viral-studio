@@ -12,8 +12,8 @@ if (token) {
 
   if (isProduction && process.env.RENDER_EXTERNAL_URL) {
     const webhookUrl = `${process.env.RENDER_EXTERNAL_URL}/bot${token}`
-    bot.setWebHook(webhookUrl).catch((err) => {
-      console.error('[ownerBot] setWebHook failed:', err.message)
+    bot.setWebhook(webhookUrl).catch((err) => {
+      console.error('[ownerBot] setWebhook failed:', err.message)
     })
   }
 

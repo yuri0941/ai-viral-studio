@@ -172,27 +172,39 @@ app.use((req, res) => {
     res.status(404).json({ status: 'error', message: 'Route not found' })
 })
 
-const server = app.listen(PORT, () => {
-    console.log(`🚀 Server started on port ${PORT}`)
-    console.log(`✅ MongoDB connected: ${isConnected ? 'Yes' : 'No'}`)
-    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
-    console.log(`🔑 JWT Secret loaded: ${process.env.JWT_SECRET ? '✅ Yes' : '❌ No'}`)
-    console.log(`🤖 AI provider chain ready: verified on first real request (Groq → OpenRouter → ...)`)
-    console.log(`📺 YouTube API: ${process.env.YOUTUBE_API_KEY ? '✅ Connected' : '❌ No key'}`)
-})
+let server
 
 process.on('SIGTERM', () => {
     console.log('SIGTERM received, shutting down gracefully')
-    server.close(() => {
-        console.log('Process terminated')
+    server?.close(() => {
+        console.log('Server closed')
         process.exit(0)
     })
 })
 
 process.on('SIGINT', () => {
     console.log('SIGINT received, shutting down gracefully')
-    server.close(() => {
-        console.log('Process terminated')
+    server?.close(() => {
+        console.log('Server closed')
         process.exit(0)
     })
+})
+
+server = app.listen(PORT, () => {
+    console.log(`🚀 Server started on port ${PORT}`)
+    console.log(`✅ MongoDB connected: ${isConnected ? 'Yes' : 'No'}`)
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
+    console.log(`🔑 JWT Secret loaded: ${process.env.JWT_SECRET ? '✅ Yes' : '❌ No'}`)
+    console.log(`🤖 AI provider chain ready: verified on first real request (Groq → OpenRouter → ...)`)
+    console.log(`📺 YouTube API: ${process.env.YOUTUBE_API_KEY ? '✅ Connected' : '❌ No key'}`)
+}).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use. Retrying in 3 seconds...`)
+        setTimeout(() => {
+            server.close()
+            server.listen(PORT)
+        }, 3000)
+    } else {
+        console.error('Server error:', err)
+    }
 })
