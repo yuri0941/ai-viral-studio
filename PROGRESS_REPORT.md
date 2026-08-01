@@ -1,3 +1,12 @@
+### 2026-08-01 — HOTFIX: временно отключён Turnstile
+- [x] frontend/src/components/auth/LoginForm.jsx: Turnstile рендерится только на `*.pages.dev`; на остальных доменах `turnstileToken` принудительно выставлен в `'disabled'`
+- [x] frontend/src/components/auth/RegisterForm.jsx: аналогично — капча скрыта вне `pages.dev`, отправляется placeholder токен
+- [x] backend/routes/auth.js: middleware `verifyTurnstile` временно закомментирован для `/register` и `/login` (пока домен не добавлен в Cloudflare)
+- [x] Frontend build: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+- Статус: **готово к деплою** (Turnstile отключён временно для aiviral-studio.ru)
+
 ### 2026-08-01 — HOTFIX: AI-провайдеры, fallback Groq → OpenRouter на запросе, без стартовых проверок
 - [x] backend/server.js: убран стартовый лог `AI Providers: Groq=...` (теперь только `AI provider chain ready: verified on first real request`)
 - [x] backend/services/aiService.js: `isEnabled` теперь включает провайдера по наличию ключа, игнорируя env-флаг `*_ENABLED` (fallback цепочка всегда работает)

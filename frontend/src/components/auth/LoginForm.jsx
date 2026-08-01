@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -14,11 +14,20 @@ function LoginForm({ onSuccess }) {
     const { login } = useAuth()
     const navigate = useNavigate()
 
+    // Turnstile is temporarily disabled on non-Cloudflare Pages domains
+    const isTurnstileEnabled = typeof window !== 'undefined' && window.location.hostname.includes('pages.dev')
+
+    useEffect(() => {
+        if (!isTurnstileEnabled) {
+            setTurnstileToken('disabled')
+        }
+    }, [isTurnstileEnabled])
+
     const handleSubmit = async (e) => {
         e.preventDefault()
         setError('')
 
-        if (!turnstileToken) {
+        if (isTurnstileEnabled && !turnstileToken) {
             setError('Пройдите проверку Turnstile')
             return
         }
@@ -26,7 +35,7 @@ function LoginForm({ onSuccess }) {
         setLoading(true)
 
         try {
-            const result = await login(email, password, turnstileToken)
+            const result = await login(email, password, turnstileToken || 'disabled')
             if (result.success) {
                 onSuccess?.()
                 setTimeout(() => {
@@ -86,11 +95,13 @@ function LoginForm({ onSuccess }) {
                 </div>
             </div>
 
-            <Turnstile
-                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAECRR8t_7EdD8onI'}
-                onSuccess={setTurnstileToken}
-                className="mx-auto"
-            />
+            {isTurnstileEnabled && (
+                <Turnstile
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAECRR8t_7EdD8onI'}
+                    onSuccess={setTurnstileToken}
+                    className="mx-auto"
+                />
+            )}
 
             <button
                 type="submit"

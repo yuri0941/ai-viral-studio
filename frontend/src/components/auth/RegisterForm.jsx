@@ -26,11 +26,20 @@ function RegisterForm({ onSuccess }) {
     const [turnstileToken, setTurnstileToken] = useState('')
     const { register } = useAuth()
 
+    // Turnstile is temporarily disabled on non-Cloudflare Pages domains
+    const isTurnstileEnabled = typeof window !== 'undefined' && window.location.hostname.includes('pages.dev')
+
     useEffect(() => {
         if (!registered || resendSeconds <= 0) return
         const t = setInterval(() => setResendSeconds(s => s - 1), 1000)
         return () => clearInterval(t)
     }, [registered, resendSeconds])
+
+    useEffect(() => {
+        if (!isTurnstileEnabled) {
+            setTurnstileToken('disabled')
+        }
+    }, [isTurnstileEnabled])
 
     const allConsentsChecked = Object.values(consent).every(Boolean)
 
@@ -57,7 +66,7 @@ function RegisterForm({ onSuccess }) {
             return
         }
 
-        if (!turnstileToken) {
+        if (isTurnstileEnabled && !turnstileToken) {
             setError('Пройдите проверку Turnstile')
             return
         }
@@ -65,7 +74,7 @@ function RegisterForm({ onSuccess }) {
         setLoading(true)
 
         try {
-            const result = await register(name, email, password, consent, turnstileToken)
+            const result = await register(name, email, password, consent, turnstileToken || 'disabled')
             if (result.success) {
                 setRegistered(true)
                 setResendSeconds(60)
@@ -283,11 +292,13 @@ function RegisterForm({ onSuccess }) {
                 </label>
             </div>
 
-            <Turnstile
-                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAECRR8t_7EdD8onI'}
-                onSuccess={setTurnstileToken}
-                className="mx-auto"
-            />
+            {isTurnstileEnabled && (
+                <Turnstile
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAECRR8t_7EdD8onI'}
+                    onSuccess={setTurnstileToken}
+                    className="mx-auto"
+                />
+            )}
 
             <button
                 type="submit"
