@@ -10,6 +10,7 @@ import rateLimit from 'express-rate-limit'
 import { connectDB, isConnected } from './config/database.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
+import bot from './services/ownerBot.js'
 
 // Routes
 import authRoutes from './routes/auth.js'
@@ -91,6 +92,16 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(compression())
+
+// Telegram bot webhook endpoint (must be before rate limiters and before API routes)
+if (process.env.TELEGRAM_BOT_TOKEN) {
+    app.post(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, (req, res) => {
+        if (bot && bot.processUpdate) {
+            bot.processUpdate(req.body)
+        }
+        res.sendStatus(200)
+    })
+}
 
 // Rate limiting (relaxed in development)
 const limiter = rateLimit({

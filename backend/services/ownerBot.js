@@ -4,7 +4,18 @@ const token = process.env.TELEGRAM_BOT_TOKEN
 let bot
 
 if (token) {
-  bot = new TelegramBot(token, { polling: true })
+  const isProduction = process.env.NODE_ENV === 'production'
+  bot = new TelegramBot(token, {
+    polling: !isProduction,
+    webHook: isProduction ? { port: parseInt(process.env.PORT) || 10000, host: '0.0.0.0' } : false,
+  })
+
+  if (isProduction && process.env.RENDER_EXTERNAL_URL) {
+    const webhookUrl = `${process.env.RENDER_EXTERNAL_URL}/bot${token}`
+    bot.setWebHook(webhookUrl).catch((err) => {
+      console.error('[ownerBot] setWebHook failed:', err.message)
+    })
+  }
 
   bot.onText(/\/start/, (msg) => bot.sendMessage(msg.chat.id, 'Бот активирован. Команды: /status'))
 
