@@ -260,6 +260,15 @@ export const stripeApi = {
 }
 
 // ============================================
+// PayPal API (prepared, disabled by default)
+// ============================================
+export const paypalApi = {
+    status: () => request('/paypal/status'),
+    createOrder: (data) => request('/paypal/create-order', { method: 'POST', body: JSON.stringify(data) }),
+    capture: (orderId) => request('/paypal/capture', { method: 'POST', body: JSON.stringify({ orderId }) }),
+}
+
+// ============================================
 // Email API
 // ============================================
 export const emailApi = {
