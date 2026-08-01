@@ -127,7 +127,17 @@ router.get('/audience', protect, cacheWrap(300), async (req, res) => {
 
 // Vector store status
 router.get('/vector-store/status', protect, async (req, res) => {
-    res.json({ status: 'success', data: vectorStore.getStoreStatus() })
+    res.json({ status: 'success', data: await vectorStore.getStoreStatus() })
+})
+
+// Clear vector store memory for current user
+router.delete('/vector-store/clear', protect, async (req, res) => {
+    try {
+        const result = await vectorStore.clearVectorMemory(req.user._id || req.user.id)
+        res.json({ status: 'success', data: result })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
 })
 
 // A/B tests

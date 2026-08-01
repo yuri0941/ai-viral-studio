@@ -17,7 +17,7 @@ export const chat = async (req, res) => {
         }
 
         // Get AI response
-        const result = await chatWithAI(message, history)
+        const result = await chatWithAI(message, history, 'ru', { userId })
 
         if (!result.success) {
             return res.status(500).json({

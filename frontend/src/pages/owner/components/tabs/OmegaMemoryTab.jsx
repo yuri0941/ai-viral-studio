@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Database, Search, Layers, Trash2, ChevronRight, MessageSquare } from 'lucide-react'
+import { Database, Search, Layers, Trash2, ChevronRight, MessageSquare, Cloud, Server } from 'lucide-react'
 import { useOmegaMemory } from '../../../../hooks/useOmegaMemory'
-import { omegaApi } from '../../../../services/api.js'
+import { omegaApi, analyticsApi } from '../../../../services/api.js'
 
 const LEVEL_META = {
     short_term: { label: 'Short-term', color: 'blue', description: 'Текущий диалог' },
@@ -23,6 +23,34 @@ export function OmegaMemoryTab() {
     const [newEntry, setNewEntry] = useState('')
     const [apiLoading, setApiLoading] = useState(true)
     const [apiEmpty, setApiEmpty] = useState(false)
+    const [vectorStatus, setVectorStatus] = useState(null)
+    const [vectorLoading, setVectorLoading] = useState(false)
+
+    const loadVectorStatus = async () => {
+        try {
+            const res = await analyticsApi.vectorStoreStatus()
+            setVectorStatus(res?.data || null)
+        } catch (err) {
+            console.error('[OmegaMemoryTab] vector store status error:', err)
+        }
+    }
+
+    const clearVectorMemory = async () => {
+        if (!window.confirm('Очистить векторную память OMEGA? Это необратимо.')) return
+        setVectorLoading(true)
+        try {
+            await analyticsApi.clearVectorStore()
+            await loadVectorStatus()
+        } catch (err) {
+            console.error('[OmegaMemoryTab] clear vector store error:', err)
+        } finally {
+            setVectorLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        loadVectorStatus()
+    }, [])
 
     useEffect(() => {
         let cancelled = false
@@ -111,6 +139,37 @@ export function OmegaMemoryTab() {
                     <h2 className="text-lg font-semibold text-white">OMEGA Memory</h2>
                 </div>
                 <div className="text-xs text-gray-500">Всего записей: <span className="text-white">{totalEntries}</span></div>
+            </div>
+
+            {/* Vector Memory status */}
+            <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        {vectorStatus?.configured ? (
+                            <Cloud size={18} className="text-emerald-400" />
+                        ) : (
+                            <Server size={18} className="text-yellow-400" />
+                        )}
+                        <div>
+                            <div className="text-sm font-medium text-white">
+                                {vectorStatus?.configured ? '🟢 Chroma Cloud' : '🟡 In-Memory fallback'}
+                            </div>
+                            <div className="text-[10px] text-gray-500">
+                                {vectorStatus
+                                    ? `${vectorStatus.backend || ''} · ${vectorStatus.count || 0} документов`
+                                    : 'Загрузка статуса...'}
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        onClick={clearVectorMemory}
+                        disabled={vectorLoading || !vectorStatus}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Trash2 size={12} />
+                        {vectorLoading ? 'Очистка...' : 'Очистить память'}
+                    </button>
+                </div>
             </div>
 
             {/* Summary */}

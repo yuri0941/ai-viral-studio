@@ -5,6 +5,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { ApiKey, AIProviderSetting } from '../models/index.js'
 import { emergencyStop } from '../routes/admin.js'
+import { searchVectorMemory, addToVectorMemory } from './vectorStore.js'
 
 // ============ HELPERS ============
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -613,10 +614,12 @@ const tryProviders = async (messages) => {
 // ============ EXPORTS ============
 import { getJSON, setJSON, cacheKey as redisCacheKey } from '../config/redis.js'
 
-export const chatWithAI = async (message, history = [], lang = 'ru') => {
+export const chatWithAI = async (message, history = [], lang = 'ru', options = {}) => {
     if (emergencyStop) {
         return { success: true, reply: '⛔ OMEGA временно остановлена владельцем. Попробуйте позже.', provider: 'system' }
     }
+
+    const { userId } = options
 
     const localCached = getCached(message, lang)
     if (localCached) {
@@ -633,11 +636,46 @@ export const chatWithAI = async (message, history = [], lang = 'ru') => {
             return { success: true, ...redisCached, cached: true, source: 'redis' }
         }
 
-        const messages = formatMessages(message, history)
+        // Retrieve relevant memory context for this user
+        let memoryContext = ''
+        if (userId) {
+            try {
+                const memory = await searchVectorMemory({ query: message, userId, limit: 3 })
+                if (memory.status === 'success' && memory.results.length > 0) {
+                    memoryContext = `Контекст из памяти OMEGA:\n${memory.results.map(r => `- ${r.text}`).join('\n')}\n\n`
+                }
+            } catch (err) {
+                console.error('[chatWithAI] memory search error:', err.message)
+            }
+        }
+
+        const messages = [
+            { role: 'system', content: `${memoryContext}${SYSTEM_PROMPT}` },
+            ...history.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.content
+            })),
+            { role: 'user', content: message }
+        ]
         const result = await tryProviders(messages)
         const value = { reply: result.reply, provider: result.provider, usage: result.usage }
         setCached(message, lang, value)
         await setJSON(redisKey, value, 3600)
+
+        // Persist conversation turn for future RAG lookups
+        if (userId) {
+            try {
+                await addToVectorMemory({
+                    id: `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                    text: `User: ${message}\nOMEGA: ${result.reply}`,
+                    metadata: { type: 'conversation', platform: 'web' },
+                    userId,
+                })
+            } catch (err) {
+                console.error('[chatWithAI] memory save error:', err.message)
+            }
+        }
+
         return { success: true, ...value }
     } catch (error) {
         console.error('AI Service Error:', error.message)

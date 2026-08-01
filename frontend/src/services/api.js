@@ -185,7 +185,15 @@ export const integrationsApi = {
     triggerWebhooks: (event, payload) => request('/integrations/webhooks/trigger', { method: 'POST', body: JSON.stringify({ event, payload }) }),
 }
 
-export default { ownerApi, omegaApi, whiteLabelApi, workspaceApi, developerApi, integrationsApi }
+export default { ownerApi, omegaApi, whiteLabelApi, workspaceApi, developerApi, integrationsApi, analyticsApi }
+
+// ============================================
+// Analytics API
+// ============================================
+export const analyticsApi = {
+    vectorStoreStatus: () => request('/analytics/vector-store/status'),
+    clearVectorStore: () => request('/analytics/vector-store/clear', { method: 'DELETE' }),
+}
 
 // ============================================
 // Subscriptions API

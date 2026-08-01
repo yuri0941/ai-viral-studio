@@ -101,7 +101,7 @@ export async function chat(req, res) {
 
         const result = userId
             ? await selectResponse(userId, message, userContext)
-            : await chatWithAI(message, history.map(h => ({ role: h.role, content: h.content || h.text })), lang)
+            : await chatWithAI(message, history.map(h => ({ role: h.role, content: h.content || h.text })), lang, { userId })
 
         if (userId) {
             try {

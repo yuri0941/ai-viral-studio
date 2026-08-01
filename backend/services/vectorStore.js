@@ -1,88 +1,208 @@
 // ============================================
-// RAG Vector Store — In-Memory fallback
+// RAG Vector Store — Chroma Cloud + In-Memory fallback
 // ============================================
-// If CHROMADB_URL or CLOUDFLARE_VECTORIZE_API_KEY is set, the system is
-// considered "configured". Otherwise we keep vectors in a Node.js Map (limit 1000).
+// If CHROMA_API_KEY, CHROMA_TENANT and CHROMA_DATABASE are set, the system
+// uses Chroma Cloud. Otherwise it keeps vectors in a Node.js Map (limit 1000).
 
-const memory = new Map()
+import { CloudClient } from 'chromadb'
+
+const API_KEY = process.env.CHROMA_API_KEY
+const TENANT = process.env.CHROMA_TENANT
+const DATABASE = process.env.CHROMA_DATABASE
+
+let chromaClient = null
+
+export const getChromaClient = () => {
+    if (!chromaClient && API_KEY && TENANT && DATABASE) {
+        try {
+            chromaClient = new CloudClient({
+                api_key: API_KEY,
+                tenant: TENANT,
+                database: DATABASE,
+            })
+            console.log('✅ Chroma Cloud connected')
+        } catch (err) {
+            console.error('❌ Chroma Cloud connection failed:', err.message)
+        }
+    }
+    return chromaClient
+}
+
+export const isChromaConnected = () => !!chromaClient
+
+// Backward-compatible alias
+export const isConfigured = isChromaConnected
+
+// In-memory fallback
+const memoryFallback = new Map()
 const MAX_MEMORY = 1000
 
-function cosineSimilarity(a, b) {
-    let dot = 0, normA = 0, normB = 0
-    for (let i = 0; i < a.length; i++) {
-        dot += a[i] * b[i]
-        normA += a[i] * a[i]
-        normB += b[i] * b[i]
+function collectionName(userId) {
+    return `omega_memory_${String(userId)}`
+}
+
+export const addToVectorMemory = async ({ id, text, metadata = {}, userId }) => {
+    if (!text || !userId) {
+        return { status: 'error', message: 'text and userId are required' }
     }
-    if (normA === 0 || normB === 0) return 0
-    return dot / (Math.sqrt(normA) * Math.sqrt(normB))
-}
 
-function hashToVector(text, dim = 128) {
-    const vec = new Array(dim).fill(0)
-    for (let i = 0; i < text.length; i++) {
-        vec[i % dim] += text.charCodeAt(i) % 10
+    const chroma = getChromaClient()
+
+    if (!chroma) {
+        const key = collectionName(userId)
+        if (!memoryFallback.has(key)) memoryFallback.set(key, [])
+        const docs = memoryFallback.get(key)
+        docs.push({ id, text, metadata, date: new Date().toISOString() })
+        if (docs.length > MAX_MEMORY) docs.shift()
+        return { status: 'fallback', message: 'Chroma not configured — saved to in-memory' }
     }
-    return vec.map(v => v / Math.max(text.length / dim, 1))
+
+    try {
+        const collection = await chroma.getOrCreateCollection({
+            name: collectionName(userId),
+        })
+
+        await collection.add({
+            ids: [id || `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`],
+            documents: [String(text).slice(0, 4000)],
+            metadatas: [{ ...metadata, userId: String(userId), date: new Date().toISOString() }],
+        })
+
+        return { status: 'success', id }
+    } catch (err) {
+        console.error('Chroma add error:', err.message)
+        return { status: 'error', message: err.message }
+    }
 }
 
-export function isConfigured() {
-    return !!(process.env.CHROMADB_URL || process.env.CLOUDFLARE_VECTORIZE_API_KEY)
+export const searchVectorMemory = async ({ query, userId, limit = 5 }) => {
+    if (!query || !userId) {
+        return { status: 'error', message: 'query and userId are required', results: [] }
+    }
+
+    const chroma = getChromaClient()
+
+    if (!chroma) {
+        const key = collectionName(userId)
+        const docs = memoryFallback.get(key) || []
+        const results = docs
+            .filter(d => String(d.text).toLowerCase().includes(String(query).toLowerCase()))
+            .slice(-limit)
+            .map(d => ({ text: d.text, metadata: d.metadata, distance: 0 }))
+        return { status: 'fallback', results }
+    }
+
+    try {
+        const collection = await chroma.getCollection({
+            name: collectionName(userId),
+        })
+
+        const results = await collection.query({
+            queryTexts: [String(query)],
+            nResults: limit,
+        })
+
+        return {
+            status: 'success',
+            results: results.documents[0]?.map((doc, i) => ({
+                text: doc,
+                metadata: results.metadatas?.[0]?.[i],
+                distance: results.distances?.[0]?.[i],
+            })) || [],
+        }
+    } catch (err) {
+        console.error('Chroma search error:', err.message)
+        return { status: 'error', message: err.message, results: [] }
+    }
 }
 
+export const deleteFromVectorMemory = async ({ id, userId }) => {
+    if (!userId) {
+        return { status: 'error', message: 'userId is required' }
+    }
+
+    const chroma = getChromaClient()
+
+    if (!chroma) {
+        const key = collectionName(userId)
+        const docs = memoryFallback.get(key) || []
+        if (id) {
+            memoryFallback.set(key, docs.filter(d => d.id !== id))
+        } else {
+            memoryFallback.delete(key)
+        }
+        return { status: 'fallback' }
+    }
+
+    try {
+        const collection = await chroma.getCollection({ name: collectionName(userId) })
+        if (id) {
+            await collection.delete({ ids: [id] })
+        } else {
+            const all = await collection.get({})
+            const ids = all.ids
+            if (ids && ids.length) await collection.delete({ ids })
+        }
+        return { status: 'success' }
+    } catch (err) {
+        console.error('Chroma delete error:', err.message)
+        return { status: 'error', message: err.message }
+    }
+}
+
+export const clearVectorMemory = async (userId) => {
+    return deleteFromVectorMemory({ userId })
+}
+
+// Backward-compatible wrappers
 export async function addDocument({ id, text, userId, metadata = {} }) {
     if (!text || !userId) return
-    const key = `${userId}:${id || Date.now()}`
-    const doc = {
-        id: key,
-        text: String(text).slice(0, 4000),
-        userId: String(userId),
-        vector: hashToVector(text),
-        metadata,
-        createdAt: new Date().toISOString(),
-    }
-    memory.set(key, doc)
-
-    if (memory.size > MAX_MEMORY) {
-        const oldest = [...memory.entries()]
-            .sort((a, b) => new Date(a[1].createdAt) - new Date(b[1].createdAt))[0]
-        if (oldest) memory.delete(oldest[0])
-    }
+    return addToVectorMemory({ id, text, userId, metadata })
 }
 
 export async function searchSimilar({ query, userId, limit = 3 }) {
-    if (!query || !userId) return []
-    const queryVector = hashToVector(query)
-    const results = [...memory.values()]
-        .filter(doc => doc.userId === String(userId))
-        .map(doc => ({
-            ...doc,
-            score: cosineSimilarity(queryVector, doc.vector),
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit)
-    return results
+    const res = await searchVectorMemory({ query, userId, limit })
+    return res.results || []
 }
 
 export async function addChatMessage({ userId, role, content }) {
     if (!userId || !content) return
     const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    await addDocument({ id, text: `${role}: ${content}`, userId, metadata: { type: 'chat', role } })
+    return addToVectorMemory({ id, text: `${role}: ${content}`, userId, metadata: { type: 'chat', role } })
 }
 
-export function getStoreStatus() {
+export async function getStoreStatus() {
+    const chroma = getChromaClient()
+    let count = 0
+    if (chroma) {
+        try {
+            // Total count across collections is expensive; we just report connection status.
+            count = memoryFallback.size
+        } catch (err) {
+            console.error('Chroma status error:', err.message)
+        }
+    } else {
+        count = memoryFallback.size
+    }
+
     return {
-        configured: isConfigured(),
-        backend: isConfigured() ? 'ChromaDB/Cloudflare Vectorize' : 'In-Memory',
-        count: memory.size,
+        configured: isChromaConnected(),
+        backend: isChromaConnected() ? 'Chroma Cloud' : 'In-Memory',
+        count,
         limit: MAX_MEMORY,
     }
 }
 
 export default {
     isConfigured,
+    isChromaConnected,
+    getChromaClient,
     addDocument,
+    addToVectorMemory,
     searchSimilar,
+    searchVectorMemory,
     addChatMessage,
+    deleteFromVectorMemory,
+    clearVectorMemory,
     getStoreStatus,
 }

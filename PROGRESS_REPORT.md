@@ -1852,3 +1852,42 @@
 - Для ClickUp: добавить `CLICKUP_API_KEY` и ID списка
 - Для Trello: добавить `TRELLO_API_KEY`, `TRELLO_TOKEN`, `TRELLO_BOARD_ID`, `TRELLO_LIST_ID`
 - Для Shopify: добавить `SHOPIFY_STORE_URL`, `SHOPIFY_ACCESS_TOKEN`
+
+
+## ✅ Chroma Cloud + Timezone — 2026-08-01
+
+### Vector Memory (Chroma Cloud)
+- [x] `vectorStore.js` существует: да (`backend/services/vectorStore.js`)
+- [x] CloudClient с `process.env` (не хардкод): да (`CHROMA_API_KEY`, `CHROMA_TENANT`, `CHROMA_DATABASE`)
+- [x] In-memory fallback (если Chroma не настроен): да (`Map` лимит 1000)
+- [x] `addToVectorMemory`: да
+- [x] `searchVectorMemory` (RAG): да
+- [x] `deleteFromVectorMemory`: да
+- [x] `npm install chromadb`: уже было установлено (`^3.5.0`)
+
+### Интеграция в OMEGA Chat
+- [x] `aiService.js` импортирует `vectorStore`: да
+- [x] Поиск памяти перед ответом AI: да (`searchVectorMemory` в `chatWithAI`)
+- [x] Сохранение разговора после ответа: да (`addToVectorMemory`)
+- [x] `memoryContext` добавляется в system prompt: да
+
+### Timezone Detection
+- [x] `AuthContext` login/register: определяет timezone: да (`Intl.DateTimeFormat().resolvedOptions().timeZone`)
+- [x] `AuthContext` checkAuth: проверяет/обновляет timezone: да
+- [x] Модель User: поле timezone (в `preferences.timezone`): да
+- [x] PATCH /api/users/me принимает timezone: да (`PUT /api/users/me` в `userController.js`)
+
+### OmegaMemoryTab
+- [x] Статус Chroma Cloud / In-Memory: да (`/api/analytics/vector-store/status`)
+- [x] Кнопка «Очистить память»: да (`DELETE /api/analytics/vector-store/clear`)
+
+### Env Vars (Render)
+- [ ] `CHROMA_API_KEY` добавлен: требуется вручную в Render Dashboard
+- [ ] `CHROMA_TENANT` добавлен: требуется вручную
+- [ ] `CHROMA_DATABASE` добавлен: требуется вручную (`Omega1313`)
+- [ ] Clear build cache & deploy: требуется вручную
+
+### Сборка
+- [x] Backend `node --check` (все файлы): успешно
+- [x] Frontend build: успешно (есть warnings по chunk size и dynamic imports)
+- [x] Git push: выполнить
