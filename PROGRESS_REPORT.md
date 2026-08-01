@@ -1645,3 +1645,42 @@
 - Добавить `REDIS_URL` или `UPSTASH_REDIS_URL` в Render env для персистентного кэша (иначе in-memory, сбросится при перезапуске)
 - Добавить `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` для production push-уведомлений
 - Добавить `SOCKET_URL` (или оставить проксирование) на фронтенде для Render deployment
+
+
+## ✅ Capacitor + Tauri + Owner App — 2026-08-01
+
+### Capacitor (Mobile iOS/Android)
+- [x] Установлены `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/camera`, `@capacitor/push-notifications`, `@capacitor/app`, `@capacitor/splash-screen`
+- [x] `frontend/capacitor.config.json` создан: appId `com.ai.viral.studio`, webDir `dist`, server URL `https://ai-viral-studio.pages.dev`, allowNavigation
+- [x] Добавлена Android платформа: `frontend/android/`
+- [x] Скрипты в `frontend/package.json`: `cap:sync`, `cap:open:android`, `cap:open:ios`
+- [x] Хук `frontend/src/hooks/useCapacitor.js`: camera, push notifications, biometric auth, deeplinks, splash screen hide
+- [x] `npx cap sync` выполнен успешно
+
+### Tauri (Desktop <5MB)
+- [x] Создана папка `desktop/` со scaffolding Tauri v2
+- [x] `desktop/src-tauri/tauri.conf.json` обновлён: productName `AI Viral Studio`, identifier `com.ai.viral.studio`, frontendDist `../frontend/dist`, размер окна 1400×900
+- [x] `desktop/src-tauri/Cargo.toml` + `lib.rs`: system tray с меню (Новый пост, OMEGA, Emergency Stop, Выход), клик по иконке открывает окно
+- [x] Подготовлены глобальные хоткеи и always-on-top через плагины (`tauri-plugin-global-shortcut`, `tauri-plugin-positioner`)
+- [x] Drag & Drop подготовлен на уровне конфигурации (файлы попадают в окно, дальнейшая обработка на frontend)
+
+### Owner App (Mobile)
+- [x] Создана папка `frontend/src/pages/owner-app/`
+- [x] Экраны: Command Center, Team Pulse, Approval Stream, OMEGA Voice, Profile
+- [x] Bottom navigation (5 табов) как в Instagram, кнопки ≥44×44px
+- [x] Swipe-жесты: свайп вправо/влево для Approval Stream, pull-to-refresh
+- [x] Emergency Stop: двойное нажатие для активации
+- [x] OMEGA Voice: Web Speech API, удержание кнопки → распознавание → редирект
+- [x] Маршрут `/owner-app` обновлён в `App.jsx` (только role === 'owner')
+
+### Сборка и проверки
+- [x] Frontend build: успешно
+- [x] Backend `node --check`: успешно
+- [x] Capacitor sync: успешно
+- [x] Git push: выполнен
+- [x] PROGRESS_REPORT.md обновлён
+
+### Ручные действия
+- Для сборки Android: `cd frontend && npx cap open android` → Android Studio → Build APK
+- Для сборки iOS нужна macOS + Xcode: `cd frontend && npx cap add ios && npx cap open ios`
+- Для Tauri build нужен установленный Rust: `cd desktop && npm install && npm run tauri build`

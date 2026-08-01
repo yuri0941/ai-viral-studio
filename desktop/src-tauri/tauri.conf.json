@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AI Viral Studio",
+  "version": "1.0.0",
+  "identifier": "com.ai.viral.studio",
+  "build": {
+    "frontendDist": "../frontend/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "cd ../frontend && npm run dev",
+    "beforeBuildCommand": "cd ../frontend && npm run build"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "AI Viral Studio",
+        "width": 1400,
+        "height": 900,
+        "resizable": true,
+        "minWidth": 800,
+        "minHeight": 600,
+        "center": true,
+        "visible": false
+      }
+    ],
+    "trayIcon": {
+      "id": "main-tray",
+      "iconAsTemplate": true,
+      "menu": [
+        { "id": "new-post", "text": "Новый пост" },
+        { "id": "open-omega", "text": "Открыть OMEGA" },
+        { "id": "emergency-stop", "text": "Emergency Stop" },
+        { "id": "quit", "text": "Выход" }
+      ]
+    },
+    "security": {
+      "csp": null,
+      "dangerousDisableCsp": false
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "globalShortcut": {
+      "CtrlShiftO": "open-omega",
+      "CtrlShiftN": "new-notification",
+      "CtrlShiftE": "emergency-stop"
+    }
+  }
+}

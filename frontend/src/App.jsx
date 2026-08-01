@@ -24,7 +24,7 @@ import SettingsPage from './pages/SettingsPage'
 const ContentAnalyzerPage = lazy(() => import('./pages/ContentAnalyzerPage'))
 import ViralChatPage from './pages/ViralChatPage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
-import OwnerAppPage from './pages/owner/OwnerAppPage'
+import OwnerAppPage from './pages/owner-app/index'
 import PaymentSuccess from './pages/PaymentSuccess'
 import StripeCheckoutPage from './pages/StripeCheckoutPage'
 import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/legal/LegalPage'
