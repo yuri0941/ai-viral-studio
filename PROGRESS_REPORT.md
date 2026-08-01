@@ -1943,3 +1943,58 @@
 - Добавить `BOOKING_API_KEY` или `STUDIO_API_URL` для живой интеграции студий (сейчас fallback-база)
 - Добавить `YANDEX_EATS_API_KEY` или `DELIVERY_API_KEY` для автозаказа доставки (сейчас deep link)
 - Clear build cache & deploy в Render Dashboard
+
+---
+
+## ✅ ПРОМПТ №12 — Self-Healing + Crisis Management + Self-Reflection — 2026-08-01
+
+### Self-Healing v2
+- [x] Мониторинг каждые 5 мин: да (cron в `selfHealing.js`)
+- [x] Проверка AI-провайдеров (Groq → OpenRouter fallback): да
+- [x] Авто-переключение AI при 2+ ошибках: да (`autoRecovery.switchAIProvider`)
+- [x] Проверка MongoDB: да (`autoRecovery.checkDatabase`)
+- [x] MOCK-режим при падении БД: да (`autoRecovery.enableMockMode`)
+- [x] Проверка диска / памяти: да (disk >90%, RSS >500MB)
+- [x] Лог авто-исправлений в AuditLog: да (`autonomous: true`)
+- [x] Telegram-алерты владельцу: да (`alertOwner`)
+- [x] Тумблер «Авто-восстановление» (`features.autoHeal`): да (`OwnerSettings`)
+- [x] Frontend статус-карточки: да (SelfHealingCrisisTab)
+
+### Crisis Management
+- [x] Sentiment analysis сервис: да (`sentimentAnalysis.js`)
+- [x] Детект негатива (>70% + 10 комментов за 15 мин): да (`crisisDetection.analyzeComments`)
+- [x] Типы кризиса (hate_wave, misinformation, competitor_attack, viral_negative): да
+- [x] Модель `CrisisEvent`: да
+- [x] Авто-ответ OMEGA (suggestedResponse): да
+- [x] Пауза AutoPilot: да (`crisisDetection.pauseAutopilot`)
+- [x] Frontend «Кризис-центр» (Owner/Admin): да
+- [x] Кнопки «Одобрить ответ», «Отклонить», тестовый анализ: да
+
+### Self-Reflection
+- [x] Анализ логов за 24ч: да (`selfReflection.analyzeLast24Hours`)
+- [x] Паттерны и рекомендации: да
+- [x] Утренний репорт в Telegram (cron 09:00): да (`startSelfReflectionCron`)
+- [x] Кнопка ручной отправки отчёта: да
+
+### Роуты
+- [x] `GET /api/monitoring/self-healing`: да
+- [x] `PUT /api/monitoring/self-healing/auto-heal`: да
+- [x] `POST /api/monitoring/self-healing/trigger`: да
+- [x] `GET /api/monitoring/crises`: да
+- [x] `POST /api/monitoring/crises/analyze`: да
+- [x] `POST /api/monitoring/crises/:id/resolve`: да
+- [x] `POST /api/monitoring/crises/:id/reject`: да
+- [x] `GET /api/monitoring/self-reflection`: да
+- [x] `POST /api/monitoring/self-reflection/send`: да
+- [x] Подключены в `server.js`: да (`/api/monitoring`)
+
+### Сборка
+- [x] Backend `node --check` (все новые файлы): успешно
+- [x] Frontend build: успешно (warnings по chunk size и dynamic imports)
+- [x] Git push: выполнен (`22238897`)
+- [ ] Render Clear build cache & deploy: требуется вручную
+
+### Ручные действия
+- Добавить `TELEGRAM_BOT_TOKEN` и `TELEGRAM_OWNER_CHAT_ID` для алертов и утреннего репорта
+- Clear build cache & deploy в Render Dashboard
+- Для живого мониторинга комментариев подключить соцсети в Интеграциях (Instagram, YouTube, Telegram)
