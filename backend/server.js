@@ -31,6 +31,7 @@ import stripeRoutes from './routes/stripe.js'  // ← P10: Stripe (выключ�
 import emailRoutes from './routes/email.js'  // ← P10: Email
 
 const app = express()
+app.set('trust proxy', 1)
 const PORT = parseInt(process.env.PORT) || 10000
 
 // Connect to database before starting server
@@ -83,7 +84,9 @@ app.use(compression())
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: process.env.NODE_ENV === 'production' ? 100 : 10000,
-    message: 'Too many requests from this IP, please try again later.'
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
 })
 app.use('/api/', limiter)
 
