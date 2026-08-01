@@ -12,11 +12,15 @@ import { useSmartData } from '../hooks/useSmartData'
 import { API_BASE_URL } from '../config.js'
 import { ChannelAnalyticsTab } from '../components/analytics/ChannelAnalyticsTab'
 import { AudienceInsightsTab } from '../components/analytics/AudienceInsightsTab'
+import { CaseStudyGenerator } from '../components/analytics/CaseStudyGenerator'
+import { ReportGenerator } from '../components/analytics/ReportGenerator'
 
 const TABS = [
     { id: 'overview', label: 'Обзор' },
     { id: 'channels', label: 'По платформам' },
     { id: 'audience', label: 'Аудитория' },
+    { id: 'reports', label: 'Отчёты' },
+    { id: 'cases', label: 'Кейсы' },
 ]
 
 const DEMO_STATS = { views: 0, ctr: 0, subscribers: 0, engagement: 0, reach: 0, clicks: 0, shares: 0 }
@@ -479,6 +483,8 @@ function AnalyticsPage() {
 
             {activeTab === 'channels' && <ChannelAnalyticsTab />}
             {activeTab === 'audience' && <AudienceInsightsTab />}
+            {activeTab === 'reports' && <ReportGenerator />}
+            {activeTab === 'cases' && <CaseStudyGenerator />}
         </div>
     </div>
     )

@@ -1,4 +1,8 @@
-import { Referral, User, generateReferralCode } from '../models/index.js'
+import { Referral, User } from '../models/index.js'
+
+const generateReferralCode = () => {
+  return Math.random().toString(36).substring(2, 8).toUpperCase()
+}
 
 const TIER_REWARDS = {
     starter: { label: 'Starter', minReferrals: 0, reward: 'Начните приглашать' },

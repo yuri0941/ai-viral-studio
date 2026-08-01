@@ -6,7 +6,7 @@ import { useSmartData } from '../../../../hooks/useSmartData'
 import { API_BASE_URL } from '../../../../config.js'
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
-    ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe
+    ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap
 } from 'lucide-react'
 
 const DEMO_PLANS = [

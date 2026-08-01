@@ -6,6 +6,7 @@ import { useRef, useEffect, useState } from 'react'
 import { Bot, User, Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown, Mic, Globe, Volume2 } from 'lucide-react'
 import { useOmegaChat } from '../../hooks/useOmegaChat.js'
 import { VectorStoreStatus } from './VectorStoreStatus.jsx'
+import { UsageQuotaWidget } from './UsageQuotaWidget.jsx'
 
 export function OmegaChatContainer(props) {
     const chat = useOmegaChat(props)
@@ -71,8 +72,9 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                         </div>
                     </div>
                 </div>
-                <div className="hidden sm:block">
+                <div className="hidden sm:flex items-center gap-2">
                     <VectorStoreStatus />
+                    <UsageQuotaWidget />
                 </div>
                 <button
                     onClick={clearHistory}
