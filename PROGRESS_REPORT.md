@@ -2162,3 +2162,19 @@
 - [x] Git push: выполнить
 - [ ] Render Clear build cache: требуется вручную в Dashboard
 - [ ] Backend live (нет SyntaxError): проверить после деплоя на Render
+
+
+### Исправления после деплоя — импорты (Промпт №13)
+- [x] `AppSidebar.jsx`: `Cpu` импортирован: да (уже присутствует в import { ..., Cpu, ... })
+- [x] Другие иконки в `AppSidebar.jsx` проверены: да (все иконки из `ROLE_MENU` присутствуют в импорте)
+- [x] `api.js`: `paypalApi` исправлен (строка ~188 / default export): да (`export const paypalApi = { ... }` определён до default export)
+- [x] `api.js` default export перенесён в конец файла: да (устранён TDZ для `selfImprovementApi`, `monitoringApi`)
+- [x] Файлы №13 проверены на импорты: да (`PredictionCard.jsx`, `AIvsHumanPage.jsx`, `SchedulerPage.jsx`, `UserProfileModal.jsx`, `App.jsx`)
+- [x] Найдено ошибок импортов: 0
+- [x] Исправлено файлов: 0 (обе проблемы уже были решены в предыдущем коммите)
+- [x] Frontend build: успешно (warnings по chunk size и dynamic imports — не критичны)
+- [x] Backend check: успешно (`server.js`, `services/selfHealing.js`, `controllers/omegaController.js`)
+- [x] Git push: выполнить
+- [ ] Render Clear build cache: требуется вручную в Dashboard
+- [ ] Ошибка `Cpu` ушла в production: проверить после деплоя
+- [ ] Ошибка `paypalApi` ушла в production: проверить после деплоя
