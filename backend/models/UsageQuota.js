@@ -6,7 +6,6 @@ const usageQuotaSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
         unique: true,
-        index: true,
     },
     plan: {
         type: String,

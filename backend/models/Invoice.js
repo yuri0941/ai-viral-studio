@@ -39,7 +39,6 @@ const invoiceSchema = new mongoose.Schema({
     type: String,
     unique: true,
     sparse: true,
-    index: true,
   },
   amount: {
     type: Number,
@@ -55,7 +54,6 @@ const invoiceSchema = new mongoose.Schema({
     type: String,
     enum: ['draft', 'pending', 'paid', 'overdue', 'canceled', 'refunded', 'failed'],
     default: 'draft',
-    index: true,
   },
   type: {
     type: String,

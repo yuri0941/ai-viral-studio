@@ -9,7 +9,7 @@ const negotiationSchema = new mongoose.Schema({
 const campaignSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
     client: { type: String, required: true, trim: true },
-    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     budget: { type: Number, required: true, min: 0 },
     spent: { type: Number, default: 0, min: 0 },

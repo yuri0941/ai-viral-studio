@@ -4,16 +4,18 @@ const token = process.env.TELEGRAM_BOT_TOKEN
 let bot
 
 if (token) {
-  const isProduction = process.env.NODE_ENV === 'production'
+  const isDev = process.env.NODE_ENV !== 'production'
   bot = new TelegramBot(token, {
-    polling: !isProduction,
-    webHook: isProduction ? { port: parseInt(process.env.PORT) || 10000, host: '0.0.0.0' } : false,
+    polling: isDev,
+    webHook: !isDev ? { port: false } : false,
   })
+  global.ownerBot = bot
 
-  if (isProduction && process.env.RENDER_EXTERNAL_URL) {
+  // В production webhook (если есть RENDER_EXTERNAL_URL)
+  if (!isDev && process.env.RENDER_EXTERNAL_URL) {
     const webhookUrl = `${process.env.RENDER_EXTERNAL_URL}/bot${token}`
-    bot.setWebhook(webhookUrl).catch((err) => {
-      console.error('[ownerBot] setWebhook failed:', err.message)
+    bot.setWebhook(webhookUrl).catch(err => {
+      console.log('Telegram webhook setup failed (non-critical):', err.message)
     })
   }
 

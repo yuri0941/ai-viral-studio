@@ -4,7 +4,6 @@ const chatMessageSchema = new mongoose.Schema({
     chatId: {
         type: String,
         required: true,
-        index: true,
     },
     type: {
         type: String,
@@ -14,7 +13,6 @@ const chatMessageSchema = new mongoose.Schema({
     senderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        index: true,
     },
     senderRole: {
         type: String,

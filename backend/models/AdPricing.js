@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 
 const adPricingSchema = new mongoose.Schema({
-    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true, index: true },
+    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     cpm: { type: Number, default: 0, min: 0 },
     cpc: { type: Number, default: 0, min: 0 },
     cpa: { type: Number, default: 0, min: 0 },

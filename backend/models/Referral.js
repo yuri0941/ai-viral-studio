@@ -7,13 +7,11 @@ const referralSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
         unique: true,
-        index: true,
     },
     referralCode: {
         type: String,
         required: true,
         unique: true,
-        index: true,
     },
     referredBy: {
         type: mongoose.Schema.Types.ObjectId,

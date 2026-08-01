@@ -22,7 +22,6 @@ const adRequestSchema = new mongoose.Schema({
     clientId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        index: true,
     },
     ownerId: {
         type: mongoose.Schema.Types.ObjectId,

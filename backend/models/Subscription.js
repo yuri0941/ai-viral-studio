@@ -15,7 +15,6 @@ const subscriptionSchema = new mongoose.Schema({
     type: String,
     enum: ['active', 'trialing', 'past_due', 'canceled', 'paused', 'inactive'],
     default: 'active',
-    index: true,
   },
   price: {
     type: Number,
