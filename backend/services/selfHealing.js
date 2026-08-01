@@ -162,4 +162,17 @@ export async function toggleAutoHeal(ownerId, enabled) {
     return { ownerId, autoHeal: !!enabled }
 }
 
-export default { startSelfHealing, stopSelfHealing, getSelfHealingStatus, toggleAutoHeal, runHealingTick }
+export async function getPreferredProvider() {
+    try {
+        const statuses = await getProviderStatuses()
+        const active = statuses.find(s => s.enabled && s.status === 'active')
+        if (active) return active.id
+        const fallback = statuses.find(s => s.hasKey && s.status !== 'disabled')
+        if (fallback) return fallback.id
+        return AI_PROVIDER_ORDER[0] || 'groq'
+    } catch (err) {
+        return AI_PROVIDER_ORDER[0] || 'groq'
+    }
+}
+
+export default { startSelfHealing, stopSelfHealing, getSelfHealingStatus, toggleAutoHeal, runHealingTick, getPreferredProvider }
