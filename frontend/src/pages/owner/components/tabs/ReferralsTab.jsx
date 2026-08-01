@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Share2, Users, DollarSign, Award, Copy, Check, AlertCircle, Loader2, TrendingUp } from 'lucide-react'
-import { API_BASE_URL } from '../../config.js'
+import { API_BASE_URL } from '../../../../config.js'
 
 const TIERS = [
     { min: 0, label: 'Starter', reward: 'Начните приглашать' },

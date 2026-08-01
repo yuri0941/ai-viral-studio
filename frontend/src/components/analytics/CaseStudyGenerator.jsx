@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FileText, Sparkles, Check, X, Edit3, Trash2, Loader2, AlertCircle, Download } from 'lucide-react'
-import { API_BASE_URL } from '../../../config.js'
+import { API_BASE_URL } from '../../config.js'
 
 export function CaseStudyGenerator() {
     const [candidates, setCandidates] = useState([])

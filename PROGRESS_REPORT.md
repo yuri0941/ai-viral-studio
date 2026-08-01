@@ -1554,3 +1554,41 @@
 - Добавить `CHROMADB_URL` или `CLOUDFLARE_VECTORIZE_API_KEY` в Render env для безлимитной векторной памяти (иначе In-Memory, 1000 записей)
 - Добавить рабочие API ключи для соцсетей в интеграции, чтобы Channel Analytics / Audience Insights возвращали реальные данные
 - Убедиться, что `ScheduledPost` модель поддерживает поля `variants` и `abTest` (добавлены при создании A/B теста)
+
+
+## ✅ Монетизация — Pay-per-Gen, Referral 2.0, Case Study, Custom Reports — 2026-08-01
+
+### Pay-per-Generation
+- [x] `backend/models/UsageQuota.js` создан: userId, plan, generationsUsed, generationsLimit, overageCost, overageUsed, topUpPackSize, topUpPackPrice
+- [x] `backend/services/usageQuotaService.js` создан: лимиты по тарифам (Creator 100, Pro 500, Agency 5000), consumeGeneration, topUpGenerations
+- [x] OMEGA Chat проверяет квоту перед ответом (`backend/controllers/omegaController.js`): 402 при исчерпании
+- [x] Владелец меняет лимиты в `SubscriptionsTab` (`?tab=subscriptions` → «Настройки лимитов генераций»)
+- [x] Frontend: `frontend/src/components/omega/UsageQuotaWidget.jsx` — виджет «Осталось X/Y», кнопка «Докупить +100 за $4»
+
+### Referral Program 2.0
+- [x] `backend/models/Referral.js` создан: referralCode, referredBy, referralCount, referralEarnings, tier, creditBalance
+- [x] `backend/services/referralService.js` создан: тиры (1 → $10, 3 → Agentic Mode, 5 → -20%, 10 → 40% комиссии), генерация ссылки `https://aiviral-studio.ru/?ref=CODE`
+- [x] Применение реферального кода при регистрации (`backend/controllers/authController.js`)
+- [x] Endpoints: `GET /api/analytics/referrals`, `POST /api/analytics/referrals/apply`
+- [x] Frontend: `frontend/src/pages/owner/components/tabs/ReferralsTab.jsx` — ссылка, статистика, таблица приведённых, тиры
+
+### Case Study Auto-Generator
+- [x] `backend/services/caseStudyGenerator.js` создан: ищет клиентов с ростом метрик {'>'}20% за 30 дней, пишет кейс через AI, генерирует обложку
+- [x] Endpoints: `GET /api/analytics/case-studies/candidates`, `POST /api/analytics/case-studies/generate`
+- [x] Frontend: `frontend/src/components/analytics/CaseStudyGenerator.jsx` — кнопка «Сгенерировать кейс», список, одобрение/удаление
+
+### Custom Reports + PDF
+- [x] `backend/services/pdfGenerator.js` создан: PDF через `pdfkit`, Excel-данные, AI-выводы
+- [x] Endpoint: `POST /api/analytics/reports/generate` — type, channels, format
+- [x] Frontend: `frontend/src/components/analytics/ReportGenerator.jsx` — выбор типа/каналов/формата, скачивание PDF
+- [x] Библиотека `pdfkit` установлена в backend
+
+### Сборка и деплой
+- [x] Frontend build: успешно
+- [x] Backend `node --check`: успешно
+- [x] Git push: выполнен
+- [x] PROGRESS_REPORT.md обновлён
+
+### Ручные действия
+- Подключить ЮKassa/Stripe для оплаты топ-апов (сейчас квота увеличивается напрямую через API, без реального платежа)
+- Добавить рабочие данные клиентов, чтобы Case Study Generator находил кандидатов с ростом {'>'}20%

@@ -60,6 +60,8 @@ export function SubscriptionsTab({ data }) {
     const [isYearly, setIsYearly] = useState(false)
     const [loading, setLoading] = useState(true)
     const [paying, setPaying] = useState(null)
+    const [quotaSettings, setQuotaSettings] = useState({ generationsLimit: 100, overageCost: 4, topUpPackSize: 100, topUpPackPrice: 4 })
+    const [savingQuota, setSavingQuota] = useState(false)
 
     const plansUrl = useMemo(() => {
         return `${API_BASE_URL}/subscriptions/plans${currency ? `?currency=${currency}` : ''}`
@@ -101,6 +103,28 @@ export function SubscriptionsTab({ data }) {
         const id = Date.now() + Math.random()
         setToasts((prev) => [...prev, { id, type, message }])
         setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000)
+    }
+
+    async function saveQuotaSettings() {
+        setSavingQuota(true)
+        const token = localStorage.getItem('token')
+        try {
+            const res = await fetch(`${API_BASE_URL}/analytics/quota/settings`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(quotaSettings),
+            })
+            const json = await res.json()
+            if (json.status === 'success') {
+                pushToast('success', 'Настройки лимитов сохранены')
+            } else {
+                pushToast('error', json.message || 'Ошибка')
+            }
+        } catch (err) {
+            pushToast('error', err.message)
+        } finally {
+            setSavingQuota(false)
+        }
     }
 
     async function handleSubscribe(planId) {
@@ -320,6 +344,45 @@ export function SubscriptionsTab({ data }) {
                     })})()}
                 </div>
             </div>
+
+            {/* Quota settings for owner */}
+            {(user?.role === 'owner' || user?.role === 'admin') && (
+                <div className="rounded-2xl bg-[var(--card)] border border-[var(--border)] p-5 space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Settings className="w-5 h-5 text-[var(--text-muted)]" />
+                        <h3 className="text-lg font-semibold text-[var(--text)]">Настройки лимитов генераций</h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[
+                            { key: 'generationsLimit', label: 'Лимит генераций', suffix: 'шт/мес' },
+                            { key: 'overageCost', label: 'Стоимость overage', suffix: '$/100' },
+                            { key: 'topUpPackSize', label: 'Размер пакета', suffix: 'шт' },
+                            { key: 'topUpPackPrice', label: 'Цена пакета', suffix: '$' },
+                        ].map(field => (
+                            <div key={field.key}>
+                                <label className="text-xs text-[var(--text-muted)] block mb-1">{field.label}</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        value={quotaSettings[field.key]}
+                                        onChange={e => setQuotaSettings(prev => ({ ...prev, [field.key]: parseFloat(e.target.value) || 0 }))}
+                                        className="flex-1 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-sm text-[var(--text)] outline-none"
+                                    />
+                                    <span className="text-xs text-[var(--text-muted)]">{field.suffix}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        onClick={saveQuotaSettings}
+                        disabled={savingQuota}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#00ff41] text-[#0a0a0f] text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                        {savingQuota ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                        Сохранить лимиты
+                    </button>
+                </div>
+            )}
 
             {/* International / Stripe note */}
             <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 flex items-start gap-3">

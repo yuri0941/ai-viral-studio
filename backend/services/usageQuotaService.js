@@ -3,19 +3,25 @@ import { UsageQuota, SubscriptionPlan } from '../models/index.js'
 const DEFAULT_LIMITS = {
     free: 20,
     creator: 100,
+    business: 300,
     pro: 500,
     agency: 5000,
     enterprise: 50000,
 }
 
-export async function getOrCreateQuota(userId, plan = 'free') {
+export async function getOrCreateQuota(userId, plan = null) {
     let quota = await UsageQuota.findOne({ userId })
     if (!quota) {
-        const planConfig = await SubscriptionPlan.findOne({ name: { $regex: new RegExp(`^${plan}$`, 'i') } }).lean()
+        let effectivePlan = plan
+        if (!effectivePlan) {
+            const user = await User.findById(userId).select('subscription').lean()
+            effectivePlan = user?.subscription || 'free'
+        }
+        const planConfig = await SubscriptionPlan.findOne({ name: { $regex: new RegExp(`^${effectivePlan}$`, 'i') } }).lean()
         quota = await UsageQuota.create({
             userId,
-            plan,
-            generationsLimit: planConfig?.limits?.aiRequestsPerDay * 30 || DEFAULT_LIMITS[plan] || DEFAULT_LIMITS.free,
+            plan: effectivePlan,
+            generationsLimit: planConfig?.limits?.aiRequestsPerDay * 30 || DEFAULT_LIMITS[effectivePlan] || DEFAULT_LIMITS.free,
         })
     }
     return quota

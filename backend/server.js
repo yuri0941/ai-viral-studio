@@ -7,6 +7,7 @@ import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
+import mongoose from 'mongoose'
 import { connectDB, isConnected } from './config/database.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
@@ -35,7 +36,6 @@ import pushRoutes from './routes/push.js'  // Push notifications
 
 const app = express()
 app.set('trust proxy', 1)
-const PORT = parseInt(process.env.PORT) || 10000
 
 // Connect to database before starting server
 await connectDB()
@@ -172,23 +172,50 @@ app.use((req, res) => {
     res.status(404).json({ status: 'error', message: 'Route not found' })
 })
 
+const PORT = process.env.PORT || 10000;
+
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server started on port ${PORT}`)
-})
+  console.log(`🚀 Server started on port ${PORT}`);
+});
 
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Closing...')
-  server.close(() => process.exit(0))
-})
+// Graceful shutdown — Render шлёт SIGTERM при деплое
+const gracefulShutdown = (signal) => {
+  console.log(`${signal} received. Closing server...`);
+  server.close(() => {
+    console.log('Server closed');
+    if (global.ownerBot && typeof global.ownerBot.stopPolling === 'function') {
+      global.ownerBot.stopPolling();
+      console.log('Telegram polling stopped');
+    }
+    mongoose.connection.close(false, () => {
+      console.log('MongoDB connection closed');
+      process.exit(0);
+    });
+  });
+};
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received. Closing...')
-  server.close(() => process.exit(0))
-})
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Retry с лимитом (Render иногда не освобождает порт сразу)
+let retryCount = 0;
+const MAX_RETRIES = 15;
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} in use. Exiting...`)
-    process.exit(1)
+    retryCount++;
+    if (retryCount > MAX_RETRIES) {
+      console.error(`❌ Port ${PORT} still in use after ${MAX_RETRIES} retries. Exiting...`);
+      process.exit(1);
+    }
+    console.error(`❌ Port ${PORT} in use. Retrying ${retryCount}/${MAX_RETRIES} in 5s...`);
+    setTimeout(() => {
+      server.close(() => {
+        server.listen(PORT);
+      });
+    }, 5000);
+  } else {
+    console.error('Server error:', err);
+    process.exit(1);
   }
-})
+});
