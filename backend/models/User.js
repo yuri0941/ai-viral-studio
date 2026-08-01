@@ -84,6 +84,7 @@ const userSchema = new mongoose.Schema(
         loginAttempts: { type: Number, default: 0 },
         lockUntil: Date,
         brandVoice: {
+            enabled: { type: Boolean, default: true },
             tone: String,
             keywords: [String],
             sentenceLength: String,

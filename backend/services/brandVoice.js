@@ -70,8 +70,8 @@ export function analyzeBrandVoice(texts) {
 }
 
 export function buildBrandVoicePrompt(brandVoice) {
-  if (!brandVoice) return ''
-  return `Пиши в стиле: ${brandVoice.tone}. Используй ключевые слова: ${brandVoice.keywords.join(', ')}. Длина предложений: ${brandVoice.sentenceLength}. Эмодзи: ${brandVoice.emojiStyle}.`
+  if (!brandVoice || brandVoice.enabled === false) return ''
+  return `Пиши в стиле: ${brandVoice.tone}. Используй ключевые слова: ${brandVoice.keywords?.join(', ') || ''}. Длина предложений: ${brandVoice.sentenceLength}. Эмодзи: ${brandVoice.emojiStyle}.`
 }
 
 export async function analyzeBrandVoiceWithAI(texts, niche = '') {

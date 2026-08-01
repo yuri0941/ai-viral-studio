@@ -4,9 +4,10 @@ import {
     Play, Clock, Hash, TrendingUp, AlertTriangle, CheckCircle2, XCircle,
     Loader2, Download, Copy, ChevronDown, ChevronUp, Star, Zap, Target,
     Users, ThumbsUp, ThumbsDown, Bookmark, ExternalLink, RefreshCw,
-    Languages, Lightbulb, Wand2, Scissors, Megaphone, Send, Bot
+    Languages, Lightbulb, Wand2, Scissors, Megaphone, Send, Bot, ImageIcon
 } from 'lucide-react'
 import { omegaApi } from '../services/api'
+import AICoverGenerator from '../components/content/AICoverGenerator'
 
 const LANGUAGES = [
     { id: 'ru', name: 'Русский', flag: '🇷🇺' },
@@ -138,6 +139,7 @@ function ContentAnalyzerPage() {
     const [aiLoading, setAiLoading] = useState(false)
     const [aiOutput, setAiOutput] = useState('')
     const [aiPrompt, setAiPrompt] = useState('')
+    const [coverOpen, setCoverOpen] = useState(false)
     const inputRef = useRef(null)
 
     const buildMockAnalysis = useCallback((videoUrl, platform, id, isCompare = false) => {
@@ -617,6 +619,12 @@ function ContentAnalyzerPage() {
                     <div className="bg-[#1a1a24] rounded-2xl border border-white/[0.06] p-5">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-sm font-semibold flex items-center gap-2"><Bot className="w-4 h-4 text-purple-400" /> AI-помощник по контенту</h3>
+                            <button
+                                onClick={() => setCoverOpen(true)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-medium text-gray-500 hover:text-gray-300 transition-colors"
+                            >
+                                <ImageIcon size={12} /> AI Обложка
+                            </button>
                             <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
                                 {Object.entries(AI_TAB_LABELS).map(([key, { label, icon: Icon }]) => (
                                     <button
@@ -696,6 +704,15 @@ function ContentAnalyzerPage() {
                         <button onClick={() => navigator.clipboard.writeText(window.location.href)} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/[0.06]"><Copy className="w-4 h-4" /> Копировать ссылку</button>
                     </div>
                 </div>
+            )}
+
+            {coverOpen && (
+                <AICoverGenerator
+                    onClose={() => setCoverOpen(false)}
+                    onUse={(cover) => {
+                        setAiOutput(prev => prev + `\n\n[AI Обложка: ${cover.url}]`)
+                    }}
+                />
             )}
 
             {/* History */}

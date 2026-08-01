@@ -103,6 +103,34 @@ export const omegaApi = {
         method: 'POST',
         body: JSON.stringify({ memoryId, rating }),
     }),
+    templates: () => request('/omega/templates'),
+    generateTemplate: (templateId, variables, autoExpand = true) => request('/omega/templates/' + templateId + '/generate', {
+        method: 'POST',
+        body: JSON.stringify({ templateId, variables, autoExpand }),
+    }),
+    analyzeBrandVoice: (texts, niche) => request('/omega/brand-voice/analyze', {
+        method: 'POST',
+        body: JSON.stringify({ texts, niche }),
+    }),
+    getBrandVoice: () => request('/omega/brand-voice'),
+    toggleBrandVoice: (enabled) => request('/omega/brand-voice/toggle', {
+        method: 'POST',
+        body: JSON.stringify({ enabled }),
+    }),
+    bestTime: (data) => request('/omega/best-time', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+    scoutTrends: (niche, force = false) => {
+        const params = new URLSearchParams()
+        if (niche) params.set('niche', niche)
+        if (force) params.set('force', 'true')
+        return request(`/omega/scout/trends${params.toString() ? '?' + params.toString() : ''}`)
+    },
+    generateCover: (data) => request('/omega/generate-cover', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
 }
 
 export default { ownerApi, omegaApi }

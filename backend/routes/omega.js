@@ -12,6 +12,11 @@ import {
     generateTemplate,
     listTemplateLibrary,
     analyzeBrandVoice,
+    getBrandVoice,
+    toggleBrandVoice,
+    getBestTime,
+    getTrendsScout,
+    generateCoverImage,
     getAutopilotStatus,
     setAutopilotStatus,
     createAutopilotPost,
@@ -35,7 +40,13 @@ router.post('/rate', rate)
 router.get('/stats', stats)
 router.post('/generate-template', generateTemplate)
 router.get('/templates', listTemplateLibrary)
+router.post('/templates/:id/generate', generateTemplate)
 router.post('/brand-voice/analyze', analyzeBrandVoice)
+router.get('/brand-voice', getBrandVoice)
+router.post('/brand-voice/toggle', toggleBrandVoice)
+router.post('/best-time', getBestTime)
+router.get('/scout/trends', getTrendsScout)
+router.post('/generate-cover', generateCoverImage)
 router.get('/autopilot', getAutopilotStatus)
 router.post('/autopilot', setAutopilotStatus)
 router.post('/autopilot/post', createAutopilotPost)

@@ -1,15 +1,17 @@
 import { useState } from 'react';
 
 const STATUS_COLORS = {
-    draft: 'bg-yellow-400',
-    scheduled: 'bg-emerald-400',
-    published: 'bg-blue-400',
+    draft: 'bg-gray-400',
+    scheduled: 'bg-yellow-400',
+    published: 'bg-emerald-400',
+    error: 'bg-red-400',
 };
 
 const STATUS_LABELS = {
     draft: 'Черновик',
     scheduled: 'Запланирован',
     published: 'Опубликован',
+    error: 'Ошибка',
 };
 
 function formatDateInput(date) {
@@ -79,6 +81,7 @@ export default function VisualCalendar({ posts = [], weekDates = [], onDateClick
                             const color = platformColors[platform] || '#8B5CF6';
                             const Icon = platformIcons[platform] || (() => null);
                             const status = post.status || 'draft';
+                            const thumbnail = post.thumbnailUrl || post.mediaUrl || post.fileUrl;
 
                             return (
                                 <div
@@ -89,11 +92,20 @@ export default function VisualCalendar({ posts = [], weekDates = [], onDateClick
                                         e.stopPropagation();
                                         onPostClick?.(post);
                                     }}
-                                    className="group relative rounded-lg p-2 hover:scale-[1.02] hover:shadow-lg transition-all duration-150 cursor-grab active:cursor-grabbing"
+                                    className="group relative rounded-lg p-2 hover:scale-[1.02] hover:shadow-lg transition-all duration-150 cursor-grab active:cursor-grabbing overflow-hidden"
                                     style={{ backgroundColor: color + '25', borderLeft: `3px solid ${color}` }}
                                     title={`${STATUS_LABELS[status] || status}: ${post.title}`}
                                 >
-                                    <div className="flex items-start gap-1.5">
+                                    {thumbnail && (
+                                        <div className="absolute inset-0 z-0 opacity-20">
+                                            {post.mediaType?.startsWith('video/') || post.fileName?.match(/\.(mp4|mov|webm)$/) ? (
+                                                <video src={thumbnail} muted className="w-full h-full object-cover" />
+                                            ) : (
+                                                <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+                                            )}
+                                        </div>
+                                    )}
+                                    <div className="relative z-10 flex items-start gap-1.5">
                                         <span className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${STATUS_COLORS[status] || 'bg-gray-400'}`} />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1 mb-0.5">
@@ -112,6 +124,16 @@ export default function VisualCalendar({ posts = [], weekDates = [], onDateClick
                                                 )}
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* Hover actions */}
+                                    <div className="absolute inset-0 z-20 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onPostClick?.(post); }}
+                                            className="px-2 py-1 rounded bg-white/10 text-[10px] text-white hover:bg-white/20"
+                                        >
+                                            Редактировать
+                                        </button>
                                     </div>
                                 </div>
                             );

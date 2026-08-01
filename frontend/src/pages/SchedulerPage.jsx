@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { omegaApi } from '../services/api';
 import VisualCalendar from '../components/scheduler/VisualCalendar';
+import BestTimePicker from '../components/scheduler/BestTimePicker';
 
 const PLATFORM_COLORS = {
     youtube: '#FF0000',
@@ -648,9 +649,10 @@ function SchedulerPage() {
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
                                             <label className="text-sm text-gray-400">Время</label>
-                                            <button onClick={recommendBestTime} disabled={aiTimeLoading} className="text-xs text-purple-400 flex items-center gap-1 hover:underline disabled:opacity-50">
-                                                {aiTimeLoading ? <Loader2 size={12} className="animate-spin" /> : <Bot size={12} />} AI время
-                                            </button>
+                                            <BestTimePicker
+                                                defaultPlatform={formData.platforms[0] || 'instagram'}
+                                                onSelect={(time) => setFormData(prev => ({ ...prev, time }))}
+                                            />
                                         </div>
                                         <input type="time" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" />
                                     </div>

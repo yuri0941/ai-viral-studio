@@ -9,6 +9,7 @@ import {
     BarChart, FileText, Bell, HelpCircle, Heart, Rocket,
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
+    Palette, LayoutTemplate, Flame,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
@@ -110,6 +111,9 @@ const OWNER_GROUPS = [
         items: [
             { id: 'news', label: 'Новости', icon: Newspaper },
             { id: 'promo', label: 'Промо', icon: Gift },
+            { id: 'templates', label: '📋 Шаблоны', icon: LayoutTemplate },
+            { id: 'brandVoice', label: '🎨 Brand Voice', icon: Palette },
+            { id: 'scout', label: '🔥 Scout', icon: Flame },
             { id: 'chat', label: '💬 Чаты', icon: MessageSquare },
         ],
     },

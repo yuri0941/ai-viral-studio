@@ -192,4 +192,7 @@ export const TAB_LABELS = {
     contentAnalyzer: '🔍 Анализ контента',
     scheduler: '📅 Планировщик',
     viralChat: '💬 Viral Chat',
+    brandVoice: '🎨 Brand Voice',
+    templates: '📋 Шаблоны',
+    scout: '🔥 Scout',
 }

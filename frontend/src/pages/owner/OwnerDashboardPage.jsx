@@ -37,6 +37,9 @@ import { OmegaSkillsTab } from './components/tabs/OmegaSkillsTab'
 import { OmegaMemoryTab } from './components/tabs/OmegaMemoryTab'
 import { OwnerRequisitesTab } from './components/tabs/OwnerRequisitesTab'
 import { LegalSettingsTab } from './components/tabs/LegalSettingsTab'
+import { BrandVoiceTab } from './components/tabs/BrandVoiceTab'
+import { TemplatesTab } from './components/tabs/TemplatesTab'
+import { ScoutTab } from './components/tabs/ScoutTab'
 
 import AnalyticsPage from '../AnalyticsPage'
 import AIChatPage from '../AIChatPage'
@@ -66,7 +69,7 @@ import {
     Megaphone, Lock, Plug, Brain, FileText, Bot, MessageSquare,
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
     BrainCircuit, Database, Scale, BarChart, Search, Calendar, TrendingUp,
-    X
+    X, Palette, LayoutTemplate, Flame
 } from 'lucide-react'
 
 const TAB_ICONS = {
@@ -105,6 +108,9 @@ const TAB_ICONS = {
     contentAnalyzer: Search,
     scheduler: Calendar,
     viralChat: TrendingUp,
+    brandVoice: Palette,
+    templates: LayoutTemplate,
+    scout: Flame,
 }
 
 export default function OwnerDashboardPage() {
@@ -155,6 +161,9 @@ export default function OwnerDashboardPage() {
             case 'omegaMemory': return <OmegaMemoryTab data={ownerData} />
             case 'requisites': return <OwnerRequisitesTab data={ownerData} />
             case 'legalSettings': return <LegalSettingsTab data={ownerData} />
+            case 'brandVoice': return <BrandVoiceTab data={ownerData} />
+            case 'templates': return <TemplatesTab data={ownerData} />
+            case 'scout': return <ScoutTab data={ownerData} />
             case 'analytics': return <AnalyticsPage />
             case 'aiChat': return <AIChatPage />
             case 'contentAnalyzer': return <ContentAnalyzerPage />

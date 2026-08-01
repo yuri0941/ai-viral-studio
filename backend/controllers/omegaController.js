@@ -10,6 +10,9 @@ import { analyzeBrandVoiceWithAI, buildBrandVoicePrompt } from '../services/bran
 import { isAutopilotEnabled, setAutopilotEnabled, startAutopilot, scheduleAutoPost } from '../services/autoPilot.js'
 import { getPreferredProvider } from '../services/selfHealing.js'
 import { analyzeChannel, generateShortsScript, generateAutoSubtitles, recommendBestTime } from '../services/youtubeAI.js'
+import { analyzeBestTime } from '../services/bestTimeService.js'
+import { getTrends, invalidateTrendCache } from '../services/trendScanner.js'
+import { generateCover } from '../services/imageGeneration.js'
 import User from '../models/User.js'
 import axios from 'axios'
 
@@ -277,15 +280,36 @@ export async function sendCommand(req, res) {
 
 export async function generateTemplate(req, res) {
     try {
-        const { templateId, variables = {} } = req.body
+        const { templateId, variables = {}, autoExpand = true } = req.body
         if (!templateId) {
             return res.status(400).json({ status: 'error', message: 'templateId is required' })
         }
-        const result = generateFromTemplate(templateId, variables)
-        if (!result) {
+        const base = generateFromTemplate(templateId, variables)
+        if (!base) {
             return res.status(404).json({ status: 'error', message: 'template not found' })
         }
-        res.json({ status: 'success', data: result })
+
+        if (autoExpand) {
+            const prompt = `По шаблону ниже создай готовый к публикации текст. Заполни пропуски, сохрани структуру, добавь естественные переходы и призыв к действию. Не меняй смысл шаблона.
+
+Название: ${base.name}
+Категория: ${base.category}
+Шаблон:
+${base.text}
+
+Переменные: ${JSON.stringify(variables)}`
+            try {
+                const aiResult = await chatWithAI(prompt, [], 'ru')
+                if (aiResult?.reply) {
+                    base.aiText = aiResult.reply
+                    base.provider = aiResult.provider || 'ai'
+                }
+            } catch (err) {
+                console.warn('[omegaController:generateTemplate] AI expansion failed:', err.message)
+            }
+        }
+
+        res.json({ status: 'success', data: base })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }
@@ -313,15 +337,78 @@ export async function analyzeBrandVoice(req, res) {
         const userId = req.user?._id || req.user?.id
         if (userId) {
             try {
+                const user = await User.findById(userId).select('brandVoice').lean()
+                const enabled = user?.brandVoice?.enabled !== false
                 await User.findByIdAndUpdate(userId, {
-                    brandVoice: { ...analysis, updatedAt: new Date() },
+                    brandVoice: { ...analysis, enabled, updatedAt: new Date() },
                 })
+                analysis.enabled = enabled
             } catch (err) {
                 console.warn('[omegaController:analyzeBrandVoice] save failed:', err.message)
             }
         }
 
         res.json({ status: 'success', data: analysis })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function getBrandVoice(req, res) {
+    try {
+        const userId = req.user?._id || req.user?.id
+        if (!userId) return res.status(401).json({ status: 'error', message: 'Unauthorized' })
+        const user = await User.findById(userId).select('brandVoice').lean()
+        res.json({ status: 'success', data: user?.brandVoice || null })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function toggleBrandVoice(req, res) {
+    try {
+        const userId = req.user?._id || req.user?.id
+        if (!userId) return res.status(401).json({ status: 'error', message: 'Unauthorized' })
+        const { enabled } = req.body
+        const user = await User.findById(userId).select('brandVoice')
+        if (!user) return res.status(404).json({ status: 'error', message: 'User not found' })
+        user.brandVoice = { ...user.brandVoice, enabled: !!enabled, updatedAt: new Date() }
+        await user.save()
+        res.json({ status: 'success', data: user.brandVoice })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function getBestTime(req, res) {
+    try {
+        const { platform, audienceTimezone, historicalPosts, niche } = req.body || {}
+        const result = await analyzeBestTime({ platform, audienceTimezone, historicalPosts, niche })
+        res.json({ status: 'success', data: result })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function getTrendsScout(req, res) {
+    try {
+        const { niche, force } = req.query || {}
+        const userId = req.user?._id || req.user?.id
+        const result = await getTrends({ niche, userId, force: force === 'true' })
+        res.json({ status: 'success', data: result })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+export async function generateCoverImage(req, res) {
+    try {
+        const { prompt, style, size, seed } = req.body || {}
+        if (!prompt) {
+            return res.status(400).json({ status: 'error', message: 'prompt is required' })
+        }
+        const result = await generateCover({ prompt, style, size, seed })
+        res.json(result)
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }
