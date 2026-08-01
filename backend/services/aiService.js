@@ -176,8 +176,8 @@ export async function getProviderStatuses() {
                 status = 'disabled'
             } else if (!key && meta.requiresKey) {
                 status = 'missing'
-            } else if (key && status === 'missing') {
-                // Key exists but not tested yet
+            } else if (status === 'missing') {
+                // Key exists (or provider doesn't need one) but not tested yet
                 status = 'active'
             }
 

@@ -74,7 +74,7 @@ export function ApiKeysTab({ data }) {
         setLoadingStatus(true)
         try {
             const res = await ownerApi.aiProviderStatus()
-            const statuses = res?.data?.data || []
+            const statuses = res?.data?.data || res?.data || []
             setProviders(prev => prev.map(p => {
                 const s = statuses.find(x => x.id === p.id)
                 if (!s) return p

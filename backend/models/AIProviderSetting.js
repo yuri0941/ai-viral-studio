@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 
 const aiProviderSettingSchema = new mongoose.Schema({
     provider: { type: String, required: true, unique: true },
-    enabled: { type: Boolean, default: true },
+    enabled: { type: Boolean, default: false },
     lastStatus: { type: String, enum: ['active', 'error', 'missing', 'disabled'], default: 'missing' },
     lastError: { type: String, default: '' },
     lastCheckedAt: { type: Date, default: null },

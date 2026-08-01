@@ -1,3 +1,15 @@
+### 2026-08-01 — FIX: AI-провайдеры — UI-тумблеры синхронизированы с backend, реальный статус, omegaCore фильтр по enabled
+- [x] backend/models/AIProviderSetting.js: `enabled` по умолчанию `false`
+- [x] backend/ai/omega/index.js: все AI-провайдеры из `PROVIDER_META` передаются в ядро; `enabled` берётся из `isEnabled()` (учитывает настройки владельца и `enabledByDefault`)
+- [x] backend/ai/omega/omegaCore.js: `setProviders` фильтрует по `enabled && hasKey`, логирует причину skip
+- [x] backend/services/aiService.js: `getProviderStatuses` теперь ставит `active` для no-key провайдеров (Pollinations) если они включены
+- [x] frontend/src/pages/owner/components/tabs/ApiKeysTab.jsx: исправлен парсинг ответа статуса (`res?.data?.data || res?.data || []`)
+- [x] Frontend build: успешно ✅
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+- Fallback-цепочка: Groq → OpenRouter → Pollinations (все остальные по умолчанию выключены)
+- Статус: **готово к деплою**
+
 ### 2026-08-01 — FIX: AI-провайдеры — модели, статусы, тумблеры владельца
 - [x] backend/services/aiService.js: Groq модель исправлена на `llama-3.3-70b-versatile` (env `llama-3.1-70b-versatile` игнорируется); OpenRouter модель исправлена на `meta-llama/llama-3.3-70b-instruct:free` (env `google/gemini-2.0-flash-lite-preview-02-05:free` игнорируется)
 - [x] backend/services/aiService.js: добавлен `PROVIDER_META` — по умолчанию включены только `groq`, `openrouter`, `pollinations`; остальные (`gemini`, `github`, `huggingface`, `cloudflare`, `fireworks`, `mistral`, `cohere`, `deepseek`, `replicate`) отключены
