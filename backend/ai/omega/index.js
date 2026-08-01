@@ -3,7 +3,7 @@
 // Версия: 1.0 Lite
 // ============================================
 
-import { isEnabled } from '../services/aiService.js'
+import { isEnabled } from '../../services/aiService.js'
 
 export { OmegaCore, OMEGA_STATES, OMEGA_AUTONOMY_LEVELS, OMEGA_TASK_TYPES } from './omegaCore.js'
 
