@@ -1891,3 +1891,55 @@
 - [x] Backend `node --check` (все файлы): успешно
 - [x] Frontend build: успешно (есть warnings по chunk size и dynamic imports)
 - [x] Git push: выполнить
+
+
+---
+
+## ✅ ПРОМПТ №11 — Физический мир + Франшиза + Fleet — 2026-08-01
+
+### Модели (уже созданы, проверены)
+- [x] QRCode.js: да, ошибок: 0
+- [x] PrintOrder.js: да, ошибок: 0
+- [x] FranchiseKit.js: да, ошибок: 0
+- [x] BookingRequest.js: да, ошибок: 0
+- [x] StudioPartner.js: да, ошибок: 0
+
+### Сервисы backend
+- [x] qrService.js: да (генерация, short code, трекинг, аналитика, скачивание)
+- [x] printService.js: да (fallback manual + Printful-ready)
+- [x] bookingService.js: да (fallback база студий + бронирование)
+- [x] deliveryService.js: да (deep link Yandex Eats / Delivery Club)
+- [x] franchiseGenerator.js: да (требует Agency + Brand Voice + лимит)
+
+### Роуты backend
+- [x] /api/qr: да (CRUD, аналитика, скачивание, публичный redirect /qr/:shortCode)
+- [x] /api/print: да (заказ, статус, список)
+- [x] /api/booking: да (поиск студий, бронирование, suggestions)
+- [x] /api/franchise: да (ready, generate, download, send)
+- [x] /api/fleet: да (summary, emergency-stop)
+- [x] /api/delivery: да (deep-link, team-order)
+- [x] Подключены в server.js: да
+
+### Frontend табы
+- [x] QRGenerator.jsx: да (форма, типы, цвета, логотип, превью)
+- [x] QRPrintTab.jsx (QR + аналитика + печать + доставка): да (Recharts BarChart, Recharts)
+- [x] FranchiseTab.jsx (генерация + ZIP-JSON + рассылка): да (только Agency/Enterprise)
+- [x] FleetTab.jsx (сетка проектов + STOP): да (grid, MRR, статусы, создание проекта)
+- [x] Табы подключены в OwnerDashboardPage: да (qr, franchise, fleet + иконки)
+- [x] ProjectSwitcher в хедере: да (существующий dropdown в DashboardHeader)
+
+### Workspaces / Fleet
+- [x] Project Switcher в хедере: да (dropdown с названиями)
+- [x] Fleet Dashboard (сетка проектов): да
+- [x] Emergency Stop для Fleet: да (красная кнопка в FleetTab + API)
+
+### Сборка
+- [x] Backend check (все новые файлы): успешно
+- [x] Frontend build: успешно (warnings по chunk size и dynamic imports)
+- [x] Git push: выполнен (`2da04e80`)
+
+### Ручные действия (Render env)
+- Добавить `PRINT_API_KEY` или `PRINTFUL_API_KEY` для авто-заказа печати
+- Добавить `BOOKING_API_KEY` или `STUDIO_API_URL` для живой интеграции студий (сейчас fallback-база)
+- Добавить `YANDEX_EATS_API_KEY` или `DELIVERY_API_KEY` для автозаказа доставки (сейчас deep link)
+- Clear build cache & deploy в Render Dashboard
