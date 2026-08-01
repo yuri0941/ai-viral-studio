@@ -3,6 +3,7 @@ import {
   getStripeStatus,
   createPaymentIntent,
   createStripeSubscription,
+  createCheckoutSession,
   constructWebhookEvent,
   handleStripeWebhook,
 } from '../services/stripeService.js';
@@ -12,6 +13,42 @@ const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 
 export const status = async (req, res) => {
   return res.json({ success: true, ...getStripeStatus() });
+};
+
+export const createCheckout = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    if (!isStripeEnabled()) {
+      return res.json({ success: true, disabled: true, message: getStripeStatus().reason });
+    }
+
+    const { plan, interval, currency = 'USD' } = req.body || {};
+    const priceId = process.env[`STRIPE_PRICE_${plan?.toUpperCase()}_${interval?.toUpperCase()}`];
+
+    if (!priceId) {
+      return res.status(400).json({
+        success: false,
+        disabled: true,
+        message: `Цена для тарифа ${plan}/${interval} не настроена в Stripe.`,
+      });
+    }
+
+    const appUrl = process.env.FRONTEND_URL || 'https://ai-viral-studio.pages.dev';
+    const result = await createCheckoutSession({
+      customerEmail: req.user?.email,
+      priceId,
+      successUrl: `${appUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${appUrl}/settings`,
+      metadata: { userId: userId.toString(), plan, interval, currency },
+    });
+
+    return res.json(result);
+  } catch (err) {
+    console.error('[stripeController:createCheckout]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
 };
 
 export const createSubscriptionIntent = async (req, res) => {

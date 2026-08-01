@@ -1,3 +1,9 @@
+### 2026-07-31 — Release v1.0 Phase 1.5: Stripe webhook + env template
+- [x] backend/routes/stripe.js: webhook endpoint теперь использует `raw({ type: 'application/json' })` для корректной верификации подписи Stripe
+- [x] Создан `backend/.env.example` с плейсхолдерами для VAPID, Stripe, Telegram, JWT, MongoDB
+- [x] Backend node --check: успешно ✅
+- [x] Git push: выполнен ✅
+
 ### 2026-07-31 — Release v1.0 Phase 1: PWA + Owner App + Push backend
 - [x] PWA: `manifest.json` дополнен description, categories, screenshots, shortcuts
 - [x] PWA: создана `offline.html` с fallback "Нет интернета. Некоторые функции недоступны."

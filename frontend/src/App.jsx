@@ -26,6 +26,7 @@ import ViralChatPage from './pages/ViralChatPage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
 import OwnerAppPage from './pages/owner/OwnerAppPage'
 import PaymentSuccess from './pages/PaymentSuccess'
+import StripeCheckoutPage from './pages/StripeCheckoutPage'
 import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/legal/LegalPage'
 
 const PAGE_TITLES = {
@@ -207,6 +208,11 @@ function App() {
             } />
 
             <Route path="/payment/success" element={<PaymentSuccess />} />
+            <Route path="/stripe-checkout" element={
+                <ProtectedRoute>
+                    <StripeCheckoutPage />
+                </ProtectedRoute>
+            } />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/terms-of-service" element={<TermsOfServicePage />} />
             <Route path="/consent" element={<ConsentPage />} />

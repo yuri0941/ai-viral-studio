@@ -5,6 +5,7 @@ import Rollbar from 'rollbar'
 import { AuthProvider } from './context/AuthContext'
 import { AdProvider } from './context/AdContext'
 import App from './App'
+import './i18n'
 import './index.css'
 
 Rollbar.init({

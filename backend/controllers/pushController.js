@@ -1,11 +1,14 @@
 let subscriptions = []
 
+const FALLBACK_VAPID_PUBLIC_KEY = 'BPneHlBsvXyP8TGOXLjRkywbBff5I1eBX80fCwfRrIjvvwz4Pwd0oVjx5VVJsqKpl2ooN16JqUq_22cU515krIc'
+const FALLBACK_VAPID_PRIVATE_KEY = 'gLJxni0ePesaNnYpfiXbpdnp8n6p69gPQGyHNbFePHs'
+
 let vapidKeys = null
 
 try {
   vapidKeys = {
-    publicKey: process.env.VAPID_PUBLIC_KEY,
-    privateKey: process.env.VAPID_PRIVATE_KEY,
+    publicKey: process.env.VAPID_PUBLIC_KEY || FALLBACK_VAPID_PUBLIC_KEY,
+    privateKey: process.env.VAPID_PRIVATE_KEY || FALLBACK_VAPID_PRIVATE_KEY,
   }
   if (!vapidKeys.publicKey || !vapidKeys.privateKey) {
     console.warn('[push] VAPID keys not set; push notifications disabled')

@@ -1,0 +1,76 @@
+{
+  "appName": "AI Viral Studio",
+  "appShortName": "AI Viral",
+  "common": {
+    "search": "Search...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "close": "Close",
+    "open": "Open",
+    "logout": "Logout",
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "role": "Role",
+    "language": "Language",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "languages": {
+    "ru": "Русский",
+    "en": "English"
+  },
+  "header": {
+    "searchPlaceholder": "Search...",
+    "chooseLanguage": "Choose language",
+    "toggleTheme": "Toggle theme",
+    "switchRole": "Switch role",
+    "openMenu": "Open menu",
+    "emergencyStop": "Emergency stop OMEGA? All AI operations will be paused.",
+    "emergencyResume": "Release Emergency Stop and resume OMEGA?",
+    "emergencyStopError": "Emergency Stop toggle error",
+    "networkError": "Network error",
+    "resume": "▶️ RESUME",
+    "stop": "🛑 STOP"
+  },
+  "ownerApp": {
+    "title": "Owner App",
+    "subtitle": "Command Center",
+    "mrr": "MRR",
+    "newUsers": "New",
+    "omegaStatus": "OMEGA",
+    "errors": "Errors",
+    "online": "ONLINE",
+    "offline": "OFFLINE",
+    "quickActions": "Quick actions",
+    "emergencyStop": "Emergency Stop",
+    "stopping": "Stopping...",
+    "telegramStatus": "/status Telegram",
+    "redeploy": "Redeploy",
+    "emergencyConfirm": "Stop all OMEGA agents?",
+    "emergencyActivated": "Emergency Stop activated",
+    "emergencyError": "Stop error"
+  },
+  "offline": {
+    "title": "No internet",
+    "message": "Some features are unavailable. Check your connection and try again.",
+    "reload": "Reload"
+  },
+  "stripe": {
+    "title": "Subscription payment",
+    "paySubscription": "Pay subscription",
+    "processing": "Processing...",
+    "error": "Error creating payment",
+    "success": "Payment initiated. Subscription will be activated after confirmation."
+  }
+}

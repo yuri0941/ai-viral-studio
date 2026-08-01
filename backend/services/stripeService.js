@@ -15,6 +15,35 @@ export function getStripeStatus() {
   };
 }
 
+export async function createCheckoutSession({ customerEmail, priceId, successUrl, cancelUrl, metadata = {} }) {
+  if (!isStripeEnabled()) {
+    return { success: false, disabled: true, message: getStripeStatus().reason };
+  }
+
+  try {
+    const stripeModule = await import('stripe');
+    const Stripe = stripeModule.default || stripeModule;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+
+    let customer = customerEmail ? await stripe.customers.create({ email: customerEmail, metadata }) : undefined;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: customer?.id,
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata,
+      subscription_data: { metadata },
+    });
+
+    return { success: true, url: session.url, sessionId: session.id };
+  } catch (err) {
+    console.error('[stripeService:createCheckoutSession]', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function createPaymentIntent({ amount, currency = 'usd', metadata = {}, description }) {
   if (!isStripeEnabled()) {
     return {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../hooks/useTheme'
+import { setLanguage as setI18nLanguage, default as i18n } from '../../i18n'
 import { AppSidebar } from './AppSidebar'
 import { DashboardHeader } from './DashboardHeader'
 import { MobileNotificationDrawer } from './MobileNotificationDrawer'
@@ -56,6 +57,13 @@ export function DashboardShell({
         setMobileNotifOpen(false)
     }, [location.pathname])
 
+    useEffect(() => {
+        const i18nLang = i18n.language?.split('-')[0]
+        if (i18nLang && ['ru', 'en'].includes(i18nLang) && i18nLang !== language) {
+            setLanguage(i18nLang)
+        }
+    }, [language])
+
     // Initial language sync from user preferences (once)
     const languageSynced = useRef(false)
     useEffect(() => {
@@ -70,6 +78,7 @@ export function DashboardShell({
     const handleLanguageChange = useCallback((nextLanguage) => {
         if (!nextLanguage || nextLanguage === language) return
         localStorage.setItem('app_language', nextLanguage)
+        setI18nLanguage(nextLanguage)
         const prefs = user?.preferences || {}
         if (prefs.language !== nextLanguage) {
             updateUser({ preferences: { ...prefs, language: nextLanguage } })

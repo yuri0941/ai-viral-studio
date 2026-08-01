@@ -1,0 +1,76 @@
+{
+  "appName": "AI Viral Studio",
+  "appShortName": "AI Viral",
+  "common": {
+    "search": "Поиск...",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "submit": "Отправить",
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "success": "Успешно",
+    "close": "Закрыть",
+    "open": "Открыть",
+    "logout": "Выйти",
+    "login": "Войти",
+    "register": "Регистрация",
+    "email": "Email",
+    "password": "Пароль",
+    "name": "Имя",
+    "role": "Роль",
+    "language": "Язык",
+    "theme": "Тема",
+    "dark": "Тёмная",
+    "light": "Светлая",
+    "notifications": "Уведомления",
+    "profile": "Профиль",
+    "settings": "Настройки"
+  },
+  "languages": {
+    "ru": "Русский",
+    "en": "English"
+  },
+  "header": {
+    "searchPlaceholder": "Поиск...",
+    "chooseLanguage": "Выбрать язык",
+    "toggleTheme": "Переключить тему",
+    "switchRole": "Сменить роль",
+    "openMenu": "Открыть меню",
+    "emergencyStop": "Аварийно остановить OMEGA? Все AI-операции будут приостановлены.",
+    "emergencyResume": "Снять Emergency Stop и возобновить OMEGA?",
+    "emergencyStopError": "Ошибка переключения Emergency Stop",
+    "networkError": "Ошибка сети",
+    "resume": "▶️ RESUME",
+    "stop": "🛑 STOP"
+  },
+  "ownerApp": {
+    "title": "Owner App",
+    "subtitle": "Command Center",
+    "mrr": "MRR",
+    "newUsers": "Новые",
+    "omegaStatus": "OMEGA",
+    "errors": "Ошибки",
+    "online": "ONLINE",
+    "offline": "OFFLINE",
+    "quickActions": "Быстрые действия",
+    "emergencyStop": "Emergency Stop",
+    "stopping": "Остановка...",
+    "telegramStatus": "/status Telegram",
+    "redeploy": "Redeploy",
+    "emergencyConfirm": "Остановить все OMEGA-агенты?",
+    "emergencyActivated": "Emergency Stop активирован",
+    "emergencyError": "Ошибка остановки"
+  },
+  "offline": {
+    "title": "Нет интернета",
+    "message": "Некоторые функции недоступны. Проверьте подключение и попробуйте снова.",
+    "reload": "Обновить"
+  },
+  "stripe": {
+    "title": "Оплата подписки",
+    "paySubscription": "Оплатить подписку",
+    "processing": "Обработка...",
+    "error": "Ошибка при создании платежа",
+    "success": "Платёж инициирован. После подтверждения подписка станет активной."
+  }
+}
