@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../hooks/useTheme'
 import { setLanguage as setI18nLanguage, default as i18n } from '../../i18n'
+import '../../styles/animations.css'
 import { AppSidebar } from './AppSidebar'
 import { DashboardHeader } from './DashboardHeader'
 import { MobileNotificationDrawer } from './MobileNotificationDrawer'
@@ -114,7 +115,7 @@ export function DashboardShell({
     }, [sidebarOpen, mobileNotifOpen, viewport.isMobile])
 
     return (
-        <div className="flex min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300 relative">
+        <div className="flex min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300 relative animated-gradient-bg">
             {/* Mobile sidebar overlay */}
             {sidebarOpen && viewport.isMobile && (
                 <div

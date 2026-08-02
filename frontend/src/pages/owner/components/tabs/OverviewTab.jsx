@@ -9,12 +9,13 @@ import {
     Settings, Plus, Sparkles, Activity, Lock, Bot, AlertTriangle, UserX,
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
+import '../../../../styles/animations.css'
 
 function BentoCard({ title, value, subtext, icon: Icon, color, onClick, children, className = '' }) {
     return (
         <div
             onClick={onClick}
-            className={`group relative rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 p-5 hover:scale-[1.02] hover:bg-white/[0.05] hover:border-[#8B5CF6]/30 transition-all duration-200 cursor-pointer ${className}`}
+            className={`group relative rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 p-5 hover:scale-[1.02] hover:bg-white/[0.05] hover:border-[#8B5CF6]/30 transition-all duration-200 cursor-pointer hover-lift bento-glow ${className}`}
         >
             <div className="flex items-start justify-between mb-3">
                 <div className={`p-2.5 rounded-xl bg-${color}-500/10`}>
@@ -171,7 +172,7 @@ export function OverviewTab({ data }) {
                     onClick={() => go('/owner?tab=apiKeys')}
                 />
 
-                <div className="group rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 p-5 hover:scale-[1.02] hover:bg-white/[0.05] hover:border-[#8B5CF6]/30 transition-all duration-200 sm:col-span-2 lg:col-span-1">
+                <div className="group rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 p-5 hover:scale-[1.02] hover:bg-white/[0.05] hover:border-[#8B5CF6]/30 transition-all duration-200 sm:col-span-2 lg:col-span-1 hover-lift bento-glow">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="p-2.5 rounded-xl bg-purple-500/10">
                             <Zap className="w-5 h-5 text-purple-400" />
@@ -215,7 +216,7 @@ export function OverviewTab({ data }) {
                     { label: 'Подписок', value: subscriptions.length, icon: CreditCard, color: 'text-purple-400' },
                     { label: 'Выполнено задач', value: tasks.filter(t => t.status === 'done').length, icon: CheckSquare, color: 'text-orange-400' },
                 ].map((s, i) => (
-                    <div key={i} className="rounded-xl bg-white/[0.02] border border-white/5 p-3 hover:border-white/10 transition-colors">
+                    <div key={i} className="rounded-xl bg-white/[0.02] border border-white/5 p-3 hover:border-white/10 transition-colors hover-lift bento-glow">
                         <div className="flex items-center gap-2 mb-1">
                             <s.icon className={`w-3.5 h-3.5 ${s.color}`} />
                             <span className="text-[10px] text-gray-500">{s.label}</span>

@@ -6,6 +6,7 @@ import {
     Maximize2, Minimize2
 } from 'lucide-react'
 import { omegaApi } from '../../../../services/api'
+import '../../../../styles/animations.css'
 
 const EMOJIS = ['👍', '❤️', '😂', '😮', '🎉', '🔥', '👎']
 
@@ -405,7 +406,7 @@ export function ChatTab({ data }) {
                                             {getRoleIcon(msg.fromRole)}
                                             {msg.provider && <span className="text-[9px] text-gray-600">via {msg.provider}</span>}
                                         </div>
-                                        <div className={`relative px-4 py-2.5 rounded-2xl text-sm border ${getBubbleColor(msg)}`}>
+                                        <div className={`relative px-4 py-2.5 rounded-2xl text-sm border message-bubble-enter ${getBubbleColor(msg)}`}>
                                             {msg.text}
                                             {msg.attachments?.map((a, i) => (
                                                 <a key={i} href={a.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 mt-2 text-xs text-emerald-400 hover:text-emerald-300">
@@ -455,7 +456,7 @@ export function ChatTab({ data }) {
                                 </div>
                             ))}
                             {typing && (
-                                <div className="flex gap-3">
+                                <div className="flex gap-3 message-bubble-enter">
                                     <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center">
                                         <Bot size={14} className="text-purple-400" />
                                     </div>

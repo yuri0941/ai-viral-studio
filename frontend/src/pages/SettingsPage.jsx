@@ -6,7 +6,7 @@ import {
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
     Send, Globe, Moon, Sun, Smartphone, Mail, Lock, Eye, EyeOff,
     ChevronRight, Sparkles, Crown, Zap, Users, Calendar, CreditCard,
-    Wallet, Bitcoin
+    Wallet, Bitcoin, Volume2, VolumeX
 } from 'lucide-react';
 
 function SettingsPage() {
@@ -42,6 +42,10 @@ function SettingsPage() {
         push: false,
         marketing: false,
         weekly: true
+    });
+    const [soundEnabled, setSoundEnabled] = useState(() => {
+        const saved = localStorage.getItem('omega_sound_enabled');
+        return saved ? JSON.parse(saved) : true;
     });
     const [profile, setProfile] = useState({
         name: user?.name || 'Owner',
@@ -889,6 +893,12 @@ function SettingsPage() {
         </div>
     );
 
+    const handleSoundToggle = () => {
+        const next = !soundEnabled;
+        setSoundEnabled(next);
+        localStorage.setItem('omega_sound_enabled', JSON.stringify(next));
+    };
+
     const renderAppearance = () => (
         <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5 space-y-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -911,6 +921,26 @@ function SettingsPage() {
                     <div className="font-medium">Светлая</div>
                     <div className="text-sm text-gray-400">Светлый режим для дневного времени</div>
                 </button>
+            </div>
+
+            <div className="border-t border-white/5 pt-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    {soundEnabled ? <Volume2 size={18} className="text-emerald-400" /> : <VolumeX size={18} className="text-gray-400" />}
+                    Звуковое сопровождение
+                </h3>
+                <div className="flex items-center justify-between p-4 bg-[#252530] rounded-xl">
+                    <div>
+                        <div className="font-medium">Звуки OMEGA</div>
+                        <div className="text-sm text-gray-400">Активация, уведомления, сообщения</div>
+                    </div>
+                    <button
+                        onClick={handleSoundToggle}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${soundEnabled ? 'bg-emerald-500' : 'bg-gray-600'}`}
+                        aria-label={soundEnabled ? 'Выключить звуки' : 'Включить звуки'}
+                    >
+                        <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${soundEnabled ? 'left-6' : 'left-0.5'}`}></div>
+                    </button>
+                </div>
             </div>
         </div>
     );
