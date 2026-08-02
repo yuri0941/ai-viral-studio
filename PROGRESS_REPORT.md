@@ -2359,3 +2359,22 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (коммит 359fed5c)
 - [x] Render Clear build cache: требуется вручную через Render Dashboard
+
+### [2026-08-02] — ПРОМПТ №16-FIX+LUXURY: OMEGA Hotfix + Global Redesign
+- [x] Pollinations поднят в приоритет (OMEGA отвечает): да
+- [x] OpenRouter модель исправлена (404): да
+- [x] OmegaCoder sandbox fix: да
+- [x] Smart Demo Mode fallback: да
+- [x] Design System V2 (globals.css, luxury.css, fonts, noise, shadows): да
+- [x] OmegaChat Widget 2.0 (drag-to-move, orb, luxury bubbles, mobile swipe): да
+- [x] Staff Dashboard luxury redesign (tilt cards, glass, kanban): да
+- [x] Creator Dashboard luxury redesign (bento, masonry, charts): да
+- [x] Advertiser Dashboard luxury redesign (campaigns, chat): да
+- [x] Admin Dashboard luxury redesign (data-grid, moderation): да
+- [x] Landing Page luxury redesign (hero, bento, editorial): да
+- [x] Mobile adaptive (drawer swipe-to-close, bottom nav 5 tabs, touch 44px, safe-area): да
+- [x] Shared components (Modal glassmorphism, Toast progress, Header already themed): да
+- [x] Backend node --check: успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен (коммит 9056910a)
+- [x] Render Clear build cache: требуется вручную через Render Dashboard
