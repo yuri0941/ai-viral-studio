@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { visualizer } from 'rollup-plugin-visualizer'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [
         react(),
         VitePWA({
@@ -54,7 +55,13 @@ export default defineConfig({
                     }
                 ]
             }
-        })
+        }),
+        mode === 'analyze' && visualizer({
+            open: true,
+            gzipSize: true,
+            brotliSize: true,
+            filename: 'stats.html',
+        }),
     ],
     resolve: {
         extensions: ['.mjs', '.js', '.jsx', '.ts', '.tsx', '.json']
@@ -71,6 +78,7 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         sourcemap: true,
+        chunkSizeWarningLimit: 500,
         rollupOptions: {
             output: {
                 manualChunks: {
@@ -82,4 +90,4 @@ export default defineConfig({
             },
         },
     },
-})
+}))
