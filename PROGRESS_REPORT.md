@@ -2417,3 +2417,20 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (коммит 119b6628)
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
+
+
+### [2026-08-02] — HOTFIX v2: OMEGA Silent Fix (COMPLETED)
+- [x] Chroma DefaultEmbeddingFunction disabled → in-memory fallback
+- [x] Pollinations 431 fixed (POST instead of GET, prompt trimmed to 2000)
+- [x] OpenRouter model changed to meta-llama/llama-3.1-8b-instruct:free
+- [x] Groq/GitHub graceful skip if no valid key
+- [x] Telegram 409 conflict handled (deleteWebhook + global flag + polling_error ignore)
+- [x] OmegaCoder JSON.parse crash fixed (try-catch + regex code extract)
+- [x] Smart Demo Mode improved (RU templates, no "demo" phrase)
+- [x] OMEGA Core buttons work (toggle states: AutoPilot, Predictive, Repurposing, Voice)
+- [x] "Пересчитать прогноз" button shows toast + simulates update
+- [x] "Отчет" button opens modal with report type selector
+- [x] Backend node --check all files: успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен (коммит af4d78ab)
+- [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
