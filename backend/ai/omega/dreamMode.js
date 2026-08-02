@@ -1,7 +1,7 @@
 import cron from 'node-cron'
 import { getTrends } from '../../services/trendScanner.js'
 import { chatWithAI } from '../../services/aiService.js'
-import { runDailyAnalysis } from '../omegaCoder.js'
+import { runDailyAnalysis } from './omegaCoder.js'
 import { getDirector } from './swarm/director.js'
 import User from '../../models/User.js'
 import { OmegaMemory } from '../../models/index.js'

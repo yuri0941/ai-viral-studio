@@ -2327,3 +2327,20 @@
 - [x] Git push: нет
 - [x] Render Clear build cache: нет
 - [x] PROGRESS_REPORT.md обновлён: да
+
+### [2026-08-02] — ПРОМПТ №16: Luxury Redesign + Stability + AdStudio 2.0 + AI Pricing
+- [x] Светлая тема полностью переработана (globals.css, CSS-переменные): да
+- [x] Turnstile включен (ключи из Render): да
+- [x] Переключение ролей исправлено (404 устранена): да
+- [x] Профиль владельца переработан (UserProfileModal): да
+- [x] OMEGA стабильность — 5 fallback-провайдеров: да
+- [x] Telegram боты починены (polling, error handling): да
+- [x] Футер лендинга люксовый (убраны плейсхолдеры): да
+- [x] AI Pricing Engine (анализ цен подписок): да
+- [x] Advertiser Dashboard 2.0 (AdStudio, canvas, AI-панель): да
+- [x] OMEGA Chain-of-Thought + Self-Reflection: да
+- [x] Backend node --check (все файлы): успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен
+- [x] Render Clear build cache: требуется вручную через Render Dashboard (CLI недоступен)
+- [x] PROGRESS_REPORT.md обновлён: да
