@@ -16,6 +16,7 @@ import PostPreview from '../components/scheduler/PostPreview';
 import ABTestModal from '../components/scheduler/ABTestModal';
 import { EmptyState } from '../components/common/EmptyState.jsx';
 import PredictionCard from '../components/omega/PredictionCard.jsx';
+import { OneClickPublish } from '../components/scheduler/OneClickPublish';
 
 const PLATFORM_COLORS = {
     youtube: '#FF0000',
@@ -551,6 +552,7 @@ function SchedulerPage() {
                     <button onClick={handleToday} className="px-3 py-2 rounded-lg bg-emerald-600/20 text-emerald-400 text-sm font-medium hover:bg-emerald-600/30 transition-colors">Сегодня</button>
                 </div>
                 <div className="flex items-center gap-2">
+                    <OneClickPublish content={posts.find(p => p.status === 'draft')?.title || 'Готовый контент от OMEGA'} />
                     <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="px-3 py-2 rounded-lg bg-[#1a1a24] text-gray-400 text-sm hover:text-white transition-colors">Месяц</button>
                     <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-105"><Plus size={18} /> Новый пост</button>
                 </div>
