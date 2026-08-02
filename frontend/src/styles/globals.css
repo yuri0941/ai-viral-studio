@@ -204,3 +204,66 @@ body {
 [data-border="primary"] {
     border-color: var(--border) !important;
 }
+
+/* [P16-CONTINUE] added: legal page content styling */
+.legal-page-content h1 {
+    font-family: var(--font-serif);
+    color: var(--text);
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.legal-page-content h2 {
+    font-family: var(--font-serif);
+    color: var(--text);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    padding-left: 1rem;
+    border-left: 4px solid var(--primary);
+}
+
+.legal-page-content p {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.legal-page-content ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.legal-page-content li {
+    margin-bottom: 0.5rem;
+}
+
+.legal-page-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+.legal-page-content th,
+.legal-page-content td {
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    text-align: left;
+}
+
+.legal-page-content th {
+    background: var(--surface);
+    color: var(--text);
+}
+
+.legal-page-content a {
+    color: var(--primary);
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.legal-page-content a:hover {
+    color: var(--accent);
+}
