@@ -2278,3 +2278,19 @@
 ✅ Backend check: [успешно] (`node --check server.js`)
 ✅ Git push: [выполнен] (коммиты: `62db7c2e`, `48431955`, `39265b8f`, `20047619`)
 ✅ PROGRESS_REPORT.md обновлён: да
+
+### [2026-08-02] — ПРОМПТ №5: Performance & Polish
+- [x] VirtualTable.jsx создан: да (`frontend/src/components/shared/VirtualTable.jsx`)
+- [x] react-window / @tanstack/react-virtual установлен: да (оба пакета в `frontend/package.json`; VirtualTable использует `@tanstack/react-virtual`)
+- [x] Admin/Staff/Analytics используют VirtualTable: да (`AdminDashboardPage.jsx`, `StaffDashboardPage.jsx`, `AnalyticsPage.jsx`)
+- [x] rollup-plugin-visualizer установлен: да (`frontend/package.json` devDependency)
+- [x] vite.config.js → visualizer добавлен: да (conditional `visualizer(...)` при `mode === 'analyze'` + `chunkSizeWarningLimit: 500`)
+- [x] animations.css создан: да (`frontend/src/styles/animations.css` — spring buttons, hover-lift, shimmer, page transitions, toast, custom cursor, message bubbles, bento glow, animated gradient bg)
+- [x] globals.css → Inter + JetBrains Mono + colors v2: да (Google Fonts import, dark bg `#0a0a1f`, accents `#8B5CF6`/`#06B6D4`/`#F97316`, glassmorphism `blur(20px) saturate(180%)`)
+- [x] Sounds placeholders созданы: да (`frontend/public/sounds/omega-activate.mp3`, `message-sent.mp3`, `notification.mp3`, `success.mp3`, `error.mp3` — WAV placeholders)
+- [x] SettingsPage → sound toggle: да (вкладка "Внешний вид", toggle сохраняет `omega_sound_enabled` в `localStorage`)
+- [x] Frontend build: успешно (warnings по chunk size и dynamic imports — не критичны)
+- [x] Bundle size <500KB main chunk: нет (`index` chunk 1,036.95 kB / gzip 269.89 kB — требует дальнейшего code-splitting через `manualChunks` или lazy loading)
+- [x] Backend check: успешно (`node --check server.js`)
+- [x] Git push: выполнен (коммит `694ed608`)
+- [x] PROGRESS_REPORT.md обновлён: да
