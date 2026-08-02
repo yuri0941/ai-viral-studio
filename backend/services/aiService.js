@@ -148,21 +148,25 @@ export async function getProviderKey(provider, ownerId) {
 }
 
 // ============ PROVIDER REGISTRY & STATUS ============
-// [P16] Enabled by default: Groq, OpenRouter, Cloudflare Workers AI, GitHub Models, HuggingFace, Pollinations (no-key fallback).
-// Other providers are disabled by default and can be toggled by the owner in the UI.
+// [P16-FINAL] added: unified provider registry matching PROVIDER_CHAIN.
+// Providers with a valid env key are enabled by default; Pollinations is always enabled (no key).
+// Legacy providers are kept for UI compatibility but disabled by default.
 const PROVIDER_META = {
     groq: { name: 'Groq', enabledByDefault: true, requiresKey: true },
+    mistral: { name: 'Mistral AI', enabledByDefault: true, requiresKey: true },
+    cohere: { name: 'Cohere', enabledByDefault: true, requiresKey: true },
+    together: { name: 'Together AI', enabledByDefault: true, requiresKey: true },
+    deepseek: { name: 'DeepSeek', enabledByDefault: true, requiresKey: true },
+    fireworks: { name: 'Fireworks AI', enabledByDefault: true, requiresKey: true },
+    cerebras: { name: 'Cerebras', enabledByDefault: true, requiresKey: true },
+    cloudflare: { name: 'Cloudflare Workers AI', enabledByDefault: true, requiresKey: true },
     openrouter: { name: 'OpenRouter', enabledByDefault: true, requiresKey: true },
-    workersai: { name: 'Cloudflare Workers AI', enabledByDefault: true, requiresKey: true },
     github: { name: 'GitHub Models', enabledByDefault: true, requiresKey: true },
-    huggingface: { name: 'HuggingFace', enabledByDefault: true, requiresKey: true },
     pollinations: { name: 'Pollinations AI', enabledByDefault: true, requiresKey: false },
+    // Legacy providers (kept for UI/status compatibility, not part of PROVIDER_CHAIN)
+    workersai: { name: 'Cloudflare Workers AI (legacy)', enabledByDefault: false, requiresKey: true },
+    huggingface: { name: 'HuggingFace', enabledByDefault: false, requiresKey: true },
     gemini: { name: 'Google Gemini', enabledByDefault: false, requiresKey: true },
-    cloudflare: { name: 'Cloudflare Workers AI (legacy)', enabledByDefault: false, requiresKey: true },
-    fireworks: { name: 'Fireworks AI', enabledByDefault: false, requiresKey: true },
-    mistral: { name: 'Mistral AI', enabledByDefault: false, requiresKey: true },
-    cohere: { name: 'Cohere', enabledByDefault: false, requiresKey: true },
-    deepseek: { name: 'DeepSeek', enabledByDefault: false, requiresKey: true },
 }
 
 const providerStatusMap = new Map()
@@ -297,416 +301,168 @@ const formatMessages = (message, history = []) => {
     ]
 }
 
+// [P16-FINAL] added: unified prompt builder for all text providers
+function buildPrompt(messages) {
+    const system = messages.find(m => m.role === 'system')?.content || SYSTEM_PROMPT
+    const turns = messages.filter(m => m.role !== 'system')
+    const user = turns[turns.length - 1]?.content || ''
+    return `${system}\n\nUser: ${user}`.substring(0, 4000)
+}
+
 // ============ PROVIDER CALLS ============
-async function chatWithGroq(messages) {
-    const key = await getKey('groq')
+async function chatWithGroq(prompt) {
+    const key = process.env.GROQ_API_KEY
     if (!key || key.length < 20) {
-        // [P16-HOTFIX-v2] skip Groq quickly if key is missing/invalid
         console.log('[Groq] No valid key, skipping')
         throw new Error('No valid Groq key')
     }
     console.log('🚀 Calling Groq...')
-    const client = new Groq({ apiKey: key })
-    const completion = await client.chat.completions.create({
-        messages,
-        model: process.env.GROQ_MODEL && !process.env.GROQ_MODEL.includes('llama-3.1-70b-versatile')
-            ? process.env.GROQ_MODEL
-            : 'llama-3.3-70b-versatile',
-        temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
-        max_tokens: parseInt(process.env.GROQ_MAX_TOKENS || '4096'),
-        stream: false
-    })
-    return {
-        reply: completion.choices[0]?.message?.content || 'No response',
-        provider: 'groq',
-        usage: completion.usage
-    }
+    const res = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2048
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 15000 })
+    return res.data.choices[0].message.content
 }
 
-async function chatWithOpenRouterOnce(messages, model) {
-    const key = await getKey('openrouter')
-    const response = await axios.post(
-        (process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1') + '/chat/completions',
-        {
-            model,
-            messages,
-            temperature: parseFloat(process.env.OPENROUTER_TEMPERATURE || '0.7'),
-            max_tokens: parseInt(process.env.OPENROUTER_MAX_TOKENS || '4096')
-        },
-        {
-            headers: {
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'http://localhost:5000',
-                'X-Title': 'AI Viral Studio'
-            },
-            timeout: parseInt(process.env.OPENROUTER_TIMEOUT || '30000')
-        }
-    )
-    return {
-        reply: response.data.choices[0]?.message?.content || 'No response',
-        provider: 'openrouter',
-        usage: response.data.usage
-    }
+async function chatWithMistral(prompt) {
+    const key = process.env.MISTRAL_API_KEY
+    if (!key) throw new Error('No Mistral key')
+    console.log('🚀 Calling Mistral...')
+    const res = await axios.post('https://api.mistral.ai/v1/chat/completions', {
+        model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2048
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
+    return res.data.choices[0].message.content
 }
 
-async function chatWithOpenRouter(messages) {
-    const key = await getKey('openrouter')
-    if (!key) throw new Error('OpenRouter key missing')
+async function chatWithCohere(prompt) {
+    const key = process.env.COHERE_API_KEY
+    if (!key) throw new Error('No Cohere key')
+    console.log('🚀 Calling Cohere...')
+    const res = await axios.post('https://api.cohere.ai/v1/chat', {
+        model: process.env.COHERE_MODEL || 'command-r-plus',
+        message: prompt
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
+    return res.data.text
+}
+
+async function chatWithTogether(prompt) {
+    const key = process.env.TOGETHER_API_KEY
+    if (!key) throw new Error('No Together key')
+    console.log('🚀 Calling Together...')
+    const res = await axios.post('https://api.together.xyz/v1/chat/completions', {
+        model: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2048
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
+    return res.data.choices[0].message.content
+}
+
+async function chatWithDeepSeek(prompt) {
+    const key = process.env.DEEPSEEK_API_KEY
+    if (!key) throw new Error('No DeepSeek key')
+    console.log('🚀 Calling DeepSeek...')
+    const res = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+        model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2048
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
+    return res.data.choices[0].message.content
+}
+
+async function chatWithFireworks(prompt) {
+    const key = process.env.FIREWORKS_API_KEY
+    if (!key) throw new Error('No Fireworks key')
+    console.log('🚀 Calling Fireworks...')
+    const res = await axios.post('https://api.fireworks.ai/inference/v1/chat/completions', {
+        model: process.env.FIREWORKS_MODEL || 'accounts/fireworks/models/llama-v3p3-70b-instruct',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2048
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
+    return res.data.choices[0].message.content
+}
+
+async function chatWithCerebras(prompt) {
+    const key = process.env.CEREBRAS_API_KEY
+    if (!key) throw new Error('No Cerebras key')
+    console.log('🚀 Calling Cerebras...')
+    const res = await axios.post('https://api.cerebras.ai/v1/chat/completions', {
+        model: process.env.CEREBRAS_MODEL || 'llama-3.3-70b',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2048
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
+    return res.data.choices[0].message.content
+}
+
+async function chatWithCloudflare(prompt) {
+    const key = process.env.CLOUDFLARE_API_KEY
+    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
+    const model = process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+    if (!key || !accountId) throw new Error('No Cloudflare key or account ID')
+    console.log('🚀 Calling Cloudflare...')
+    const res = await axios.post(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
+        messages: [{ role: 'user', content: prompt }]
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
+    return res.data.result.response
+}
+
+async function chatWithOpenRouter(prompt) {
+    const key = process.env.OPENROUTER_API_KEY
+    if (!key) throw new Error('No OpenRouter key')
     console.log('🚀 Calling OpenRouter...')
-
-    // [P16-HOTFIX-v2] OpenRouter free model chain; skip invalid models quickly
-    const modelChain = [
-        process.env.OPENROUTER_MODEL,
-        'meta-llama/llama-3.1-8b-instruct:free',
-        'mistralai/mistral-7b-instruct:free',
-        'openai/gpt-3.5-turbo:free',
-    ].filter((m, i, arr) => m && arr.indexOf(m) === i)
-
-    let lastErr = null
-    for (const model of modelChain) {
-        try {
-            return await chatWithOpenRouterOnce(messages, model)
-        } catch (err) {
-            lastErr = err
-            console.warn(`⚠️ OpenRouter ${model} failed:`, err.message)
-            const status = err.response?.status
-            if (status === 400 || status === 404) {
-                console.log(`⏭️ OpenRouter ${model} invalid, trying next...`)
-                continue
-            }
-            throw err
-        }
-    }
-    throw lastErr || new Error('OpenRouter all models failed')
+    const res = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+        model: process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2048
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'HTTP-Referer': 'https://ai-viral-studio.ru', 'X-Title': 'AI Viral Studio', 'Content-Type': 'application/json' }, timeout: 20000 })
+    return res.data.choices[0].message.content
 }
 
-async function chatWithGemini(messages) {
-    const key = await getKey('gemini')
-    if (!key) throw new Error('Gemini key missing')
-    console.log('🚀 Calling Gemini...')
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`
-    const contents = messages.map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }]
-    }))
-    const response = await axios.post(url, { contents }, { timeout: 30000 })
-    const text = response.data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || 'No response'
-    return { reply: text, provider: 'gemini', usage: null }
+async function chatWithPollinationsText(prompt) {
+    console.log('🚀 Calling Pollinations text...')
+    const url = `https://text.pollinations.ai/${encodeURIComponent(prompt.substring(0, 1500))}?seed=${Math.floor(Math.random() * 100000)}&json=false`
+    const res = await axios.get(url, { timeout: 15000 })
+    return res.data
 }
 
-async function chatWithGitHubModels(messages) {
-    const key = await getKey('github')
+async function chatWithGitHubModels(prompt) {
+    const key = process.env.GITHUB_API_KEY
     if (!key || key.length < 20) {
-        // [P16-HOTFIX-v2] skip GitHub Models quickly if key is missing/invalid
         console.log('[GitHub Models] No valid key, skipping')
         throw new Error('No valid GitHub Models key')
     }
     console.log('🚀 Calling GitHub Models...')
-
-    // [P16-HOTFIX] GitHub Models fallback chain
-    const models = [
-        process.env.GITHUB_MODEL,
-        'meta-llama-3.1-8b-instruct',
-        'gpt-4o-mini',
-        'gpt-4o'
-    ].filter(Boolean)
-
-    let lastErr = null
-    for (const model of models) {
-        try {
-            const response = await axios.post(
-                'https://models.inference.ai.azure.com/chat/completions',
-                {
-                    model,
-                    messages,
-                    temperature: 0.7,
-                    max_tokens: 4096
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${key}`,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 30000
-                }
-            )
-            return {
-                reply: response.data.choices[0]?.message?.content || 'No response',
-                provider: 'github',
-                usage: response.data.usage
-            }
-        } catch (err) {
-            lastErr = err
-            console.warn(`⚠️ GitHub Models ${model} failed:`, err.message)
-            if (err.response?.status === 401) {
-                console.warn('🚫 GitHub Models 401 — invalid token, skipping')
-                break
-            }
-            await sleep(300)
-        }
-    }
-    throw lastErr || new Error('GitHub Models all models failed')
-}
-
-async function chatWithMistral(messages) {
-    const key = await getKey('mistral')
-    if (!key) throw new Error('Mistral key missing')
-    console.log('🚀 Calling Mistral...')
-    const response = await axios.post(
-        'https://api.mistral.ai/v1/chat/completions',
-        {
-            model: process.env.MISTRAL_MODEL || 'mistral-medium',
-            messages,
-            temperature: 0.7,
-            max_tokens: 4096
-        },
-        {
-            headers: {
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: 30000
-        }
-    )
-    return {
-        reply: response.data.choices[0]?.message?.content || 'No response',
-        provider: 'mistral',
-        usage: response.data.usage
-    }
-}
-
-async function chatWithCohere(messages) {
-    const key = await getKey('cohere')
-    if (!key) throw new Error('Cohere key missing')
-    console.log('🚀 Calling Cohere...')
-    const response = await axios.post(
-        'https://api.cohere.ai/v1/chat',
-        {
-            model: process.env.COHERE_MODEL || 'command-r',
-            message: messages[messages.length - 1].content,
-            chat_history: messages.slice(0, -1).map(m => ({
-                role: m.role === 'user' ? 'USER' : 'CHATBOT',
-                message: m.content
-            })),
-            preamble: messages[0].role === 'system' ? messages[0].content : SYSTEM_PROMPT
-        },
-        {
-            headers: {
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: 30000
-        }
-    )
-    return {
-        reply: response.data.text || 'No response',
-        provider: 'cohere',
-        usage: response.data.usage
-    }
-}
-
-async function chatWithDeepSeek(messages) {
-    const key = await getKey('deepseek')
-    if (!key) throw new Error('DeepSeek key missing')
-    console.log('🚀 Calling DeepSeek...')
-    const response = await axios.post(
-        (process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/v1') + '/chat/completions',
-        {
-            model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
-            messages,
-            temperature: parseFloat(process.env.DEEPSEEK_TEMPERATURE || '0.7'),
-            max_tokens: parseInt(process.env.DEEPSEEK_MAX_TOKENS || '4096')
-        },
-        {
-            headers: {
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: parseInt(process.env.DEEPSEEK_TIMEOUT || '30000')
-        }
-    )
-    return {
-        reply: response.data.choices[0]?.message?.content || 'No response',
-        provider: 'deepseek',
-        usage: response.data.usage
-    }
-}
-
-async function chatWithHuggingFace(messages) {
-    const key = await getKey('huggingface')
-    if (!key) throw new Error('HuggingFace key missing')
-    const models = [
-        process.env.HUGGINGFACE_MODEL_1 || 'meta-llama/Llama-3.2-3B-Instruct',
-        process.env.HUGGINGFACE_MODEL_2 || 'mistralai/Mistral-7B-Instruct-v0.3'
-    ]
-    const prompt = messages.map(m => `${m.role === 'system' ? 'system' : m.role === 'user' ? 'user' : 'assistant'}: ${m.content}`).join('\n') + '\nassistant:'
-    let lastErr = null
-
-    for (const model of models) {
-        try {
-            console.log(`🚀 Calling HuggingFace (${model})...`)
-            const response = await axios.post(
-                `https://api-inference.huggingface.co/models/${model}`,
-                {
-                    inputs: prompt,
-                    parameters: {
-                        max_new_tokens: 1024,
-                        return_full_text: false,
-                        temperature: 0.7
-                    }
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${key}`,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 60000
-                }
-            )
-            const generated = Array.isArray(response.data) ? response.data[0]?.generated_text : response.data?.generated_text
-            if (!generated) throw new Error('Empty HF response')
-            return { reply: generated.trim(), provider: 'huggingface', usage: null }
-        } catch (err) {
-            lastErr = err
-            console.warn(`⚠️ HuggingFace ${model} failed:`, err.message)
-            await sleep(300)
-        }
-    }
-    throw lastErr || new Error('HuggingFace all models failed')
-}
-
-async function chatWithCloudflare(messages) {
-    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
-    const key = await getKey('cloudflare') || process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN
-    if (!accountId) throw new Error('Cloudflare account ID missing')
-    if (!key) throw new Error('Cloudflare token missing')
-    const model = process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.1-8b-instruct'
-    console.log('🚀 Calling Cloudflare Workers AI...')
-    const response = await axios.post(
-        `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`,
-        { messages },
-        {
-            headers: {
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: 30000
-        }
-    )
-    const result = response.data?.result
-    const reply = typeof result === 'string' ? result : (result?.response || result?.content || 'No response')
-    return { reply, provider: 'cloudflare', usage: null }
-}
-
-async function chatWithWorkersAI(messages) {
-    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
-    const key = await getKey('cloudflare') || process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN
-    if (!accountId) throw new Error('Cloudflare account ID missing')
-    if (!key) throw new Error('Cloudflare token missing')
-    const model = '@cf/meta/llama-3.1-8b-instruct'
-    console.log('🚀 Calling Cloudflare Workers AI (llama-3.1-8b-instruct)...')
-    const response = await axios.post(
-        `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`,
-        { messages },
-        {
-            headers: {
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: 30000
-        }
-    )
-    const result = response.data?.result
-    const reply = typeof result === 'string' ? result : (result?.response || result?.content || 'No response')
-    return { reply, provider: 'workersai', usage: null }
-}
-
-async function chatWithFireworks(messages) {
-    const key = await getKey('fireworks') || process.env.FIREWORKS_API_KEY
-    if (!key) throw new Error('Fireworks key missing')
-    const model = process.env.FIREWORKS_MODEL || 'accounts/fireworks/models/llama-v3p1-8b-instruct'
-    console.log('🚀 Calling Fireworks AI...')
-    const response = await axios.post(
-        'https://api.fireworks.ai/inference/v1/chat/completions',
-        {
-            model,
-            messages,
-            temperature: 0.7,
-            max_tokens: 2048
-        },
-        {
-            headers: {
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: 30000
-        }
-    )
-    return {
-        reply: response.data.choices[0]?.message?.content || 'No response',
-        provider: 'fireworks',
-        usage: response.data.usage
-    }
-}
-
-async function chatWithPollinationsText(messages) {
-    const system = messages.find(m => m.role === 'system')?.content || SYSTEM_PROMPT
-    const prompt = messages.filter(m => m.role !== 'system').map(m => `${m.role}: ${m.content}`).join('\n\n')
-    // [P16-HOTFIX-v2] trim prompt to avoid 431 Request Header Fields Too Large
-    const fullPrompt = `${system}\n\n${prompt}`.substring(0, 2000)
-    console.log('🚀 Calling Pollinations text...')
-
-    // [P16-HOTFIX-v2] Pollinations POST endpoint to avoid long URL headers
-    const response = await axios.post(
-        'https://text.pollinations.ai/',
-        {
-            messages: [
-                { role: 'system', content: system.substring(0, 500) },
-                { role: 'user', content: fullPrompt }
-            ],
-            seed: Math.floor(Math.random() * 1e6),
-            jsonMode: false
-        },
-        {
-            headers: { 'Content-Type': 'application/json' },
-            timeout: 15000,
-            responseType: 'text'
-        }
-    )
-    const text = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
-    if (!text?.trim()) throw new Error('Empty Pollinations response')
-    return { reply: text.trim(), provider: 'pollinations', usage: null }
+    const res = await axios.post('https://models.inference.ai.azure.com/chat/completions', {
+        model: process.env.GITHUB_MODEL || 'meta-llama-3.1-8b-instruct',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2048
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
+    return res.data.choices[0].message.content
 }
 
 // ============ PROVIDER CHAIN ============
-// [P16-HOTFIX] Priority: Pollinations (no-key) first so OMEGA always replies,
-// then keyed providers as fallbacks.
+// [P16-FINAL] added: 10+ providers, priority by speed/reliability, Pollinations no-key fallback last
 const PROVIDER_CHAIN = [
-    { id: 'pollinations', name: 'Pollinations', fn: chatWithPollinationsText, requiresKey: false },
-    { id: 'groq', name: 'Groq', fn: chatWithGroq, requiresKey: true },
-    { id: 'openrouter', name: 'OpenRouter', fn: chatWithOpenRouter, requiresKey: true },
-    { id: 'workersai', name: 'Cloudflare Workers AI', fn: chatWithWorkersAI, requiresKey: true },
-    { id: 'github', name: 'GitHub Models', fn: chatWithGitHubModels, requiresKey: true },
-    { id: 'huggingface', name: 'HuggingFace', fn: chatWithHuggingFace, requiresKey: true },
-    // [P16] additional optional providers
-    { id: 'gemini', name: 'Gemini', fn: chatWithGemini, requiresKey: true },
-    { id: 'cloudflare', name: 'Cloudflare Workers AI (legacy)', fn: chatWithCloudflare, requiresKey: true },
-    { id: 'fireworks', name: 'Fireworks AI', fn: chatWithFireworks, requiresKey: true },
-    { id: 'mistral', name: 'Mistral', fn: chatWithMistral, requiresKey: true },
-    { id: 'cohere', name: 'Cohere', fn: chatWithCohere, requiresKey: true },
-    { id: 'deepseek', name: 'DeepSeek', fn: chatWithDeepSeek, requiresKey: true },
+    { id: 'groq', name: 'Groq', handler: chatWithGroq, model: 'llama-3.3-70b-versatile' },
+    { id: 'mistral', name: 'Mistral', handler: chatWithMistral, model: 'mistral-large-latest' },
+    { id: 'cohere', name: 'Cohere', handler: chatWithCohere, model: 'command-r-plus' },
+    { id: 'together', name: 'Together', handler: chatWithTogether, model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' },
+    { id: 'deepseek', name: 'DeepSeek', handler: chatWithDeepSeek, model: 'deepseek-chat' },
+    { id: 'fireworks', name: 'Fireworks', handler: chatWithFireworks, model: 'accounts/fireworks/models/llama-v3p3-70b-instruct' },
+    { id: 'cerebras', name: 'Cerebras', handler: chatWithCerebras, model: 'llama-3.3-70b' },
+    { id: 'cloudflare', name: 'Cloudflare', handler: chatWithCloudflare, model: process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast' },
+    { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: 'meta-llama/llama-3.3-70b-instruct' },
+    { id: 'github', name: 'GitHub Models', handler: chatWithGitHubModels, model: process.env.GITHUB_MODEL || 'meta-llama-3.1-8b-instruct' },
+    { id: 'pollinations', name: 'Pollinations', handler: chatWithPollinationsText, model: 'anonymous' },
 ]
 
-const RETRYABLE_STATUSES = [429, 500, 502, 503, 504]
-
-const isRetryableError = (error) => {
-    if (!error.response) return true
-    return RETRYABLE_STATUSES.includes(error.response.status)
-}
+const SKIP_STATUSES = [401, 403, 404]
 
 const tryProviders = async (messages) => {
     const errors = []
+    const prompt = buildPrompt(messages)
 
     for (const provider of PROVIDER_CHAIN) {
         const enabled = await isEnabled(provider.id)
@@ -717,10 +473,11 @@ const tryProviders = async (messages) => {
         }
         try {
             console.log(`🤖 Trying ${provider.name}...`)
-            const result = await provider.fn(messages)
+            const text = await provider.handler(prompt)
+            if (!text || !String(text).trim()) throw new Error('Empty response')
             console.log(`✅ ${provider.name} success!`)
             setProviderStatus(provider.id, 'active', '')
-            return { ...result, provider: provider.id }
+            return { reply: String(text).trim(), provider: provider.id, usage: null }
         } catch (error) {
             const status = error.response?.status
             console.error(`❌ ${provider.name} failed (status ${status || 'N/A'}):`, error.message)
@@ -729,15 +486,15 @@ const tryProviders = async (messages) => {
             }
             setProviderStatus(provider.id, 'error', status || error.message)
             errors.push(`${provider.name}: ${error.message}`)
-            if (!isRetryableError(error)) {
-                console.log(`🚫 ${provider.name} returned non-retryable error, continuing chain`)
+            if (SKIP_STATUSES.includes(status)) {
+                console.log(`⏭️ ${provider.name} skipped`)
             }
-            await sleep(400)
+            await sleep(200)
         }
     }
 
-    // [P16-FIX] All providers failed — return Smart Demo Mode response so OMEGA always replies
-    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || ''
+    // [P16-FINAL] All providers failed — return Smart Demo Mode response so OMEGA always replies
+    const lastUserMessage = messages[messages.length - 1]?.content || ''
     const demoReply = smartDemoReply(lastUserMessage, 'ru')
     console.log('🧠 All providers failed — falling back to Smart Demo Mode')
     return { reply: demoReply, provider: 'demo', demo: true, errors }

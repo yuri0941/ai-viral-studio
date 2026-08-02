@@ -5,7 +5,6 @@ const whiteLabelSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        index: true,
         unique: true,
     },
     brandName: {
@@ -44,7 +43,7 @@ const whiteLabelSchema = new mongoose.Schema({
     timestamps: true,
 })
 
-whiteLabelSchema.index({ domain: 1 })
+// [P16-FINAL] added: removed duplicate domain index (unique already creates one)
 
 export const WhiteLabel = mongoose.model('WhiteLabel', whiteLabelSchema)
 export default WhiteLabel

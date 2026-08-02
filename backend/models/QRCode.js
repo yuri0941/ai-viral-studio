@@ -54,7 +54,7 @@ const qrCodeSchema = new mongoose.Schema({
 })
 
 qrCodeSchema.index({ userId: 1, createdAt: -1 })
-qrCodeSchema.index({ shortCode: 1 })
+// [P16-FINAL] added: removed duplicate shortCode index (unique already creates one)
 
 export const QRCode = mongoose.model('QRCode', qrCodeSchema)
 export default QRCode

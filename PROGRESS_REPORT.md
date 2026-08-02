@@ -2434,3 +2434,21 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (коммит af4d78ab)
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
+
+
+### [2026-08-02] — FINAL HOTFIX: All AI Providers + All Bugs Fixed
+- [x] 11 AI providers registered in PROVIDER_CHAIN (Groq, Mistral, Cohere, Together, DeepSeek, Fireworks, Cerebras, Cloudflare, OpenRouter, GitHub Models, Pollinations)
+- [x] PROVIDER_META synced with PROVIDER_CHAIN (together + cerebras added, legacy providers kept for UI compat)
+- [x] Pollinations anonymous GET (no key, prompt trimmed to 1500 chars)
+- [x] OpenRouter :free suffix removed (model: meta-llama/llama-3.3-70b-instruct)
+- [x] Groq/GitHub graceful skip if no valid env key
+- [x] AIProviderSetting default enabled: true
+- [x] Telegram deleteWebhook deprecation already fixed (deleteWebhook lowercase w)
+- [x] Duplicate schema index warnings fixed (QRCode shortCode, WhiteLabel domain/agencyId, DeveloperApiKey key)
+- [x] OmegaCoder import/require already compatible (ESM, package.json type: module)
+- [x] Smart Demo Mode RU templates (no "demo" phrase)
+- [x] .env.example expanded with all AI provider placeholders (NO real keys committed)
+- [x] Backend node --check all files: успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен
+- [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy

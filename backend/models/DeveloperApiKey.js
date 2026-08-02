@@ -11,7 +11,7 @@ const webhookSchema = new mongoose.Schema({
 const developerApiKeySchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     name: { type: String, required: true, trim: true },
-    key: { type: String, required: true, unique: true, index: true },
+    key: { type: String, required: true, unique: true },
     approved: { type: Boolean, default: false },
     rateLimit: { type: Number, default: 1000 }, // requests per hour
     usage: { type: Number, default: 0 },
