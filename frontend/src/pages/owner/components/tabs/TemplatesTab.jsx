@@ -24,6 +24,12 @@ export function TemplatesTab() {
     const [showProvenOnly, setShowProvenOnly] = useState(false)
     const [stats, setStats] = useState(null)
     const [error, setError] = useState('')
+    const [smartOpen, setSmartOpen] = useState(false)
+    const [smartGoal, setSmartGoal] = useState('')
+    const [smartFormat, setSmartFormat] = useState('')
+    const [smartLoading, setSmartLoading] = useState(false)
+    const [smartResult, setSmartResult] = useState(null)
+    const [expandedWhy, setExpandedWhy] = useState(null)
 
     useEffect(() => {
         Promise.all([
@@ -87,6 +93,41 @@ export function TemplatesTab() {
         return matchesCategory && matchesSearch && matchesProven
     })
 
+    const runSmartSelection = async () => {
+        if (!smartGoal || !smartFormat) return
+        setSmartLoading(true)
+        setSmartResult(null)
+        setExpandedWhy(null)
+        try {
+            const prompt = `Я выбираю шаблон для контента. Цель: ${smartGoal}. Формат: ${smartFormat}. Вот список шаблонов (id, name, category, metrics): ${JSON.stringify(
+                templates.slice(0, 50).map(t => ({ id: t.id, name: t.name, category: t.category, metrics: t.metrics }))
+            )}. Предложи ТОП-3 лучших шаблона с id и кратким обоснованием (почему этот, какой ожидаемый CTR/эффект). Ответь строго JSON: { "recommendations": [{ "id", "name", "reason", "expectedEffect" }] }`
+            const res = await omegaApi.chat(prompt, [], 'ru')
+            const text = res?.data?.response || ''
+            try {
+                const match = text.match(/\{[\s\S]*\}/)
+                const parsed = match ? JSON.parse(match[0]) : JSON.parse(text)
+                if (parsed?.recommendations?.length) {
+                    setSmartResult(parsed.recommendations.slice(0, 3))
+                } else {
+                    setSmartResult([])
+                }
+            } catch (e) {
+                console.warn('[TemplatesTab] smart parse failed')
+                setSmartResult([])
+            }
+        } catch (err) {
+            setError(err.message || 'Ошибка умного выбора')
+        } finally {
+            setSmartLoading(false)
+        }
+    }
+
+    const applySmartRecommendation = (id) => {
+        const t = templates.find(x => x.id === id)
+        if (t) selectTemplate(t)
+    }
+
     if (loading) return <div className="p-8 text-center text-gray-500 text-sm"><Loader2 className="animate-spin mx-auto mb-2" /> Загрузка шаблонов...</div>
 
     return (
@@ -96,8 +137,93 @@ export function TemplatesTab() {
                     <h2 className="text-xl font-semibold text-white">50+ AI-шаблонов</h2>
                     <p className="text-sm text-gray-500 mt-1">Готовые структуры постов, email, Shorts и хуков</p>
                 </div>
-                <div className="text-xs text-gray-500">Всего: {templates.length} шаблонов</div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setSmartOpen(!smartOpen)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                            smartOpen ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'bg-white/5 text-gray-400 hover:text-white'
+                        }`}
+                    >
+                        <Sparkles size={14} /> Умный выбор
+                    </button>
+                    <div className="text-xs text-gray-500">Всего: {templates.length} шаблонов</div>
+                </div>
             </div>
+
+            {smartOpen && (
+                <div className="rounded-2xl bg-[#0f0f1a] border border-[#8B5CF6]/20 p-5 space-y-4">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2"><Sparkles size={16} className="text-[#8B5CF6]" /> Умный подбор шаблона</h3>
+                    <div className="grid md:grid-cols-2 gap-3">
+                        <select
+                            value={smartGoal}
+                            onChange={e => setSmartGoal(e.target.value)}
+                            className="px-3 py-2 rounded-lg bg-[#0a0a0f] border border-white/10 text-sm text-white focus:outline-none focus:border-[#8B5CF6]/30"
+                        >
+                            <option value="" className="bg-[#0a0a0f]">Цель контента</option>
+                            <option value="продажи" className="bg-[#0a0a0f]">Продажи</option>
+                            <option value="узнаваемость" className="bg-[#0a0a0f]">Узнаваемость</option>
+                            <option value="подписчики" className="bg-[#0a0a0f]">Подписчики</option>
+                            <option value="engagement" className="bg-[#0a0a0f]">Engagement</option>
+                        </select>
+                        <select
+                            value={smartFormat}
+                            onChange={e => setSmartFormat(e.target.value)}
+                            className="px-3 py-2 rounded-lg bg-[#0a0a0f] border border-white/10 text-sm text-white focus:outline-none focus:border-[#8B5CF6]/30"
+                        >
+                            <option value="" className="bg-[#0a0a0f]">Формат</option>
+                            <option value="Reels" className="bg-[#0a0a0f]">Reels</option>
+                            <option value="Stories" className="bg-[#0a0a0f]">Stories</option>
+                            <option value="Карусель" className="bg-[#0a0a0f]">Карусель</option>
+                            <option value="Пост" className="bg-[#0a0a0f]">Пост</option>
+                        </select>
+                    </div>
+                    <button
+                        onClick={runSmartSelection}
+                        disabled={smartLoading || !smartGoal || !smartFormat}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#7c3aed] text-white text-sm font-medium disabled:opacity-50"
+                    >
+                        {smartLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                        {smartLoading ? 'Анализируем...' : 'Подобрать ТОП-3'}
+                    </button>
+
+                    {smartResult && smartResult.length === 0 && (
+                        <p className="text-sm text-gray-500">Не удалось подобрать. Попробуйте изменить цель или формат.</p>
+                    )}
+
+                    {smartResult && smartResult.length > 0 && (
+                        <div className="space-y-3">
+                            {smartResult.map((rec, idx) => {
+                                const t = templates.find(x => x.id === rec.id)
+                                return (
+                                    <div key={idx} className="p-3 rounded-xl bg-white/5 border border-white/10">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="text-sm font-medium text-white">{rec.name || t?.name || rec.id}</div>
+                                            <button
+                                                onClick={() => applySmartRecommendation(rec.id)}
+                                                className="text-xs px-2 py-1 rounded-lg bg-[#8B5CF6]/20 text-[#8B5CF6] hover:bg-[#8B5CF6]/30"
+                                            >
+                                                Использовать
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-gray-400 mb-2">{rec.reason}</p>
+                                        <button
+                                            onClick={() => setExpandedWhy(expandedWhy === idx ? null : idx)}
+                                            className="text-xs text-[#8B5CF6] hover:text-[#a78bfa]"
+                                        >
+                                            {expandedWhy === idx ? 'Скрыть' : 'Почему этот?'}
+                                        </button>
+                                        {expandedWhy === idx && (
+                                            <div className="mt-2 p-2 rounded-lg bg-[#0a0a0f] text-xs text-gray-300">
+                                                {rec.expectedEffect || rec.reason}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {error && <div className="p-3 rounded-xl bg-red-500/10 text-red-400 text-sm">{error}</div>}
 
