@@ -5,7 +5,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { chatWithAI } from '../../services/aiService.js'
 import { AuditLog } from '../../models/AuditLog.js'
-import Sandbox from './sandbox.js'
+import { Sandbox } from './sandbox.js'
 import { alertOmega } from '../../services/omegaBot.js'
 
 const execAsync = promisify(exec)

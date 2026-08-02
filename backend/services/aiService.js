@@ -136,6 +136,9 @@ function initProviderStatuses() {
 initProviderStatuses()
 
 const isEnabled = async (provider) => {
+    // [P16-FIX] Pollinations never requires a key
+    if (provider === 'pollinations') return true
+
     const meta = PROVIDER_META[provider] || { enabledByDefault: false, requiresKey: true }
     try {
         const setting = await AIProviderSetting.findOne({ provider }).lean()
@@ -631,7 +634,11 @@ const tryProviders = async (messages) => {
         }
     }
 
-    throw new Error(`All providers failed: ${errors.join('; ') || 'no providers enabled'}`)
+    // [P16-FIX] All providers failed — return Smart Demo Mode response so OMEGA always replies
+    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || ''
+    const demoReply = smartDemoReply(lastUserMessage, 'ru')
+    console.log('🧠 All providers failed — falling back to Smart Demo Mode')
+    return { reply: demoReply, provider: 'demo', demo: true, errors }
 }
 
 // ============ EXPORTS ============

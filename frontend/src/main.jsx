@@ -8,6 +8,8 @@ import { AdProvider } from './context/AdContext'
 import App from './App'
 import './i18n'
 import './index.css'
+import './styles/globals.css'
+import './styles/luxury.css'
 
 const queryClient = new QueryClient({
     defaultOptions: {

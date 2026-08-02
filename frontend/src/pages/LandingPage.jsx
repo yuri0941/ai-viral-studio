@@ -149,24 +149,24 @@ function LandingPage() {
     ]
 
     return (
-        <div className="landing-page bg-[#0a0a0f] min-h-screen">
+        <div className="landing-page bg-[var(--bg)] min-h-screen">
             {/* Navigation */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/5' : 'bg-transparent'}`}>
+            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-[var(--bg)]/90 backdrop-blur-xl border-b border-[var(--border)]' : 'bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     <div className="flex items-center justify-between h-20">
                         <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00ff41] to-[#2563eb] flex items-center justify-center">
-                                <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--success)] to-[#2563eb] flex items-center justify-center">
+                                <svg className="w-6 h-6 text-[var(--text-inverse)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
                                 </svg>
                             </div>
                             <span className="text-xl font-bold gradient-text">AI Viral Studio</span>
                         </div>
                         <div className="hidden md:flex items-center gap-8">
-                            <a href="#features" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Фичи</a>
-                            <a href="#how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Как работает</a>
-                            <a href="#pricing" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Тарифы</a>
-                            <Link to="/roadmap" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Roadmap</Link>
+                            <a href="#features" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Фичи</a>
+                            <a href="#how-it-works" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Как работает</a>
+                            <a href="#pricing" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Тарифы</a>
+                            <Link to="/roadmap" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Roadmap</Link>
                             <BetaCounter />
                             <PWAInstallButton />
                             <button
@@ -194,24 +194,24 @@ function LandingPage() {
 
                 {/* Grid pattern */}
                 <div className="absolute inset-0 opacity-[0.03]" style={{
-                    backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+                    backgroundImage: 'linear-gradient(var(--border-strong) 1px, transparent 1px), linear-gradient(90deg, var(--border-strong) 1px, transparent 1px)',
                     backgroundSize: '60px 60px'
                 }} />
 
                 <div className="relative z-10 max-w-6xl mx-auto px-6 lg:px-8 text-center">
                     {/* Badge */}
-                    <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full glass mb-10 border-[#00ff41]/20">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#00ff41] animate-pulse" />
-                        <span className="text-sm text-gray-300 font-medium">10,000+ создателей уже с нами</span>
+                    <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full glass mb-10 border-[var(--success)]/20">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[var(--success)] animate-pulse" />
+                        <span className="text-sm text-[var(--text)] font-medium">10,000+ создателей уже с нами</span>
                     </div>
 
                     {/* Main heading */}
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-8 leading-[1.1] tracking-tight">
                         Создавай <span className="gradient-text">вирусный</span><br />
-                        контент за <span className="text-[#00ff41]">60 секунд</span>
+                        контент за <span className="text-[var(--success)]">60 секунд</span>
                     </h1>
 
-                    <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+                    <p className="text-xl md:text-2xl text-[var(--text-muted)] mb-12 max-w-3xl mx-auto leading-relaxed">
                         AI генерирует скрипты, анализирует тренды и публикует
                         в соцсети — всё автоматически. Сосредоточься на творчестве.
                     </p>
@@ -247,9 +247,9 @@ function LandingPage() {
                             { value: '50M+', label: 'Просмотров' },
                             { value: '98%', label: 'Довольны' }
                         ].map((stat, i) => (
-                            <div key={i} className="glass p-5 rounded-2xl text-center group hover:border-[#00ff41]/30 transition-all duration-300">
-                                <div className="text-3xl font-black text-[#00ff41] mb-1">{stat.value}</div>
-                                <div className="text-sm text-gray-400">{stat.label}</div>
+                            <div key={i} className="glass p-5 rounded-2xl text-center group hover:border-[var(--success)]/30 transition-all duration-300">
+                                <div className="text-3xl font-black text-[var(--success)] mb-1">{stat.value}</div>
+                                <div className="text-sm text-[var(--text-muted)]">{stat.label}</div>
                             </div>
                         ))}
                     </div>
@@ -257,7 +257,7 @@ function LandingPage() {
 
                 {/* Scroll indicator */}
                 <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
-                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                     </svg>
                 </div>
@@ -276,14 +276,14 @@ function LandingPage() {
                         {features.map((feature, i) => (
                             <div
                                 key={i}
-                                className={`glass p-8 rounded-2xl group cursor-pointer transition-all duration-500 ${activeFeature === i ? 'border-[#00ff41]/30 scale-[1.02]' : ''}`}
+                                className={`glass p-8 rounded-2xl group cursor-pointer transition-all duration-500 ${activeFeature === i ? 'border-[var(--success)]/30 scale-[1.02]' : ''}`}
                                 onMouseEnter={() => setActiveFeature(i)}
                             >
-                                <div className="w-14 h-14 rounded-xl bg-[#00ff41]/10 flex items-center justify-center text-[#00ff41] mb-5 group-hover:bg-[#00ff41]/20 transition-colors">
+                                <div className="w-14 h-14 rounded-xl bg-[var(--success)]/10 flex items-center justify-center text-[var(--success)] mb-5 group-hover:bg-[var(--success)]/20 transition-colors">
                                     {feature.icon}
                                 </div>
                                 <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                                <p className="text-gray-400 leading-relaxed">{feature.desc}</p>
+                                <p className="text-[var(--text-muted)] leading-relaxed">{feature.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -292,22 +292,22 @@ function LandingPage() {
 
             {/* How it works */}
             <section id="how-it-works" className="py-32 relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#00ff41]/[0.02] to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--success)]/[0.02] to-transparent" />
                 <div className="max-w-6xl mx-auto px-6 lg:px-8 relative z-10">
                     <h2 className="section-title">Как это работает</h2>
                     <p className="section-subtitle">3 шага до вирусного контента</p>
 
                     <div className="grid md:grid-cols-3 gap-8 relative">
                         {/* Connecting line */}
-                        <div className="hidden md:block absolute top-16 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-[#00ff41]/30 to-transparent" />
+                        <div className="hidden md:block absolute top-16 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-[var(--success)]/30 to-transparent" />
 
                         {steps.map((item, i) => (
                             <div key={i} className="text-center relative">
-                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#00ff41]/20 to-[#2563eb]/20 border border-[#00ff41]/20 flex items-center justify-center mx-auto mb-6 relative z-10">
-                                    <span className="text-2xl font-black text-[#00ff41]">{item.num}</span>
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--success)]/20 to-[#2563eb]/20 border border-[var(--success)]/20 flex items-center justify-center mx-auto mb-6 relative z-10">
+                                    <span className="text-2xl font-black text-[var(--success)]">{item.num}</span>
                                 </div>
                                 <h3 className="text-2xl font-bold mb-4">{item.title}</h3>
-                                <p className="text-gray-400 leading-relaxed max-w-sm mx-auto">{item.desc}</p>
+                                <p className="text-[var(--text-muted)] leading-relaxed max-w-sm mx-auto">{item.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -322,21 +322,21 @@ function LandingPage() {
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
                         {plans.map((plan, i) => (
-                            <div key={i} className={`relative glass rounded-2xl p-8 ${plan.popular ? 'border-[#00ff41]/40 scale-105 shadow-[0_0_40px_rgba(0,255,65,0.1)]' : ''}`}>
+                            <div key={i} className={`relative glass rounded-2xl p-8 ${plan.popular ? 'border-[var(--success)]/40 scale-105 shadow-[0_0_40px_rgba(0,255,65,0.1)]' : ''}`}>
                                 {plan.popular && (
-                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00ff41] to-[#00cc33] text-black text-xs font-bold px-4 py-1.5 rounded-full">
+                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[var(--success)] to-[#00cc33] text-[var(--text-inverse)] text-xs font-bold px-4 py-1.5 rounded-full">
                                         Популярный
                                     </div>
                                 )}
-                                <h3 className="text-lg font-semibold mb-2 text-gray-300">{plan.name}</h3>
+                                <h3 className="text-lg font-semibold mb-2 text-[var(--text)]">{plan.name}</h3>
                                 <div className="flex items-baseline gap-1 mb-8">
                                     <span className="text-4xl font-black">{plan.price}</span>
-                                    <span className="text-gray-500">{plan.period}</span>
+                                    <span className="text-[var(--text-muted)]">{plan.period}</span>
                                 </div>
                                 <ul className="space-y-4 mb-8">
                                     {plan.features.map((feature, j) => (
-                                        <li key={j} className="flex items-start gap-3 text-sm text-gray-300">
-                                            <svg className="w-5 h-5 text-[#00ff41] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <li key={j} className="flex items-start gap-3 text-sm text-[var(--text)]">
+                                            <svg className="w-5 h-5 text-[var(--success)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                             </svg>
                                             {feature}
@@ -358,13 +358,13 @@ function LandingPage() {
             {/* CTA Section */}
             <section className="py-32 relative">
                 <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-                    <div className="glass rounded-3xl p-12 md:p-16 border-[#00ff41]/10 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ff41]/5 rounded-full blur-3xl" />
+                    <div className="glass rounded-3xl p-12 md:p-16 border-[var(--success)]/10 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--success)]/5 rounded-full blur-3xl" />
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#2563eb]/5 rounded-full blur-3xl" />
 
                         <div className="relative z-10">
                             <h2 className="text-4xl md:text-5xl font-black mb-6">Готов к вирусному контенту?</h2>
-                            <p className="text-gray-400 text-lg mb-10 max-w-xl mx-auto">
+                            <p className="text-[var(--text-muted)] text-lg mb-10 max-w-xl mx-auto">
                                 Присоединяйся к 10,000+ создателей, которые уже используют AI Viral Studio для роста аудитории
                             </p>
                             <button
@@ -376,7 +376,7 @@ function LandingPage() {
                                 </svg>
                                 Начать бесплатно
                             </button>
-                            <p className="text-sm text-gray-500 mt-6">7 дней бесплатно, без карты • Отмена в любой момент</p>
+                            <p className="text-sm text-[var(--text-muted)] mt-6">7 дней бесплатно, без карты • Отмена в любой момент</p>
                         </div>
                     </div>
                 </div>
@@ -399,7 +399,7 @@ function LandingPage() {
                                 </p>
                                 <button
                                     onClick={() => setChatWidgetOpen(true)}
-                                    className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[var(--primary)] text-white font-medium hover:opacity-90 transition-opacity"
+                                    className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[var(--primary)] text-[var(--text)] font-medium hover:opacity-90 transition-opacity"
                                 >
                                     <MessageCircle className="w-5 h-5" />
                                     Обсудить размещение
@@ -417,7 +417,7 @@ function LandingPage() {
                         <div className="md:col-span-2">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center">
-                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-6 h-6 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                                     </svg>
                                 </div>

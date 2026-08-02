@@ -7,6 +7,7 @@ import '../../styles/animations.css'
 import { AppSidebar } from './AppSidebar'
 import { DashboardHeader } from './DashboardHeader'
 import { MobileNotificationDrawer } from './MobileNotificationDrawer'
+import { MobileBottomNav } from './MobileBottomNav'
 
 function useViewport() {
     const [viewport, setViewport] = useState({
@@ -52,6 +53,19 @@ export function DashboardShell({
     const [language, setLanguage] = useState(() => {
         return user?.preferences?.language || localStorage.getItem('app_language') || 'ru'
     })
+
+    // [P16] Swipe-to-close sidebar drawer on mobile
+    const touchStartX = useRef(0)
+    const handleSidebarTouchStart = (e) => {
+        touchStartX.current = e.touches?.[0]?.clientX ?? e.clientX
+    }
+    const handleSidebarTouchMove = (e) => {
+        if (!viewport.isMobile || !sidebarOpen) return
+        const currentX = e.touches?.[0]?.clientX ?? e.clientX
+        if (touchStartX.current - currentX > 80) {
+            setSidebarOpen(false)
+        }
+    }
 
     useEffect(() => {
         setSidebarOpen(false)
@@ -134,6 +148,8 @@ export function DashboardShell({
 
             {/* Sidebar */}
             <aside
+                onTouchStart={handleSidebarTouchStart}
+                onTouchMove={handleSidebarTouchMove}
                 className={`
                     fixed inset-y-0 left-0 z-50
                     transform transition-transform duration-300 ease-out
@@ -178,10 +194,15 @@ export function DashboardShell({
                     onNotificationsClick={() => setMobileNotifOpen(true)}
                 />
 
-                <div className={`${viewport.isMobile ? 'px-3 py-4' : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>
+                <div className={`${viewport.isMobile ? 'px-3 py-4 pb-24' : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>
                     {children}
                 </div>
             </main>
+
+            <MobileBottomNav
+                userRole={userRole}
+                onHaptic={() => navigator.vibrate?.(50)}
+            />
         </div>
     )
 }

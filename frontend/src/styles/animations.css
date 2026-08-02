@@ -144,3 +144,62 @@
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
+
+/* [P16] Float animation for decorative orbs */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+.animate-float { animation: float 6s ease-in-out infinite; }
+
+/* [P16] Shimmer overlay */
+.shimmer-overlay {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+/* [P16] Pulse glow (primary orb) */
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
+    50% { box-shadow: 0 0 20px 0 rgba(124, 58, 237, 0.2); }
+}
+.pulse-glow { animation: pulse-glow 2s infinite; }
+
+/* [P16] Magnetic button */
+.magnetic-btn {
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+/* [P16] Tilt card base */
+.tilt-card {
+    transform-style: preserve-3d;
+    transition: transform 0.1s ease-out;
+}
+
+/* [P16] Spotlight hover */
+.spotlight {
+    position: relative;
+    overflow: hidden;
+}
+.spotlight::before {
+    content: '';
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.15), transparent 70%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.4s ease;
+    pointer-events: none;
+}
+.spotlight:hover::before {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* [P16] Bounce dot for notifications */
+@keyframes bounce-dot {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-25%); }
+}
+.bounce-dot { animation: bounce-dot 1s infinite; }

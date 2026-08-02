@@ -153,11 +153,11 @@ function StaffDashboardPage() {
     // --- STATUS/PRIORITY STYLES ---
     const getStatusStyle = (status) => {
         switch (status) {
-            case 'open': return 'bg-red-500/10 text-red-400 border-red-500/20'
-            case 'in_progress': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-            case 'waiting': return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-            case 'closed': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-            default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+            case 'open': return 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'
+            case 'in_progress': return 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)] border-[var(--accent-warm)]/20'
+            case 'waiting': return 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20'
+            case 'closed': return 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20'
+            default: return 'bg-[var(--border-strong)] text-[var(--text-muted)] border-[var(--border)]'
         }
     }
 
@@ -183,10 +183,10 @@ function StaffDashboardPage() {
 
     const getPriorityStyle = (priority) => {
         switch (priority) {
-            case 'high': return 'text-red-400 bg-red-500/10 border-red-500/20'
-            case 'medium': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
-            case 'low': return 'text-blue-400 bg-blue-500/10 border-blue-500/20'
-            default: return 'text-gray-400 bg-gray-500/10 border-gray-500/20'
+            case 'high': return 'text-[var(--danger)] bg-[var(--danger)]/10 border-[var(--danger)]/20'
+            case 'medium': return 'text-[var(--accent-warm)] bg-[var(--accent-warm)]/10 border-[var(--accent-warm)]/20'
+            case 'low': return 'text-[var(--accent)] bg-[var(--accent)]/10 border-[var(--accent)]/20'
+            default: return 'text-[var(--text-muted)] bg-[var(--border-strong)] border-[var(--border)]'
         }
     }
 
@@ -200,9 +200,9 @@ function StaffDashboardPage() {
     }
 
     const ticketColumns = useMemo(() => [
-        { key: 'id', header: 'ID', width: '70px', cell: (t) => <span className="text-gray-400 text-sm">#{t.id}</span> },
-        { key: 'user', header: 'Пользователь', width: '1.5fr', cell: (t) => <span className="text-white text-sm">{t.user}</span> },
-        { key: 'subject', header: 'Тема', width: '2fr', cell: (t) => <span className="text-gray-300 text-sm">{t.subject}</span> },
+        { key: 'id', header: 'ID', width: '70px', cell: (t) => <span className="text-[var(--text-muted)] text-sm">#{t.id}</span> },
+        { key: 'user', header: 'Пользователь', width: '1.5fr', cell: (t) => <span className="text-[var(--text)] text-sm">{t.user}</span> },
+        { key: 'subject', header: 'Тема', width: '2fr', cell: (t) => <span className="text-[var(--text)] text-sm">{t.subject}</span> },
         {
             key: 'priority',
             header: 'Приоритет',
@@ -213,9 +213,9 @@ function StaffDashboardPage() {
                     onChange={e => changePriority(t.id, e.target.value)}
                     className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getPriorityStyle(t.priority)}`}
                 >
-                    <option value="high" className="bg-[#1a1a24]">Высокий</option>
-                    <option value="medium" className="bg-[#1a1a24]">Средний</option>
-                    <option value="low" className="bg-[#1a1a24]">Низкий</option>
+                    <option value="high" className="bg-[var(--card)]">Высокий</option>
+                    <option value="medium" className="bg-[var(--card)]">Средний</option>
+                    <option value="low" className="bg-[var(--card)]">Низкий</option>
                 </select>
             ),
         },
@@ -229,15 +229,15 @@ function StaffDashboardPage() {
                     onChange={e => changeStatus(t.id, e.target.value)}
                     className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getStatusStyle(t.status)}`}
                 >
-                    <option value="open" className="bg-[#1a1a24]">Открыт</option>
-                    <option value="in_progress" className="bg-[#1a1a24]">В работе</option>
-                    <option value="waiting" className="bg-[#1a1a24]">Ожидает ответа</option>
-                    <option value="closed" className="bg-[#1a1a24]">Закрыт</option>
+                    <option value="open" className="bg-[var(--card)]">Открыт</option>
+                    <option value="in_progress" className="bg-[var(--card)]">В работе</option>
+                    <option value="waiting" className="bg-[var(--card)]">Ожидает ответа</option>
+                    <option value="closed" className="bg-[var(--card)]">Закрыт</option>
                 </select>
             ),
         },
-        { key: 'assignedTo', header: 'Назначен', width: '110px', cell: (t) => <span className="text-gray-300 text-xs">{t.assignedTo ? t.assignedTo.split('@')[0] : '—'}</span> },
-        { key: 'time', header: 'Время', width: '100px', cell: (t) => <span className="text-gray-500 text-sm">{t.time}</span> },
+        { key: 'assignedTo', header: 'Назначен', width: '110px', cell: (t) => <span className="text-[var(--text)] text-xs">{t.assignedTo ? t.assignedTo.split('@')[0] : '—'}</span> },
+        { key: 'time', header: 'Время', width: '100px', cell: (t) => <span className="text-[var(--text-muted)] text-sm">{t.time}</span> },
         {
             key: 'actions',
             header: 'Действие',
@@ -246,7 +246,7 @@ function StaffDashboardPage() {
             cell: (t) => (
                 <button
                     onClick={() => { setSelectedTicket(t); setReplyText(''); setShowTicketModal(true) }}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg bg-[var(--success)]/10 text-[var(--success)] text-xs font-medium hover:bg-[var(--success)]/20 transition-colors flex items-center gap-1"
                 >
                     <ArrowUpRight size={12} /> Открыть
                 </button>
@@ -369,10 +369,10 @@ function StaffDashboardPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f] text-white p-4 md:p-6">
+        <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] p-4 md:p-6">
             {/* Toast */}
             {toast && (
-                <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl flex items-center gap-2 shadow-lg transition-all ${toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-emerald-500/90 text-black'
+                <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl flex items-center gap-2 shadow-lg transition-all ${toast.type === 'error' ? 'bg-[var(--danger)]/90 text-[var(--text)]' : 'bg-[var(--success)]/90 text-[var(--text-inverse)]'
                     }`}>
                     {toast.type === 'error' ? <AlertCircle size={18} /> : <Check size={18} />}
                     <span className="font-medium">{toast.message}</span>
@@ -382,13 +382,13 @@ function StaffDashboardPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div className="flex items-center gap-3">
-                    <Headphones size={28} className="text-blue-400" />
+                    <Headphones size={28} className="text-[var(--accent)]" />
                     <div>
                         <h1 className="text-3xl font-bold">Staff Panel</h1>
-                        <p className="text-gray-400 text-sm">Поддержка пользователей и модерация</p>
+                        <p className="text-[var(--text-muted)] text-sm">Поддержка пользователей и модерация</p>
                     </div>
                 </div>
-                <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400 text-sm font-semibold border border-blue-500/20">
+                <span className="px-4 py-2 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] text-sm font-semibold border border-[var(--accent)]/20">
                     {user?.name || 'Staff'}
                 </span>
             </div>
@@ -396,27 +396,27 @@ function StaffDashboardPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
                 {[
-                    { label: 'Открытых тикетов', value: stats.openTickets, icon: TicketCheck, color: 'text-red-400', bg: 'bg-red-500/10' },
-                    { label: 'Решено сегодня', value: stats.resolvedToday, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-                    { label: 'Среднее время', value: stats.avgResponse, icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-                    { label: 'Удовлетворённость', value: `${stats.satisfaction}%`, icon: Star, color: 'text-purple-400', bg: 'bg-purple-500/10' }
+                    { label: 'Открытых тикетов', value: stats.openTickets, icon: TicketCheck, color: 'text-[var(--danger)]', bg: 'bg-[var(--danger)]/10' },
+                    { label: 'Решено сегодня', value: stats.resolvedToday, icon: CheckCircle2, color: 'text-[var(--success)]', bg: 'bg-[var(--success)]/10' },
+                    { label: 'Среднее время', value: stats.avgResponse, icon: Clock, color: 'text-[var(--accent-warm)]', bg: 'bg-[var(--accent-warm)]/10' },
+                    { label: 'Удовлетворённость', value: `${stats.satisfaction}%`, icon: Star, color: 'text-[var(--primary)]', bg: 'bg-[var(--primary)]/10' }
                 ].map((stat, i) => {
                     const Icon = stat.icon
                     return (
-                        <div key={i} className={`${stat.bg} border border-white/10 rounded-2xl p-5 hover:border-white/20 transition-all`}>
+                        <div key={i} className={`${stat.bg} border border-[var(--border-strong)] rounded-2xl p-5 hover:border-[var(--border-strong)] transition-all`}>
                             <Icon size={22} className={`mb-2 ${stat.color}`} />
                             <p className="text-2xl font-bold">{stat.value}</p>
-                            <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
+                            <p className="text-xs text-[var(--text-muted)] mt-1">{stat.label}</p>
                         </div>
                     )
                 })}
             </div>
 
             {/* Tickets Table */}
-            <div className="bg-[#1a1a24] border border-white/10 rounded-2xl overflow-hidden mb-8">
-                <div className="p-5 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="bg-[var(--card)] border border-[var(--border-strong)] rounded-2xl overflow-hidden mb-8">
+                <div className="p-5 border-b border-[var(--border-strong)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <MessageSquare size={18} className="text-blue-400" /> Тикеты поддержки
+                        <MessageSquare size={18} className="text-[var(--accent)]" /> Тикеты поддержки
                     </h2>
                     <div className="flex flex-wrap items-center gap-2">
                         {[
@@ -431,42 +431,42 @@ function StaffDashboardPage() {
                                 key={filter.id}
                                 onClick={() => setActiveFilter(filter.id)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeFilter === filter.id
-                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                    : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-transparent'
+                                    ? 'bg-[var(--success)]/20 text-[var(--success)] border border-[var(--success)]/30'
+                                    : 'bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--border-strong)] border border-transparent'
                                     }`}
                             >
                                 {filter.label}
                             </button>
                         ))}
-                        <div className="h-5 w-px bg-white/10 mx-1" />
+                        <div className="h-5 w-px bg-[var(--border-strong)] mx-1" />
                         <button
                             onClick={() => setViewMode('table')}
-                            className={`p-1.5 rounded-lg text-xs transition-colors ${viewMode === 'table' ? 'bg-emerald-500/10 text-emerald-400' : 'text-gray-400 hover:text-white'}`}
+                            className={`p-1.5 rounded-lg text-xs transition-colors ${viewMode === 'table' ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
                             title="Таблица"
                         >
                             <List size={16} />
                         </button>
                         <button
                             onClick={() => setViewMode('kanban')}
-                            className={`p-1.5 rounded-lg text-xs transition-colors ${viewMode === 'kanban' ? 'bg-emerald-500/10 text-emerald-400' : 'text-gray-400 hover:text-white'}`}
+                            className={`p-1.5 rounded-lg text-xs transition-colors ${viewMode === 'kanban' ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
                             title="Kanban"
                         >
                             <Layout size={16} />
                         </button>
                     </div>
                 </div>
-                <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row items-center gap-3">
+                <div className="p-4 border-b border-[var(--border)] flex flex-col sm:flex-row items-center gap-3">
                     <div className="relative flex-1 max-w-md">
-                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             type="text"
                             placeholder="Поиск по тикетам..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#252530] border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500/30"
+                            className="w-full pl-9 pr-4 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm focus:outline-none focus:border-[var(--success)]/30"
                         />
                     </div>
-                    <p className="text-xs text-gray-500">{filteredTickets.length} тикетов</p>
+                    <p className="text-xs text-[var(--text-muted)]">{filteredTickets.length} тикетов</p>
                 </div>
 
                 {viewMode === 'table' && (
@@ -478,7 +478,7 @@ function StaffDashboardPage() {
                             maxHeight={500}
                             keyExtractor={(t) => t.id}
                             emptyMessage={
-                                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
                                     <Search size={32} className="mb-3 opacity-50" />
                                     <p>Тикеты не найдены</p>
                                 </div>
@@ -491,30 +491,30 @@ function StaffDashboardPage() {
                     <div className="p-4 overflow-x-auto">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 min-w-[600px]">
                             {[
-                                { id: 'open', label: 'Открытые', color: 'border-red-500/20' },
-                                { id: 'in_progress', label: 'В работе', color: 'border-yellow-500/20' },
-                                { id: 'waiting', label: 'Ожидают', color: 'border-blue-500/20' },
-                                { id: 'closed', label: 'Закрытые', color: 'border-emerald-500/20' },
+                                { id: 'open', label: 'Открытые', color: 'border-[var(--danger)]/20' },
+                                { id: 'in_progress', label: 'В работе', color: 'border-[var(--accent-warm)]/20' },
+                                { id: 'waiting', label: 'Ожидают', color: 'border-[var(--accent)]/20' },
+                                { id: 'closed', label: 'Закрытые', color: 'border-[var(--success)]/20' },
                             ].map(col => (
-                                <div key={col.id} className={`bg-[#0f0f1a]/50 rounded-xl border ${col.color} flex flex-col max-h-[500px]`}>
-                                    <div className="p-3 border-b border-white/5 flex items-center justify-between">
-                                        <span className="text-sm font-medium text-white">{col.label}</span>
-                                        <span className="text-xs text-gray-500">{filteredTickets.filter(t => t.status === col.id).length}</span>
+                                <div key={col.id} className={`glass-card ${col.color} flex flex-col max-h-[500px]`}>
+                                    <div className="p-3 border-b border-[var(--border)] flex items-center justify-between">
+                                        <span className="text-sm font-medium text-[var(--text)]">{col.label}</span>
+                                        <span className="text-xs text-[var(--text-muted)]">{filteredTickets.filter(t => t.status === col.id).length}</span>
                                     </div>
                                     <div className="flex-1 overflow-y-auto p-2 space-y-2">
                                         {filteredTickets.filter(t => t.status === col.id).map(ticket => (
                                             <button
                                                 key={ticket.id}
                                                 onClick={() => openTicket(ticket)}
-                                                className="w-full text-left bg-[#1a1a24] rounded-lg p-3 border border-white/5 hover:border-white/10 transition-colors"
+                                                className="w-full text-left bg-[var(--card)] rounded-lg p-3 border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all duration-200 hover:-translate-y-0.5 tilt-card"
                                             >
-                                                <p className="text-sm font-medium text-white mb-1">{ticket.subject}</p>
-                                                <p className="text-xs text-gray-500 mb-2">{ticket.user}</p>
+                                                <p className="text-sm font-medium text-[var(--text)] mb-1">{ticket.subject}</p>
+                                                <p className="text-xs text-[var(--text-muted)] mb-2">{ticket.user}</p>
                                                 <div className="flex items-center gap-2">
                                                     <span className={`px-1.5 py-0.5 rounded text-[10px] border ${getPriorityStyle(ticket.priority)}`}>
                                                         {getPriorityLabel(ticket.priority)}
                                                     </span>
-                                                    <span className="text-[10px] text-gray-500">{ticket.time}</span>
+                                                    <span className="text-[10px] text-[var(--text-muted)]">{ticket.time}</span>
                                                 </div>
                                             </button>
                                         ))}
@@ -529,9 +529,9 @@ function StaffDashboardPage() {
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                    { label: 'Модерация контента', icon: Shield, desc: '5 жалоб на рассмотрении', color: 'from-red-500/20 to-red-600/10', border: 'border-red-500/20', onClick: () => setShowModerationModal(true) },
-                    { label: 'База знаний', icon: BookOpen, desc: 'Ответы на частые вопросы', color: 'from-blue-500/20 to-blue-600/10', border: 'border-blue-500/20', onClick: () => setShowKnowledgeModal(true) },
-                    { label: 'Эскалация', icon: Zap, desc: 'Передать администратору', color: 'from-yellow-500/20 to-yellow-600/10', border: 'border-yellow-500/20', onClick: () => setShowEscalationModal(true) }
+                    { label: 'Модерация контента', icon: Shield, desc: '5 жалоб на рассмотрении', color: 'from-red-500/20 to-red-600/10', border: 'border-[var(--danger)]/20', onClick: () => setShowModerationModal(true) },
+                    { label: 'База знаний', icon: BookOpen, desc: 'Ответы на частые вопросы', color: 'from-blue-500/20 to-blue-600/10', border: 'border-[var(--accent)]/20', onClick: () => setShowKnowledgeModal(true) },
+                    { label: 'Эскалация', icon: Zap, desc: 'Передать администратору', color: 'from-yellow-500/20 to-yellow-600/10', border: 'border-[var(--accent-warm)]/20', onClick: () => setShowEscalationModal(true) }
                 ].map((action, i) => {
                     const Icon = action.icon
                     return (
@@ -540,9 +540,9 @@ function StaffDashboardPage() {
                             onClick={action.onClick}
                             className={`group relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br ${action.color} border ${action.border} hover:border-white/30 transition-all hover:scale-[1.02] text-left`}
                         >
-                            <Icon size={28} className="mb-3 text-white/80" />
-                            <h3 className="text-white font-semibold mb-1">{action.label}</h3>
-                            <p className="text-gray-400 text-sm">{action.desc}</p>
+                            <Icon size={28} className="mb-3 text-[var(--text)]/80" />
+                            <h3 className="text-[var(--text)] font-semibold mb-1">{action.label}</h3>
+                            <p className="text-[var(--text-muted)] text-sm">{action.desc}</p>
                         </button>
                     )
                 })}
@@ -553,13 +553,13 @@ function StaffDashboardPage() {
             {/* Ticket Detail Modal */}
             {showTicketModal && selectedTicket && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[85vh] flex flex-col">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-2xl max-h-[85vh] flex flex-col">
                         {/* Header */}
-                        <div className="p-5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+                        <div className="p-5 border-b border-[var(--border-strong)] flex items-center justify-between flex-shrink-0">
                             <div className="flex items-center gap-3 flex-wrap">
                                 <div>
                                     <h2 className="text-lg font-bold">Тикет #{selectedTicket.id}</h2>
-                                    <p className="text-sm text-gray-400">{selectedTicket.subject}</p>
+                                    <p className="text-sm text-[var(--text-muted)]">{selectedTicket.subject}</p>
                                 </div>
                                 <span className={`px-2 py-0.5 rounded-full text-xs border ${getStatusStyle(selectedTicket.status)}`}>
                                     {getStatusLabel(selectedTicket.status)}
@@ -569,28 +569,28 @@ function StaffDashboardPage() {
                                 <select
                                     value={selectedTicket.status}
                                     onChange={e => setTicketStatus(e.target.value)}
-                                    className={`px-2 py-1 rounded-lg text-xs border bg-[#252530] outline-none ${getStatusStyle(selectedTicket.status)}`}
+                                    className={`px-2 py-1 rounded-lg text-xs border bg-[var(--surface)] outline-none ${getStatusStyle(selectedTicket.status)}`}
                                 >
-                                    <option value="open" className="bg-[#1a1a24]">Открыт</option>
-                                    <option value="in_progress" className="bg-[#1a1a24]">В работе</option>
-                                    <option value="waiting" className="bg-[#1a1a24]">Ожидает ответа</option>
-                                    <option value="closed" className="bg-[#1a1a24]">Закрыт</option>
+                                    <option value="open" className="bg-[var(--card)]">Открыт</option>
+                                    <option value="in_progress" className="bg-[var(--card)]">В работе</option>
+                                    <option value="waiting" className="bg-[var(--card)]">Ожидает ответа</option>
+                                    <option value="closed" className="bg-[var(--card)]">Закрыт</option>
                                 </select>
                                 <select
                                     value={selectedTicket.priority}
                                     onChange={e => setTicketPriority(e.target.value)}
-                                    className={`px-2 py-1 rounded-lg text-xs border bg-[#252530] outline-none ${getPriorityStyle(selectedTicket.priority)}`}
+                                    className={`px-2 py-1 rounded-lg text-xs border bg-[var(--surface)] outline-none ${getPriorityStyle(selectedTicket.priority)}`}
                                 >
-                                    <option value="high" className="bg-[#1a1a24]">Высокий</option>
-                                    <option value="medium" className="bg-[#1a1a24]">Средний</option>
-                                    <option value="low" className="bg-[#1a1a24]">Низкий</option>
+                                    <option value="high" className="bg-[var(--card)]">Высокий</option>
+                                    <option value="medium" className="bg-[var(--card)]">Средний</option>
+                                    <option value="low" className="bg-[var(--card)]">Низкий</option>
                                 </select>
-                                <button onClick={() => setShowTicketModal(false)} className="text-gray-400 hover:text-white ml-1"><X size={20} /></button>
+                                <button onClick={() => setShowTicketModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text)] ml-1"><X size={20} /></button>
                             </div>
                         </div>
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                            <div className="flex items-center gap-2 text-sm text-gray-400 mb-4 pb-3 border-b border-white/5">
+                            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)] mb-4 pb-3 border-b border-[var(--border)]">
                                 <User size={14} />
                                 <span>{selectedTicket.user}</span>
                                 <span className="mx-2">•</span>
@@ -599,29 +599,29 @@ function StaffDashboardPage() {
                                 {selectedTicket.assignedTo && (
                                     <>
                                         <span className="mx-2">•</span>
-                                        <span className="text-emerald-400">Назначен: {selectedTicket.assignedTo}</span>
+                                        <span className="text-[var(--success)]">Назначен: {selectedTicket.assignedTo}</span>
                                     </>
                                 )}
                             </div>
                             {selectedTicket.messages.map((msg, i) => (
                                 <div key={i} className={`flex gap-3 ${msg.from === 'staff' ? 'flex-row-reverse' : ''}`}>
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${msg.from === 'staff' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${msg.from === 'staff' ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'bg-[var(--accent)]/20 text-[var(--accent)]'
                                         }`}>
                                         {msg.from === 'staff' ? 'S' : 'U'}
                                     </div>
                                     <div className={`max-w-[70%] p-3 rounded-2xl text-sm ${msg.from === 'staff'
-                                        ? 'bg-emerald-500/10 text-white rounded-tr-sm'
-                                        : 'bg-[#252530] text-gray-300 rounded-tl-sm'
+                                        ? 'bg-[var(--success)]/10 text-[var(--text)] rounded-tr-sm'
+                                        : 'bg-[var(--surface)] text-[var(--text)] rounded-tl-sm'
                                         }`}>
                                         <p>{msg.text}</p>
-                                        <p className={`text-xs mt-1 ${msg.from === 'staff' ? 'text-emerald-400/60' : 'text-gray-500'}`}>{msg.time}</p>
+                                        <p className={`text-xs mt-1 ${msg.from === 'staff' ? 'text-[var(--success)]/60' : 'text-[var(--text-muted)]'}`}>{msg.time}</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
                         {/* Reply */}
                         {selectedTicket.status !== 'closed' && (
-                            <div className="p-5 border-t border-white/10 flex-shrink-0">
+                            <div className="p-5 border-t border-[var(--border-strong)] flex-shrink-0">
                                 <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
                                     {[
                                         { label: 'Приветствие', text: 'Здравствуйте! Спасибо за обращение. Я разбираюсь в вашем вопросе и скоро вернусь с ответом.' },
@@ -631,7 +631,7 @@ function StaffDashboardPage() {
                                         <button
                                             key={q.label}
                                             onClick={() => insertQuickReply(q.text)}
-                                            className="px-2 py-1 rounded-lg bg-white/5 text-gray-400 text-xs hover:bg-white/10 hover:text-white transition-colors whitespace-nowrap"
+                                            className="px-2 py-1 rounded-lg bg-[var(--surface)] text-[var(--text-muted)] text-xs hover:bg-[var(--border-strong)] hover:text-[var(--text)] transition-colors whitespace-nowrap"
                                         >
                                             {q.label}
                                         </button>
@@ -644,12 +644,12 @@ function StaffDashboardPage() {
                                         onChange={e => setReplyText(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && sendReply()}
                                         placeholder="Напишите ответ..."
-                                        className="flex-1 px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-sm"
+                                        className="flex-1 px-4 py-2.5 bg-[var(--surface)] rounded-lg border border-[var(--border-strong)] focus:border-[var(--success)] outline-none text-sm"
                                     />
                                     <button
                                         onClick={sendReply}
                                         disabled={!replyText.trim()}
-                                        className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-600 text-black rounded-lg transition-all flex items-center gap-2"
+                                        className="px-4 py-2.5 bg-[var(--success)] hover:bg-[var(--success)]/80 disabled:bg-[var(--text-muted)] text-[var(--text-inverse)] rounded-lg transition-all flex items-center gap-2"
                                     >
                                         <Send size={16} />
                                     </button>
@@ -657,20 +657,20 @@ function StaffDashboardPage() {
                             </div>
                         )}
                         {/* Actions */}
-                        <div className="p-5 border-t border-white/10 flex gap-2 flex-shrink-0">
+                        <div className="p-5 border-t border-[var(--border-strong)] flex gap-2 flex-shrink-0">
                             {selectedTicket.status !== 'closed' ? (
-                                <button onClick={closeTicket} className="flex-1 px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                                <button onClick={closeTicket} className="flex-1 px-4 py-2 bg-[var(--success)]/10 text-[var(--success)] rounded-lg hover:bg-[var(--success)]/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                                     <CheckCircle2 size={14} /> Закрыть тикет
                                 </button>
                             ) : (
-                                <button onClick={reopenTicket} className="flex-1 px-4 py-2 bg-yellow-500/10 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                                <button onClick={reopenTicket} className="flex-1 px-4 py-2 bg-[var(--accent-warm)]/10 text-[var(--accent-warm)] rounded-lg hover:bg-[var(--accent-warm)]/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                                     <Unlock size={14} /> Открыть заново
                                 </button>
                             )}
-                            <button onClick={assignSelectedToMe} className="flex-1 px-4 py-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                            <button onClick={assignSelectedToMe} className="flex-1 px-4 py-2 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                                 <User size={14} /> Назначить на меня
                             </button>
-                            <button onClick={() => { setShowTicketModal(false); setShowEscalationModal(true) }} className="flex-1 px-4 py-2 bg-yellow-500/10 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                            <button onClick={() => { setShowTicketModal(false); setShowEscalationModal(true) }} className="flex-1 px-4 py-2 bg-[var(--accent-warm)]/10 text-[var(--accent-warm)] rounded-lg hover:bg-[var(--accent-warm)]/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                                 <Zap size={14} /> Эскалировать
                             </button>
                         </div>
@@ -681,38 +681,38 @@ function StaffDashboardPage() {
             {/* Moderation Modal */}
             {showModerationModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-2xl max-h-[80vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold flex items-center gap-2"><Shield size={20} className="text-red-400" /> Модерация контента</h2>
-                                <button onClick={() => setShowModerationModal(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                                <h2 className="text-xl font-bold flex items-center gap-2"><Shield size={20} className="text-[var(--danger)]" /> Модерация контента</h2>
+                                <button onClick={() => setShowModerationModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text)]"><X size={20} /></button>
                             </div>
                             <div className="space-y-3">
                                 {reports.map(report => (
-                                    <div key={report.id} className="bg-[#252530] rounded-xl p-4 border border-white/5">
+                                    <div key={report.id} className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)]">
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <span className="text-sm font-medium">{report.user}</span>
-                                                    <span className="text-xs text-gray-500">{report.platform}</span>
-                                                    <span className={`text-xs px-1.5 py-0.5 rounded ${report.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                                    <span className="text-xs text-[var(--text-muted)]">{report.platform}</span>
+                                                    <span className={`text-xs px-1.5 py-0.5 rounded ${report.status === 'pending' ? 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]' : 'bg-[var(--success)]/10 text-[var(--success)]'}`}>
                                                         {report.status === 'pending' ? 'На рассмотрении' : 'Рассмотрено'}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm text-gray-400">{report.content}</p>
-                                                <p className="text-xs text-gray-500 mt-1">{report.date}</p>
+                                                <p className="text-sm text-[var(--text-muted)]">{report.content}</p>
+                                                <p className="text-xs text-[var(--text-muted)] mt-1">{report.date}</p>
                                             </div>
                                             <div className="flex gap-1 flex-shrink-0">
-                                                <button onClick={() => handleReportAction(report.id, 'warn')} className="px-2 py-1 rounded bg-yellow-500/10 text-yellow-400 text-xs hover:bg-yellow-500/20">Предупр.</button>
-                                                <button onClick={() => handleReportAction(report.id, 'ban')} className="px-2 py-1 rounded bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20">Блок</button>
-                                                <button onClick={() => handleReportAction(report.id, 'dismiss')} className="px-2 py-1 rounded bg-gray-500/10 text-gray-400 text-xs hover:bg-gray-500/20">Отклонить</button>
+                                                <button onClick={() => handleReportAction(report.id, 'warn')} className="px-2 py-1 rounded bg-[var(--accent-warm)]/10 text-[var(--accent-warm)] text-xs hover:bg-[var(--accent-warm)]/20">Предупр.</button>
+                                                <button onClick={() => handleReportAction(report.id, 'ban')} className="px-2 py-1 rounded bg-[var(--danger)]/10 text-[var(--danger)] text-xs hover:bg-[var(--danger)]/20">Блок</button>
+                                                <button onClick={() => handleReportAction(report.id, 'dismiss')} className="px-2 py-1 rounded bg-[var(--border-strong)] text-[var(--text-muted)] text-xs hover:bg-gray-500/20">Отклонить</button>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
                                 {reports.length === 0 && (
-                                    <div className="text-center text-gray-500 py-8">
-                                        <CheckCircle2 size={32} className="mx-auto mb-3 text-emerald-400" />
+                                    <div className="text-center text-[var(--text-muted)] py-8">
+                                        <CheckCircle2 size={32} className="mx-auto mb-3 text-[var(--success)]" />
                                         <p>Все жалобы обработаны!</p>
                                     </div>
                                 )}
@@ -725,20 +725,20 @@ function StaffDashboardPage() {
             {/* Knowledge Base Modal */}
             {showKnowledgeModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[80vh] flex flex-col">
-                        <div className="p-6 border-b border-white/10 flex-shrink-0">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-2xl max-h-[80vh] flex flex-col">
+                        <div className="p-6 border-b border-[var(--border-strong)] flex-shrink-0">
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-bold flex items-center gap-2"><BookOpen size={20} className="text-blue-400" /> База знаний</h2>
-                                <button onClick={() => setShowKnowledgeModal(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                                <h2 className="text-xl font-bold flex items-center gap-2"><BookOpen size={20} className="text-[var(--accent)]" /> База знаний</h2>
+                                <button onClick={() => setShowKnowledgeModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text)]"><X size={20} /></button>
                             </div>
                             <div className="relative mb-4">
-                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                                 <input
                                     type="text"
                                     placeholder="Поиск по базе знаний..."
                                     value={kbSearch}
                                     onChange={e => setKbSearch(e.target.value)}
-                                    className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#252530] border border-white/10 focus:border-emerald-500 outline-none text-sm"
+                                    className="w-full pl-9 pr-4 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] focus:border-[var(--success)] outline-none text-sm"
                                 />
                             </div>
                             <div className="flex gap-2 flex-wrap">
@@ -749,8 +749,8 @@ function StaffDashboardPage() {
                                             key={cat.id}
                                             onClick={() => setKbCategory(cat.id)}
                                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${kbCategory === cat.id
-                                                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                                : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-transparent'
+                                                ? 'bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)]/30'
+                                                : 'bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--border-strong)] border border-transparent'
                                                 }`}
                                         >
                                             <Icon size={12} /> {cat.label}
@@ -762,18 +762,18 @@ function StaffDashboardPage() {
                         <div className="flex-1 overflow-y-auto p-6">
                             <div className="space-y-3">
                                 {filteredKb.map(article => (
-                                    <div key={article.id} className="bg-[#252530] rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors">
+                                    <div key={article.id} className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors">
                                         <div className="flex items-center justify-between mb-2">
                                             <h3 className="font-medium text-sm">{article.title}</h3>
-                                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                                            <span className="text-xs text-[var(--text-muted)] flex items-center gap-1">
                                                 <Eye size={12} /> {article.views}
                                             </span>
                                         </div>
-                                        <p className="text-sm text-gray-400">{article.content}</p>
+                                        <p className="text-sm text-[var(--text-muted)]">{article.content}</p>
                                     </div>
                                 ))}
                                 {filteredKb.length === 0 && (
-                                    <div className="text-center text-gray-500 py-8">
+                                    <div className="text-center text-[var(--text-muted)] py-8">
                                         <Search size={32} className="mx-auto mb-3 opacity-50" />
                                         <p>Статьи не найдены</p>
                                     </div>
@@ -787,16 +787,16 @@ function StaffDashboardPage() {
             {/* Escalation Modal */}
             {showEscalationModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-md">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold flex items-center gap-2"><Zap size={20} className="text-yellow-400" /> Эскалация</h2>
-                                <button onClick={() => setShowEscalationModal(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                                <h2 className="text-xl font-bold flex items-center gap-2"><Zap size={20} className="text-[var(--accent-warm)]" /> Эскалация</h2>
+                                <button onClick={() => setShowEscalationModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text)]"><X size={20} /></button>
                             </div>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-sm text-gray-400 mb-1 block">Причина эскалации</label>
-                                    <select value={escalationForm.reason} onChange={e => setEscalationForm({ ...escalationForm, reason: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none">
+                                    <label className="text-sm text-[var(--text-muted)] mb-1 block">Причина эскалации</label>
+                                    <select value={escalationForm.reason} onChange={e => setEscalationForm({ ...escalationForm, reason: e.target.value })} className="w-full px-4 py-2 bg-[var(--surface)] rounded-lg border border-[var(--border-strong)] focus:border-[var(--success)] outline-none">
                                         <option value="">Выберите причину...</option>
                                         <option value="technical">Техническая проблема</option>
                                         <option value="payment">Проблема с оплатой</option>
@@ -806,8 +806,8 @@ function StaffDashboardPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-sm text-gray-400 mb-1 block">Приоритет</label>
-                                    <select value={escalationForm.priority} onChange={e => setEscalationForm({ ...escalationForm, priority: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none">
+                                    <label className="text-sm text-[var(--text-muted)] mb-1 block">Приоритет</label>
+                                    <select value={escalationForm.priority} onChange={e => setEscalationForm({ ...escalationForm, priority: e.target.value })} className="w-full px-4 py-2 bg-[var(--surface)] rounded-lg border border-[var(--border-strong)] focus:border-[var(--success)] outline-none">
                                         <option value="low">Низкий</option>
                                         <option value="medium">Средний</option>
                                         <option value="high">Высокий</option>
@@ -815,13 +815,13 @@ function StaffDashboardPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-sm text-gray-400 mb-1 block">Примечания</label>
-                                    <textarea value={escalationForm.notes} onChange={e => setEscalationForm({ ...escalationForm, notes: e.target.value })} placeholder="Дополнительная информация..." rows={3} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none resize-none text-sm" />
+                                    <label className="text-sm text-[var(--text-muted)] mb-1 block">Примечания</label>
+                                    <textarea value={escalationForm.notes} onChange={e => setEscalationForm({ ...escalationForm, notes: e.target.value })} placeholder="Дополнительная информация..." rows={3} className="w-full px-4 py-2 bg-[var(--surface)] rounded-lg border border-[var(--border-strong)] focus:border-[var(--success)] outline-none resize-none text-sm" />
                                 </div>
                             </div>
                             <div className="flex gap-3 mt-6">
-                                <button onClick={() => setShowEscalationModal(false)} className="flex-1 px-4 py-2 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors">Отмена</button>
-                                <button onClick={handleEscalation} disabled={!escalationForm.reason} className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 text-black font-medium rounded-lg transition-all">Передать админу</button>
+                                <button onClick={() => setShowEscalationModal(false)} className="flex-1 px-4 py-2 bg-[var(--surface)] rounded-lg hover:bg-[var(--card-hover)] transition-colors">Отмена</button>
+                                <button onClick={handleEscalation} disabled={!escalationForm.reason} className="flex-1 px-4 py-2 bg-[var(--accent-warm)] hover:bg-[var(--accent-warm)]/80 disabled:bg-[var(--text-muted)] text-[var(--text-inverse)] font-medium rounded-lg transition-all">Передать админу</button>
                             </div>
                         </div>
                     </div>

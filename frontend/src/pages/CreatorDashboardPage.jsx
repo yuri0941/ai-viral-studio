@@ -11,7 +11,7 @@ import {
     ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell
 } from 'recharts'
 
-const COLORS = ['#00ff41', '#3b82f6', '#a855f7', '#f59e0b', '#ef4444']
+const COLORS = ['var(--success)', 'var(--accent)', 'var(--primary)', 'var(--accent-warm)', 'var(--danger)']
 
 const VIRALITY_WEEK = [
     { day: 'Пн', views: 12400, engagement: 4.2 },
@@ -110,39 +110,40 @@ function formatNumber(n) {
 
 function PlatformIcon({ platform }) {
     switch (platform) {
-        case 'youtube': return <Youtube size={16} className="text-red-500" />
-        case 'tiktok': return <Music2 size={16} className="text-cyan-400" />
-        case 'instagram': return <Instagram size={16} className="text-pink-500" />
-        case 'telegram': return <MessageCircle size={16} className="text-sky-400" />
-        default: return <Video size={16} className="text-gray-400" />
+        case 'youtube': return <Youtube size={16} className="text-[var(--danger)]" />
+        case 'tiktok': return <Music2 size={16} className="text-[var(--accent)]" />
+        case 'instagram': return <Instagram size={16} className="text-[var(--primary)]" />
+        case 'telegram': return <MessageCircle size={16} className="text-[var(--accent)]" />
+        default: return <Video size={16} className="text-[var(--text-muted)]" />
     }
 }
 
 function StatusBadge({ status }) {
     const styles = {
-        viral: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
-        trending: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
-        stable: 'bg-white/5 text-gray-400 border-white/10'
+        viral: 'bg-[var(--success)]/15 text-[var(--success)] border-[var(--success)]/20',
+        trending: 'bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/20',
+        stable: 'bg-[var(--surface)] text-[var(--text-muted)] border-[var(--border-strong)]'
     }
     const labels = { viral: 'Вирусный', trending: 'В тренде', stable: 'Стабильно' }
     return (
-        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${styles[status] || styles.stable}`}>
+        <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${styles[status] || styles.stable}`}>
+            {status === 'viral' && <Flame size={10} className="animate-pulse" />}
             {labels[status] || status}
         </span>
     )
 }
 
-function StatCard({ label, value, sub, icon: Icon, color }) {
+function StatCard({ label, value, sub, icon: Icon, iconBg = 'bg-[var(--primary-soft)]', iconColor = 'text-[var(--primary)]' }) {
     return (
-        <div className="bg-[#0f0f1a] border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors">
+        <div className="glass-card p-5 hover:-translate-y-0.5 transition-transform">
             <div className="flex items-center justify-between mb-3">
-                <div className={`p-2.5 rounded-xl bg-${color}-500/10`}>
-                    <Icon size={20} className={`text-${color}-400`} />
+                <div className={`p-2.5 rounded-xl ${iconBg}`}>
+                    <Icon size={20} className={iconColor} />
                 </div>
-                {sub && <span className="text-xs text-emerald-400">{sub}</span>}
+                {sub && <span className="text-xs text-[var(--success)]">{sub}</span>}
             </div>
-            <p className="text-2xl font-bold text-white">{value}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{label}</p>
+            <p className="text-3xl font-medium font-mono text-[var(--text)]">{value}</p>
+            <p className="text-xs uppercase tracking-wider text-[var(--text-muted)] mt-1">{label}</p>
         </div>
     )
 }
@@ -151,14 +152,14 @@ function QuickAction({ icon: Icon, label, color, onClick }) {
     return (
         <button
             onClick={onClick}
-            className="group relative overflow-hidden rounded-2xl p-5 bg-[#0f0f1a] border border-white/5 text-left hover:border-white/15 transition-all hover:-translate-y-0.5"
+            className="group relative overflow-hidden rounded-2xl p-5 bg-[var(--bg-secondary)] border border-[var(--border)] text-left hover:border-[var(--border-strong)] transition-all hover:-translate-y-0.5"
         >
             <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-10 group-hover:opacity-15 transition-opacity`} />
             <div className="relative">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${color} mb-3`}>
-                    <Icon size={20} className="text-white" />
+                    <Icon size={20} className="text-[var(--text)]" />
                 </div>
-                <p className="text-white font-medium text-sm">{label}</p>
+                <p className="text-[var(--text)] font-medium text-sm">{label}</p>
             </div>
         </button>
     )
@@ -189,39 +190,39 @@ function CreatorDashboardPage() {
     const chartData = useMemo(() => period === 'week' ? VIRALITY_WEEK : VIRALITY_MONTH, [period])
 
     const incomeSources = [
-        { label: 'AdSense / Creator Fund', value: stats.income * 0.45, color: 'bg-emerald-500' },
-        { label: 'Спонсорские интеграции', value: stats.income * 0.35, color: 'bg-blue-500' },
-        { label: 'Свои продукты', value: stats.income * 0.15, color: 'bg-purple-500' },
-        { label: 'Донаты / Подписки', value: stats.income * 0.05, color: 'bg-amber-500' },
+        { label: 'AdSense / Creator Fund', value: stats.income * 0.45, color: 'bg-[var(--success)]' },
+        { label: 'Спонсорские интеграции', value: stats.income * 0.35, color: 'bg-[var(--accent)]' },
+        { label: 'Свои продукты', value: stats.income * 0.15, color: 'bg-[var(--primary)]' },
+        { label: 'Донаты / Подписки', value: stats.income * 0.05, color: 'bg-[var(--accent-warm)]' },
     ]
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f] p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6">
+        <div className="min-h-screen bg-[var(--bg)] p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">
+                    <h1 className="text-2xl font-bold text-[var(--text)]">
                         Привет, {user?.name || 'Creator'}! 👋
                     </h1>
-                    <p className="text-gray-400 text-sm mt-1">
+                    <p className="text-[var(--text-muted)] text-sm mt-1">
                         Твой личный кабинет создателя контента
                     </p>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
                     <Clock size={14} />
                     <span>Последнее обновление: {new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
             </div>
 
             {/* Achievement Widget */}
-            <div className="bg-[#0f0f1a] border border-white/5 rounded-2xl p-5">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4">
-                    <Trophy className="w-5 h-5 text-yellow-400" />
-                    <h3 className="font-semibold text-white">Достижения</h3>
+                    <Trophy className="w-5 h-5 text-[var(--accent-warm)]" />
+                    <h3 className="font-semibold text-[var(--text)]">Достижения</h3>
                 </div>
                 <div className="flex flex-wrap gap-3">
                     {[
-                        { id: 'first_step', label: 'First Step', icon: Award, color: 'from-[#00ff41] to-[#00cc33]', desc: 'Завершён онбординг' },
+                        { id: 'first_step', label: 'First Step', icon: Award, color: 'from-[var(--success)] to-[var(--success)]/70', desc: 'Завершён онбординг' },
                         { id: 'consistency', label: 'Consistency', icon: Flame, color: 'from-orange-500 to-red-500', desc: '7 дней публикаций' },
                         { id: 'viral_hit', label: 'Viral Hit', icon: TrendingUp, color: 'from-purple-500 to-pink-500', desc: '10K просмотров' },
                     ].map(a => {
@@ -232,19 +233,19 @@ function CreatorDashboardPage() {
                                 key={a.id}
                                 className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:scale-105 ${
                                     unlocked
-                                        ? 'bg-gradient-to-br from-white/5 to-white/[0.02] border-white/10'
-                                        : 'bg-white/[0.02] border-white/5 opacity-50'
+                                        ? 'bg-gradient-to-br from-[var(--surface)] to-[var(--bg-secondary)] border-[var(--border-strong)]'
+                                        : 'bg-[var(--surface)] border-[var(--border)] opacity-50'
                                 }`}
                             >
                                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center shadow-lg`}>
-                                    <Icon className="w-5 h-5 text-white" />
+                                    <Icon className="w-5 h-5 text-[var(--text)]" />
                                 </div>
                                 <div>
-                                    <div className="text-sm font-semibold text-white">{a.label}</div>
-                                    <div className="text-[10px] text-gray-400">{a.desc}</div>
+                                    <div className="text-sm font-semibold text-[var(--text)]">{a.label}</div>
+                                    <div className="text-[10px] text-[var(--text-muted)]">{a.desc}</div>
                                 </div>
                                 {unlocked && (
-                                    <div className="absolute inset-0 rounded-xl border border-white/10 pointer-events-none group-hover:border-white/20 transition-colors" />
+                                    <div className="absolute inset-0 rounded-xl border border-[var(--border-strong)] pointer-events-none group-hover:border-[var(--primary)]/30 transition-colors" />
                                 )}
                             </div>
                         )
@@ -253,36 +254,36 @@ function CreatorDashboardPage() {
             </div>
 
             {/* Streak Counter */}
-            <div className="bg-[#0f0f1a] border border-white/5 rounded-2xl p-5">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Flame className="w-5 h-5 text-orange-400" />
-                        <h3 className="font-semibold text-white">🔥 Вы публикуете 7 дней подряд!</h3>
+                        <h3 className="font-semibold text-[var(--text)]">🔥 Вы публикуете 7 дней подряд!</h3>
                     </div>
-                    <span className="text-xs text-emerald-400 font-medium">7 / 7</span>
+                    <span className="text-xs text-[var(--success)] font-medium">7 / 7</span>
                 </div>
                 <div className="flex gap-1 mb-3">
                     {Array.from({ length: 7 }).map((_, i) => (
-                        <div key={i} className="h-2 flex-1 rounded-full bg-[#00ff41]" />
+                        <div key={i} className="h-2 flex-1 rounded-full bg-[var(--success)]" />
                     ))}
                 </div>
-                <p className="text-xs text-gray-400">Так держать! Завтра откроется бейдж Consistency.</p>
+                <p className="text-xs text-[var(--text-muted)]">Так держать! Завтра откроется бейдж Consistency.</p>
             </div>
 
             {/* AI Nudges */}
-            <div className="bg-[#0f0f1a] border-l-4 border-[#00ff41] rounded-r-2xl p-5">
+            <div className="bg-[var(--bg-secondary)] border-l-4 border-[var(--success)] rounded-r-2xl p-5">
                 <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#00ff41]/10 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-5 h-5 text-[#00ff41]" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--success)]/10 flex items-center justify-center shrink-0">
+                        <Sparkles className="w-5 h-5 text-[var(--success)]" />
                     </div>
                     <div className="flex-1">
-                        <h3 className="font-semibold text-white text-sm mb-1">Давно не создавали пост — вот идея от OMEGA</h3>
-                        <p className="text-sm text-gray-400 mb-3">
+                        <h3 className="font-semibold text-[var(--text)] text-sm mb-1">Давно не создавали пост — вот идея от OMEGA</h3>
+                        <p className="text-sm text-[var(--text-muted)] mb-3">
                             «3 мифа о {user?.preferences?.niche || 'вашей нише'}» — этот формат даёт +22% удержание.
                         </p>
                         <button
                             onClick={() => alert('Генерация идеи...')}
-                            className="px-4 py-2 rounded-lg bg-[#00ff41]/10 text-[#00ff41] text-xs font-medium hover:bg-[#00ff41]/20 transition-colors"
+                            className="px-4 py-2 rounded-lg bg-[var(--success)]/10 text-[var(--success)] text-xs font-medium hover:bg-[var(--success)]/20 transition-colors"
                         >
                             Сгенерировать идею
                         </button>
@@ -292,17 +293,17 @@ function CreatorDashboardPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <StatCard label="Постов" value={stats.posts} sub="+3 за неделю" icon={Video} color="emerald" />
-                <StatCard label="Просмотров" value={formatNumber(stats.views)} sub="+18%" icon={Eye} color="blue" />
-                <StatCard label="Подписчиков" value={formatNumber(stats.followers)} sub="+156" icon={Users} color="purple" />
-                <StatCard label="Вовлечённость" value={`${stats.engagement}%`} sub="+0.8%" icon={Heart} color="amber" />
-                <StatCard label="Доход ( est. )" value={`$${stats.income}`} sub="~$42/день" icon={DollarSign} color="emerald" />
+                <StatCard label="Постов" value={stats.posts} sub="+3 за неделю" icon={Video} iconBg="bg-[var(--success)]/10" iconColor="text-[var(--success)]" />
+                <StatCard label="Просмотров" value={formatNumber(stats.views)} sub="+18%" icon={Eye} iconBg="bg-[var(--accent)]/10" iconColor="text-[var(--accent)]" />
+                <StatCard label="Подписчиков" value={formatNumber(stats.followers)} sub="+156" icon={Users} iconBg="bg-[var(--primary)]/10" iconColor="text-[var(--primary)]" />
+                <StatCard label="Вовлечённость" value={`${stats.engagement}%`} sub="+0.8%" icon={Heart} iconBg="bg-[var(--accent-warm)]/10" iconColor="text-[var(--accent-warm)]" />
+                <StatCard label="Доход ( est. )" value={`$${stats.income}`} sub="~$42/день" icon={DollarSign} iconBg="bg-[var(--success)]/10" iconColor="text-[var(--success)]" />
             </div>
 
             {/* Quick Actions */}
             <div>
-                <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                    <LayoutDashboard size={18} className="text-emerald-400" />
+                <h2 className="text-lg font-semibold text-[var(--text)] mb-3 flex items-center gap-2">
+                    <LayoutDashboard size={18} className="text-[var(--success)]" />
                     Быстрые действия
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -316,21 +317,21 @@ function CreatorDashboardPage() {
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Virality chart */}
-                <div className="lg:col-span-2 bg-[#0f0f1a] border border-white/5 rounded-2xl p-5">
+                <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                            <TrendingUp size={18} className="text-emerald-400" />
+                        <h2 className="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
+                            <TrendingUp size={18} className="text-[var(--success)]" />
                             Вирусность
                         </h2>
-                        <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
+                        <div className="flex items-center gap-1 bg-[var(--surface)] rounded-lg p-1">
                             {['week', 'month'].map(p => (
                                 <button
                                     key={p}
                                     onClick={() => setPeriod(p)}
                                     className={`px-3 py-1 text-xs rounded-md transition-colors ${
                                         period === p
-                                            ? 'bg-emerald-500/20 text-emerald-400'
-                                            : 'text-gray-400 hover:text-white'
+                                            ? 'bg-[var(--success)]/20 text-[var(--success)]'
+                                            : 'text-[var(--text-muted)] hover:text-[var(--text)]'
                                     }`}
                                 >
                                     {p === 'week' ? 'Неделя' : 'Месяц'}
@@ -343,27 +344,27 @@ function CreatorDashboardPage() {
                             <AreaChart data={chartData}>
                                 <defs>
                                     <linearGradient id="viewsGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#00ff41" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#00ff41" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="var(--success)" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                <XAxis dataKey="day" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                <XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
                                 <RechartsTooltip
-                                    contentStyle={{ background: '#0f0f1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                    itemStyle={{ color: '#fff' }}
+                                    contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-strong)', borderRadius: '12px' }}
+                                    itemStyle={{ color: 'var(--text)' }}
                                 />
-                                <Area type="monotone" dataKey="views" stroke="#00ff41" strokeWidth={2} fill="url(#viewsGradient)" />
+                                <Area type="monotone" dataKey="views" stroke="var(--success)" strokeWidth={2} fill="url(#viewsGradient)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
                 {/* Platform distribution */}
-                <div className="bg-[#0f0f1a] border border-white/5 rounded-2xl p-5">
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <PieChart size={18} className="text-purple-400" />
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+                    <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
+                        <PieChart size={18} className="text-[var(--primary)]" />
                         Распределение по площадкам
                     </h2>
                     <div className="h-[200px]">
@@ -382,7 +383,7 @@ function CreatorDashboardPage() {
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <RechartsTooltip contentStyle={{ background: '#0f0f1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                                <RechartsTooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-strong)', borderRadius: '12px' }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -391,9 +392,9 @@ function CreatorDashboardPage() {
                             <div key={p.name} className="flex items-center justify-between text-sm">
                                 <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full" style={{ background: COLORS[i] }} />
-                                    <span className="text-gray-300">{p.name}</span>
+                                    <span className="text-[var(--text)]">{p.name}</span>
                                 </div>
-                                <span className="text-white font-medium">{p.value}%</span>
+                                <span className="text-[var(--text)] font-medium">{p.value}%</span>
                             </div>
                         ))}
                     </div>
@@ -403,24 +404,24 @@ function CreatorDashboardPage() {
             {/* Portfolio + Monetization */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Portfolio */}
-                <div className="xl:col-span-2 bg-[#0f0f1a] border border-white/5 rounded-2xl p-5">
+                <div className="xl:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                            <Award size={18} className="text-amber-400" />
+                        <h2 className="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
+                            <Award size={18} className="text-[var(--accent-warm)]" />
                             Портфолио работ
                         </h2>
-                        <button className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                        <button className="text-xs text-[var(--success)] hover:text-[var(--success)]/80 flex items-center gap-1">
                             Все работы <ChevronRight size={14} />
                         </button>
                     </div>
                     <div className="space-y-3">
                         {PORTFOLIO_WORKS.map(work => (
-                            <div key={work.id} className="flex gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors">
+                            <div key={work.id} className="flex gap-4 p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors">
                                 <div className="w-24 h-16 rounded-lg bg-black/30 flex items-center justify-center shrink-0 overflow-hidden">
                                     {work.thumbnail ? (
                                         <img src={work.thumbnail} alt={work.title} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center text-gray-600">
+                                        <div className="flex flex-col items-center justify-center text-[var(--text-muted)]">
                                             <Play size={16} />
                                         </div>
                                     )}
@@ -428,20 +429,20 @@ function CreatorDashboardPage() {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-2">
                                         <div>
-                                            <h3 className="text-sm font-medium text-white truncate">{work.title}</h3>
+                                            <h3 className="text-sm font-medium text-[var(--text)] truncate">{work.title}</h3>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <PlatformIcon platform={work.platform} />
-                                                <span className="text-xs text-gray-500 capitalize">{work.platform}</span>
+                                                <span className="text-xs text-[var(--text-muted)] capitalize">{work.platform}</span>
                                                 <StatusBadge status={work.status} />
                                             </div>
                                         </div>
-                                        <span className="text-xs text-gray-500 whitespace-nowrap">{work.publishedAt}</span>
+                                        <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">{work.publishedAt}</span>
                                     </div>
-                                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                                    <div className="flex items-center gap-4 mt-2 text-xs text-[var(--text-muted)]">
                                         <span className="flex items-center gap-1"><Eye size={12} /> {formatNumber(work.views)}</span>
                                         <span className="flex items-center gap-1"><Heart size={12} /> {formatNumber(work.likes)}</span>
                                         <span className="flex items-center gap-1"><MessageCircle size={12} /> {formatNumber(work.comments)}</span>
-                                        <span className="flex items-center gap-1 text-emerald-400"><TrendingUp size={12} /> {work.engagement}%</span>
+                                        <span className="flex items-center gap-1 text-[var(--success)]"><TrendingUp size={12} /> {work.engagement}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -450,23 +451,23 @@ function CreatorDashboardPage() {
                 </div>
 
                 {/* Monetization */}
-                <div className="bg-[#0f0f1a] border border-white/5 rounded-2xl p-5">
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <DollarSign size={18} className="text-emerald-400" />
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+                    <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
+                        <DollarSign size={18} className="text-[var(--success)]" />
                         Монетизация
                     </h2>
                     <div className="mb-5">
-                        <p className="text-3xl font-bold text-white">${stats.income}</p>
-                        <p className="text-sm text-gray-500">Приблизительный доход за 30 дней</p>
+                        <p className="text-3xl font-bold text-[var(--text)]">${stats.income}</p>
+                        <p className="text-sm text-[var(--text-muted)]">Приблизительный доход за 30 дней</p>
                     </div>
                     <div className="space-y-4">
                         {incomeSources.map(source => (
                             <div key={source.label}>
                                 <div className="flex items-center justify-between text-xs mb-1.5">
-                                    <span className="text-gray-400">{source.label}</span>
-                                    <span className="text-white">${Math.round(source.value)}</span>
+                                    <span className="text-[var(--text-muted)]">{source.label}</span>
+                                    <span className="text-[var(--text)]">${Math.round(source.value)}</span>
                                 </div>
-                                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-2 w-full bg-[var(--surface)] rounded-full overflow-hidden">
                                     <div
                                         className={`h-full ${source.color} rounded-full`}
                                         style={{ width: `${(source.value / stats.income) * 100}%` }}
@@ -475,8 +476,8 @@ function CreatorDashboardPage() {
                             </div>
                         ))}
                     </div>
-                    <div className="mt-5 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                        <p className="text-xs text-emerald-400">
+                    <div className="mt-5 p-3 rounded-xl bg-[var(--success)]/5 border border-[var(--success)]/10">
+                        <p className="text-xs text-[var(--success)]">
                             💡 Совет: при росте до $2K/мес добавьте цифровой продукт — это увеличит маржу на 30-40%.
                         </p>
                     </div>
@@ -485,32 +486,32 @@ function CreatorDashboardPage() {
 
             {/* Activity + AI Tips */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-[#0f0f1a] border border-white/5 rounded-2xl p-5">
-                    <h2 className="text-lg font-semibold text-white mb-4">Последняя активность</h2>
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+                    <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Последняя активность</h2>
                     <div className="space-y-4">
                         {RECENT_ACTIVITY.map((item, i) => (
-                            <div key={i} className="flex items-start gap-3 pb-4 border-b border-white/5 last:border-0 last:pb-0">
-                                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                                    <item.icon size={14} className="text-emerald-400" />
+                            <div key={i} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
+                                <div className="w-8 h-8 rounded-lg bg-[var(--surface)] flex items-center justify-center shrink-0">
+                                    <item.icon size={14} className="text-[var(--success)]" />
                                 </div>
                                 <div>
-                                    <p className="text-gray-300 text-sm">{item.text}</p>
-                                    <p className="text-gray-500 text-xs mt-0.5">{item.time}</p>
+                                    <p className="text-[var(--text)] text-sm">{item.text}</p>
+                                    <p className="text-[var(--text-muted)] text-xs mt-0.5">{item.time}</p>
                                 </div>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="bg-[#0f0f1a] border border-white/5 rounded-2xl p-5">
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <Sparkles size={18} className="text-amber-400" />
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+                    <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
+                        <Sparkles size={18} className="text-[var(--accent-warm)]" />
                         AI Рекомендации
                     </h2>
                     <div className="space-y-3">
                         {AI_TIPS.map((tip, i) => (
-                            <div key={i} className="p-3 rounded-xl bg-[#00ff41]/5 border border-[#00ff41]/10">
-                                <p className="text-gray-300 text-sm">{tip}</p>
+                            <div key={i} className="p-3 rounded-xl bg-[var(--success)]/5 border border-[var(--success)]/10">
+                                <p className="text-[var(--text)] text-sm">{tip}</p>
                             </div>
                         ))}
                     </div>

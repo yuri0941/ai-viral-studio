@@ -258,13 +258,13 @@ export function AppSidebar({
             {/* Header */}
             <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
                 <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-9 h-9 rounded-xl bg-[#8B5CF6]/20 flex items-center justify-center flex-shrink-0">
-                        <Crown className="w-5 h-5 text-[#8B5CF6]" />
+                    <div className="w-9 h-9 rounded-xl bg-[var(--primary)]/20 flex items-center justify-center flex-shrink-0">
+                        <Crown className="w-5 h-5 text-[var(--primary)]" />
                     </div>
                     {isExpanded && (
                         <div className="min-w-0">
                             <h1 className="text-[var(--text)] font-bold text-sm leading-tight truncate">AI Viral</h1>
-                            <p className="text-gray-500 text-[10px]">Studio</p>
+                            <p className="text-[var(--text-muted)] text-[10px]">Studio</p>
                         </div>
                     )}
                 </div>
@@ -272,7 +272,7 @@ export function AppSidebar({
                     {!isMobile && (
                         <button
                             onClick={toggleExpanded}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--text)] hover:bg-white/5 transition-colors"
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                             title={isExpanded ? t('sidebar.collapse', 'Свернуть') : t('sidebar.expand', 'Развернуть')}
                         >
                             {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -281,7 +281,7 @@ export function AppSidebar({
                     {onClose && isMobile && (
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--text)] hover:bg-white/5 transition-colors"
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -296,7 +296,7 @@ export function AppSidebar({
                         {isExpanded ? (
                             <button
                                 onClick={() => toggleGroup(group.id)}
-                                className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold text-gray-500 tracking-wider uppercase hover:text-gray-400 transition-colors"
+                                className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold text-[var(--text-muted)] tracking-wider uppercase hover:text-[var(--text)] transition-colors min-h-[44px]"
                             >
                                 {t(`sidebar.groups.${group.id}`, group.title)}
                                 <ChevronDown
@@ -305,7 +305,7 @@ export function AppSidebar({
                             </button>
                         ) : (
                             <div className="px-3 py-1.5">
-                                <div className="h-px bg-white/10" />
+                                <div className="h-px bg-[var(--border-strong)]" />
                             </div>
                         )}
                         {(openGroups[group.id] !== false || !isExpanded) && (
@@ -317,10 +317,10 @@ export function AppSidebar({
                                         <button
                                             key={item.id || item.path}
                                             onClick={() => handleItemClick(item)}
-                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left relative ${
+                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left relative min-h-[44px] ${
                                                 active
-                                                    ? 'text-[var(--text)] bg-[#8B5CF6]/10'
-                                                    : 'text-gray-400 hover:text-[var(--text)] hover:bg-white/5'
+                                                    ? 'text-[var(--text)] bg-[var(--primary)]/10'
+                                                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'
                                             } ${isExpanded ? '' : 'justify-center'}`}
                                             title={itemLabel(item)}
                                         >
@@ -330,7 +330,7 @@ export function AppSidebar({
                                                     style={{ backgroundColor: ACTIVE_COLOR }}
                                                 />
                                             )}
-                                            <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-[#8B5CF6]' : ''}`} />
+                                            <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-[var(--primary)]' : ''}`} />
                                             {isExpanded && <span className="truncate">{itemLabel(item)}</span>}
                                         </button>
                                     )
@@ -344,13 +344,13 @@ export function AppSidebar({
             {/* User */}
             <div className="p-3 border-t border-[var(--border)]">
                 <div className={`flex items-center gap-3 px-3 py-2 ${isExpanded ? '' : 'justify-center'}`}>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary)] flex items-center justify-center text-xs font-bold text-[var(--text-inverse)] flex-shrink-0">
                         {initials || <Globe className="w-4 h-4" />}
                     </div>
                     {isExpanded && (
                         <div className="min-w-0">
                             <p className="text-[var(--text)] text-sm font-medium truncate">{user?.name || userRole}</p>
-                            <p className="text-gray-500 text-[10px] truncate">{user?.email || `${userRole}@ai-viral.com`}</p>
+                            <p className="text-[var(--text-muted)] text-[10px] truncate">{user?.email || `${userRole}@ai-viral.com`}</p>
                         </div>
                     )}
                 </div>
@@ -364,7 +364,7 @@ export function AppSidebar({
 
                 <button
                     onClick={onLogout}
-                    className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-all text-left ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-xl text-sm text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-all text-left min-h-[44px] ${
                         isExpanded ? '' : 'justify-center'
                     }`}
                     title={t('common.logout', 'Выйти')}
