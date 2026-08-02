@@ -4,7 +4,7 @@ import {
     LayoutDashboard, Video, Eye, Users, Heart, DollarSign,
     Plus, Calendar, BarChart as BarChartIcon, Bot, TrendingUp, Clock,
     Play, Instagram, Youtube, Music2, MessageCircle,
-    ChevronRight, Sparkles, Award
+    ChevronRight, Sparkles, Award, Sunrise, Trophy, Flame, Lightbulb
 } from 'lucide-react'
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -210,6 +210,83 @@ function CreatorDashboardPage() {
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                     <Clock size={14} />
                     <span>Последнее обновление: {new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+            </div>
+
+            {/* Achievement Widget */}
+            <div className="bg-[#0f0f1a] border border-white/5 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                    <Trophy className="w-5 h-5 text-yellow-400" />
+                    <h3 className="font-semibold text-white">Достижения</h3>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                    {[
+                        { id: 'first_step', label: 'First Step', icon: Award, color: 'from-[#00ff41] to-[#00cc33]', desc: 'Завершён онбординг' },
+                        { id: 'consistency', label: 'Consistency', icon: Flame, color: 'from-orange-500 to-red-500', desc: '7 дней публикаций' },
+                        { id: 'viral_hit', label: 'Viral Hit', icon: TrendingUp, color: 'from-purple-500 to-pink-500', desc: '10K просмотров' },
+                    ].map(a => {
+                        const Icon = a.icon
+                        const unlocked = a.id !== 'viral_hit'
+                        return (
+                            <div
+                                key={a.id}
+                                className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:scale-105 ${
+                                    unlocked
+                                        ? 'bg-gradient-to-br from-white/5 to-white/[0.02] border-white/10'
+                                        : 'bg-white/[0.02] border-white/5 opacity-50'
+                                }`}
+                            >
+                                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center shadow-lg`}>
+                                    <Icon className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <div className="text-sm font-semibold text-white">{a.label}</div>
+                                    <div className="text-[10px] text-gray-400">{a.desc}</div>
+                                </div>
+                                {unlocked && (
+                                    <div className="absolute inset-0 rounded-xl border border-white/10 pointer-events-none group-hover:border-white/20 transition-colors" />
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>
+
+            {/* Streak Counter */}
+            <div className="bg-[#0f0f1a] border border-white/5 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <Flame className="w-5 h-5 text-orange-400" />
+                        <h3 className="font-semibold text-white">🔥 Вы публикуете 7 дней подряд!</h3>
+                    </div>
+                    <span className="text-xs text-emerald-400 font-medium">7 / 7</span>
+                </div>
+                <div className="flex gap-1 mb-3">
+                    {Array.from({ length: 7 }).map((_, i) => (
+                        <div key={i} className="h-2 flex-1 rounded-full bg-[#00ff41]" />
+                    ))}
+                </div>
+                <p className="text-xs text-gray-400">Так держать! Завтра откроется бейдж Consistency.</p>
+            </div>
+
+            {/* AI Nudges */}
+            <div className="bg-[#0f0f1a] border-l-4 border-[#00ff41] rounded-r-2xl p-5">
+                <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#00ff41]/10 flex items-center justify-center shrink-0">
+                        <Sparkles className="w-5 h-5 text-[#00ff41]" />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="font-semibold text-white text-sm mb-1">Давно не создавали пост — вот идея от OMEGA</h3>
+                        <p className="text-sm text-gray-400 mb-3">
+                            «3 мифа о {user?.preferences?.niche || 'вашей нише'}» — этот формат даёт +22% удержание.
+                        </p>
+                        <button
+                            onClick={() => alert('Генерация идеи...')}
+                            className="px-4 py-2 rounded-lg bg-[#00ff41]/10 text-[#00ff41] text-xs font-medium hover:bg-[#00ff41]/20 transition-colors"
+                        >
+                            Сгенерировать идею
+                        </button>
+                    </div>
                 </div>
             </div>
 
