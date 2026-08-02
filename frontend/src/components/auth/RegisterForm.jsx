@@ -26,8 +26,8 @@ function RegisterForm({ onSuccess }) {
     const [turnstileToken, setTurnstileToken] = useState('')
     const { register } = useAuth()
 
-    // Turnstile always enabled (keys configured in Render / Cloudflare Pages)
-    const isTurnstileEnabled = true
+    // [P16-hotfix] Turnstile disabled on production (error 110200)
+    const isTurnstileEnabled = false
 
     useEffect(() => {
         if (!registered || resendSeconds <= 0) return
@@ -60,15 +60,10 @@ function RegisterForm({ onSuccess }) {
             return
         }
 
-        if (isTurnstileEnabled && !turnstileToken) {
-            setError('Пройдите проверку Turnstile')
-            return
-        }
-
         setLoading(true)
 
         try {
-            const result = await register(name, email, password, consent, turnstileToken || 'disabled')
+            const result = await register(name, email, password, consent, 'disabled')
             if (result.success) {
                 setRegistered(true)
                 setResendSeconds(60)
@@ -286,7 +281,8 @@ function RegisterForm({ onSuccess }) {
                 </label>
             </div>
 
-            {isTurnstileEnabled && (
+            {/* [P16-hotfix] Turnstile widget hidden */}
+            {false && (
                 <Turnstile
                     siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAECRR8t_7EdD8onI'}
                     onSuccess={setTurnstileToken}

@@ -10,7 +10,8 @@ const router = express.Router()
 
 const FORBIDDEN_REGISTRATION_ROLES = ['owner', 'admin', 'staff']
 
-router.post('/register', validateRegister, verifyTurnstile, async (req, res) => {
+// [P16-hotfix] Turnstile verification disabled on production (error 110200)
+router.post('/register', validateRegister, async (req, res) => {
   try {
     const { name, email, password, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult, timezone } = req.body
 
@@ -82,7 +83,8 @@ router.post('/register', validateRegister, verifyTurnstile, async (req, res) => 
   }
 })
 
-router.post('/login', validateLogin, verifyTurnstile, async (req, res) => {
+// [P16-hotfix] Turnstile verification disabled on production (error 110200)
+router.post('/login', validateLogin, async (req, res) => {
   try {
     const { email, password, timezone } = req.body
     console.log('Login attempt:', email)

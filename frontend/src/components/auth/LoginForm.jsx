@@ -14,22 +14,17 @@ function LoginForm({ onSuccess }) {
     const { login } = useAuth()
     const navigate = useNavigate()
 
-    // Turnstile always enabled (keys configured in Render / Cloudflare Pages)
-    const isTurnstileEnabled = true
+    // [P16-hotfix] Turnstile disabled on production (error 110200)
+    const isTurnstileEnabled = false
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         setError('')
 
-        if (isTurnstileEnabled && !turnstileToken) {
-            setError('Пройдите проверку Turnstile')
-            return
-        }
-
         setLoading(true)
 
         try {
-            const result = await login(email, password, turnstileToken || 'disabled')
+            const result = await login(email, password, 'disabled')
             if (result.success) {
                 onSuccess?.()
                 setTimeout(() => {
@@ -89,7 +84,8 @@ function LoginForm({ onSuccess }) {
                 </div>
             </div>
 
-            {isTurnstileEnabled && (
+            {/* [P16-hotfix] Turnstile widget hidden */}
+            {false && (
                 <Turnstile
                     siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAECRR8t_7EdD8onI'}
                     onSuccess={setTurnstileToken}
