@@ -2344,3 +2344,18 @@
 - [x] Git push: выполнен
 - [x] Render Clear build cache: требуется вручную через Render Dashboard (CLI недоступен)
 - [x] PROGRESS_REPORT.md обновлён: да
+
+
+### [2026-08-02] — ПРОМПТ №16-HOTFIX: Critical Fixes (Turnstile, AI Providers, Telegram, OmegaCoder)
+- [x] Turnstile полностью отключен (frontend + backend): да
+- [x] Pollinations поднят в приоритет (бесплатный fallback): да
+- [x] OpenRouter модель исправлена (404 → рабочая free): да
+- [x] GitHub Models endpoint проверен/исправлен: да
+- [x] Smart Demo Mode усилен (20+ ниш, без «демо-режим»): да
+- [x] Telegram 409 Conflict fixed (deleteWebhook + singleton): да
+- [x] OmegaCoder JSON parse обёрнут в try-catch: да
+- [x] Chroma fallback на пустой массив: да
+- [x] Backend node --check: успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен (коммит 359fed5c)
+- [x] Render Clear build cache: требуется вручную через Render Dashboard
