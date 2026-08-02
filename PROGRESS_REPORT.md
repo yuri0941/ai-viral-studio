@@ -2294,3 +2294,19 @@
 - [x] Backend check: успешно (`node --check server.js`)
 - [x] Git push: выполнен (коммит `694ed608`)
 - [x] PROGRESS_REPORT.md обновлён: да
+
+### [2026-08-02] — ПРОМПТ №6: OMEGA Autonomy — интеграция в omegaCore + UI
+- [x] omegaCore.js: getStatus() проверен/исправлен (swarm, dreamMode, coderQueue): да
+- [x] omegaCore.js: нет дублирующего export default: да
+- [x] omegaCore.js: constructor/init содержит director, dreamMode, coder: да (`this.director`, `this.dreamMode`, `startAutonomyServices()`)
+- [x] omegaCoder.js создан/проверен: да (`backend/ai/omega/omegaCoder.js` — allowed/forbidden paths, approval queue, daily analysis)
+- [x] sandbox.js создан/проверен: да (`backend/ai/omega/sandbox.js` — VM + syntax check)
+- [x] swarm/director.js создан/проверен: да (`backend/ai/omega/swarm/director.js` + leads content/analytics/client/tech)
+- [x] dreamMode.js создан/проверен: да (`backend/ai/omega/dreamMode.js` — night shift 02:00–06:00, morning briefing 08:00)
+- [x] server.js: OMEGA инициализируется при старте: да (`createOmegaBackend()` + `startAutonomyServices()`)
+- [x] OMEGACoreTab.jsx: индикатор Dream Mode добавлен: да (🌙 Active карточка)
+- [x] Backend check (все 6 файлов): успешно (`node --check`)
+- [x] Frontend build: успешно (warnings по chunk size / dynamic imports)
+- [x] Git push: выполнен (коммит `dd124442`)
+- [ ] Render Clear build cache: не сделано (требуется вручную в Dashboard)
+- [x] PROGRESS_REPORT.md обновлён: да
