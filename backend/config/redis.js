@@ -89,4 +89,5 @@ export function cacheKey(prefix, params) {
   return `${prefix}:${hash}`
 }
 
-export default { get, set, del, getJSON, setJSON, cacheKey }
+export { redis }
+export default { get, set, del, getJSON, setJSON, cacheKey, redis }
