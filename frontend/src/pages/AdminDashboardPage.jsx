@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
     Shield, Users, Activity, Star, AlertTriangle, FileText,
@@ -7,6 +7,7 @@ import {
     LogOut, BarChart, Terminal, Wrench, TrendingUp, Filter,
     CheckSquare, Square
 } from 'lucide-react'
+import { VirtualTable } from '../components/shared/VirtualTable'
 
 const MODERATION_REPORTS = [
     { id: 1, user: 'user1@mail.com', content: 'Нецензурный контент', platform: 'YouTube', date: '10 мин назад', status: 'pending' },
@@ -231,6 +232,92 @@ function AdminDashboardPage() {
             default: return 'Просмотрена'
         }
     }
+
+    const userColumns = useMemo(() => [
+        {
+            key: 'selected',
+            header: (
+                <button onClick={toggleAll} className="text-gray-500 hover:text-white transition-colors">
+                    {selectedIds.length === filteredUsers.length && filteredUsers.length > 0 ? <CheckSquare size={18} className="text-emerald-400" /> : <Square size={18} />}
+                </button>
+            ),
+            width: '60px',
+            sortable: false,
+            cell: (u) => (
+                <button onClick={() => toggleSelect(u.id)} className="text-gray-500 hover:text-white transition-colors">
+                    {isSelected(u.id) ? <CheckSquare size={18} className="text-emerald-400" /> : <Square size={18} />}
+                </button>
+            ),
+        },
+        { key: 'id', header: 'ID', width: '80px', cell: (u) => <span className="text-gray-400">#{u.id}</span> },
+        { key: 'name', header: 'Имя', width: '1.5fr', cell: (u) => <span className="text-white font-medium">{u.name}</span> },
+        { key: 'email', header: 'Email', width: '1.5fr', cell: (u) => <span className="text-gray-300">{u.email}</span> },
+        {
+            key: 'role',
+            header: 'Роль',
+            width: '130px',
+            cell: (u) => (
+                <select
+                    value={u.role}
+                    onChange={e => handleChangeRole(u.id, e.target.value)}
+                    className={`px-2.5 py-1 rounded-full text-xs border bg-transparent outline-none ${getRoleColor(u.role)}`}
+                >
+                    <option value="creator" className="bg-[#1a1a24]">Creator</option>
+                    <option value="business" className="bg-[#1a1a24]">Business</option>
+                    <option value="advertiser" className="bg-[#1a1a24]">Advertiser</option>
+                    <option value="staff" className="bg-[#1a1a24]">Staff</option>
+                    <option value="admin" className="bg-[#1a1a24]">Admin</option>
+                </select>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Статус',
+            width: '130px',
+            cell: (u) => (
+                <span className={`flex items-center gap-1.5 text-sm font-medium ${getStatusColor(u.status)}`}>
+                    {getStatusIcon(u.status)}
+                    {getStatusLabel(u.status)}
+                </span>
+            ),
+        },
+        { key: 'posts', header: 'Постов', width: '90px', cell: (u) => <span className="text-gray-300">{u.posts}</span> },
+        { key: 'joined', header: 'Дата регистрации', width: '150px', cell: (u) => <span className="text-gray-500 text-sm">{u.joined}</span> },
+        {
+            key: 'actions',
+            header: 'Действия',
+            width: '150px',
+            sortable: false,
+            cell: (u) => (
+                <div className="flex gap-1 justify-end">
+                    <button
+                        onClick={() => openEditModal(u)}
+                        className="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
+                        title="Редактировать"
+                    >
+                        <Pencil size={14} />
+                    </button>
+                    <button
+                        onClick={() => handleToggleStatus(u.id)}
+                        className={`p-2 rounded-lg transition-colors ${u.status === 'active'
+                            ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20'
+                            : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                            }`}
+                        title={u.status === 'active' ? 'Заблокировать' : 'Разблокировать'}
+                    >
+                        {u.status === 'active' ? <Lock size={14} /> : <Unlock size={14} />}
+                    </button>
+                    <button
+                        onClick={() => openDeleteModal(u)}
+                        className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                        title="Удалить"
+                    >
+                        <Trash2 size={14} />
+                    </button>
+                </div>
+            ),
+        },
+    ], [selectedIds.length, filteredUsers.length, selectedIds, isSelected, toggleAll, toggleSelect, handleChangeRole, getRoleColor, getStatusColor, getStatusIcon, getStatusLabel, openEditModal, handleToggleStatus, openDeleteModal])
 
     const getFilterButtonClass = (id, current) => {
         return id === current
@@ -457,94 +544,19 @@ function AdminDashboardPage() {
                 )}
 
                 <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="text-left text-gray-500 text-sm border-b border-white/5">
-                                <th className="p-4">
-                                    <button onClick={toggleAll} className="text-gray-500 hover:text-white transition-colors">
-                                        {selectedIds.length === filteredUsers.length && filteredUsers.length > 0 ? <CheckSquare size={18} className="text-emerald-400" /> : <Square size={18} />}
-                                    </button>
-                                </th>
-                                <th className="p-4">ID</th>
-                                <th className="p-4">Имя</th>
-                                <th className="p-4">Email</th>
-                                <th className="p-4">Роль</th>
-                                <th className="p-4">Статус</th>
-                                <th className="p-4">Постов</th>
-                                <th className="p-4 cursor-pointer select-none" onClick={() => { sortBy === 'joined' ? setSortOrder(o => o === 'asc' ? 'desc' : 'asc') : setSortBy('joined') }}>Дата регистрации {sortBy === 'joined' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
-                                <th className="p-4 text-right">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredUsers.map((u) => (
-                                <tr key={u.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                                    <td className="p-4">
-                                        <button onClick={() => toggleSelect(u.id)} className="text-gray-500 hover:text-white transition-colors">
-                                            {isSelected(u.id) ? <CheckSquare size={18} className="text-emerald-400" /> : <Square size={18} />}
-                                        </button>
-                                    </td>
-                                    <td className="p-4 text-gray-400">#{u.id}</td>
-                                    <td className="p-4 text-white font-medium">{u.name}</td>
-                                    <td className="p-4 text-gray-300">{u.email}</td>
-                                    <td className="p-4">
-                                        <select
-                                            value={u.role}
-                                            onChange={e => handleChangeRole(u.id, e.target.value)}
-                                            className={`px-2.5 py-1 rounded-full text-xs border bg-transparent outline-none ${getRoleColor(u.role)}`}
-                                        >
-                                            <option value="creator" className="bg-[#1a1a24]">Creator</option>
-                                            <option value="business" className="bg-[#1a1a24]">Business</option>
-                                            <option value="advertiser" className="bg-[#1a1a24]">Advertiser</option>
-                                            <option value="staff" className="bg-[#1a1a24]">Staff</option>
-                                            <option value="admin" className="bg-[#1a1a24]">Admin</option>
-                                        </select>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className={`flex items-center gap-1.5 text-sm font-medium ${getStatusColor(u.status)}`}>
-                                            {getStatusIcon(u.status)}
-                                            {getStatusLabel(u.status)}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-gray-300">{u.posts}</td>
-                                    <td className="p-4 text-gray-500 text-sm">{u.joined}</td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex gap-1 justify-end">
-                                            <button
-                                                onClick={() => openEditModal(u)}
-                                                className="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
-                                                title="Редактировать"
-                                            >
-                                                <Pencil size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleStatus(u.id)}
-                                                className={`p-2 rounded-lg transition-colors ${u.status === 'active'
-                                                    ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20'
-                                                    : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-                                                    }`}
-                                                title={u.status === 'active' ? 'Заблокировать' : 'Разблокировать'}
-                                            >
-                                                {u.status === 'active' ? <Lock size={14} /> : <Unlock size={14} />}
-                                            </button>
-                                            <button
-                                                onClick={() => openDeleteModal(u)}
-                                                className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                                                title="Удалить"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {filteredUsers.length === 0 && (
-                        <div className="p-8 text-center text-gray-500">
-                            <Search size={32} className="mx-auto mb-3 opacity-50" />
-                            <p>Пользователи не найдены</p>
-                        </div>
-                    )}
+                    <VirtualTable
+                        data={filteredUsers}
+                        columns={userColumns}
+                        rowHeight={60}
+                        maxHeight={600}
+                        keyExtractor={(u) => u.id}
+                        emptyMessage={
+                            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                <Search size={32} className="mb-3 opacity-50" />
+                                <p>Пользователи не найдены</p>
+                            </div>
+                        }
+                    />
                 </div>
             </div>
 

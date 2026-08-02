@@ -17,6 +17,7 @@ import { CaseStudyGenerator } from '../components/analytics/CaseStudyGenerator'
 import { ReportGenerator } from '../components/analytics/ReportGenerator'
 import { EmptyState } from '../components/common/EmptyState.jsx'
 import { useNavigate } from 'react-router-dom'
+import { VirtualTable } from '../components/shared/VirtualTable'
 
 const TABS = [
     { id: 'overview', label: 'Обзор' },
@@ -100,6 +101,43 @@ function AnalyticsPage() {
         { title: 'POV: Ты в 2026 году', platform: 'TikTok', views: '520K', likes: '22K', ctr: '8.7%', trend: 'up' },
         { title: '3 ошибки начинающих блогеров', platform: 'YouTube', views: '410K', likes: '18K', ctr: '7.9%', trend: 'up' },
     ]
+
+    const topVideosColumns = useMemo(() => [
+        { key: 'rank', header: '#', width: '60px', cell: (_, i) => <span className="text-lg font-bold text-gray-500">{i + 1}</span> },
+        { key: 'title', header: 'Видео', width: '3fr', cell: (v) => <span className="font-medium">{v.title}</span> },
+        {
+            key: 'platform',
+            header: 'Платформа',
+            width: '120px',
+            cell: (v) => (
+                <span className={`text-xs px-2.5 py-1 rounded-full ${
+                    v.platform === 'TikTok' ? 'bg-emerald-500/10 text-emerald-400' :
+                    v.platform === 'YouTube' ? 'bg-red-500/10 text-red-400' :
+                        'bg-blue-500/10 text-blue-400'
+                }`}>
+                    {v.platform}
+                </span>
+            ),
+        },
+        { key: 'views', header: 'Просмотры', width: '110px', cell: (v) => <span className="text-right font-medium block">{v.views}</span> },
+        { key: 'likes', header: 'Лайки', width: '100px', cell: (v) => <span className="text-right text-gray-400 block">{v.likes}</span> },
+        { key: 'ctr', header: 'CTR', width: '80px', cell: (v) => <span className="text-right text-emerald-400 font-medium block">{v.ctr}</span> },
+        {
+            key: 'trend',
+            header: 'Тренд',
+            width: '80px',
+            sortable: false,
+            cell: (v) => (
+                <span className="text-center block">
+                    {v.trend === 'up' ? (
+                        <ArrowUpRight size={16} className="text-emerald-400 inline" />
+                    ) : (
+                        <ArrowDownRight size={16} className="text-red-400 inline" />
+                    )}
+                </span>
+            ),
+        },
+    ], [])
 
     // Аудитория по времени
     const audienceTimeData = [
@@ -433,51 +471,14 @@ function AnalyticsPage() {
                         </button>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-white/5">
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">#</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Видео</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Платформа</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">Просмотры</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">Лайки</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">CTR</th>
-                                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-400">Тренд</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {topVideos.map((video, i) => (
-                                    <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                                        <td className="py-4 px-4">
-                                            <span className="text-lg font-bold text-gray-500">{i + 1}</span>
-                                        </td>
-                                        <td className="py-4 px-4">
-                                            <span className="font-medium">{video.title}</span>
-                                        </td>
-                                        <td className="py-4 px-4">
-                                            <span className={`text-xs px-2.5 py-1 rounded-full ${video.platform === 'TikTok' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                video.platform === 'YouTube' ? 'bg-red-500/10 text-red-400' :
-                                                    'bg-blue-500/10 text-blue-400'
-                                                }`}>
-                                                {video.platform}
-                                            </span>
-                                        </td>
-                                        <td className="py-4 px-4 text-right font-medium">{video.views}</td>
-                                        <td className="py-4 px-4 text-right text-gray-400">{video.likes}</td>
-                                        <td className="py-4 px-4 text-right">
-                                            <span className="text-emerald-400 font-medium">{video.ctr}</span>
-                                        </td>
-                                        <td className="py-4 px-4 text-center">
-                                            {video.trend === 'up' ? (
-                                                <ArrowUpRight size={16} className="text-emerald-400 inline" />
-                                            ) : (
-                                                <ArrowDownRight size={16} className="text-red-400 inline" />
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <VirtualTable
+                            data={topVideos}
+                            columns={topVideosColumns}
+                            rowHeight={56}
+                            maxHeight={400}
+                            keyExtractor={(v, i) => `${v.title}-${i}`}
+                            emptyMessage="Нет данных о видео"
+                        />
                     </div>
                 </div>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
     Headphones, TicketCheck, Clock, Star, Shield, BookOpen, Zap,
@@ -6,6 +6,7 @@ import {
     ChevronDown, ChevronUp, Tag, ArrowUpRight, Filter,
     AlertTriangle, CheckCircle2, Clock4, Lock, Unlock, Layout, List
 } from 'lucide-react'
+import { VirtualTable } from '../components/shared/VirtualTable'
 
 function StaffDashboardPage() {
     const { user } = useAuth()
@@ -197,6 +198,61 @@ function StaffDashboardPage() {
             default: return priority
         }
     }
+
+    const ticketColumns = useMemo(() => [
+        { key: 'id', header: 'ID', width: '70px', cell: (t) => <span className="text-gray-400 text-sm">#{t.id}</span> },
+        { key: 'user', header: 'Пользователь', width: '1.5fr', cell: (t) => <span className="text-white text-sm">{t.user}</span> },
+        { key: 'subject', header: 'Тема', width: '2fr', cell: (t) => <span className="text-gray-300 text-sm">{t.subject}</span> },
+        {
+            key: 'priority',
+            header: 'Приоритет',
+            width: '120px',
+            cell: (t) => (
+                <select
+                    value={t.priority}
+                    onChange={e => changePriority(t.id, e.target.value)}
+                    className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getPriorityStyle(t.priority)}`}
+                >
+                    <option value="high" className="bg-[#1a1a24]">Высокий</option>
+                    <option value="medium" className="bg-[#1a1a24]">Средний</option>
+                    <option value="low" className="bg-[#1a1a24]">Низкий</option>
+                </select>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Статус',
+            width: '130px',
+            cell: (t) => (
+                <select
+                    value={t.status}
+                    onChange={e => changeStatus(t.id, e.target.value)}
+                    className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getStatusStyle(t.status)}`}
+                >
+                    <option value="open" className="bg-[#1a1a24]">Открыт</option>
+                    <option value="in_progress" className="bg-[#1a1a24]">В работе</option>
+                    <option value="waiting" className="bg-[#1a1a24]">Ожидает ответа</option>
+                    <option value="closed" className="bg-[#1a1a24]">Закрыт</option>
+                </select>
+            ),
+        },
+        { key: 'assignedTo', header: 'Назначен', width: '110px', cell: (t) => <span className="text-gray-300 text-xs">{t.assignedTo ? t.assignedTo.split('@')[0] : '—'}</span> },
+        { key: 'time', header: 'Время', width: '100px', cell: (t) => <span className="text-gray-500 text-sm">{t.time}</span> },
+        {
+            key: 'actions',
+            header: 'Действие',
+            width: '110px',
+            sortable: false,
+            cell: (t) => (
+                <button
+                    onClick={() => { setSelectedTicket(t); setReplyText(''); setShowTicketModal(true) }}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
+                >
+                    <ArrowUpRight size={12} /> Открыть
+                </button>
+            ),
+        },
+    ], [changePriority, changeStatus, getPriorityStyle, getStatusStyle])
 
     // --- TICKET ACTIONS ---
     const openTicket = (ticket) => {
@@ -415,70 +471,19 @@ function StaffDashboardPage() {
 
                 {viewMode === 'table' && (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="text-left text-gray-500 text-sm border-b border-white/5">
-                                    <th className="p-4">ID</th>
-                                    <th className="p-4">Пользователь</th>
-                                    <th className="p-4">Тема</th>
-                                    <th className="p-4">Приоритет</th>
-                                    <th className="p-4">Статус</th>
-                                    <th className="p-4">Назначен</th>
-                                    <th className="p-4">Время</th>
-                                    <th className="p-4">Действие</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredTickets.map((ticket) => (
-                                    <tr key={ticket.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                                        <td className="p-4 text-gray-400 text-sm">#{ticket.id}</td>
-                                        <td className="p-4 text-white text-sm">{ticket.user}</td>
-                                        <td className="p-4 text-gray-300 text-sm">{ticket.subject}</td>
-                                        <td className="p-4">
-                                            <select
-                                                value={ticket.priority}
-                                                onChange={e => changePriority(ticket.id, e.target.value)}
-                                                className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getPriorityStyle(ticket.priority)}`}
-                                            >
-                                                <option value="high" className="bg-[#1a1a24]">Высокий</option>
-                                                <option value="medium" className="bg-[#1a1a24]">Средний</option>
-                                                <option value="low" className="bg-[#1a1a24]">Низкий</option>
-                                            </select>
-                                        </td>
-                                        <td className="p-4">
-                                            <select
-                                                value={ticket.status}
-                                                onChange={e => changeStatus(ticket.id, e.target.value)}
-                                                className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getStatusStyle(ticket.status)}`}
-                                            >
-                                                <option value="open" className="bg-[#1a1a24]">Открыт</option>
-                                                <option value="in_progress" className="bg-[#1a1a24]">В работе</option>
-                                                <option value="waiting" className="bg-[#1a1a24]">Ожидает ответа</option>
-                                                <option value="closed" className="bg-[#1a1a24]">Закрыт</option>
-                                            </select>
-                                        </td>
-                                        <td className="p-4 text-gray-300 text-xs">
-                                            {ticket.assignedTo ? ticket.assignedTo.split('@')[0] : '—'}
-                                        </td>
-                                        <td className="p-4 text-gray-500 text-sm">{ticket.time}</td>
-                                        <td className="p-4">
-                                            <button
-                                                onClick={() => openTicket(ticket)}
-                                                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
-                                            >
-                                                <ArrowUpRight size={12} /> Открыть
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {filteredTickets.length === 0 && (
-                            <div className="p-8 text-center text-gray-500">
-                                <Search size={32} className="mx-auto mb-3 opacity-50" />
-                                <p>Тикеты не найдены</p>
-                            </div>
-                        )}
+                        <VirtualTable
+                            data={filteredTickets}
+                            columns={ticketColumns}
+                            rowHeight={56}
+                            maxHeight={500}
+                            keyExtractor={(t) => t.id}
+                            emptyMessage={
+                                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                    <Search size={32} className="mb-3 opacity-50" />
+                                    <p>Тикеты не найдены</p>
+                                </div>
+                            }
+                        />
                     </div>
                 )}
 
