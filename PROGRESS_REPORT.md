@@ -2395,5 +2395,5 @@
 - [x] LegalPage luxury redesign (hero serif, glass sections, footer): да
 - [x] Backend node --check: успешно
 - [x] Frontend build: успешно
-- [x] Git push: выполнен (коммит 6bf994ed)
+- [x] Git push: выполнен (коммит 07603d55)
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
