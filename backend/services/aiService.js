@@ -317,12 +317,26 @@ async function chatWithGroq(prompt) {
         throw new Error('No valid Groq key')
     }
     console.log('🚀 Calling Groq...')
-    const res = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 2048
-    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 15000 })
-    return res.data.choices[0].message.content
+    // [P16-FINAL] added: Groq model fallback chain (3.3 primary → 3.1-8b-instant if decommissioned)
+    const models = [
+        process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+        'llama-3.1-8b-instant'
+    ]
+    let lastErr
+    for (const model of models) {
+        try {
+            const res = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+                model,
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 2048
+            }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 15000 })
+            return res.data.choices[0].message.content
+        } catch (err) {
+            lastErr = err
+            console.log(`[Groq] ${model} failed:`, err.message)
+        }
+    }
+    throw lastErr
 }
 
 async function chatWithMistral(prompt) {
@@ -625,9 +639,7 @@ export const streamChat = async (message, history = [], onChunk) => {
         const messages = formatMessages(message, history)
         const stream = await client.chat.completions.create({
             messages,
-            model: process.env.GROQ_MODEL && !process.env.GROQ_MODEL.includes('llama-3.1-70b-versatile')
-                ? process.env.GROQ_MODEL
-                : 'llama-3.3-70b-versatile',
+            model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
             temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
             max_tokens: parseInt(process.env.GROQ_MAX_TOKENS || '4096'),
             stream: true
