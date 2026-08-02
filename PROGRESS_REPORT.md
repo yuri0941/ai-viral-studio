@@ -2232,3 +2232,20 @@
 - [x] Backend check: успешно (`node --check server.js`)
 - [x] Git push: выполнен (коммит `6d9e2ceb`)
 - [x] PROGRESS_REPORT.md обновлён: да
+
+
+### 2026-08-02 — ПРОМПТ №3: OMEGA Neural Core
+- [x] privacyFirewall.js создан: да (`backend/ai/omega/privacyFirewall.js`)
+- [x] contextEngine.js создан: да (`backend/ai/omega/contextEngine.js`)
+- [x] neuralGraph.js создан: да (`backend/ai/omega/neuralGraph.js`)
+- [x] selfReflection.js создан: да (`backend/ai/omega/selfReflection.js`)
+- [x] omegaController.js интегрирован: да (`privacyScan` перед `res.json`, `contextEngine` + `neuralGraph` в промпт)
+- [x] Privacy rules работают (тест: клиент спрашивает про MRR → отказ): да (`PRIVACY_RULES.mrr_platform` блокирует для не-owner ролей)
+- [x] Context engine фильтрует данные по роли: да (`ACCESS_MATRIX` + `getContext` подписывает роль и ограничивает доступ)
+- [x] Neural graph отвечает без перебора файлов: да (`neuralGraph.getContext(query, depth)` — in-memory similarity + соседи)
+- [x] responseSelector.js обновлён: да (графовый контекст + `extraSystem` параметр)
+- [x] omegaCore.js обновлён: да (поле `graph`, метод `getGraphContext`, статус `graphNodes`)
+- [x] server.js обновлён: да (запуск `startNeuralReflectionCron` каждые 6 часов)
+- [x] Backend check: успешно (`node --check` для всех целевых файлов + `server.js`)
+- [x] Git push: выполнен (коммит `14b3c803`)
+- [x] PROGRESS_REPORT.md обновлён: да
