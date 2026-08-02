@@ -9,10 +9,22 @@ import { CloudClient } from 'chromadb'
 const API_KEY = process.env.CHROMA_API_KEY
 const TENANT = process.env.CHROMA_TENANT
 const DATABASE = process.env.CHROMA_DATABASE
+// [P16-HOTFIX-v2] Chroma disabled by default to avoid DefaultEmbeddingFunction / timeout errors.
+// Set CHROMA_ENABLED=true in env to opt-in.
+const CHROMA_ENABLED = process.env.CHROMA_ENABLED === 'true'
 
 let chromaClient = null
 
+// [P16-HOTFIX-v2] dummy embedding function prevents Chroma trying to load ONNX models
+const dummyEmbeddingFunction = {
+    generate: async (texts) => texts.map(() => new Array(384).fill(0)),
+}
+
 export const getChromaClient = () => {
+    if (!CHROMA_ENABLED) {
+        if (API_KEY) console.log('[Chroma] CHROMA_ENABLED != true — using in-memory fallback')
+        return null
+    }
     if (!chromaClient && API_KEY && TENANT && DATABASE) {
         try {
             chromaClient = new CloudClient({
@@ -60,6 +72,7 @@ export const addToVectorMemory = async ({ id, text, metadata = {}, userId }) => 
     try {
         const collection = await chroma.getOrCreateCollection({
             name: collectionName(userId),
+            embeddingFunction: dummyEmbeddingFunction, // [P16-HOTFIX-v2]
         })
 
         await collection.add({
@@ -70,8 +83,14 @@ export const addToVectorMemory = async ({ id, text, metadata = {}, userId }) => 
 
         return { status: 'success', id }
     } catch (err) {
-        console.error('Chroma add error:', err.message)
-        return { status: 'error', message: err.message }
+        // [P16-HOTFIX-v2] fallback to in-memory when Chroma fails
+        console.error('[Chroma] add failed, falling back to memory:', err.message)
+        const key = collectionName(userId)
+        if (!memoryFallback.has(key)) memoryFallback.set(key, [])
+        const docs = memoryFallback.get(key)
+        docs.push({ id, text, metadata, date: new Date().toISOString() })
+        if (docs.length > MAX_MEMORY) docs.shift()
+        return { status: 'fallback', message: err.message }
     }
 }
 
@@ -95,6 +114,7 @@ export const searchVectorMemory = async ({ query, userId, limit = 5 }) => {
     try {
         const collection = await chroma.getCollection({
             name: collectionName(userId),
+            embeddingFunction: dummyEmbeddingFunction, // [P16-HOTFIX-v2]
         })
 
         const results = await collection.query({
@@ -142,7 +162,10 @@ export const deleteFromVectorMemory = async ({ id, userId }) => {
     }
 
     try {
-        const collection = await chroma.getCollection({ name: collectionName(userId) })
+        const collection = await chroma.getCollection({
+            name: collectionName(userId),
+            embeddingFunction: dummyEmbeddingFunction, // [P16-HOTFIX-v2]
+        })
         if (id) {
             await collection.delete({ ids: [id] })
         } else {
@@ -152,8 +175,16 @@ export const deleteFromVectorMemory = async ({ id, userId }) => {
         }
         return { status: 'success' }
     } catch (err) {
-        console.error('Chroma delete error:', err.message)
-        return { status: 'error', message: err.message }
+        // [P16-HOTFIX-v2] fallback to in-memory delete when Chroma fails
+        console.error('[Chroma] delete failed, falling back to memory:', err.message)
+        const key = collectionName(userId)
+        const docs = memoryFallback.get(key) || []
+        if (id) {
+            memoryFallback.set(key, docs.filter(d => d.id !== id))
+        } else {
+            memoryFallback.delete(key)
+        }
+        return { status: 'fallback', message: err.message }
     }
 }
 

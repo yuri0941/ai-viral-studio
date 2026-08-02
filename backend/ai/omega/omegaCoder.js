@@ -126,13 +126,22 @@ export async function generatePatch(filePath, issueHint = '') {
         const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : raw
         parsed = JSON.parse(jsonStr)
     } catch (err) {
-        // [P16-HOTFIX] AI returned non-JSON: log and create a safe fallback patch
+        // [P16-HOTFIX-v2] AI returned non-JSON: try to extract JS code block or fall back to comments
         await logAttempt('parse_failed', { filePath, raw: raw.slice(0, 200) }, 'medium')
-        console.error('[OmegaCoder] AI returned non-JSON, using text fallback for', filePath)
+        console.error('[OmegaCoder] AI returned non-JSON, using code/text fallback for', filePath)
+        const codeMatch = raw.match(/```(?:js|javascript)?\n([\s\S]*?)```/)
+        if (codeMatch) {
+            return {
+                filePath,
+                description: 'AI generated JS code block',
+                patch: codeMatch[1].trim(),
+                generatedAt: new Date().toISOString(),
+            }
+        }
         return {
             filePath,
             description: `AI suggestion (raw): ${raw.slice(0, 200).replace(/\n/g, ' ')}`,
-            patch: `${code}\n\n// [P16-HOTFIX] AI suggested improvements (raw text):\n// ${raw.split('\n').join('\n// ')}`,
+            patch: `${code}\n\n// [P16-HOTFIX-v2] AI suggested improvements (raw text):\n// ${raw.split('\n').join('\n// ')}`,
             generatedAt: new Date().toISOString(),
         }
     }

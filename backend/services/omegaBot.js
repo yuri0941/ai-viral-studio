@@ -19,11 +19,12 @@ function createStubBot() {
 
 function attachHandlers(bot) {
   bot.on('polling_error', (err) => {
-    if (err && err.message && err.message.includes('409')) {
-      console.log('[omegaBot] Telegram 409 — another instance running, skipping')
+    const msg = err && err.message ? err.message : String(err)
+    if (msg.includes('409') || msg.includes('conflict')) {
+      console.log('[omegaBot] Telegram 409/conflict — another instance running, ignoring')
       return
     }
-    console.error('OmegaBot polling error:', err?.message || err)
+    console.error('OmegaBot polling error:', msg)
   })
 
   bot.on('webhook_error', (err) => {
@@ -32,27 +33,37 @@ function attachHandlers(bot) {
 }
 
 export function getOmegaBot() {
-  if (!instance) {
-    if (!token) {
-      console.log('⚠️ TELEGRAM_OMEGA_BOT_TOKEN not set, omega alerts bot disabled')
-      instance = createStubBot()
-      return instance
-    }
-
-    instance = new TelegramBot(token, { polling: false })
-    global.omegaBotInstance = instance // [P16-HOTFIX] survive hot-reload
-    attachHandlers(instance)
-
-    instance.deleteWebhook({ drop_pending_updates: true })
-      .then(() => {
-        console.log('[omegaBot] webhook deleted, starting polling')
-        instance.startPolling()
-      })
-      .catch((err) => {
-        console.warn('[omegaBot] deleteWebhook failed:', err.message, '- starting polling anyway')
-        instance.startPolling()
-      })
+  // [P16-HOTFIX-v2] global flag prevents duplicate polling / 409 conflict on Render hot-reload
+  if (global.omegaBotStarted) {
+    console.log('[omegaBot] Already started, skipping')
+    return instance || createStubBot()
   }
+  global.omegaBotStarted = true
+
+  if (!token) {
+    console.log('⚠️ TELEGRAM_OMEGA_BOT_TOKEN not set, omega alerts bot disabled')
+    instance = createStubBot()
+    return instance
+  }
+
+  instance = new TelegramBot(token, { polling: false })
+  global.omegaBotInstance = instance
+  attachHandlers(instance)
+
+  // [P16-HOTFIX-v2] delete webhook + pause before polling to avoid 409 conflict
+  ;(async () => {
+    try {
+      await instance.deleteWebhook({ drop_pending_updates: true })
+      await new Promise(r => setTimeout(r, 1000))
+      console.log('[omegaBot] webhook deleted, starting polling')
+      instance.startPolling()
+    } catch (err) {
+      console.warn('[omegaBot] deleteWebhook failed:', err.message, '- starting polling anyway')
+      await new Promise(r => setTimeout(r, 1000))
+      instance.startPolling()
+    }
+  })()
+
   return instance
 }
 

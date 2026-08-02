@@ -73,10 +73,50 @@ try {
     TEMPLATES = []
 }
 
+// [P16-HOTFIX-v2] built-in demo templates ensure OMEGA always replies usefully even without API keys
+const DEMO_TEMPLATES = [
+    {
+        id: 'greeting',
+        tags: ['привет', 'здравствуй', 'hello', 'hi', 'ку', 'start'],
+        response: 'Привет! Я OMEGA, ваш AI-ассистент по SMM. Готова помочь с идеями, скриптами, хуками и аналитикой. О чём поговорим?'
+    },
+    {
+        id: 'post',
+        tags: ['пост', 'запись', 'контент', 'текст', 'написать', 'создать'],
+        response: 'Вот идея для поста:\n\n🎯 Хук: «3 вещи, которые [ваша аудитория] делает не так»\n📝 Основная часть: короткий список с примерами.\n👉 CTA: «Сохраните, чтобы не потерять» или «Напишите в комментариях ваш вариант».\n\nЕсли хотите, могу написать полный текст под вашу нишу.'
+    },
+    {
+        id: 'script',
+        tags: ['скрипт', 'видео', ' reels', 'shorts', 'tiktok', 'сценарий'],
+        response: 'Сценарий для короткого видео (60 сек):\n\n0:00-0:03 — Хук: «Я ошибался 2 года, пока не узнал это»\n0:03-0:20 — Проблема + личная история.\n0:20-0:45 — 3 конкретных совета.\n0:45-0:55 — Подводка к CTA.\n0:55-1:00 — CTA: «Подпишись, если узнал что-то новое».'
+    },
+    {
+        id: 'analytics',
+        tags: ['анализ', 'аналитика', 'статистика', 'ctr', 'просмотры', 'подписчики'],
+        response: 'Для точного анализа подключите соцсети в разделе Интеграции. Пока могу дать общие рекомендации:\n\n• CTR обложки: ≥5% — хорошо, <3% — меняйте хук.\n• Удержание 30 сек: ≥50% — ролик «цепляет».\n• Лучшее время публикаций: обычно 18:00–21:00 в будни.'
+    },
+    {
+        id: 'hooks',
+        tags: ['хук', 'зацепка', 'внимание', 'первая фраза'],
+        response: '5 проверенных хуков:\n\n1. «Я потратил X лет, чтобы понять это…»\n2. «Никогда не делайте так с [тема]»\n3. «3 ошибки, которые убивают ваш [результат]»\n4. «Секрет, о котором молчат эксперты»\n5. «Вот почему ваш [процесс] не работает»'
+    },
+    {
+        id: 'trends',
+        tags: ['тренд', 'что вирусится', 'тренды', 'вирусный'],
+        response: 'Чтобы отслеживать тренды, используйте раздел Scout. Пока вот универсальный приём: ищите 5–10 топовых видео в вашей нише за последние 7 дней и выделяйте повторяющиеся паттерны — формат, длина, хук, CTA.'
+    },
+    {
+        id: 'generic',
+        tags: [],
+        response: 'Я готова помочь с контент-стратегией, скриптами, хуками и аналитикой. Опишите задачу подробнее — например, нишу, платформу и цель.'
+    }
+]
+
 function smartDemoReply(message, lang = 'ru') {
     const lower = message.toLowerCase()
+    const allTemplates = [...DEMO_TEMPLATES, ...TEMPLATES]
     // Match by tags; prefer templates with more matching tags
-    const scored = TEMPLATES
+    const scored = allTemplates
         .filter(t => Array.isArray(t.tags) && t.tags.length)
         .map(t => {
             const matches = t.tags.filter(tag => lower.includes(tag.toLowerCase())).length
@@ -88,7 +128,7 @@ function smartDemoReply(message, lang = 'ru') {
     if (scored.length) {
         return scored[0].response
     }
-    const generic = TEMPLATES.find(t => t.id === 'generic')
+    const generic = allTemplates.find(t => t.id === 'generic')
     return generic?.response || 'Я готова помочь с контент-стратегией, скриптами, хуками и аналитикой. Опиши задачу подробнее.'
 }
 
@@ -260,7 +300,11 @@ const formatMessages = (message, history = []) => {
 // ============ PROVIDER CALLS ============
 async function chatWithGroq(messages) {
     const key = await getKey('groq')
-    if (!key) throw new Error('Groq key missing')
+    if (!key || key.length < 20) {
+        // [P16-HOTFIX-v2] skip Groq quickly if key is missing/invalid
+        console.log('[Groq] No valid key, skipping')
+        throw new Error('No valid Groq key')
+    }
     console.log('🚀 Calling Groq...')
     const client = new Groq({ apiKey: key })
     const completion = await client.chat.completions.create({
@@ -311,22 +355,30 @@ async function chatWithOpenRouter(messages) {
     if (!key) throw new Error('OpenRouter key missing')
     console.log('🚀 Calling OpenRouter...')
 
-    // [P16-HOTFIX] Use stable free OpenRouter model; llama-3.3 often 400/404
-    const preferredModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free'
-    const fallbackModel = 'mistralai/mistral-7b-instruct:free'
+    // [P16-HOTFIX-v2] OpenRouter free model chain; skip invalid models quickly
+    const modelChain = [
+        process.env.OPENROUTER_MODEL,
+        'meta-llama/llama-3.1-8b-instruct:free',
+        'mistralai/mistral-7b-instruct:free',
+        'openai/gpt-3.5-turbo:free',
+    ].filter((m, i, arr) => m && arr.indexOf(m) === i)
 
-    try {
-        return await chatWithOpenRouterOnce(messages, preferredModel)
-    } catch (err) {
-        const status = err.response?.status
-        const msg = String(err.message).toLowerCase()
-        const isModelError = status === 404 || msg.includes('not found') || msg.includes('model') || msg.includes('invalid')
-        if (preferredModel !== fallbackModel && isModelError) {
-            console.log(`⚠️ OpenRouter ${preferredModel} unavailable, falling back to ${fallbackModel}`)
-            return await chatWithOpenRouterOnce(messages, fallbackModel)
+    let lastErr = null
+    for (const model of modelChain) {
+        try {
+            return await chatWithOpenRouterOnce(messages, model)
+        } catch (err) {
+            lastErr = err
+            console.warn(`⚠️ OpenRouter ${model} failed:`, err.message)
+            const status = err.response?.status
+            if (status === 400 || status === 404) {
+                console.log(`⏭️ OpenRouter ${model} invalid, trying next...`)
+                continue
+            }
+            throw err
         }
-        throw err
     }
+    throw lastErr || new Error('OpenRouter all models failed')
 }
 
 async function chatWithGemini(messages) {
@@ -345,7 +397,11 @@ async function chatWithGemini(messages) {
 
 async function chatWithGitHubModels(messages) {
     const key = await getKey('github')
-    if (!key) throw new Error('GitHub Models key missing')
+    if (!key || key.length < 20) {
+        // [P16-HOTFIX-v2] skip GitHub Models quickly if key is missing/invalid
+        console.log('[GitHub Models] No valid key, skipping')
+        throw new Error('No valid GitHub Models key')
+    }
     console.log('🚀 Calling GitHub Models...')
 
     // [P16-HOTFIX] GitHub Models fallback chain
@@ -597,13 +653,27 @@ async function chatWithFireworks(messages) {
 async function chatWithPollinationsText(messages) {
     const system = messages.find(m => m.role === 'system')?.content || SYSTEM_PROMPT
     const prompt = messages.filter(m => m.role !== 'system').map(m => `${m.role}: ${m.content}`).join('\n\n')
-    const fullPrompt = `${system}\n\n${prompt}`
+    // [P16-HOTFIX-v2] trim prompt to avoid 431 Request Header Fields Too Large
+    const fullPrompt = `${system}\n\n${prompt}`.substring(0, 2000)
     console.log('🚀 Calling Pollinations text...')
 
-    // [P16-HOTFIX] Pollinations new anonymous GET endpoint (no auth, no system param)
-    const encoded = encodeURIComponent(fullPrompt)
-    const url = `https://text.pollinations.ai/${encoded}?seed=${Math.floor(Math.random() * 1e6)}&json=false&anonymous=true`
-    const response = await axios.get(url, { timeout: 60000, responseType: 'text' })
+    // [P16-HOTFIX-v2] Pollinations POST endpoint to avoid long URL headers
+    const response = await axios.post(
+        'https://text.pollinations.ai/',
+        {
+            messages: [
+                { role: 'system', content: system.substring(0, 500) },
+                { role: 'user', content: fullPrompt }
+            ],
+            seed: Math.floor(Math.random() * 1e6),
+            jsonMode: false
+        },
+        {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 15000,
+            responseType: 'text'
+        }
+    )
     const text = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
     if (!text?.trim()) throw new Error('Empty Pollinations response')
     return { reply: text.trim(), provider: 'pollinations', usage: null }

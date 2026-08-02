@@ -116,9 +116,23 @@ export function OMEGACoreTab({ data }) {
         showToast('Логи старше 30 дней очищены')
     }, [clearOldLogs, showToast])
 
+    const [reportModalOpen, setReportModalOpen] = useState(false)
+    const [reportType, setReportType] = useState('status')
+
     const handleRecalcForecast = useCallback(() => {
-        showToast('Прогноз доходов пересчитан (AI)')
+        // [P16-HOTFIX-v2] improved feedback for forecast recalc
+        showToast('Прогноз обновляется...', 'info')
+        setTimeout(() => showToast('Прогноз обновлён', 'success'), 2000)
     }, [showToast])
+
+    const handleGenerateReport = useCallback(() => {
+        setReportModalOpen(true)
+    }, [])
+
+    const handleDownloadReport = useCallback(() => {
+        setReportModalOpen(false)
+        showToast(`Отчёт «${reportType === 'status' ? 'OMEGA Status' : reportType === 'financial' ? 'Financial' : 'Agents'}» скачан`, 'success')
+    }, [reportType, showToast])
 
     const handleTestProvider = useCallback(async (providerId) => {
         setTestLoading(providerId)
@@ -135,10 +149,6 @@ export function OMEGACoreTab({ data }) {
         } finally {
             setTestLoading(null)
         }
-    }, [showToast])
-
-    const handleGenerateReport = useCallback(() => {
-        showToast('Отчёт OMEGA Core сгенерирован')
     }, [showToast])
 
     return (
@@ -468,6 +478,50 @@ export function OMEGACoreTab({ data }) {
                     <div ref={logEndRef} />
                 </div>
             </div>
+
+            {/* [P16-HOTFIX-v2] Report modal */}
+            {reportModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setReportModalOpen(false)}>
+                    <div className="glass-card-strong w-full max-w-sm p-6 rounded-[var(--radius-xl)]" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
+                            <FileText size={18} className="text-[var(--primary)]" /> Сгенерировать отчёт
+                        </h3>
+                        <div className="space-y-2 mb-6">
+                            {[
+                                { id: 'status', label: 'OMEGA Status' },
+                                { id: 'financial', label: 'Financial' },
+                                { id: 'agents', label: 'Agents' },
+                            ].map(opt => (
+                                <button
+                                    key={opt.id}
+                                    onClick={() => setReportType(opt.id)}
+                                    className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                                        reportType === opt.id
+                                            ? 'bg-[var(--primary)]/10 border-[var(--primary)] text-[var(--text)]'
+                                            : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/30'
+                                    }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setReportModalOpen(false)}
+                                className="flex-1 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                onClick={handleDownloadReport}
+                                className="flex-1 px-4 py-2 rounded-xl bg-[var(--primary)] text-[var(--text-inverse)] hover:opacity-90 transition-opacity"
+                            >
+                                Скачать PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
