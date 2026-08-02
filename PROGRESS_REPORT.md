@@ -2397,3 +2397,23 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (коммит 07603d55)
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
+
+
+### [2026-08-02] — ПРОМПТ №16-HOTFIX: AI Providers + Luxury Redesign
+- [x] Pollinations 402 fixed (новый endpoint): да
+- [x] Groq ключ из env (не хардкод): да
+- [x] OpenRouter модель исправлена (400): да
+- [x] GitHub Models 401 fallback: да
+- [x] Chroma embedding error обёрнут в try-catch: да
+- [x] Telegram 409 fixed (singleton + skip): да
+- [x] OmegaCoder import error fixed: да
+- [x] OMEGA отвечает после deploy: требуется деплой
+- [x] SidebarDock 2.0: да
+- [x] Landing 2.0 (без glow, без beta): да
+- [x] Owner/Staff/Creator/Advertiser/Admin luxury: да
+- [x] OmegaChat drag-to-move: да
+- [x] Mobile adaptive: да
+- [x] Backend node --check: успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен (коммит 119b6628)
+- [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
