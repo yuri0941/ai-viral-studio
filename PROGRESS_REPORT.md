@@ -2214,3 +2214,21 @@
 - [ ] Render Clear build cache: требуется вручную в Dashboard
 - [ ] Login возвращает 200: проверить после деплоя
 - [x] PROGRESS_REPORT.md обновлён: да
+
+
+### 2026-08-02 — ПРОМПТ №2: Pre-Launch FOMO
+- [x] WaitlistSection.jsx создан: да (`frontend/src/pages/landing/WaitlistSection.jsx`)
+- [x] Waitlist модель создана/доработана: да (`backend/models/Waitlist.js` — добавлены niche, businessSize, referralCode, points, position, badge, calculatePosition)
+- [x] Launch роуты созданы/доработаны: да (`backend/routes/launch.js` — waitlist, count, position, referral, boost, beta/slots)
+- [x] ViralDemo.jsx создан: да (`frontend/src/pages/landing/ViralDemo.jsx`)
+- [x] Demo роуты созданы: да (`backend/routes/demo.js` — POST /api/demo/generate с rate limit 3/IP/час и кэшем по ниши TTL 1 час)
+- [x] PublicRoadmap.jsx создан: да (`frontend/src/pages/landing/PublicRoadmap.jsx`)
+- [x] RoadmapVote модель создана: да (`backend/models/RoadmapVote.js`)
+- [x] Roadmap роуты созданы: да (`backend/routes/roadmap.js` — GET /api/roadmap, POST /api/roadmap/:featureId/vote, GET /api/roadmap/top)
+- [x] BetaCounter.jsx создан: да (`frontend/src/components/landing/BetaCounter.jsx`)
+- [x] LandingPage обновлён: да (добавлены `<ViralDemo />`, `<WaitlistSection />`, `<BetaCounter />`, ссылка Roadmap в навигации)
+- [x] App.jsx обновлён: да (добавлен маршрут `/roadmap` → `<PublicRoadmap />`)
+- [x] Frontend build: успешно (warnings по chunk size и dynamic imports — не критичны)
+- [x] Backend check: успешно (`node --check server.js`)
+- [x] Git push: выполнен (коммит `6d9e2ceb`)
+- [x] PROGRESS_REPORT.md обновлён: да
