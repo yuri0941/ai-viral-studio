@@ -35,6 +35,7 @@ import { CookieConsent } from './components/CookieConsent'
 import GDPRPage from './pages/GDPRPage'
 import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
+import OnboardingWizard from './components/onboarding/OnboardingWizard'
 
 const PAGE_TITLES = {
     '/owner': 'Owner Dashboard',
@@ -276,6 +277,7 @@ function App() {
                 } />
                 <Route path="/launch" element={<LaunchPage />} />
                 <Route path="/roadmap" element={<PublicRoadmap />} />
+                <Route path="/onboarding" element={<OnboardingWizard />} />
 
                 <Route path="*" element={
                     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white">
