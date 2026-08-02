@@ -1,20 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { Twitter, Youtube, Send, MessageCircle } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 import AuthModal from '../components/auth/AuthModal'
 import { ClientChatWidget } from '../components/chat/ClientChatWidget'
 import { PWAInstallButton } from '../components/pwa/PWAInstallButton'
-import { ResponsiveAdBanner } from '../components/ads/ResponsiveAdBanner'
 import { ownerLegalInfoApi } from '../services/api.js'
 import WaitlistSection from './landing/WaitlistSection'
 import ViralDemo from './landing/ViralDemo'
 import BetaCounter from '../components/landing/BetaCounter'
 
 function LandingPage() {
+    const { isAuthenticated } = useAuth()
     const [authModalOpen, setAuthModalOpen] = useState(false)
     const [authModalMode, setAuthModalMode] = useState('login')
     const [scrolled, setScrolled] = useState(false)
     const [activeFeature, setActiveFeature] = useState(0)
     const [legalInfo, setLegalInfo] = useState(null)
+    const [chatWidgetOpen, setChatWidgetOpen] = useState(false)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -382,64 +385,113 @@ function LandingPage() {
             {/* Waitlist Section */}
             <WaitlistSection />
 
-            {/* Footer */}
-            <footer className="py-16 border-t border-white/5">
+            {/* [P16] Advertiser CTA for non-authenticated visitors */}
+            {!isAuthenticated && (
+                <section className="py-24 relative bg-gradient-to-b from-[var(--bg)] to-[var(--bg-secondary)]">
+                    <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
+                        <div className="rounded-3xl p-10 md:p-14 border border-[var(--border)] bg-[var(--card)] shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--primary)]/10 rounded-full blur-3xl" />
+                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[var(--accent)]/10 rounded-full blur-3xl" />
+                            <div className="relative z-10">
+                                <h2 className="text-3xl md:text-4xl font-black mb-4 text-[var(--text)]">Хотите разместить рекламу?</h2>
+                                <p className="text-[var(--text-muted)] text-lg mb-8 max-w-xl mx-auto">
+                                    Расскажите о своём продукте тысячам создателей и рекламодателей AI Viral Studio.
+                                </p>
+                                <button
+                                    onClick={() => setChatWidgetOpen(true)}
+                                    className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[var(--primary)] text-white font-medium hover:opacity-90 transition-opacity"
+                                >
+                                    <MessageCircle className="w-5 h-5" />
+                                    Обсудить размещение
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* [P16] Luxury Footer */}
+            <footer className="py-16 border-t border-[var(--border)] bg-[var(--bg-secondary)]">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="grid md:grid-cols-4 gap-12 mb-12">
+                    <div className="grid md:grid-cols-5 gap-12 mb-12">
                         <div className="md:col-span-2">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00ff41] to-[#2563eb] flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                                     </svg>
                                 </div>
-                                <span className="text-lg font-bold gradient-text">AI Viral Studio</span>
+                                <span className="text-xl font-bold gradient-text">AI Viral Studio</span>
                             </div>
-                            <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+                            <p className="text-[var(--text-muted)] text-sm leading-relaxed max-w-sm mb-6">
                                 AI-платформа для создания вирусного контента. Генерация скриптов, анализ трендов и автопостинг в одном месте.
                             </p>
-                            <p className="text-gray-500 text-sm mt-4">
-                                {legalInfo?.operatorName
-                                    ? <>Оператор: {legalInfo.operatorName}</>
-                                    : <>Оператор: [Укажите в Юридических настройках владельца]</>}
-                            </p>
-                            <p className="text-gray-500 text-sm">
-                                {legalInfo?.contactEmail
-                                    ? <>По вопросам: <a href={`mailto:${legalInfo.contactEmail}`} className="hover:text-white transition-colors">{legalInfo.contactEmail}</a></>
-                                    : <>По вопросам: [Укажите email в настройках]</>}
-                            </p>
+                            <div className="flex items-center gap-4">
+                                <a href="https://t.me/aiviralstudio" target="_blank" rel="noreferrer" className="p-2 rounded-lg bg-[var(--bg)] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="Telegram">
+                                    <Send className="w-5 h-5" />
+                                </a>
+                                <a href="https://vk.com/aiviralstudio" target="_blank" rel="noreferrer" className="p-2 rounded-lg bg-[var(--bg)] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="VK">
+                                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.862-.523-2.049-1.714-1.033-1.033-1.49-1.171-1.744-1.171-.356 0-.458.102-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4 8.994 4 8.604c0-.254.102-.491.593-.491h1.744c.44 0 .61.203.78.678.863 2.49 2.303 4.675 2.896 4.675.22 0 .322-.102.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.17-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .372.17.508.271.508.22 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.27.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .78.186.254.796.779 1.203 1.253.745.847 1.32 1.558 1.473 2.049.17.475-.085.72-.576.72z"/></svg>
+                                </a>
+                                <a href="https://youtube.com/@aiviralstudio" target="_blank" rel="noreferrer" className="p-2 rounded-lg bg-[var(--bg)] text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors" aria-label="YouTube">
+                                    <Youtube className="w-5 h-5" />
+                                </a>
+                                <a href="https://x.com/aiviralstudio" target="_blank" rel="noreferrer" className="p-2 rounded-lg bg-[var(--bg)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors" aria-label="X / Twitter">
+                                    <Twitter className="w-5 h-5" />
+                                </a>
+                            </div>
                         </div>
                         <div>
-                            <h4 className="font-semibold mb-4">Продукт</h4>
-                            <ul className="space-y-3 text-sm text-gray-400">
-                                <li><a href="#features" className="hover:text-white transition-colors">Фичи</a></li>
-                                <li><a href="#pricing" className="hover:text-white transition-colors">Тарифы</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">API</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Обновления</a></li>
+                            <h4 className="font-semibold mb-4 text-[var(--text)]">Продукт</h4>
+                            <ul className="space-y-3 text-sm text-[var(--text-muted)]">
+                                <li><a href="#features" className="hover:text-[var(--text)] transition-colors">Фичи</a></li>
+                                <li><a href="#pricing" className="hover:text-[var(--text)] transition-colors">Тарифы</a></li>
+                                <li><a href="#how-it-works" className="hover:text-[var(--text)] transition-colors">Как работает</a></li>
+                                <li><Link to="/roadmap" className="hover:text-[var(--text)] transition-colors">Roadmap</Link></li>
                             </ul>
                         </div>
                         <div>
-                            <h4 className="font-semibold mb-4">Компания</h4>
-                            <ul className="space-y-3 text-sm text-gray-400">
-                                <li><Link to="/privacy-policy" className="hover:text-white transition-colors">Политика конфиденциальности</Link></li>
-                                <li><Link to="/terms-of-service" className="hover:text-white transition-colors">Условия использования</Link></li>
-                                <li><Link to="/consent" className="hover:text-white transition-colors">Согласие на обработку ПДн</Link></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Контакты</a></li>
+                            <h4 className="font-semibold mb-4 text-[var(--text)]">Компания</h4>
+                            <ul className="space-y-3 text-sm text-[var(--text-muted)]">
+                                <li><Link to="/privacy-policy" className="hover:text-[var(--text)] transition-colors">Privacy</Link></li>
+                                <li><Link to="/terms-of-service" className="hover:text-[var(--text)] transition-colors">Terms</Link></li>
+                                <li><Link to="/consent" className="hover:text-[var(--text)] transition-colors">Consent</Link></li>
+                                <li><a href="#" className="hover:text-[var(--text)] transition-colors">Контакты</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mb-4 text-[var(--text)]">Ресурсы</h4>
+                            <ul className="space-y-3 text-sm text-[var(--text-muted)]">
+                                <li><a href="#" className="hover:text-[var(--text)] transition-colors">Блог</a></li>
+                                <li><a href="#" className="hover:text-[var(--text)] transition-colors">Документация</a></li>
+                                <li><a href="#" className="hover:text-[var(--text)] transition-colors">API</a></li>
+                                <li><a href="#" className="hover:text-[var(--text)] transition-colors">Статус системы</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mb-4 text-[var(--text)]">Контакты</h4>
+                            <ul className="space-y-3 text-sm text-[var(--text-muted)]">
+                                <li>{legalInfo?.operatorName || 'AI Viral Studio'}</li>
+                                <li>
+                                    <a href={`mailto:${legalInfo?.contactEmail || 'support@aiviral-studio.ru'}`} className="hover:text-[var(--text)] transition-colors">
+                                        {legalInfo?.contactEmail || 'support@aiviral-studio.ru'}
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </div>
-                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 mb-8">
-                        <p className="text-xs text-gray-500 leading-relaxed">
-                            <strong>Дисклеймер:</strong> Сервис предоставляет инструменты для генерации контента. Результаты носят рекомендательный характер. Мы не гарантируем вирусность, охваты или продажи. Весь публикуемый контент размещается клиентом самостоятельно. OMEGA даёт рекомендации. Перед публикацией проверьте контент на соответствие законодательству РФ.
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 mb-8">
+                        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                            <strong className="text-[var(--text)]">Дисклеймер:</strong> Сервис предоставляет инструменты для генерации контента. Результаты носят рекомендательный характер. Мы не гарантируем вирусность, охваты или продажи. Весь публикуемый контент размещается клиентом самостоятельно. OMEGA даёт рекомендации. Перед публикацией проверьте контент на соответствие законодательству РФ.
                         </p>
                     </div>
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-white/5">
-                        <div className="text-sm text-gray-500">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-[var(--border)]">
+                        <div className="text-sm text-[var(--text-muted)]">
                             © 2026 AI Viral Studio. Все права защищены.
                         </div>
-                        <div className="flex gap-6 text-sm text-gray-400">
-                            <Link to="/privacy-policy" className="hover:text-white transition-colors">Политика конфиденциальности</Link>
-                            <Link to="/terms-of-service" className="hover:text-white transition-colors">Условия использования</Link>
+                        <div className="flex gap-6 text-sm text-[var(--text-muted)]">
+                            <Link to="/privacy-policy" className="hover:text-[var(--text)] transition-colors">Политика конфиденциальности</Link>
+                            <Link to="/terms-of-service" className="hover:text-[var(--text)] transition-colors">Условия использования</Link>
                         </div>
                     </div>
                 </div>
@@ -453,11 +505,8 @@ function LandingPage() {
                 onSuccess={() => { setAuthModalOpen(false); navigate('/dashboard') }}
             />
 
-            {/* Responsive mobile ad banner */}
-            <ResponsiveAdBanner variant="landing-mobile" />
-
             {/* Client chat widget */}
-            <ClientChatWidget />
+            <ClientChatWidget open={chatWidgetOpen} onOpenChange={setChatWidgetOpen} />
         </div>
     )
 }

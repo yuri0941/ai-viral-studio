@@ -15,10 +15,10 @@ export function AgentsTab({ data }) {
             render: (row) => (
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
-                        <Bot size={16} className="text-white" />
+                        <Bot size={16} className="text-[var(--text)]" />
                     </div>
                     <div>
-                        <div className="text-sm font-medium text-white">{row.name}</div>
+                        <div className="text-sm font-medium text-[var(--text)]">{row.name}</div>
                         <div className="text-xs text-gray-500">{row.role}</div>
                     </div>
                 </div>
@@ -50,7 +50,7 @@ export function AgentsTab({ data }) {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Bot size={18} className="text-purple-400" />
-                    <h2 className="text-lg font-semibold text-white">AI Агенты</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text)]">AI Агенты</h2>
                     <StatusBadge status="active" label={`${agents.filter(a => a.status === 'active').length} онлайн`} pulse />
                 </div>
                 <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/20 border border-purple-500/30 text-sm text-purple-400 font-medium hover:bg-purple-500/30 transition-colors">
@@ -59,15 +59,15 @@ export function AgentsTab({ data }) {
             </div>
 
             {showAdd && (
-                <div className="p-4 rounded-2xl bg-[#0f0f1a] border border-white/5 space-y-3">
-                    <h3 className="text-sm font-semibold text-white">Новый AI Агент</h3>
+                <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] space-y-3">
+                    <h3 className="text-sm font-semibold text-[var(--text)]">Новый AI Агент</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Название" className="px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-purple-500/30" />
-                        <input value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} placeholder="Роль (например: Аналитика)" className="px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-purple-500/30" />
-                        <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Описание" className="px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-purple-500/30" />
+                        <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Название" className="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-purple-500/30" />
+                        <input value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} placeholder="Роль (например: Аналитика)" className="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-purple-500/30" />
+                        <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Описание" className="px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-purple-500/30" />
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => setShowAdd(false)} className="px-4 py-2 rounded-xl border border-white/10 text-xs text-gray-300 hover:bg-white/5">Отмена</button>
+                        <button onClick={() => setShowAdd(false)} className="px-4 py-2 rounded-xl border border-[var(--border)] text-xs text-gray-300 hover:bg-white/5">Отмена</button>
                         <button onClick={() => { addAgent(form); setShowAdd(false); setForm({ name: '', role: '', description: '' }) }} className="px-4 py-2 rounded-xl bg-purple-500/20 border border-purple-500/30 text-xs text-purple-400 hover:bg-purple-500/30">Создать</button>
                     </div>
                 </div>

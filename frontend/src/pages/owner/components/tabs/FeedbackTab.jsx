@@ -57,19 +57,19 @@ export function FeedbackTab({ data }) {
         <div className="space-y-6 max-w-4xl">
             <div className="flex items-center gap-3">
                 <MessageSquare size={20} className="text-purple-400" />
-                <h2 className="text-lg font-semibold text-white">Обратная связь</h2>
+                <h2 className="text-lg font-semibold text-[var(--text)]">Обратная связь</h2>
             </div>
 
             {/* Form */}
-            <form onSubmit={submit} className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5 space-y-4">
-                <h3 className="text-sm font-semibold text-white">Новое обращение</h3>
+            <form onSubmit={submit} className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5 space-y-4">
+                <h3 className="text-sm font-semibold text-[var(--text)]">Новое обращение</h3>
                 <div>
                     <label className="text-[10px] text-gray-500 mb-1.5 block">Тема</label>
                     <input
                         value={form.title}
                         onChange={e => setForm({ ...form, title: e.target.value })}
                         placeholder="Кратко опишите проблему или идею"
-                        className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/30"
+                        className="w-full bg-white/5 border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-purple-500/30"
                     />
                 </div>
                 <div>
@@ -79,14 +79,14 @@ export function FeedbackTab({ data }) {
                         onChange={e => setForm({ ...form, body: e.target.value })}
                         placeholder="Подробности..."
                         rows={3}
-                        className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/30 resize-none"
+                        className="w-full bg-white/5 border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-purple-500/30 resize-none"
                     />
                 </div>
                 <div className="flex items-center gap-3">
                     <select
                         value={form.type}
                         onChange={e => setForm({ ...form, type: e.target.value })}
-                        className="bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-purple-500/30"
+                        className="bg-white/5 border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-purple-500/30"
                     >
                         <option value="feature">Feature</option>
                         <option value="bug">Bug</option>
@@ -105,15 +105,15 @@ export function FeedbackTab({ data }) {
 
             {/* List */}
             <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-white">История обращений</h3>
+                <h3 className="text-sm font-semibold text-[var(--text)]">История обращений</h3>
                 {sorted.length === 0 && <div className="text-center text-gray-500 text-sm py-8">Нет обращений</div>}
                 {sorted.map(item => {
                     const meta = STATUS_META[item.status] || STATUS_META.open
                     return (
-                        <div key={item.id} className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-4">
+                        <div key={item.id} className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
                             <div className="flex items-start justify-between gap-4 mb-2">
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-white mb-1">{item.title}</div>
+                                    <div className="text-sm font-medium text-[var(--text)] mb-1">{item.title}</div>
                                     <div className="text-xs text-gray-400">{item.body}</div>
                                 </div>
                                 <StatusBadge status={meta.color} label={meta.label} />

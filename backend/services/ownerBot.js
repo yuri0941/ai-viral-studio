@@ -5,7 +5,7 @@ let ownerBot
 
 if (!token) {
   console.log('⚠️ TELEGRAM_BOT_TOKEN not set, owner bot disabled')
-  // Возвращаем заглушку, чтобы не ломать импорты
+  // [P16] stub so imports don't break
   ownerBot = {
     sendMessage: () => Promise.resolve(),
     onText: () => {},
@@ -13,19 +13,10 @@ if (!token) {
     processUpdate: () => {},
   }
 } else {
-  const isDev = process.env.NODE_ENV !== 'production'
+  // [P16] Always use polling (Render + webhook removed earlier caused conflicts)
+  const bot = new TelegramBot(token, { polling: true })
 
-  // В production НЕТ polling и НЕТ встроенного webhook-сервера
-  const bot = new TelegramBot(token, {
-    polling: isDev ? { interval: 300 } : false,
-  })
-
-  if (!isDev && process.env.RENDER_EXTERNAL_URL) {
-    const webhookUrl = `${process.env.RENDER_EXTERNAL_URL}/bot${token}`
-    bot.setWebhook(webhookUrl).catch(err => {
-      console.log('Telegram webhook setup failed:', err.message)
-    })
-  }
+  bot.on('polling_error', (err) => console.error('OwnerBot polling error:', err.message))
 
   bot.onText(/\/start/, (msg) => bot.sendMessage(msg.chat.id, 'Бот активирован. Команды: /status'))
 

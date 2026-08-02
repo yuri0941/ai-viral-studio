@@ -3,7 +3,7 @@ import { KPICard } from '../common/KPICard'
 import { StatusBadge } from '../common/StatusBadge'
 import {
     Brain, Activity, Zap, RefreshCw, Trash2, Terminal,
-    AlertTriangle, Server, Bot, Play, FileText, Wifi, ToggleLeft, ToggleRight, KeyRound, Moon,
+    AlertTriangle, Server, Bot, Play, FileText, Wifi, ToggleLeft, ToggleRight, KeyRound, Moon, Sparkles,
 } from 'lucide-react'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
 import {
@@ -26,6 +26,14 @@ export function OMEGACoreTab({ data }) {
     const [autopilotLoading, setAutopilotLoading] = useState(false)
     const [features, setFeatures] = useState({ autopilot: false, predictive: false, repurposing: false, voice: false })
     const [featuresLoading, setFeaturesLoading] = useState(false)
+    const [reflection, setReflection] = useState({ active: false, lessonCount: 0 })
+
+    useEffect(() => {
+        fetch('/api/omega/self-reflection')
+            .then(r => r.ok ? r.json() : null)
+            .then(json => setReflection(json?.data || { active: false, lessonCount: 0 }))
+            .catch(() => {})
+    }, [])
 
     useEffect(() => {
         fetch('/api/owner/settings')
@@ -139,8 +147,12 @@ export function OMEGACoreTab({ data }) {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Brain size={20} className="text-purple-400" />
-                    <h2 className="text-lg font-semibold text-white">OMEGA Core</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text)]">OMEGA Core</h2>
                     <StatusBadge status="active" label="ONLINE" pulse />
+                    <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border ${reflection.active ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-gray-500/10 border-gray-500/20 text-gray-400'}`}>
+                        <Sparkles size={12} />
+                        Self-Reflection {reflection.active ? 'Active' : 'Paused'} · {reflection.lessonCount} lessons
+                    </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <button
@@ -252,8 +264,8 @@ export function OMEGACoreTab({ data }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Agents */}
-                <div className="lg:col-span-2 rounded-2xl bg-[#0f0f1a] border border-white/5 p-5">
-                    <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <div className="lg:col-span-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Bot size={16} className="text-purple-400" /> AI Агенты
                     </h3>
                     {agents.length === 0 ? (
@@ -270,15 +282,15 @@ export function OMEGACoreTab({ data }) {
                             {agents.map(agent => (
                                 <div
                                     key={agent.id}
-                                    className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all"
+                                    className="p-4 rounded-xl bg-white/[0.02] border border-[var(--border)] hover:border-[var(--border)] transition-all"
                                 >
                                     <div className="flex items-start justify-between mb-2">
                                         <div className="flex items-center gap-3">
                                             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
-                                                <Bot size={16} className="text-white" />
+                                                <Bot size={16} className="text-[var(--text)]" />
                                             </div>
                                             <div>
-                                                <div className="text-sm font-medium text-white">{agent.name}</div>
+                                                <div className="text-sm font-medium text-[var(--text)]">{agent.name}</div>
                                                 <div className="text-[10px] text-gray-500">{agent.role}</div>
                                             </div>
                                         </div>
@@ -300,24 +312,24 @@ export function OMEGACoreTab({ data }) {
                 </div>
 
                 {/* Providers */}
-                <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5">
-                    <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Wifi size={16} className="text-blue-400" /> AI Провайдеры
                     </h3>
                     <div className="space-y-3">
                         {PROVIDERS.map(provider => (
                             <div
                                 key={provider.id}
-                                className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5"
+                                className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-[var(--border)]"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={`w-2 h-2 rounded-full ${provider.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-                                    <span className="text-sm text-white">{provider.name}</span>
+                                    <span className="text-sm text-[var(--text)]">{provider.name}</span>
                                 </div>
                                 <button
                                     onClick={() => handleTestProvider(provider.id)}
                                     disabled={testLoading === provider.id}
-                                    className="text-[10px] px-2 py-1 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+                                    className="text-[10px] px-2 py-1 rounded-lg bg-white/5 text-gray-400 hover:text-[var(--text)] hover:bg-white/10 transition-colors disabled:opacity-50"
                                 >
                                     {testLoading === provider.id ? '...' : 'Тест'}
                                 </button>
@@ -325,7 +337,7 @@ export function OMEGACoreTab({ data }) {
                         ))}
                     </div>
 
-                    <h3 className="text-sm font-semibold text-white mt-6 mb-3 flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-[var(--text)] mt-6 mb-3 flex items-center gap-2">
                         <Activity size={16} className="text-emerald-400" /> Здоровье бизнеса
                     </h3>
                     <div className="flex items-center justify-center py-4">
@@ -337,7 +349,7 @@ export function OMEGACoreTab({ data }) {
                                     strokeLinecap="round" className="drop-shadow-[0_0_8px_rgba(0,255,65,0.5)]" />
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-2xl font-bold text-white">{aiAnalytics.businessHealth}</span>
+                                <span className="text-2xl font-bold text-[var(--text)]">{aiAnalytics.businessHealth}</span>
                             </div>
                         </div>
                     </div>
@@ -346,8 +358,8 @@ export function OMEGACoreTab({ data }) {
             </div>
 
             {/* System load chart */}
-            <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5">
-                <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                     <Server size={16} className="text-blue-400" /> Загрузка серверов
                 </h3>
                 <div className="h-64">
@@ -369,19 +381,19 @@ export function OMEGACoreTab({ data }) {
             </div>
 
             {/* Logs console */}
-            <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5">
+            <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
                         <Terminal size={16} className="text-gray-400" /> Консоль логов
                     </h3>
                     <button
                         onClick={handleClearLogs}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 text-xs text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 text-xs text-gray-400 hover:text-[var(--text)] hover:bg-white/10 transition-colors"
                     >
                         <Trash2 size={12} /> Очистить &gt;30 дней
                     </button>
                 </div>
-                <div className="h-48 overflow-y-auto rounded-xl bg-black/40 border border-white/5 p-3 font-mono text-xs space-y-1">
+                <div className="h-48 overflow-y-auto rounded-xl bg-black/40 border border-[var(--border)] p-3 font-mono text-xs space-y-1">
                     {systemLogs.length === 0 && (
                         <div className="text-gray-600">Нет логов...</div>
                     )}

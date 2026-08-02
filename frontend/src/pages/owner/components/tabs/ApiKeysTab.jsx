@@ -162,14 +162,14 @@ export function ApiKeysTab({ data }) {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-lg font-semibold text-white">API Keys</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text)]">API Keys</h2>
                     <p className="text-xs text-gray-500 mt-1">Управление ключами AI-провайдеров и интеграций</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={fetchStatus}
                         disabled={loadingStatus}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-400 hover:text-[var(--text)] hover:bg-white/10 transition-colors disabled:opacity-50"
                     >
                         <RefreshCw size={12} className={loadingStatus ? 'animate-spin' : ''} />
                         Обновить статус
@@ -189,14 +189,14 @@ export function ApiKeysTab({ data }) {
                     const isPollinations = provider.id === 'pollinations'
                     const isSystem = provider.type === 'system'
                     return (
-                    <div key={provider.id} className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5">
+                    <div key={provider.id} className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
                                     {isPollinations ? <Wind size={18} className="text-emerald-400" /> : isSystem ? <Server size={18} className="text-blue-400" /> : <Key size={18} className="text-purple-400" />}
                                 </div>
                                 <div>
-                                    <div className="text-sm font-medium text-white">{provider.name}</div>
+                                    <div className="text-sm font-medium text-[var(--text)]">{provider.name}</div>
                                     <div className="text-[10px] text-gray-500">{provider.env || '—'}</div>
                                 </div>
                             </div>
@@ -228,17 +228,17 @@ export function ApiKeysTab({ data }) {
                                             }
                                         }}
                                         placeholder={PLACEHOLDER}
-                                        className="flex-1 bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/30"
+                                        className="flex-1 bg-white/5 border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-purple-500/30"
                                     />
                                     <button
                                         onClick={() => setVisible(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
-                                        className="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white transition-colors"
+                                        className="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-[var(--text)] transition-colors"
                                     >
                                         {visible[provider.id] ? <EyeOff size={14} /> : <Eye size={14} />}
                                     </button>
                                     <button
                                         onClick={() => copyKey(provider.id)}
-                                        className="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white transition-colors"
+                                        className="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-[var(--text)] transition-colors"
                                     >
                                         {copied === provider.id ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                                     </button>

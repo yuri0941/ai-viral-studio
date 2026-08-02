@@ -47,7 +47,7 @@ export function ScoutTab() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-white flex items-center gap-2"><TrendingUp className="text-[#8B5CF6]" /> OMEGA Scout</h2>
+                    <h2 className="text-xl font-semibold text-[var(--text)] flex items-center gap-2"><TrendingUp className="text-[#8B5CF6]" /> OMEGA Scout</h2>
                     <p className="text-sm text-gray-500 mt-1">Актуальные тренды и идеи постов на основе внешних источников</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export function ScoutTab() {
                         value={niche}
                         onChange={e => setNiche(e.target.value)}
                         placeholder="Ниша (опционально)"
-                        className="px-3 py-2 bg-[#1a1a24] border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 outline-none focus:border-[#8B5CF6]/30"
+                        className="px-3 py-2 bg-[#1a1a24] border border-[var(--border)] rounded-lg text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-[#8B5CF6]/30"
                     />
                     <button
                         onClick={() => load(true)}
@@ -84,11 +84,11 @@ export function ScoutTab() {
                             <div className="text-[10px] text-gray-600">{new Date(trend.date).toLocaleDateString(undefined, { timeZone: timezone, dateStyle: 'medium' })}</div>
                         </div>
 
-                        <h3 className="text-base font-semibold text-white">{trend.topic}</h3>
+                        <h3 className="text-base font-semibold text-[var(--text)]">{trend.topic}</h3>
 
                         <div className="space-y-2">
                             {trend.ideas.map((idea, idx) => (
-                                <div key={idx} className="p-3 rounded-xl bg-[#0a0a0f] border border-white/10 text-sm text-gray-300">
+                                <div key={idx} className="p-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm text-gray-300">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Sparkles size={12} className="text-[#8B5CF6]" />
                                         <span className="text-[10px] text-gray-500 uppercase">Идея {idx + 1}</span>

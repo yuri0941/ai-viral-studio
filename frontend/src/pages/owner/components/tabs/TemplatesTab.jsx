@@ -134,14 +134,14 @@ export function TemplatesTab() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-white">50+ AI-шаблонов</h2>
+                    <h2 className="text-xl font-semibold text-[var(--text)]">50+ AI-шаблонов</h2>
                     <p className="text-sm text-gray-500 mt-1">Готовые структуры постов, email, Shorts и хуков</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setSmartOpen(!smartOpen)}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                            smartOpen ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'bg-white/5 text-gray-400 hover:text-white'
+                            smartOpen ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'bg-white/5 text-gray-400 hover:text-[var(--text)]'
                         }`}
                     >
                         <Sparkles size={14} /> Умный выбор
@@ -151,36 +151,36 @@ export function TemplatesTab() {
             </div>
 
             {smartOpen && (
-                <div className="rounded-2xl bg-[#0f0f1a] border border-[#8B5CF6]/20 p-5 space-y-4">
-                    <h3 className="text-sm font-semibold text-white flex items-center gap-2"><Sparkles size={16} className="text-[#8B5CF6]" /> Умный подбор шаблона</h3>
+                <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[#8B5CF6]/20 p-5 space-y-4">
+                    <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2"><Sparkles size={16} className="text-[#8B5CF6]" /> Умный подбор шаблона</h3>
                     <div className="grid md:grid-cols-2 gap-3">
                         <select
                             value={smartGoal}
                             onChange={e => setSmartGoal(e.target.value)}
-                            className="px-3 py-2 rounded-lg bg-[#0a0a0f] border border-white/10 text-sm text-white focus:outline-none focus:border-[#8B5CF6]/30"
+                            className="px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm text-[var(--text)] focus:outline-none focus:border-[#8B5CF6]/30"
                         >
-                            <option value="" className="bg-[#0a0a0f]">Цель контента</option>
-                            <option value="продажи" className="bg-[#0a0a0f]">Продажи</option>
-                            <option value="узнаваемость" className="bg-[#0a0a0f]">Узнаваемость</option>
-                            <option value="подписчики" className="bg-[#0a0a0f]">Подписчики</option>
-                            <option value="engagement" className="bg-[#0a0a0f]">Engagement</option>
+                            <option value="" className="bg-[var(--bg)]">Цель контента</option>
+                            <option value="продажи" className="bg-[var(--bg)]">Продажи</option>
+                            <option value="узнаваемость" className="bg-[var(--bg)]">Узнаваемость</option>
+                            <option value="подписчики" className="bg-[var(--bg)]">Подписчики</option>
+                            <option value="engagement" className="bg-[var(--bg)]">Engagement</option>
                         </select>
                         <select
                             value={smartFormat}
                             onChange={e => setSmartFormat(e.target.value)}
-                            className="px-3 py-2 rounded-lg bg-[#0a0a0f] border border-white/10 text-sm text-white focus:outline-none focus:border-[#8B5CF6]/30"
+                            className="px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm text-[var(--text)] focus:outline-none focus:border-[#8B5CF6]/30"
                         >
-                            <option value="" className="bg-[#0a0a0f]">Формат</option>
-                            <option value="Reels" className="bg-[#0a0a0f]">Reels</option>
-                            <option value="Stories" className="bg-[#0a0a0f]">Stories</option>
-                            <option value="Карусель" className="bg-[#0a0a0f]">Карусель</option>
-                            <option value="Пост" className="bg-[#0a0a0f]">Пост</option>
+                            <option value="" className="bg-[var(--bg)]">Формат</option>
+                            <option value="Reels" className="bg-[var(--bg)]">Reels</option>
+                            <option value="Stories" className="bg-[var(--bg)]">Stories</option>
+                            <option value="Карусель" className="bg-[var(--bg)]">Карусель</option>
+                            <option value="Пост" className="bg-[var(--bg)]">Пост</option>
                         </select>
                     </div>
                     <button
                         onClick={runSmartSelection}
                         disabled={smartLoading || !smartGoal || !smartFormat}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#7c3aed] text-white text-sm font-medium disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#7c3aed] text-[var(--text)] text-sm font-medium disabled:opacity-50"
                     >
                         {smartLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                         {smartLoading ? 'Анализируем...' : 'Подобрать ТОП-3'}
@@ -195,9 +195,9 @@ export function TemplatesTab() {
                             {smartResult.map((rec, idx) => {
                                 const t = templates.find(x => x.id === rec.id)
                                 return (
-                                    <div key={idx} className="p-3 rounded-xl bg-white/5 border border-white/10">
+                                    <div key={idx} className="p-3 rounded-xl bg-white/5 border border-[var(--border)]">
                                         <div className="flex items-center justify-between mb-1">
-                                            <div className="text-sm font-medium text-white">{rec.name || t?.name || rec.id}</div>
+                                            <div className="text-sm font-medium text-[var(--text)]">{rec.name || t?.name || rec.id}</div>
                                             <button
                                                 onClick={() => applySmartRecommendation(rec.id)}
                                                 className="text-xs px-2 py-1 rounded-lg bg-[#8B5CF6]/20 text-[#8B5CF6] hover:bg-[#8B5CF6]/30"
@@ -213,7 +213,7 @@ export function TemplatesTab() {
                                             {expandedWhy === idx ? 'Скрыть' : 'Почему этот?'}
                                         </button>
                                         {expandedWhy === idx && (
-                                            <div className="mt-2 p-2 rounded-lg bg-[#0a0a0f] text-xs text-gray-300">
+                                            <div className="mt-2 p-2 rounded-lg bg-[var(--bg)] text-xs text-gray-300">
                                                 {rec.expectedEffect || rec.reason}
                                             </div>
                                         )}
@@ -230,7 +230,7 @@ export function TemplatesTab() {
             <div className="flex flex-wrap items-center gap-2">
                 <button
                     onClick={() => setActiveCategory('all')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeCategory === 'all' ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeCategory === 'all' ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'bg-white/5 text-gray-400 hover:text-[var(--text)]'}`}
                 >
                     Все
                 </button>
@@ -238,7 +238,7 @@ export function TemplatesTab() {
                     <button
                         key={key}
                         onClick={() => setActiveCategory(key)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeCategory === key ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeCategory === key ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'bg-white/5 text-gray-400 hover:text-[var(--text)]'}`}
                     >
                         {label}
                     </button>
@@ -249,35 +249,35 @@ export function TemplatesTab() {
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Поиск шаблонов..."
-                        className="pl-8 pr-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-gray-600 outline-none focus:border-[#8B5CF6]/30"
+                        className="pl-8 pr-3 py-1.5 bg-white/5 border border-[var(--border)] rounded-lg text-xs text-[var(--text)] placeholder-gray-600 outline-none focus:border-[#8B5CF6]/30"
                     />
                 </div>
             </div>
 
             {stats && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-3">
+                    <div className="rounded-xl bg-white/5 border border-[var(--border)] p-3">
                         <div className="text-xs text-gray-500">Всего</div>
-                        <div className="text-lg font-semibold text-white">{stats.total}</div>
+                        <div className="text-lg font-semibold text-[var(--text)]">{stats.total}</div>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-3">
+                    <div className="rounded-xl bg-white/5 border border-[var(--border)] p-3">
                         <div className="text-xs text-emerald-400 flex items-center gap-1"><Flame size={10} /> Proven</div>
-                        <div className="text-lg font-semibold text-white">{stats.proven}</div>
+                        <div className="text-lg font-semibold text-[var(--text)]">{stats.proven}</div>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-3">
+                    <div className="rounded-xl bg-white/5 border border-[var(--border)] p-3">
                         <div className="text-xs text-yellow-400">New</div>
-                        <div className="text-lg font-semibold text-white">{stats.new}</div>
+                        <div className="text-lg font-semibold text-[var(--text)]">{stats.new}</div>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/5 p-3">
+                    <div className="rounded-xl bg-white/5 border border-[var(--border)] p-3">
                         <div className="text-xs text-gray-400 flex items-center gap-1"><Archive size={10} /> Archived</div>
-                        <div className="text-lg font-semibold text-white">{stats.archived}</div>
+                        <div className="text-lg font-semibold text-[var(--text)]">{stats.archived}</div>
                     </div>
                 </div>
             )}
 
             {stats && Object.keys(stats.byCategory || {}).length > 0 && (
-                <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5">
-                    <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-3 flex items-center gap-2">
                         <TrendingUp size={16} className="text-purple-400" /> Эффективность по категориям
                     </h3>
                     <div className="h-48">
@@ -296,7 +296,7 @@ export function TemplatesTab() {
             <div className="flex items-center gap-2">
                 <button
                     onClick={() => setShowProvenOnly(!showProvenOnly)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${showProvenOnly ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${showProvenOnly ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-400 hover:text-[var(--text)]'}`}
                 >
                     {showProvenOnly ? '✓ Только proven' : 'Показать только proven'}
                 </button>
@@ -311,7 +311,7 @@ export function TemplatesTab() {
                             className={`w-full text-left p-3 rounded-xl border transition-all ${
                                 selected?.id === t.id
                                     ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30'
-                                    : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06]'
+                                    : 'bg-white/[0.03] border-[var(--border)] hover:bg-white/[0.06]'
                             }`}
                         >
                             <div className="flex items-center justify-between mb-1">
@@ -335,7 +335,7 @@ export function TemplatesTab() {
                                     <LayoutTemplate size={14} className="text-gray-500" />
                                 </div>
                             </div>
-                            <div className="text-sm font-medium text-white">{t.name}</div>
+                            <div className="text-sm font-medium text-[var(--text)]">{t.name}</div>
                             <div className="text-xs text-gray-500 mt-1">Переменные: {t.variables.join(', ')}</div>
                             {typeof t.metrics?.ctr === 'number' && (
                                 <div className="text-[10px] text-gray-500 mt-1">CTR: {t.metrics.ctr}% · Samples: {t.metrics.samples || 0}</div>
@@ -350,7 +350,7 @@ export function TemplatesTab() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="text-xs text-[#8B5CF6] uppercase tracking-wider mb-1">{CATEGORIES[selected.category] || selected.category}</div>
-                                    <h3 className="text-lg font-semibold text-white">{selected.name}</h3>
+                                    <h3 className="text-lg font-semibold text-[var(--text)]">{selected.name}</h3>
                                 </div>
                             </div>
 
@@ -362,7 +362,7 @@ export function TemplatesTab() {
                                             value={variables[v] || ''}
                                             onChange={e => setVariables({ ...variables, [v]: e.target.value })}
                                             placeholder={v}
-                                            className="w-full mt-1 px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 outline-none focus:border-[#8B5CF6]/30"
+                                            className="w-full mt-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-[#8B5CF6]/30"
                                         />
                                     </div>
                                 ))}
@@ -379,11 +379,11 @@ export function TemplatesTab() {
 
                             {result && (
                                 <div className="space-y-3">
-                                    <div className="p-4 rounded-xl bg-[#0a0a0f] border border-white/10 text-sm text-gray-300 whitespace-pre-line min-h-[120px]">
+                                    <div className="p-4 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm text-gray-300 whitespace-pre-line min-h-[120px]">
                                         {result.aiText || result.text}
                                     </div>
                                     <div className="flex gap-2">
-                                        <button onClick={copy} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-white transition-colors">
+                                        <button onClick={copy} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-[var(--text)] transition-colors">
                                             {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                                             {copied ? 'Скопировано' : 'Копировать'}
                                         </button>

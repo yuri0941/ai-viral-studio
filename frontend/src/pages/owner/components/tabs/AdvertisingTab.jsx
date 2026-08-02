@@ -55,12 +55,12 @@ export function AdvertisingTab({ data }) {
     const columns = [
         { key: 'name', label: 'Кампания', render: (row) => (
             <div>
-                <div className="text-sm font-medium text-white">{row.name}</div>
+                <div className="text-sm font-medium text-[var(--text)]">{row.name}</div>
                 <div className="text-xs text-gray-500">{row.client}</div>
             </div>
         )},
         { key: 'platform', label: 'Площадка', render: (row) => <span className="text-xs text-gray-400">{row.platform}</span> },
-        { key: 'budget', label: 'Бюджет', render: (row) => <span className="text-sm font-mono text-white">{formatCurrency(row.budget)}</span> },
+        { key: 'budget', label: 'Бюджет', render: (row) => <span className="text-sm font-mono text-[var(--text)]">{formatCurrency(row.budget)}</span> },
         { key: 'spent', label: 'Потрачено', render: (row) => <span className="text-sm font-mono text-gray-400">{formatCurrency(row.spent)}</span> },
         { key: 'status', label: 'Статус', render: (row) => <StatusBadge status={row.status} /> },
         { key: 'roi', label: 'ROI', render: (row) => <span className={`text-sm font-mono ${row.roi > 100 ? 'text-emerald-400' : 'text-gray-400'}`}>{row.roi}%</span> },
@@ -102,7 +102,7 @@ export function AdvertisingTab({ data }) {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Megaphone size={18} className="text-purple-400" />
-                    <h2 className="text-lg font-semibold text-white">Рекламные кампании</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text)]">Рекламные кампании</h2>
                 </div>
                 <button onClick={() => setModal({ type: 'createCampaign' })} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/20 border border-purple-500/30 text-sm text-purple-400 font-medium hover:bg-purple-500/30 transition-colors">
                     <Plus size={16} /> Новая кампания
@@ -110,10 +110,10 @@ export function AdvertisingTab({ data }) {
             </div>
 
             {/* Ad Pricing Panel */}
-            <div className="p-4 rounded-2xl bg-[#0f0f1a] border border-white/5 space-y-4">
+            <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] space-y-4">
                 <div className="flex items-center gap-2">
                     <Banknote size={16} className="text-emerald-400" />
-                    <h3 className="text-sm font-semibold text-white">Цены рекламы</h3>
+                    <h3 className="text-sm font-semibold text-[var(--text)]">Цены рекламы</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {Object.entries(PRICING_LABELS).map(([key, meta]) => (
@@ -125,7 +125,7 @@ export function AdvertisingTab({ data }) {
                                     min={0}
                                     value={pricing[key] || ''}
                                     onChange={e => handlePricingChange(key, e.target.value)}
-                                    className="flex-1 px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500/30"
+                                    className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-emerald-500/30"
                                 />
                                 <span className="text-xs text-gray-500">{pricing.currency === 'USD' ? '$' : pricing.currency === 'EUR' ? '€' : '₽'}</span>
                             </div>
@@ -148,10 +148,10 @@ export function AdvertisingTab({ data }) {
 
             {/* Negotiations Chat Drawer */}
             {activeChat && (
-                <div className="fixed inset-y-0 right-0 w-96 bg-[#0f0f1a] border-l border-white/10 z-50 shadow-2xl flex flex-col">
-                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                <div className="fixed inset-y-0 right-0 w-96 bg-[var(--bg-secondary)] border-l border-[var(--border)] z-50 shadow-2xl flex flex-col">
+                    <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
                         <div>
-                            <div className="text-sm font-semibold text-white">{activeChat.name}</div>
+                            <div className="text-sm font-semibold text-[var(--text)]">{activeChat.name}</div>
                             <div className="text-xs text-gray-500">{activeChat.client}</div>
                         </div>
                         <button onClick={() => setActiveChat(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400">
@@ -164,21 +164,21 @@ export function AdvertisingTab({ data }) {
                         )}
                         {activeChat.negotiations?.map(msg => (
                             <div key={msg.id} className={`flex ${msg.from === 'owner' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] px-3 py-2 rounded-xl text-xs ${msg.from === 'owner' ? 'bg-emerald-500/20 text-emerald-100 border border-emerald-500/20' : 'bg-white/5 text-gray-300 border border-white/10'}`}>
+                                <div className={`max-w-[80%] px-3 py-2 rounded-xl text-xs ${msg.from === 'owner' ? 'bg-emerald-500/20 text-emerald-100 border border-emerald-500/20' : 'bg-white/5 text-gray-300 border border-[var(--border)]'}`}>
                                     {msg.message}
                                     <div className="text-[10px] text-gray-500 mt-1">{new Date(msg.time).toLocaleTimeString('ru-RU')}</div>
                                 </div>
                             </div>
                         ))}
                     </div>
-                    <div className="p-4 border-t border-white/10">
+                    <div className="p-4 border-t border-[var(--border)]">
                         <div className="flex gap-2">
                             <input
                                 value={chatText}
                                 onChange={e => setChatText(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter' && chatText.trim()) { addNegotiation(activeChat.id, chatText); setChatText('') } }}
                                 placeholder="Сообщение..."
-                                className="flex-1 px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500/30"
+                                className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-emerald-500/30"
                             />
                             <button
                                 onClick={() => { if (chatText.trim()) { addNegotiation(activeChat.id, chatText); setChatText('') } }}

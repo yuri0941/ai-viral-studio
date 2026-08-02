@@ -9,6 +9,8 @@ import {
   updateSubscription,
   cancelSubscription,
   checkTrialEnding,
+  analyzePricing,
+  updatePlanPrice,
 } from '../controllers/subscriptionController.js';
 
 const router = Router();
@@ -20,5 +22,7 @@ router.post('/', protect, checkConsent, createSubscription);
 router.patch('/:id', protect, checkConsent, updateSubscription);
 router.delete('/:id/cancel', protect, checkConsent, cancelSubscription);
 router.get('/trial-ending', protect, checkTrialEnding);
+router.post('/analyze-pricing', protect, analyzePricing);
+router.post('/plan-price', protect, updatePlanPrice);
 
 export default router;

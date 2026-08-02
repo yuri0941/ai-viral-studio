@@ -12,6 +12,7 @@ import {
     ResponsiveContainer, PieChart as RePieChart, Pie, Cell,
     BarChart, Bar, Legend
 } from 'recharts'
+import { AdStudioTab } from './advertiser/AdStudioTab'
 
 function AdvertiserDashboardPage() {
     const { user } = useAuth()
@@ -273,6 +274,7 @@ AI Viral Studio`
     }
 
     const tabs = [
+        { id: 'adstudio', label: 'AdStudio', icon: Printer },
         { id: 'campaigns', label: 'Кампании', icon: Target },
         { id: 'calendar', label: 'Календарь', icon: Calendar },
         { id: 'chat', label: 'Переговоры', icon: MessageSquare },
@@ -352,6 +354,9 @@ AI Viral Studio`
                     </button>
                 ))}
             </div>
+
+            {/* ADSTUDIO TAB */}
+            {activeTab === 'adstudio' && <AdStudioTab />}
 
             {/* CAMPAIGNS TAB */}
             {activeTab === 'campaigns' && (

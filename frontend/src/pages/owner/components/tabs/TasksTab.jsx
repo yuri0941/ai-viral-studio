@@ -98,23 +98,23 @@ export function TasksTab({ data }) {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Задачи и заявки</h2>
+                <h2 className="text-lg font-semibold text-[var(--text)]">Задачи и заявки</h2>
                 <div className="flex items-center gap-2">
-                    <button onClick={exportToNotion} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs flex items-center gap-1.5"><FileText size={14} /> Notion</button>
-                    <button onClick={exportToClickUp} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs flex items-center gap-1.5"><ClickUpIcon size={14} /> ClickUp</button>
-                    <button onClick={exportToTrello} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs flex items-center gap-1.5"><Trello size={14} /> Trello</button>
+                    <button onClick={exportToNotion} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--text)] text-xs flex items-center gap-1.5"><FileText size={14} /> Notion</button>
+                    <button onClick={exportToClickUp} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--text)] text-xs flex items-center gap-1.5"><ClickUpIcon size={14} /> ClickUp</button>
+                    <button onClick={exportToTrello} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--text)] text-xs flex items-center gap-1.5"><Trello size={14} /> Trello</button>
                 </div>
             </div>
 
             {/* Ad requests as cards */}
             {campaigns.length > 0 && (
-                <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5">
-                    <h3 className="text-sm font-semibold text-white mb-4">Рекламные заявки</h3>
+                <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                    <h3 className="text-sm font-semibold text-[var(--text)] mb-4">Рекламные заявки</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {campaigns.slice(0, 6).map(c => (
-                            <div key={c.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all">
+                            <div key={c.id} className="p-4 rounded-xl bg-white/[0.02] border border-[var(--border)] hover:border-[var(--border)] transition-all">
                                 <div className="flex items-start justify-between mb-2">
-                                    <span className="text-sm font-medium text-white">{c.name}</span>
+                                    <span className="text-sm font-medium text-[var(--text)]">{c.name}</span>
                                     <StatusBadge status={c.status} />
                                 </div>
                                 <div className="text-xs text-gray-500 mb-3">{c.client}</div>

@@ -3,14 +3,14 @@ import crypto from 'crypto'
 import User from '../models/User.js'
 import { protect } from '../middleware/auth.js'
 import { sendVerificationEmail, sendPasswordReset } from '../services/emailService.js'
-// import { verifyTurnstile } from '../middleware/turnstile.js' // TEMP: disabled until domain added to Cloudflare
+import { verifyTurnstile } from '../middleware/turnstile.js'
 import { validateRegister, validateLogin } from '../middleware/validation.js'
 
 const router = express.Router()
 
 const FORBIDDEN_REGISTRATION_ROLES = ['owner', 'admin', 'staff']
 
-router.post('/register', validateRegister, /* verifyTurnstile, */ async (req, res) => {
+router.post('/register', validateRegister, verifyTurnstile, async (req, res) => {
   try {
     const { name, email, password, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult, timezone } = req.body
 
@@ -82,7 +82,7 @@ router.post('/register', validateRegister, /* verifyTurnstile, */ async (req, re
   }
 })
 
-router.post('/login', validateLogin, /* verifyTurnstile, */ async (req, res) => {
+router.post('/login', validateLogin, verifyTurnstile, async (req, res) => {
   try {
     const { email, password, timezone } = req.body
     console.log('Login attempt:', email)

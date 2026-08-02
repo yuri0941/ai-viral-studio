@@ -7,6 +7,7 @@ import User from '../../models/User.js'
 import { OmegaMemory } from '../../models/index.js'
 import { PredictionStats } from '../../models/index.js'
 import { Notification } from '../../models/index.js'
+import { alertOmega } from '../../services/omegaBot.js'
 
 const DREAM_START_HOUR = 2
 const DREAM_END_HOUR = 6
@@ -177,6 +178,7 @@ class DreamMode {
                     read: false,
                 })
             }
+            alertOmega(`Dream Mode: утренний брифинг отправлен ${owners.length} владельцам. Трендов: ${this.metrics.trendsScanned}, идей: ${this.metrics.ideasGenerated}.`).catch(() => {})
             console.log('[DreamMode] Morning briefing sent to', owners.length, 'owners')
         } catch (err) {
             console.error('[DreamMode] Briefing failed:', err.message)

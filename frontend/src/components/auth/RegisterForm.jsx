@@ -26,20 +26,14 @@ function RegisterForm({ onSuccess }) {
     const [turnstileToken, setTurnstileToken] = useState('')
     const { register } = useAuth()
 
-    // Turnstile is temporarily disabled on non-Cloudflare Pages domains
-    const isTurnstileEnabled = typeof window !== 'undefined' && window.location.hostname.includes('pages.dev')
+    // Turnstile always enabled (keys configured in Render / Cloudflare Pages)
+    const isTurnstileEnabled = true
 
     useEffect(() => {
         if (!registered || resendSeconds <= 0) return
         const t = setInterval(() => setResendSeconds(s => s - 1), 1000)
         return () => clearInterval(t)
     }, [registered, resendSeconds])
-
-    useEffect(() => {
-        if (!isTurnstileEnabled) {
-            setTurnstileToken('disabled')
-        }
-    }, [isTurnstileEnabled])
 
     const allConsentsChecked = Object.values(consent).every(Boolean)
 

@@ -99,22 +99,21 @@ const getKey = async (provider) => {
 }
 
 // ============ PROVIDER REGISTRY & STATUS ============
-// Only Groq and OpenRouter are enabled by default for the fallback chain.
-// Pollinations is enabled as a no-key fallback. All others are disabled by default
-// and can be toggled by the owner in the UI.
+// [P16] Enabled by default: Groq, OpenRouter, Cloudflare Workers AI, GitHub Models, HuggingFace, Pollinations (no-key fallback).
+// Other providers are disabled by default and can be toggled by the owner in the UI.
 const PROVIDER_META = {
     groq: { name: 'Groq', enabledByDefault: true, requiresKey: true },
     openrouter: { name: 'OpenRouter', enabledByDefault: true, requiresKey: true },
+    workersai: { name: 'Cloudflare Workers AI', enabledByDefault: true, requiresKey: true },
+    github: { name: 'GitHub Models', enabledByDefault: true, requiresKey: true },
+    huggingface: { name: 'HuggingFace', enabledByDefault: true, requiresKey: true },
+    pollinations: { name: 'Pollinations AI', enabledByDefault: true, requiresKey: false },
     gemini: { name: 'Google Gemini', enabledByDefault: false, requiresKey: true },
-    github: { name: 'GitHub Models', enabledByDefault: false, requiresKey: true },
-    huggingface: { name: 'HuggingFace', enabledByDefault: false, requiresKey: true },
-    workersai: { name: 'Cloudflare Workers AI', enabledByDefault: false, requiresKey: true },
     cloudflare: { name: 'Cloudflare Workers AI (legacy)', enabledByDefault: false, requiresKey: true },
     fireworks: { name: 'Fireworks AI', enabledByDefault: false, requiresKey: true },
     mistral: { name: 'Mistral AI', enabledByDefault: false, requiresKey: true },
     cohere: { name: 'Cohere', enabledByDefault: false, requiresKey: true },
     deepseek: { name: 'DeepSeek', enabledByDefault: false, requiresKey: true },
-    pollinations: { name: 'Pollinations AI', enabledByDefault: false, requiresKey: false },
 }
 
 const providerStatusMap = new Map()
@@ -469,7 +468,7 @@ async function chatWithHuggingFace(messages) {
 
 async function chatWithCloudflare(messages) {
     const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
-    const key = await getKey('cloudflare') || process.env.CLOUDFLARE_API_TOKEN
+    const key = await getKey('cloudflare') || process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN
     if (!accountId) throw new Error('Cloudflare account ID missing')
     if (!key) throw new Error('Cloudflare token missing')
     const model = process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.1-8b-instruct'
@@ -492,7 +491,7 @@ async function chatWithCloudflare(messages) {
 
 async function chatWithWorkersAI(messages) {
     const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
-    const key = await getKey('cloudflare') || process.env.CLOUDFLARE_API_TOKEN
+    const key = await getKey('cloudflare') || process.env.CLOUDFLARE_API_KEY || process.env.CLOUDFLARE_API_TOKEN
     if (!accountId) throw new Error('Cloudflare account ID missing')
     if (!key) throw new Error('Cloudflare token missing')
     const model = '@cf/meta/llama-3.1-8b-instruct'
@@ -553,16 +552,16 @@ async function chatWithPollinationsText(messages) {
 }
 
 // ============ PROVIDER CHAIN ============
-// Order = fallback priority. Only providers with enabledByDefault=true and a key
-// (or noKey=true) will be tried unless the owner toggles them in the UI.
+// [P16] Fallback priority: Groq → OpenRouter → Cloudflare Workers AI → GitHub Models → HuggingFace → Pollinations → others
 const PROVIDER_CHAIN = [
     { id: 'groq', name: 'Groq', fn: chatWithGroq, requiresKey: true },
     { id: 'openrouter', name: 'OpenRouter', fn: chatWithOpenRouter, requiresKey: true },
-    { id: 'pollinations', name: 'Pollinations', fn: chatWithPollinationsText, requiresKey: false },
-    { id: 'gemini', name: 'Gemini', fn: chatWithGemini, requiresKey: true },
+    { id: 'workersai', name: 'Cloudflare Workers AI', fn: chatWithWorkersAI, requiresKey: true },
     { id: 'github', name: 'GitHub Models', fn: chatWithGitHubModels, requiresKey: true },
     { id: 'huggingface', name: 'HuggingFace', fn: chatWithHuggingFace, requiresKey: true },
-    { id: 'workersai', name: 'Cloudflare Workers AI', fn: chatWithWorkersAI, requiresKey: true },
+    { id: 'pollinations', name: 'Pollinations', fn: chatWithPollinationsText, requiresKey: false },
+    // [P16] additional optional providers
+    { id: 'gemini', name: 'Gemini', fn: chatWithGemini, requiresKey: true },
     { id: 'cloudflare', name: 'Cloudflare Workers AI (legacy)', fn: chatWithCloudflare, requiresKey: true },
     { id: 'fireworks', name: 'Fireworks AI', fn: chatWithFireworks, requiresKey: true },
     { id: 'mistral', name: 'Mistral', fn: chatWithMistral, requiresKey: true },

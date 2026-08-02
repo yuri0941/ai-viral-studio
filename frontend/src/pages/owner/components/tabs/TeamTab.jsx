@@ -20,11 +20,11 @@ export function TeamTab({ data }) {
             label: 'Сотрудник',
             render: (row) => (
                 <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${generateGradient(row.id)} flex items-center justify-center text-xs font-bold text-white`}>
+                    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${generateGradient(row.id)} flex items-center justify-center text-xs font-bold text-[var(--text)]`}>
                         {getInitials(row.name)}
                     </div>
                     <div>
-                        <div className="text-sm font-medium text-white">{row.name}</div>
+                        <div className="text-sm font-medium text-[var(--text)]">{row.name}</div>
                         <div className="text-xs text-gray-500">{row.email}</div>
                     </div>
                 </div>
@@ -47,7 +47,7 @@ export function TeamTab({ data }) {
         { key: 'skills', label: 'Навыки', render: (row) => (
             <div className="flex flex-wrap gap-1">
                 {row.skills?.map((skill, i) => (
-                    <span key={i} className="px-1.5 py-0.5 rounded-md bg-white/5 text-[10px] text-gray-400 border border-white/5">{skill}</span>
+                    <span key={i} className="px-1.5 py-0.5 rounded-md bg-white/5 text-[10px] text-gray-400 border border-[var(--border)]">{skill}</span>
                 ))}
             </div>
         )},
@@ -62,7 +62,7 @@ export function TeamTab({ data }) {
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Поиск по команде..."
-                        className="w-full pl-9 pr-3 py-2.5 bg-[#0f0f1a] border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500/30"
+                        className="w-full pl-9 pr-3 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-emerald-500/30"
                     />
                 </div>
                 <button

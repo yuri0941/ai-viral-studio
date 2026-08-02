@@ -84,7 +84,7 @@ export function OmegaSkillsTab({ data }) {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Brain size={20} className="text-purple-400" />
-                    <h2 className="text-lg font-semibold text-white">OMEGA Skills</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text)]">OMEGA Skills</h2>
                 </div>
                 <div className="text-xs text-gray-500">Всего навыков: {skills.length}</div>
             </div>
@@ -98,7 +98,7 @@ export function OmegaSkillsTab({ data }) {
                         className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
                             filter === c.id
                                 ? 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
-                                : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                                : 'text-gray-400 hover:text-[var(--text)] hover:bg-white/5 border border-transparent'
                         }`}
                     >
                         {c.label}
@@ -112,14 +112,14 @@ export function OmegaSkillsTab({ data }) {
                     const Icon = ICONS[skill.icon] || Bot
                     const progress = Math.min(100, Math.round((skill.xp / skill.xpToNext) * 100))
                     return (
-                        <div key={skill.id} className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5 hover:border-white/10 transition-all">
+                        <div key={skill.id} className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5 hover:border-[var(--border)] transition-all">
                             <div className="flex items-start justify-between mb-3">
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
-                                    <Icon size={18} className="text-white" />
+                                    <Icon size={18} className="text-[var(--text)]" />
                                 </div>
                                 <div className="text-xs text-gray-500">Lv.{skill.level}/{skill.maxLevel}</div>
                             </div>
-                            <div className="text-sm font-medium text-white mb-1">{skill.name}</div>
+                            <div className="text-sm font-medium text-[var(--text)] mb-1">{skill.name}</div>
                             <div className="text-[10px] text-gray-500 mb-4">{skill.description}</div>
 
                             <div className="mb-2">
@@ -135,7 +135,7 @@ export function OmegaSkillsTab({ data }) {
                             <button
                                 onClick={() => train(skill.id)}
                                 disabled={training === skill.id || skill.level >= skill.maxLevel}
-                                className="w-full flex items-center justify-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:text-white hover:bg-white/10 disabled:opacity-50 transition-colors"
+                                className="w-full flex items-center justify-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:text-[var(--text)] hover:bg-white/10 disabled:opacity-50 transition-colors"
                             >
                                 {training === skill.id ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
                                 {training === skill.id ? 'Обучение...' : skill.level >= skill.maxLevel ? 'Макс. уровень' : 'Тренировать'}

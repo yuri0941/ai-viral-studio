@@ -71,13 +71,13 @@ export function NotificationsTab({ data }) {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Bell size={20} className="text-purple-400" />
-                    <h2 className="text-lg font-semibold text-white">Уведомления</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text)]">Уведомления</h2>
                     {unreadCount > 0 && (
                         <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-xs border border-red-500/20">{unreadCount}</span>
                     )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={markAllRead} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
+                    <button onClick={markAllRead} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:text-[var(--text)] hover:bg-white/10 transition-colors">
                         <Check size={12} /> Прочитать все
                     </button>
                     <button onClick={clearAll} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:text-red-400 hover:bg-red-500/10 transition-colors">
@@ -96,7 +96,7 @@ export function NotificationsTab({ data }) {
                         className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
                             filter === f.id
                                 ? 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
-                                : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                                : 'text-gray-400 hover:text-[var(--text)] hover:bg-white/5 border border-transparent'
                         }`}
                     >
                         {f.label}
@@ -114,7 +114,7 @@ export function NotificationsTab({ data }) {
                         key={n.id}
                         className={`flex items-start gap-4 p-4 rounded-2xl border transition-all ${
                             n.read
-                                ? 'bg-[#0f0f1a] border-white/5 opacity-70'
+                                ? 'bg-[var(--bg-secondary)] border-[var(--border)] opacity-70'
                                 : 'bg-white/[0.02] border-purple-500/20'
                         }`}
                     >
@@ -124,7 +124,7 @@ export function NotificationsTab({ data }) {
                                 <StatusBadge status={n.type} label={n.type} />
                                 <span className="text-xs text-gray-500">{new Date(n.createdAt).toLocaleString('ru-RU')}</span>
                             </div>
-                            <div className="text-sm font-medium text-white mb-0.5">{n.title}</div>
+                            <div className="text-sm font-medium text-[var(--text)] mb-0.5">{n.title}</div>
                             <div className="text-xs text-gray-400">{n.body}</div>
                         </div>
                         <div className="flex items-center gap-1">

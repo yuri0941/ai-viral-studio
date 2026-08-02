@@ -10,10 +10,10 @@ import { API_URL } from '../../../../config.js'
 function Modal({ title, onClose, children }) {
     return (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-            <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl max-w-md w-full p-6">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-md w-full p-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">{title}</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-white"><X className="w-5 h-5" /></button>
+                    <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
+                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
                 </div>
                 {children}
             </div>
@@ -101,7 +101,7 @@ export function FleetTab() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-[var(--text)] flex items-center gap-2">
                     <Rocket className="w-6 h-6 text-[#00ff41]" />
                     Fleet / Проекты
                 </h2>
@@ -116,8 +116,8 @@ export function FleetTab() {
                         onClick={emergencyStopped ? emergencyResume : emergencyStop}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-colors ${
                             emergencyStopped
-                                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                                : 'bg-red-500 hover:bg-red-600 text-white'
+                                ? 'bg-emerald-500 hover:bg-emerald-600 text-[var(--text)]'
+                                : 'bg-red-500 hover:bg-red-600 text-[var(--text)]'
                         }`}
                     >
                         <OctagonAlert className="w-4 h-4" />
@@ -131,9 +131,9 @@ export function FleetTab() {
                     <Loader2 className="w-8 h-8 text-[#00ff41] animate-spin" />
                 </div>
             ) : projects.length === 0 ? (
-                <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-8 text-center">
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-8 text-center">
                     <Rocket className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                    <p className="text-white font-medium">Пока нет проектов</p>
+                    <p className="text-[var(--text)] font-medium">Пока нет проектов</p>
                     <p className="text-sm text-gray-400 mt-1">Создайте первый проект для управления Fleet</p>
                 </div>
             ) : (
@@ -145,11 +145,11 @@ export function FleetTab() {
                             <button
                                 key={p.id}
                                 onClick={() => navigate(`/owner?project=${p.id}`)}
-                                className="text-left bg-[#0f0f1a] border border-white/10 hover:border-white/20 rounded-2xl p-5 transition-all hover:scale-[1.01]"
+                                className="text-left bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--border)] rounded-2xl p-5 transition-all hover:scale-[1.01]"
                                 style={{ borderLeftWidth: '4px', borderLeftColor: p.color || '#00ff41' }}
                             >
                                 <div className="flex items-start justify-between mb-3">
-                                    <h3 className="text-lg font-semibold text-white">{p.name}</h3>
+                                    <h3 className="text-lg font-semibold text-[var(--text)]">{p.name}</h3>
                                     <span className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${badge.bg} ${badge.color}`}>
                                         <Icon className="w-3 h-3" /> {badge.text}
                                     </span>
@@ -162,10 +162,10 @@ export function FleetTab() {
                                     </div>
                                     <div className="p-3 bg-black/30 rounded-xl">
                                         <p className="text-xs text-gray-400">Активность</p>
-                                        <p className="text-lg font-bold text-white">{p.activity}%</p>
+                                        <p className="text-lg font-bold text-[var(--text)]">{p.activity}%</p>
                                     </div>
                                 </div>
-                                <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-gray-400">
+                                <div className="mt-4 pt-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-gray-400">
                                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {p.lastPost}</span>
                                     <span className="flex items-center gap-1 text-[#00ff41]">Открыть <ArrowRight className="w-3 h-3" /></span>
                                 </div>
@@ -183,7 +183,7 @@ export function FleetTab() {
                             value={form.name}
                             onChange={(e) => setForm({ ...form, name: e.target.value })}
                             placeholder="Название проекта"
-                            className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white text-sm"
+                            className="w-full bg-black/30 border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] text-sm"
                             required
                         />
                         <input
@@ -191,7 +191,7 @@ export function FleetTab() {
                             value={form.niche}
                             onChange={(e) => setForm({ ...form, niche: e.target.value })}
                             placeholder="Ниша"
-                            className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white text-sm"
+                            className="w-full bg-black/30 border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] text-sm"
                         />
                         <div>
                             <label className="text-sm text-gray-400">Цвет проекта</label>

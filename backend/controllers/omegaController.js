@@ -140,6 +140,16 @@ export async function chat(req, res) {
 
         let responseText = result.reply || (result.success ? result.reply : 'AI временно недоступен. Попробуйте позже.')
 
+        // [P16] Client role restrictions + OMEGA signature
+        if (req.user?.role === 'client') {
+            responseText = responseText
+                .replace(/\b(MRR|ARR|revenue|доход|прибыль|количество пользователей|user count|стек|stack|users? count)\b[^.\n]*/gi, '[скрыто]')
+        }
+        const projectName = req.user?.name || req.user?.preferences?.projectName || 'AI Viral Studio'
+        if (!responseText.startsWith('Я OMEGA')) {
+            responseText = `Я OMEGA, ваш AI-ассистент. Могу помочь с вашим проектом ${projectName}.\n\n${responseText}`
+        }
+
         // Privacy Firewall scan перед отправкой ответа
         try {
             const scanResult = await privacyScan(responseText, req.user?.role, req.user)

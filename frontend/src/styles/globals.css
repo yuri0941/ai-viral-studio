@@ -6,30 +6,32 @@
 
 @layer base {
     :root {
-        --bg: #f8f9fa;
+        --bg: #f8f9fc;
         --bg-secondary: #ffffff;
         --card: #ffffff;
-        --card-hover: #f1f3f5;
-        --text: #111827;
-        --text-muted: #6b7280;
-        --border: rgba(0, 0, 0, 0.08);
-        --glass: rgba(0, 0, 0, 0.03);
-        --primary: #00cc33;
+        --card-hover: #f1f5f9;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --glass: rgba(255, 255, 255, 0.7);
+        --primary: #7c3aed;
+        --accent: #06b6d4;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
     }
 
     .dark {
         --bg: #0a0a1f;
-        --bg-secondary: #111128;
-        --card: #16162a;
-        --card-hover: #1e1e3a;
-        --text: #f8fafc;
+        --bg-secondary: #11112e;
+        --card: #16163a;
+        --card-hover: #1e1e4b;
+        --text: #f1f5f9;
         --text-muted: #94a3b8;
         --border: rgba(255, 255, 255, 0.08);
-        --glass: rgba(255, 255, 255, 0.05);
-        --primary: #8B5CF6;
-        --accent-cyan: #06B6D4;
-        --accent-coral: #F97316;
-        --accent-legacy: #00ff41;
+        --glass: rgba(17, 17, 46, 0.7);
+        --primary: #8b5cf6;
+        --accent: #06b6d4;
     }
 
     html {
@@ -126,4 +128,35 @@
     .text-balance {
         text-wrap: balance;
     }
+}
+
+/* Theme hardcode overrides */
+body {
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.3s, color 0.3s;
+}
+
+.bg-\[#0a0a0f\],
+.bg-\[#0a0a1f\],
+.bg-\[#050505\],
+.bg-\[#020205\] {
+    background-color: var(--bg) !important;
+}
+
+.bg-\[#1a1a2e\],
+.bg-\[#111128\],
+.bg-\[#0f0f1a\],
+.bg-\[#16162a\] {
+    background-color: var(--bg-secondary) !important;
+}
+
+.text-white:not(i):not(svg):not(.icon) {
+    color: var(--text) !important;
+}
+
+.border-white\/5,
+.border-white\/10,
+.border-white\/20 {
+    border-color: var(--border) !important;
 }

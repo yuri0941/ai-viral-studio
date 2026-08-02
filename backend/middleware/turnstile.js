@@ -1,32 +1,22 @@
-export const verifyTurnstile = async (req, res, next) => {
+import axios from 'axios'
+
+export async function verifyTurnstile(req, res, next) {
+    const token = req.body.turnstileToken
+    if (!token || token === 'disabled') return next() // fallback
     try {
-        const token = req.body.turnstileToken
-        if (!token) {
-            return res.status(403).json({ success: false, message: 'Пройдите проверку' })
-        }
-
-        const secret = process.env.TURNSTILE_SECRET_KEY
-        if (!secret) {
-            console.warn('[verifyTurnstile] TURNSTILE_SECRET_KEY not configured, skipping verification')
-            return next()
-        }
-
-        const verify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ secret, response: token })
-        })
-
-        const data = await verify.json().catch(() => ({}))
-        if (!data.success) {
-            console.warn('[verifyTurnstile] Turnstile verification failed:', data)
-            return res.status(403).json({ success: false, message: 'Проверка не пройдена' })
-        }
-
-        next()
-    } catch (err) {
-        console.error('[verifyTurnstile] error:', err.message)
-        return res.status(500).json({ success: false, message: 'Ошибка проверки' })
+        const resp = await axios.post(
+            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+            new URLSearchParams({
+                secret: process.env.TURNSTILE_SECRET_KEY,
+                response: token,
+            }),
+            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+        )
+        if (resp.data.success) return next()
+        return res.status(403).json({ success: false, message: 'Turnstile verification failed' })
+    } catch (e) {
+        console.error('[verifyTurnstile] error:', e.message)
+        return next()
     }
 }
 

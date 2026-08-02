@@ -8,6 +8,7 @@ import { chatWithAI } from '../../services/aiService.js'
 import * as neuralGraph from './neuralGraph.js'
 
 let reflectionJob = null
+let lessonCount = 0
 
 const SYSTEM_PROMPT_REFLECTION = `Ты — OMEGA Self-Reflection. Проанализируй список ошибок за последние 6 часов. Для каждой группы:
 1. Объясни, почему произошло (корневая причина).
@@ -63,6 +64,7 @@ export async function reflectionCycle() {
     }
 
     // Сохраняем уроки как узлы графа
+    lessonCount += lessons.length
     for (const lesson of lessons) {
         try {
             neuralGraph.addNode('error_lesson', lesson.lesson || lesson.prevention, {
@@ -109,4 +111,8 @@ export function stopReflectionCron() {
     }
 }
 
-export default { reflectionCycle, startReflectionCron, stopReflectionCron }
+export function getReflectionStatus() {
+    return { active: !!reflectionJob, lessonCount }
+}
+
+export default { reflectionCycle, startReflectionCron, stopReflectionCron, getReflectionStatus }

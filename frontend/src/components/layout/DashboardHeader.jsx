@@ -130,8 +130,8 @@ export function DashboardHeader({
             return
         }
         updateUser({ role })
-        navigate(config.route, { replace: true })
         setRoleOpen(false)
+        window.location.href = config.route
     }
 
     const handleEmergencyToggle = async () => {
@@ -162,19 +162,19 @@ export function DashboardHeader({
                         className="lg:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                         aria-label="Открыть меню"
                     >
-                        <Menu className="w-5 h-5 text-white" />
+                        <Menu className="w-5 h-5 text-[var(--text)]" />
                     </button>
-                    <h1 className="text-lg font-semibold text-white/90 truncate">{title}</h1>
+                    <h1 className="text-lg font-semibold text-[var(--text)] truncate">{title}</h1>
                 </div>
 
                 <div className="flex items-center gap-3">
                     {showSearch && (
-                        <div className="hidden md:flex items-center bg-white/5 rounded-lg px-3 py-1.5 border border-white/[0.06]">
-                            <Search className="w-4 h-4 text-gray-500 mr-2" />
+                        <div className="hidden md:flex items-center bg-[var(--bg-secondary)] rounded-lg px-3 py-1.5 border border-[var(--border)]">
+                            <Search className="w-4 h-4 text-[var(--text-muted)] mr-2" />
                             <input
                                 type="text"
                                 placeholder="Поиск..."
-                                className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-40"
+                                className="bg-transparent text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none w-40"
                             />
                         </div>
                     )}
@@ -182,25 +182,25 @@ export function DashboardHeader({
                     <div className="relative">
                         <button
                             onClick={() => setLangOpen(o => !o)}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-xs font-medium text-white/80"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors text-xs font-medium text-[var(--text)]"
                             aria-label="Выбрать язык"
                             title="Русский / English"
                         >
-                            <Globe className="w-3.5 h-3.5 text-white/70" />
+                            <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                             <span className="uppercase">{language}</span>
-                            <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${langOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${langOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {langOpen && (
-                            <div className="absolute right-0 mt-2 w-32 rounded-xl bg-[#0f0f1a] border border-white/10 shadow-xl overflow-hidden z-50">
+                            <div className="absolute right-0 mt-2 w-32 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl overflow-hidden z-50">
                                 {['ru', 'en'].map(lang => (
                                     <button
                                         key={lang}
                                         onClick={() => handleLanguageChange(lang)}
-                                        className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-white/5 transition-colors ${
-                                            language === lang ? 'bg-white/[0.03] text-white' : 'text-gray-300'
+                                        className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-[var(--card-hover)] transition-colors ${
+                                            language === lang ? 'bg-[var(--card)] text-[var(--text)]' : 'text-[var(--text-muted)]'
                                         }`}
                                     >
-                                        <span className="uppercase w-4 font-mono text-[#8B5CF6]">{lang}</span>
+                                        <span className="uppercase w-4 font-mono text-[var(--primary)]">{lang}</span>
                                         {lang === 'ru' ? 'Русский' : 'English'}
                                     </button>
                                 ))}
@@ -210,7 +210,7 @@ export function DashboardHeader({
 
                     <button
                         onClick={onThemeToggle}
-                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-white/80"
+                        className="p-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors text-[var(--text)]"
                         aria-label="Переключить тему"
                         title={isDark ? 'Светлая тема' : 'Тёмная тема'}
                     >
@@ -221,15 +221,15 @@ export function DashboardHeader({
                     <div className="relative">
                         <button
                             onClick={() => setRoleOpen(o => !o)}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-xs font-medium text-white/80"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors text-xs font-medium text-[var(--text)]"
                             aria-label="Сменить роль"
                         >
                             <CurrentIcon className={`w-3.5 h-3.5 ${currentRole.color}`} />
                             <span className="hidden sm:inline">{currentRole.label}</span>
-                            <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${roleOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${roleOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {roleOpen && (
-                            <div className="absolute right-0 mt-2 w-40 rounded-xl bg-[#0f0f1a] border border-white/10 shadow-xl overflow-hidden z-50">
+                            <div className="absolute right-0 mt-2 w-40 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl overflow-hidden z-50">
                                 {availableRoles.map(role => {
                                     const config = ROLE_CONFIG[role]
                                     const Icon = config.icon
@@ -237,8 +237,8 @@ export function DashboardHeader({
                                         <button
                                             key={role}
                                             onClick={() => handleRoleChange(role)}
-                                            className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-white/5 transition-colors ${
-                                                role === user?.role ? 'bg-white/[0.03] text-white' : 'text-gray-300'
+                                            className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-[var(--card-hover)] transition-colors ${
+                                                role === user?.role ? 'bg-[var(--card)] text-[var(--text)]' : 'text-[var(--text-muted)]'
                                             }`}
                                         >
                                             <Icon className={`w-3.5 h-3.5 ${config.color}`} />
@@ -254,24 +254,24 @@ export function DashboardHeader({
                         <div className="relative">
                             <button
                                 onClick={() => setWsOpen(o => !o)}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-xs font-medium text-white/80"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors text-xs font-medium text-[var(--text)]"
                                 aria-label="Выбрать проект"
                             >
-                                <Folder className="w-3.5 h-3.5 text-[#8b5cf6]" />
+                                <Folder className="w-3.5 h-3.5 text-[var(--primary)]" />
                                 <span className="hidden sm:inline truncate max-w-[120px]">{activeWorkspace?.name || 'Проект'}</span>
-                                <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${wsOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${wsOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {wsOpen && (
-                                <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[#0f0f1a] border border-white/10 shadow-xl overflow-hidden z-50">
+                                <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl overflow-hidden z-50">
                                     {workspaces.map(ws => (
                                         <button
                                             key={ws._id}
                                             onClick={() => handleWorkspaceChange(ws)}
-                                            className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-white/5 transition-colors ${
-                                                activeWorkspace?._id === ws._id ? 'bg-white/[0.03] text-white' : 'text-gray-300'
+                                            className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-[var(--card-hover)] transition-colors ${
+                                                activeWorkspace?._id === ws._id ? 'bg-[var(--card)] text-[var(--text)]' : 'text-[var(--text-muted)]'
                                             }`}
                                         >
-                                            {activeWorkspace?._id === ws._id ? <Check className="w-3.5 h-3.5 text-[#8b5cf6]" /> : <div className="w-3.5" />}
+                                            {activeWorkspace?._id === ws._id ? <Check className="w-3.5 h-3.5 text-[var(--primary)]" /> : <div className="w-3.5" />}
                                             {ws.name}
                                         </button>
                                     ))}
@@ -282,11 +282,11 @@ export function DashboardHeader({
 
                     <button
                         onClick={handleNotificationsClick}
-                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors relative"
+                        className="p-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors relative"
                     >
-                        <Bell className={`w-5 h-5 ${pushSubscribed ? 'text-emerald-400' : 'text-white/70'}`} />
+                        <Bell className={`w-5 h-5 ${pushSubscribed ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`} />
                         {unreadCount > 0 && (
-                            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
+                            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-[var(--text)] text-[9px] rounded-full flex items-center justify-center font-bold">
                                 {unreadCount > 9 ? '9+' : unreadCount}
                             </span>
                         )}
@@ -309,12 +309,12 @@ export function DashboardHeader({
 
                     <button
                         onClick={() => setProfileOpen(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors"
                     >
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#00ff41] to-[#00cc33] flex items-center justify-center text-xs font-bold text-black">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-xs font-bold text-white">
                             {user?.name?.[0]?.toUpperCase() || <User size={14} />}
                         </div>
-                        <span className="text-sm text-white/80 hidden sm:inline">{user?.name || 'User'}</span>
+                        <span className="text-sm text-[var(--text)] hidden sm:inline">{user?.name || 'User'}</span>
                     </button>
                 </div>
             </div>

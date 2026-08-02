@@ -12,10 +12,10 @@ import {
 function Modal({ title, onClose, children }) {
     return (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-            <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">{title}</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-white"><X className="w-5 h-5" /></button>
+                    <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
+                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
                 </div>
                 {children}
             </div>
@@ -97,7 +97,7 @@ export function QRPrintTab() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-[var(--text)] flex items-center gap-2">
                     <QrCode className="w-6 h-6 text-[#00ff41]" />
                     QR / Офлайн
                 </h2>
@@ -106,16 +106,16 @@ export function QRPrintTab() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <QRGenerator onGenerated={loadQRs} />
 
-                <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6">
+                    <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Printer className="w-5 h-5 text-[#8b5cf6]" />
                         Печать и типография
                     </h3>
-                    <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                    <div className="p-4 bg-white/5 rounded-xl border border-[var(--border)]">
                         <div className="flex items-start gap-3">
                             <Info className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
                             <div>
-                                <p className="text-sm text-white">Авто-заказ печати требует API-ключа типографии.</p>
+                                <p className="text-sm text-[var(--text)]">Авто-заказ печати требует API-ключа типографии.</p>
                                 <p className="text-xs text-gray-400 mt-1">
                                     Добавьте <code>PRINT_API_KEY</code> или <code>PRINTFUL_API_KEY</code> в переменные окружения Render. Сейчас вы можете скачать QR-код и отнести в любую типографию.
                                 </p>
@@ -126,14 +126,14 @@ export function QRPrintTab() {
                 </div>
             </div>
 
-            <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Мои QR-коды</h3>
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Мои QR-коды</h3>
                 {qrs.length === 0 ? (
                     <p className="text-gray-400 text-sm">Пока нет QR-кодов. Создайте первый слева.</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-gray-400 border-b border-white/10">
+                            <thead className="text-xs text-gray-400 border-b border-[var(--border)]">
                                 <tr>
                                     <th className="pb-2">Тип</th>
                                     <th className="pb-2">URL</th>
@@ -142,9 +142,9 @@ export function QRPrintTab() {
                                     <th className="pb-2 text-right">Действия</th>
                                 </tr>
                             </thead>
-                            <tbody className="text-white">
+                            <tbody className="text-[var(--text)]">
                                 {qrs.map(qr => (
-                                    <tr key={qr._id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                                    <tr key={qr._id} className="border-b border-[var(--border)] hover:bg-white/[0.02]">
                                         <td className="py-3">{qr.type}</td>
                                         <td className="py-3 max-w-xs truncate text-gray-300">{qr.url}</td>
                                         <td className="py-3">{qr.totalScans || 0}</td>
@@ -171,8 +171,8 @@ export function QRPrintTab() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6">
+                    <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <MapPin className="w-5 h-5 text-[#f0883e]" />
                         Бронирование локаций
                     </h3>
@@ -182,7 +182,7 @@ export function QRPrintTab() {
                             value={bookingCity}
                             onChange={(e) => setBookingCity(e.target.value)}
                             placeholder="Город"
-                            className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white text-sm"
+                            className="w-full bg-black/30 border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] text-sm"
                         />
                         <button
                             onClick={searchStudios}
@@ -195,8 +195,8 @@ export function QRPrintTab() {
                     </div>
                     <div className="mt-4 space-y-2">
                         {studios.map(s => (
-                            <div key={s._id} className="p-3 bg-white/5 rounded-xl border border-white/10">
-                                <p className="text-white font-medium text-sm">{s.name}</p>
+                            <div key={s._id} className="p-3 bg-white/5 rounded-xl border border-[var(--border)]">
+                                <p className="text-[var(--text)] font-medium text-sm">{s.name}</p>
                                 <p className="text-xs text-gray-400">{s.city} — {s.address}</p>
                                 <p className="text-xs text-[#00ff41]">{s.pricePerHour}₽/час</p>
                             </div>
@@ -204,8 +204,8 @@ export function QRPrintTab() {
                     </div>
                 </div>
 
-                <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6">
+                    <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Pizza className="w-5 h-5 text-red-400" />
                         Доставка для команды
                     </h3>
@@ -215,12 +215,12 @@ export function QRPrintTab() {
                             value={deliveryAddress}
                             onChange={(e) => setDeliveryAddress(e.target.value)}
                             placeholder="Адрес съёмочной площадки"
-                            className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white text-sm"
+                            className="w-full bg-black/30 border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] text-sm"
                         />
                         <button
                             onClick={orderDelivery}
                             disabled={loading}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-xl text-white font-medium text-sm transition-colors"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-xl text-[var(--text)] font-medium text-sm transition-colors"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pizza className="w-4 h-4" />}
                             Заказать еду для команды
@@ -259,7 +259,7 @@ export function QRPrintTab() {
                         </div>
 
                         <div className="h-64">
-                            <p className="text-sm text-white mb-2">Сканы по дням</p>
+                            <p className="text-sm text-[var(--text)] mb-2">Сканы по дням</p>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={analytics.byDay || []}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#333" />
@@ -273,18 +273,18 @@ export function QRPrintTab() {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <p className="text-sm text-white mb-2">Устройства</p>
+                                <p className="text-sm text-[var(--text)] mb-2">Устройства</p>
                                 {(analytics.topDevices || []).map(d => (
-                                    <div key={d.name} className="flex justify-between text-xs text-gray-300 py-1 border-b border-white/5">
+                                    <div key={d.name} className="flex justify-between text-xs text-gray-300 py-1 border-b border-[var(--border)]">
                                         <span>{d.name}</span>
                                         <span>{d.count}</span>
                                     </div>
                                 ))}
                             </div>
                             <div>
-                                <p className="text-sm text-white mb-2">Города</p>
+                                <p className="text-sm text-[var(--text)] mb-2">Города</p>
                                 {(analytics.topCities || []).map(c => (
-                                    <div key={c.name} className="flex justify-between text-xs text-gray-300 py-1 border-b border-white/5">
+                                    <div key={c.name} className="flex justify-between text-xs text-gray-300 py-1 border-b border-[var(--border)]">
                                         <span>{c.name}</span>
                                         <span>{c.count}</span>
                                     </div>

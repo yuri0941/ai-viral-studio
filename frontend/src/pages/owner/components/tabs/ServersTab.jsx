@@ -14,7 +14,7 @@ export function ServersTab({ data }) {
             <DataTable
                 data={data.servers}
                 columns={[
-                    { key: 'name', label: 'Сервер', render: r => <span className="text-sm font-medium text-white">{r.name}</span> },
+                    { key: 'name', label: 'Сервер', render: r => <span className="text-sm font-medium text-[var(--text)]">{r.name}</span> },
                     { key: 'region', label: 'Регион', render: r => <span className="text-xs text-gray-400">{r.region}</span> },
                     { key: 'status', label: 'Статус', render: r => <StatusBadge status={r.status} pulse={r.status === 'online'} /> },
                     { key: 'cpu', label: 'CPU', render: r => (

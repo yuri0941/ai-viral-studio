@@ -72,10 +72,10 @@ export function BrandVoiceTab() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-xl font-semibold text-white">Brand Voice v2</h2>
+                    <h2 className="text-xl font-semibold text-[var(--text)]">Brand Voice v2</h2>
                     <p className="text-sm text-gray-500 mt-1">AI проанализирует тон, словарь и паттерны ваших постов</p>
                 </div>
-                <button onClick={fillSamples} className="text-xs text-gray-400 hover:text-white underline">
+                <button onClick={fillSamples} className="text-xs text-gray-400 hover:text-[var(--text)] underline">
                     Заполнить примерами
                 </button>
             </div>
@@ -89,7 +89,7 @@ export function BrandVoiceTab() {
                         value={niche}
                         onChange={e => setNiche(e.target.value)}
                         placeholder="Например: бизнес, фитнес, EdTech"
-                        className="w-full px-4 py-2.5 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-[#8B5CF6]/30"
+                        className="w-full px-4 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-[#8B5CF6]/30"
                     />
                 </div>
 
@@ -102,7 +102,7 @@ export function BrandVoiceTab() {
                                 onChange={e => setText(i, e.target.value)}
                                 rows={2}
                                 placeholder={`Текст ${i + 1}`}
-                                className="flex-1 px-4 py-2.5 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-[#8B5CF6]/30 resize-none"
+                                className="flex-1 px-4 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-[#8B5CF6]/30 resize-none"
                             />
                             {texts.length > 3 && (
                                 <button onClick={() => removeField(i)} className="text-gray-500 hover:text-red-400 text-xs">✕</button>
@@ -125,7 +125,7 @@ export function BrandVoiceTab() {
             {profile && (
                 <div className="bg-[#1a1a24] rounded-2xl border border-white/[0.06] p-5 space-y-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-white">Результат анализа</h3>
+                        <h3 className="text-sm font-semibold text-[var(--text)]">Результат анализа</h3>
                         <button
                             onClick={toggleEnabled}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -139,12 +139,12 @@ export function BrandVoiceTab() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {cards.map((card, i) => (
-                            <div key={i} className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
+                            <div key={i} className="p-4 rounded-xl bg-white/[0.03] border border-[var(--border)]">
                                 <div className="flex items-center gap-2 mb-2">
                                     <card.icon size={14} className="text-[#8B5CF6]" />
                                     <span className="text-xs text-gray-500">{card.label}</span>
                                 </div>
-                                <div className="text-sm text-white font-medium">{card.value || '—'}</div>
+                                <div className="text-sm text-[var(--text)] font-medium">{card.value || '—'}</div>
                             </div>
                         ))}
                     </div>
@@ -154,7 +154,7 @@ export function BrandVoiceTab() {
                             <div className="text-xs text-gray-500 mb-2 flex items-center gap-1"><FileText size={12} /> Примеры для анализа</div>
                             <div className="space-y-2">
                                 {profile.examples.slice(0, 3).map((ex, i) => (
-                                    <div key={i} className="p-3 rounded-lg bg-[#0a0a0f] text-xs text-gray-400 line-clamp-2">{ex}</div>
+                                    <div key={i} className="p-3 rounded-lg bg-[var(--bg)] text-xs text-gray-400 line-clamp-2">{ex}</div>
                                 ))}
                             </div>
                         </div>

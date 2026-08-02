@@ -46,7 +46,7 @@ export function DashboardShell({
     const location = useLocation()
     const viewport = useViewport()
     const { updateUser } = useAuth()
-    const { theme, isDark, setTheme, toggle } = useTheme()
+    const { theme, appliedTheme, setTheme, toggleTheme } = useTheme()
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [mobileNotifOpen, setMobileNotifOpen] = useState(false)
     const [language, setLanguage] = useState(() => {
@@ -172,7 +172,7 @@ export function DashboardShell({
                     unreadCount={unreadCount}
                     language={language}
                     onLanguageChange={handleLanguageChange}
-                    isDark={isDark}
+                    isDark={appliedTheme === 'dark'}
                     onThemeToggle={handleThemeToggle}
                     onMenuClick={() => setSidebarOpen(true)}
                     onNotificationsClick={() => setMobileNotifOpen(true)}

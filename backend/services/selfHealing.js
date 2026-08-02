@@ -12,6 +12,7 @@ import {
     isMockMode,
 } from './autoRecovery.js'
 import { alertOwner } from './ownerBot.js'
+import { alertOmega } from './omegaBot.js'
 import { OwnerSettings } from '../models/index.js'
 
 let healingJob = null
@@ -44,6 +45,7 @@ async function checkAIProviders() {
 
     if (!active && healthy.length > 0) {
         await switchAIProvider(healthy[0].id)
+        alertOmega(`Self-Healing: активирован fallback-провайдер ${healthy[0].id}`).catch(() => {})
         return logRecovery({ action: `activate fallback ${healthy[0].id}`, problem: 'No active AI provider', status: 'success' })
     }
 
@@ -53,6 +55,7 @@ async function checkAIProviders() {
             AI_ERROR_HISTORY.set(active.id, (AI_ERROR_HISTORY.get(active.id) || 0) + 1)
             if (AI_ERROR_HISTORY.get(active.id) >= 2) {
                 await switchAIProvider(next)
+                alertOmega(`Self-Healing: переключение AI-провайдера ${active.id} → ${next}`).catch(() => {})
                 return logRecovery({ action: `switch provider ${active.id} -> ${next}`, problem: 'AI provider failing 2+ times', status: 'success' })
             }
             return logRecovery({ action: `detect ${active.id} error`, problem: 'AI provider error', status: 'warning', details: { provider: active.id } })
@@ -111,6 +114,7 @@ async function runHealingTick() {
         logRecovery({ action: 'health check failed', problem: 'server health', status: 'warning', details: health })
         if (health.consecutive >= MAX_HEALTH_ERRORS) {
             await alertOwner('🚨 Self-Healing: сервер не отвечает на health check. Возможно, требуется перезапуск в Render.').catch(() => {})
+            alertOmega('Self-Healing: сервер не отвечает на health check, запрошен перезапуск.').catch(() => {})
             if (autoHealEnabled) {
                 await requestRestart('health check failed 2+ times')
             }

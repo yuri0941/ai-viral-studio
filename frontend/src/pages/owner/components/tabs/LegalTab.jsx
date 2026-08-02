@@ -41,7 +41,7 @@ export function LegalTab({ data }) {
                             <div key={field}>
                                 <label className="block text-xs text-gray-400 mb-1 capitalize">{field}</label>
                                 <input value={reqs.legal[field]} onChange={e => setReqs(p => ({ ...p, legal: { ...p.legal, [field]: e.target.value } }))}
-                                    className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-emerald-500/30" />
+                                    className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-emerald-500/30" />
                             </div>
                         ))}
                     </div>
@@ -53,7 +53,7 @@ export function LegalTab({ data }) {
                             <div key={field}>
                                 <label className="block text-xs text-gray-400 mb-1 capitalize">{field}</label>
                                 <input value={reqs.ip[field]} onChange={e => setReqs(p => ({ ...p, ip: { ...p.ip, [field]: e.target.value } }))}
-                                    className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-emerald-500/30" />
+                                    className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-emerald-500/30" />
                             </div>
                         ))}
                     </div>
@@ -65,7 +65,7 @@ export function LegalTab({ data }) {
                             <div key={field}>
                                 <label className="block text-xs text-gray-400 mb-1 capitalize">{field}</label>
                                 <input value={reqs.card[field]} onChange={e => setReqs(p => ({ ...p, card: { ...p.card, [field]: e.target.value } }))}
-                                    className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-emerald-500/30" />
+                                    className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-emerald-500/30" />
                             </div>
                         ))}
                     </div>
@@ -77,7 +77,7 @@ export function LegalTab({ data }) {
                             <div key={field}>
                                 <label className="block text-xs text-gray-400 mb-1 capitalize">{field}</label>
                                 <input value={reqs.international[field]} onChange={e => setReqs(p => ({ ...p, international: { ...p.international, [field]: e.target.value } }))}
-                                    className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-emerald-500/30" />
+                                    className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-emerald-500/30" />
                             </div>
                         ))}
                     </div>
@@ -88,20 +88,20 @@ export function LegalTab({ data }) {
                         <div>
                             <label className="block text-xs text-gray-400 mb-1">Адрес кошелька</label>
                             <input value={reqs.crypto.walletAddress} onChange={e => setReqs(p => ({ ...p, crypto: { ...p.crypto, walletAddress: e.target.value } }))}
-                                className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-emerald-500/30 font-mono" />
+                                className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-emerald-500/30 font-mono" />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-xs text-gray-400 mb-1">Сеть</label>
                                 <select value={reqs.crypto.network} onChange={e => setReqs(p => ({ ...p, crypto: { ...p.crypto, network: e.target.value } }))}
-                                    className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-emerald-500/30">
+                                    className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-emerald-500/30">
                                     {['TRC20', 'ERC20', 'BEP20', 'SOL', 'BTC'].map(n => <option key={n}>{n}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-xs text-gray-400 mb-1">Валюта</label>
                                 <select value={reqs.crypto.currency} onChange={e => setReqs(p => ({ ...p, crypto: { ...p.crypto, currency: e.target.value } }))}
-                                    className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-emerald-500/30">
+                                    className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-emerald-500/30">
                                     {['USDT', 'BTC', 'ETH'].map(c => <option key={c}>{c}</option>)}
                                 </select>
                             </div>
@@ -113,7 +113,7 @@ export function LegalTab({ data }) {
                     <div>
                         <label className="block text-xs text-gray-400 mb-1">PayPal Email</label>
                         <input type="email" value={reqs.paypal.email} onChange={e => setReqs(p => ({ ...p, paypal: { ...p.paypal, email: e.target.value } }))}
-                            className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-emerald-500/30" />
+                            className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-emerald-500/30" />
                     </div>
                 )
             default: return null
@@ -127,7 +127,7 @@ export function LegalTab({ data }) {
                     const Icon = s.icon
                     return (
                         <button key={s.id} onClick={() => setActiveSection(s.id)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeSection === s.id ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'}`}>
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeSection === s.id ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-gray-400 hover:text-[var(--text)] hover:bg-white/5 border border-transparent'}`}>
                             <Icon size={16} /> {s.label}
                         </button>
                     )
@@ -141,7 +141,7 @@ export function LegalTab({ data }) {
                             <div key={key}>
                                 <label className="block text-xs text-gray-400 mb-1 capitalize">{key}</label>
                                 <input value={val} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
-                                    className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-emerald-500/30" />
+                                    className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-emerald-500/30" />
                             </div>
                         ))}
                     </div>
@@ -158,15 +158,15 @@ export function LegalTab({ data }) {
                             const Icon = s.icon
                             return (
                                 <button key={s.id} onClick={() => setWithdrawType(s.id)}
-                                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all ${withdrawType === s.id ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'}`}>
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all ${withdrawType === s.id ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-gray-400 hover:text-[var(--text)] hover:bg-white/5 border border-transparent'}`}>
                                     <Icon size={14} /> {s.label}
                                 </button>
                             )
                         })}
                     </div>
-                    <div className="p-5 rounded-2xl bg-[#0f0f1a] border border-white/5">
+                    <div className="p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
                         {renderWithdrawForm()}
-                        <div className="mt-4 pt-4 border-t border-white/5 flex gap-3">
+                        <div className="mt-4 pt-4 border-t border-[var(--border)] flex gap-3">
                             <button onClick={handleSaveWithdraw} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
                                 <Save size={14} /> Сохранить реквизиты
                             </button>
@@ -179,7 +179,7 @@ export function LegalTab({ data }) {
                                 a.click()
                                 URL.revokeObjectURL(url)
                                 data.showToast('Реквизиты скачаны')
-                            }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 transition-colors">
+                            }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm text-gray-300 hover:bg-white/10 transition-colors">
                                 <FileText size={14} /> Скачать JSON
                             </button>
                         </div>

@@ -10,29 +10,29 @@ export function UpdatesTab({ data }) {
         <div className="max-w-2xl space-y-6">
             <div className="flex items-center gap-3">
                 <RefreshCw size={18} className="text-blue-400" />
-                <h2 className="text-lg font-semibold text-white">Обновления системы</h2>
+                <h2 className="text-lg font-semibold text-[var(--text)]">Обновления системы</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-2xl bg-[#0f0f1a] border border-white/5">
+                <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
                     <div className="text-xs text-gray-500 mb-1">Текущая версия</div>
                     <div className="text-xl font-bold text-emerald-400">v{version}</div>
                 </div>
-                <div className="p-4 rounded-2xl bg-[#0f0f1a] border border-white/5">
+                <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
                     <div className="text-xs text-gray-500 mb-1">Rollout</div>
                     <div className="text-xl font-bold text-blue-400">{rolloutPercent}%</div>
                 </div>
-                <div className="p-4 rounded-2xl bg-[#0f0f1a] border border-white/5">
+                <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
                     <div className="text-xs text-gray-500 mb-1">Статус</div>
                     <div className="text-xl font-bold text-emerald-400">Стабильно</div>
                 </div>
             </div>
 
-            <div className="space-y-4 p-5 rounded-2xl bg-[#0f0f1a] border border-white/5">
+            <div className="space-y-4 p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
                 <div>
                     <label className="block text-xs text-gray-400 mb-1">Версия</label>
                     <input value={version} onChange={e => setVersion(e.target.value)}
-                        className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white outline-none focus:border-emerald-500/30" />
+                        className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-emerald-500/30" />
                 </div>
                 <div>
                     <label className="block text-xs text-gray-400 mb-1">Rollout % (Canary)</label>
@@ -43,7 +43,7 @@ export function UpdatesTab({ data }) {
                 <div>
                     <label className="block text-xs text-gray-400 mb-1">Changelog</label>
                     <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={5} placeholder="Что нового в этой версии..."
-                        className="w-full px-3 py-2 bg-[#0a0a0f] border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500/30 resize-none" />
+                        className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-emerald-500/30 resize-none" />
                 </div>
                 <div className="flex gap-3">
                     <button onClick={() => data.showToast('Changelog сохранён')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">

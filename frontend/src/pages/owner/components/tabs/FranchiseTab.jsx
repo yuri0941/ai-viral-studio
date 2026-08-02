@@ -11,10 +11,10 @@ const CITIES = ['Москва', 'Санкт-Петербург', 'Казань',
 function Modal({ title, onClose, children }) {
     return (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-            <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">{title}</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-white"><X className="w-5 h-5" /></button>
+                    <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
+                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
                 </div>
                 {children}
             </div>
@@ -100,9 +100,9 @@ export function FranchiseTab({ data }) {
 
     if (!allowed) {
         return (
-            <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-8 text-center">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-8 text-center">
                 <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold text-white mb-2">Франшиза доступна только на Agency</h2>
+                <h2 className="text-xl font-semibold text-[var(--text)] mb-2">Франшиза доступна только на Agency</h2>
                 <p className="text-sm text-gray-400">Перейдите на тариф Agency, чтобы генерировать франшизные пакеты.</p>
             </div>
         )
@@ -111,14 +111,14 @@ export function FranchiseTab({ data }) {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-[var(--text)] flex items-center gap-2">
                     <Store className="w-6 h-6 text-[#00ff41]" />
                     Франшиза
                 </h2>
             </div>
 
-            <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Генерация франшизного пакета</h3>
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Генерация франшизного пакета</h3>
                 {checking ? (
                     <p className="text-sm text-gray-400 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Проверка требований...</p>
                 ) : !ready?.ready ? (
@@ -135,13 +135,13 @@ export function FranchiseTab({ data }) {
                             value={form.brandName}
                             onChange={(e) => setForm({ ...form, brandName: e.target.value })}
                             placeholder="Название бренда"
-                            className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white text-sm"
+                            className="w-full bg-black/30 border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] text-sm"
                             required
                         />
                         <select
                             value={form.niche}
                             onChange={(e) => setForm({ ...form, niche: e.target.value })}
-                            className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white text-sm"
+                            className="w-full bg-black/30 border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] text-sm"
                             required
                         >
                             <option value="">Выберите нишу</option>
@@ -161,7 +161,7 @@ export function FranchiseTab({ data }) {
                                         className={`px-3 py-1 rounded-full text-xs border transition-colors ${
                                             form.cities.includes(c)
                                                 ? 'bg-[#00ff41]/20 border-[#00ff41] text-[#00ff41]'
-                                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                                                : 'bg-white/5 border-[var(--border)] text-gray-400 hover:bg-white/10'
                                         }`}
                                     >
                                         {c}
@@ -194,10 +194,10 @@ export function FranchiseTab({ data }) {
             </div>
 
             {result?.status === 'ready' && (
-                <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-6">
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6">
                     <div className="flex items-center gap-2 mb-4">
                         <CheckCircle className="w-5 h-5 text-[#00ff41]" />
-                        <h3 className="text-lg font-semibold text-white">Франшизный пакет готов: {result.brandName}</h3>
+                        <h3 className="text-lg font-semibold text-[var(--text)]">Франшизный пакет готов: {result.brandName}</h3>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                         <Card icon={BookOpen} title="Брендбук" color="text-[#8b5cf6]" />
@@ -210,23 +210,23 @@ export function FranchiseTab({ data }) {
                     <a
                         href={franchiseApi.download(result.kitId)}
                         download
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-[var(--border)] rounded-xl text-[var(--text)] text-sm transition-colors"
                     >
                         <Download className="w-4 h-4" /> Скачать ZIP (JSON)
                     </a>
                 </div>
             )}
 
-            <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">История генераций</h3>
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-[var(--text)] mb-4">История генераций</h3>
                 {kits.length === 0 ? (
                     <p className="text-sm text-gray-400">Пока нет сгенерированных пакетов.</p>
                 ) : (
                     <div className="space-y-2">
                         {kits.map(kit => (
-                            <div key={kit._id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div key={kit._id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-[var(--border)]">
                                 <div>
-                                    <p className="text-white font-medium text-sm">{kit.brandName}</p>
+                                    <p className="text-[var(--text)] font-medium text-sm">{kit.brandName}</p>
                                     <p className="text-xs text-gray-400">{kit.niche} — {kit.city}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -252,7 +252,7 @@ export function FranchiseTab({ data }) {
                             onChange={(e) => setRecipients(e.target.value)}
                             rows={5}
                             placeholder="partner1@mail.com, partner2@mail.com"
-                            className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white text-sm"
+                            className="w-full bg-black/30 border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] text-sm"
                         />
                         <button
                             onClick={sendKit}
@@ -272,9 +272,9 @@ export function FranchiseTab({ data }) {
 
 function Card({ icon: Icon, title, color }) {
     return (
-        <div className="p-4 bg-white/5 rounded-xl border border-white/10 flex items-center gap-3">
+        <div className="p-4 bg-white/5 rounded-xl border border-[var(--border)] flex items-center gap-3">
             <Icon className={`w-5 h-5 ${color}`} />
-            <span className="text-sm text-white font-medium">{title}</span>
+            <span className="text-sm text-[var(--text)] font-medium">{title}</span>
         </div>
     )
 }

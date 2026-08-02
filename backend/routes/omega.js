@@ -1,4 +1,5 @@
 import express from 'express'
+import { getReflectionStatus } from '../ai/omega/selfReflection.js'
 import {
     getStatus,
     chat,
@@ -52,6 +53,7 @@ router.get('/autopilot', getAutopilotStatus)
 router.post('/autopilot', setAutopilotStatus)
 router.post('/autopilot/post', createAutopilotPost)
 router.get('/self-healing', getSelfHealingStatus)
+router.get('/self-reflection', (req, res) => res.json({ status: 'success', data: getReflectionStatus() }))
 router.get('/youtube/analyze', analyzeYouTube)
 router.post('/youtube/shorts', generateShorts)
 router.post('/youtube/subtitles', generateSubtitles)

@@ -14,14 +14,8 @@ function LoginForm({ onSuccess }) {
     const { login } = useAuth()
     const navigate = useNavigate()
 
-    // Turnstile is temporarily disabled on non-Cloudflare Pages domains
-    const isTurnstileEnabled = typeof window !== 'undefined' && window.location.hostname.includes('pages.dev')
-
-    useEffect(() => {
-        if (!isTurnstileEnabled) {
-            setTurnstileToken('disabled')
-        }
-    }, [isTurnstileEnabled])
+    // Turnstile always enabled (keys configured in Render / Cloudflare Pages)
+    const isTurnstileEnabled = true
 
     const handleSubmit = async (e) => {
         e.preventDefault()

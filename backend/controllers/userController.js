@@ -37,7 +37,7 @@ export const getMe = async (req, res) => {
 export const updateMe = async (req, res) => {
   try {
     const userId = req.user.id
-    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram } = req.body || {}
+    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram, role } = req.body || {}
 
     const updates = {}
     if (name !== undefined) updates.name = name.trim()
@@ -45,6 +45,20 @@ export const updateMe = async (req, res) => {
     if (phone !== undefined) updates.phone = phone.trim()
     if (telegram !== undefined) updates.telegram = telegram.trim()
     if (defaultAddAiLabel !== undefined) updates.defaultAddAiLabel = !!defaultAddAiLabel
+
+    // [P16] Role switching via dashboard header
+    if (role !== undefined) {
+      const allowedRoles = ['owner', 'admin', 'staff', 'advertiser', 'creator', 'business']
+      if (!allowedRoles.includes(role)) {
+        return res.status(400).json({ success: false, message: 'Invalid role' })
+      }
+      // Only owners can elevate to owner/admin/staff; admins can stay admin or lower
+      const privileged = ['owner', 'admin', 'staff']
+      if (privileged.includes(role) && req.user.role !== 'owner') {
+        return res.status(403).json({ success: false, message: 'Not allowed to set this role' })
+      }
+      updates.role = role
+    }
     if (preferences && typeof preferences === 'object') {
       updates.preferences = {}
       if (preferences.language) updates.preferences.language = preferences.language

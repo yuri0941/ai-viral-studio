@@ -80,12 +80,12 @@ export function DevStudioTab({ data }) {
         <div className="space-y-6">
             <div className="flex items-center gap-3">
                 <Rocket size={20} className="text-purple-400" />
-                <h2 className="text-lg font-semibold text-white">DevStudio</h2>
+                <h2 className="text-lg font-semibold text-[var(--text)]">DevStudio</h2>
             </div>
 
             {/* Create form */}
-            <form onSubmit={createProject} className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5 space-y-4">
-                <h3 className="text-sm font-semibold text-white">Создать приложение</h3>
+            <form onSubmit={createProject} className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5 space-y-4">
+                <h3 className="text-sm font-semibold text-[var(--text)]">Создать приложение</h3>
 
                 <div>
                     <label className="text-[10px] text-gray-500 mb-2 block">Шаблон</label>
@@ -101,11 +101,11 @@ export function DevStudioTab({ data }) {
                                     className={`p-3 rounded-xl border text-left transition-all ${
                                         active
                                             ? 'bg-purple-500/10 border-purple-500/30'
-                                            : 'bg-white/[0.02] border-white/5 hover:border-white/15'
+                                            : 'bg-white/[0.02] border-[var(--border)] hover:border-white/15'
                                     }`}
                                 >
                                     <Icon size={18} className={`mb-2 text-${t.color}-400`} />
-                                    <div className="text-xs font-medium text-white">{t.name}</div>
+                                    <div className="text-xs font-medium text-[var(--text)]">{t.name}</div>
                                     <div className="text-[10px] text-gray-500 mt-0.5">{t.description}</div>
                                 </button>
                             )
@@ -120,7 +120,7 @@ export function DevStudioTab({ data }) {
                             value={name}
                             onChange={e => setName(e.target.value)}
                             placeholder="Например, AI Landing 2.0"
-                            className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/30"
+                            className="w-full bg-white/5 border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-purple-500/30"
                         />
                     </div>
                     <div>
@@ -129,7 +129,7 @@ export function DevStudioTab({ data }) {
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                             placeholder="Краткое описание..."
-                            className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/30"
+                            className="w-full bg-white/5 border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-purple-500/30"
                         />
                     </div>
                 </div>
@@ -147,7 +147,7 @@ export function DevStudioTab({ data }) {
             {projects.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="lg:col-span-1 space-y-3">
-                        <h3 className="text-sm font-semibold text-white">Проекты</h3>
+                        <h3 className="text-sm font-semibold text-[var(--text)]">Проекты</h3>
                         {projects.map(p => (
                             <button
                                 key={p.id}
@@ -155,12 +155,12 @@ export function DevStudioTab({ data }) {
                                 className={`w-full text-left p-4 rounded-xl border transition-all ${
                                     activeProject === p.id
                                         ? 'bg-purple-500/10 border-purple-500/30'
-                                        : 'bg-[#0f0f1a] border-white/5 hover:border-white/15'
+                                        : 'bg-[var(--bg-secondary)] border-[var(--border)] hover:border-white/15'
                                 }`}
                             >
                                 <div className="flex items-center gap-2 mb-1">
                                     <p.template.icon size={14} className={`text-${p.template.color}-400`} />
-                                    <span className="text-sm font-medium text-white">{p.name}</span>
+                                    <span className="text-sm font-medium text-[var(--text)]">{p.name}</span>
                                 </div>
                                 <div className="text-[10px] text-gray-500">{p.template.name} • {PHASES[p.phaseIndex].label}</div>
                             </button>
@@ -168,10 +168,10 @@ export function DevStudioTab({ data }) {
                     </div>
 
                     {currentProject && (
-                        <div className="lg:col-span-2 rounded-2xl bg-[#0f0f1a] border border-white/5 p-5 space-y-5">
+                        <div className="lg:col-span-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5 space-y-5">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <div className="text-sm font-semibold text-white">{currentProject.name}</div>
+                                    <div className="text-sm font-semibold text-[var(--text)]">{currentProject.name}</div>
                                     <div className="text-xs text-gray-500">{currentProject.description}</div>
                                 </div>
                                 <StatusBadge status="active" label={currentProject.template.name} />
@@ -188,7 +188,7 @@ export function DevStudioTab({ data }) {
                                     </div>
                                 ))}
                             </div>
-                            <div className="text-xs text-white font-medium">{PHASES[currentProject.phaseIndex].label}</div>
+                            <div className="text-xs text-[var(--text)] font-medium">{PHASES[currentProject.phaseIndex].label}</div>
                             <div className="text-[10px] text-gray-500">{PHASES[currentProject.phaseIndex].description}</div>
 
                             {currentProject.phaseIndex < PHASES.length - 1 && (
@@ -202,8 +202,8 @@ export function DevStudioTab({ data }) {
 
                             {/* Logs */}
                             <div>
-                                <h4 className="text-xs font-medium text-white mb-2 flex items-center gap-1.5"><Terminal size={12} /> Логи</h4>
-                                <div className="h-32 overflow-y-auto rounded-xl bg-black/30 border border-white/5 p-3 font-mono text-[10px] space-y-1">
+                                <h4 className="text-xs font-medium text-[var(--text)] mb-2 flex items-center gap-1.5"><Terminal size={12} /> Логи</h4>
+                                <div className="h-32 overflow-y-auto rounded-xl bg-black/30 border border-[var(--border)] p-3 font-mono text-[10px] space-y-1">
                                     {currentProject.logs.map((log, i) => (
                                         <div key={i} className="text-gray-400">{log}</div>
                                     ))}

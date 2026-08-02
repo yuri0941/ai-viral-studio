@@ -12,11 +12,11 @@ export function CabinetsTab({ data }) {
             label: 'Кабинет',
             render: (row) => (
                 <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${generateGradient(row.id)} flex items-center justify-center text-xs font-bold text-white`}>
+                    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${generateGradient(row.id)} flex items-center justify-center text-xs font-bold text-[var(--text)]`}>
                         {getInitials(row.name)}
                     </div>
                     <div>
-                        <div className="text-sm font-medium text-white">{row.name}</div>
+                        <div className="text-sm font-medium text-[var(--text)]">{row.name}</div>
                         <div className="text-xs text-gray-500">{row.email}</div>
                     </div>
                 </div>
@@ -52,7 +52,7 @@ export function CabinetsTab({ data }) {
         <div className="space-y-4">
             <div className="flex items-center gap-3">
                 <Monitor size={18} className="text-emerald-400" />
-                <h2 className="text-lg font-semibold text-white">Кабинеты сотрудников</h2>
+                <h2 className="text-lg font-semibold text-[var(--text)]">Кабинеты сотрудников</h2>
                 <StatusBadge status="active" label={`${cabinets.filter(c => c.status === 'active').length} активных`} pulse />
             </div>
             <DataTable data={cabinets} columns={columns} emptyText="Нет кабинетов" />

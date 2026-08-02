@@ -136,13 +136,13 @@ export function OmegaMemoryTab() {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Database size={20} className="text-purple-400" />
-                    <h2 className="text-lg font-semibold text-white">OMEGA Memory</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text)]">OMEGA Memory</h2>
                 </div>
-                <div className="text-xs text-gray-500">Всего записей: <span className="text-white">{totalEntries}</span></div>
+                <div className="text-xs text-gray-500">Всего записей: <span className="text-[var(--text)]">{totalEntries}</span></div>
             </div>
 
             {/* Vector Memory status */}
-            <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-4">
+            <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {vectorStatus?.configured ? (
@@ -151,7 +151,7 @@ export function OmegaMemoryTab() {
                             <Server size={18} className="text-yellow-400" />
                         )}
                         <div>
-                            <div className="text-sm font-medium text-white">
+                            <div className="text-sm font-medium text-[var(--text)]">
                                 {vectorStatus?.configured ? '🟢 Chroma Cloud' : '🟡 In-Memory fallback'}
                             </div>
                             <div className="text-[10px] text-gray-500">
@@ -184,11 +184,11 @@ export function OmegaMemoryTab() {
                             className={`p-3 rounded-xl border text-left transition-all ${
                                 activeLevel === level
                                     ? 'bg-purple-500/10 border-purple-500/30'
-                                    : 'bg-[#0f0f1a] border-white/5 hover:border-white/15'
+                                    : 'bg-[var(--bg-secondary)] border-[var(--border)] hover:border-white/15'
                             }`}
                         >
                             <Layers size={14} className={`text-${meta.color}-400 mb-2`} />
-                            <div className="text-xs text-white truncate">{meta.label}</div>
+                            <div className="text-xs text-[var(--text)] truncate">{meta.label}</div>
                             <div className="text-[10px] text-gray-500">{count} записей</div>
                         </button>
                     )
@@ -196,10 +196,10 @@ export function OmegaMemoryTab() {
             </div>
 
             {/* Active level */}
-            <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5">
+            <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <div className="text-sm font-semibold text-white">{LEVEL_META[activeLevel].label}</div>
+                        <div className="text-sm font-semibold text-[var(--text)]">{LEVEL_META[activeLevel].label}</div>
                         <div className="text-[10px] text-gray-500">{LEVEL_META[activeLevel].description}</div>
                     </div>
                     <div className="relative">
@@ -208,7 +208,7 @@ export function OmegaMemoryTab() {
                             value={query}
                             onChange={e => setQuery(e.target.value)}
                             placeholder="Поиск..."
-                            className="bg-white/5 border border-white/5 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-gray-600 outline-none focus:border-purple-500/30"
+                            className="bg-white/5 border border-[var(--border)] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[var(--text)] placeholder-gray-600 outline-none focus:border-purple-500/30"
                         />
                     </div>
                 </div>
@@ -220,7 +220,7 @@ export function OmegaMemoryTab() {
                         onChange={e => setNewEntry(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && addEntry()}
                         placeholder="Добавить запись в этот уровень..."
-                        className="flex-1 bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/30"
+                        className="flex-1 bg-white/5 border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-purple-500/30"
                     />
                     <button
                         onClick={addEntry}
@@ -249,10 +249,10 @@ export function OmegaMemoryTab() {
                         </div>
                     )}
                     {safeEntries.slice().reverse().map(entry => (
-                        <div key={entry.id} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                        <div key={entry.id} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-[var(--border)]">
                             <ChevronRight size={14} className="text-gray-500 mt-0.5 shrink-0" />
                             <div className="flex-1 min-w-0">
-                                <div className="text-xs text-white break-words">{typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content)}</div>
+                                <div className="text-xs text-[var(--text)] break-words">{typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content)}</div>
                                 <div className="flex items-center gap-2 mt-2">
                                     {entry.tags?.map(tag => (
                                         <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400">{tag}</span>

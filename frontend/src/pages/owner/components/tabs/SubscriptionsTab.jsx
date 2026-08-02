@@ -6,7 +6,7 @@ import { useSmartData } from '../../../../hooks/useSmartData'
 import { API_BASE_URL } from '../../../../config.js'
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
-    ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap
+    ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X
 } from 'lucide-react'
 
 const DEMO_PLANS = [
@@ -62,6 +62,10 @@ export function SubscriptionsTab({ data }) {
     const [paying, setPaying] = useState(null)
     const [quotaSettings, setQuotaSettings] = useState({ generationsLimit: 100, overageCost: 4, topUpPackSize: 100, topUpPackPrice: 4 })
     const [savingQuota, setSavingQuota] = useState(false)
+    const [pricingOpen, setPricingOpen] = useState(false)
+    const [pricingForm, setPricingForm] = useState({ niche: 'SaaS', region: 'Global', competitorPrices: '' })
+    const [pricingLoading, setPricingLoading] = useState(false)
+    const [pricingResult, setPricingResult] = useState(null)
 
     const plansUrl = useMemo(() => {
         return `${API_BASE_URL}/subscriptions/plans${currency ? `?currency=${currency}` : ''}`
@@ -216,6 +220,15 @@ export function SubscriptionsTab({ data }) {
                         {isYearly ? <ToggleRight size={16} className="text-emerald-400" /> : <ToggleLeft size={16} className="text-gray-500" />}
                         {isYearly ? 'Годовой (−20%)' : 'Месячный'}
                     </button>
+                    {(user?.role === 'owner' || user?.role === 'admin') && (
+                        <button
+                            onClick={() => setPricingOpen(true)}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm text-[var(--primary)] hover:bg-[var(--card-hover)] transition-colors"
+                        >
+                            <Sparkles size={16} />
+                            AI-анализ цен
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -400,6 +413,128 @@ export function SubscriptionsTab({ data }) {
                     )}
                 </div>
             </div>
+
+            {/* AI Pricing Modal */}
+            {pricingOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl p-4">
+                    <div className="w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+                            <h3 className="text-base font-semibold text-[var(--text)] flex items-center gap-2">
+                                <Sparkles size={18} className="text-[var(--primary)]" /> AI-анализ цен
+                            </h3>
+                            <button onClick={() => setPricingOpen(false)} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--card-hover)] transition-colors">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-4 overflow-y-auto">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs text-[var(--text-muted)] block mb-1">Ниша</label>
+                                    <input
+                                        value={pricingForm.niche}
+                                        onChange={(e) => setPricingForm(p => ({ ...p, niche: e.target.value }))}
+                                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm text-[var(--text)] outline-none focus:border-[var(--primary)]/50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-[var(--text-muted)] block mb-1">Регион</label>
+                                    <input
+                                        value={pricingForm.region}
+                                        onChange={(e) => setPricingForm(p => ({ ...p, region: e.target.value }))}
+                                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm text-[var(--text)] outline-none focus:border-[var(--primary)]/50"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-xs text-[var(--text-muted)] block mb-1">Цены конкурентов (через запятую)</label>
+                                <input
+                                    value={pricingForm.competitorPrices}
+                                    onChange={(e) => setPricingForm(p => ({ ...p, competitorPrices: e.target.value }))}
+                                    placeholder="19, 29, 49, 99"
+                                    className="w-full px-3 py-2 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--primary)]/50"
+                                />
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    setPricingLoading(true)
+                                    try {
+                                        const token = localStorage.getItem('token')
+                                        const res = await fetch(`${API_BASE_URL}/subscriptions/analyze-pricing`, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                            body: JSON.stringify({
+                                                niche: pricingForm.niche,
+                                                region: pricingForm.region,
+                                                competitorPrices: pricingForm.competitorPrices.split(',').map(s => Number(s.trim())).filter(Boolean),
+                                                currency,
+                                            }),
+                                        })
+                                        const json = await res.json()
+                                        if (json.success) setPricingResult(json.data)
+                                        else pushToast('error', json.error || 'Ошибка анализа')
+                                    } catch (err) {
+                                        pushToast('error', err.message)
+                                    } finally {
+                                        setPricingLoading(false)
+                                    }
+                                }}
+                                disabled={pricingLoading}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                            >
+                                {pricingLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                {pricingLoading ? 'Анализ…' : 'Проанализировать'}
+                            </button>
+
+                            {pricingResult?.recommendations?.length > 0 && (
+                                <div className="space-y-3 pt-2">
+                                    <div className="text-sm text-[var(--text-muted)]">Позиционирование: <span className="text-[var(--text)] font-medium">{pricingResult.marketPosition}</span></div>
+                                    {pricingResult.recommendations.map((rec) => (
+                                        <div key={rec.plan} className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div>
+                                                <div className="font-semibold text-[var(--text)]">{rec.plan}</div>
+                                                <div className="text-xs text-[var(--text-muted)] mt-1">{rec.reasoning}</div>
+                                            </div>
+                                            <div className="flex items-center gap-4 shrink-0">
+                                                <div className="text-right">
+                                                    <div className="text-xs text-[var(--text-muted)]">Текущая</div>
+                                                    <div className="text-sm text-[var(--text)] line-through">{formatPrice(rec.currentPrice, currency)}</div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-xs text-[var(--text-muted)]">Рекомендуемая</div>
+                                                    <div className="text-sm font-bold text-[var(--success)]">{formatPrice(rec.suggestedPrice, currency)}</div>
+                                                </div>
+                                                <button
+                                                    onClick={async () => {
+                                                        const planId = rec.plan?.toLowerCase()
+                                                        const token = localStorage.getItem('token')
+                                                        try {
+                                                            const res = await fetch(`${API_BASE_URL}/subscriptions/plan-price`, {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                                body: JSON.stringify({ planId, currency, price: rec.suggestedPrice }),
+                                                            })
+                                                            const json = await res.json()
+                                                            if (json.success) {
+                                                                pushToast('success', `Цена ${rec.plan} обновлена`)
+                                                                loadCurrentAndHistory()
+                                                            } else pushToast('error', json.error || 'Ошибка')
+                                                        } catch (err) {
+                                                            pushToast('error', err.message)
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 rounded-lg bg-[var(--accent)] text-[var(--bg-secondary)] text-xs font-medium hover:opacity-90 transition-opacity"
+                                                >
+                                                    Применить
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* History */}
             {safeHistory.length > 0 && (

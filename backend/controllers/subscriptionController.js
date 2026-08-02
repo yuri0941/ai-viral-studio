@@ -1,4 +1,5 @@
 import { Subscription } from '../models/index.js';
+import { chatWithAI } from '../services/aiService.js';
 
 const PLANS = [
   { id: 'free', name: 'Free', priceRUB: 0, priceUSD: 0, priceEUR: 0, description: 'Базовый набор для старта' },
@@ -8,6 +9,9 @@ const PLANS = [
   { id: 'agency', name: 'Agency', priceRUB: 19900, priceUSD: 199, priceEUR: 199, description: 'Для агентств и команд' },
   { id: 'enterprise', name: 'Enterprise', priceRUB: 47500, priceUSD: 475, priceEUR: 475, description: 'Кастомное решение' },
 ];
+
+// [P16] In-memory price overrides applied by owner via AI Pricing Engine
+const planPriceOverrides = { RUB: {}, USD: {}, EUR: {} };
 
 export const isStripeEnabled = false;
 
@@ -22,15 +26,19 @@ function getPlanPrice(planId, currency = 'RUB') {
 export const getPlans = async (req, res) => {
   try {
     const currency = req.query.currency || 'RUB';
-    const plans = PLANS.map((p) => ({
-      id: p.id,
-      name: p.name,
-      price: currency === 'USD' ? p.priceUSD : currency === 'EUR' ? p.priceEUR : p.priceRUB,
-      currency,
-      description: p.description,
-      interval: 'month',
-      yearlyDiscountPercent: 20,
-    }));
+    const plans = PLANS.map((p) => {
+      const base = currency === 'USD' ? p.priceUSD : currency === 'EUR' ? p.priceEUR : p.priceRUB;
+      const override = planPriceOverrides[currency]?.[p.id];
+      return {
+        id: p.id,
+        name: p.name,
+        price: override !== undefined ? override : base,
+        currency,
+        description: p.description,
+        interval: 'month',
+        yearlyDiscountPercent: 20,
+      };
+    });
     return res.json({ success: true, plans });
   } catch (err) {
     console.error('[subscriptionController:getPlans]', err.message);
@@ -195,6 +203,67 @@ export const checkTrialEnding = async (req, res) => {
     return res.json({ success: true, endingSoon: ending.length > 0, subscriptions: ending });
   } catch (err) {
     console.error('[subscriptionController:checkTrialEnding]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// [P16] AI Pricing Engine: analyze competitor prices and recommend plan pricing
+export const analyzePricing = async (req, res) => {
+  try {
+    const { niche = 'SaaS', region = 'Global', competitorPrices = [] } = req.body || {};
+    const currency = req.body?.currency || 'RUB';
+
+    const currentPlans = PLANS.map((p) => ({
+      plan: p.name,
+      currentPrice: currency === 'USD' ? p.priceUSD : currency === 'EUR' ? p.priceEUR : p.priceRUB,
+    }));
+
+    const prompt = `Проанализируй рынок подписок для SaaS в нише "${niche}", регион ${region}.
+Конкуренты: ${JSON.stringify(competitorPrices)}.
+Текущие цены: ${JSON.stringify(currentPlans)}.
+Предложи оптимальную ценовую стратегию для тарифов Free/Creator/Pro/Agency.
+Верни СТРОГО JSON: { "recommendations": [{"plan", "currentPrice", "suggestedPrice", "reasoning"}], "marketPosition" }`;
+
+    const ai = await chatWithAI(prompt, [], 'ru');
+    let result = { recommendations: [], marketPosition: 'unknown' };
+    try {
+      const match = ai?.reply?.match(/\{[\s\S]*\}/);
+      const parsed = match ? JSON.parse(match[0]) : JSON.parse(ai?.reply || '{}');
+      if (Array.isArray(parsed.recommendations)) {
+        result = { recommendations: parsed.recommendations, marketPosition: parsed.marketPosition || 'unknown' };
+      }
+    } catch (parseErr) {
+      console.warn('[subscriptionController:analyzePricing] parse failed:', parseErr.message);
+    }
+
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    console.error('[subscriptionController:analyzePricing]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// [P16] Apply AI-recommended price to a plan
+export const updatePlanPrice = async (req, res) => {
+  try {
+    const userRole = req.user?.role;
+    if (!['owner', 'admin'].includes(userRole)) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+    const { planId, currency = 'RUB', price } = req.body || {};
+    if (!PLANS.some((p) => p.id === planId)) {
+      return res.status(400).json({ success: false, error: 'Invalid plan' });
+    }
+    if (typeof price !== 'number' || price < 0) {
+      return res.status(400).json({ success: false, error: 'Invalid price' });
+    }
+    if (!['RUB', 'USD', 'EUR'].includes(currency)) {
+      return res.status(400).json({ success: false, error: 'Invalid currency' });
+    }
+    planPriceOverrides[currency][planId] = price;
+    return res.json({ success: true, planId, currency, price });
+  } catch (err) {
+    console.error('[subscriptionController:updatePlanPrice]', err.message);
     return res.status(500).json({ success: false, error: err.message });
   }
 };

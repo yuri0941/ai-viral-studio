@@ -6,6 +6,7 @@ import { promisify } from 'util'
 import { chatWithAI } from '../../services/aiService.js'
 import { AuditLog } from '../../models/AuditLog.js'
 import Sandbox from './sandbox.js'
+import { alertOmega } from '../../services/omegaBot.js'
 
 const execAsync = promisify(exec)
 
@@ -173,6 +174,7 @@ export async function submitToApprovalQueue(patch) {
 
     approvalQueue.push(item)
     await logAttempt('patch_submitted', { filePath: patch.filePath, patchId: item.id }, 'low')
+    alertOmega(`Omega Coder: новый approval request — ${path.basename(patch.filePath)} (${item.id})`).catch(() => {})
 
     return item
 }

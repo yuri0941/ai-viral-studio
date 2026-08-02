@@ -3,12 +3,33 @@
 // ============================================
 
 import { useRef, useEffect, useState } from 'react'
-import { Bot, User, Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown, Mic, Globe, Volume2 } from 'lucide-react'
+import { Bot, User, Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown, Mic, Globe, Volume2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useOmegaChat } from '../../hooks/useOmegaChat.js'
 import { VectorStoreStatus } from './VectorStoreStatus.jsx'
 import { UsageQuotaWidget } from './UsageQuotaWidget.jsx'
 
 import { VoiceInterface } from './VoiceInterface.jsx'
+
+function ReasoningBlock({ reasoning }) {
+    const [open, setOpen] = useState(false)
+    if (!reasoning) return null
+    return (
+        <div className="mt-2">
+            <button
+                onClick={() => setOpen(o => !o)}
+                className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
+            >
+                {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                Как OMEGA пришла к этому выводу?
+            </button>
+            {open && (
+                <div className="mt-1.5 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[10px] text-[var(--text-muted)] whitespace-pre-line">
+                    {reasoning}
+                </div>
+            )}
+        </div>
+    )
+}
 
 export function OmegaChatContainer(props) {
     const chat = useOmegaChat(props)
@@ -140,6 +161,7 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                                         : 'bg-white/5 text-gray-200 border border-white/5'
                             }`}>
                                 {msg.text}
+                                {!isUser && <ReasoningBlock reasoning={msg.reasoning} />}
                                 {!isUser && sourceLabel && (
                                     <div className="mt-2 flex items-center gap-2">
                                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-400 border border-white/10">

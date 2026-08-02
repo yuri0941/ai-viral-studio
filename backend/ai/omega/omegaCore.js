@@ -216,6 +216,32 @@ export class OmegaCore {
         return null
     }
 
+    // [P16] Chain-of-thought reasoning wrapper
+    async think(message, userRole = 'creator') {
+        const steps = [
+            'Анализирую запрос пользователя...',
+            'Определяю контекст и роль...',
+            'Ищу релевантную память...',
+            'Формирую ответ...',
+        ]
+        const reasoning = steps.join('\n')
+        this.setState(OMEGA_STATES.THINKING)
+        let answer = ''
+        try {
+            const context = this.getGraphContext(message, 3)
+            const fullPrompt = context
+                ? `${context}\n\nВопрос: ${message}`
+                : message
+            const result = await this.generateResponse(fullPrompt, { taskType: OMEGA_TASK_TYPES.CHAT, complexity: 1 })
+            answer = result.text || ''
+        } catch (err) {
+            answer = 'Извините, не удалось сформировать ответ. Попробуйте ещё раз.'
+        } finally {
+            this.setState(OMEGA_STATES.IDLE)
+        }
+        return { answer, reasoning, role: userRole }
+    }
+
     async generateResponse(prompt, options = {}) {
         this.metrics.requestsTotal++
         if (!this.aiService) {
