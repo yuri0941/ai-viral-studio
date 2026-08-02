@@ -126,8 +126,15 @@ export async function generatePatch(filePath, issueHint = '') {
         const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : raw
         parsed = JSON.parse(jsonStr)
     } catch (err) {
+        // [P16-HOTFIX] AI returned non-JSON: log and create a safe fallback patch
         await logAttempt('parse_failed', { filePath, raw: raw.slice(0, 200) }, 'medium')
-        throw new Error(`Failed to parse AI patch: ${err.message}`)
+        console.error('[OmegaCoder] AI returned non-JSON, using text fallback for', filePath)
+        return {
+            filePath,
+            description: `AI suggestion (raw): ${raw.slice(0, 200).replace(/\n/g, ' ')}`,
+            patch: `${code}\n\n// [P16-HOTFIX] AI suggested improvements (raw text):\n// ${raw.split('\n').join('\n// ')}`,
+            generatedAt: new Date().toISOString(),
+        }
     }
 
     if (!parsed.patch || typeof parsed.patch !== 'string') {

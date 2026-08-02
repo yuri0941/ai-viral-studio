@@ -111,8 +111,15 @@ export const searchVectorMemory = async ({ query, userId, limit = 5 }) => {
             })) || [],
         }
     } catch (err) {
+        // [P16-HOTFIX] If Chroma query fails, fall back to in-memory search so OMEGA keeps working
         console.error('Chroma search error:', err.message)
-        return { status: 'error', message: err.message, results: [] }
+        const key = collectionName(userId)
+        const docs = memoryFallback.get(key) || []
+        const fallbackResults = docs
+            .filter(d => String(d.text).toLowerCase().includes(String(query).toLowerCase()))
+            .slice(-limit)
+            .map(d => ({ text: d.text, metadata: d.metadata, distance: 0 }))
+        return { status: 'fallback', message: err.message, results: fallbackResults }
     }
 }
 

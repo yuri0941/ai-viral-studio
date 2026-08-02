@@ -274,9 +274,10 @@ async function chatWithOpenRouter(messages) {
     const response = await axios.post(
         (process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1') + '/chat/completions',
         {
+            // [P16-HOTFIX] Use a smaller, reliably free OpenRouter model
             model: process.env.OPENROUTER_MODEL && !process.env.OPENROUTER_MODEL.includes('gemini-2.0-flash-lite-preview-02-05')
                 ? process.env.OPENROUTER_MODEL
-                : 'meta-llama/llama-3.3-70b-instruct:free',
+                : 'meta-llama/llama-3.1-8b-instruct:free',
             messages,
             temperature: parseFloat(process.env.OPENROUTER_TEMPERATURE || '0.7'),
             max_tokens: parseInt(process.env.OPENROUTER_MAX_TOKENS || '4096')
@@ -541,25 +542,48 @@ async function chatWithFireworks(messages) {
 }
 
 async function chatWithPollinationsText(messages) {
-    const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n')
-    const encoded = encodeURIComponent(prompt)
-    const url = `https://text.pollinations.ai/${encoded}?seed=${Math.floor(Math.random() * 1e6)}&system=no%20intro`
+    const system = messages.find(m => m.role === 'system')?.content || SYSTEM_PROMPT
+    const prompt = messages.filter(m => m.role !== 'system').map(m => `${m.role}: ${m.content}`).join('\n\n')
     console.log('🚀 Calling Pollinations text...')
-    const response = await axios.get(url, { timeout: 60000, responseType: 'text' })
+
+    // Try GET endpoint first
+    try {
+        const encoded = encodeURIComponent(`${system}\n\n${prompt}`)
+        const url = `https://text.pollinations.ai/${encoded}?seed=${Math.floor(Math.random() * 1e6)}&system=${encodeURIComponent(system)}`
+        const response = await axios.get(url, { timeout: 60000, responseType: 'text' })
+        const text = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
+        if (text?.trim()) return { reply: text.trim(), provider: 'pollinations', usage: null }
+    } catch (err) {
+        console.warn('[Pollinations] GET failed:', err.message)
+    }
+
+    // Fallback POST endpoint
+    const response = await axios.post(
+        'https://text.pollinations.ai/',
+        {
+            messages: [
+                { role: 'system', content: system },
+                { role: 'user', content: prompt }
+            ],
+            seed: Math.floor(Math.random() * 1e6)
+        },
+        { timeout: 60000, responseType: 'text' }
+    )
     const text = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
     if (!text?.trim()) throw new Error('Empty Pollinations response')
     return { reply: text.trim(), provider: 'pollinations', usage: null }
 }
 
 // ============ PROVIDER CHAIN ============
-// [P16] Fallback priority: Groq → OpenRouter → Cloudflare Workers AI → GitHub Models → HuggingFace → Pollinations → others
+// [P16-HOTFIX] Priority: Pollinations (no-key) first so OMEGA always replies,
+// then keyed providers as fallbacks.
 const PROVIDER_CHAIN = [
+    { id: 'pollinations', name: 'Pollinations', fn: chatWithPollinationsText, requiresKey: false },
     { id: 'groq', name: 'Groq', fn: chatWithGroq, requiresKey: true },
     { id: 'openrouter', name: 'OpenRouter', fn: chatWithOpenRouter, requiresKey: true },
     { id: 'workersai', name: 'Cloudflare Workers AI', fn: chatWithWorkersAI, requiresKey: true },
     { id: 'github', name: 'GitHub Models', fn: chatWithGitHubModels, requiresKey: true },
     { id: 'huggingface', name: 'HuggingFace', fn: chatWithHuggingFace, requiresKey: true },
-    { id: 'pollinations', name: 'Pollinations', fn: chatWithPollinationsText, requiresKey: false },
     // [P16] additional optional providers
     { id: 'gemini', name: 'Gemini', fn: chatWithGemini, requiresKey: true },
     { id: 'cloudflare', name: 'Cloudflare Workers AI (legacy)', fn: chatWithCloudflare, requiresKey: true },
