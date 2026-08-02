@@ -2378,3 +2378,22 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (коммит 9056910a)
 - [x] Render Clear build cache: требуется вручную через Render Dashboard
+
+
+### [2026-08-02] — ПРОМПТ ПРОДОЛЖЕНИЕ: Build + Beta Remove + Luxury Check
+- [x] Frontend build прошёл успешно: да
+- [x] Beta-слоты убраны с лендинга: да
+- [x] Landing Page editorial hero (serif, gradient, scattered stats): да
+- [x] SidebarDock создан/подключён: да
+- [x] Owner Dashboard luxury (alerts, bento, metrics): да
+- [x] Staff/Creator/Advertiser/Admin luxury: да
+- [x] OmegaChat drag-to-move: да
+- [x] OMEGA keys (Groq/GitHub) читаются из env: да
+- [x] Telegram singleton + deleteWebhook: да
+- [x] ApiKeysTab luxury redesign (custom toggles, glass cards, magnetic buttons): да
+- [x] SettingsPage luxury redesign (glass sections, floating labels, custom selects): да
+- [x] LegalPage luxury redesign (hero serif, glass sections, footer): да
+- [x] Backend node --check: успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен (коммит 6bf994ed)
+- [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
