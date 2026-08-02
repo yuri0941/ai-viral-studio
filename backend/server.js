@@ -40,6 +40,7 @@ import projectWorkspaceRoutes from './routes/projectWorkspace.js'  // ← Multi-
 import omegaAPIRoutes from './routes/api/v1/omegaAPI.js'  // ← B2B2B OMEGA API
 import paypalRoutes from './routes/paypal.js'  // ← PayPal
 import launchRoutes from './routes/launch.js'  // ← Product Hunt waitlist
+import demoRoutes from './routes/demo.js'  // ← Pre-launch viral demo hooks
 import integrationsRoutes from './routes/integrations.js'  // ← External integrations
 import qrRoutes from './routes/qr.js'  // ← P11: QR codes
 import printRoutes from './routes/print.js'  // ← P11: Print orders
@@ -52,6 +53,7 @@ import monitoringRoutes from './routes/monitoring.js'  // ← P12: Self-healing 
 import gamificationRoutes from './routes/gamification.js'  // ← P13: Gamification + AI vs Human
 import boardroomRoutes from './routes/boardroom.js'  // ← P14: AI Boardroom
 import businessSpawnerRoutes from './routes/businessSpawner.js'  // ← P14: Business Spawning
+import roadmapRoutes from './routes/roadmap.js'  // ← Public roadmap + voting
 import adminRoutes from './routes/admin.js'  // Admin + emergency stop
 import selfImprovementRoutes from './routes/selfImprovement.js'  // ← P15: Self-improvement + churn + niche intelligence
 
@@ -232,6 +234,7 @@ app.use('/api/workspaces', projectWorkspaceRoutes)
 app.use('/api/v1/omega', omegaAPIRoutes)
 app.use('/api/paypal', paypalRoutes)
 app.use('/api/launch', launchRoutes)
+app.use('/api/demo', demoRoutes)
 app.use('/api/integrations', integrationsRoutes)
 app.use('/api/qr', qrRoutes)
 app.use('/api/print', printRoutes)
@@ -243,6 +246,7 @@ app.use('/api/monitoring', monitoringRoutes)
 app.use('/api/gamification', gamificationRoutes)
 app.use('/api/boardroom', boardroomRoutes)
 app.use('/api/business-spawner', businessSpawnerRoutes)
+app.use('/api/roadmap', roadmapRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/self-improvement', selfImprovementRoutes)
 

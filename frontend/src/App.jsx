@@ -34,6 +34,7 @@ import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/lega
 import { CookieConsent } from './components/CookieConsent'
 import GDPRPage from './pages/GDPRPage'
 import LaunchPage from './pages/LaunchPage'
+import PublicRoadmap from './pages/landing/PublicRoadmap'
 
 const PAGE_TITLES = {
     '/owner': 'Owner Dashboard',
@@ -274,6 +275,7 @@ function App() {
                     </ProtectedRoute>
                 } />
                 <Route path="/launch" element={<LaunchPage />} />
+                <Route path="/roadmap" element={<PublicRoadmap />} />
 
                 <Route path="*" element={
                     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white">

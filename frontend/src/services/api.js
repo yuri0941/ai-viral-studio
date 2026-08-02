@@ -134,6 +134,34 @@ export const omegaApi = {
 }
 
 // ============================================
+// Launch / Waitlist API
+// ============================================
+export const launchApi = {
+    joinWaitlist: (data) => request('/launch/waitlist', { method: 'POST', body: JSON.stringify(data) }),
+    waitlistCount: () => request('/launch/waitlist/count'),
+    waitlistPosition: (email) => request(`/launch/waitlist/position/${encodeURIComponent(email)}`),
+    applyReferral: (email, referralCode) => request('/launch/waitlist/referral', { method: 'POST', body: JSON.stringify({ email, referralCode }) }),
+    boost: (email, action) => request('/launch/waitlist/boost', { method: 'POST', body: JSON.stringify({ email, action }) }),
+    betaSlots: () => request('/launch/beta/slots'),
+}
+
+// ============================================
+// Demo API
+// ============================================
+export const demoApi = {
+    generate: (niche, email) => request('/demo/generate', { method: 'POST', body: JSON.stringify({ niche, email }) }),
+}
+
+// ============================================
+// Roadmap API
+// ============================================
+export const roadmapApi = {
+    list: () => request('/roadmap'),
+    vote: (featureId) => request(`/roadmap/${featureId}/vote`, { method: 'POST' }),
+    top: () => request('/roadmap/top'),
+}
+
+// ============================================
 // White-Label API
 // ============================================
 export const whiteLabelApi = {
@@ -361,6 +389,9 @@ export const monitoringApi = {
 export default {
     ownerApi,
     omegaApi,
+    launchApi,
+    demoApi,
+    roadmapApi,
     whiteLabelApi,
     workspaceApi,
     developerApi,

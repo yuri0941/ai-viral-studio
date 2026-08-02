@@ -27,6 +27,7 @@ export { ProjectWorkspace } from './ProjectWorkspace.js'
 export { DeveloperApiKey, generateApiKey } from './DeveloperApiKey.js'
 
 export { Waitlist } from './Waitlist.js'
+export { RoadmapVote } from './RoadmapVote.js'
 export { Webhook } from './Webhook.js'
 
 export { CrisisEvent } from './CrisisEvent.js'

@@ -5,6 +5,9 @@ import { ClientChatWidget } from '../components/chat/ClientChatWidget'
 import { PWAInstallButton } from '../components/pwa/PWAInstallButton'
 import { ResponsiveAdBanner } from '../components/ads/ResponsiveAdBanner'
 import { ownerLegalInfoApi } from '../services/api.js'
+import WaitlistSection from './landing/WaitlistSection'
+import ViralDemo from './landing/ViralDemo'
+import BetaCounter from '../components/landing/BetaCounter'
 
 function LandingPage() {
     const [authModalOpen, setAuthModalOpen] = useState(false)
@@ -160,6 +163,8 @@ function LandingPage() {
                             <a href="#features" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Фичи</a>
                             <a href="#how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Как работает</a>
                             <a href="#pricing" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Тарифы</a>
+                            <Link to="/roadmap" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Roadmap</Link>
+                            <BetaCounter />
                             <PWAInstallButton />
                             <button
                                 onClick={() => { setAuthModalMode('login'); setAuthModalOpen(true) }}
@@ -254,6 +259,9 @@ function LandingPage() {
                     </svg>
                 </div>
             </section>
+
+            {/* Viral Demo Section */}
+            <ViralDemo />
 
             {/* Features Section */}
             <section id="features" className="py-32 relative">
@@ -370,6 +378,9 @@ function LandingPage() {
                     </div>
                 </div>
             </section>
+
+            {/* Waitlist Section */}
+            <WaitlistSection />
 
             {/* Footer */}
             <footer className="py-16 border-t border-white/5">
