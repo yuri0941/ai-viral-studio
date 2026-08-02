@@ -311,8 +311,9 @@ async function chatWithOpenRouter(messages) {
     if (!key) throw new Error('OpenRouter key missing')
     console.log('🚀 Calling OpenRouter...')
 
-    const preferredModel = process.env.OPENROUTER_MODEL || 'llama-3.3-70b-instruct:free'
-    const fallbackModel = 'meta-llama/llama-3.1-8b-instruct'
+    // [P16-HOTFIX] Use stable free OpenRouter model; llama-3.3 often 400/404
+    const preferredModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free'
+    const fallbackModel = 'mistralai/mistral-7b-instruct:free'
 
     try {
         return await chatWithOpenRouterOnce(messages, preferredModel)
@@ -346,27 +347,50 @@ async function chatWithGitHubModels(messages) {
     const key = await getKey('github')
     if (!key) throw new Error('GitHub Models key missing')
     console.log('🚀 Calling GitHub Models...')
-    const response = await axios.post(
-        'https://models.inference.ai.azure.com/chat/completions',
-        {
-            model: process.env.GITHUB_MODEL || 'gpt-4o',
-            messages,
-            temperature: 0.7,
-            max_tokens: 4096
-        },
-        {
-            headers: {
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: 30000
+
+    // [P16-HOTFIX] GitHub Models fallback chain
+    const models = [
+        process.env.GITHUB_MODEL,
+        'meta-llama-3.1-8b-instruct',
+        'gpt-4o-mini',
+        'gpt-4o'
+    ].filter(Boolean)
+
+    let lastErr = null
+    for (const model of models) {
+        try {
+            const response = await axios.post(
+                'https://models.inference.ai.azure.com/chat/completions',
+                {
+                    model,
+                    messages,
+                    temperature: 0.7,
+                    max_tokens: 4096
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${key}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000
+                }
+            )
+            return {
+                reply: response.data.choices[0]?.message?.content || 'No response',
+                provider: 'github',
+                usage: response.data.usage
+            }
+        } catch (err) {
+            lastErr = err
+            console.warn(`⚠️ GitHub Models ${model} failed:`, err.message)
+            if (err.response?.status === 401) {
+                console.warn('🚫 GitHub Models 401 — invalid token, skipping')
+                break
+            }
+            await sleep(300)
         }
-    )
-    return {
-        reply: response.data.choices[0]?.message?.content || 'No response',
-        provider: 'github',
-        usage: response.data.usage
     }
+    throw lastErr || new Error('GitHub Models all models failed')
 }
 
 async function chatWithMistral(messages) {
@@ -573,31 +597,13 @@ async function chatWithFireworks(messages) {
 async function chatWithPollinationsText(messages) {
     const system = messages.find(m => m.role === 'system')?.content || SYSTEM_PROMPT
     const prompt = messages.filter(m => m.role !== 'system').map(m => `${m.role}: ${m.content}`).join('\n\n')
+    const fullPrompt = `${system}\n\n${prompt}`
     console.log('🚀 Calling Pollinations text...')
 
-    // Try GET endpoint first
-    try {
-        const encoded = encodeURIComponent(`${system}\n\n${prompt}`)
-        const url = `https://text.pollinations.ai/${encoded}?seed=${Math.floor(Math.random() * 1e6)}&system=${encodeURIComponent(system)}`
-        const response = await axios.get(url, { timeout: 60000, responseType: 'text' })
-        const text = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
-        if (text?.trim()) return { reply: text.trim(), provider: 'pollinations', usage: null }
-    } catch (err) {
-        console.warn('[Pollinations] GET failed:', err.message)
-    }
-
-    // Fallback POST endpoint
-    const response = await axios.post(
-        'https://text.pollinations.ai/',
-        {
-            messages: [
-                { role: 'system', content: system },
-                { role: 'user', content: prompt }
-            ],
-            seed: Math.floor(Math.random() * 1e6)
-        },
-        { timeout: 60000, responseType: 'text' }
-    )
+    // [P16-HOTFIX] Pollinations new anonymous GET endpoint (no auth, no system param)
+    const encoded = encodeURIComponent(fullPrompt)
+    const url = `https://text.pollinations.ai/${encoded}?seed=${Math.floor(Math.random() * 1e6)}&json=false&anonymous=true`
+    const response = await axios.get(url, { timeout: 60000, responseType: 'text' })
     const text = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
     if (!text?.trim()) throw new Error('Empty Pollinations response')
     return { reply: text.trim(), provider: 'pollinations', usage: null }

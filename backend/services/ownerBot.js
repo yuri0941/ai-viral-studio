@@ -3,7 +3,8 @@ import TelegramBot from 'node-telegram-bot-api'
 const token = process.env.TELEGRAM_BOT_TOKEN
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
-let instance = null
+// [P16-HOTFIX] use global so singleton survives hot-reload on Render
+let instance = global.ownerBotInstance || null
 
 function createStubBot() {
   return {
@@ -26,12 +27,17 @@ function attachHandlers(bot) {
     console.error('OwnerBot polling error:', err?.message || err)
   })
 
+  bot.on('webhook_error', (err) => {
+    console.error('[ownerBot] webhook error:', err?.message || err)
+  })
+
   bot.onText(/\/start/, (msg) => bot.sendMessage(msg.chat.id, 'Бот активирован. Команды: /status'))
 
   bot.onText(/\/status/, async (msg) => {
     try {
-      const { default: User } = await import('../../models/User.js')
-      const { Payment } = await import('../../models/index.js')
+      // [P16-HOTFIX] fixed import paths relative to backend/services
+      const { default: User } = await import('../models/User.js')
+      const { Payment } = await import('../models/index.js')
       const users = await User.countDocuments()
       const payments = await Payment.countDocuments({ status: 'succeeded' })
       bot.sendMessage(msg.chat.id, `🟢 UP\n👥 ${users}\n💰 ${payments}\n⏰ ${new Date().toLocaleString('ru-RU')}`)
@@ -50,6 +56,7 @@ export function getOwnerBot() {
     }
 
     instance = new TelegramBot(token, { polling: false })
+    global.ownerBotInstance = instance // [P16-HOTFIX] survive hot-reload
     attachHandlers(instance)
 
     instance.deleteWebhook({ drop_pending_updates: true })
@@ -77,6 +84,6 @@ export const alertOwner = async (message) => {
   try {
     await bot.sendMessage(chatId, message, { parse_mode: 'HTML' })
   } catch (e) {
-    console.error('Telegram alert failed:', e.message)
+    console.error('[ownerBot] alert failed:', e.message)
   }
 }

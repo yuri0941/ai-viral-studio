@@ -3,7 +3,8 @@ import TelegramBot from 'node-telegram-bot-api'
 const token = process.env.TELEGRAM_OMEGA_BOT_TOKEN
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
-let instance = null
+// [P16-HOTFIX] use global so singleton survives hot-reload on Render
+let instance = global.omegaBotInstance || null
 
 function createStubBot() {
   return {
@@ -24,6 +25,10 @@ function attachHandlers(bot) {
     }
     console.error('OmegaBot polling error:', err?.message || err)
   })
+
+  bot.on('webhook_error', (err) => {
+    console.error('[omegaBot] webhook error:', err?.message || err)
+  })
 }
 
 export function getOmegaBot() {
@@ -35,6 +40,7 @@ export function getOmegaBot() {
     }
 
     instance = new TelegramBot(token, { polling: false })
+    global.omegaBotInstance = instance // [P16-HOTFIX] survive hot-reload
     attachHandlers(instance)
 
     instance.deleteWebhook({ drop_pending_updates: true })
@@ -55,12 +61,12 @@ const omegaBot = getOmegaBot()
 export { omegaBot }
 export default { alertOmega, getOmegaBot, omegaBot }
 
-export function alertOmega(message) {
+export async function alertOmega(message) {
   const chatId = process.env.TELEGRAM_OWNER_CHAT_ID
   const bot = getOmegaBot()
   if (!chatId || !bot || typeof bot.sendMessage !== 'function') return
   try {
-    bot.sendMessage(chatId, `🤖 OMEGA Alert:\n${message}`)
+    await bot.sendMessage(chatId, `🤖 OMEGA Alert:\n${message}`)
   } catch (e) {
     console.error('[omegaBot] alert failed:', e.message)
   }
