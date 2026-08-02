@@ -9,7 +9,7 @@ import { OmegaChatContainer } from './OmegaChat.jsx'
 
 const WIDGET_WIDTH = 380
 const WIDGET_HEIGHT = 600
-const ORB_SIZE = 56
+const ORB_SIZE = 64 // [P16-HOTFIX] 64px touch target
 
 function useLocalApiKeys() {
     const [keys, setKeys] = useState(() => {

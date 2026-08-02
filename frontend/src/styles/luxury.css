@@ -63,8 +63,8 @@
 
 /* Floating companion orb for chat widgets */
 .companion-orb {
-    width: 56px;
-    height: 56px;
+    width: 64px; /* [P16-HOTFIX] 64px touch target */
+    height: 64px; /* [P16-HOTFIX] 64px touch target */
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary), var(--accent));
     box-shadow: var(--shadow-xl);
