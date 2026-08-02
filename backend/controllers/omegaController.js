@@ -1,5 +1,8 @@
 import { createOmegaBackend } from '../ai/omega/index.js'
 import { OmegaMemory, OmegaSkill, ApiKey } from '../models/index.js'
+import { scan as privacyScan } from '../ai/omega/privacyFirewall.js'
+import { getContext as getContextEngineContext } from '../ai/omega/contextEngine.js'
+import * as neuralGraph from '../ai/omega/neuralGraph.js'
 import { chatWithAI } from '../services/aiService.js'
 import { checkOmegaGuard, logOmegaGuardEvent } from '../ai/omega/omegaGuard.js'
 import { selectResponse } from '../services/omegaBrain/responseSelector.js'
@@ -99,9 +102,33 @@ export async function chat(req, res) {
             brandVoice: brandVoicePrompt,
         }
 
+        // Ролевой контекст и нейро-граф
+        let systemContext = ''
+        let graphContextString = ''
+        try {
+            systemContext = await getContextEngineContext(req.user, message)
+        } catch (err) {
+            console.warn('[omegaController:chat] contextEngine failed:', err.message)
+        }
+        try {
+            const graphNodes = neuralGraph.getContext(message, 3)
+            if (graphNodes.length > 0) {
+                graphContextString = 'Контекст из нейро-графа:\n' + graphNodes.map(n => `- [${n.type}] ${n.label}`).join('\n')
+            }
+        } catch (err) {
+            console.warn('[omegaController:chat] neuralGraph failed:', err.message)
+        }
+
+        const extraSystemContext = [systemContext, graphContextString].filter(Boolean).join('\n\n')
+
         const result = userId
-            ? await selectResponse(userId, message, userContext)
-            : await chatWithAI(message, history.map(h => ({ role: h.role, content: h.content || h.text })), lang, { userId })
+            ? await selectResponse(userId, message, userContext, extraSystemContext)
+            : await chatWithAI(
+                extraSystemContext ? `${extraSystemContext}\n\nВопрос: ${message}` : message,
+                history.map(h => ({ role: h.role, content: h.content || h.text })),
+                lang,
+                { userId }
+            )
 
         if (userId) {
             try {
@@ -111,7 +138,17 @@ export async function chat(req, res) {
             }
         }
 
-        const responseText = result.reply || (result.success ? result.reply : 'AI временно недоступен. Попробуйте позже.')
+        let responseText = result.reply || (result.success ? result.reply : 'AI временно недоступен. Попробуйте позже.')
+
+        // Privacy Firewall scan перед отправкой ответа
+        try {
+            const scanResult = await privacyScan(responseText, req.user?.role, req.user)
+            if (scanResult.modified) {
+                responseText = scanResult.text
+            }
+        } catch (err) {
+            console.warn('[omegaController:chat] privacy scan failed:', err.message)
+        }
 
         res.json({
             status: 'success',

@@ -6,6 +6,7 @@ import { runAgentsForQuery, formatAgentResults } from '../omegaAgents/agentRunne
 import { searchWeb, formatWebResults, isWebSearchQuery } from '../webSearch.js'
 import { buildBrandVoicePrompt } from '../brandVoice.js'
 import { getMemoryContext, extractAndSaveFacts } from '../../ai/omega/omegaMemory.js'
+import * as neuralGraph from '../../ai/omega/neuralGraph.js'
 
 const BRAIN_MIN_RATING = 2
 
@@ -13,6 +14,7 @@ function buildEnhancedPrompt(userContext, question, extra = {}) {
     const { name = 'пользователь', niche = 'контент', language = 'ru', brandVoice = '' } = userContext
     const parts = []
     parts.push(`Ты — AI Viral Studio OMEGA. Язык: ${language}.`)
+    if (extra.systemContext) parts.push(extra.systemContext)
     parts.push(`Контекст: пользователь ${name}, ниша ${niche}.`)
     if (brandVoice) parts.push(`Стиль бренда: ${brandVoice}`)
     if (extra.memoryContext) parts.push(extra.memoryContext)
@@ -24,7 +26,7 @@ function buildEnhancedPrompt(userContext, question, extra = {}) {
     return parts.join('\n\n')
 }
 
-export async function selectResponse(userId, question, userContext = {}) {
+export async function selectResponse(userId, question, userContext = {}, extraSystem = '') {
     const { name = 'пользователь', niche = 'контент' } = userContext
 
     // 1) Brain — похожий вопрос с высоким рейтингом
@@ -63,6 +65,17 @@ export async function selectResponse(userId, question, userContext = {}) {
         console.warn('[responseSelector] memory context failed:', err.message)
     }
 
+    // 3.5) Neural graph context (relevant memory nodes)
+    let graphContext = ''
+    try {
+        const graphNodes = neuralGraph.getContext(question, 3)
+        if (graphNodes.length > 0) {
+            graphContext = 'Релевантный контекст из нейро-графа:\n' + graphNodes.map(n => `- [${n.type}] ${n.label}`).join('\n')
+        }
+    } catch (err) {
+        console.warn('[responseSelector] neural graph failed:', err.message)
+    }
+
     // 4) Agents + Web search enrichment
     let webResults = ''
     let agentResults = ''
@@ -88,7 +101,7 @@ export async function selectResponse(userId, question, userContext = {}) {
     let aiError = null
     try {
         const context = await buildContext(userId, { question }).catch(() => '')
-        const prompt = buildEnhancedPrompt(userContext, question, { context, vectorResults, webResults, agentResults, memoryContext })
+        const prompt = buildEnhancedPrompt(userContext, question, { context, vectorResults, webResults, agentResults, memoryContext, graphContext, systemContext: extraSystem })
         aiResult = await aiService.chatWithAI(prompt, [], userContext.language || 'ru')
     } catch (err) {
         aiError = err

@@ -66,6 +66,7 @@ import { initSocket } from './socket.js'
 import { startAutopilot } from './services/autoPilot.js'
 import { startSelfHealing } from './services/selfHealing.js'
 import { startSelfReflectionCron } from './services/selfReflection.js'
+import { startReflectionCron as startNeuralReflectionCron } from './ai/omega/selfReflection.js'
 import { runEvolutionCron } from './services/templateEvolution.js'
 import { resolveABTests } from './services/abAutoLearning.js'
 
@@ -84,6 +85,7 @@ if (!isConnected) {
 startAutopilot()
 startSelfHealing()
 startSelfReflectionCron()
+startNeuralReflectionCron()
 
 // P15: Self-improvement crons
 if (isConnected) {

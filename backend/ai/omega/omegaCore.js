@@ -3,6 +3,8 @@
 // Версия: 1.0 Lite (фундамент для OMEGA v5)
 // ============================================
 
+import * as neuralGraph from './neuralGraph.js'
+
 export const OMEGA_STATES = {
     IDLE: 'idle',
     THINKING: 'thinking',
@@ -51,6 +53,18 @@ export class OmegaCore {
             skillsExecuted: 0,
         }
         this.aiService = config.aiService || null
+        this.graph = config.graph || neuralGraph
+    }
+
+    getGraphContext(query, depth = 3) {
+        try {
+            const nodes = this.graph.getContext(query, depth)
+            if (nodes.length === 0) return ''
+            return 'Релевантный контекст из нейро-графа:\n' + nodes.map(n => `- [${n.type}] ${n.label}`).join('\n')
+        } catch (err) {
+            console.warn('[OmegaCore] getGraphContext failed:', err.message)
+            return ''
+        }
     }
 
     registerSkill(skill) {
@@ -222,6 +236,7 @@ export class OmegaCore {
             skills: Array.from(this.skills.keys()),
             tools: Array.from(this.tools.keys()),
             metrics: { ...this.metrics },
+            graphNodes: this.graph ? this.graph.exportGraph().length : 0,
             currentTask: this.currentTask,
             lastError: this.lastError,
         }
