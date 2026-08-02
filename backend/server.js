@@ -69,6 +69,7 @@ import { startSelfReflectionCron } from './services/selfReflection.js'
 import { startReflectionCron as startNeuralReflectionCron } from './ai/omega/selfReflection.js'
 import { runEvolutionCron } from './services/templateEvolution.js'
 import { resolveABTests } from './services/abAutoLearning.js'
+import { createOmegaBackend } from './ai/omega/index.js'
 
 // Connect to database before starting server
 await connectDB()
@@ -119,6 +120,16 @@ if (isConnected) {
         console.log('🤖 Default OMEGA agents seeded')
     } catch (err) {
         console.warn('[server] seedAgents failed:', err.message)
+    }
+
+    // Initialize OMEGA backend core + autonomous services
+    try {
+        const omegaCore = await createOmegaBackend()
+        omegaCore.startAutonomyServices()
+        global.omegaCore = omegaCore
+        console.log('🧠 OMEGA autonomy services started')
+    } catch (err) {
+        console.warn('[server] OMEGA core init failed:', err.message)
     }
 }
 

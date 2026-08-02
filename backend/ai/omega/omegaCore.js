@@ -4,6 +4,9 @@
 // ============================================
 
 import * as neuralGraph from './neuralGraph.js'
+import { getDirector } from './swarm/director.js'
+import dreamMode from './dreamMode.js'
+import { scheduleDailyAnalysis, getApprovalQueue } from './omegaCoder.js'
 
 export const OMEGA_STATES = {
     IDLE: 'idle',
@@ -54,6 +57,9 @@ export class OmegaCore {
         }
         this.aiService = config.aiService || null
         this.graph = config.graph || neuralGraph
+        this.director = config.director || getDirector()
+        this.dreamMode = config.dreamMode || dreamMode
+        this.coderScheduled = false
     }
 
     getGraphContext(query, depth = 3) {
@@ -65,6 +71,19 @@ export class OmegaCore {
             console.warn('[OmegaCore] getGraphContext failed:', err.message)
             return ''
         }
+    }
+
+    startAutonomyServices() {
+        if (this.coderScheduled) return
+        scheduleDailyAnalysis()
+        this.dreamMode.start()
+        this.coderScheduled = true
+        console.log('[OmegaCore] Autonomy services started (coder + dream mode)')
+    }
+
+    stopAutonomyServices() {
+        this.dreamMode.stop()
+        this.coderScheduled = false
     }
 
     registerSkill(skill) {
@@ -239,6 +258,9 @@ export class OmegaCore {
             graphNodes: this.graph ? this.graph.exportGraph().length : 0,
             currentTask: this.currentTask,
             lastError: this.lastError,
+            swarm: this.director ? this.director.getStatus() : null,
+            dreamMode: this.dreamMode ? this.dreamMode.getStatus() : null,
+            coderQueue: getApprovalQueue ? getApprovalQueue() : [],
         }
     }
 }

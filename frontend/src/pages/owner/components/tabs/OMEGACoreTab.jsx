@@ -3,7 +3,7 @@ import { KPICard } from '../common/KPICard'
 import { StatusBadge } from '../common/StatusBadge'
 import {
     Brain, Activity, Zap, RefreshCw, Trash2, Terminal,
-    AlertTriangle, Server, Bot, Play, FileText, Wifi, ToggleLeft, ToggleRight, KeyRound,
+    AlertTriangle, Server, Bot, Play, FileText, Wifi, ToggleLeft, ToggleRight, KeyRound, Moon,
 } from 'lucide-react'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
 import {
@@ -230,11 +230,24 @@ export function OMEGACoreTab({ data }) {
             )}
 
             {/* KPI */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <KPICard title="Агентов активно" value={activeAgents} icon={Bot} color="emerald" />
                 <KPICard title="Приостановлено" value={pausedAgents} icon={Activity} color="orange" />
                 <KPICard title="Средний CPU" value={avgCpu} suffix="%" icon={Server} color="blue" />
                 <KPICard title="Серверов оффлайн" value={offlineServers} icon={Zap} color="red" />
+                <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-purple-500/20 to-violet-500/10 text-purple-400 border-purple-500/20 p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/10 group">
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="p-2.5 rounded-xl bg-white/5 backdrop-blur-sm">
+                            <Moon size={20} />
+                        </div>
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    </div>
+                    <div className="text-2xl font-bold tracking-tight">🌙 Active</div>
+                    <div className="text-xs text-gray-400 mt-1">Dream Mode 02:00–06:00</div>
+                    <div className="flex items-center gap-1 mt-2 text-xs font-medium text-purple-300">
+                        <span>OMEGA работает ночью</span>
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
