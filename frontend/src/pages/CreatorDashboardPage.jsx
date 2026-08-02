@@ -214,6 +214,87 @@ function CreatorDashboardPage() {
                 </div>
             </div>
 
+            {/* [P16-CONTINUE] added: content-first hero — next post preview */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 glass-card-strong p-6 md:p-8 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--primary)]/10 rounded-full blur-3xl group-hover:bg-[var(--accent)]/10 transition-colors" />
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="px-2.5 py-1 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] text-[10px] font-medium">Следующий пост</span>
+                            <span className="text-[10px] text-[var(--text-muted)]">Рекомендуемое время: 18:00</span>
+                        </div>
+                        <h2 className="text-2xl md:text-3xl font-serif font-semibold text-[var(--text)] mb-3">3 мифа о вашей нише, которые убивают рост</h2>
+                        <p className="text-sm text-[var(--text-muted)] max-w-xl mb-6">
+                            OMEGA подготовила черновик с хуком, структурой и CTA. Проверьте, отредактируйте и опубликуйте в один клик.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <button onClick={() => alert('Публикация...')} className="magnetic-btn inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[var(--text)] text-[var(--text-inverse)] font-medium hover:scale-105 transition-transform">
+                                Опубликовать
+                            </button>
+                            <button onClick={() => alert('Редактирование...')} className="inline-flex items-center gap-2 px-5 py-3 rounded-full glass-card text-[var(--text)] text-sm hover:bg-[var(--surface)] transition-colors">
+                                Редактировать
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* AI Nudge */}
+                <div className="glass-card p-5 flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="w-8 h-8 rounded-xl bg-[var(--accent-warm)]/10 flex items-center justify-center">
+                                <Lightbulb className="w-4 h-4 text-[var(--accent-warm)]" />
+                            </div>
+                            <span className="text-sm font-medium text-[var(--text)]">💡 OMEGA советует</span>
+                        </div>
+                        <p className="text-sm text-[var(--text-muted)] mb-4">Опубликуйте в 18:00 — активность аудитории на 24% выше.</p>
+                    </div>
+                    <button onClick={() => alert('Время применено')} className="w-full py-2.5 rounded-xl bg-[var(--primary)] text-[var(--text-inverse)] text-sm font-medium hover:opacity-90 transition-opacity">
+                        Применить
+                    </button>
+                </div>
+            </div>
+
+            {/* [P16-CONTINUE] added: content pipeline horizontal scroll */}
+            <div>
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
+                        <Calendar size={18} className="text-[var(--primary)]" />
+                        Content Pipeline
+                    </h2>
+                    <button className="text-xs text-[var(--primary)] hover:underline">Все посты</button>
+                </div>
+                <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
+                    {PORTFOLIO_WORKS.map((work, i) => (
+                        <div key={work.id} className="min-w-[220px] md:min-w-[260px] glass-card p-3 hover:border-[var(--primary)]/30 transition-colors cursor-pointer group">
+                            <div className="w-full h-32 rounded-xl bg-[var(--surface)] overflow-hidden mb-3 relative">
+                                {work.thumbnail ? (
+                                    <img src={work.thumbnail} alt={work.title} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
+                                        <Play size={24} />
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                        <Play size={18} className="text-white" />
+                                    </div>
+                                </div>
+                            </div>
+                            <h3 className="text-sm font-medium text-[var(--text)] line-clamp-1 mb-1">{work.title}</h3>
+                            <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                                <span className="capitalize flex items-center gap-1"><PlatformIcon platform={work.platform} /> {work.platform}</span>
+                                <span>{work.publishedAt}</span>
+                            </div>
+                        </div>
+                    ))}
+                    <button className="min-w-[160px] h-[180px] rounded-2xl border border-dashed border-[var(--border-strong)] flex flex-col items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--primary)]/30 transition-colors">
+                        <Plus size={24} />
+                        <span className="text-sm">Добавить</span>
+                    </button>
+                </div>
+            </div>
+
             {/* Achievement Widget */}
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4">
@@ -268,27 +349,6 @@ function CreatorDashboardPage() {
                     ))}
                 </div>
                 <p className="text-xs text-[var(--text-muted)]">Так держать! Завтра откроется бейдж Consistency.</p>
-            </div>
-
-            {/* AI Nudges */}
-            <div className="bg-[var(--bg-secondary)] border-l-4 border-[var(--success)] rounded-r-2xl p-5">
-                <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-[var(--success)]/10 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-5 h-5 text-[var(--success)]" />
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="font-semibold text-[var(--text)] text-sm mb-1">Давно не создавали пост — вот идея от OMEGA</h3>
-                        <p className="text-sm text-[var(--text-muted)] mb-3">
-                            «3 мифа о {user?.preferences?.niche || 'вашей нише'}» — этот формат даёт +22% удержание.
-                        </p>
-                        <button
-                            onClick={() => alert('Генерация идеи...')}
-                            className="px-4 py-2 rounded-lg bg-[var(--success)]/10 text-[var(--success)] text-xs font-medium hover:bg-[var(--success)]/20 transition-colors"
-                        >
-                            Сгенерировать идею
-                        </button>
-                    </div>
-                </div>
             </div>
 
             {/* Stats */}

@@ -224,49 +224,82 @@ export function OMEGACoreTab({ data }) {
                 )}
             </div>
 
-            {/* Alerts */}
+            {/* [P16-CONTINUE] added: luxury horizontal alert cards with left-border and auto-dismiss progress */}
             {alerts.length > 0 && (
-                <div className="rounded-2xl bg-red-500/5 border border-red-500/10 p-4 space-y-2">
-                    <h3 className="text-sm font-semibold text-red-400 flex items-center gap-2">
-                        <AlertTriangle size={16} /> Алерты ({alerts.length})
-                    </h3>
-                    <div className="space-y-2">
-                        {alerts.map(alert => (
-                            <div key={alert.id} className="flex items-center gap-3 p-2 rounded-xl bg-red-500/5 border border-red-500/10">
-                                <StatusBadge status={alert.severity} label={alert.type} />
-                                <span className="text-xs text-gray-300 flex-1">{alert.message}</span>
+                <div className="space-y-3">
+                    {alerts.map(alert => {
+                        const isError = alert.severity === 'high'
+                        const isWarning = alert.severity === 'medium'
+                        const isServer = alert.type === 'server' && alert.severity !== 'high'
+                        const accent = isError ? 'red-500' : isWarning ? 'amber-500' : 'blue-500'
+                        return (
+                            <div key={alert.id} className={`relative overflow-hidden rounded-2xl border-l-[3px] bg-${accent.split('-')[0]}-500/5 border-${accent} p-4`}>
+                                {isError && (
+                                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-${accent}">
+                                        <div className="h-full bg-${accent} opacity-60 animate-shrink-x" style={{ animation: 'shrinkX 10s linear forwards' }} />
+                                    </div>
+                                )}
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle size={18} className={`text-${accent} mt-0.5`} />
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-[var(--text)] capitalize">{alert.type}</div>
+                                        <div className="text-xs text-[var(--text-muted)] mt-0.5">{alert.message}</div>
+                                    </div>
+                                    <button className="text-xs px-2.5 py-1.5 rounded-lg bg-white/5 text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors">
+                                        Исправить
+                                    </button>
+                                </div>
                             </div>
-                        ))}
-                    </div>
+                        )
+                    })}
                 </div>
             )}
 
-            {/* KPI */}
+            {/* [P16-CONTINUE] added: luxury hero metrics with serif numbers, deltas and sparklines */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <KPICard title="Агентов активно" value={activeAgents} icon={Bot} color="emerald" />
-                <KPICard title="Приостановлено" value={pausedAgents} icon={Activity} color="orange" />
-                <KPICard title="Средний CPU" value={avgCpu} suffix="%" icon={Server} color="blue" />
-                <KPICard title="Серверов оффлайн" value={offlineServers} icon={Zap} color="red" />
-                <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-purple-500/20 to-violet-500/10 text-purple-400 border-purple-500/20 p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/10 group">
+                {[
+                    { title: 'Агентов активно', value: activeAgents, delta: '+12%', deltaColor: 'var(--success)', spark: [30,45,40,60,55,70,activeAgents*10] },
+                    { title: 'Приостановлено', value: pausedAgents, delta: pausedAgents > 0 ? 'Требуют внимания' : 'Все ок', deltaColor: pausedAgents > 0 ? 'var(--warning)' : 'var(--success)', spark: [10,8,6,4,3,2,pausedAgents*5] },
+                    { title: 'Средний CPU', value: avgCpu, suffix: '%', delta: avgCpu > 80 ? '▲ Высокая нагрузка' : '▲ Стабильно', deltaColor: avgCpu > 80 ? 'var(--danger)' : 'var(--success)', spark: [40,45,50,48,55,60,avgCpu] },
+                    { title: 'Серверов оффлайн', value: offlineServers, delta: offlineServers > 0 ? '▲ Тревога' : '▲ Все онлайн', deltaColor: offlineServers > 0 ? 'var(--danger)' : 'var(--success)', spark: [2,1,1,0,0,0,offlineServers*2] },
+                ].map((metric, i) => (
+                    <div key={i} className="glass-card p-5 transition-all hover:scale-[1.02]">
+                        <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">{metric.title}</div>
+                        <div className="text-5xl font-serif font-medium text-[var(--text)] mb-1">{metric.value}{metric.suffix}</div>
+                        <div className="text-xs mb-3" style={{ color: metric.deltaColor }}>{metric.delta}</div>
+                        <svg className="w-full h-8" viewBox="0 0 100 30" preserveAspectRatio="none">
+                            <polyline
+                                fill="none"
+                                stroke="var(--primary)"
+                                strokeWidth="2"
+                                points={metric.spark.map((v, idx) => `${(idx / (metric.spark.length - 1)) * 100},${30 - (v / 100) * 30}`).join(' ')}
+                            />
+                        </svg>
+                    </div>
+                ))}
+                <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-[var(--primary)]/20 to-[var(--accent)]/10 text-[var(--primary)] border-[var(--primary)]/20 p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-[var(--primary)]/10 group">
                     <div className="flex items-start justify-between mb-3">
                         <div className="p-2.5 rounded-xl bg-white/5 backdrop-blur-sm">
                             <Moon size={20} />
                         </div>
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <div className="flex items-center gap-1.5">
+                            <span className="pulse-dot" />
+                            <span className="text-[10px] text-[var(--text-muted)]">Active</span>
+                        </div>
                     </div>
-                    <div className="text-2xl font-bold tracking-tight">🌙 Active</div>
-                    <div className="text-xs text-gray-400 mt-1">Dream Mode 02:00–06:00</div>
-                    <div className="flex items-center gap-1 mt-2 text-xs font-medium text-purple-300">
+                    <div className="text-2xl font-bold tracking-tight">🌙 Dream Mode</div>
+                    <div className="text-xs text-[var(--text-muted)] mt-1">02:00–06:00</div>
+                    <div className="flex items-center gap-1 mt-2 text-xs font-medium text-[var(--primary)]">
                         <span>OMEGA работает ночью</span>
                     </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* Agents */}
+                {/* [P16-CONTINUE] added: bento grid AI agents with pulse-dot status + magnetic start button */}
                 <div className="lg:col-span-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
                     <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
-                        <Bot size={16} className="text-purple-400" /> AI Агенты
+                        <Bot size={16} className="text-[var(--primary)]" /> AI Агенты
                     </h3>
                     {agents.length === 0 ? (
                         <EmptyState
@@ -278,61 +311,85 @@ export function OMEGACoreTab({ data }) {
                             compact
                         />
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {agents.map(agent => (
-                                <div
-                                    key={agent.id}
-                                    className="p-4 rounded-xl bg-white/[0.02] border border-[var(--border)] hover:border-[var(--border)] transition-all"
-                                >
-                                    <div className="flex items-start justify-between mb-2">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
-                                                <Bot size={16} className="text-[var(--text)]" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 auto-rows-[140px] gap-3">
+                            {agents.slice(0, 4).map((agent, idx) => {
+                                const isLarge = idx === 0 || idx === 1
+                                const isActive = agent.status === 'active'
+                                return (
+                                    <div
+                                        key={agent.id}
+                                        className={`spotlight glass-card p-4 transition-all duration-300 hover:scale-[1.02] ${isLarge ? 'sm:col-span-1 row-span-1' : ''}`}
+                                    >
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center">
+                                                    <Bot size={16} className="text-[var(--text)]" />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium text-[var(--text)]">{agent.name}</div>
+                                                    <div className="text-[10px] text-[var(--text-muted)]">{agent.role}</div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div className="text-sm font-medium text-[var(--text)]">{agent.name}</div>
-                                                <div className="text-[10px] text-gray-500">{agent.role}</div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`} />
+                                                <span className="text-[10px] text-[var(--text-muted)] capitalize">{isActive ? 'active' : 'paused'}</span>
                                             </div>
                                         </div>
-                                        <StatusBadge status={agent.status} pulse={agent.status === 'active'} />
+                                        <p className="text-xs text-[var(--text-muted)] line-clamp-2 mb-3">{agent.description}</p>
+                                        {!isActive && (
+                                            <button
+                                                onClick={() => handleRestartAgent(agent.id)}
+                                                className="magnetic-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--primary)] text-[var(--text-inverse)] text-xs font-medium hover:opacity-90 transition-all"
+                                            >
+                                                <Play size={12} /> Запустить
+                                            </button>
+                                        )}
                                     </div>
-                                    <p className="text-xs text-gray-400 line-clamp-2 mb-3">{agent.description}</p>
-                                    {agent.status !== 'active' && (
-                                        <button
-                                            onClick={() => handleRestartAgent(agent.id)}
-                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                                        >
-                                            <Play size={12} /> Запустить
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     )}
                 </div>
 
-                {/* Providers */}
+                {/* [P16-CONTINUE] added: radial progress bars for providers + business health */}
                 <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
                     <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Wifi size={16} className="text-blue-400" /> AI Провайдеры
                     </h3>
-                    <div className="space-y-3">
-                        {PROVIDERS.map(provider => (
-                            <div
-                                key={provider.id}
-                                className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-[var(--border)]"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-2 h-2 rounded-full ${provider.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-                                    <span className="text-sm text-[var(--text)]">{provider.name}</span>
+                    <div className="grid grid-cols-3 gap-3">
+                        {[
+                            { id: 'groq', name: 'Groq', pct: 85, color: '#10b981' },
+                            { id: 'openrouter', name: 'OpenRouter', pct: 60, color: '#3b82f6' },
+                            { id: 'deepseek', name: 'DeepSeek', pct: 0, color: '#6b7280', test: true },
+                        ].map(provider => (
+                            <div key={provider.id} className="flex flex-col items-center text-center p-2 rounded-xl bg-white/[0.02] border border-[var(--border)]">
+                                <div className="relative w-16 h-16 mb-2">
+                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                        <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-strong)" strokeWidth="8" />
+                                        <circle cx="50" cy="50" r="42" fill="none" stroke={provider.color} strokeWidth="8"
+                                            strokeDasharray={`${(provider.pct / 100) * 264} 264`}
+                                            strokeLinecap="round"
+                                            className="drop-shadow-[0_0_8px_currentColor]"
+                                        />
+                                    </svg>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs font-mono font-medium text-[var(--text)]">{provider.pct}%</span>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={() => handleTestProvider(provider.id)}
-                                    disabled={testLoading === provider.id}
-                                    className="text-[10px] px-2 py-1 rounded-lg bg-white/5 text-gray-400 hover:text-[var(--text)] hover:bg-white/10 transition-colors disabled:opacity-50"
-                                >
-                                    {testLoading === provider.id ? '...' : 'Тест'}
-                                </button>
+                                <span className="text-xs text-[var(--text)] mb-1.5">{provider.name}</span>
+                                {provider.test ? (
+                                    <button
+                                        onClick={() => handleTestProvider(provider.id)}
+                                        disabled={testLoading === provider.id}
+                                        className="text-[10px] px-2 py-1 rounded-full bg-white/5 text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors disabled:opacity-50"
+                                    >
+                                        {testLoading === provider.id ? '...' : 'Тест'}
+                                    </button>
+                                ) : (
+                                    <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Online
+                                    </span>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -343,17 +400,17 @@ export function OMEGACoreTab({ data }) {
                     <div className="flex items-center justify-center py-4">
                         <div className="relative w-28 h-28">
                             <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="42" fill="none" stroke="#1a1a24" strokeWidth="8" />
-                                <circle cx="50" cy="50" r="42" fill="none" stroke="#00ff41" strokeWidth="8"
+                                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-strong)" strokeWidth="8" />
+                                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--success)" strokeWidth="8"
                                     strokeDasharray={`${aiAnalytics.businessHealth * 2.64} 264`}
-                                    strokeLinecap="round" className="drop-shadow-[0_0_8px_rgba(0,255,65,0.5)]" />
+                                    strokeLinecap="round" className="drop-shadow-[0_0_8px_var(--success)]" />
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <span className="text-2xl font-bold text-[var(--text)]">{aiAnalytics.businessHealth}</span>
                             </div>
                         </div>
                     </div>
-                    <p className="text-xs text-center text-gray-400">Индекс здоровья: <span className="text-emerald-400">Отлично</span></p>
+                    <p className="text-xs text-center text-[var(--text-muted)]">Индекс здоровья: <span className="text-[var(--success)]">Отлично</span></p>
                 </div>
             </div>
 

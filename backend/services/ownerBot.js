@@ -1,7 +1,9 @@
 import TelegramBot from 'node-telegram-bot-api'
 
 const token = process.env.TELEGRAM_BOT_TOKEN
-let ownerBot = null
+
+// [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
+let instance = null
 
 function createStubBot() {
   return {
@@ -11,22 +13,11 @@ function createStubBot() {
     processUpdate: () => {},
     startPolling: () => {},
     stopPolling: () => {},
+    deleteWebhook: () => Promise.resolve(),
   }
 }
 
-function initOwnerBot() {
-  if (!token) {
-    console.log('⚠️ TELEGRAM_BOT_TOKEN not set, owner bot disabled')
-    ownerBot = createStubBot()
-    return ownerBot
-  }
-
-  // [P16-HOTFIX] Singleton + deleteWebhook to avoid 409 Conflict on Render restart
-  if (ownerBot && ownerBot.token === token) return ownerBot
-
-  const bot = new TelegramBot(token, { polling: false })
-  bot.token = token
-
+function attachHandlers(bot) {
   bot.on('polling_error', (err) => {
     if (err && err.message && err.message.includes('409')) {
       console.log('[ownerBot] Telegram 409 — another instance running, skipping')
@@ -48,29 +39,34 @@ function initOwnerBot() {
       bot.sendMessage(msg.chat.id, '❌ Ошибка получения статуса')
     }
   })
-
-  bot.deleteWebhook({ drop_pending_updates: true })
-    .then(() => {
-      console.log('[ownerBot] webhook deleted, starting polling')
-      bot.startPolling()
-    })
-    .catch((err) => {
-      console.warn('[ownerBot] deleteWebhook failed:', err.message, '- starting polling anyway')
-      bot.startPolling()
-    })
-
-  ownerBot = bot
-  global.ownerBot = bot
-  return ownerBot
 }
-
-// Initialize on module load if token is present
-initOwnerBot()
 
 export function getOwnerBot() {
-  return ownerBot || initOwnerBot()
+  if (!instance) {
+    if (!token) {
+      console.log('⚠️ TELEGRAM_BOT_TOKEN not set, owner bot disabled')
+      instance = createStubBot()
+      return instance
+    }
+
+    instance = new TelegramBot(token, { polling: false })
+    attachHandlers(instance)
+
+    instance.deleteWebhook({ drop_pending_updates: true })
+      .then(() => {
+        console.log('[ownerBot] webhook deleted, starting polling')
+        instance.startPolling()
+      })
+      .catch((err) => {
+        console.warn('[ownerBot] deleteWebhook failed:', err.message, '- starting polling anyway')
+        instance.startPolling()
+      })
+  }
+  return instance
 }
 
+// [P16-FINAL] added: lazy init on first use instead of module-load init to prevent duplicate instances
+const ownerBot = getOwnerBot()
 export { ownerBot }
 export default ownerBot
 

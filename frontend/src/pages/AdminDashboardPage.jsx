@@ -549,6 +549,7 @@ function AdminDashboardPage() {
                         columns={userColumns}
                         rowHeight={60}
                         maxHeight={600}
+                        striped
                         keyExtractor={(u) => u.id}
                         emptyMessage={
                             <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
@@ -789,8 +790,10 @@ function AdminDashboardPage() {
                                 {reports.filter(r => reportFilter === 'all' || r.status === reportFilter).length === 0 && (
                                     <p className="text-center text-[var(--text-muted)] py-8">Нет жалоб с выбранным статусом</p>
                                 )}
-                                {reports.filter(r => reportFilter === 'all' || r.status === reportFilter).map(report => (
-                                    <div key={report.id} className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] flex items-start gap-4">
+                                {reports.filter(r => reportFilter === 'all' || r.status === reportFilter).map(report => {
+                                    const borderColor = report.status === 'pending' ? 'border-l-[var(--accent-warm)]' : report.status === 'approved' ? 'border-l-[var(--success)]' : report.status === 'rejected' ? 'border-l-[var(--danger)]' : 'border-l-[var(--accent)]'
+                                    return (
+                                    <div key={report.id} className={`bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] border-l-4 ${borderColor} flex items-start gap-4`}>
                                         <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${getReportStatusDotClass(report.status)}`} />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
@@ -824,7 +827,8 @@ function AdminDashboardPage() {
                                             </button>
                                         </div>
                                     </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         </div>
                     </div>

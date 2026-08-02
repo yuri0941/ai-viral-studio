@@ -163,22 +163,22 @@ export function ApiKeysTab({ data }) {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-lg font-semibold text-[var(--text)]">API Keys</h2>
-                    <p className="text-xs text-gray-500 mt-1">Управление ключами AI-провайдеров и интеграций</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">Управление ключами AI-провайдеров и интеграций</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={fetchStatus}
                         disabled={loadingStatus}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-400 hover:text-[var(--text)] hover:bg-white/10 transition-colors disabled:opacity-50"
+                        className="magnetic-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-all disabled:opacity-50" // [P16-CONTINUE] added
                     >
                         <RefreshCw size={12} className={loadingStatus ? 'animate-spin' : ''} />
                         Обновить статус
                     </button>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                        Активно: <span className="text-emerald-400 font-medium">{activeCount}</span>
-                        <span className="text-gray-600">/</span>
-                        <span className="text-gray-400">Всего: {totalCount}</span>
+                    <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] glass px-3 py-1.5 rounded-full"> // [P16-CONTINUE] added
+                        <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
+                        Активно: <span className="text-[var(--success)] font-medium">{activeCount}</span>
+                        <span className="text-[var(--border-strong)]">/</span>
+                        <span className="text-[var(--text-muted)]">Всего: {totalCount}</span>
                     </div>
                 </div>
             </div>
@@ -189,25 +189,25 @@ export function ApiKeysTab({ data }) {
                     const isPollinations = provider.id === 'pollinations'
                     const isSystem = provider.type === 'system'
                     return (
-                    <div key={provider.id} className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                    <div key={provider.id} className="glass-card p-5 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300 group"> // [P16-CONTINUE] added
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                                    {isPollinations ? <Wind size={18} className="text-emerald-400" /> : isSystem ? <Server size={18} className="text-blue-400" /> : <Key size={18} className="text-purple-400" />}
+                                <div className="w-10 h-10 rounded-xl glass flex items-center justify-center"> // [P16-CONTINUE] added
+                                    {isPollinations ? <Wind size={18} className="text-[var(--success)]" /> : isSystem ? <Server size={18} className="text-[var(--info)]" /> : <Key size={18} className="text-[var(--primary)]" />}
                                 </div>
                                 <div>
                                     <div className="text-sm font-medium text-[var(--text)]">{provider.name}</div>
-                                    <div className="text-[10px] text-gray-500">{provider.env || '—'}</div>
+                                    <div className="text-[10px] text-[var(--text-muted)]">{provider.env || '—'}</div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${badge.status === 'active' ? 'bg-emerald-400' : badge.status === 'error' ? 'bg-yellow-400' : badge.status === 'disabled' ? 'bg-gray-400' : 'bg-red-400'}`} />
+                                <span className={`w-2 h-2 rounded-full ${badge.status === 'active' ? 'bg-[var(--success)] animate-pulse' : badge.status === 'error' ? 'bg-[var(--warning)]' : badge.status === 'disabled' ? 'bg-[var(--text-muted)]' : 'bg-[var(--danger)]'}`} /> // [P16-CONTINUE] added
                                 <StatusBadge status={badge.status} label={badge.label} />
                             </div>
                         </div>
 
                         <div className="mb-4">
-                            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs ${isPollinations ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : isSystem ? 'bg-blue-500/10 border-blue-500/20 text-blue-300' : 'bg-purple-500/10 border-purple-500/20 text-purple-300'}`}>
+                            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs ${isPollinations ? 'bg-[var(--success)]/10 border-[var(--success)]/20 text-[var(--success)]' : isSystem ? 'bg-[var(--info)]/10 border-[var(--info)]/20 text-[var(--info)]' : 'bg-[var(--primary)]/10 border-[var(--primary)]/20 text-[var(--primary)]'}`}> // [P16-CONTINUE] added
                                 {isPollinations ? <Wind size={14} /> : isSystem ? <Server size={14} /> : <Key size={14} />}
                                 {provider.description || (isSystem ? 'Системный провайдер (ключ в .env backend)' : 'AI-провайдер с API-ключом')}
                             </div>
@@ -215,7 +215,7 @@ export function ApiKeysTab({ data }) {
 
                         {!isSystem && (
                             <div className="mb-4">
-                                <label className="text-[10px] text-gray-500 mb-1.5 block">Key value</label>
+                                <label className="text-[10px] text-[var(--text-muted)] mb-1.5 block">Key value</label>
                                 <div className="flex items-center gap-2">
                                     <input
                                         type={visible[provider.id] ? 'text' : 'password'}
@@ -228,31 +228,33 @@ export function ApiKeysTab({ data }) {
                                             }
                                         }}
                                         placeholder={PLACEHOLDER}
-                                        className="flex-1 bg-white/5 border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-purple-500/30"
+                                        className="flex-1 glass border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)]/50 outline-none focus:border-[var(--primary)]/30 transition-colors" // [P16-CONTINUE] added
                                     />
                                     <button
                                         onClick={() => setVisible(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
-                                        className="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-[var(--text)] transition-colors"
+                                        className="min-w-[44px] min-h-[44px] rounded-xl glass text-[var(--text-muted)] hover:text-[var(--text)] transition-colors flex items-center justify-center" // [P16-CONTINUE] added
+                                        aria-label="Toggle visibility"
                                     >
-                                        {visible[provider.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                                        {visible[provider.id] ? <EyeOff size={16} /> : <Eye size={16} />}
                                     </button>
                                     <button
                                         onClick={() => copyKey(provider.id)}
-                                        className="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-[var(--text)] transition-colors"
+                                        className="min-w-[44px] min-h-[44px] rounded-xl glass text-[var(--text-muted)] hover:text-[var(--text)] transition-colors flex items-center justify-center" // [P16-CONTINUE] added
+                                        aria-label="Copy key"
                                     >
-                                        {copied === provider.id ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                                        {copied === provider.id ? <Check size={16} className="text-[var(--success)]" /> : <Copy size={16} />}
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        <div className="flex items-center justify-between text-[10px] text-gray-500">
+                        <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)]">
                             <span className="flex items-center gap-1"><Shield size={12} /> {isSystem ? 'Ключ управляется на сервере' : (provider.value ? 'Зашифровано в localStorage' : 'Не задано')}</span>
                             <div className="flex items-center gap-2">
                                 {!isSystem && (
                                     <button
                                         onClick={() => rotateKey(provider.id)}
-                                        className="flex items-center gap-1 text-purple-400 hover:text-purple-300 transition-colors"
+                                        className="magnetic-btn flex items-center gap-1 text-[var(--primary)] hover:text-[var(--primary-hover)] transition-colors px-2 py-1 rounded-lg hover:bg-[var(--surface)]" // [P16-CONTINUE] added
                                     >
                                         <RefreshCw size={12} /> Обновить
                                     </button>
@@ -260,10 +262,10 @@ export function ApiKeysTab({ data }) {
                                 <button
                                     onClick={() => toggleProvider(provider.id)}
                                     disabled={toggling[provider.id]}
-                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors disabled:opacity-50 ${provider.enabled ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-gray-500/10 border-gray-500/20 text-gray-400'}`}
+                                    className={`relative w-11 h-6 rounded-full transition-colors duration-300 disabled:opacity-50 ${provider.enabled ? 'bg-[var(--success)]' : 'bg-[var(--surface)]'}`} // [P16-CONTINUE] added: custom toggle
+                                    aria-label={provider.enabled ? 'Выключить' : 'Включить'}
                                 >
-                                    <Power size={12} />
-                                    {provider.enabled ? 'ON' : 'OFF'}
+                                    <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-[var(--text-inverse)] shadow-md transition-transform duration-300 ${provider.enabled ? 'translate-x-5' : ''}`} />
                                 </button>
                             </div>
                         </div>

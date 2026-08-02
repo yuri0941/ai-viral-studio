@@ -294,62 +294,67 @@ function SettingsPage() {
 
     const renderProfile = () => (
         <div className="space-y-6">
-            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
+            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Camera size={18} className="text-emerald-400" /> Аватар профиля
+                    <Camera size={18} className="text-[var(--success)]" /> Аватар профиля
                 </h3>
                 <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl font-bold">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-3xl font-bold text-[var(--text-inverse)]"> // [P16-CONTINUE] added
                         {profile.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                        <button className="px-4 py-2 bg-emerald-600/20 text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-600/30 transition-colors flex items-center gap-2">
+                        <button className="px-4 py-2 bg-[var(--success)]/20 text-[var(--success)] rounded-lg text-sm font-medium hover:bg-[var(--success)]/30 transition-colors flex items-center gap-2"> // [P16-CONTINUE] added
                             <Camera size={14} /> Загрузить фото
                         </button>
-                        <p className="text-xs text-gray-500 mt-2">JPG, PNG до 5MB</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-2">JPG, PNG до 5MB</p>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
+            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <User size={18} className="text-emerald-400" /> Личная информация
+                    <User size={18} className="text-[var(--success)]" /> Личная информация
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-sm text-gray-400 mb-1 block">Имя</label>
+                    <div className="relative">
                         <input
                             type="text"
+                            id="settings-name"
                             value={profile.name}
                             onChange={e => setProfile({ ...profile, name: e.target.value })}
-                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none transition-colors"
+                            placeholder=" "
+                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-colors text-[var(--text)]" // [P16-CONTINUE] added
                         />
+                        <label htmlFor="settings-name" className="absolute left-4 top-2.5 text-sm text-[var(--text-muted)] transition-all peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-[var(--primary)] peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">Имя</label> // [P16-CONTINUE] added: floating label
                     </div>
-                    <div>
-                        <label className="text-sm text-gray-400 mb-1 block">Email</label>
+                    <div className="relative">
                         <input
                             type="email"
+                            id="settings-email"
                             value={profile.email}
                             onChange={e => setProfile({ ...profile, email: e.target.value })}
-                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none transition-colors"
+                            placeholder=" "
+                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-colors text-[var(--text)]" // [P16-CONTINUE] added
                         />
+                        <label htmlFor="settings-email" className="absolute left-4 top-2.5 text-sm text-[var(--text-muted)] transition-all peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-[var(--primary)] peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">Email</label> // [P16-CONTINUE] added
                     </div>
-                    <div className="md:col-span-2">
-                        <label className="text-sm text-gray-400 mb-1 block">О себе</label>
+                    <div className="md:col-span-2 relative">
                         <textarea
+                            id="settings-bio"
                             value={profile.bio}
                             onChange={e => setProfile({ ...profile, bio: e.target.value })}
-                            placeholder="Расскажи о себе и своём контенте..."
+                            placeholder=" "
                             rows={3}
-                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none resize-none transition-colors"
+                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none resize-none transition-colors text-[var(--text)]" // [P16-CONTINUE] added
                         />
+                        <label htmlFor="settings-bio" className="absolute left-4 top-2.5 text-sm text-[var(--text-muted)] transition-all peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-[var(--primary)] peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">О себе</label> // [P16-CONTINUE] added
                     </div>
-                    <div>
-                        <label className="text-sm text-gray-400 mb-1 block">Ниша</label>
+                    <div className="relative">
                         <select
+                            id="settings-niche"
                             value={profile.niche}
                             onChange={e => setProfile({ ...profile, niche: e.target.value })}
-                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none transition-colors"
+                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-colors text-[var(--text)] appearance-none" // [P16-CONTINUE] added
                         >
                             <option value="">Выберите нишу</option>
                             <option value="tech">Технологии</option>
@@ -359,37 +364,40 @@ function SettingsPage() {
                             <option value="gaming">Игры</option>
                             <option value="business">Бизнес</option>
                         </select>
+                        <label htmlFor="settings-niche" className="absolute left-4 -top-2.5 text-xs text-[var(--primary)] bg-[var(--bg)] px-1 pointer-events-none">Ниша</label> // [P16-CONTINUE] added: floating label for select
                     </div>
-                    <div>
-                        <label className="text-sm text-gray-400 mb-1 block">Язык</label>
+                    <div className="relative">
                         <select
+                            id="settings-language"
                             value={profile.language}
                             onChange={e => setProfile({ ...profile, language: e.target.value })}
-                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none transition-colors"
+                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-colors text-[var(--text)] appearance-none" // [P16-CONTINUE] added
                         >
                             <option value="ru">Русский</option>
                             <option value="en">English</option>
                             <option value="es">Español</option>
                         </select>
+                        <label htmlFor="settings-language" className="absolute left-4 -top-2.5 text-xs text-[var(--primary)] bg-[var(--bg)] px-1 pointer-events-none">Язык</label> // [P16-CONTINUE] added
                     </div>
-                    <div>
-                        <label className="text-sm text-gray-400 mb-1 block">Часовой пояс</label>
+                    <div className="relative">
                         <select
+                            id="settings-timezone"
                             value={profile.timezone}
                             onChange={e => setProfile({ ...profile, timezone: e.target.value })}
-                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none transition-colors"
+                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-colors text-[var(--text)] appearance-none" // [P16-CONTINUE] added
                         >
                             {['UTC', 'Europe/Moscow', 'Europe/London', 'America/New_York', 'America/Los_Angeles', 'Asia/Dubai', 'Asia/Shanghai', 'Asia/Tokyo'].map(tz => (
                                 <option key={tz} value={tz}>{tz}</option>
                             ))}
                         </select>
+                        <label htmlFor="settings-timezone" className="absolute left-4 -top-2.5 text-xs text-[var(--primary)] bg-[var(--bg)] px-1 pointer-events-none">Часовой пояс</label> // [P16-CONTINUE] added
                     </div>
                 </div>
             </div>
 
             <button
                 onClick={handleSave}
-                className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold rounded-xl transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
+                className="magnetic-btn w-full py-3 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--text-inverse)] font-semibold rounded-xl transition-all flex items-center justify-center gap-2" // [P16-CONTINUE] added
             >
                 {saved ? <><Check size={18} /> Сохранено!</> : <><Save size={18} /> Сохранить изменения</>}
             </button>
@@ -400,12 +408,12 @@ function SettingsPage() {
         <div className="space-y-6">
             {/* Активная подписка */}
             {userSubscription && userSubscription.isActive && (
-                <div className="bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-xl p-6 border border-emerald-500/30">
+                <div className="glass-card p-6 rounded-[var(--radius-xl)] border-l-4 border-[var(--success)]"> // [P16-CONTINUE] added
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="text-lg font-semibold">Текущий план</h3>
-                            <p className="text-emerald-400 font-bold text-xl mt-1">{userSubscription.planName}</p>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
+                            <h3 className="text-lg font-semibold text-[var(--text)]">Текущий план</h3>
+                            <p className="text-[var(--success)] font-bold text-xl mt-1">{userSubscription.planName}</p>
+                            <div className="flex items-center gap-4 mt-2 text-sm text-[var(--text-muted)]">
                                 <span className="flex items-center gap-1">
                                     <Calendar size={14} /> Следующая оплата: {formatDate(userSubscription.nextBillingDate)}
                                 </span>
@@ -415,16 +423,16 @@ function SettingsPage() {
                                 </span>
                             </div>
                             {userSubscription.lockedPrice !== plans.find(p => p.id === userSubscription.planId)?.price && (
-                                <p className="text-xs text-amber-400 mt-1">
+                                <p className="text-xs text-[var(--warning)] mt-1">
                                     💰 Грандфазеринг: вы платите старую цену ${userSubscription.lockedPrice}/мес до {formatDate(userSubscription.nextBillingDate)}
                                 </p>
                             )}
                         </div>
-                        <Crown size={40} className="text-emerald-400" />
+                        <Crown size={40} className="text-[var(--success)]" />
                     </div>
                     <button
                         onClick={handleCancelSubscription}
-                        className="mt-4 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/30 transition-colors"
+                        className="mt-4 px-4 py-2 bg-[var(--danger)]/20 text-[var(--danger)] rounded-lg text-sm hover:bg-[var(--danger)]/30 transition-colors" // [P16-CONTINUE] added
                     >
                         Отменить подписку
                     </button>
@@ -433,16 +441,16 @@ function SettingsPage() {
 
             {/* Переключатель Месяц/Год */}
             <div className="flex justify-center">
-                <div className="inline-flex bg-[#1a1a24] rounded-xl p-1 border border-white/5">
+                <div className="inline-flex glass rounded-full p-1"> // [P16-CONTINUE] added
                     <button
                         onClick={() => setIsYearly(false)}
-                        className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${!isYearly ? 'bg-emerald-500 text-black' : 'text-gray-400 hover:text-white'}`}
+                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!isYearly ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`} // [P16-CONTINUE] added
                     >
                         Месяц
                     </button>
                     <button
                         onClick={() => setIsYearly(true)}
-                        className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${isYearly ? 'bg-emerald-500 text-black' : 'text-gray-400 hover:text-white'}`}
+                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${isYearly ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`} // [P16-CONTINUE] added
                     >
                         Год ×10
                     </button>
@@ -458,34 +466,34 @@ function SettingsPage() {
                         userSubscription.lockedPrice !== plan.price && userSubscription.isActive;
 
                     return (
-                        <div key={plan.id} className={`relative bg-[#1a1a24] rounded-xl p-5 border ${subscribed ? 'border-emerald-500' : plan.popular ? 'border-emerald-500/50' : 'border-white/5'} hover:border-emerald-500/30 transition-all`}>
+                        <div key={plan.id} className={`relative glass-card p-5 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300 ${subscribed ? 'border-[var(--success)]' : plan.popular ? 'border-[var(--primary)]/50' : 'border-[var(--border)]'}`}> // [P16-CONTINUE] added
                             {plan.popular && !subscribed && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-emerald-500 text-black text-xs font-bold rounded-full">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--primary)] text-[var(--text-inverse)] text-xs font-bold rounded-full">
                                     Популярный
                                 </div>
                             )}
                             {subscribed && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-emerald-500 text-black text-xs font-bold rounded-full">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--success)] text-[var(--text-inverse)] text-xs font-bold rounded-full">
                                     Активен
                                 </div>
                             )}
                             <div className="flex items-center gap-2 mb-2">
                                 <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${plan.color}`} />
-                                <h4 className="font-bold text-lg">{plan.name}</h4>
+                                <h4 className="font-bold text-lg text-[var(--text)]">{plan.name}</h4>
                             </div>
-                            <div className="text-2xl font-bold my-2">
+                            <div className="text-2xl font-bold my-2 text-[var(--text)]">
                                 ${currentPrice}
-                                <span className="text-sm text-gray-400 font-normal">/{isYearly ? 'год' : 'мес'}</span>
+                                <span className="text-sm text-[var(--text-muted)] font-normal">/{isYearly ? 'год' : 'мес'}</span>
                             </div>
                             {isGrandfathered && (
-                                <p className="text-xs text-amber-400 mb-2">
+                                <p className="text-xs text-[var(--warning)] mb-2">
                                     Старая цена: ${userSubscription.lockedPrice}/мес → новая: ${plan.price}/мес (с {formatDate(userSubscription.nextBillingDate)})
                                 </p>
                             )}
                             <ul className="space-y-2 mt-4">
                                 {plan.features.map((f, i) => (
-                                    <li key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                                        <Check size={14} className="text-emerald-400" /> {f}
+                                    <li key={i} className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                        <Check size={14} className="text-[var(--success)]" /> {f}
                                     </li>
                                 ))}
                             </ul>
@@ -496,7 +504,7 @@ function SettingsPage() {
                                     <button
                                         onClick={() => handleStripePayment(plan)}
                                         disabled={paymentLoading}
-                                        className="w-full py-2 rounded-lg font-medium transition-all bg-emerald-500 hover:bg-emerald-600 text-black disabled:bg-gray-600 flex items-center justify-center gap-2"
+                                        className="magnetic-btn w-full py-2 rounded-lg font-medium transition-all bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--text-inverse)] disabled:opacity-50 flex items-center justify-center gap-2" // [P16-CONTINUE] added
                                     >
                                         <CreditCard size={16} />
                                         {paymentLoading ? 'Загрузка...' : `Оплатить $${currentPrice}`}
@@ -504,7 +512,7 @@ function SettingsPage() {
                                     <button
                                         onClick={() => handleCryptoPayment(plan)}
                                         disabled={paymentLoading}
-                                        className="w-full py-2 rounded-lg font-medium transition-all bg-[#252530] hover:bg-[#303040] text-white border border-white/10 flex items-center justify-center gap-2"
+                                        className="w-full py-2 rounded-lg font-medium transition-all glass hover:bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] flex items-center justify-center gap-2" // [P16-CONTINUE] added
                                     >
                                         <Bitcoin size={16} className="text-orange-400" />
                                         {paymentLoading ? 'Загрузка...' : 'Крипта (USDT/BTC/ETH)'}
@@ -512,7 +520,7 @@ function SettingsPage() {
                                     <button
                                         onClick={() => handlePayPalPayment(plan)}
                                         disabled={paymentLoading}
-                                        className="w-full py-2 rounded-lg font-medium transition-all bg-[#003087] hover:bg-[#002a6e] text-white flex items-center justify-center gap-2"
+                                        className="w-full py-2 rounded-lg font-medium transition-all bg-[#003087]/80 hover:bg-[#002a6e] text-white flex items-center justify-center gap-2" // [P16-CONTINUE] added: kept PayPal brand
                                     >
                                         <Wallet size={16} />
                                         {paymentLoading ? 'Загрузка...' : 'PayPal'}
@@ -523,11 +531,11 @@ function SettingsPage() {
                                     onClick={() => !subscribed && handleSubscribe(plan)}
                                     disabled={subscribed}
                                     className={`w-full mt-4 py-2 rounded-lg font-medium transition-all ${subscribed
-                                        ? 'bg-emerald-500/20 text-emerald-400 cursor-default'
+                                        ? 'bg-[var(--success)]/20 text-[var(--success)] cursor-default'
                                         : plan.popular
-                                            ? 'bg-emerald-500 hover:bg-emerald-600 text-black'
-                                            : 'bg-[#252530] hover:bg-[#303040] text-white'
-                                        }`}
+                                            ? 'bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--text-inverse)]'
+                                            : 'glass hover:bg-[var(--surface)] text-[var(--text)]'
+                                        }`} // [P16-CONTINUE] added
                                 >
                                     {subscribed ? 'Активен' : 'Выбрать'}
                                 </button>
@@ -539,19 +547,19 @@ function SettingsPage() {
 
             {/* История подписок */}
             {userSubscription && (
-                <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
-                    <h3 className="text-lg font-semibold mb-4">История подписки</h3>
+                <div className="glass-card p-6 rounded-[var(--radius-xl)]"> // [P16-CONTINUE] added
+                    <h3 className="text-lg font-semibold mb-4 text-[var(--text)]">История подписки</h3>
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-[#252530] rounded-lg">
+                        <div className="flex items-center justify-between p-3 glass rounded-lg"> // [P16-CONTINUE] added
                             <div>
-                                <div className="font-medium">{userSubscription.planName}</div>
-                                <div className="text-sm text-gray-400">
+                                <div className="font-medium text-[var(--text)]">{userSubscription.planName}</div>
+                                <div className="text-sm text-[var(--text-muted)]">
                                     С {formatDate(userSubscription.startDate)} • {userSubscription.billingCycle === 'yearly' ? 'Годовой' : userSubscription.billingCycle === 'free' ? 'Бесплатно' : 'Месячный'}
                                 </div>
                             </div>
                             <div className="text-right">
-                                <div className="font-bold text-emerald-400">${userSubscription.price}</div>
-                                <div className={`text-xs ${userSubscription.isActive ? 'text-emerald-400' : 'text-red-400'}`}>
+                                <div className="font-bold text-[var(--success)]">${userSubscription.price}</div>
+                                <div className={`text-xs ${userSubscription.isActive ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
                                     {userSubscription.isActive ? 'Активна' : 'Отменена'}
                                 </div>
                             </div>
@@ -564,37 +572,37 @@ function SettingsPage() {
 
     const renderSocials = () => (
         <div className="space-y-4">
-            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Link2 size={18} className="text-emerald-400" /> Подключённые соцсети
+            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
+                    <Link2 size={18} className="text-[var(--success)]" /> Подключённые соцсети
                 </h3>
                 <div className="space-y-3">
                     {socialPlatforms.map(platform => {
                         const Icon = platform.icon;
                         const isConnected = socials[platform.id];
                         return (
-                            <div key={platform.id} className="flex items-center gap-4 p-4 bg-[#252530] rounded-xl border border-white/5 hover:border-white/10 transition-all">
+                            <div key={platform.id} className="flex items-center gap-4 p-4 glass rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all"> // [P16-CONTINUE] added
                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: platform.color + '20' }}>
                                     <Icon size={24} style={{ color: platform.color }} />
                                 </div>
                                 <div className="flex-1">
-                                    <div className="font-medium">{platform.name}</div>
+                                    <div className="font-medium text-[var(--text)]">{platform.name}</div>
                                     <input
                                         type="text"
                                         value={socials[platform.id]}
                                         onChange={e => setSocials({ ...socials, [platform.id]: e.target.value })}
                                         placeholder={platform.placeholder}
-                                        className="w-full mt-1 px-3 py-1.5 bg-[#1a1a24] rounded-lg border border-white/10 text-sm focus:border-emerald-500 outline-none"
+                                        className="w-full mt-1 px-3 py-1.5 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors" // [P16-CONTINUE] added
                                     />
                                 </div>
-                                <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-gray-600'}`}></div>
+                                <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-[var(--success)] animate-pulse' : 'bg-[var(--text-muted)]'}`}></div> // [P16-CONTINUE] added
                             </div>
                         );
                     })}
                 </div>
                 <button
                     onClick={handleSave}
-                    className="w-full mt-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+                    className="magnetic-btn w-full mt-4 py-3 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--text-inverse)] font-semibold rounded-xl transition-all flex items-center justify-center gap-2" // [P16-CONTINUE] added
                 >
                     {saved ? <><Check size={18} /> Сохранено!</> : <><Save size={18} /> Сохранить соцсети</>}
                 </button>
@@ -603,9 +611,9 @@ function SettingsPage() {
     );
 
     const renderNotifications = () => (
-        <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5 space-y-4">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Bell size={18} className="text-emerald-400" /> Настройки уведомлений
+        <div className="glass-card p-6 rounded-[var(--radius-xl)] space-y-4"> // [P16-CONTINUE] added
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
+                <Bell size={18} className="text-[var(--success)]" /> Настройки уведомлений
             </h3>
             {[
                 { id: 'email', label: 'Email-уведомления', desc: 'Получать уведомления на email', icon: Mail },
@@ -615,21 +623,22 @@ function SettingsPage() {
             ].map(item => {
                 const Icon = item.icon;
                 return (
-                    <div key={item.id} className="flex items-center justify-between p-4 bg-[#252530] rounded-xl">
+                    <div key={item.id} className="flex items-center justify-between p-4 glass rounded-xl hover:scale-[1.01] transition-all duration-300"> // [P16-CONTINUE] added
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-[#1a1a24] flex items-center justify-center">
-                                <Icon size={18} className="text-emerald-400" />
+                            <div className="w-10 h-10 rounded-lg glass flex items-center justify-center"> // [P16-CONTINUE] added
+                                <Icon size={18} className="text-[var(--success)]" />
                             </div>
                             <div>
-                                <div className="font-medium">{item.label}</div>
-                                <div className="text-sm text-gray-400">{item.desc}</div>
+                                <div className="font-medium text-[var(--text)]">{item.label}</div>
+                                <div className="text-sm text-[var(--text-muted)]">{item.desc}</div>
                             </div>
                         </div>
                         <button
                             onClick={() => setNotifications({ ...notifications, [item.id]: !notifications[item.id] })}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${notifications[item.id] ? 'bg-emerald-500' : 'bg-gray-600'}`}
+                            className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${notifications[item.id] ? 'bg-[var(--success)]' : 'bg-[var(--surface)]'}`} // [P16-CONTINUE] added
+                            aria-label={notifications[item.id] ? 'Выключить' : 'Включить'}
                         >
-                            <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${notifications[item.id] ? 'left-6' : 'left-0.5'}`}></div>
+                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${notifications[item.id] ? 'translate-x-6' : ''}`} /> // [P16-CONTINUE] added
                         </button>
                     </div>
                 );
@@ -735,18 +744,18 @@ function SettingsPage() {
 
     const renderSecurity = () => (
         <div className="space-y-6">
-            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Lock size={18} className="text-emerald-400" /> Смена пароля
+            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
+                    <Lock size={18} className="text-[var(--success)]" /> Смена пароля
                 </h3>
                 <form onSubmit={handlePasswordChange} className="space-y-3">
                     {passwordError && (
-                        <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+                        <div className="p-2.5 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/20 text-[var(--danger)] text-xs"> // [P16-CONTINUE] added
                             {passwordError}
                         </div>
                     )}
                     {passwordSuccess && (
-                        <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+                        <div className="p-2.5 rounded-lg bg-[var(--success)]/10 border border-[var(--success)]/20 text-[var(--success)] text-xs"> // [P16-CONTINUE] added
                             {passwordSuccess}
                         </div>
                     )}
@@ -757,12 +766,12 @@ function SettingsPage() {
                             value={passwordForm.currentPassword}
                             onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                             placeholder="Текущий пароль"
-                            className="w-full pl-4 pr-12 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-white placeholder-gray-500"
+                            className="w-full pl-4 pr-12 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] placeholder-[var(--text-muted)]" // [P16-CONTINUE] added
                         />
                         <button
                             type="button"
                             onClick={() => setShowCurrentPassword(v => !v)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                             aria-label={showCurrentPassword ? 'Скрыть пароль' : 'Показать пароль'}
                         >
                             {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -775,12 +784,12 @@ function SettingsPage() {
                             value={passwordForm.newPassword}
                             onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                             placeholder="Новый пароль"
-                            className="w-full pl-4 pr-12 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-white placeholder-gray-500"
+                            className="w-full pl-4 pr-12 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] placeholder-[var(--text-muted)]" // [P16-CONTINUE] added
                         />
                         <button
                             type="button"
                             onClick={() => setShowNewPassword(v => !v)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                             aria-label={showNewPassword ? 'Скрыть пароль' : 'Показать пароль'}
                         >
                             {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -793,12 +802,12 @@ function SettingsPage() {
                             value={passwordForm.confirmPassword}
                             onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                             placeholder="Подтвердите пароль"
-                            className="w-full pl-4 pr-12 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-white placeholder-gray-500"
+                            className="w-full pl-4 pr-12 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] placeholder-[var(--text-muted)]" // [P16-CONTINUE] added
                         />
                         <button
                             type="button"
                             onClick={() => setShowConfirmPassword(v => !v)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                             aria-label={showConfirmPassword ? 'Скрыть пароль' : 'Показать пароль'}
                         >
                             {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -808,53 +817,55 @@ function SettingsPage() {
                     <button
                         type="submit"
                         disabled={passwordLoading}
-                        className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-black font-medium rounded-lg transition-all"
+                        className="magnetic-btn w-full py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] disabled:opacity-50 text-[var(--text-inverse)] font-medium rounded-lg transition-all" // [P16-CONTINUE] added
                     >
                         {passwordLoading ? 'Сохранение...' : 'Обновить пароль'}
                     </button>
                 </form>
             </div>
 
-            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Mail size={18} className="text-emerald-400" /> Смена email
+            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
+                    <Mail size={18} className="text-[var(--success)]" /> Смена email
                 </h3>
                 <form onSubmit={handleEmailChange} className="space-y-3">
                     {emailError && (
-                        <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+                        <div className="p-2.5 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/20 text-[var(--danger)] text-xs"> // [P16-CONTINUE] added
                             {emailError}
                         </div>
                     )}
                     {emailSuccess && (
-                        <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+                        <div className="p-2.5 rounded-lg bg-[var(--success)]/10 border border-[var(--success)]/20 text-[var(--success)] text-xs"> // [P16-CONTINUE] added
                             {emailSuccess}
                         </div>
                     )}
 
-                    <div>
-                        <label className="text-sm text-gray-400 mb-1 block">Новый email</label>
+                    <div className="relative">
                         <input
                             type="email"
+                            id="settings-new-email"
                             value={emailForm.newEmail}
                             onChange={e => setEmailForm({ ...emailForm, newEmail: e.target.value })}
-                            placeholder="new@example.com"
-                            className="w-full px-4 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-white placeholder-gray-500"
+                            placeholder=" "
+                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] transition-colors" // [P16-CONTINUE] added
                         />
+                        <label htmlFor="settings-new-email" className="absolute left-4 top-2.5 text-sm text-[var(--text-muted)] transition-all peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-[var(--primary)] peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">Новый email</label> // [P16-CONTINUE] added
                     </div>
 
                     <div className="relative">
-                        <label className="text-sm text-gray-400 mb-1 block">Текущий пароль</label>
                         <input
                             type={showEmailPassword ? 'text' : 'password'}
+                            id="settings-email-password"
                             value={emailForm.currentPassword}
                             onChange={e => setEmailForm({ ...emailForm, currentPassword: e.target.value })}
-                            placeholder="Текущий пароль"
-                            className="w-full pl-4 pr-12 py-2.5 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none text-white placeholder-gray-500"
+                            placeholder=" "
+                            className="peer w-full pl-4 pr-12 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] transition-colors" // [P16-CONTINUE] added
                         />
+                        <label htmlFor="settings-email-password" className="absolute left-4 top-2.5 text-sm text-[var(--text-muted)] transition-all peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-[var(--primary)] peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">Текущий пароль</label> // [P16-CONTINUE] added
                         <button
                             type="button"
                             onClick={() => setShowEmailPassword(v => !v)}
-                            className="absolute right-2 top-[30px] w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                             aria-label={showEmailPassword ? 'Скрыть пароль' : 'Показать пароль'}
                         >
                             {showEmailPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -864,29 +875,30 @@ function SettingsPage() {
                     <button
                         type="submit"
                         disabled={emailLoading}
-                        className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-black font-medium rounded-lg transition-all"
+                        className="magnetic-btn w-full py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] disabled:opacity-50 text-[var(--text-inverse)] font-medium rounded-lg transition-all" // [P16-CONTINUE] added
                     >
                         {emailLoading ? 'Сохранение...' : 'Сохранить'}
                     </button>
                 </form>
             </div>
 
-            <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5">
+            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-[#252530] flex items-center justify-center">
-                            <Shield size={18} className="text-emerald-400" />
+                        <div className="w-10 h-10 rounded-lg glass flex items-center justify-center"> // [P16-CONTINUE] added
+                            <Shield size={18} className="text-[var(--success)]" />
                         </div>
                         <div>
-                            <div className="font-medium">Двухфакторная аутентификация</div>
-                            <div className="text-sm text-gray-400">Дополнительная защита аккаунта</div>
+                            <div className="font-medium text-[var(--text)]">Двухфакторная аутентификация</div>
+                            <div className="text-sm text-[var(--text-muted)]">Дополнительная защита аккаунта</div>
                         </div>
                     </div>
                     <button
                         onClick={() => setTwoFA(!twoFA)}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${twoFA ? 'bg-emerald-500' : 'bg-gray-600'}`}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${twoFA ? 'bg-[var(--success)]' : 'bg-[var(--surface)]'}`} // [P16-CONTINUE] added
+                        aria-label={twoFA ? 'Выключить 2FA' : 'Включить 2FA'}
                     >
-                        <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${twoFA ? 'left-6' : 'left-0.5'}`}></div>
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${twoFA ? 'translate-x-6' : ''}`} /> // [P16-CONTINUE] added
                     </button>
                 </div>
             </div>
@@ -900,45 +912,45 @@ function SettingsPage() {
     };
 
     const renderAppearance = () => (
-        <div className="bg-[#1a1a24] rounded-xl p-6 border border-white/5 space-y-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Palette size={18} className="text-emerald-400" /> Тема оформления
+        <div className="glass-card p-6 rounded-[var(--radius-xl)] space-y-6"> // [P16-CONTINUE] added
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
+                <Palette size={18} className="text-[var(--success)]" /> Тема оформления
             </h3>
             <div className="grid grid-cols-2 gap-4">
                 <button
                     onClick={() => handleThemeChange('dark')}
-                    className={`p-6 rounded-xl border-2 transition-all ${theme === 'dark' ? 'border-emerald-500 bg-[#252530]' : 'border-white/10 hover:border-white/20'}`}
+                    className={`p-6 rounded-xl border-2 transition-all ${theme === 'dark' ? 'border-[var(--primary)] glass' : 'border-[var(--border)] hover:border-[var(--primary)]/30'}`} // [P16-CONTINUE] added
                 >
-                    <Moon size={32} className="mx-auto mb-3 text-gray-300" />
-                    <div className="font-medium">Тёмная</div>
-                    <div className="text-sm text-gray-400">Классический тёмный режим</div>
+                    <Moon size={32} className="mx-auto mb-3 text-[var(--text-muted)]" />
+                    <div className="font-medium text-[var(--text)]">Тёмная</div>
+                    <div className="text-sm text-[var(--text-muted)]">Классический тёмный режим</div>
                 </button>
                 <button
                     onClick={() => handleThemeChange('light')}
-                    className={`p-6 rounded-xl border-2 transition-all ${theme === 'light' ? 'border-emerald-500 bg-[#252530]' : 'border-white/10 hover:border-white/20'}`}
+                    className={`p-6 rounded-xl border-2 transition-all ${theme === 'light' ? 'border-[var(--primary)] glass' : 'border-[var(--border)] hover:border-[var(--primary)]/30'}`} // [P16-CONTINUE] added
                 >
                     <Sun size={32} className="mx-auto mb-3 text-yellow-400" />
-                    <div className="font-medium">Светлая</div>
-                    <div className="text-sm text-gray-400">Светлый режим для дневного времени</div>
+                    <div className="font-medium text-[var(--text)]">Светлая</div>
+                    <div className="text-sm text-[var(--text-muted)]">Светлый режим для дневного времени</div>
                 </button>
             </div>
 
-            <div className="border-t border-white/5 pt-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    {soundEnabled ? <Volume2 size={18} className="text-emerald-400" /> : <VolumeX size={18} className="text-gray-400" />}
+            <div className="border-t border-[var(--border)] pt-6"> // [P16-CONTINUE] added
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
+                    {soundEnabled ? <Volume2 size={18} className="text-[var(--success)]" /> : <VolumeX size={18} className="text-[var(--text-muted)]" />}
                     Звуковое сопровождение
                 </h3>
-                <div className="flex items-center justify-between p-4 bg-[#252530] rounded-xl">
+                <div className="flex items-center justify-between p-4 glass rounded-xl hover:scale-[1.01] transition-all duration-300"> // [P16-CONTINUE] added
                     <div>
-                        <div className="font-medium">Звуки OMEGA</div>
-                        <div className="text-sm text-gray-400">Активация, уведомления, сообщения</div>
+                        <div className="font-medium text-[var(--text)]">Звуки OMEGA</div>
+                        <div className="text-sm text-[var(--text-muted)]">Активация, уведомления, сообщения</div>
                     </div>
                     <button
                         onClick={handleSoundToggle}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${soundEnabled ? 'bg-emerald-500' : 'bg-gray-600'}`}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${soundEnabled ? 'bg-[var(--success)]' : 'bg-[var(--surface)]'}`} // [P16-CONTINUE] added
                         aria-label={soundEnabled ? 'Выключить звуки' : 'Включить звуки'}
                     >
-                        <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${soundEnabled ? 'left-6' : 'left-0.5'}`}></div>
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${soundEnabled ? 'translate-x-6' : ''}`} /> // [P16-CONTINUE] added
                     </button>
                 </div>
             </div>
@@ -958,15 +970,15 @@ function SettingsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f] text-white p-4 md:p-6">
+        <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] p-4 md:p-6"> // [P16-CONTINUE] added
             <div className="mb-6">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                        <Palette size={20} className="text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center"> // [P16-CONTINUE] added
+                        <Palette size={20} className="text-[var(--text-inverse)]" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold">Настройки</h1>
-                        <p className="text-gray-400 text-sm">Управляй профилем, подпиской и интеграциями</p>
+                        <h1 className="text-2xl font-bold text-[var(--text)]">Настройки</h1>
+                        <p className="text-[var(--text-muted)] text-sm">Управляй профилем, подпиской и интеграциями</p>
                     </div>
                 </div>
             </div>
@@ -974,14 +986,14 @@ function SettingsPage() {
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Sidebar Tabs */}
                 <div className="lg:w-64 flex-shrink-0">
-                    <div className="bg-[#1a1a24] rounded-xl border border-white/5 overflow-hidden">
+                    <div className="glass-card rounded-[var(--radius-xl)] overflow-hidden"> // [P16-CONTINUE] added
                         {tabs.map(tab => {
                             const Icon = tab.icon;
                             return (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:bg-[#252530] ${activeTab === tab.id ? 'bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-500' : 'text-gray-300 border-l-2 border-transparent'}`}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:bg-[var(--surface)] ${activeTab === tab.id ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-l-[3px] border-[var(--primary)]' : 'text-[var(--text-muted)] border-l-[3px] border-transparent'}`} // [P16-CONTINUE] added
                                 >
                                     <Icon size={18} />
                                     <span className="font-medium">{tab.label}</span>
@@ -989,10 +1001,10 @@ function SettingsPage() {
                                 </button>
                             );
                         })}
-                        <div className="border-t border-white/5 mt-2 pt-2">
+                        <div className="border-t border-[var(--border)] mt-2 pt-2"> // [P16-CONTINUE] added
                             <button
                                 onClick={logout}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition-all"
+                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-all" // [P16-CONTINUE] added
                             >
                                 <LogOut size={18} /> Выйти
                             </button>

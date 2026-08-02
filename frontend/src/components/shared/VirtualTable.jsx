@@ -15,6 +15,7 @@ export function VirtualTable({
     className = '',
     headerClassName = '',
     rowClassName = '',
+    striped = false,
 }) {
     const parentRef = useRef(null)
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
@@ -98,7 +99,7 @@ export function VirtualTable({
                                 onClick={() => onRowClick?.(item)}
                                 className={`absolute top-0 left-0 right-0 grid border-b border-white/5 hover:bg-white/[0.03] transition-colors ${
                                     onRowClick ? 'cursor-pointer' : ''
-                                } ${rowClassName}`}
+                                } ${striped && virtualItem.index % 2 === 1 ? 'bg-white/[0.015]' : ''} ${rowClassName}`}
                                 style={{
                                     height: `${virtualItem.size}px`,
                                     transform: `translateY(${virtualItem.start}px)`,

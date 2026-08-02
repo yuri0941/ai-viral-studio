@@ -164,31 +164,52 @@ export function LegalPage({ type }) {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      <div className="max-w-4xl mx-auto px-4 py-10">
+      {/* Hero */}
+      <div className="relative overflow-hidden border-b border-[var(--border)]"> // [P16-CONTINUE] added
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--surface),_var(--bg))] opacity-50" />
+        <div className="relative max-w-4xl mx-auto px-4 py-16 text-center">
+          <h1 className="font-serif text-4xl md:text-5xl text-[var(--text)] mb-3">{content.title}</h1> // [P16-CONTINUE] added
+          <p className="text-[var(--text-muted)] max-w-xl mx-auto font-light">Юридическая информация и условия использования AI Viral Studio</p> // [P16-CONTINUE] added
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 py-10">
         <button
           onClick={() => navigate(-1)}
-          className="mb-6 text-sm text-[#00ff41] hover:underline"
+          className="mb-6 inline-flex items-center gap-1.5 px-4 py-2 rounded-full glass text-sm text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" // [P16-CONTINUE] added
         >
           ← Назад
         </button>
 
         {loading && (
-          <div className="p-4 rounded-xl bg-[#0f0f1a] border border-white/10 text-gray-400">
+          <div className="p-4 rounded-xl glass text-[var(--text-muted)] shimmer"> // [P16-CONTINUE] added
             Загрузка юридических данных…
           </div>
         )}
 
         {!loading && missingData && (
-          <div className="mb-6 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400">
+          <div className="mb-6 p-4 rounded-xl glass border-l-[3px] border-[var(--warning)] bg-[var(--warning)]/5 text-[var(--warning)]"> // [P16-CONTINUE] added
             ⚠️ Владелец сервиса ещё не заполнил юридические настройки. Некоторые данные отображаются как заглушки.
           </div>
         )}
 
         <article
-          className="legal-page-content space-y-4 text-gray-300"
+          className="legal-page-content glass-card p-6 md:p-10 rounded-[var(--radius-xl)] space-y-4 text-[var(--text-muted)]" // [P16-CONTINUE] added
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-[var(--border-strong)] py-10 mt-10"> // [P16-CONTINUE] added
+        <div className="max-w-4xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-[var(--text-muted)]">
+          <span>© 2026 AI Viral Studio. Все права защищены.</span>
+          <div className="flex items-center gap-6">
+            <Link to="/privacy" className="hover:text-[var(--primary)] transition-colors">Privacy</Link> // [P16-CONTINUE] added
+            <Link to="/terms" className="hover:text-[var(--primary)] transition-colors">Terms</Link> // [P16-CONTINUE] added
+            <Link to="/consent" className="hover:text-[var(--primary)] transition-colors">Consent</Link> // [P16-CONTINUE] added
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

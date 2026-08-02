@@ -8,7 +8,54 @@ import { PWAInstallButton } from '../components/pwa/PWAInstallButton'
 import { ownerLegalInfoApi } from '../services/api.js'
 import WaitlistSection from './landing/WaitlistSection'
 import ViralDemo from './landing/ViralDemo'
-import BetaCounter from '../components/landing/BetaCounter'
+// [P16-FINAL] added: launch pill replacing beta counter
+function LaunchPill() {
+    return (
+        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card text-sm font-medium text-[var(--text)] border border-[var(--primary)]/20">
+            <span className="text-base">🚀</span>
+            Запущено в 2026
+        </span>
+    )
+}
+
+function Confetti() {
+    const [pieces, setPieces] = useState([])
+    useEffect(() => {
+        const colors = ['var(--primary)', 'var(--accent)', 'var(--accent-warm)', 'var(--success)']
+        const generated = Array.from({ length: 40 }).map((_, i) => ({
+            id: i,
+            left: `${Math.random() * 100}%`,
+            delay: `${Math.random() * 1.5}s`,
+            duration: `${1.5 + Math.random() * 1.5}s`,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            size: `${6 + Math.random() * 6}px`,
+            rotation: Math.random() * 360
+        }))
+        setPieces(generated)
+        const t = setTimeout(() => setPieces([]), 4000)
+        return () => clearTimeout(t)
+    }, [])
+    if (!pieces.length) return null
+    return (
+        <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+            {pieces.map(p => (
+                <span
+                    key={p.id}
+                    className="absolute top-0 rounded-sm animate-confetti-fall"
+                    style={{
+                        left: p.left,
+                        width: p.size,
+                        height: p.size,
+                        background: p.color,
+                        animationDelay: p.delay,
+                        animationDuration: p.duration,
+                        transform: `rotate(${p.rotation}deg)`
+                    }}
+                />
+            ))}
+        </div>
+    )
+}
 
 function LandingPage() {
     const { isAuthenticated } = useAuth()
@@ -167,7 +214,7 @@ function LandingPage() {
                             <a href="#how-it-works" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Как работает</a>
                             <a href="#pricing" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Тарифы</a>
                             <Link to="/roadmap" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Roadmap</Link>
-                            <BetaCounter />
+                            <LaunchPill />
                             <PWAInstallButton />
                             <button
                                 onClick={() => { setAuthModalMode('login'); setAuthModalOpen(true) }}
@@ -188,9 +235,18 @@ function LandingPage() {
 
             {/* Hero Section */}
             <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-                {/* Background glows */}
-                <div className="glow-green top-1/4 left-1/4 animate-pulse-glow" />
-                <div className="glow-blue bottom-1/4 right-1/4 animate-pulse-glow" style={{ animationDelay: '2s' }} />
+                {/* [P16-FINAL] added: editorial radial background + subtle noise */}
+                <div className="absolute inset-0" style={{
+                    background: 'radial-gradient(ellipse at 30% 20%, var(--surface) 0%, var(--bg) 50%, var(--bg-secondary) 100%)'
+                }} />
+                <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+                }} />
+
+                {/* [P16-FINAL] added: floating orbs */}
+                <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-[var(--primary)] blur-3xl opacity-10 animate-float" />
+                <div className="absolute bottom-1/3 right-1/4 w-96 h-96 rounded-full bg-[var(--accent)] blur-3xl opacity-10 animate-float" style={{ animationDelay: '2s' }} />
+                <div className="absolute top-1/2 left-2/3 w-48 h-48 rounded-full bg-[var(--accent-warm)] blur-3xl opacity-10 animate-float" style={{ animationDelay: '4s' }} />
 
                 {/* Grid pattern */}
                 <div className="absolute inset-0 opacity-[0.03]" style={{
@@ -200,27 +256,27 @@ function LandingPage() {
 
                 <div className="relative z-10 max-w-6xl mx-auto px-6 lg:px-8 text-center">
                     {/* Badge */}
-                    <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full glass mb-10 border-[var(--success)]/20">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[var(--success)] animate-pulse" />
+                    <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full glass mb-10 border-[var(--primary)]/20">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[var(--primary)] animate-pulse" />
                         <span className="text-sm text-[var(--text)] font-medium">10,000+ создателей уже с нами</span>
                     </div>
 
                     {/* Main heading */}
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-8 leading-[1.1] tracking-tight">
-                        Создавай <span className="gradient-text">вирусный</span><br />
-                        контент за <span className="text-[var(--success)]">60 секунд</span>
+                    <h1 className="text-5xl md:text-7xl font-serif font-bold mb-8 leading-[0.95] tracking-tight">
+                        Создавай <span className="italic gradient-text">вирусный</span><br />
+                        контент за 60 секунд
                     </h1>
 
-                    <p className="text-xl md:text-2xl text-[var(--text-muted)] mb-12 max-w-3xl mx-auto leading-relaxed">
+                    <p className="text-lg font-light text-[var(--text-muted)] mb-12 max-w-xl mx-auto leading-relaxed">
                         AI генерирует скрипты, анализирует тренды и публикует
                         в соцсети — всё автоматически. Сосредоточься на творчестве.
                     </p>
 
                     {/* CTA Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20">
                         <button
                             onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true) }}
-                            className="btn btn-primary text-lg px-10 py-4"
+                            className="magnetic-btn inline-flex items-center justify-center gap-2 bg-[var(--text)] text-[var(--text-inverse)] rounded-full px-8 py-4 text-base font-medium hover:scale-105 hover:shadow-xl transition-all duration-300"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -229,7 +285,7 @@ function LandingPage() {
                         </button>
                         <button
                             onClick={() => navigate('/dashboard')}
-                            className="btn btn-secondary text-lg px-10 py-4"
+                            className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full glass border border-[var(--border-strong)] text-[var(--text)] font-medium hover:bg-[var(--surface)] transition-all duration-300"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -239,17 +295,22 @@ function LandingPage() {
                         </button>
                     </div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                    {/* [P16-FINAL] added: scattered stats with SVG connector lines */}
+                    <div className="relative max-w-4xl mx-auto h-64 md:h-48">
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                            <line x1="20%" y1="25%" x2="80%" y2="35%" stroke="var(--border-strong)" strokeWidth="1" strokeDasharray="4 4" />
+                            <line x1="80%" y1="35%" x2="25%" y2="75%" stroke="var(--border-strong)" strokeWidth="1" strokeDasharray="4 4" />
+                            <line x1="25%" y1="75%" x2="75%" y2="85%" stroke="var(--border-strong)" strokeWidth="1" strokeDasharray="4 4" />
+                        </svg>
                         {[
-                            { value: '10K+', label: 'Пользователей' },
-                            { value: '500K+', label: 'Скриптов' },
-                            { value: '50M+', label: 'Просмотров' },
-                            { value: '98%', label: 'Довольны' }
+                            { value: '10K+', label: 'Пользователей', pos: 'top-[10%] left-[5%] md:left-[10%]' },
+                            { value: '500K+', label: 'Скриптов', pos: 'top-[5%] right-[5%] md:right-[8%]' },
+                            { value: '50M+', label: 'Просмотров', pos: 'bottom-[15%] left-[8%] md:left-[12%]' },
+                            { value: '98%', label: 'Довольны', pos: 'bottom-[5%] right-[10%] md:right-[15%]' }
                         ].map((stat, i) => (
-                            <div key={i} className="glass p-5 rounded-2xl text-center group hover:border-[var(--success)]/30 transition-all duration-300">
-                                <div className="text-3xl font-black text-[var(--success)] mb-1">{stat.value}</div>
-                                <div className="text-sm text-[var(--text-muted)]">{stat.label}</div>
+                            <div key={i} className={`absolute ${stat.pos} text-left glass-card px-6 py-4 rounded-2xl hover:border-[var(--primary)]/30 transition-all duration-300`}>
+                                <div className="text-4xl font-mono font-medium text-[var(--primary)] mb-1">{stat.value}</div>
+                                <div className="text-sm text-[var(--text-muted)] uppercase tracking-wider">{stat.label}</div>
                             </div>
                         ))}
                     </div>
@@ -272,20 +333,27 @@ function LandingPage() {
                     <h2 className="section-title">Всё для вирусного контента</h2>
                     <p className="section-subtitle">От идеи до публикации — в одной платформе</p>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {features.map((feature, i) => (
-                            <div
-                                key={i}
-                                className={`glass p-8 rounded-2xl group cursor-pointer transition-all duration-500 ${activeFeature === i ? 'border-[var(--success)]/30 scale-[1.02]' : ''}`}
-                                onMouseEnter={() => setActiveFeature(i)}
-                            >
-                                <div className="w-14 h-14 rounded-xl bg-[var(--success)]/10 flex items-center justify-center text-[var(--success)] mb-5 group-hover:bg-[var(--success)]/20 transition-colors">
-                                    {feature.icon}
+                    {/* [P16-FINAL] added: bento grid with spotlight hover */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 auto-rows-[180px]">
+                        {features.map((feature, i) => {
+                            const isLarge = i === 0
+                            const isMedium = i === 1 || i === 2
+                            return (
+                                <div
+                                    key={i}
+                                    onMouseEnter={() => setActiveFeature(i)}
+                                    className={`spotlight glass-card p-6 md:p-8 group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:border-[var(--primary)]/30 ${
+                                        isLarge ? 'md:col-span-2 md:row-span-2 flex flex-col justify-end' : ''
+                                    } ${isMedium ? 'md:col-span-1' : ''}`}
+                                >
+                                    <div className={`rounded-xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] mb-4 group-hover:bg-[var(--primary)]/20 transition-colors ${isLarge ? 'w-16 h-16' : 'w-12 h-12'}`}>
+                                        {feature.icon}
+                                    </div>
+                                    <h3 className={`font-semibold mb-2 ${isLarge ? 'text-2xl' : 'text-lg'}`}>{feature.title}</h3>
+                                    <p className={`text-[var(--text-muted)] leading-relaxed ${isLarge ? 'text-base max-w-sm' : 'text-sm'}`}>{feature.desc}</p>
                                 </div>
-                                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                                <p className="text-[var(--text-muted)] leading-relaxed">{feature.desc}</p>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 </div>
             </section>
@@ -410,11 +478,11 @@ function LandingPage() {
                 </section>
             )}
 
-            {/* [P16] Luxury Footer */}
-            <footer className="py-16 border-t border-[var(--border)] bg-[var(--bg-secondary)]">
+            {/* [P16-FINAL] added: 4-column editorial luxury footer */}
+            <footer className="py-16 border-t border-[var(--border-strong)] bg-[var(--bg-secondary)]">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="grid md:grid-cols-5 gap-12 mb-12">
-                        <div className="md:col-span-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+                        <div className="col-span-2 md:col-span-1">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center">
                                     <svg className="w-6 h-6 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -423,79 +491,71 @@ function LandingPage() {
                                 </div>
                                 <span className="text-xl font-bold gradient-text">AI Viral Studio</span>
                             </div>
-                            <p className="text-[var(--text-muted)] text-sm leading-relaxed max-w-sm mb-6">
+                            <p className="text-[var(--text-muted)] text-sm leading-relaxed max-w-xs mb-6">
                                 AI-платформа для создания вирусного контента. Генерация скриптов, анализ трендов и автопостинг в одном месте.
                             </p>
-                            <div className="flex items-center gap-4">
-                                <a href="https://t.me/aiviralstudio" target="_blank" rel="noreferrer" className="p-2 rounded-lg bg-[var(--bg)] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="Telegram">
-                                    <Send className="w-5 h-5" />
+                            <div className="flex items-center gap-3">
+                                <a href="https://t.me/aiviralstudio" target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="Telegram">
+                                    <Send className="w-4 h-4" />
                                 </a>
-                                <a href="https://vk.com/aiviralstudio" target="_blank" rel="noreferrer" className="p-2 rounded-lg bg-[var(--bg)] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="VK">
-                                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.862-.523-2.049-1.714-1.033-1.033-1.49-1.171-1.744-1.171-.356 0-.458.102-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4 8.994 4 8.604c0-.254.102-.491.593-.491h1.744c.44 0 .61.203.78.678.863 2.49 2.303 4.675 2.896 4.675.22 0 .322-.102.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.17-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .372.17.508.271.508.22 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.27.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .78.186.254.796.779 1.203 1.253.745.847 1.32 1.558 1.473 2.049.17.475-.085.72-.576.72z"/></svg>
+                                <a href="https://vk.com/aiviralstudio" target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="VK">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.862-.523-2.049-1.714-1.033-1.033-1.49-1.171-1.744-1.171-.356 0-.458.102-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4 8.994 4 8.604c0-.254.102-.491.593-.491h1.744c.44 0 .61.203.78.678.863 2.49 2.303 4.675 2.896 4.675.22 0 .322-.102.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.17-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .372.17.508.271.508.22 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.27.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .78.186.254.796.779 1.203 1.253.745.847 1.32 1.558 1.473 2.049.17.475-.085.72-.576.72z"/></svg>
                                 </a>
-                                <a href="https://youtube.com/@aiviralstudio" target="_blank" rel="noreferrer" className="p-2 rounded-lg bg-[var(--bg)] text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors" aria-label="YouTube">
-                                    <Youtube className="w-5 h-5" />
+                                <a href="https://youtube.com/@aiviralstudio" target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="YouTube">
+                                    <Youtube className="w-4 h-4" />
                                 </a>
-                                <a href="https://x.com/aiviralstudio" target="_blank" rel="noreferrer" className="p-2 rounded-lg bg-[var(--bg)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors" aria-label="X / Twitter">
-                                    <Twitter className="w-5 h-5" />
+                                <a href="https://x.com/aiviralstudio" target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="X / Twitter">
+                                    <Twitter className="w-4 h-4" />
                                 </a>
                             </div>
                         </div>
                         <div>
                             <h4 className="font-semibold mb-4 text-[var(--text)]">Продукт</h4>
                             <ul className="space-y-3 text-sm text-[var(--text-muted)]">
-                                <li><a href="#features" className="hover:text-[var(--text)] transition-colors">Фичи</a></li>
-                                <li><a href="#pricing" className="hover:text-[var(--text)] transition-colors">Тарифы</a></li>
-                                <li><a href="#how-it-works" className="hover:text-[var(--text)] transition-colors">Как работает</a></li>
-                                <li><Link to="/roadmap" className="hover:text-[var(--text)] transition-colors">Roadmap</Link></li>
+                                <li><a href="#features" className="hover:text-[var(--primary)] transition-colors">Фичи</a></li>
+                                <li><a href="#pricing" className="hover:text-[var(--primary)] transition-colors">Тарифы</a></li>
+                                <li><a href="#how-it-works" className="hover:text-[var(--primary)] transition-colors">Как работает</a></li>
+                                <li><Link to="/roadmap" className="hover:text-[var(--primary)] transition-colors">Roadmap</Link></li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="font-semibold mb-4 text-[var(--text)]">Компания</h4>
                             <ul className="space-y-3 text-sm text-[var(--text-muted)]">
-                                <li><Link to="/privacy-policy" className="hover:text-[var(--text)] transition-colors">Privacy</Link></li>
-                                <li><Link to="/terms-of-service" className="hover:text-[var(--text)] transition-colors">Terms</Link></li>
-                                <li><Link to="/consent" className="hover:text-[var(--text)] transition-colors">Consent</Link></li>
-                                <li><a href="#" className="hover:text-[var(--text)] transition-colors">Контакты</a></li>
+                                <li><Link to="/privacy-policy" className="hover:text-[var(--primary)] transition-colors">Privacy</Link></li>
+                                <li><Link to="/terms-of-service" className="hover:text-[var(--primary)] transition-colors">Terms</Link></li>
+                                <li><Link to="/consent" className="hover:text-[var(--primary)] transition-colors">Consent</Link></li>
+                                <li><a href="#" className="hover:text-[var(--primary)] transition-colors">Контакты</a></li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="font-semibold mb-4 text-[var(--text)]">Ресурсы</h4>
                             <ul className="space-y-3 text-sm text-[var(--text-muted)]">
-                                <li><a href="#" className="hover:text-[var(--text)] transition-colors">Блог</a></li>
-                                <li><a href="#" className="hover:text-[var(--text)] transition-colors">Документация</a></li>
-                                <li><a href="#" className="hover:text-[var(--text)] transition-colors">API</a></li>
-                                <li><a href="#" className="hover:text-[var(--text)] transition-colors">Статус системы</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold mb-4 text-[var(--text)]">Контакты</h4>
-                            <ul className="space-y-3 text-sm text-[var(--text-muted)]">
-                                <li>{legalInfo?.operatorName || 'AI Viral Studio'}</li>
-                                <li>
-                                    <a href={`mailto:${legalInfo?.contactEmail || 'support@aiviral-studio.ru'}`} className="hover:text-[var(--text)] transition-colors">
-                                        {legalInfo?.contactEmail || 'support@aiviral-studio.ru'}
-                                    </a>
-                                </li>
+                                <li><a href="#" className="hover:text-[var(--primary)] transition-colors">Блог</a></li>
+                                <li><a href="#" className="hover:text-[var(--primary)] transition-colors">Документация</a></li>
+                                <li><a href="#" className="hover:text-[var(--primary)] transition-colors">API</a></li>
+                                <li><a href="#" className="hover:text-[var(--primary)] transition-colors">Статус системы</a></li>
                             </ul>
                         </div>
                     </div>
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 mb-8">
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 mb-8">
                         <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                             <strong className="text-[var(--text)]">Дисклеймер:</strong> Сервис предоставляет инструменты для генерации контента. Результаты носят рекомендательный характер. Мы не гарантируем вирусность, охваты или продажи. Весь публикуемый контент размещается клиентом самостоятельно. OMEGA даёт рекомендации. Перед публикацией проверьте контент на соответствие законодательству РФ.
                         </p>
                     </div>
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-[var(--border)]">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-[var(--border-strong)]">
                         <div className="text-sm text-[var(--text-muted)]">
                             © 2026 AI Viral Studio. Все права защищены.
                         </div>
                         <div className="flex gap-6 text-sm text-[var(--text-muted)]">
-                            <Link to="/privacy-policy" className="hover:text-[var(--text)] transition-colors">Политика конфиденциальности</Link>
-                            <Link to="/terms-of-service" className="hover:text-[var(--text)] transition-colors">Условия использования</Link>
+                            <Link to="/privacy-policy" className="hover:text-[var(--primary)] transition-colors">Политика конфиденциальности</Link>
+                            <Link to="/terms-of-service" className="hover:text-[var(--primary)] transition-colors">Условия использования</Link>
                         </div>
                     </div>
                 </div>
             </footer>
+
+            {/* [P16-FINAL] added: launch confetti */}
+            <Confetti />
 
             {/* Auth Modal */}
             <AuthModal

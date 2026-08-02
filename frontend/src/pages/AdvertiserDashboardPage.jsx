@@ -408,89 +408,77 @@ AI Viral Studio`
                                 ))}
                             </div>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full min-w-[700px]">
-                                <thead>
-                                    <tr className="text-left text-[var(--text-muted)] text-xs border-b border-[var(--border)]">
-                                        <th className="p-3 font-medium">Кампания</th>
-                                        <th className="p-3 font-medium">Клиент</th>
-                                        <th className="p-3 font-medium">Статус</th>
-                                        <th className="p-3 font-medium">Бюджет</th>
-                                        <th className="p-3 font-medium">Потрачено</th>
-                                        <th className="p-3 font-medium">Показы</th>
-                                        <th className="p-3 font-medium">Клики</th>
-                                        <th className="p-3 font-medium">CTR</th>
-                                        <th className="p-3 font-medium">ROI</th>
-                                        <th className="p-3 font-medium">Утверждение</th>
-                                        <th className="p-3 font-medium">Действия</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredCampaigns.map((camp) => (
-                                        <tr key={camp.id} className="border-b border-[var(--border)] hover:bg-[var(--surface)] transition-colors">
-                                            <td className="p-3">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-lg bg-[var(--surface)] flex items-center justify-center">
-                                                        {getFormatIcon(camp.format)}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[var(--text)] text-sm font-medium">{camp.name}</p>
-                                                        <p className="text-[var(--text-muted)] text-xs">{camp.startDate} — {camp.endDate}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-3 text-[var(--text-muted)] text-sm">{camp.client}</td>
-                                            <td className="p-3">
-                                                <span className={`px-2 py-1 rounded-full text-xs border ${getStatusColor(camp.status)}`}>
+                        {/* [P16-CONTINUE] added: masonry campaigns grid */}
+                        <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+                            {filteredCampaigns.map((camp) => {
+                                const progress = Math.min(100, (camp.spent / camp.budget) * 100)
+                                return (
+                                    <div
+                                        key={camp.id}
+                                        className="break-inside-avoid group relative rounded-2xl bg-[var(--card)] border border-[var(--border)] overflow-hidden hover:border-[var(--primary)]/30 transition-all duration-300"
+                                    >
+                                        {/* Cover image 16:9 */}
+                                        <div className="relative aspect-video bg-gradient-to-br from-[var(--surface)] to-[var(--bg-secondary)]">
+                                            <div className="absolute inset-0 flex items-center justify-center text-[var(--text-muted)]">
+                                                {getFormatIcon(camp.format)}
+                                            </div>
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2">
+                                                <button onClick={() => openAnalytics(camp)} className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors">
+                                                    <BarChartIcon size={18} />
+                                                </button>
+                                                <button onClick={() => toggleCampaignStatus(camp.id)} className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors">
+                                                    {camp.status === 'active' ? <Pause size={18} /> : camp.status === 'paused' ? <Play size={18} /> : <CheckCircle size={18} />}
+                                                </button>
+                                                <button onClick={() => { setSelectedCampaign(camp); setShowModal(true) }} className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors">
+                                                    <FileText size={18} />
+                                                </button>
+                                            </div>
+                                            <div className="absolute top-3 left-3">
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border ${getStatusColor(camp.status)}`}>
+                                                    {camp.status === 'active' && <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />}
                                                     {getStatusLabel(camp.status)}
                                                 </span>
-                                            </td>
-                                            <td className="p-3 text-[var(--text)] text-sm">${camp.budget.toLocaleString()}</td>
-                                            <td className="p-3 text-[var(--text)] text-sm">${camp.spent.toLocaleString()}</td>
-                                            <td className="p-3 text-[var(--text)] text-sm">{camp.impressions.toLocaleString()}</td>
-                                            <td className="p-3 text-[var(--text)] text-sm">{camp.clicks.toLocaleString()}</td>
-                                            <td className="p-3 text-[var(--success)] text-sm font-semibold">{camp.ctr}%</td>
-                                            <td className="p-3">
-                                                <span className={`text-sm font-semibold flex items-center gap-1 ${camp.roi >= 100 ? 'text-[var(--success)]' : 'text-[var(--accent-warm)]'}`}>
-                                                    {camp.roi >= 100 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
-                                                    {camp.roi}%
-                                                </span>
-                                            </td>
-                                            <td className="p-3">
-                                                {camp.approved ? (
-                                                    <span className="flex items-center gap-1 text-[var(--success)] text-xs">
-                                                        <CheckCircle className="w-3.5 h-3.5" />
-                                                        Утверждено
-                                                    </span>
-                                                ) : (
-                                                    <span className="flex items-center gap-1 text-[var(--accent-warm)] text-xs">
-                                                        <Clock className="w-3.5 h-3.5" />
-                                                        На рассмотрении
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="p-3">
-                                                <div className="flex gap-1">
-                                                    <button
-                                                        onClick={() => openAnalytics(camp)}
-                                                        className="p-1.5 rounded-lg bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--border-strong)] hover:text-[var(--text)] transition-colors"
-                                                        title="Аналитика кампании"
-                                                    >
-                                                        <BarChartIcon className="w-3.5 h-3.5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleCampaignStatus(camp.id)}
-                                                        className="p-1.5 rounded-lg bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--border-strong)] hover:text-[var(--text)] transition-colors"
-                                                        title={camp.status === 'active' ? 'Поставить на паузу' : camp.status === 'paused' ? 'Возобновить' : 'Завершено'}
-                                                    >
-                                                        {camp.status === 'active' ? <Pause className="w-3.5 h-3.5" /> : camp.status === 'paused' ? <Play className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                                                    </button>
+                                            </div>
+                                        </div>
+                                        <div className="p-4">
+                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                                <div>
+                                                    <h3 className="text-sm font-semibold text-[var(--text)]">{camp.name}</h3>
+                                                    <p className="text-xs text-[var(--text-muted)]">{camp.client}</p>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                                {camp.approved ? (
+                                                    <CheckCircle size={16} className="text-[var(--success)]" />
+                                                ) : (
+                                                    <Clock size={16} className="text-[var(--accent-warm)]" />
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2 mb-3">
+                                                <div className="text-center p-2 rounded-xl bg-[var(--surface)]">
+                                                    <p className="text-xs text-[var(--text-muted)]">CTR</p>
+                                                    <p className="text-sm font-semibold text-[var(--text)]">{camp.ctr}%</p>
+                                                </div>
+                                                <div className="text-center p-2 rounded-xl bg-[var(--surface)]">
+                                                    <p className="text-xs text-[var(--text-muted)]">ROI</p>
+                                                    <p className={`text-sm font-semibold ${camp.roi >= 100 ? 'text-[var(--success)]' : 'text-[var(--accent-warm)]'}`}>{camp.roi}%</p>
+                                                </div>
+                                                <div className="text-center p-2 rounded-xl bg-[var(--surface)]">
+                                                    <p className="text-xs text-[var(--text-muted)]">Клики</p>
+                                                    <p className="text-sm font-semibold text-[var(--text)]">{camp.clicks.toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="text-[var(--text-muted)]">Бюджет</span>
+                                                    <span className="text-[var(--text)]">${camp.spent.toLocaleString()} / ${camp.budget.toLocaleString()}</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-[var(--surface)] rounded-full overflow-hidden">
+                                                    <div className="h-full bg-gradient-to-r from-[var(--success)] to-[var(--accent)] rounded-full" style={{ width: `${progress}%` }} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
                         </div>
                     </div>
 

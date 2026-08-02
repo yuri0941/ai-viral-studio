@@ -98,6 +98,15 @@ const getKey = async (provider) => {
     return keys[provider] || envKey || ''
 }
 
+// [P16-FINAL] added: explicit provider key resolver used by owner dashboard / setup flows
+export async function getProviderKey(provider, ownerId) {
+    // Owner-scoped keys can be extended here; for now fall back to global env key.
+    const envKey = process.env[`${provider.toUpperCase()}_API_KEY`] || ''
+    if (envKey) return envKey
+    const keys = await loadApiKeys()
+    return keys[provider] || ''
+}
+
 // ============ PROVIDER REGISTRY & STATUS ============
 // [P16] Enabled by default: Groq, OpenRouter, Cloudflare Workers AI, GitHub Models, HuggingFace, Pollinations (no-key fallback).
 // Other providers are disabled by default and can be toggled by the owner in the UI.
@@ -270,17 +279,12 @@ async function chatWithGroq(messages) {
     }
 }
 
-async function chatWithOpenRouter(messages) {
+async function chatWithOpenRouterOnce(messages, model) {
     const key = await getKey('openrouter')
-    if (!key) throw new Error('OpenRouter key missing')
-    console.log('🚀 Calling OpenRouter...')
     const response = await axios.post(
         (process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1') + '/chat/completions',
         {
-            // [P16-HOTFIX] Use a smaller, reliably free OpenRouter model
-            model: process.env.OPENROUTER_MODEL && !process.env.OPENROUTER_MODEL.includes('gemini-2.0-flash-lite-preview-02-05')
-                ? process.env.OPENROUTER_MODEL
-                : 'meta-llama/llama-3.1-8b-instruct:free',
+            model,
             messages,
             temperature: parseFloat(process.env.OPENROUTER_TEMPERATURE || '0.7'),
             max_tokens: parseInt(process.env.OPENROUTER_MAX_TOKENS || '4096')
@@ -299,6 +303,28 @@ async function chatWithOpenRouter(messages) {
         reply: response.data.choices[0]?.message?.content || 'No response',
         provider: 'openrouter',
         usage: response.data.usage
+    }
+}
+
+async function chatWithOpenRouter(messages) {
+    const key = await getKey('openrouter')
+    if (!key) throw new Error('OpenRouter key missing')
+    console.log('🚀 Calling OpenRouter...')
+
+    const preferredModel = process.env.OPENROUTER_MODEL || 'llama-3.3-70b-instruct:free'
+    const fallbackModel = 'meta-llama/llama-3.1-8b-instruct'
+
+    try {
+        return await chatWithOpenRouterOnce(messages, preferredModel)
+    } catch (err) {
+        const status = err.response?.status
+        const msg = String(err.message).toLowerCase()
+        const isModelError = status === 404 || msg.includes('not found') || msg.includes('model') || msg.includes('invalid')
+        if (preferredModel !== fallbackModel && isModelError) {
+            console.log(`⚠️ OpenRouter ${preferredModel} unavailable, falling back to ${fallbackModel}`)
+            return await chatWithOpenRouterOnce(messages, fallbackModel)
+        }
+        throw err
     }
 }
 

@@ -1,18 +1,53 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
     Headphones, TicketCheck, Clock, Star, Shield, BookOpen, Zap,
     Search, Send, Check, X, AlertCircle, MessageSquare, User,
     ChevronDown, ChevronUp, Tag, ArrowUpRight, Filter,
-    AlertTriangle, CheckCircle2, Clock4, Lock, Unlock, Layout, List
+    AlertTriangle, CheckCircle2, Clock4, Lock, Unlock, Layout, List,
+    Bot, Plus, Eye
 } from 'lucide-react'
 import { VirtualTable } from '../components/shared/VirtualTable'
+
+// [P16-CONTINUE] added: 3D tilt card for kanban
+function TiltCard({ children, className = '', onClick }) {
+    const ref = useRef(null)
+    const handleMove = (e) => {
+        const el = ref.current
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        const cx = rect.width / 2
+        const cy = rect.height / 2
+        const rotateX = ((y - cy) / cy) * -5
+        const rotateY = ((x - cx) / cx) * 5
+        el.style.transform = `perspective(500px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`
+    }
+    const handleLeave = () => {
+        const el = ref.current
+        if (el) el.style.transform = 'perspective(500px) rotateX(0) rotateY(0) translateY(0)'
+    }
+    return (
+        <div
+            ref={ref}
+            onClick={onClick}
+            onMouseMove={handleMove}
+            onMouseLeave={handleLeave}
+            className={`tilt-card ${className}`}
+            style={{ transformStyle: 'preserve-3d' }}
+        >
+            {children}
+        </div>
+    )
+}
 
 function StaffDashboardPage() {
     const { user } = useAuth()
     const [toast, setToast] = useState(null)
     const [activeFilter, setActiveFilter] = useState('all')
     const [searchQuery, setSearchQuery] = useState('')
+    const [fabOpen, setFabOpen] = useState(false)
 
     // --- TICKETS STATE ---
     const [tickets, setTickets] = useState([
@@ -491,39 +526,98 @@ function StaffDashboardPage() {
                     <div className="p-4 overflow-x-auto">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 min-w-[600px]">
                             {[
-                                { id: 'open', label: 'Открытые', color: 'border-[var(--danger)]/20' },
-                                { id: 'in_progress', label: 'В работе', color: 'border-[var(--accent-warm)]/20' },
-                                { id: 'waiting', label: 'Ожидают', color: 'border-[var(--accent)]/20' },
-                                { id: 'closed', label: 'Закрытые', color: 'border-[var(--success)]/20' },
+                                { id: 'open', label: 'Открытые', border: 'border-l-[var(--danger)]', badge: 'bg-[var(--danger)]/10 text-[var(--danger)]' },
+                                { id: 'in_progress', label: 'В работе', border: 'border-l-[var(--accent-warm)]', badge: 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]' },
+                                { id: 'waiting', label: 'Ожидают', border: 'border-l-[var(--accent)]', badge: 'bg-[var(--accent)]/10 text-[var(--accent)]' },
+                                { id: 'closed', label: 'Закрытые', border: 'border-l-[var(--success)]', badge: 'bg-[var(--success)]/10 text-[var(--success)]' },
                             ].map(col => (
-                                <div key={col.id} className={`glass-card ${col.color} flex flex-col max-h-[500px]`}>
+                                <div key={col.id} className={`glass-card flex flex-col max-h-[500px] border-l-4 ${col.border}`}>
                                     <div className="p-3 border-b border-[var(--border)] flex items-center justify-between">
-                                        <span className="text-sm font-medium text-[var(--text)]">{col.label}</span>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${col.badge}`}>{col.label}</span>
                                         <span className="text-xs text-[var(--text-muted)]">{filteredTickets.filter(t => t.status === col.id).length}</span>
                                     </div>
                                     <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                                        {filteredTickets.filter(t => t.status === col.id).map(ticket => (
-                                            <button
-                                                key={ticket.id}
-                                                onClick={() => openTicket(ticket)}
-                                                className="w-full text-left bg-[var(--card)] rounded-lg p-3 border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all duration-200 hover:-translate-y-0.5 tilt-card"
-                                            >
-                                                <p className="text-sm font-medium text-[var(--text)] mb-1">{ticket.subject}</p>
-                                                <p className="text-xs text-[var(--text-muted)] mb-2">{ticket.user}</p>
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] border ${getPriorityStyle(ticket.priority)}`}>
-                                                        {getPriorityLabel(ticket.priority)}
-                                                    </span>
-                                                    <span className="text-[10px] text-[var(--text-muted)]">{ticket.time}</span>
-                                                </div>
-                                            </button>
-                                        ))}
+                                        {filteredTickets.filter(t => t.status === col.id).map(ticket => {
+                                            const priorityColor = ticket.priority === 'high' ? 'bg-red-500' : ticket.priority === 'medium' ? 'bg-amber-500' : 'bg-blue-500'
+                                            return (
+                                                <TiltCard
+                                                    key={ticket.id}
+                                                    onClick={() => openTicket(ticket)}
+                                                    className="w-full text-left bg-[var(--card)] rounded-xl p-3 border border-[var(--border)] shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-1 relative group"
+                                                >
+                                                    <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full ${priorityColor}`} />
+                                                    <div className="pl-2">
+                                                        <p className="text-sm font-medium text-[var(--text)] mb-1">{ticket.subject}</p>
+                                                        <p className="text-xs text-[var(--text-muted)] mb-2">{ticket.user}</p>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full glass-card text-[10px] text-[var(--text)]">
+                                                                <span className={`w-1.5 h-1.5 rounded-full ${priorityColor}`} />
+                                                                {getPriorityLabel(ticket.priority)}
+                                                            </span>
+                                                            <span className="text-[10px] text-[var(--text-muted)]">{ticket.time}</span>
+                                                        </div>
+                                                        <div className="mt-2 flex items-center gap-1">
+                                                            {ticket.assignedTo ? (
+                                                                <div className="flex -space-x-1.5">
+                                                                    <div className="w-5 h-5 rounded-full bg-[var(--primary)]/20 flex items-center justify-center text-[9px] text-[var(--primary)] ring-2 ring-[var(--bg)]">
+                                                                        {(ticket.assignedTo.split('@')[0] || 'S').slice(0,2).toUpperCase()}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-[10px] text-[var(--text-muted)]">Не назначен</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="p-1.5 rounded-full bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--primary)]">
+                                                            <Eye size={12} />
+                                                        </div>
+                                                    </div>
+                                                </TiltCard>
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
+            </div>
+
+            {/* [P16-CONTINUE] added: FAB with radial menu */}
+            <div className="fixed bottom-6 right-6 z-40">
+                <div className={`relative transition-all duration-300 ${fabOpen ? 'scale-100' : 'scale-0 opacity-0'}`}>
+                    {[
+                        { icon: Plus, label: 'Новый тикет', color: 'bg-[var(--success)]', onClick: () => showToast('Создание тикета...') },
+                        { icon: Bot, label: '@omega', color: 'bg-[var(--primary)]', onClick: () => showToast('OMEGA вызвана') },
+                        { icon: Filter, label: 'Фильтр', color: 'bg-[var(--accent)]', onClick: () => showToast('Фильтр') },
+                        { icon: ArrowUpRight, label: 'Сортировка', color: 'bg-[var(--accent-warm)]', onClick: () => showToast('Сортировка') },
+                    ].map((item, i) => {
+                        const angle = (i * 90 + 180) * (Math.PI / 180)
+                        const r = fabOpen ? 80 : 0
+                        return (
+                            <button
+                                key={item.label}
+                                onClick={item.onClick}
+                                className={`absolute w-11 h-11 rounded-full ${item.color} text-[var(--text-inverse)] shadow-lg flex items-center justify-center transition-all duration-300`}
+                                style={{
+                                    transform: `translate(${Math.cos(angle) * r}px, ${Math.sin(angle) * r}px)`,
+                                    transitionDelay: `${i * 30}ms`
+                                }}
+                                title={item.label}
+                            >
+                                <item.icon size={18} />
+                            </button>
+                        )
+                    })}
+                </div>
+                <button
+                    onClick={() => setFabOpen(v => !v)}
+                    className={`w-14 h-14 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-[var(--text-inverse)] shadow-xl flex items-center justify-center transition-transform duration-300 ${fabOpen ? 'rotate-45' : ''}`}
+                    aria-label="Быстрые действия"
+                >
+                    <Plus size={24} />
+                </button>
             </div>
 
             {/* Quick Actions */}

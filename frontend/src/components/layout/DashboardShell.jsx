@@ -5,6 +5,7 @@ import { useTheme } from '../../hooks/useTheme'
 import { setLanguage as setI18nLanguage, default as i18n } from '../../i18n'
 import '../../styles/animations.css'
 import { AppSidebar } from './AppSidebar'
+import { SidebarDock } from './SidebarDock'
 import { DashboardHeader } from './DashboardHeader'
 import { MobileNotificationDrawer } from './MobileNotificationDrawer'
 import { MobileBottomNav } from './MobileBottomNav'
@@ -146,29 +147,35 @@ export function DashboardShell({
                 />
             )}
 
-            {/* Sidebar */}
-            <aside
-                onTouchStart={handleSidebarTouchStart}
-                onTouchMove={handleSidebarTouchMove}
-                className={`
-                    fixed inset-y-0 left-0 z-50
-                    transform transition-transform duration-300 ease-out
-                    ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-                    ${viewport.isDesktop ? 'lg:static lg:translate-x-0' : ''}
-                `}
-            >
-                <AppSidebar
-                    userRole={userRole}
-                    menuItems={menuItems}
-                    cabinets={cabinets}
-                    notifications={notifications}
-                    subscriptions={subscriptions}
-                    user={user}
-                    onLogout={onLogout}
-                    onClose={() => setSidebarOpen(false)}
-                    isMobile={viewport.isMobile}
-                />
-            </aside>
+            {/* Desktop floating dock */}
+            {!viewport.isMobile && (
+                <SidebarDock userRole={userRole} user={user} onLogout={onLogout} />
+            )}
+
+            {/* Mobile sidebar drawer */}
+            {viewport.isMobile && (
+                <aside
+                    onTouchStart={handleSidebarTouchStart}
+                    onTouchMove={handleSidebarTouchMove}
+                    className={`
+                        fixed inset-y-0 left-0 z-50
+                        transform transition-transform duration-300 ease-out
+                        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                    `}
+                >
+                    <AppSidebar
+                        userRole={userRole}
+                        menuItems={menuItems}
+                        cabinets={cabinets}
+                        notifications={notifications}
+                        subscriptions={subscriptions}
+                        user={user}
+                        onLogout={onLogout}
+                        onClose={() => setSidebarOpen(false)}
+                        isMobile={viewport.isMobile}
+                    />
+                </aside>
+            )}
 
             {/* Mobile notifications drawer */}
             <MobileNotificationDrawer
@@ -181,7 +188,7 @@ export function DashboardShell({
             />
 
             {/* Main content */}
-            <main className="flex-1 min-h-screen w-full overflow-x-hidden">
+            <main className={`flex-1 min-h-screen w-full overflow-x-hidden ${!viewport.isMobile ? 'lg:pl-[88px]' : ''}`}>
                 <DashboardHeader
                     title={title}
                     user={user}
