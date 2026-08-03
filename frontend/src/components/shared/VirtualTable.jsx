@@ -108,9 +108,9 @@ export function VirtualTable({
                             >
                                 {columns.map(col => (
                                     <div key={String(col.key)} className="px-4 py-3 flex items-center text-sm text-[var(--text)] overflow-hidden">
-                                        {col.cell
+                                        {typeof col.cell === 'function'
                                             ? col.cell(item, virtualItem.index)
-                                            : item[col.key] ?? '—'}
+                                            : item[col.key] ?? '—'} // [P24] fixed: guard against undefined cell
                                     </div>
                                 ))}
                             </div>

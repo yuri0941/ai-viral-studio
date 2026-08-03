@@ -247,18 +247,18 @@ function StaffDashboardPage() {
     }
 
     const ticketColumns = useMemo(() => [
-        { key: 'id', header: t('staff.id'), width: '70px', cell: (t) => <span className="text-[var(--text-muted)] text-sm">#{t.id}</span> },
-        { key: 'user', header: t('staff.user'), width: '1.5fr', cell: (t) => <span className="text-[var(--text)] text-sm">{t.user}</span> },
-        { key: 'subject', header: t('staff.subject'), width: '2fr', cell: (t) => <span className="text-[var(--text)] text-sm">{t.subject}</span> },
+        { key: 'id', header: t('staff.id'), width: '70px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">#{ticket.id}</span> },
+        { key: 'user', header: t('staff.user'), width: '1.5fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket.user}</span> },
+        { key: 'subject', header: t('staff.subject'), width: '2fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket.subject}</span> },
         {
             key: 'priority',
             header: t('staff.priority'),
             width: '120px',
-            cell: (t) => (
+            cell: (ticket) => (
                 <select
-                    value={t.priority}
-                    onChange={e => changePriority(t.id, e.target.value)}
-                    className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getPriorityStyle(t.priority)}`}
+                    value={ticket.priority}
+                    onChange={e => changePriority(ticket.id, e.target.value)}
+                    className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getPriorityStyle(ticket.priority)}`}
                 >
                     <option value="high" className="bg-[var(--card)]">{t('tasks.priorityHigh', 'Высокий')}</option>
                     <option value="medium" className="bg-[var(--card)]">{t('tasks.priorityMedium', 'Средний')}</option>
@@ -270,11 +270,11 @@ function StaffDashboardPage() {
             key: 'status',
             header: t('common.status'),
             width: '130px',
-            cell: (t) => (
+            cell: (ticket) => (
                 <select
-                    value={t.status}
-                    onChange={e => changeStatus(t.id, e.target.value)}
-                    className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getStatusStyle(t.status)}`}
+                    value={ticket.status}
+                    onChange={e => changeStatus(ticket.id, e.target.value)}
+                    className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getStatusStyle(ticket.status)}`}
                 >
                     <option value="open" className="bg-[var(--card)]">{t('staff.open')}</option>
                     <option value="in_progress" className="bg-[var(--card)]">{t('staff.inProgress')}</option>
@@ -283,23 +283,23 @@ function StaffDashboardPage() {
                 </select>
             ),
         },
-        { key: 'assignedTo', header: t('staff.assigned'), width: '110px', cell: (t) => <span className="text-[var(--text)] text-xs">{t.assignedTo ? t.assignedTo.split('@')[0] : t('staff.unassigned')}</span> },
-        { key: 'time', header: t('staff.time'), width: '100px', cell: (t) => <span className="text-[var(--text-muted)] text-sm">{t.time}</span> },
+        { key: 'assignedTo', header: t('staff.assigned'), width: '110px', cell: (ticket) => <span className="text-[var(--text)] text-xs">{ticket.assignedTo ? ticket.assignedTo.split('@')[0] : t('staff.unassigned')}</span> },
+        { key: 'time', header: t('staff.time'), width: '100px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">{ticket.time}</span> },
         {
             key: 'actions',
             header: t('staff.action'),
             width: '110px',
             sortable: false,
-            cell: (t) => (
+            cell: (ticket) => (
                 <button
-                    onClick={() => { setSelectedTicket(t); setReplyText(''); setShowTicketModal(true) }}
+                    onClick={() => { setSelectedTicket(ticket); setReplyText(''); setShowTicketModal(true) }}
                     className="px-3 py-1.5 rounded-lg bg-[var(--success)]/10 text-[var(--success)] text-xs font-medium hover:bg-[var(--success)]/20 transition-colors flex items-center gap-1"
                 >
                     <ArrowUpRight size={12} /> {t('staff.openTicket')}
                 </button>
             ),
         },
-    ], [changePriority, changeStatus])
+    ], [changePriority, changeStatus]) // [P24] fixed: renamed cell param from 't' to 'ticket' to avoid shadowing translation function
 
     // --- TICKET ACTIONS ---
     const openTicket = (ticket) => {
