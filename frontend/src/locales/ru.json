@@ -285,6 +285,8 @@
     "positionCenter": "Центр"
   },
   "subscriptions": {
+    "title": "Подписки",
+    "subtitle": "Управление тарифами и платежами",
     "currentPlan": "Текущий план",
     "free": "Бесплатный",
     "availablePlans": "Доступные планы",
@@ -304,7 +306,21 @@
     "cancel": "Отмена",
     "priceUpdated": "Цена обновлена",
     "saveQuota": "Сохранить квоты",
-    "processing": "Обработка..."
+    "processing": "Обработка...",
+    "demoPlans": "Пример тарифов — подключите платёжную систему",
+    "autoRenew": "Автопродление",
+    "internationalPayments": "Международные платежи",
+    "yookassaOnly": "Сейчас доступна оплата через ЮKassa (РФ). Stripe для USD/EUR подготовлен, но отключён до открытия иностранной компании.",
+    "intlUnavailable": "Международная оплата временно недоступна. Выберите ₽ (RUB).",
+    "aiPricing": "AI-анализ цен",
+    "generationsLimit": "Лимит генераций",
+    "overageCost": "Стоимость overage",
+    "topUpPackSize": "Размер пакета",
+    "topUpPackPrice": "Цена пакета",
+    "unitsPerMonth": "шт/мес",
+    "per100": "$/100",
+    "pieces": "шт",
+    "dollars": "$"
   },
   "apiKeys": {
     "title": "API Keys",

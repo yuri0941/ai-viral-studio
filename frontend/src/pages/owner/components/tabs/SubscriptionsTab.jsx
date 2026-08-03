@@ -6,28 +6,23 @@ import { useSmartData } from '../../../../hooks/useSmartData'
 import { API_BASE_URL } from '../../../../config.js'
 import { useTranslation } from 'react-i18next'
 import { playSound } from '../../../../hooks/useSound.js'
+import { PLANS, getPrice } from '../../../../config/plans.js' // [P24] fixed: unified plans config
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
     ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil, Check,
     Wallet, Bitcoin, Landmark
 } from 'lucide-react'
 
-const DEMO_PLANS = [
-    { id: 'creator', name: 'Creator', price: 2900, period: 'month', currency: 'RUB' },
-    { id: 'pro', name: 'Pro', price: 4300, period: 'month', currency: 'RUB' },
-    { id: 'agency', name: 'Agency', price: 7900, period: 'month', currency: 'RUB' },
-    { id: 'enterprise', name: 'Enterprise', price: 19900, period: 'month', currency: 'RUB' },
-    { id: 'whitelabel', name: 'White Label', price: 47500, period: 'month', currency: 'RUB' },
-]
-
-const FEATURES = {
-    free: ['1 проект', 'Базовая аналитика', 'Email поддержка'],
-    starter: ['3 проекта', 'Расширенная аналитика', 'Email поддержка'],
-    creator: ['5 проектов', 'AI генерация идей', 'Приоритетная поддержка'],
-    pro: ['20 проектов', 'API доступ', 'Расширенный AI'],
-    agency: ['Безлимит проектов', 'White label', 'Выделенный менеджер'],
-    enterprise: ['Кастом решения', 'On-premise', 'SLA 99.9%'],
-}
+// [P24] fixed: backend-shape fallback built from unified PLANS config
+const DEMO_PLANS = PLANS.filter(p => p.id !== 'free').map(p => ({
+    id: p.id,
+    name: p.name,
+    price: getPrice(p, 'RUB'),
+    period: 'month',
+    currency: 'RUB',
+    features: p.features,
+    popular: p.id === 'pro'
+}))
 
 const COLORS = {
     free: '#6b7280',
@@ -427,7 +422,7 @@ export function SubscriptionsTab({ data }) {
                         >
                             {/* [P23] fixed: pricing-engine button touch target */}
                             <Sparkles size={16} />
-                            AI-анализ цен
+                            {t('subscriptions.aiPricing')}
                         </button>
                     )}
                     {/* [P18] added: dynamic pricing badge */}
@@ -462,7 +457,7 @@ export function SubscriptionsTab({ data }) {
                                     </span>
                                     {current.autoRenew && (
                                         <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                                            Автопродление
+                                            {t('subscriptions.autoRenew')}
                                         </span>
                                     )}
                                 </div>
@@ -482,7 +477,7 @@ export function SubscriptionsTab({ data }) {
                 <h3 className="text-lg font-semibold text-[var(--text)] mb-4">{t('subscriptions.availablePlans')}</h3>
                 {isDemo && (
                     <div className="bg-yellow-900/30 text-yellow-400 text-sm rounded-lg px-3 py-2 mb-4">
-                        📊 Пример тарифов — подключите платёжную систему
+                        📊 {t('subscriptions.demoPlans')}
                     </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -569,7 +564,7 @@ export function SubscriptionsTab({ data }) {
 
                                 <div className="space-y-2 mb-4">
                                     {(() => {
-                                        const raw = FEATURES[plan.id] || plan.description || []
+                                        const raw = plan.features || plan.description || []
                                         const list = Array.isArray(raw)
                                             ? raw
                                             : String(raw).split(', ').filter(Boolean)
@@ -615,10 +610,10 @@ export function SubscriptionsTab({ data }) {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {[
-                            { key: 'generationsLimit', label: 'Лимит генераций', suffix: 'шт/мес' },
-                            { key: 'overageCost', label: 'Стоимость overage', suffix: '$/100' },
-                            { key: 'topUpPackSize', label: 'Размер пакета', suffix: 'шт' },
-                            { key: 'topUpPackPrice', label: 'Цена пакета', suffix: '$' },
+                            { key: 'generationsLimit', label: t('subscriptions.generationsLimit'), suffix: t('subscriptions.unitsPerMonth') },
+                            { key: 'overageCost', label: t('subscriptions.overageCost'), suffix: t('subscriptions.per100') },
+                            { key: 'topUpPackSize', label: t('subscriptions.topUpPackSize'), suffix: t('subscriptions.pieces') },
+                            { key: 'topUpPackPrice', label: t('subscriptions.topUpPackPrice'), suffix: t('subscriptions.dollars') },
                         ].map(field => (
                             <div key={field.key}>
                                 <label className="text-xs text-[var(--text-muted)] block mb-1">{field.label}</label>
@@ -649,14 +644,14 @@ export function SubscriptionsTab({ data }) {
             <div className="rounded-xl border border-[var(--border)] glass p-4 flex items-start gap-3">
                 <Globe className="w-5 h-5 text-[var(--text-muted)] mt-0.5" />
                 <div>
-                    <p className="text-sm font-medium text-[var(--text)]">Международные платежи</p>
+                    <p className="text-sm font-medium text-[var(--text)]">{t('subscriptions.internationalPayments')}</p>
                     <p className="text-sm text-[var(--text-muted)] mt-1">
-                        Сейчас доступна оплата через ЮKassa (РФ). Stripe для USD/EUR подготовлен, но отключён до открытия иностранной компании.
+                        {t('subscriptions.yookassaOnly')}
                     </p>
                     {!IS_STRIPE_ENABLED && currency !== 'RUB' && (
                         <p className="text-sm text-[var(--error)] mt-2 flex items-center gap-1">
                             <AlertCircle className="w-4 h-4" />
-                            Международная оплата временно недоступна. Выберите ₽ (RUB).
+                            {t('subscriptions.intlUnavailable')}
                         </p>
                     )}
                 </div>
@@ -669,7 +664,7 @@ export function SubscriptionsTab({ data }) {
                     <div className="w-full max-w-[95vw] sm:max-w-2xl rounded-2xl border border-[var(--border)] glass shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
                             <h3 className="text-base font-semibold text-[var(--text)] flex items-center gap-2">
-                                <Sparkles size={18} className="text-[var(--primary)]" /> AI-анализ цен
+                                <Sparkles size={18} className="text-[var(--primary)]" /> {t('subscriptions.aiPricing')}
                             </h3>
                             <button onClick={() => setPricingOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors">
                                 {/* [P23] fixed: close-modal touch target */}

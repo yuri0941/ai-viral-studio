@@ -1,4 +1,4 @@
-// [P24] added: geo-currency detection and payment methods
+// [P24] fixed: geo-currency detection only
 
 const COUNTRY_CURRENCY_MAP = {
   RU: 'RUB',
@@ -26,15 +26,4 @@ function detectCurrencyByIP(ip) {
   return (country && COUNTRY_CURRENCY_MAP[country]) || 'USD'
 }
 
-function getPaymentMethods(country, currency) {
-  const methods = []
-  if (country === 'RU' || currency === 'RUB') {
-    methods.push({ id: 'yookassa', name: 'Банковская карта / ЮKassa', icon: 'card' })
-  }
-  methods.push({ id: 'stripe', name: 'Stripe (Visa/Mastercard)', icon: 'stripe' })
-  methods.push({ id: 'paypal', name: 'PayPal', icon: 'paypal' })
-  methods.push({ id: 'crypto', name: 'Крипта (USDT/BTC/ETH)', icon: 'crypto' })
-  return methods
-}
-
-export { detectCountryByIP, detectCurrencyByIP, getPaymentMethods }
+export { detectCountryByIP, detectCurrencyByIP }

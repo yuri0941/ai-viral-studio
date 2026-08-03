@@ -285,6 +285,8 @@
     "positionCenter": "Center"
   },
   "subscriptions": {
+    "title": "Subscriptions",
+    "subtitle": "Manage plans and payments",
     "currentPlan": "Current plan",
     "free": "Free",
     "availablePlans": "Available plans",
@@ -304,7 +306,21 @@
     "cancel": "Cancel",
     "priceUpdated": "Price updated",
     "saveQuota": "Save quotas",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "demoPlans": "Demo plans — connect a payment provider",
+    "autoRenew": "Auto-renew",
+    "internationalPayments": "International payments",
+    "yookassaOnly": "Currently only YooKassa (Russia) is available. Stripe for USD/EUR is prepared but disabled until a foreign company is opened.",
+    "intlUnavailable": "International payment temporarily unavailable. Choose ₽ (RUB).",
+    "aiPricing": "AI pricing analysis",
+    "generationsLimit": "Generations limit",
+    "overageCost": "Overage cost",
+    "topUpPackSize": "Top-up pack size",
+    "topUpPackPrice": "Top-up pack price",
+    "unitsPerMonth": "pcs/mo",
+    "per100": "$/100",
+    "pieces": "pcs",
+    "dollars": "$"
   },
   "apiKeys": {
     "title": "API Keys",

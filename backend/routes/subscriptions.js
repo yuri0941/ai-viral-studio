@@ -13,7 +13,8 @@ import {
   updatePlanPrice,
 } from '../controllers/subscriptionController.js';
 import { getDynamicPricingStatus } from '../services/dynamicPricing.js';
-import { detectCurrencyByIP, getPaymentMethods } from '../services/geoCurrencyService.js';
+import { detectCurrencyByIP } from '../services/geoCurrencyService.js';
+import { getPaymentMethods } from '../services/paymentMethods.js'; // [P24] fixed: payment methods service
 
 const router = Router();
 

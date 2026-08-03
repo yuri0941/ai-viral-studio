@@ -3,6 +3,7 @@ import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
+import { PLANS, getPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
 import {
     User, Diamond, Link2, Bell, Shield, Palette, LogOut,
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
@@ -11,6 +12,23 @@ import {
     Wallet, Bitcoin, Volume2, VolumeX, Linkedin, Loader2, Monitor,
     Stamp
 } from 'lucide-react';
+
+const PLAN_COLORS = {
+    free: 'from-gray-600 to-gray-700',
+    starter: 'from-blue-500 to-blue-600',
+    creator: 'from-indigo-500 to-indigo-600',
+    pro: 'from-emerald-500 to-teal-600',
+    agency: 'from-[#00ff41] to-[#00cc33]',
+    enterprise: 'from-purple-500 to-pink-600',
+}; // [P24] fixed: plan color mapping
+
+const CURRENCIES = [
+    { value: 'RUB', label: '₽ RUB' },
+    { value: 'USD', label: '$ USD' },
+    { value: 'EUR', label: '€ EUR' },
+    { value: 'UAH', label: '₴ UAH' },
+    { value: 'KZT', label: '₸ KZT' },
+]; // [P24] fixed: currency selector options
 
 function SettingsPage() {
     const { t } = useTranslation();
@@ -36,7 +54,7 @@ function SettingsPage() {
     const [showEmailPassword, setShowEmailPassword] = useState(false);
     const [twoFA, setTwoFA] = useState(false);
     const [isYearly, setIsYearly] = useState(false);
-    const [paymentLoading, setPaymentLoading] = useState(false);
+    const [paymentLoading, setPaymentLoading] = useState({}); // [P24] fixed: per-method loading state
     const [userSubscription, setUserSubscription] = useState(() => {
         const saved = localStorage.getItem('user_subscription');
         return saved ? JSON.parse(saved) : null;
@@ -135,30 +153,16 @@ function SettingsPage() {
         }
     }, []);
 
-    const [plans, setPlans] = useState(() => {
-        const saved = localStorage.getItem('owner_subscriptions');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            return [
-                { id: 'free', name: parsed[0]?.name || 'Free', price: parsed[0]?.price || 0, color: 'from-gray-600 to-gray-700', features: parsed[0]?.features || ['1 проект', 'Базовая аналитика', 'Email поддержка'] },
-                { id: 'creator', name: parsed[1]?.name || 'Creator', price: parsed[1]?.price || 10, color: 'from-blue-500 to-blue-600', features: parsed[1]?.features || ['5 проектов', 'Расширенная аналитика', 'Приоритетная поддержка'] },
-                { id: 'pro', name: parsed[2]?.name || 'Pro', price: parsed[2]?.price || 30, color: 'from-emerald-500 to-teal-600', features: parsed[2]?.features || ['20 проектов', 'AI генерация', 'API доступ'], popular: true },
-                { id: 'agency', name: parsed[3]?.name || 'Agency', price: parsed[3]?.price || 100, color: 'from-[#00ff41] to-[#00cc33]', features: parsed[3]?.features || ['Безлимит проектов', 'White label', 'Выделенный менеджер'] },
-                { id: 'enterprise', name: parsed[4]?.name || 'Enterprise', price: parsed[4]?.price || 300, color: 'from-purple-500 to-pink-600', features: parsed[4]?.features || ['Кастом решения', 'On-premise', 'SLA 99.9%'] },
-            ];
-        }
-        return [
-            { id: 'free', name: 'Free', price: 0, color: 'from-gray-600 to-gray-700', features: ['1 проект', 'Базовая аналитика', 'Email поддержка'] },
-            { id: 'creator', name: 'Creator', price: 10, color: 'from-blue-500 to-blue-600', features: ['5 проектов', 'Расширенная аналитика', 'Приоритетная поддержка'] },
-            { id: 'pro', name: 'Pro', price: 30, color: 'from-emerald-500 to-teal-600', features: ['20 проектов', 'AI генерация', 'API доступ'], popular: true },
-            { id: 'agency', name: 'Agency', price: 100, color: 'from-[#00ff41] to-[#00cc33]', features: ['Безлимит проектов', 'White label', 'Выделенный менеджер'] },
-            { id: 'enterprise', name: 'Enterprise', price: 300, color: 'from-purple-500 to-pink-600', features: ['Кастом решения', 'On-premise', 'SLA 99.9%'] },
-        ];
-    });
+    const [subscriptionCurrency, setSubscriptionCurrency] = useState(user?.preferences?.currency || 'RUB');
+    const [paymentMethods, setPaymentMethods] = useState([]);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('yookassa');
+
+    const plans = PLANS.map(p => ({ ...p, color: PLAN_COLORS[p.id] || 'from-gray-600 to-gray-700', popular: p.id === 'pro' }));
 
     const getYearlyPrice = (monthlyPrice) => monthlyPrice * 10;
 
     const getCurrentPrice = (plan) => {
+        const basePrice = getPrice(plan, subscriptionCurrency);
         if (userSubscription && userSubscription.planId === plan.id && userSubscription.isActive) {
             const now = new Date();
             const nextBilling = new Date(userSubscription.nextBillingDate);
@@ -166,87 +170,113 @@ function SettingsPage() {
                 return isYearly ? getYearlyPrice(userSubscription.lockedPrice) : userSubscription.lockedPrice;
             }
         }
-        return isYearly ? getYearlyPrice(plan.price) : plan.price;
+        return isYearly ? getYearlyPrice(basePrice) : basePrice;
     };
 
-    const handleStripePayment = async (plan) => {
-        try {
-            setPaymentLoading(true);
-            const response = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    planId: plan.name,
-                    price: isYearly ? getYearlyPrice(plan.price) : plan.price,
-                    isYearly,
-                    userId: user?.id || 'anonymous'
-                })
-            });
-            const data = await response.json();
-            if (data.url) {
-                window.location.href = data.url;
-            } else {
-                showToast('Ошибка создания платежа: ' + (data.error || 'Неизвестная ошибка'), 'error');
+    useEffect(() => {
+        async function loadConfig() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/subscriptions/config`);
+                const json = await res.json();
+                if (json.success) {
+                    setPaymentMethods(json.paymentMethods || []);
+                    setSelectedPaymentMethod(prev => json.paymentMethods?.find(m => m.id === prev)?.id || json.paymentMethods?.[0]?.id || 'yookassa');
+                    if (json.currency && !user?.preferences?.currency) setSubscriptionCurrency(json.currency);
+                }
+            } catch (err) {
+                console.error('[SettingsPage:loadConfig]', err);
             }
-        } catch (err) {
-            showToast('Ошибка оплаты: ' + err.message, 'error');
-        } finally {
-            setPaymentLoading(false);
         }
+        loadConfig();
+    }, []); // [P24] fixed: load currency + payment methods from backend
+
+    const setLoading = (planId, loading) => {
+        setPaymentLoading(prev => ({ ...prev, [planId]: loading }));
     };
 
-    const handlePayPalPayment = async (plan) => {
-        try {
-            setPaymentLoading(true);
-            const token = localStorage.getItem('token') || '';
-            const response = await fetch(`${API_BASE_URL}/paypal/create-order`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({
-                    planId: plan.name,
-                    amount: isYearly ? getYearlyPrice(plan.price) : plan.price,
-                    currency: 'USD',
-                    description: `${isYearly ? 'Yearly' : 'Monthly'} ${plan.name} subscription`,
-                })
-            });
-            const data = await response.json();
-            if (data.approvalUrl) {
-                window.location.href = data.approvalUrl;
-            } else {
-                showToast('PayPal error: ' + (data.message || data.error || 'Unknown'), 'error');
-            }
-        } catch (err) {
-            showToast('PayPal error: ' + err.message, 'error');
-        } finally {
-            setPaymentLoading(false);
+    const handlePayment = async (plan) => {
+        if (plan.priceRUB === 0 && plan.priceUSD === 0) {
+            handleSubscribe(plan);
+            return;
         }
-    };
+        const loadingKey = `${plan.id}-${selectedPaymentMethod}`;
+        setLoading(loadingKey, true);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const token = localStorage.getItem('token') || '';
+        const amount = getCurrentPrice(plan);
+        const fallbackToYookassa = () => {
+            if (selectedPaymentMethod !== 'yookassa' && paymentMethods.find(m => m.id === 'yookassa')) {
+                setSelectedPaymentMethod('yookassa');
+                showToast(t('subscriptions.fallbackToYookassa'), 'info');
+            }
+        };
 
-    const handleCryptoPayment = async (plan) => {
         try {
-            setPaymentLoading(true);
-            const response = await fetch(`${API_BASE_URL}/payments/crypto-charge`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: `AI Viral Studio — ${plan.name}`,
-                    description: `${isYearly ? 'Годовая' : 'Месячная'} подписка ${plan.name}`,
-                    price: isYearly ? getYearlyPrice(plan.price) : plan.price,
-                    currency: 'USD'
-                })
-            });
-            const data = await response.json();
-            if (data.hosted_url) {
-                window.open(data.hosted_url, '_blank');
-            } else {
-                showToast('Ошибка создания крипто-платежа: ' + (data.error || 'Неизвестная ошибка'), 'error');
+            let res;
+            if (selectedPaymentMethod === 'yookassa') {
+                res = await fetch(`${API_BASE_URL}/payments/create`, {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ planId: plan.id, amount, currency: subscriptionCurrency, description: `Подписка ${plan.name}` })
+                }).then(r => r.json());
+                if (res.success && res.confirmationUrl) {
+                    window.location.href = res.confirmationUrl;
+                    return;
+                }
+            } else if (selectedPaymentMethod === 'stripe') {
+                res = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ planId: plan.name, price: amount, isYearly, currency: subscriptionCurrency, userId: user?.id || user?._id || 'anonymous' })
+                }).then(r => r.json());
+                if (res.url) {
+                    window.location.href = res.url;
+                    return;
+                }
+            } else if (selectedPaymentMethod === 'paypal') {
+                res = await fetch(`${API_BASE_URL}/paypal/create-order`, {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ planId: plan.name, amount, currency: subscriptionCurrency, description: `${isYearly ? 'Yearly' : 'Monthly'} ${plan.name} subscription` })
+                }).then(r => r.json());
+                if (res.approvalUrl) {
+                    window.location.href = res.approvalUrl;
+                    return;
+                }
+            } else if (selectedPaymentMethod === 'crypto') {
+                res = await fetch(`${API_BASE_URL}/payments/crypto-charge`, {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ name: `AI Viral Studio — ${plan.name}`, description: `${isYearly ? 'Годовая' : 'Месячная'} подписка ${plan.name}`, price: amount, currency: subscriptionCurrency })
+                }).then(r => r.json());
+                if (res.hosted_url) {
+                    window.open(res.hosted_url, '_blank');
+                    setLoading(loadingKey, false);
+                    clearTimeout(timeoutId);
+                    return;
+                }
             }
+
+            if (res?.fallback && res?.status === 'error') fallbackToYookassa();
+            showToast(res?.error || res?.message || t('subscriptions.paymentError'), 'error');
         } catch (err) {
-            showToast('Ошибка крипто-оплаты: ' + err.message, 'error');
+            if (err.name === 'AbortError') {
+                showToast(t('subscriptions.gatewayTimeout'), 'error');
+                fallbackToYookassa();
+            } else {
+                console.error('[SettingsPage:handlePayment]', err);
+                showToast(err.message || t('subscriptions.paymentError'), 'error');
+            }
         } finally {
-            setPaymentLoading(false);
+            clearTimeout(timeoutId);
+            setLoading(loadingKey, false);
         }
-    };
+    }; // [P24] fixed: unified payment flow with timeout + fallback
 
     const showToast = (message, type = 'info') => {
         if (window.showToast) {
@@ -257,8 +287,8 @@ function SettingsPage() {
     };
 
     const handleSubscribe = (plan) => {
-        if (plan.price > 0) {
-            handleStripePayment(plan);
+        if (getPrice(plan, subscriptionCurrency) > 0) {
+            handlePayment(plan);
             return;
         }
         const now = new Date();
@@ -569,29 +599,64 @@ function SettingsPage() {
                 </div>
             )}
 
-            <div className="flex justify-center">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-3 flex-wrap">
                 <div className="inline-flex glass rounded-full p-1">
                     <button
                         onClick={() => setIsYearly(false)}
-                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!isYearly ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+                        className={`min-h-[44px] px-6 py-2 rounded-full text-sm font-medium transition-all ${!isYearly ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
                     >
                         {t('settings.monthly')}
                     </button>
                     <button
                         onClick={() => setIsYearly(true)}
-                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${isYearly ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+                        className={`min-h-[44px] px-6 py-2 rounded-full text-sm font-medium transition-all ${isYearly ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
                     >
                         {t('settings.yearly')}
                     </button>
                 </div>
+
+                <select
+                    value={subscriptionCurrency}
+                    onChange={e => setSubscriptionCurrency(e.target.value)}
+                    className="min-h-[44px] px-4 py-2 glass rounded-full text-sm text-[var(--text)] bg-transparent outline-none border border-[var(--border)]"
+                >
+                    {CURRENCIES.map(cur => (
+                        <option key={cur.value} value={cur.value} className="bg-[var(--card)]">{cur.label}</option>
+                    ))}
+                </select>
+
+                {paymentMethods.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {paymentMethods.map(method => (
+                            <label
+                                key={method.id}
+                                className={`min-h-[44px] min-w-[44px] px-3 py-1.5 rounded-lg glass text-sm flex items-center gap-2 cursor-pointer transition-colors ${selectedPaymentMethod === method.id ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+                            >
+                                <input
+                                    type="radio"
+                                    name="paymentMethod"
+                                    value={method.id}
+                                    checked={selectedPaymentMethod === method.id}
+                                    onChange={() => setSelectedPaymentMethod(method.id)}
+                                    className="sr-only"
+                                />
+                                {method.name}
+                            </label>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {plans.map(plan => {
                     const currentPrice = getCurrentPrice(plan);
                     const subscribed = isSubscribedTo(plan.id);
+                    const basePrice = getPrice(plan, subscriptionCurrency);
                     const isGrandfathered = userSubscription && userSubscription.planId === plan.id &&
-                        userSubscription.lockedPrice !== plan.price && userSubscription.isActive;
+                        userSubscription.lockedPrice !== basePrice && userSubscription.isActive;
+                    const isFree = basePrice === 0;
+                    const loadingKey = `${plan.id}-${selectedPaymentMethod}`;
+                    const isLoading = paymentLoading[loadingKey];
 
                     return (
                         <div key={plan.id} className={`luxury-card glass p-5 ${subscribed ? 'border-[var(--success)]' : plan.popular ? 'border-[var(--primary)]' : ''}`}>
@@ -610,12 +675,14 @@ function SettingsPage() {
                                 <h4 className="font-bold text-lg text-[var(--text)] capitalize">{plan.name}</h4>
                             </div>
                             <div className="text-2xl font-bold my-2 text-[var(--text)]">
-                                ${currentPrice}
+                                {subscriptionCurrency === 'RUB'
+                                    ? `${currentPrice.toLocaleString('ru-RU')} ₽`
+                                    : `${currentPrice.toLocaleString('en-US')} ${subscriptionCurrency === 'EUR' ? '€' : subscriptionCurrency === 'UAH' ? '₴' : subscriptionCurrency === 'KZT' ? '₸' : '$'}`}
                                 <span className="text-sm text-[var(--text-muted)] font-normal">/{isYearly ? t('settings.yearly') : t('settings.monthly')}</span>
                             </div>
                             {isGrandfathered && (
                                 <p className="text-xs text-[var(--warning)] mb-2">
-                                    {t('settings.priceChange', { oldPrice: userSubscription.lockedPrice, newPrice: plan.price, date: formatDate(userSubscription.nextBillingDate) })}
+                                    {t('settings.priceChange', { oldPrice: userSubscription.lockedPrice, newPrice: basePrice, date: formatDate(userSubscription.nextBillingDate) })}
                                 </p>
                             )}
                             <ul className="space-y-2 mt-4">
@@ -626,38 +693,20 @@ function SettingsPage() {
                                 ))}
                             </ul>
 
-                            {plan.price > 0 && !subscribed ? (
-                                <div className="space-y-2 mt-4">
-                                    <button
-                                        onClick={() => handleStripePayment(plan)}
-                                        disabled={paymentLoading}
-                                        className="w-full py-2 rounded-xl font-medium transition-all bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25 disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        <CreditCard size={16} />
-                                        {paymentLoading ? t('settings.loading') : `${t('settings.pay')} $${currentPrice}`}
-                                    </button>
-                                    <button
-                                        onClick={() => handleCryptoPayment(plan)}
-                                        disabled={paymentLoading}
-                                        className="w-full py-2 rounded-xl font-medium transition-all glass text-[var(--text)] border border-[var(--border)] flex items-center justify-center gap-2"
-                                    >
-                                        <Bitcoin size={16} className="text-orange-400" />
-                                        {paymentLoading ? t('settings.loading') : t('settings.payWithCrypto')}
-                                    </button>
-                                    <button
-                                        onClick={() => handlePayPalPayment(plan)}
-                                        disabled={paymentLoading}
-                                        className="w-full py-2 rounded-xl font-medium transition-all bg-[#003087]/80 hover:bg-[#002a6e] text-white flex items-center justify-center gap-2"
-                                    >
-                                        <Wallet size={16} />
-                                        {paymentLoading ? t('settings.loading') : t('settings.payWithPayPal')}
-                                    </button>
-                                </div>
+                            {!isFree && !subscribed ? (
+                                <button
+                                    onClick={() => handlePayment(plan)}
+                                    disabled={isLoading}
+                                    className="w-full mt-4 py-2 rounded-xl font-medium transition-all bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25 disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
+                                >
+                                    {isLoading ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
+                                    {isLoading ? t('settings.loading') : `${t('settings.pay')} ${selectedPaymentMethod === 'yookassa' ? 'ЮKassa' : selectedPaymentMethod === 'stripe' ? 'Stripe' : selectedPaymentMethod === 'paypal' ? 'PayPal' : 'Crypto'}`}
+                                </button>
                             ) : (
                                 <button
                                     onClick={() => !subscribed && handleSubscribe(plan)}
                                     disabled={subscribed}
-                                    className={`w-full mt-4 py-2 rounded-xl font-medium transition-all ${subscribed
+                                    className={`w-full mt-4 py-2 rounded-xl font-medium transition-all min-h-[44px] ${subscribed
                                         ? 'bg-[var(--success)]/20 text-[var(--success)] cursor-default'
                                         : plan.popular
                                             ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25'
@@ -684,7 +733,7 @@ function SettingsPage() {
                                 </div>
                             </div>
                             <div className="text-right">
-                                <div className="font-bold text-[var(--success)]">${userSubscription.price}</div>
+                                <div className="font-bold text-[var(--success)]">{userSubscription.price} {userSubscription.currency || subscriptionCurrency}</div>
                                 <div className={`text-xs ${userSubscription.isActive ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
                                     {userSubscription.isActive ? t('settings.active') : t('settings.cancelled')}
                                 </div>

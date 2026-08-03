@@ -1,15 +1,7 @@
 import { Subscription } from '../models/index.js';
 import { chatWithAI } from '../services/aiService.js';
 import { adjustPrice } from '../services/dynamicPricing.js';
-
-const PLANS = [
-  { id: 'free', name: 'Free', priceRUB: 0, priceUSD: 0, priceEUR: 0, description: 'Базовый набор для старта' },
-  { id: 'starter', name: 'Starter', priceRUB: 2900, priceUSD: 29, priceEUR: 29, description: 'Для начинающих авторов' },
-  { id: 'creator', name: 'Creator', priceRUB: 4300, priceUSD: 43, priceEUR: 43, description: 'Рекомендуемый для creators' },
-  { id: 'pro', name: 'Pro', priceRUB: 7900, priceUSD: 79, priceEUR: 79, description: 'Для профессионалов' },
-  { id: 'agency', name: 'Agency', priceRUB: 19900, priceUSD: 199, priceEUR: 199, description: 'Для агентств и команд' },
-  { id: 'enterprise', name: 'Enterprise', priceRUB: 47500, priceUSD: 475, priceEUR: 475, description: 'Кастомное решение' },
-];
+import { PLANS, getPlanPrice as getUnifiedPlanPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
 
 // [P16] In-memory price overrides applied by owner via AI Pricing Engine
 const planPriceOverrides = { RUB: {}, USD: {}, EUR: {} };
@@ -19,9 +11,7 @@ export const isStripeEnabled = false;
 function getPlanPrice(planId, currency = 'RUB') {
   const plan = PLANS.find((p) => p.id === planId);
   if (!plan) return 0;
-  if (currency === 'USD') return plan.priceUSD;
-  if (currency === 'EUR') return plan.priceEUR;
-  return plan.priceRUB;
+  return getUnifiedPlanPrice(plan, currency);
 }
 
 export const getPlans = async (req, res) => {
