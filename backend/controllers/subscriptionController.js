@@ -1,5 +1,6 @@
 import { Subscription } from '../models/index.js';
 import { chatWithAI } from '../services/aiService.js';
+import { adjustPrice } from '../services/dynamicPricing.js';
 
 const PLANS = [
   { id: 'free', name: 'Free', priceRUB: 0, priceUSD: 0, priceEUR: 0, description: 'Базовый набор для старта' },
@@ -101,7 +102,10 @@ export const createSubscription = async (req, res) => {
     const { plan, interval, currency, paymentMethod, provider, autoRenew, isTrial } = req.body || {};
     const planId = PLANS.find((p) => p.id === plan)?.id || 'free';
     const curr = ['USD', 'EUR'].includes(currency) ? currency : 'RUB';
-    const price = getPlanPrice(planId, curr);
+    const basePrice = getPlanPrice(planId, curr);
+    // [P18] added: dynamic pricing AI adjustment
+    const dynamic = await adjustPrice(basePrice, planId, userId);
+    const price = dynamic.finalPrice;
 
     const now = new Date();
     const endDate = new Date(now);
@@ -207,7 +211,7 @@ export const checkTrialEnding = async (req, res) => {
   }
 };
 
-// [P16] AI Pricing Engine: analyze competitor prices and recommend plan pricing
+// [P18] AI Pricing Engine: analyze competitor prices and recommend plan pricing
 export const analyzePricing = async (req, res) => {
   try {
     const { niche = 'SaaS', region = 'Global', competitorPrices = [] } = req.body || {};
@@ -243,7 +247,7 @@ export const analyzePricing = async (req, res) => {
   }
 };
 
-// [P16] Apply AI-recommended price to a plan
+// [P18] Apply AI-recommended price to a plan
 export const updatePlanPrice = async (req, res) => {
   try {
     const userRole = req.user?.role;

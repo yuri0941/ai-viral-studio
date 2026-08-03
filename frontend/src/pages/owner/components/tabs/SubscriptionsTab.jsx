@@ -71,6 +71,8 @@ export function SubscriptionsTab({ data }) {
     const [editingPlanId, setEditingPlanId] = useState(null)
     const [editPrice, setEditPrice] = useState('')
     const [planOverrides, setPlanOverrides] = useState({})
+    // [P18] added: dynamic pricing badge
+    const [dynamicBadge, setDynamicBadge] = useState(null)
 
     const plansUrl = useMemo(() => {
         return `${API_BASE_URL}/subscriptions/plans${currency ? `?currency=${currency}` : ''}`
@@ -82,6 +84,7 @@ export function SubscriptionsTab({ data }) {
 
     useEffect(() => {
         loadCurrentAndHistory()
+        loadDynamicPricingStatus()
     }, [currency])
 
     async function loadCurrentAndHistory() {
@@ -137,6 +140,22 @@ export function SubscriptionsTab({ data }) {
     }
 
     const isOwnerOrAdmin = user?.role === 'owner' || user?.role === 'admin'
+
+    // [P18] added: dynamic pricing status badge loader
+    async function loadDynamicPricingStatus() {
+        try {
+            const token = localStorage.getItem('token')
+            const res = await fetch(`${API_BASE_URL}/subscriptions/dynamic-pricing-status`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            const json = await res.json()
+            if (json.success && json.data?.badge) setDynamicBadge(json.data.badge)
+            else setDynamicBadge(null)
+        } catch (err) {
+            console.error('[SubscriptionsTab:dynamicPricing]', err)
+            setDynamicBadge(null)
+        }
+    }
 
     async function savePlanPrice(planId) {
         const price = Number(editPrice)
@@ -259,6 +278,7 @@ export function SubscriptionsTab({ data }) {
                         {isYearly ? <ToggleRight size={16} className="text-emerald-400" /> : <ToggleLeft size={16} className="text-gray-500" />}
                         {isYearly ? t('subscriptions.yearly') : t('subscriptions.monthly')}
                     </button>
+                    {/* [P18] added: AI Pricing Engine trigger */}
                     {(user?.role === 'owner' || user?.role === 'admin') && (
                         <button
                             onClick={() => setPricingOpen(true)}
@@ -267,6 +287,12 @@ export function SubscriptionsTab({ data }) {
                             <Sparkles size={16} />
                             AI-анализ цен
                         </button>
+                    )}
+                    {/* [P18] added: dynamic pricing badge */}
+                    {dynamicBadge && (
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full glass ${dynamicBadge.color || 'text-[var(--text)]'}`}>
+                            {dynamicBadge.text}
+                        </span>
                     )}
                 </div>
             </div>
@@ -485,6 +511,7 @@ export function SubscriptionsTab({ data }) {
                 </div>
             </div>
 
+            {/* [P18] added: AI Pricing Engine modal */}
             {pricingOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl p-4">
                     <div className="w-full max-w-2xl rounded-2xl border border-[var(--border)] glass shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">

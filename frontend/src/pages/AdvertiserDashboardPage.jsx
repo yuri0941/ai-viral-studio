@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
+import { API_BASE_URL } from '../config.js'
 import {
     Plus, TrendingUp, Eye, MousePointer, Percent, DollarSign,
     Calendar, MessageSquare, FileText, Download, Mail, CheckCircle,
     XCircle, Pause, Play, BarChart as BarChartIcon, PieChart, ArrowUpRight,
     ArrowDownRight, Users, Target, Clock, ChevronDown, ChevronUp,
-    Send, Paperclip, Image, Video, FileType, Printer, Search, Filter
+    Send, Paperclip, Image, Video, FileType, Printer, Search, Filter,
+    Brain, Loader2, Wand2
 } from 'lucide-react'
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -18,7 +20,8 @@ import { AdStudioTab } from './advertiser/AdStudioTab'
 function AdvertiserDashboardPage() {
     const { t } = useTranslation()
     const { user } = useAuth()
-    const [activeTab, setActiveTab] = useState('campaigns')
+    // [P18] added: AdStudio is the first/default tab
+    const [activeTab, setActiveTab] = useState('adstudio')
     const [showModal, setShowModal] = useState(false)
     const [showReportModal, setShowReportModal] = useState(false)
     const [selectedCampaign, setSelectedCampaign] = useState(null)
@@ -33,6 +36,13 @@ function AdvertiserDashboardPage() {
     const [filterStatus, setFilterStatus] = useState('all')
     const [analyticsOpen, setAnalyticsOpen] = useState(false)
     const [activeChatClient, setActiveChatClient] = useState('SportLife')
+
+    // [P18] added: Neuro-Sales analysis state
+    const [neuroOpen, setNeuroOpen] = useState(false)
+    const [neuroLoading, setNeuroLoading] = useState(false)
+    const [neuroResult, setNeuroResult] = useState(null)
+    const [neuroProduct, setNeuroProduct] = useState('фитнес-трекер')
+    const [neuroGoal, setNeuroGoal] = useState('продажа')
 
     const [campaigns, setCampaigns] = useState([
         {
@@ -221,6 +231,26 @@ function AdvertiserDashboardPage() {
         setNewMessage('')
     }
 
+    // [P18] added: Neuro-Sales audience psychotype analysis
+    async function handleAnalyzePsychotype() {
+        setNeuroLoading(true)
+        try {
+            const token = localStorage.getItem('token')
+            const history = chatMessages.filter(m => m.client === activeChatClient)
+            const res = await fetch(`${API_BASE_URL}/neuro-sales/analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ chatHistory: history, product: neuroProduct, goal: neuroGoal }),
+            })
+            const json = await res.json()
+            if (json.success) setNeuroResult(json.data)
+        } catch (err) {
+            console.error('[AdvertiserDashboard:neuroSales]', err)
+        } finally {
+            setNeuroLoading(false)
+        }
+    }
+
     const handleExport = (format) => {
         const data = campaigns.map(c => ({
             [t('advertiser.campaignName')]: c.name,
@@ -281,7 +311,8 @@ AI Viral Studio`, {
     }
 
     const tabs = [
-        { id: 'adstudio', label: t('advertiser.adStudio'), icon: Printer },
+        // [P18] added: AdStudio as first tab
+        { id: 'adstudio', label: t('advertiser.adStudio'), icon: Wand2 },
         { id: 'campaigns', label: t('advertiser.campaigns'), icon: Target },
         { id: 'calendar', label: t('advertiser.calendar'), icon: Calendar },
         { id: 'chat', label: t('advertiser.chat'), icon: MessageSquare },
@@ -639,6 +670,14 @@ AI Viral Studio`, {
                                 className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                             >
                                 {t('advertiser.markRead')}
+                            </button>
+                            {/* [P18] added: Neuro-Sales psychotype trigger */}
+                            <button
+                                onClick={() => { setNeuroOpen(true); setNeuroResult(null) }}
+                                className="flex items-center gap-1.5 text-xs text-[var(--primary)] hover:text-[var(--text)] transition-colors"
+                            >
+                                <Brain className="w-3.5 h-3.5" />
+                                Анализ психотипа аудитории
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -1006,6 +1045,73 @@ AI Viral Studio`, {
                                 {t('advertiser.close')}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* [P18] added: Neuro-Sales psychotype modal */}
+            {neuroOpen && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-[var(--bg-secondary)] border border-[var(--border-strong)] rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-xl font-bold text-[var(--text)] mb-4 flex items-center gap-2">
+                            <Brain className="w-5 h-5 text-[var(--primary)]" />
+                            Анализ психотипа аудитории
+                        </h2>
+                        <div className="space-y-3 mb-4">
+                            <div>
+                                <label className="text-xs text-[var(--text-muted)] block mb-1">Продукт</label>
+                                <input
+                                    value={neuroProduct}
+                                    onChange={(e) => setNeuroProduct(e.target.value)}
+                                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-[var(--text-muted)] block mb-1">Цель</label>
+                                <input
+                                    value={neuroGoal}
+                                    onChange={(e) => setNeuroGoal(e.target.value)}
+                                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm outline-none"
+                                />
+                            </div>
+                            <button
+                                onClick={handleAnalyzePsychotype}
+                                disabled={neuroLoading}
+                                className="w-full py-2 rounded-xl bg-[var(--primary)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {neuroLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+                                {neuroLoading ? 'Анализ…' : 'Анализировать переписку'}
+                            </button>
+                        </div>
+
+                        {neuroResult && (
+                            <div className="space-y-3 border-t border-[var(--border)] pt-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-[var(--text-muted)]">Доминирующий психотип</span>
+                                    <span className="text-sm font-semibold text-[var(--primary)] uppercase">{neuroResult.psychotype}</span>
+                                </div>
+                                <div className="text-xs text-[var(--text-muted)]">{neuroResult.reasoning}</div>
+                                <div>
+                                    <div className="text-xs text-[var(--text-muted)] mb-1">Уверенность: {neuroResult.confidence}%</div>
+                                    <div className="h-2 w-full rounded-full bg-[var(--surface)] overflow-hidden">
+                                        <div className="h-full bg-[var(--primary)]" style={{ width: `${neuroResult.confidence}%` }} />
+                                    </div>
+                                </div>
+                                <div className="rounded-xl bg-[var(--surface)] p-3 space-y-2">
+                                    <div className="text-xs text-[var(--text-muted)]">Рекомендуемый CTA</div>
+                                    <div className="text-sm text-[var(--text)] font-medium">{neuroResult.recommendation?.cta}</div>
+                                    <div className="text-xs text-[var(--text-muted)]">{neuroResult.recommendation?.headline}</div>
+                                    <div className="text-xs text-[var(--text)]">{neuroResult.recommendation?.body}</div>
+                                </div>
+                            </div>
+                        )}
+
+                        <button
+                            onClick={() => setNeuroOpen(false)}
+                            className="w-full mt-4 py-2 rounded-xl bg-[var(--surface)] text-[var(--text-muted)] text-sm hover:bg-[var(--primary-soft)] transition-colors"
+                        >
+                            Закрыть
+                        </button>
                     </div>
                 </div>
             )}

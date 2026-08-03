@@ -2506,3 +2506,15 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен
 - [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
+
+
+### [2026-08-02] — ПРОМПТ №18: Predictive + Pricing + Neuro-Sales + AdStudio
+- [x] Predictive Engine 2.0 (viral, churn 14d, forecast, auto-budget): да
+- [x] AI Pricing Engine (анализ рынка + рекомендации): да
+- [x] Neuro-Sales (психотипы аудитории): да
+- [x] Dynamic Pricing (спрос/предложение/скидки): да
+- [x] AdStudio базовый canvas (drag-drop, AI-gen, preview): да
+- [x] Backend check: успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен
+- [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Type, Image, Square, Wand2, Download, Smartphone, Monitor, Tablet, Layers, ZoomIn, ZoomOut, Move, Trash2, Copy } from 'lucide-react'
 
 const PRESETS = [
@@ -23,6 +23,12 @@ export function AdStudioTab() {
         { id: 'headline', name: 'Headline', type: 'text', visible: true },
         { id: 'cta', name: 'CTA Button', type: 'shape', visible: true },
     ])
+
+    // [P18] added: canvas elements (draggable + editable)
+    const [elements, setElements] = useState([])
+    const [selectedId, setSelectedId] = useState(null)
+    const [dragging, setDragging] = useState(null)
+    const canvasRef = useRef(null)
 
     async function handleGenerateImage() {
         if (!prompt.trim()) return
@@ -72,6 +78,89 @@ export function AdStudioTab() {
         }
     }
 
+    // [P18] added: canvas element management
+    function addElement(type, xPercent, yPercent) {
+        const id = Date.now().toString()
+        const base = {
+            id,
+            type,
+            x: Math.max(0, Math.min(90, xPercent - (type === 'text' ? 20 : 12))),
+            y: Math.max(0, Math.min(90, yPercent - 6)),
+            width: type === 'text' ? 40 : 25,
+            height: type === 'text' ? 12 : 25,
+            text: type === 'text' ? 'Новый текст' : type === 'shape' ? '' : '',
+            color: type === 'shape' ? '#8b5cf6' : type === 'text' ? '#ffffff' : '#000000',
+            fontSize: 16,
+            zIndex: elements.length + 1,
+        }
+        setElements(prev => [...prev, base])
+        setSelectedId(id)
+    }
+
+    function handleCanvasClick(e) {
+        if (activeTool === 'move' || activeTool === 'ai') return
+        if (!canvasRef.current) return
+        const rect = canvasRef.current.getBoundingClientRect()
+        const x = ((e.clientX - rect.left) / rect.width) * 100
+        const y = ((e.clientY - rect.top) / rect.height) * 100
+        addElement(activeTool, x, y)
+        setActiveTool('move')
+    }
+
+    function startDrag(e, id) {
+        e.stopPropagation()
+        if (activeTool !== 'move') setActiveTool('move')
+        const el = elements.find(el => el.id === id)
+        if (!el) return
+        setSelectedId(id)
+        setDragging({
+            id,
+            startX: e.clientX,
+            startY: e.clientY,
+            startLeft: el.x,
+            startTop: el.y,
+        })
+    }
+
+    useEffect(() => {
+        if (!dragging) return
+        function onMove(e) {
+            if (!canvasRef.current) return
+            const rect = canvasRef.current.getBoundingClientRect()
+            const dx = ((e.clientX - dragging.startX) / rect.width) * 100
+            const dy = ((e.clientY - dragging.startY) / rect.height) * 100
+            setElements(prev => prev.map(el =>
+                el.id === dragging.id
+                    ? {
+                        ...el,
+                        x: Math.max(0, Math.min(100 - el.width, dragging.startLeft + dx)),
+                        y: Math.max(0, Math.min(100 - el.height, dragging.startTop + dy)),
+                    }
+                    : el
+            ))
+        }
+        function onUp() { setDragging(null) }
+        window.addEventListener('mousemove', onMove)
+        window.addEventListener('mouseup', onUp)
+        return () => {
+            window.removeEventListener('mousemove', onMove)
+            window.removeEventListener('mouseup', onUp)
+        }
+    }, [dragging])
+
+    function updateSelected(patch) {
+        if (!selectedId) return
+        setElements(prev => prev.map(el => el.id === selectedId ? { ...el, ...patch } : el))
+    }
+
+    function deleteSelected() {
+        if (!selectedId) return
+        setElements(prev => prev.filter(el => el.id !== selectedId))
+        setSelectedId(null)
+    }
+
+    const selectedElement = elements.find(el => el.id === selectedId)
+
     const toggleLayer = (id) => {
         setLayers(prev => prev.map(l => l.id === id ? { ...l, visible: !l.visible } : l))
     }
@@ -110,11 +199,13 @@ export function AdStudioTab() {
                         </div>
                         <div className="flex-1 flex items-center justify-center overflow-hidden p-4 relative">
                             <div
-                                className="relative bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg flex items-center justify-center overflow-hidden transition-all"
+                                ref={canvasRef}
+                                onClick={handleCanvasClick}
+                                className="relative bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg flex items-center justify-center overflow-hidden transition-all cursor-crosshair"
                                 style={{ aspectRatio: PRESETS.find(p => p.id === preview)?.ratio || '1/1', maxHeight: '100%', maxWidth: '100%', transform: `scale(${zoom / 100})` }}
                             >
                                 {(!layers.find(l => l.id === 'bg')?.visible || !generatedImage) && (
-                                    <div className="absolute inset-0 flex items-center justify-center text-[var(--text-muted)]">
+                                    <div className="absolute inset-0 flex items-center justify-center text-[var(--text-muted)] pointer-events-none">
                                         <div className="text-center p-6">
                                             <div className="text-sm font-medium mb-2">Canvas {preview}</div>
                                             <div className="text-xs">Выберите инструмент или сгенерируйте креатив</div>
@@ -122,7 +213,7 @@ export function AdStudioTab() {
                                     </div>
                                 )}
                                 {layers.find(l => l.id === 'bg')?.visible && generatedImage && (
-                                    <img src={generatedImage} alt="creative" className="w-full h-full object-cover" />
+                                    <img src={generatedImage} alt="creative" className="w-full h-full object-cover pointer-events-none" />
                                 )}
                                 {layers.find(l => l.id === 'headline')?.visible && headline && (
                                     <div className="absolute top-4 left-4 right-4 text-center pointer-events-none">
@@ -134,6 +225,36 @@ export function AdStudioTab() {
                                         <div className="inline-block px-3 py-1 rounded-lg bg-[var(--primary)] text-white text-xs font-medium">{cta}</div>
                                     </div>
                                 )}
+
+                                {/* [P18] added: draggable canvas elements */}
+                                {elements.map(el => (
+                                    <div
+                                        key={el.id}
+                                        onMouseDown={(e) => startDrag(e, el.id)}
+                                        className={`absolute select-none overflow-hidden ${selectedId === el.id ? 'ring-2 ring-[var(--primary)]' : ''}`}
+                                        style={{
+                                            left: `${el.x}%`,
+                                            top: `${el.y}%`,
+                                            width: `${el.width}%`,
+                                            height: `${el.height}%`,
+                                            zIndex: el.zIndex,
+                                            backgroundColor: el.type === 'shape' ? el.color : 'transparent',
+                                            color: el.type === 'text' ? el.color : 'inherit',
+                                            fontSize: `${el.fontSize}px`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: activeTool === 'move' ? 'move' : 'pointer',
+                                        }}
+                                    >
+                                        {el.type === 'image' && (
+                                            <img src={generatedImage || 'https://placehold.co/200x200?text=Image'} alt="" className="w-full h-full object-cover" />
+                                        )}
+                                        {el.type === 'text' && (
+                                            <span className="font-medium text-center leading-tight">{el.text}</span>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
 
                             {/* Zoom controls */}
@@ -188,6 +309,65 @@ export function AdStudioTab() {
                                 </button>
                             ))}
                         </div>
+                    </div>
+
+                    {/* [P18] added: element properties panel */}
+                    <div className="pt-4 border-t border-[var(--border)]">
+                        <h4 className="text-xs font-medium text-[var(--text-muted)] mb-2">Свойства</h4>
+                        {selectedElement ? (
+                            <div className="space-y-2">
+                                {selectedElement.type === 'text' && (
+                                    <div>
+                                        <label className="text-[10px] text-[var(--text-muted)]">Текст</label>
+                                        <input
+                                            value={selectedElement.text}
+                                            onChange={(e) => updateSelected({ text: e.target.value })}
+                                            className="w-full px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text)] outline-none"
+                                        />
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="text-[10px] text-[var(--text-muted)]">X %</label>
+                                        <input type="number" value={Math.round(selectedElement.x)} onChange={(e) => updateSelected({ x: Number(e.target.value) })} className="w-full px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text)] outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] text-[var(--text-muted)]">Y %</label>
+                                        <input type="number" value={Math.round(selectedElement.y)} onChange={(e) => updateSelected({ y: Number(e.target.value) })} className="w-full px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text)] outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] text-[var(--text-muted)]">W %</label>
+                                        <input type="number" value={Math.round(selectedElement.width)} onChange={(e) => updateSelected({ width: Number(e.target.value) })} className="w-full px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text)] outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] text-[var(--text-muted)]">H %</label>
+                                        <input type="number" value={Math.round(selectedElement.height)} onChange={(e) => updateSelected({ height: Number(e.target.value) })} className="w-full px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text)] outline-none" />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="text-[10px] text-[var(--text-muted)]">Цвет</label>
+                                        <input type="color" value={selectedElement.color} onChange={(e) => updateSelected({ color: e.target.value })} className="w-full h-8 rounded-lg bg-[var(--bg)] border border-[var(--border)]" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] text-[var(--text-muted)]">z-index</label>
+                                        <input type="number" value={selectedElement.zIndex} onChange={(e) => updateSelected({ zIndex: Number(e.target.value) })} className="w-full px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text)] outline-none" />
+                                    </div>
+                                </div>
+                                {selectedElement.type === 'text' && (
+                                    <div>
+                                        <label className="text-[10px] text-[var(--text-muted)]">Размер шрифта</label>
+                                        <input type="range" min={8} max={72} value={selectedElement.fontSize} onChange={(e) => updateSelected({ fontSize: Number(e.target.value) })} className="w-full" />
+                                        <div className="text-[10px] text-[var(--text-muted)] text-right">{selectedElement.fontSize}px</div>
+                                    </div>
+                                )}
+                                <button onClick={deleteSelected} className="w-full py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 flex items-center justify-center gap-1">
+                                    <Trash2 size={12} /> Удалить
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-[10px] text-[var(--text-muted)]">Выберите элемент на canvas</div>
+                        )}
                     </div>
                 </div>
 
