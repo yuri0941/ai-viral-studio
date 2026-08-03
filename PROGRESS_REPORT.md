@@ -2655,3 +2655,14 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `94c8a7fa`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
+
+
+### [2026-08-04] — ПРОМПТ №24: Groq + OmegaCoder Fixes
+- [x] Groq: llama-3.1-70b-versatile → fallback chain (3.3-70b, 3.1-8b, mixtral)
+- [x] OmegaCoder: markdown stripper (** */^/lists)
+- [x] OmegaCoder: node --check validation before file write
+- [x] OmegaCoder: system prompt "only valid JS, no markdown"
+- [x] Backend check: 0 errors
+- [x] Frontend build: 0 errors
+- [x] Git push: done (commit `450b9c5e`)
+- [ ] Render deploy: manual Clear Build Cache & Deploy
