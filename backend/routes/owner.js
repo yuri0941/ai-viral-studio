@@ -18,6 +18,12 @@ import { protect, authorize } from '../middleware/auth.js'
 import { getProviderStatus, toggleProvider } from '../controllers/aiProviderController.js'
 import { getAdPricing, updateAdPricing } from '../controllers/adPricingController.js'
 import { updatePlanPrice } from '../controllers/subscriptionController.js'
+import {
+    trackAdSpend,
+    getRevenueShareDashboard,
+    updateCampaignRoi,
+} from '../services/revenueShareService.js'
+import { generateNicheReport, getPricing } from '../services/dataIntelligenceService.js'
 
 import { getOwnerSettings, updateOwnerSettings } from '../controllers/ownerSettingsController.js'
 import { ApiKey } from '../models/index.js'
@@ -52,6 +58,59 @@ router.post('/ai-providers/:id/toggle', protect, authorize('owner', 'admin'), to
 // Ad pricing
 router.get('/ad-pricing', protect, authorize('owner', 'admin'), getAdPricing)
 router.put('/ad-pricing', protect, authorize('owner', 'admin'), updateAdPricing)
+
+// [P20] added: revenue share dashboard for advertisers/owners
+router.get('/revenue-share', protect, authorize('owner', 'admin', 'advertiser'), async (req, res) => {
+    try {
+        const ownerId = req.user.role === 'advertiser' ? req.user.id : null
+        const data = await getRevenueShareDashboard(ownerId)
+        res.json({ status: 'success', data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.post('/revenue-share/spend', protect, authorize('owner', 'admin', 'advertiser'), async (req, res) => {
+    try {
+        const { campaignId, amount } = req.body || {}
+        const result = await trackAdSpend(campaignId, amount)
+        res.json(result)
+    } catch (err) {
+        res.status(400).json({ status: 'error', message: err.message })
+    }
+})
+
+router.patch('/revenue-share/roi/:campaignId', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const campaign = await updateCampaignRoi(req.params.campaignId, req.body.roi)
+        res.json({ status: 'success', data: campaign })
+    } catch (err) {
+        res.status(400).json({ status: 'error', message: err.message })
+    }
+})
+
+// [P20] added: data intelligence reports
+router.get('/reports/pricing', protect, authorize('owner', 'admin', 'business'), async (req, res) => {
+    try {
+        res.json({ status: 'success', data: getPricing() })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.post('/reports/intelligence', protect, authorize('owner', 'admin', 'business'), async (req, res) => {
+    try {
+        const { niche = 'all', period = 'month', format = 'json' } = req.body || {}
+        const result = await generateNicheReport(niche, period, format)
+        if (format === 'pdf') {
+            res.setHeader('Content-Type', 'application/json')
+            return res.json(result)
+        }
+        res.json(result)
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
 
 // Generic CRUD for owner entities
 router.post('/:entity', createEntity)

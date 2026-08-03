@@ -106,6 +106,14 @@ const userSchema = new mongoose.Schema(
             examples: [String],
             updatedAt: { type: Date, default: Date.now },
         },
+        // [P20] added: watermark settings for "Сделано в OMEGA"
+        watermarkSettings: {
+            enabled: { type: Boolean, default: true },
+            position: { type: String, enum: ['bottom-right', 'bottom-left', 'top-right', 'top-left', 'center'], default: 'bottom-right' },
+            opacity: { type: Number, default: 0.3, min: 0.1, max: 1 },
+            size: { type: Number, default: 0.15, min: 0.05, max: 0.5 },
+            updatedAt: { type: Date, default: Date.now },
+        },
     },
     {
         timestamps: true

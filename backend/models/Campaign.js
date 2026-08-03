@@ -22,6 +22,9 @@ const campaignSchema = new mongoose.Schema({
     ctr: { type: Number, default: 0 },
     cpc: { type: Number, default: 0 },
     roi: { type: Number, default: 0 },
+    // [P20] added: revenue share tracking
+    spend: { type: Number, default: 0, min: 0 },
+    revenueShare: { type: Number, default: 0, min: 0 },
     startDate: { type: Date },
     endDate: { type: Date },
     negotiations: { type: [negotiationSchema], default: [] },

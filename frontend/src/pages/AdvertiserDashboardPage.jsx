@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { API_BASE_URL } from '../config.js'
@@ -8,7 +8,7 @@ import {
     XCircle, Pause, Play, BarChart as BarChartIcon, PieChart, ArrowUpRight,
     ArrowDownRight, Users, Target, Clock, ChevronDown, ChevronUp,
     Send, Paperclip, Image, Video, FileType, Printer, Search, Filter,
-    Brain, Loader2, Wand2
+    Brain, Loader2, Wand2, Wallet
 } from 'lucide-react'
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -43,6 +43,34 @@ function AdvertiserDashboardPage() {
     const [neuroResult, setNeuroResult] = useState(null)
     const [neuroProduct, setNeuroProduct] = useState('фитнес-трекер')
     const [neuroGoal, setNeuroGoal] = useState('продажа')
+
+    // [P20] added: revenue share state
+    const [revenueShare, setRevenueShare] = useState({
+        totalSpend: 0,
+        totalRevenueShare: 0,
+        platformRate: 0.05,
+        pendingPayout: 0,
+        paidOut: 0,
+        payoutThreshold: 100,
+    })
+
+    useEffect(() => {
+        async function loadRevenueShare() {
+            try {
+                const token = localStorage.getItem('token')
+                const res = await fetch(`${API_BASE_URL}/owner/revenue-share`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                const data = await res.json()
+                if (data.status === 'success' && data.data) {
+                    setRevenueShare(data.data)
+                }
+            } catch (err) {
+                console.warn('[AdvertiserDashboard] revenue share load failed:', err.message)
+            }
+        }
+        loadRevenueShare()
+    }, [])
 
     const [campaigns, setCampaigns] = useState([
         {
@@ -374,6 +402,51 @@ AI Viral Studio`, {
                         <p className="text-[10px] text-[var(--text-muted)]">{stat.label}</p>
                     </div>
                 ))}
+            </div>
+
+            {/* [P20] added: Revenue Share card */}
+            <div className="glass rounded-2xl p-5">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                        <Wallet className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-semibold text-[var(--text)]">Revenue Share</h3>
+                        <p className="text-xs text-[var(--text-muted)]">{Math.round(revenueShare.platformRate * 100)}% от ad spend → платформе</p>
+                    </div>
+                    <div className="ml-auto text-right">
+                        <p className="text-xs text-[var(--text-muted)]">Всего расходов</p>
+                        <p className="text-lg font-bold text-[var(--text)]">${revenueShare.totalSpend.toLocaleString()}</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="p-4 rounded-xl bg-[var(--surface)]">
+                        <p className="text-xs text-[var(--text-muted)]">Доля платформы</p>
+                        <p className="text-xl font-bold text-[var(--accent-warm)]">${revenueShare.totalRevenueShare.toLocaleString()}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-[var(--surface)]">
+                        <p className="text-xs text-[var(--text-muted)]">Выплачено</p>
+                        <p className="text-xl font-bold text-[var(--success)]">${revenueShare.paidOut.toLocaleString()}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-[var(--surface)]">
+                        <p className="text-xs text-[var(--text-muted)]">Ожидает выплаты</p>
+                        <p className="text-xl font-bold text-[var(--primary)]">${revenueShare.pendingPayout.toLocaleString()}</p>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                        <span>Прогресс к порогу выплаты (${revenueShare.payoutThreshold})</span>
+                        <span>{Math.min(100, Math.round((revenueShare.pendingPayout / revenueShare.payoutThreshold) * 100))}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-[var(--surface)] overflow-hidden">
+                        <div
+                            className="h-full rounded-full bg-gradient-to-r from-[var(--success)] to-[var(--primary)]"
+                            style={{ width: `${Math.min(100, Math.round((revenueShare.pendingPayout / revenueShare.payoutThreshold) * 100))}%` }}
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Tabs */}

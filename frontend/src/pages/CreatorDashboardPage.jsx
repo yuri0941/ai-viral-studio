@@ -368,11 +368,15 @@ function CreatorDashboardPage() {
                     <LayoutDashboard size={18} className="text-[var(--success)]" />
                     {t('creator.quickActions')}
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <QuickAction icon={Plus} label={t('creator.createPost')} color="from-emerald-500 to-emerald-700" onClick={() => {}} />
                     <QuickAction icon={Calendar} label={t('creator.schedule')} color="from-blue-500 to-blue-700" onClick={() => {}} />
                     <QuickAction icon={BarChartIcon} label={t('creator.competitorAnalysis')} color="from-purple-500 to-pink-600" onClick={() => {}} />
                     <QuickAction icon={Bot} label={t('creator.aiChat')} color="from-amber-500 to-orange-600" onClick={() => {}} />
+                    {/* [P20] added: leaderboard quick action */}
+                    <QuickAction icon={Trophy} label="Leaderboard" color="from-yellow-500 to-orange-600" onClick={() => window.location.href = '/leaderboard'} />
+                    {/* [P20] added: challenge quick action */}
+                    <QuickAction icon={Award} label="Challenge" color="from-pink-500 to-rose-600" onClick={() => window.location.href = '/challenge'} />
                 </div>
             </div>
 

@@ -57,6 +57,7 @@ import roadmapRoutes from './routes/roadmap.js'  // ← Public roadmap + voting
 import adminRoutes from './routes/admin.js'  // Admin + emergency stop
 import selfImprovementRoutes from './routes/selfImprovement.js'  // ← P15: Self-improvement + churn + niche intelligence
 import neuroSalesRoutes from './routes/neuroSales.js'  // [P18] added: Neuro-Sales psychotypes
+import challengeRoutes from './routes/challenges.js'  // [P20] added: OMEGA Challenge
 
 const app = express()
 app.set('trust proxy', 1)
@@ -261,6 +262,7 @@ app.use('/api/gamification', gamificationRoutes)
 app.use('/api/boardroom', boardroomRoutes)
 app.use('/api/business-spawner', businessSpawnerRoutes)
 app.use('/api/neuro-sales', neuroSalesRoutes)  // [P18] added: Neuro-Sales API
+app.use('/api/challenges', challengeRoutes)  // [P20] added: OMEGA Challenge API
 app.use('/api/roadmap', roadmapRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/self-improvement', selfImprovementRoutes)

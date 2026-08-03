@@ -27,6 +27,7 @@ export const getMe = async (req, res) => {
         isAdult: user.isAdult,
         defaultAddAiLabel: user.defaultAddAiLabel,
         isVerified: user.isVerified,
+        watermarkSettings: user.watermarkSettings,
         createdAt: user.createdAt
       }
     })
@@ -38,7 +39,7 @@ export const getMe = async (req, res) => {
 export const updateMe = async (req, res) => {
   try {
     const userId = req.user.id
-    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram, role } = req.body || {}
+    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram, role, watermarkSettings } = req.body || {}
 
     const updates = {}
     if (name !== undefined) updates.name = name.trim()
@@ -46,6 +47,16 @@ export const updateMe = async (req, res) => {
     if (phone !== undefined) updates.phone = phone.trim()
     if (telegram !== undefined) updates.telegram = telegram.trim()
     if (defaultAddAiLabel !== undefined) updates.defaultAddAiLabel = !!defaultAddAiLabel
+
+    // [P20] added: watermark settings
+    if (watermarkSettings && typeof watermarkSettings === 'object') {
+      updates.watermarkSettings = {}
+      if (typeof watermarkSettings.enabled === 'boolean') updates.watermarkSettings.enabled = watermarkSettings.enabled
+      if (watermarkSettings.position) updates.watermarkSettings.position = watermarkSettings.position
+      if (typeof watermarkSettings.opacity === 'number') updates.watermarkSettings.opacity = watermarkSettings.opacity
+      if (typeof watermarkSettings.size === 'number') updates.watermarkSettings.size = watermarkSettings.size
+      updates.watermarkSettings.updatedAt = new Date()
+    }
 
     // [P16] Role switching via dashboard header
     if (role !== undefined) {
@@ -98,7 +109,8 @@ export const updateMe = async (req, res) => {
         acceptedConsent: user.acceptedConsent,
         isAdult: user.isAdult,
         defaultAddAiLabel: user.defaultAddAiLabel,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        watermarkSettings: user.watermarkSettings
       }
     })
   } catch (err) {

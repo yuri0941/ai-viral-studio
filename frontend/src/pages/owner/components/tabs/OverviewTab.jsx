@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../../context/AuthContext'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
 import { selfImprovementApi } from '../../../../services/api'
+import { API_BASE_URL } from '../../../../config.js'
 import {
     DollarSign, Users, Brain, Calendar, BarChart, Bell, KeyRound, Zap,
     ArrowUpRight, TrendingUp, Server, CreditCard, CheckSquare, MessageSquare,
     Settings, Plus, Sparkles, Activity, Lock, Bot, AlertTriangle, UserX,
+    FileText, BarChart2,
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 import '../../../../styles/animations.css'
@@ -45,6 +47,13 @@ export function OverviewTab({ data }) {
     const [atRiskUsers, setAtRiskUsers] = useState([])
     const [loadingChurn, setLoadingChurn] = useState(false)
 
+    // [P20] added: data intelligence reports state
+    const [reportNiche, setReportNiche] = useState('all')
+    const [reportPeriod, setReportPeriod] = useState('month')
+    const [reportFormat, setReportFormat] = useState('json')
+    const [reportLoading, setReportLoading] = useState(false)
+    const [reportResult, setReportResult] = useState(null)
+
     useEffect(() => {
         let mounted = true
         setLoadingChurn(true)
@@ -78,6 +87,33 @@ export function OverviewTab({ data }) {
     const businessHealth = data.aiAnalytics?.businessHealth ?? 87
 
     const go = (route) => navigate(route)
+
+    // [P20] added: data intelligence report handler
+    async function handleBuyReport() {
+        setReportLoading(true)
+        try {
+            const token = localStorage.getItem('token')
+            const res = await fetch(`${API_BASE_URL}/owner/reports/intelligence`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ niche: reportNiche, period: reportPeriod, format: reportFormat }),
+            })
+            const json = await res.json()
+            if (json.status === 'success') {
+                setReportResult(json)
+                if (reportFormat === 'pdf' && json.data?.base64) {
+                    const link = document.createElement('a')
+                    link.href = `data:application/pdf;base64,${json.data.base64}`
+                    link.download = json.data.filename
+                    link.click()
+                }
+            }
+        } catch (err) {
+            console.warn('[OverviewTab] report failed:', err.message)
+        } finally {
+            setReportLoading(false)
+        }
+    }
 
     const hour = new Date().getHours()
     const greeting = hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер'
@@ -173,6 +209,66 @@ export function OverviewTab({ data }) {
                     color="cyan"
                     onClick={() => go('/owner?tab=apiKeys')}
                 />
+
+                {/* [P20] added: data intelligence reports card */}
+                <div className="luxury-card glass p-5 sm:col-span-2 lg:col-span-1">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
+                            <BarChart2 className="w-5 h-5 text-[var(--primary)]" />
+                        </div>
+                        <div>
+                            <div className="text-sm font-medium text-[var(--text)]">📊 Отчёты по нишам</div>
+                            <div className="text-[11px] text-[var(--text-muted)]">Data Intelligence</div>
+                        </div>
+                    </div>
+                    <div className="space-y-2 mb-3">
+                        <select
+                            value={reportNiche}
+                            onChange={e => setReportNiche(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)]"
+                        >
+                            <option value="all">Все ниши</option>
+                            <option value="tech">Технологии</option>
+                            <option value="fitness">Фитнес</option>
+                            <option value="travel">Путешествия</option>
+                            <option value="food">Еда</option>
+                            <option value="gaming">Игры</option>
+                            <option value="business">Бизнес</option>
+                        </select>
+                        <div className="flex gap-2">
+                            <select
+                                value={reportPeriod}
+                                onChange={e => setReportPeriod(e.target.value)}
+                                className="flex-1 px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)]"
+                            >
+                                <option value="week">Неделя</option>
+                                <option value="month">Месяц</option>
+                                <option value="quarter">Квартал</option>
+                                <option value="year">Год</option>
+                            </select>
+                            <select
+                                value={reportFormat}
+                                onChange={e => setReportFormat(e.target.value)}
+                                className="flex-1 px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)]"
+                            >
+                                <option value="json">JSON</option>
+                                <option value="pdf">PDF</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleBuyReport}
+                        disabled={reportLoading}
+                        className="w-full py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {reportLoading ? 'Генерация…' : <><FileText className="w-3.5 h-3.5" /> Купить от ${reportPeriod === 'year' ? '149' : reportPeriod === 'quarter' ? '99' : reportPeriod === 'month' ? '79' : '49'}</>}
+                    </button>
+                    {reportResult && reportFormat === 'json' && (
+                        <div className="mt-3 p-2 rounded-xl bg-[var(--success)]/5 border border-[var(--success)]/10 text-[10px] text-[var(--success)]">
+                            Готово: {reportResult.data?.data?.totalPosts || 0} постов, ER {reportResult.data?.data?.engagementRate || 0}%
+                        </div>
+                    )}
+                </div>
 
                 <div className="luxury-card glass p-5 sm:col-span-2 lg:col-span-1">
                     <div className="flex items-center gap-2 mb-4">

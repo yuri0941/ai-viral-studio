@@ -1,6 +1,7 @@
 import express from 'express'
 import { protect } from '../middleware/auth.js'
 import { getMe, updateMe, changePassword, changeEmail, deleteMyData, exportMyData } from '../controllers/userController.js'
+import { applyWatermarkToImage, canDisableWatermark } from '../services/watermarkService.js'
 import User from '../models/User.js'
 
 const router = express.Router()
@@ -13,6 +14,40 @@ router.patch('/me/socials', protect, async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, { $set: { socials: req.body.socials } })
     res.json({ success: true })
 })
+
+// [P20] added: watermark preview
+router.post('/me/watermark-preview', protect, async (req, res) => {
+    try {
+        const { imageUrl, settings } = req.body || {}
+        if (!imageUrl) {
+            return res.status(400).json({ success: false, message: 'imageUrl is required' })
+        }
+        const user = await User.findById(req.user.id)
+        const mergedSettings = {
+            ...((user?.watermarkSettings) || {}),
+            ...(settings || {}),
+        }
+        const result = await applyWatermarkToImage(imageUrl, mergedSettings)
+        res.json({ success: result.success, data: result })
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message })
+    }
+})
+
+// [P20] added: watermark eligibility check
+router.get('/me/watermark-eligibility', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id)
+        res.json({
+            success: true,
+            canDisable: canDisableWatermark(user),
+            note: 'Отключение водяного знака доступно для Pro+ ($10/мес) или Enterprise.'
+        })
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message })
+    }
+})
+
 router.post('/change-password', protect, changePassword)
 router.post('/change-email', protect, changeEmail)
 router.delete('/me/data', protect, deleteMyData)

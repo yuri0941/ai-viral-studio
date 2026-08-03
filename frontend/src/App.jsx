@@ -26,6 +26,8 @@ const AIvsHumanPage = lazy(() => import('./pages/owner/AIvsHumanPage'))
 const BoardroomPage = lazy(() => import('./pages/owner/BoardroomPage'))
 const BusinessSpawnerPage = lazy(() => import('./pages/owner/BusinessSpawnerPage'))
 import ViralChatPage from './pages/ViralChatPage'
+import LeaderboardPage from './pages/LeaderboardPage'
+import ChallengePage from './pages/ChallengePage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
 import OwnerAppPage from './pages/owner-app/index'
 import PaymentSuccess from './pages/PaymentSuccess'
@@ -224,6 +226,16 @@ function App() {
                 <Route path="/viral-chat" element={
                     <ProtectedRoute>
                         <ViralChatPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/leaderboard" element={
+                    <ProtectedRoute allowedRoles={['creator', 'business', 'owner']}>
+                        <LeaderboardPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/challenge" element={
+                    <ProtectedRoute allowedRoles={['creator', 'business', 'owner']}>
+                        <ChallengePage />
                     </ProtectedRoute>
                 } />
                 <Route path="/advertiser-requests" element={

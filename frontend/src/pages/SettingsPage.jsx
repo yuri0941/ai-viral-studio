@@ -7,7 +7,8 @@ import {
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
     Send, Globe, Moon, Sun, Smartphone, Mail, Lock, Eye, EyeOff,
     ChevronRight, Sparkles, Crown, Zap, Users, Calendar, CreditCard,
-    Wallet, Bitcoin, Volume2, VolumeX, Linkedin, Loader2, Monitor
+    Wallet, Bitcoin, Volume2, VolumeX, Linkedin, Loader2, Monitor,
+    Stamp
 } from 'lucide-react';
 
 function SettingsPage() {
@@ -69,6 +70,18 @@ function SettingsPage() {
     const [savingSocials, setSavingSocials] = useState(false);
     const [socialsSaved, setSocialsSaved] = useState(false);
 
+    // [P20] added: watermark settings state
+    const [watermark, setWatermark] = useState({
+        enabled: true,
+        position: 'bottom-right',
+        opacity: 0.3,
+        size: 0.15,
+    });
+    const [watermarkLoading, setWatermarkLoading] = useState(false);
+    const [watermarkPreview, setWatermarkPreview] = useState('');
+    const [watermarkSaved, setWatermarkSaved] = useState(false);
+    const [watermarkEligibility, setWatermarkEligibility] = useState({ canDisable: false });
+
     useEffect(() => {
         if (user?.preferences?.timezone && user.preferences.timezone !== profile.timezone) {
             setProfile(p => ({ ...p, timezone: user.preferences.timezone }))
@@ -83,6 +96,22 @@ function SettingsPage() {
             )}))
         }
     }, [user?.socials])
+
+    // [P20] added: load watermark settings and eligibility
+    useEffect(() => {
+        if (user?.watermarkSettings) {
+            setWatermark(prev => ({ ...prev, ...user.watermarkSettings }))
+        }
+        const token = localStorage.getItem('token')
+        if (token) {
+            fetch(`${API_BASE_URL}/users/me/watermark-eligibility`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(r => r.json())
+                .then(d => setWatermarkEligibility(d || { canDisable: false }))
+                .catch(() => setWatermarkEligibility({ canDisable: false }))
+        }
+    }, [user?.watermarkSettings])
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -266,6 +295,7 @@ function SettingsPage() {
         { id: 'notifications', label: t('settings.notifications'), icon: Bell },
         { id: 'security', label: t('settings.security'), icon: Shield },
         { id: 'appearance', label: t('settings.appearance'), icon: Palette },
+        { id: 'watermark', label: 'Watermark', icon: Stamp },
     ];
 
     const socialPlatforms = [
@@ -927,6 +957,161 @@ function SettingsPage() {
         localStorage.setItem('omega_sound_enabled', JSON.stringify(next));
     };
 
+    // [P20] added: watermark handlers
+    const handleWatermarkChange = (key, value) => {
+        setWatermark(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleGeneratePreview = async () => {
+        setWatermarkLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/users/me/watermark-preview`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    imageUrl: 'https://image.pollinations.ai/prompt/viral%20social%20media%20content%20placeholder?width=1024&height=1024&nologo=true',
+                    settings: watermark,
+                }),
+            });
+            const data = await res.json();
+            if (data.success && data.data?.url) {
+                setWatermarkPreview(data.data.url);
+            } else {
+                showToast('Не удалось сгенерировать превью', 'error');
+            }
+        } catch (err) {
+            showToast('Ошибка превью: ' + err.message, 'error');
+        } finally {
+            setWatermarkLoading(false);
+        }
+    };
+
+    const handleSaveWatermark = async () => {
+        setWatermarkLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/users/me`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ watermarkSettings: watermark }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setWatermarkSaved(true);
+                setTimeout(() => setWatermarkSaved(false), 2000);
+                showToast('Настройки водяного знака сохранены', 'success');
+            } else {
+                showToast(data.message || 'Ошибка сохранения', 'error');
+            }
+        } catch (err) {
+            showToast('Ошибка сохранения: ' + err.message, 'error');
+        } finally {
+            setWatermarkLoading(false);
+        }
+    };
+
+    const renderWatermark = () => (
+        <div className="space-y-6">
+            <div className="luxury-card glass p-6 mb-4">
+                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-[var(--text)]">
+                    <Stamp size={18} className="text-[var(--success)]" /> Watermark «Сделано в OMEGA»
+                </h3>
+                <p className="text-sm text-[var(--text-muted)] mb-4">
+                    Автоматический водяной знак на контенте. Отключить могут владелец, Pro+ ($10/мес) или Enterprise.
+                </p>
+
+                <div className="flex items-center justify-between p-4 glass rounded-xl mb-4">
+                    <div>
+                        <div className="font-medium text-[var(--text)]">Активировать водяной знак</div>
+                        <div className="text-xs text-[var(--text-muted)]">Показывать на всех изображениях</div>
+                    </div>
+                    <button
+                        onClick={() => handleWatermarkChange('enabled', !watermark.enabled)}
+                        disabled={!watermark.enabled && !watermarkEligibility.canDisable}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${watermark.enabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                        aria-label={watermark.enabled ? 'Выключить' : 'Включить'}
+                    >
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${watermark.enabled ? 'translate-x-6' : ''}`} />
+                    </button>
+                </div>
+
+                {!watermarkEligibility.canDisable && (
+                    <div className="p-3 rounded-xl bg-[var(--warning)]/10 border border-[var(--warning)]/20 text-xs text-[var(--warning)] mb-4">
+                        Для отключения водяного знака требуется подписка Pro+ или Enterprise.
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">Позиция</label>
+                        <select
+                            value={watermark.position}
+                            onChange={e => handleWatermarkChange('position', e.target.value)}
+                            className={inputClass}
+                        >
+                            <option value="bottom-right">Нижний правый угол</option>
+                            <option value="bottom-left">Нижний левый угол</option>
+                            <option value="top-right">Верхний правый угол</option>
+                            <option value="top-left">Верхний левый угол</option>
+                            <option value="center">Центр</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">Размер ({Math.round(watermark.size * 100)}%)</label>
+                        <input
+                            type="range"
+                            min="5"
+                            max="50"
+                            value={Math.round(watermark.size * 100)}
+                            onChange={e => handleWatermarkChange('size', Number(e.target.value) / 100)}
+                            className="w-full accent-[var(--primary)]"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">Прозрачность ({Math.round(watermark.opacity * 100)}%)</label>
+                        <input
+                            type="range"
+                            min="10"
+                            max="100"
+                            value={Math.round(watermark.opacity * 100)}
+                            onChange={e => handleWatermarkChange('opacity', Number(e.target.value) / 100)}
+                            className="w-full accent-[var(--primary)]"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        onClick={handleGeneratePreview}
+                        disabled={watermarkLoading}
+                        className="px-4 py-2 rounded-xl bg-[var(--surface)] text-[var(--text)] text-sm hover:bg-[var(--primary-soft)] transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                        {watermarkLoading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                        Сгенерировать превью
+                    </button>
+                    <button
+                        onClick={handleSaveWatermark}
+                        disabled={watermarkLoading}
+                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                    >
+                        {watermarkSaved ? <Check size={16} /> : <Save size={16} />}
+                        {watermarkSaved ? 'Сохранено' : 'Сохранить'}
+                    </button>
+                </div>
+            </div>
+
+            {watermarkPreview && (
+                <div className="luxury-card glass p-6 mb-4">
+                    <h3 className="text-lg font-semibold mb-4 text-[var(--text)]">Превью</h3>
+                    <div className="rounded-xl overflow-hidden bg-[var(--surface)] max-w-md">
+                        <img src={watermarkPreview} alt="Watermark preview" className="w-full h-auto" />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
     const renderAppearance = () => (
         <div className="luxury-card glass p-6 mb-4 space-y-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
@@ -982,6 +1167,7 @@ function SettingsPage() {
             case 'notifications': return renderNotifications();
             case 'security': return renderSecurity();
             case 'appearance': return renderAppearance();
+            case 'watermark': return renderWatermark();
             default: return renderProfile();
         }
     };
