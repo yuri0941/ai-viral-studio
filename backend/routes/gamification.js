@@ -6,7 +6,7 @@ import {
     resolvePredictionsFromAnalytics,
     autoResolveOldPredictions,
     getPendingPredictions,
-    getLeaderboard,
+    getLeaderboard as getPredictionLeaderboard,
     getAccuracyStats,
 } from '../services/predictionGame.js'
 import {
@@ -17,6 +17,11 @@ import {
     getStats,
     autoRevealRounds,
 } from '../services/aiVsHuman.js'
+import {
+    calculateViralScore,
+    getLeaderboard as getViralLeaderboard,
+    getTop3,
+} from '../services/leaderboardService.js'
 
 const router = express.Router()
 
@@ -79,7 +84,37 @@ router.post('/predictions/auto-resolve', protect, async (req, res) => {
 router.get('/predictions/leaderboard', protect, async (req, res) => {
     try {
         const days = parseInt(req.query.days) || 30
-        const data = await getLeaderboard(req.user.id, days)
+        const data = await getPredictionLeaderboard(req.user.id, days)
+        res.json({ status: 'success', data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+// [P20] added: viral leaderboard routes
+router.get('/leaderboard', protect, async (req, res) => {
+    try {
+        const { period = 'week', niche = 'all' } = req.query || {}
+        const data = await getViralLeaderboard(period, niche)
+        res.json({ status: 'success', data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.get('/leaderboard/top3', protect, async (req, res) => {
+    try {
+        const { period = 'week', niche = 'all' } = req.query || {}
+        const data = await getTop3(period, niche)
+        res.json({ status: 'success', data })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.get('/leaderboard/score', protect, async (req, res) => {
+    try {
+        const data = await calculateViralScore(req.user.id)
         res.json({ status: 'success', data })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
