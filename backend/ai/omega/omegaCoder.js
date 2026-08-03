@@ -37,6 +37,17 @@ async function validateSyntax(code) {
     }
 }
 
+// [P24] fixed: ES6 → CommonJS converter for AI-generated code
+function convertToCommonJS(code) {
+    let cleaned = String(code || '')
+    cleaned = cleaned.replace(/^export\s+default\s+/m, 'module.exports = ')
+    cleaned = cleaned.replace(/^export\s+const\s+(\w+)\s*=/gm, 'const $1 =')
+    cleaned = cleaned.replace(/^export\s+function\s+(\w+)/gm, 'function $1')
+    cleaned = cleaned.replace(/^export\s+\{[^}]+\}\s*;?/gm, '')
+    cleaned = cleaned.replace(/^import\s+.*?from\s+['"][^'"]+['"];?\s*$/gm, '')
+    return cleaned
+}
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const PROJECT_ROOT = path.resolve(__dirname, '../../..')
@@ -192,7 +203,8 @@ export async function generatePatch(filePath, issueHint = '') {
         '3. НЕ добавляй новые зависимости.',
         '4. Сохрани существующий стиль и формат.',
         '5. Верни ТОЛЬКО чистый JavaScript код без markdown, без **, без ^, без списков. Только валидный JS.',
-        '6. Ответь ТОЛЬКО в формате JSON: { "description": "...", "patch": "полный новый код файла" }.',
+        '6. Пиши только CommonJS: module.exports, require(). НЕ используй export, import, ES6 модули.',
+        '7. Ответь ТОЛЬКО в формате JSON: { "description": "...", "patch": "полный новый код файла" }.',
         issueHint ? `Контекст проблемы: ${issueHint}` : '',
         `Файл: ${fileName}`,
         '---',
@@ -303,8 +315,8 @@ export async function approvePatch(patchId) {
         throw new Error('Forbidden patch path')
     }
 
-    // [P24] fixed: strip markdown and validate syntax before writing
-    const cleaned = extractCode(item.patch)
+    // [P24] fixed: strip markdown, convert ES6 → CommonJS and validate syntax before writing
+    const cleaned = convertToCommonJS(extractCode(item.patch))
     const syntaxOk = await validateSyntax(cleaned)
     if (!syntaxOk) {
         await logAttempt('patch_syntax_invalid', { filePath: item.filePath, patchId }, 'high')
@@ -313,6 +325,13 @@ export async function approvePatch(patchId) {
     }
 
     await fs.writeFile(item.filePath, cleaned, 'utf8')
+    try {
+        execSync(`node --check "${item.filePath}"`, { timeout: 5000 })
+    } catch (err) {
+        await logAttempt('patch_write_failed', { filePath: item.filePath, patchId, error: err.message }, 'high')
+        console.error('[OmegaCoder] Write failed:', err.message)
+        throw new Error('Patch file write validation failed')
+    }
     await OmegaApproval.updateOne({ patchId }, { $set: { status: 'applied', appliedAt: new Date() } })
 
     await logAttempt('patch_applied', { filePath: item.filePath, patchId }, 'medium')
