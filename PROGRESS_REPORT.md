@@ -2529,3 +2529,15 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен
 - [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
+
+
+### [2026-08-03] — ПРОМПТ №20: Post-Launch Growth
+- [x] gamification.js updated: getPredictionLeaderboard + viral routes
+- [x] Watermark "Сделано в OMEGA": да (`backend/services/watermarkService.js`, `User.watermarkSettings`, секция в SettingsPage)
+- [x] Viral Leaderboard (топ-100, анонимно, призы): да (`backend/services/leaderboardService.js`, `/api/gamification/leaderboard`, `/leaderboard`)
+- [x] OMEGA Challenge (ежемесячный, AI-оценка, кейсы): да (`backend/models/Challenge.js`, `/api/challenges/*`, `/challenge`)
+- [x] Revenue Share (5% от ad spend): да (`backend/services/revenueShareService.js`, карточка в AdvertiserDashboard)
+- [x] Data Intelligence Reports ($49-149): да (`backend/services/dataIntelligenceService.js`, `/api/owner/reports/intelligence`, карточка в OwnerDashboard)
+- [x] Backend check: успешно (node --check всех новых/изменённых файлов)
+- [x] Frontend build: успешно (npm run build, 0 ошибок)
+- [x] Git push: выполнен (commit `a78c52be`)
