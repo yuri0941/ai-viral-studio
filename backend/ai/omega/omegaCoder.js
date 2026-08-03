@@ -1,7 +1,8 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { exec } from 'child_process'
+import { exec, execSync } from 'child_process'
+import os from 'os'
 import { promisify } from 'util'
 import { chatWithAI } from '../../services/aiService.js'
 import { AuditLog } from '../../models/AuditLog.js'
@@ -10,6 +11,31 @@ import { Sandbox } from './sandbox.js'
 import { alertOmega } from '../../services/omegaBot.js'
 
 const execAsync = promisify(exec)
+
+// [P24] fixed: markdown stripper for AI-generated code
+function extractCode(aiResponse) {
+    let cleaned = String(aiResponse || '')
+    cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, '$1')
+    cleaned = cleaned.replace(/\*(.*?)\*/g, '$1')
+    cleaned = cleaned.replace(/^#{1,6}\s+/gm, '// ')
+    cleaned = cleaned.replace(/^[\-\*]\s+/gm, '// ')
+    cleaned = cleaned.replace(/\^/g, '')
+    return cleaned
+}
+
+// [P24] fixed: syntax validation before writing file
+async function validateSyntax(code) {
+    const tmp = path.join(os.tmpdir(), `omega-check-${Date.now()}.js`)
+    await fs.writeFile(tmp, code)
+    try {
+        execSync(`node --check ${tmp}`, { timeout: 5000 })
+        return true
+    } catch {
+        return false
+    } finally {
+        try { await fs.unlink(tmp) } catch {}
+    }
+}
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -165,7 +191,8 @@ export async function generatePatch(filePath, issueHint = '') {
         '2. НЕ меняй auth, users, payments, env, порты, CORS.',
         '3. НЕ добавляй новые зависимости.',
         '4. Сохрани существующий стиль и формат.',
-        '5. Ответь ТОЛЬКО в формате JSON: { "description": "...", "patch": "полный новый код файла" }.',
+        '5. Верни ТОЛЬКО чистый JavaScript код без markdown, без **, без ^, без списков. Только валидный JS.',
+        '6. Ответь ТОЛЬКО в формате JSON: { "description": "...", "patch": "полный новый код файла" }.',
         issueHint ? `Контекст проблемы: ${issueHint}` : '',
         `Файл: ${fileName}`,
         '---',
@@ -276,7 +303,16 @@ export async function approvePatch(patchId) {
         throw new Error('Forbidden patch path')
     }
 
-    await fs.writeFile(item.filePath, item.patch, 'utf8')
+    // [P24] fixed: strip markdown and validate syntax before writing
+    const cleaned = extractCode(item.patch)
+    const syntaxOk = await validateSyntax(cleaned)
+    if (!syntaxOk) {
+        await logAttempt('patch_syntax_invalid', { filePath: item.filePath, patchId }, 'high')
+        console.error('[OmegaCoder] Syntax invalid, skipping write')
+        throw new Error('Patch syntax validation failed')
+    }
+
+    await fs.writeFile(item.filePath, cleaned, 'utf8')
     await OmegaApproval.updateOne({ patchId }, { $set: { status: 'applied', appliedAt: new Date() } })
 
     await logAttempt('patch_applied', { filePath: item.filePath, patchId }, 'medium')

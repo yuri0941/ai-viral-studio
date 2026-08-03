@@ -28,6 +28,9 @@ export function invalidateApiKeysCache() {
     cachedKeys = null
 }
 
+// [P24] fixed: Groq model fallback chain
+const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768']
+
 // ============ CACHE ============
 const responseCache = new Map()
 const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
@@ -343,12 +346,8 @@ async function chatWithGroq(prompt, ownerId = null) {
         throw new Error('No valid Groq key')
     }
     console.log('🚀 Calling Groq...')
-    // [P23] fixed: Groq model fallback chain (3.3 primary → 3.1-8b-instant → mixtral)
-    const models = [
-        process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
-        'mixtral-8x7b-32768'
-    ]
+    // [P24] fixed: use centralized GROQ_MODELS fallback chain
+    const models = [process.env.GROQ_MODEL, ...GROQ_MODELS].filter(Boolean)
     let lastErr
     for (const model of models) {
         try {
@@ -666,7 +665,7 @@ export const streamChat = async (message, history = [], onChunk, ownerId = null)
         const messages = formatMessages(message, history)
         const stream = await client.chat.completions.create({
             messages,
-            model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+            model: process.env.GROQ_MODEL || GROQ_MODELS[0],
             temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
             max_tokens: parseInt(process.env.GROQ_MAX_TOKENS || '4096'),
             stream: true
