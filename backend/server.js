@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
 import mongoose from 'mongoose'
 import { connectDB, isConnected } from './config/database.js'
+import { connectRedis } from './config/redisClient.js' // [P24] fixed: Redis import
 import { errorHandler } from './middleware/errorHandler.js'
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import bot from './services/ownerBot.js'
@@ -76,6 +77,7 @@ import { createOmegaBackend } from './ai/omega/index.js'
 
 // Connect to database before starting server
 await connectDB()
+await connectRedis() // [P24] fixed: connect Redis with in-memory fallback
 
 if (!isConnected) {
     console.error('❌ Cannot start server without MongoDB connection')
