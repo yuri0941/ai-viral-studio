@@ -2751,3 +2751,23 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `90c3787c`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
+
+
+### [2026-08-04] — ПРОМПТ №24: Unified Plans + Currency + Payments Fix
+- [x] Unified plans config: frontend/src/config/plans.js + backend/config/plans.js (RUB + USD prices)
+- [x] SubscriptionsPage (owner tab): uses PLANS config, no hardcoded prices
+- [x] SettingsPage Подписка (client): uses PLANS config, no hardcoded $
+- [x] Currency selector: RUB/USD/EUR/UAH/KZT with getPrice()
+- [x] Geo-IP detection: default currency based on IP via /api/subscriptions/config
+- [x] Payment methods: ЮKassa, Stripe, PayPal, Crypto via backend service
+- [x] Fix: payment error "Unexpected token '<'" — backend returns JSON
+- [x] Fix: loading buttons timeout + AbortController 10s + fallback to ЮKassa
+- [x] i18n: subscriptions.* keys in ru + en
+- [x] Fix: getProviderKey ObjectId validation
+- [x] Fix: Groq model fallback (llama-3.3-70b-versatile)
+- [x] Fix: Telegram 409 conflict + deleteWebhook + ENABLE_TELEGRAM guard
+- [x] Fix: OmegaCoder ES6→CommonJS + markdown strip + syntax validation
+- [x] Frontend build: 0 errors
+- [x] Backend check: 0 errors
+- [x] Git push: done (commit `2bf63e3d`)
+- [ ] Render deploy: manual Clear Build Cache & Deploy
