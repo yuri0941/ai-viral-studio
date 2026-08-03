@@ -233,6 +233,29 @@ function AdminDashboardPage() {
         }
     }
 
+    // [P16-FIX] moved above userColumns useMemo to avoid TDZ/use-before-declaration
+    const handleToggleStatus = (userId) => {
+        setUsers(users.map(u => {
+            if (u.id === userId) {
+                const newStatus = u.status === 'active' ? 'banned' : 'active'
+                showToast(`Статус изменён на "${getStatusLabel(newStatus)}"`)
+                return { ...u, status: newStatus }
+            }
+            return u
+        }))
+    }
+
+    const openEditModal = (user) => {
+        setSelectedUser(user)
+        setEditForm({ name: user.name, email: user.email, role: user.role, status: user.status })
+        setShowEditModal(true)
+    }
+
+    const openDeleteModal = (user) => {
+        setSelectedUser(user)
+        setShowDeleteModal(true)
+    }
+
     const userColumns = useMemo(() => [
         {
             key: 'selected',
@@ -357,33 +380,11 @@ function AdminDashboardPage() {
         showToast('Изменения сохранены')
     }
 
-    const handleToggleStatus = (userId) => {
-        setUsers(users.map(u => {
-            if (u.id === userId) {
-                const newStatus = u.status === 'active' ? 'banned' : 'active'
-                showToast(`Статус изменён на "${getStatusLabel(newStatus)}"`)
-                return { ...u, status: newStatus }
-            }
-            return u
-        }))
-    }
-
     const handleDeleteUser = () => {
         setUsers(users.filter(u => u.id !== selectedUser.id))
         setShowDeleteModal(false)
         showToast(`Пользователь ${selectedUser.name} удалён`)
         setSelectedUser(null)
-    }
-
-    const openEditModal = (user) => {
-        setSelectedUser(user)
-        setEditForm({ name: user.name, email: user.email, role: user.role, status: user.status })
-        setShowEditModal(true)
-    }
-
-    const openDeleteModal = (user) => {
-        setSelectedUser(user)
-        setShowDeleteModal(true)
     }
 
     // --- STATS CARDS ---

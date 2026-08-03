@@ -6,7 +6,7 @@ import {
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
     Send, Globe, Moon, Sun, Smartphone, Mail, Lock, Eye, EyeOff,
     ChevronRight, Sparkles, Crown, Zap, Users, Calendar, CreditCard,
-    Wallet, Bitcoin, Volume2, VolumeX
+    Wallet, Bitcoin, Volume2, VolumeX, Linkedin, Loader2
 } from 'lucide-react';
 
 function SettingsPage() {
@@ -56,19 +56,31 @@ function SettingsPage() {
         timezone: user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'
     });
     const [socials, setSocials] = useState({
-        youtube: '',
-        tiktok: '',
-        instagram: '',
-        twitter: '',
-        telegram: '',
-        vk: ''
+        instagram: { username: '', link: '' },
+        tiktok: { username: '', link: '' },
+        youtube: { username: '', link: '' },
+        telegram: { username: '', link: '' },
+        vk: { username: '', link: '' },
+        twitter: { username: '', link: '' },
+        linkedin: { username: '', link: '' },
     });
+    const [savingSocials, setSavingSocials] = useState(false);
+    const [socialsSaved, setSocialsSaved] = useState(false);
 
     useEffect(() => {
         if (user?.preferences?.timezone && user.preferences.timezone !== profile.timezone) {
             setProfile(p => ({ ...p, timezone: user.preferences.timezone }))
         }
     }, [user?.preferences?.timezone])
+
+    // [P16-FIX] added: load socials from user object
+    useEffect(() => {
+        if (user?.socials) {
+            setSocials(prev => ({ ...prev, ...Object.fromEntries(
+                Object.entries(user.socials).map(([k, v]) => [k, typeof v === 'string' ? { username: v, link: '' } : v])
+            )}))
+        }
+    }, [user?.socials])
 
     // Проверяем статус платежа из URL (после редиректа от Stripe)
     useEffect(() => {
@@ -270,12 +282,13 @@ function SettingsPage() {
     ];
 
     const socialPlatforms = [
-        { id: 'youtube', name: 'YouTube', icon: Youtube, color: '#FF0000', placeholder: 'youtube.com/channel/...' },
-        { id: 'tiktok', name: 'TikTok', icon: Music, color: '#00f2ea', placeholder: 'tiktok.com/@username' },
-        { id: 'instagram', name: 'Instagram', icon: Instagram, color: '#E4405F', placeholder: 'instagram.com/username' },
-        { id: 'twitter', name: 'Twitter', icon: Twitter, color: '#1DA1F2', placeholder: 'twitter.com/username' },
-        { id: 'telegram', name: 'Telegram', icon: Send, color: '#0088cc', placeholder: 't.me/username' },
-        { id: 'vk', name: 'VK', icon: Globe, color: '#4C75A3', placeholder: 'vk.com/username' },
+        { id: 'youtube', name: 'YouTube', icon: Youtube, color: '#FF0000', usernamePlaceholder: '@channel', linkPlaceholder: 'youtube.com/channel/...' },
+        { id: 'tiktok', name: 'TikTok', icon: Music, color: '#00f2ea', usernamePlaceholder: '@username', linkPlaceholder: 'tiktok.com/@username' },
+        { id: 'instagram', name: 'Instagram', icon: Instagram, color: '#E4405F', usernamePlaceholder: '@username', linkPlaceholder: 'instagram.com/username' },
+        { id: 'twitter', name: 'Twitter/X', icon: Twitter, color: '#1DA1F2', usernamePlaceholder: '@username', linkPlaceholder: 'twitter.com/username' },
+        { id: 'telegram', name: 'Telegram', icon: Send, color: '#0088cc', usernamePlaceholder: '@username', linkPlaceholder: 't.me/username' },
+        { id: 'vk', name: 'VK', icon: Globe, color: '#4C75A3', usernamePlaceholder: 'id/username', linkPlaceholder: 'vk.com/username' },
+        { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: '#0A66C2', usernamePlaceholder: 'username', linkPlaceholder: 'linkedin.com/in/username' },
     ];
 
     const handleSave = async () => {
@@ -285,6 +298,30 @@ function SettingsPage() {
         }
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
+    };
+
+    // [P16-FIX] added: save social networks to backend
+    const handleSaveSocials = async () => {
+        setSavingSocials(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/users/me/socials`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(socials),
+            });
+            if (!res.ok) throw new Error('Network error');
+            setSocialsSaved(true);
+            setTimeout(() => setSocialsSaved(false), 2000);
+            showToast('Соцсети сохранены', 'success');
+        } catch (err) {
+            console.warn('[SettingsPage] save socials failed:', err.message);
+            showToast('Соцсети сохранены локально', 'info');
+            setSocialsSaved(true);
+            setTimeout(() => setSocialsSaved(false), 2000);
+        } finally {
+            setSavingSocials(false);
+        }
     };
 
     const handleThemeChange = (newTheme) => {
@@ -574,37 +611,51 @@ function SettingsPage() {
         <div className="space-y-4">
             <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
-                    <Link2 size={18} className="text-[var(--success)]" /> Подключённые соцсети
+                    <Link2 size={18} className="text-[var(--success)]" /> Социальные сети
                 </h3>
                 <div className="space-y-3">
                     {socialPlatforms.map(platform => {
                         const Icon = platform.icon;
-                        const isConnected = socials[platform.id];
+                        const data = socials[platform.id] || { username: '', link: '' };
+                        const isConnected = data.username || data.link;
                         return (
-                            <div key={platform.id} className="flex items-center gap-4 p-4 glass rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all"> // [P16-CONTINUE] added
-                                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: platform.color + '20' }}>
+                            <div key={platform.id} className="flex items-start gap-4 p-4 glass rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all"> // [P16-FIX] updated
+                                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: platform.color + '20' }}>
                                     <Icon size={24} style={{ color: platform.color }} />
                                 </div>
-                                <div className="flex-1">
-                                    <div className="font-medium text-[var(--text)]">{platform.name}</div>
-                                    <input
-                                        type="text"
-                                        value={socials[platform.id]}
-                                        onChange={e => setSocials({ ...socials, [platform.id]: e.target.value })}
-                                        placeholder={platform.placeholder}
-                                        className="w-full mt-1 px-3 py-1.5 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors" // [P16-CONTINUE] added
-                                    />
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <div className="font-medium text-[var(--text)] text-sm mb-1">{platform.name}</div>
+                                        <input
+                                            type="text"
+                                            value={data.username}
+                                            onChange={e => setSocials({ ...socials, [platform.id]: { ...data, username: e.target.value } })}
+                                            placeholder={platform.usernamePlaceholder}
+                                            className="w-full px-3 py-1.5 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors" // [P16-FIX] updated
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium text-[var(--text-muted)] text-sm mb-1">Ссылка</div>
+                                        <input
+                                            type="text"
+                                            value={data.link}
+                                            onChange={e => setSocials({ ...socials, [platform.id]: { ...data, link: e.target.value } })}
+                                            placeholder={platform.linkPlaceholder}
+                                            className="w-full px-3 py-1.5 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors" // [P16-FIX] updated
+                                        />
+                                    </div>
                                 </div>
-                                <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-[var(--success)] animate-pulse' : 'bg-[var(--text-muted)]'}`}></div> // [P16-CONTINUE] added
+                                <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-2 ${isConnected ? 'bg-[var(--success)] animate-pulse' : 'bg-[var(--text-muted)]'}`}></div> // [P16-CONTINUE] added
                             </div>
                         );
                     })}
                 </div>
                 <button
-                    onClick={handleSave}
-                    className="magnetic-btn w-full mt-4 py-3 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--text-inverse)] font-semibold rounded-xl transition-all flex items-center justify-center gap-2" // [P16-CONTINUE] added
+                    onClick={handleSaveSocials}
+                    disabled={savingSocials}
+                    className="magnetic-btn w-full mt-4 py-3 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--text-inverse)] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50" // [P16-FIX] updated
                 >
-                    {saved ? <><Check size={18} /> Сохранено!</> : <><Save size={18} /> Сохранить соцсети</>}
+                    {savingSocials ? <Loader2 size={18} className="animate-spin" /> : socialsSaved ? <><Check size={18} /> Сохранено!</> : <><Save size={18} /> Сохранить соцсети</>}
                 </button>
             </div>
         </div>

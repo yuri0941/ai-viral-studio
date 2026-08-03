@@ -16,6 +16,7 @@ export const getMe = async (req, res) => {
         subscription: user.subscription,
         avatar: user.avatar,
         socialAccounts: user.socialAccounts,
+        socials: user.socials,
         preferences: user.preferences,
         timezone: user.preferences?.timezone,
         phone: user.phone,
@@ -87,6 +88,7 @@ export const updateMe = async (req, res) => {
         subscription: user.subscription,
         avatar: user.avatar,
         socialAccounts: user.socialAccounts,
+        socials: user.socials,
         preferences: user.preferences,
         timezone: user.preferences?.timezone,
         phone: user.phone,
@@ -99,6 +101,33 @@ export const updateMe = async (req, res) => {
         isVerified: user.isVerified
       }
     })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+}
+
+// [P16-FIX] added: update user socials
+export const updateSocials = async (req, res) => {
+  try {
+    const userId = req.user.id
+    const { instagram, tiktok, youtube, telegram, vk, twitter, linkedin } = req.body || {}
+    const updates = {}
+    const platforms = { instagram, tiktok, youtube, telegram, vk, twitter, linkedin }
+    Object.entries(platforms).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        updates[`socials.${key}`] = {
+          username: String(value.username || '').trim(),
+          link: String(value.link || '').trim(),
+        }
+      }
+    })
+
+    const user = await User.findByIdAndUpdate(userId, { $set: updates }, { new: true })
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' })
+    }
+
+    res.json({ success: true, socials: user.socials })
   } catch (err) {
     res.status(500).json({ success: false, message: err.message })
   }

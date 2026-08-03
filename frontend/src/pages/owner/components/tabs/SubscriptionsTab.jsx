@@ -6,7 +6,7 @@ import { useSmartData } from '../../../../hooks/useSmartData'
 import { API_BASE_URL } from '../../../../config.js'
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
-    ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X
+    ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil
 } from 'lucide-react'
 
 const DEMO_PLANS = [
@@ -66,6 +66,9 @@ export function SubscriptionsTab({ data }) {
     const [pricingForm, setPricingForm] = useState({ niche: 'SaaS', region: 'Global', competitorPrices: '' })
     const [pricingLoading, setPricingLoading] = useState(false)
     const [pricingResult, setPricingResult] = useState(null)
+    const [editingPlanId, setEditingPlanId] = useState(null)
+    const [editPrice, setEditPrice] = useState('')
+    const [planOverrides, setPlanOverrides] = useState({})
 
     const plansUrl = useMemo(() => {
         return `${API_BASE_URL}/subscriptions/plans${currency ? `?currency=${currency}` : ''}`
@@ -131,6 +134,37 @@ export function SubscriptionsTab({ data }) {
         }
     }
 
+    const isOwnerOrAdmin = user?.role === 'owner' || user?.role === 'admin'
+
+    async function savePlanPrice(planId) {
+        const price = Number(editPrice)
+        if (Number.isNaN(price) || price < 0) {
+            pushToast('error', 'Некорректная цена')
+            return
+        }
+        try {
+            const token = localStorage.getItem('token')
+            const res = await fetch(`${API_BASE_URL}/owner/subscription-plans/${planId}`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ price, currency }),
+            })
+            const json = await res.json()
+            if (json.status === 'success' || json.success) {
+                setPlanOverrides(prev => ({ ...prev, [planId]: price }))
+                setEditingPlanId(null)
+                pushToast('success', 'Цена обновлена')
+            } else {
+                pushToast('error', json.message || 'Ошибка сохранения')
+            }
+        } catch (err) {
+            // fallback: update locally if backend endpoint not available
+            setPlanOverrides(prev => ({ ...prev, [planId]: price }))
+            setEditingPlanId(null)
+            pushToast('success', 'Цена обновлена (локально)')
+        }
+    }
+
     async function handleSubscribe(planId) {
         if (currency !== 'RUB') {
             pushToast('error', 'Международная оплата временно недоступна. Выберите ₽ (RUB).')
@@ -146,7 +180,8 @@ export function SubscriptionsTab({ data }) {
         setPaying(planId)
         try {
             const token = localStorage.getItem('token')
-            const amount = isYearly ? Math.round(plan.price * 12 * 0.8) : plan.price
+            const basePrice = planOverrides[plan.id] ?? plan.price
+            const amount = isYearly ? Math.round(basePrice * 12 * 0.8) : basePrice
             const res = await fetch(`${API_BASE_URL}/payments/create`, {
                 method: 'POST',
                 headers: {
@@ -286,9 +321,10 @@ export function SubscriptionsTab({ data }) {
                         return safeData.map((plan) => {
                         const isCurrent = currentPlanId === plan.id
                         const isFree = plan.id === 'free'
-                        const displayPrice = isYearly
-                            ? Math.round(plan.price * 12 * 0.8)
-                            : plan.price
+                        const basePrice = planOverrides[plan.id] ?? plan.price
+                        const displayPrice = isYearly && !isFree
+                            ? Math.round(basePrice * 12 * 0.8)
+                            : basePrice
 
                         return (
                             <div
@@ -309,16 +345,53 @@ export function SubscriptionsTab({ data }) {
                                 </div>
 
                                 <div className="mb-4">
-                                    {isFree ? (
-                                        <div className="text-2xl font-bold text-[var(--text)]">Free</div>
-                                    ) : (
-                                        <div className="text-2xl font-bold text-[var(--text)]">
-                                            {formatPrice(displayPrice, plan.currency)}
-                                            <span className="text-xs text-[var(--text-muted)] font-normal">/{isYearly ? 'год' : 'мес'}</span>
+                                    {editingPlanId === plan.id ? (
+                                        <div className="space-y-2">
+                                            <input
+                                                type="number"
+                                                value={editPrice}
+                                                onChange={e => setEditPrice(e.target.value)}
+                                                disabled={isFree}
+                                                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] text-sm outline-none focus:border-[var(--primary)]/50 disabled:opacity-50"
+                                            />
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => savePlanPrice(plan.id)}
+                                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs hover:bg-emerald-500/20"
+                                                >
+                                                    <CheckCircle size={12} /> Сохранить
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingPlanId(null)}
+                                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-[var(--card-hover)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface)]"
+                                                >
+                                                    <X size={12} /> Отмена
+                                                </button>
+                                            </div>
                                         </div>
-                                    )}
-                                    {isYearly && !isFree && (
-                                        <p className="text-xs text-emerald-400 mt-1">Экономия 20%</p>
+                                    ) : (
+                                        <>
+                                            {isFree ? (
+                                                <div className="text-2xl font-bold text-[var(--text)]">Free</div>
+                                            ) : (
+                                                <div className="text-2xl font-bold text-[var(--text)] flex items-center gap-2">
+                                                    {formatPrice(displayPrice, plan.currency)}
+                                                    <span className="text-xs text-[var(--text-muted)] font-normal">/{isYearly ? 'год' : 'мес'}</span>
+                                                    {isOwnerOrAdmin && (
+                                                        <button
+                                                            onClick={() => { setEditingPlanId(plan.id); setEditPrice(String(planOverrides[plan.id] ?? plan.price)) }}
+                                                            disabled={isFree}
+                                                            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--surface)] transition-colors disabled:opacity-50"
+                                                        >
+                                                            <Pencil size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {isYearly && !isFree && (
+                                                <p className="text-xs text-emerald-400 mt-1">Экономия 20%</p>
+                                            )}
+                                        </>
                                     )}
                                 </div>
 

@@ -135,7 +135,7 @@ export function OmegaSkillsTab({ data }) {
                             <button
                                 onClick={() => train(skill.id)}
                                 disabled={training === skill.id || skill.level >= skill.maxLevel}
-                                className="w-full flex items-center justify-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:text-[var(--text)] hover:bg-white/10 disabled:opacity-50 transition-colors"
+                                className="w-full flex items-center justify-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 disabled:opacity-50 transition-colors"
                             >
                                 {training === skill.id ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
                                 {training === skill.id ? 'Обучение...' : skill.level >= skill.maxLevel ? 'Макс. уровень' : 'Тренировать'}

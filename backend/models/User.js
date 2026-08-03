@@ -75,6 +75,15 @@ const userSchema = new mongoose.Schema(
             pinterest: { username: String, connected: { type: Boolean, default: false } },
             vk: { userId: String, connected: { type: Boolean, default: false } }
         },
+        socials: {
+            instagram: { username: { type: String, default: '' }, link: { type: String, default: '' } },
+            tiktok: { username: { type: String, default: '' }, link: { type: String, default: '' } },
+            youtube: { username: { type: String, default: '' }, link: { type: String, default: '' } },
+            telegram: { username: { type: String, default: '' }, link: { type: String, default: '' } },
+            vk: { username: { type: String, default: '' }, link: { type: String, default: '' } },
+            twitter: { username: { type: String, default: '' }, link: { type: String, default: '' } },
+            linkedin: { username: { type: String, default: '' }, link: { type: String, default: '' } },
+        },
         phone: { type: String, default: '' },
         telegram: { type: String, default: '' },
         apiKeys: [{

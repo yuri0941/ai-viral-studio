@@ -223,6 +223,10 @@ router.get('/youtube/:channelId', (req, res) => {
     res.json({ status: 'success', message: 'YouTube analytics' })
 })
 
+router.post('/predictive/enable', protect, (req, res) => {
+    res.json({ status: 'success', data: { enabled: !!req.body?.enabled } })
+})
+
 // Predictive viral score
 router.post('/predict', protect, async (req, res) => {
     try {

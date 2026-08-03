@@ -317,19 +317,13 @@ export function AppSidebar({
                                         <button
                                             key={item.id || item.path}
                                             onClick={() => handleItemClick(item)}
-                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left relative min-h-[44px] ${
+                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-r-xl text-sm font-medium transition-all text-left relative min-h-[44px] ${
                                                 active
-                                                    ? 'text-[var(--text)] bg-[var(--primary)]/10'
+                                                    ? 'text-[var(--text)] bg-[var(--primary-soft)] border-l-[3px] border-[var(--primary)]'
                                                     : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'
                                             } ${isExpanded ? '' : 'justify-center'}`}
                                             title={itemLabel(item)}
                                         >
-                                            {active && (
-                                                <div
-                                                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full"
-                                                    style={{ backgroundColor: ACTIVE_COLOR }}
-                                                />
-                                            )}
                                             <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-[var(--primary)]' : ''}`} />
                                             {isExpanded && <span className="truncate">{itemLabel(item)}</span>}
                                         </button>

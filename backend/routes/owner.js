@@ -17,6 +17,7 @@ import {
 import { protect, authorize } from '../middleware/auth.js'
 import { getProviderStatus, toggleProvider } from '../controllers/aiProviderController.js'
 import { getAdPricing, updateAdPricing } from '../controllers/adPricingController.js'
+import { updatePlanPrice } from '../controllers/subscriptionController.js'
 
 import { getOwnerSettings, updateOwnerSettings } from '../controllers/ownerSettingsController.js'
 
@@ -33,6 +34,10 @@ router.get('/agents', getAgents)
 router.get('/promos', getPromos)
 router.get('/news', getNews)
 router.get('/subscriptions', getSubscriptions)
+router.patch('/subscription-plans/:planId', protect, authorize('owner', 'admin'), (req, res, next) => {
+    req.body = { ...req.body, planId: req.params.planId }
+    return updatePlanPrice(req, res, next)
+})
 
 // Owner settings (OMEGA features toggles)
 router.get('/settings', protect, authorize('owner', 'admin'), getOwnerSettings)

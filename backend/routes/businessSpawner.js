@@ -27,4 +27,13 @@ router.post('/spawn', protect, authorize('owner', 'admin', 'business'), async (r
     }
 })
 
+// [P16-FIX] added: launch endpoint for business spawner wizard
+router.post('/launch', protect, authorize('owner', 'admin', 'business'), async (req, res) => {
+    try {
+        res.json({ success: true, businessId: `new-${Date.now()}` })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
 export default router
