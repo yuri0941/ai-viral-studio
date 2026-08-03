@@ -2696,3 +2696,18 @@
 - [x] Frontend build: 0 errors
 - [x] Git push: done (commit `bba90731`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
+
+
+### [2026-08-04] — ПРОМПТ №24: OMEGA Role + Language Fix
+- [x] auth.js: req.user содержит role
+- [x] User model: role enum verified
+- [x] omegaController.js: передаёт req.user.role во все вызовы
+- [x] privacyFirewall.js: корректная проверка owner/admin/staff/client
+- [x] contextEngine.js: роль + язык в system prompt
+- [x] omegaGuard.js: ролевая проверка MRR/инфраструктуры
+- [x] aiService.js: автоопределение языка запроса
+- [x] OmegaChat.jsx: отправка userRole на бэкенд
+- [x] Frontend build: 0 errors
+- [x] Backend check: 0 errors
+- [x] Git push: done (commit `301baad2`)
+- [ ] Render deploy: manual Clear Build Cache & Deploy
