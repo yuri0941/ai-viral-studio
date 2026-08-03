@@ -2619,3 +2619,20 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `a3512195`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
+
+
+### [2026-08-04] — ПРОМПТ №23: i18n + Luxury Light Theme + UI Fixes + Server Fixes
+- [x] i18n keys added: settings.*, subscriptions.*, apiKeys.* (ru + en)
+- [x] SettingsPage appearance tab: theme, language, animations, sounds
+- [x] Luxury light theme: #f8f7f4 bg, shadows, glassmorphism
+- [x] Sidebar + tables + cards light theme: correct colors
+- [x] Adaptive: responsive widths, modals max-w-[95vw], tables overflow-x-auto
+- [x] Buttons: all onClick, loading, toggle, navigate, toast
+- [x] Fix: getProviderKey ObjectId validation (ownerId="omega")
+- [x] Fix: Groq model updated (llama-3.3-70b-versatile + fallback chain)
+- [x] Fix: Telegram 409 conflict + deleteWebhook deprecated + ENABLE_TELEGRAM guard
+- [x] Fix: OmegaCoder JSON.parse try-catch
+- [x] Frontend build: 0 errors
+- [x] Backend check: 0 errors
+- [x] Git push: done (commit `eeb0d90f`)
+- [ ] Render deploy: manual Clear Build Cache & Deploy
