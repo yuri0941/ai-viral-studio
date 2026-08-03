@@ -17,7 +17,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage'
 import StaffDashboardPage from './pages/StaffDashboardPage'
 import AdvertiserDashboardPage from './pages/AdvertiserDashboardPage'
 import CreatorDashboardPage from './pages/CreatorDashboardPage'
-import AIChatPage from './pages/AIChatPage'
+const AIChatPage = lazy(() => import('./pages/AIChatPage'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
 const SchedulerPage = lazy(() => import('./pages/SchedulerPage'))
 import SettingsPage from './pages/SettingsPage'
@@ -25,7 +25,7 @@ const ContentAnalyzerPage = lazy(() => import('./pages/ContentAnalyzerPage'))
 const AIvsHumanPage = lazy(() => import('./pages/owner/AIvsHumanPage'))
 const BoardroomPage = lazy(() => import('./pages/owner/BoardroomPage'))
 const BusinessSpawnerPage = lazy(() => import('./pages/owner/BusinessSpawnerPage'))
-import ViralChatPage from './pages/ViralChatPage'
+const ViralChatPage = lazy(() => import('./pages/ViralChatPage'))
 import LeaderboardPage from './pages/LeaderboardPage'
 import ChallengePage from './pages/ChallengePage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'

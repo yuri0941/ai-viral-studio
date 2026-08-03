@@ -40,7 +40,7 @@
         --radius-xl: 28px;
         --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-        --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        --font-sans: 'Inter', 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
         --font-serif: 'Playfair Display', Georgia, serif;
         --font-mono: 'JetBrains Mono', monospace;
     }
@@ -80,7 +80,7 @@
         --radius-xl: 28px;
         --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-        --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        --font-sans: 'Inter', 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
         --font-serif: 'Playfair Display', Georgia, serif;
         --font-mono: 'JetBrains Mono', monospace;
     }
@@ -99,6 +99,7 @@
         font-family: var(--font-sans);
         background: var(--bg);
         color: var(--text);
+        line-height: 1.4;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         transition: background-color 0.3s ease, color 0.3s ease;

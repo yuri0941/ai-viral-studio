@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, lazy } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useOwnerData } from './hooks/useOwnerData'
 import { TAB_LABELS } from './data/initialData'
@@ -49,11 +49,11 @@ import { FleetTab } from './components/tabs/FleetTab'
 import { SelfHealingCrisisTab } from './components/tabs/SelfHealingCrisisTab'
 import { SandboxPanel } from './components/tabs/SandboxPanel'
 
-import AnalyticsPage from '../AnalyticsPage'
-import AIChatPage from '../AIChatPage'
-import ContentAnalyzerPage from '../ContentAnalyzerPage'
-import SchedulerPage from '../SchedulerPage'
-import ViralChatPage from '../ViralChatPage'
+const AnalyticsPage = lazy(() => import('../AnalyticsPage'))
+const AIChatPage = lazy(() => import('../AIChatPage'))
+const ContentAnalyzerPage = lazy(() => import('../ContentAnalyzerPage'))
+const SchedulerPage = lazy(() => import('../SchedulerPage'))
+const ViralChatPage = lazy(() => import('../ViralChatPage'))
 
 // Modals
 import { AddStaffModal } from './components/modals/AddStaffModal'
