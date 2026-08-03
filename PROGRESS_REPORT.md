@@ -2597,3 +2597,12 @@
 - Blockchain/NFT интеграция (опционально)
 
 ---
+
+
+### [2026-08-03] — ПРОМПТ №22-SECURITY: NPM Vulnerabilities Fix
+- [x] Frontend audit: high/critical устранены (xlsx удалён, brace-expansion/fast-uri/postcss обновлены, esbuild/vite обновлены через overrides)
+- [x] Backend audit: 0 vulnerabilities (yookassa пакет удалён, nodemailer обновлён, uuid override)
+- [x] Frontend build: 0 ошибок после обновлений
+- [x] Backend node --check: успешно
+- [x] Git push: выполнен (commit `29ad33e7`)
+- [ ] Render deploy: требуется вручную через Render Dashboard → Clear Build Cache & Deploy
