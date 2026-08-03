@@ -2541,3 +2541,5 @@
 - [x] Backend check: успешно (node --check всех новых/изменённых файлов)
 - [x] Frontend build: успешно (npm run build, 0 ошибок)
 - [x] Git push: выполнен (commit `a78c52be`)
+
+- [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
