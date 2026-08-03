@@ -2,6 +2,7 @@ import Groq from 'groq-sdk'
 import axios from 'axios'
 import fs from 'fs'
 import path from 'path'
+import mongoose from 'mongoose'
 import { fileURLToPath } from 'url'
 import { ApiKey, AIProviderSetting } from '../models/index.js'
 import { emergencyStop } from '../routes/admin.js'
@@ -156,7 +157,8 @@ const envMap = {
 }
 
 export async function getProviderKey(providerId, ownerId = null) {
-    if (ownerId) {
+    // [P23] fixed: validate ownerId before querying MongoDB to avoid "Cast to ObjectId failed for value 'omega'"
+    if (ownerId && mongoose.Types.ObjectId.isValid(ownerId)) {
         try {
             const doc = await ApiKey.findOne({ ownerId, provider: providerId }).lean()
             if (doc && (doc.keyValue || doc.key)) {
@@ -341,10 +343,11 @@ async function chatWithGroq(prompt, ownerId = null) {
         throw new Error('No valid Groq key')
     }
     console.log('🚀 Calling Groq...')
-    // [P16-FINAL] added: Groq model fallback chain (3.3 primary → 3.1-8b-instant if decommissioned)
+    // [P23] fixed: Groq model fallback chain (3.3 primary → 3.1-8b-instant → mixtral)
     const models = [
         process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant'
+        'llama-3.1-8b-instant',
+        'mixtral-8x7b-32768'
     ]
     let lastErr
     for (const model of models) {

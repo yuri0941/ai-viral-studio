@@ -56,6 +56,12 @@ export function getOwnerBot() {
   }
   global.ownerBotStarted = true
 
+  if (process.env.ENABLE_TELEGRAM !== 'true') {
+    console.log('[ownerBot] ENABLE_TELEGRAM is not true, bot disabled')
+    instance = createStubBot()
+    return instance
+  }
+
   if (!token) {
     console.log('⚠️ TELEGRAM_BOT_TOKEN not set, owner bot disabled')
     instance = createStubBot()

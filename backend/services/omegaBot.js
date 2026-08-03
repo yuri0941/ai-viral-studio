@@ -40,6 +40,12 @@ export function getOmegaBot() {
   }
   global.omegaBotStarted = true
 
+  if (process.env.ENABLE_TELEGRAM !== 'true') {
+    console.log('[omegaBot] ENABLE_TELEGRAM is not true, bot disabled')
+    instance = createStubBot()
+    return instance
+  }
+
   if (!token) {
     console.log('⚠️ TELEGRAM_OMEGA_BOT_TOKEN not set, omega alerts bot disabled')
     instance = createStubBot()
