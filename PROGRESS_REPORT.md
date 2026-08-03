@@ -2468,5 +2468,5 @@
 - [x] Light theme contrast fixed: да (кнопка "Тренировать" в `OmegaSkillsTab.jsx` — primary text/border/bg)
 - [x] Backend check: успешно (node --check all changed files)
 - [x] Frontend build: успешно (vite build 0 errors)
-- [x] Git push: выполнен (коммит 6563b3e4)
+- [x] Git push: выполнен
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
