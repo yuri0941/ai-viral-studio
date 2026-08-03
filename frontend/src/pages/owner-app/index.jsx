@@ -7,8 +7,9 @@ import { ownerApi } from '../../services/api'
 import {
     LayoutDashboard, Brain, Users, CheckCircle, User, Mic,
     FileText, AlertTriangle, Zap, TrendingUp, Activity, Clock,
-    ChevronRight, Share2, RefreshCw, Check, X, Edit3, Menu
+    ChevronRight, Share2, RefreshCw, Check, X, Edit3, Menu, Download
 } from 'lucide-react'
+import { PWAInstallButton } from '../../components/pwa/PWAInstallButton'
 
 const TABS = [
     { id: 'command', label: 'Обзор', icon: LayoutDashboard },
@@ -265,6 +266,8 @@ export default function OwnerApp() {
                             <div className="text-xs text-gray-400">{user?.email}</div>
                             <div className="text-xs text-emerald-400 mt-1">role: owner</div>
                         </div>
+                        {/* [P21] added: install app button */}
+                        <PWAInstallButton variant="hint" className="w-full" />
                         <div className="space-y-2">
                             <button onClick={() => navigate('/settings')} className="w-full p-3 rounded-xl bg-[#111118] text-sm text-white flex items-center justify-between">
                                 Настройки <ChevronRight size={16} className="text-gray-500" />

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { playSound } from './useSound.js'
 
 const STORAGE_KEY = 'app_notifications'
+const PERMISSION_ASKED_KEY = 'notifications_permission_asked'
 
 const DEFAULT_NOTIFICATIONS = [
     {
@@ -41,6 +42,7 @@ function loadNotifications() {
 
 export function useNotifications() {
     const [notifications, setNotifications] = useState(loadNotifications)
+    const [permission, setPermission] = useState('default')
 
     useEffect(() => {
         try {
@@ -49,6 +51,22 @@ export function useNotifications() {
             // ignore
         }
     }, [notifications])
+
+    // [P21] added: ask notification permission once after login (non-aggressive)
+    useEffect(() => {
+        if (typeof window === 'undefined' || !('Notification' in window)) return
+        setPermission(Notification.permission)
+        const asked = localStorage.getItem(PERMISSION_ASKED_KEY)
+        if (!asked && Notification.permission === 'default') {
+            const t = setTimeout(() => {
+                Notification.requestPermission().then(result => {
+                    setPermission(result)
+                    localStorage.setItem(PERMISSION_ASKED_KEY, 'true')
+                })
+            }, 5000)
+            return () => clearTimeout(t)
+        }
+    }, [])
 
     const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications])
 
@@ -73,6 +91,7 @@ export function useNotifications() {
     return {
         notifications,
         unreadCount,
+        permission,
         markRead,
         markAllRead,
         remove,

@@ -52,6 +52,20 @@ export default defineConfig(({ mode }) => ({
                         description: 'Open OMEGA AI chat',
                         url: '/ai-chat',
                         icons: [{ src: '/icons/icon-192x192.png', sizes: '192x192' }]
+                    },
+                    {
+                        name: 'Новый пост',
+                        short_name: 'Пост',
+                        description: 'Создать новый пост с OMEGA',
+                        url: '/ai-chat',
+                        icons: [{ src: '/icons/icon-192x192.png', sizes: '192x192' }]
+                    },
+                    {
+                        name: 'Статистика',
+                        short_name: 'Статистика',
+                        description: 'Открыть аналитику',
+                        url: '/analytics',
+                        icons: [{ src: '/icons/icon-192x192.png', sizes: '192x192' }]
                     }
                 ]
             }

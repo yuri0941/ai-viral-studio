@@ -1,10 +1,39 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
-import { NetworkOnly } from 'workbox-strategies'
-import { setCatchHandler } from 'workbox-routing'
+import { NetworkOnly, StaleWhileRevalidate } from 'workbox-strategies'
+import { registerRoute, setCatchHandler } from 'workbox-routing'
+import { CacheFirst } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
 
 // VitePWA injects the precache manifest here
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
+
+// [P21] added: cache API responses (Stale-While-Revalidate)
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/omega/chat'),
+  new StaleWhileRevalidate({
+    cacheName: 'omega-chat-api',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 })
+    ]
+  })
+)
+
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/'),
+  new NetworkOnly()
+)
+
+// [P21] added: cache images from Pollinations and other CDNs
+registerRoute(
+  ({ url }) => url.pathname.match(/\.(?:png|jpg|jpeg|webp|avif|gif|svg)$/),
+  new CacheFirst({
+    cacheName: 'images',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 7 * 24 * 60 * 60 })
+    ]
+  })
+)
 
 // Fallback to offline.html for navigation requests when network fails
 const navigationFallback = new NetworkOnly({
@@ -30,13 +59,22 @@ self.addEventListener('sync', (event) => {
 self.addEventListener('push', (event) => {
   if (!event.data) return
   const data = event.data.json()
+  // [P21] added: notification categories
+  const categoryStyles = {
+    omega: { icon: '/icons/icon-192x192.png', badge: '/icons/icon-192x192.png' },
+    payment: { icon: '/icons/icon-192x192.png', badge: '/icons/icon-192x192.png' },
+    crisis: { icon: '/icons/icon-192x192.png', badge: '/icons/icon-192x192.png' },
+    task: { icon: '/icons/icon-192x192.png', badge: '/icons/icon-192x192.png' },
+  }
+  const style = categoryStyles[data.category] || categoryStyles.omega
   event.waitUntil(
     self.registration.showNotification(data.title || 'AI Viral Studio', {
       body: data.body || '',
-      icon: data.icon || '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
+      icon: style.icon,
+      badge: style.badge,
       tag: data.tag || 'default',
       data: data.url || '/',
+      requireInteraction: data.category === 'crisis',
     })
   )
 })

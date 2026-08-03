@@ -9,7 +9,8 @@
     "allowNavigation": [
       "*.pages.dev",
       "*.ai-viral-studio.ru",
-      "*.aiviral-studio.ru"
+      "*.aiviral-studio.ru",
+      "*.onrender.com"
     ]
   },
   "plugins": {

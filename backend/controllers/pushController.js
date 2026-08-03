@@ -42,7 +42,7 @@ export const unsubscribe = (req, res) => {
   res.json({ status: 'ok' })
 }
 
-export async function sendPush({ title, body, url = '/', tag = 'alert' }) {
+export async function sendPush({ title, body, url = '/', tag = 'alert', category = 'omega', route = '/' }) {
   if (!vapidKeys || subscriptions.length === 0) return
   let webPush
   try {
@@ -57,7 +57,7 @@ export async function sendPush({ title, body, url = '/', tag = 'alert' }) {
     return
   }
 
-  const payload = JSON.stringify({ title, body, url, tag })
+  const payload = JSON.stringify({ title, body, url, tag, category, route })
   await Promise.all(
     subscriptions.map(async (sub) => {
       try {

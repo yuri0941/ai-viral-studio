@@ -9,6 +9,7 @@
         "preview": "vite preview",
         "analyze": "vite build --mode analyze",
         "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+        "build:mobile": "vite build --outDir dist && npx cap sync",
         "cap:sync": "cap sync",
         "cap:android": "cap run android",
         "cap:ios": "cap run ios",
