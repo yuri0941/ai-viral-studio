@@ -4,7 +4,7 @@ import { StatusBadge } from '../common/StatusBadge'
 import {
     Brain, Activity, Zap, RefreshCw, Trash2, Terminal,
     AlertTriangle, Server, Bot, Play, Pause, RotateCcw, FileText, Wifi, ToggleLeft, ToggleRight, KeyRound, Moon, Sparkles,
-    Settings, BarChart2, Cpu, X, MessageSquare, Plus, CheckCircle2, CheckCircle
+    Settings, BarChart2, Cpu, X, MessageSquare, Plus, CheckCircle2, CheckCircle, ImageIcon
 } from 'lucide-react'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
 import {
@@ -14,6 +14,8 @@ import {
 import { formatDateTime } from '../../utils/helpers'
 import { jsPDF } from 'jspdf'
 import { useTranslation } from 'react-i18next'
+import { CodeInterpreter } from '../../../../components/omega/CodeInterpreter.jsx'
+import { VisionUploader } from '../../../../components/omega/VisionUploader.jsx'
 
 const PROVIDERS = [
     { id: 'groq', name: 'Groq', status: 'active' },
@@ -38,6 +40,8 @@ export function OMEGACoreTab({ data }) {
     const [selectedAgent, setSelectedAgent] = useState(null)
     const [agentTab, setAgentTab] = useState('overview')
     const [agentSettings, setAgentSettings] = useState({ autoReply: true, notifications: true, priority: 'normal', systemPrompt: '' })
+    const [showCodeInterpreter, setShowCodeInterpreter] = useState(false)
+    const [showVision, setShowVision] = useState(false)
 
     useEffect(() => {
         fetch('/api/omega/self-reflection')
@@ -217,6 +221,19 @@ export function OMEGACoreTab({ data }) {
         showToast(`Отчёт «${reportType === 'status' ? 'OMEGA Status' : reportType === 'financial' ? 'Financial' : 'Agents'}» скачан`, 'success')
     }, [reportType, showToast, agents, servers, aiAnalytics])
 
+    // [P17] added
+    const handleApplyReflection = useCallback(async () => {
+        try {
+            const res = await fetch('/api/omega/self-reflection', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            if (!res.ok) throw new Error()
+            const json = await res.json()
+            setReflection(prev => ({ ...prev, lessonCount: json?.data?.lessonCount ?? prev.lessonCount }))
+            showToast('Корректировка Self-Reflection применена', 'success')
+        } catch {
+            showToast('Не удалось применить корректировку', 'error')
+        }
+    }, [showToast])
+
     const handleTestProvider = useCallback(async (providerId) => {
         setTestLoading(providerId)
         try {
@@ -296,8 +313,23 @@ export function OMEGACoreTab({ data }) {
                     >
                         <FileText size={14} /> {t('omega.report')}
                     </button>
+                    <button
+                        onClick={() => setShowCodeInterpreter(true)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors"
+                    >
+                        <Terminal size={14} /> Code Interpreter
+                    </button>
+                    <button
+                        onClick={() => setShowVision(true)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors"
+                    >
+                        <ImageIcon size={14} /> Vision
+                    </button>
                 </div>
             </div>
+
+            {showCodeInterpreter && <CodeInterpreter onClose={() => setShowCodeInterpreter(false)} />}
+            {showVision && <VisionUploader onClose={() => setShowVision(false)} />}
 
             {autopilotOn && (
                 <div className="text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
@@ -370,6 +402,25 @@ export function OMEGACoreTab({ data }) {
                     <div className="flex items-center gap-1 mt-2 text-xs font-medium text-[var(--primary)]">
                         <span>OMEGA работает ночью</span>
                     </div>
+                </div>
+                <div className="luxury-card glass p-5 relative overflow-hidden bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20">
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
+                            <Sparkles size={20} className="text-emerald-400" />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${reflection.active ? 'bg-emerald-400 animate-pulse' : 'bg-gray-400'}`} />
+                            <span className="text-[10px] text-[var(--text-muted)]">{reflection.active ? 'Active' : 'Paused'}</span>
+                        </div>
+                    </div>
+                    <div className="text-2xl font-bold tracking-tight text-[var(--text)]">Self-Reflection</div>
+                    <div className="text-xs text-[var(--text-muted)] mt-1">{reflection.lessonCount} lessons</div>
+                    <button
+                        onClick={handleApplyReflection}
+                        className="mt-3 text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                    >
+                        Применить корректировку
+                    </button>
                 </div>
             </div>
 

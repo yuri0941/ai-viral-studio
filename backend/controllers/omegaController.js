@@ -16,6 +16,7 @@ import { analyzeChannel, generateShortsScript, generateAutoSubtitles, recommendB
 import { analyzeBestTime } from '../services/bestTimeService.js'
 import { getTrends, invalidateTrendCache } from '../services/trendScanner.js'
 import { generateCover } from '../services/imageGeneration.js'
+import { searchWithFallback } from '../ai/omega/webSearch.js'
 import User from '../models/User.js'
 import axios from 'axios'
 import { checkQuota, consumeGeneration } from '../services/usageQuotaService.js'
@@ -119,7 +120,21 @@ export async function chat(req, res) {
             console.warn('[omegaController:chat] neuralGraph failed:', err.message)
         }
 
-        const extraSystemContext = [systemContext, graphContextString].filter(Boolean).join('\n\n')
+        let searchContextString = ''
+        const searchIntent = /\b(поиск|найди|search|google|новости|тренд|reddit|twitter|новост)/i.test(message)
+        if (searchIntent) {
+            try {
+                const search = await searchWithFallback(message)
+                if (search?.sources?.length) {
+                    searchContextString = `Результаты веб-поиска:\n${search.summary}\n` +
+                        search.sources.map((s, i) => `${i + 1}. ${s.title} — ${s.link}\n${s.snippet}`).join('\n')
+                }
+            } catch (err) {
+                console.warn('[omegaController:chat] webSearch failed:', err.message)
+            }
+        }
+
+        const extraSystemContext = [systemContext, graphContextString, searchContextString].filter(Boolean).join('\n\n')
 
         const result = userId
             ? await selectResponse(userId, message, userContext, extraSystemContext)
@@ -127,7 +142,7 @@ export async function chat(req, res) {
                 extraSystemContext ? `${extraSystemContext}\n\nВопрос: ${message}` : message,
                 history.map(h => ({ role: h.role, content: h.content || h.text })),
                 lang,
-                { userId }
+                { userId, ownerId: userId }
             )
 
         if (userId) {
@@ -136,6 +151,14 @@ export async function chat(req, res) {
             } catch (err) {
                 console.warn('[omegaController:chat] consumeGeneration failed:', err.message)
             }
+        }
+
+        let reasoning = ''
+        try {
+            const thought = await core.think(message, req.user?.role)
+            reasoning = thought?.reasoning || ''
+        } catch (err) {
+            console.warn('[omegaController:chat] think failed:', err.message)
         }
 
         let responseText = result.reply || (result.success ? result.reply : 'AI временно недоступен. Попробуйте позже.')
@@ -169,6 +192,7 @@ export async function chat(req, res) {
                 memoryId: result.memoryId || null,
                 usage: result.usage || null,
                 cached: result.cached || false,
+                reasoning,
             },
         })
     } catch (err) {
@@ -357,6 +381,7 @@ export async function generateTemplate(req, res) {
         if (!templateId) {
             return res.status(400).json({ status: 'error', message: 'templateId is required' })
         }
+        const userId = req.user?._id || req.user?.id
         const base = generateFromTemplate(templateId, variables)
         if (!base) {
             return res.status(404).json({ status: 'error', message: 'template not found' })
@@ -372,7 +397,7 @@ ${base.text}
 
 Переменные: ${JSON.stringify(variables)}`
             try {
-                const aiResult = await chatWithAI(prompt, [], 'ru')
+                const aiResult = await chatWithAI(prompt, [], 'ru', { ownerId: userId })
                 if (aiResult?.reply) {
                     base.aiText = aiResult.reply
                     base.provider = aiResult.provider || 'ai'

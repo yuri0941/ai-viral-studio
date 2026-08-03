@@ -20,6 +20,8 @@ import { getAdPricing, updateAdPricing } from '../controllers/adPricingControlle
 import { updatePlanPrice } from '../controllers/subscriptionController.js'
 
 import { getOwnerSettings, updateOwnerSettings } from '../controllers/ownerSettingsController.js'
+import { ApiKey } from '../models/index.js'
+import { invalidateApiKeysCache } from '../services/aiService.js'
 
 const router = express.Router()
 
@@ -55,6 +57,23 @@ router.put('/ad-pricing', protect, authorize('owner', 'admin'), updateAdPricing)
 router.post('/:entity', createEntity)
 router.patch('/:entity/:id', updateEntity)
 router.delete('/:entity/:id', deleteEntity)
+
+// [P17] added: owner-scoped API key storage
+router.patch('/api-keys/:provider', protect, authorize('owner', 'admin'), async (req, res) => {
+    const { provider } = req.params
+    const ownerId = req.user?._id
+    const { keyValue } = req.body || {}
+    if (!keyValue || keyValue.length < 4) return res.status(400).json({ success: false, message: 'Invalid key' })
+    try {
+        await ApiKey.findOneAndUpdate(
+            { ownerId, provider },
+            { ownerId, provider, keyValue, key: keyValue, label: provider.toUpperCase(), isActive: true, updatedAt: new Date() },
+            { upsert: true, new: true }
+        )
+        invalidateApiKeysCache?.()
+        res.json({ success: true })
+    } catch (err) { res.status(500).json({ success: false, message: err.message }) }
+})
 
 // AI Provider health check (used by OMEGA Core tab)
 router.get('/omega/health', (req, res) => {

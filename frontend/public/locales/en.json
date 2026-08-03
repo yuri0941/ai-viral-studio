@@ -536,5 +536,29 @@
     "thisMonth": "This month",
     "lastMonth": "Last month",
     "topClients": "Top clients"
+  },
+  "codeInterpreter": {
+    "title": "Code Interpreter",
+    "dragDrop": "Drag & drop CSV/Excel here or click to browse",
+    "browse": "Browse",
+    "niche": "Niche (optional)",
+    "analyze": "Analyze",
+    "insights": "AI Insights",
+    "downloadPdf": "Download PDF",
+    "reportTitle": "Code Interpreter Report",
+    "error": "Analysis error"
+  },
+  "vision": {
+    "title": "Vision Analysis",
+    "dragDrop": "Drag & drop image here or click to browse",
+    "browse": "Browse",
+    "urlPlaceholder": "Or paste image URL",
+    "analyze": "Analyze",
+    "description": "Description / OCR",
+    "colors": "Color palette",
+    "composition": "Composition",
+    "recommendations": "Recommendations",
+    "readError": "Could not read image",
+    "error": "Analysis failed"
   }
 }

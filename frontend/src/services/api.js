@@ -131,6 +131,15 @@ export const omegaApi = {
         method: 'POST',
         body: JSON.stringify(data),
     }),
+    interpret: (csvText, niche = '') => request('/omega/interpret', {
+        method: 'POST',
+        body: JSON.stringify({ csvText, niche }),
+    }),
+    visionAnalyze: (imageUrl) => request('/omega/vision/analyze', {
+        method: 'POST',
+        body: JSON.stringify({ imageUrl }),
+    }),
+    selfReflection: () => request('/omega/self-reflection'),
 }
 
 // ============================================

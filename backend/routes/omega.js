@@ -1,5 +1,8 @@
 import express from 'express'
+import { protect } from '../middleware/auth.js'
 import { getReflectionStatus } from '../ai/omega/selfReflection.js'
+import { analyzeCSV, generateChartData, generateInsights } from '../ai/omega/codeInterpreter.js'
+import { analyzeImage } from '../ai/omega/visionCore.js'
 import {
     getStatus,
     chat,
@@ -69,5 +72,29 @@ router.post('/youtube/shorts', generateShorts)
 router.post('/youtube/subtitles', generateSubtitles)
 router.get('/youtube/best-time', recommendPublishTime)
 router.post('/voice/speak', speakVoice)
+
+// [P17] added: code interpreter endpoint for CSV data
+router.post('/interpret', protect, async (req, res) => {
+    try {
+        const { csvText, niche } = req.body
+        const data = analyzeCSV(csvText)
+        const chart = generateChartData(data.rows)
+        const insights = await generateInsights(data, niche)
+        res.json({ status: 'success', data: { ...data, chart, insights } })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+// [P17] added: vision analysis endpoint
+router.post('/vision/analyze', protect, async (req, res) => {
+    try {
+        const { imageUrl } = req.body
+        const result = await analyzeImage(imageUrl)
+        res.json({ status: 'success', data: result })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
 
 export default router

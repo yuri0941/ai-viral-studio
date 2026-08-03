@@ -536,5 +536,29 @@
     "thisMonth": "Этот месяц",
     "lastMonth": "Прошлый месяц",
     "topClients": "Топ клиентов"
+  },
+  "codeInterpreter": {
+    "title": "Code Interpreter",
+    "dragDrop": "Перетащите CSV/Excel сюда или нажмите для выбора",
+    "browse": "Выбрать файл",
+    "niche": "Ниша (опционально)",
+    "analyze": "Анализировать",
+    "insights": "AI-инсайты",
+    "downloadPdf": "Скачать PDF",
+    "reportTitle": "Отчёт Code Interpreter",
+    "error": "Ошибка анализа"
+  },
+  "vision": {
+    "title": "Vision Analysis",
+    "dragDrop": "Перетащите изображение сюда или нажмите для выбора",
+    "browse": "Выбрать",
+    "urlPlaceholder": "Или вставьте URL изображения",
+    "analyze": "Анализировать",
+    "description": "Описание / OCR",
+    "colors": "Цветовая палитра",
+    "composition": "Композиция",
+    "recommendations": "Рекомендации",
+    "readError": "Не удалось прочитать изображение",
+    "error": "Ошибка анализа"
   }
 }

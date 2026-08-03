@@ -72,6 +72,7 @@ export function useOmegaChat(options = {}) {
                 memoryId: data.memoryId,
                 cached: data.cached,
                 decision: data.decision,
+                reasoning: data.reasoning || '', // [P17] added
                 timestamp: new Date().toISOString(),
             }
             setMessages(prev => [...prev, reply])

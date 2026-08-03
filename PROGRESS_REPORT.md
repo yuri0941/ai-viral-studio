@@ -2492,3 +2492,17 @@
 - [x] Backend check: passed
 - [x] Git push: done
 - [ ] Render deploy: manual
+
+### [2026-08-03] — ПРОМПТ №17: OMEGA Super-Intelligence
+- [x] API Keys из MongoDB (БД → env → fallback): да
+- [x] Владелец редактирует ключи в кабинете — мгновенно: да (`PATCH /api/owner/api-keys/:provider`)
+- [x] Code Interpreter (CSV/Excel → графики): да (`backend/ai/omega/codeInterpreter.js` + `frontend/src/components/omega/CodeInterpreter.jsx`)
+- [x] Vision Core (анализ изображений): да (`backend/ai/omega/visionCore.js` + `frontend/src/components/omega/VisionUploader.jsx`)
+- [x] Chain-of-Thought (reasoning блок): да (`OmegaChat.jsx` + `omegaController.js` `data.reasoning`)
+- [x] Real-time Search (SerpAPI, Reddit, Twitter): да (`backend/ai/omega/webSearch.js`, интегрирован в контекст чата)
+- [x] Self-Reflection Loop (уроки, корректировка): да (`backend/ai/omega/selfReflection.js` + cron + UI карточка)
+- [x] Context + Privacy Firewall усилены: да (`contextEngine.js`, `privacyFirewall.js`, подпись OMEGA)
+- [x] Backend node --check: успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен
+- [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy

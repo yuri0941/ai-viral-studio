@@ -132,19 +132,43 @@ function smartDemoReply(message, lang = 'ru') {
     return generic?.response || 'Я готова помочь с контент-стратегией, скриптами, хуками и аналитикой. Опиши задачу подробнее.'
 }
 
-const getKey = async (provider) => {
-    const keys = await loadApiKeys()
-    const envKey = process.env[`${provider.toUpperCase()}_API_KEY`]
-    return keys[provider] || envKey || ''
+const getKey = async (provider, ownerId = null) => {
+    return getProviderKey(provider, ownerId)
 }
 
-// [P16-FINAL] added: explicit provider key resolver used by owner dashboard / setup flows
-export async function getProviderKey(provider, ownerId) {
-    // Owner-scoped keys can be extended here; for now fall back to global env key.
-    const envKey = process.env[`${provider.toUpperCase()}_API_KEY`] || ''
-    if (envKey) return envKey
-    const keys = await loadApiKeys()
-    return keys[provider] || ''
+// [P17] added: explicit provider key resolver with owner-scoped DB keys and env fallback
+const envMap = {
+    groq: 'GROQ_API_KEY',
+    openrouter: 'OPENROUTER_API_KEY',
+    deepseek: 'DEEPSEEK_API_KEY',
+    gemini: 'GEMINI_API_KEY',
+    github: 'GITHUB_API_KEY',
+    huggingface: 'HF_API_KEY',
+    cloudflare: 'CLOUDFLARE_API_KEY',
+    mistral: 'MISTRAL_API_KEY',
+    cohere: 'COHERE_API_KEY',
+    replicate: 'REPLICATE_API_KEY',
+    youtube: 'YOUTUBE_API_KEY',
+    together: 'TOGETHER_API_KEY',
+    fireworks: 'FIREWORKS_API_KEY',
+    cerebras: 'CEREBRAS_API_KEY',
+    pollinations: null
+}
+
+export async function getProviderKey(providerId, ownerId = null) {
+    if (ownerId) {
+        try {
+            const doc = await ApiKey.findOne({ ownerId, provider: providerId }).lean()
+            if (doc && (doc.keyValue || doc.key)) {
+                return doc.keyValue || doc.key
+            }
+        } catch (err) {
+            console.warn('[getProviderKey] owner key lookup failed:', err.message)
+        }
+    }
+    const envVar = envMap[providerId]
+    if (envVar) return process.env[envVar] || null
+    return null
 }
 
 // ============ PROVIDER REGISTRY & STATUS ============
@@ -188,7 +212,7 @@ function initProviderStatuses() {
 }
 initProviderStatuses()
 
-const isEnabled = async (provider) => {
+const isEnabled = async (provider, ownerId = null) => {
     // [P16-FIX] Pollinations never requires a key
     if (provider === 'pollinations') return true
 
@@ -199,7 +223,7 @@ const isEnabled = async (provider) => {
         if (setting && setting.enabled === true) {
             // If explicitly enabled, also require a key when needed
             if (meta.requiresKey) {
-                const key = await getKey(provider)
+                const key = await getKey(provider, ownerId)
                 return !!key
             }
             return true
@@ -210,7 +234,7 @@ const isEnabled = async (provider) => {
     // No explicit setting: use default
     if (!meta.enabledByDefault) return false
     if (meta.requiresKey) {
-        const key = await getKey(provider)
+        const key = await getKey(provider, ownerId)
         return !!key
     }
     return true
@@ -310,8 +334,8 @@ function buildPrompt(messages) {
 }
 
 // ============ PROVIDER CALLS ============
-async function chatWithGroq(prompt) {
-    const key = process.env.GROQ_API_KEY
+async function chatWithGroq(prompt, ownerId = null) {
+    const key = await getProviderKey('groq', ownerId)
     if (!key || key.length < 20) {
         console.log('[Groq] No valid key, skipping')
         throw new Error('No valid Groq key')
@@ -339,8 +363,8 @@ async function chatWithGroq(prompt) {
     throw lastErr
 }
 
-async function chatWithMistral(prompt) {
-    const key = process.env.MISTRAL_API_KEY
+async function chatWithMistral(prompt, ownerId = null) {
+    const key = await getProviderKey('mistral', ownerId)
     if (!key) throw new Error('No Mistral key')
     console.log('🚀 Calling Mistral...')
     const res = await axios.post('https://api.mistral.ai/v1/chat/completions', {
@@ -351,8 +375,8 @@ async function chatWithMistral(prompt) {
     return res.data.choices[0].message.content
 }
 
-async function chatWithCohere(prompt) {
-    const key = process.env.COHERE_API_KEY
+async function chatWithCohere(prompt, ownerId = null) {
+    const key = await getProviderKey('cohere', ownerId)
     if (!key) throw new Error('No Cohere key')
     console.log('🚀 Calling Cohere...')
     const res = await axios.post('https://api.cohere.ai/v1/chat', {
@@ -362,8 +386,8 @@ async function chatWithCohere(prompt) {
     return res.data.text
 }
 
-async function chatWithTogether(prompt) {
-    const key = process.env.TOGETHER_API_KEY
+async function chatWithTogether(prompt, ownerId = null) {
+    const key = await getProviderKey('together', ownerId)
     if (!key) throw new Error('No Together key')
     console.log('🚀 Calling Together...')
     const res = await axios.post('https://api.together.xyz/v1/chat/completions', {
@@ -374,8 +398,8 @@ async function chatWithTogether(prompt) {
     return res.data.choices[0].message.content
 }
 
-async function chatWithDeepSeek(prompt) {
-    const key = process.env.DEEPSEEK_API_KEY
+async function chatWithDeepSeek(prompt, ownerId = null) {
+    const key = await getProviderKey('deepseek', ownerId)
     if (!key) throw new Error('No DeepSeek key')
     console.log('🚀 Calling DeepSeek...')
     const res = await axios.post('https://api.deepseek.com/v1/chat/completions', {
@@ -386,8 +410,8 @@ async function chatWithDeepSeek(prompt) {
     return res.data.choices[0].message.content
 }
 
-async function chatWithFireworks(prompt) {
-    const key = process.env.FIREWORKS_API_KEY
+async function chatWithFireworks(prompt, ownerId = null) {
+    const key = await getProviderKey('fireworks', ownerId)
     if (!key) throw new Error('No Fireworks key')
     console.log('🚀 Calling Fireworks...')
     const res = await axios.post('https://api.fireworks.ai/inference/v1/chat/completions', {
@@ -398,8 +422,8 @@ async function chatWithFireworks(prompt) {
     return res.data.choices[0].message.content
 }
 
-async function chatWithCerebras(prompt) {
-    const key = process.env.CEREBRAS_API_KEY
+async function chatWithCerebras(prompt, ownerId = null) {
+    const key = await getProviderKey('cerebras', ownerId)
     if (!key) throw new Error('No Cerebras key')
     console.log('🚀 Calling Cerebras...')
     const res = await axios.post('https://api.cerebras.ai/v1/chat/completions', {
@@ -410,8 +434,8 @@ async function chatWithCerebras(prompt) {
     return res.data.choices[0].message.content
 }
 
-async function chatWithCloudflare(prompt) {
-    const key = process.env.CLOUDFLARE_API_KEY
+async function chatWithCloudflare(prompt, ownerId = null) {
+    const key = await getProviderKey('cloudflare', ownerId)
     const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
     const model = process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
     if (!key || !accountId) throw new Error('No Cloudflare key or account ID')
@@ -422,8 +446,8 @@ async function chatWithCloudflare(prompt) {
     return res.data.result.response
 }
 
-async function chatWithOpenRouter(prompt) {
-    const key = process.env.OPENROUTER_API_KEY
+async function chatWithOpenRouter(prompt, ownerId = null) {
+    const key = await getProviderKey('openrouter', ownerId)
     if (!key) throw new Error('No OpenRouter key')
     console.log('🚀 Calling OpenRouter...')
     const res = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
@@ -441,8 +465,8 @@ async function chatWithPollinationsText(prompt) {
     return res.data
 }
 
-async function chatWithGitHubModels(prompt) {
-    const key = process.env.GITHUB_API_KEY
+async function chatWithGitHubModels(prompt, ownerId = null) {
+    const key = await getProviderKey('github', ownerId)
     if (!key || key.length < 20) {
         console.log('[GitHub Models] No valid key, skipping')
         throw new Error('No valid GitHub Models key')
@@ -474,12 +498,12 @@ const PROVIDER_CHAIN = [
 
 const SKIP_STATUSES = [401, 403, 404]
 
-const tryProviders = async (messages) => {
+const tryProviders = async (messages, ownerId = null) => {
     const errors = []
     const prompt = buildPrompt(messages)
 
     for (const provider of PROVIDER_CHAIN) {
-        const enabled = await isEnabled(provider.id)
+        const enabled = await isEnabled(provider.id, ownerId)
         if (!enabled) {
             console.log(`⏭️ ${provider.name} skipped (disabled or no key)`)
             setProviderStatus(provider.id, 'disabled', '')
@@ -487,7 +511,7 @@ const tryProviders = async (messages) => {
         }
         try {
             console.log(`🤖 Trying ${provider.name}...`)
-            const text = await provider.handler(prompt)
+            const text = await provider.handler(prompt, ownerId)
             if (!text || !String(text).trim()) throw new Error('Empty response')
             console.log(`✅ ${provider.name} success!`)
             setProviderStatus(provider.id, 'active', '')
@@ -560,7 +584,7 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
             })),
             { role: 'user', content: message }
         ]
-        const result = await tryProviders(messages)
+        const result = await tryProviders(messages, options.ownerId || options.userId || null)
         const value = { reply: result.reply, provider: result.provider, usage: result.usage }
         setCached(message, lang, value)
         await setJSON(redisKey, value, 3600)
@@ -609,7 +633,7 @@ export const generateContent = async (type, params) => {
             { role: 'system', content: 'You are a viral content expert. Be creative and specific.' },
             { role: 'user', content: prompt }
         ]
-        const result = await tryProviders(messages)
+        const result = await tryProviders(messages, params.ownerId || null)
         return {
             success: true,
             content: result.reply,
@@ -627,8 +651,8 @@ export const generateContent = async (type, params) => {
     }
 }
 
-export const streamChat = async (message, history = [], onChunk) => {
-    const key = await getKey('groq')
+export const streamChat = async (message, history = [], onChunk, ownerId = null) => {
+    const key = await getKey('groq', ownerId)
     if (!key) {
         const result = await chatWithAI(message, history)
         if (result.success) onChunk?.(result.reply)
