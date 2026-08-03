@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -86,6 +86,11 @@ function SettingsPage() {
     const [watermarkPreview, setWatermarkPreview] = useState('');
     const [watermarkSaved, setWatermarkSaved] = useState(false);
     const [watermarkEligibility, setWatermarkEligibility] = useState({ canDisable: false });
+
+    // [P24] fixed: avatar upload state
+    const [avatarPreview, setAvatarPreview] = useState(user?.avatar || '');
+    const [avatarLoading, setAvatarLoading] = useState(false);
+    const avatarInputRef = useRef(null);
 
     useEffect(() => {
         if (user?.preferences?.timezone && user.preferences.timezone !== profile.timezone) {
@@ -346,6 +351,47 @@ function SettingsPage() {
         }
     };
 
+    // [P24] fixed: avatar upload handlers
+    const handleAvatarChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+            showToast(t('settings.avatarTooBig'), 'error');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const base64 = ev.target.result;
+            setAvatarPreview(base64);
+            handleAvatarUpload(base64);
+        };
+        reader.onerror = () => showToast(t('settings.avatarReadError'), 'error');
+        reader.readAsDataURL(file);
+    };
+
+    const handleAvatarUpload = async (base64) => {
+        setAvatarLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/users/me/avatar`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ avatar: base64 })
+            });
+            const data = await res.json();
+            if (data.success) {
+                updateUser?.({ avatar: data.avatar });
+                showToast(t('settings.avatarSaved'), 'success');
+            } else {
+                showToast(data.message || t('settings.avatarError'), 'error');
+            }
+        } catch (err) {
+            showToast(t('settings.avatarError') + ': ' + err.message, 'error');
+        } finally {
+            setAvatarLoading(false);
+        }
+    };
+
     const handleThemeChange = (newTheme) => {
         setTheme(newTheme);
         const root = document.documentElement;
@@ -371,12 +417,28 @@ function SettingsPage() {
                     <Camera size={18} className="text-[var(--success)]" /> {t('settings.avatar')}
                 </h3>
                 <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-3xl font-bold text-[var(--text-inverse)]">
-                        {profile.name.charAt(0).toUpperCase()}
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-3xl font-bold text-[var(--text-inverse)] overflow-hidden relative">
+                        {avatarPreview ? (
+                            <img src={avatarPreview} alt="avatar preview" className="w-full h-full object-cover" />
+                        ) : (
+                            profile.name.charAt(0).toUpperCase()
+                        )}
                     </div>
                     <div>
-                        <button className="px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-xl text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all flex items-center gap-2">
-                            <Camera size={14} /> {t('settings.profile')}
+                        <input
+                            ref={avatarInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            className="hidden"
+                        />
+                        <button
+                            onClick={() => avatarInputRef.current?.click()}
+                            disabled={avatarLoading}
+                            className="min-h-[44px] px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-xl text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {avatarLoading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                            {t('settings.uploadAvatar')}
                         </button>
                         <p className="text-xs text-[var(--text-muted)] mt-2">{t('settings.avatarHint')}</p>
                     </div>

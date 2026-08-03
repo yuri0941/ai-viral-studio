@@ -311,8 +311,12 @@ export function DashboardHeader({
                         onClick={() => setProfileOpen(true)}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors"
                     >
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-xs font-bold text-white">
-                            {user?.name?.[0]?.toUpperCase() || <User size={14} />}
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-xs font-bold text-white overflow-hidden">
+                            {user?.avatar ? (
+                                <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                user?.name?.[0]?.toUpperCase() || <User size={14} />
+                            )}
                         </div>
                         <span className="text-sm text-[var(--text)] hidden sm:inline">{user?.name || 'User'}</span>
                     </button>

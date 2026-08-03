@@ -13,6 +13,7 @@ import {
   updatePlanPrice,
 } from '../controllers/subscriptionController.js';
 import { getDynamicPricingStatus } from '../services/dynamicPricing.js';
+import { detectCurrencyByIP, getPaymentMethods } from '../services/geoCurrencyService.js';
 
 const router = Router();
 
@@ -35,6 +36,41 @@ router.get('/dynamic-pricing-status', protect, async (req, res) => {
     return res.json({ success: true, data: status });
   } catch (err) {
     console.error('[subscriptions:dynamic-pricing-status]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// [P24] added: geo-currency + payment methods config
+router.get('/config', async (req, res) => {
+  try {
+    const rawIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || '';
+    const ip = String(rawIp).split(',')[0].trim();
+    const country = ip && (ip === '127.0.0.1' || ip === '::1') ? 'RU' : null;
+    const currency = detectCurrencyByIP(ip);
+    const paymentMethods = getPaymentMethods(country, currency);
+    return res.json({ success: true, currency, country, paymentMethods });
+  } catch (err) {
+    console.error('[subscriptions:config]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// [P24] added: simple exchange-rate fallback
+const EXCHANGE_RATES = {
+  RUB: 1,
+  USD: 0.011,
+  EUR: 0.01,
+  UAH: 0.45,
+  KZT: 5.5,
+  BYN: 0.036,
+  GBP: 0.0085,
+};
+router.get('/exchange-rate', async (req, res) => {
+  try {
+    const { from = 'RUB', to = 'USD' } = req.query || {};
+    const rate = (EXCHANGE_RATES[to] || 1) / (EXCHANGE_RATES[from] || 1);
+    return res.json({ success: true, from, to, rate });
+  } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
 });

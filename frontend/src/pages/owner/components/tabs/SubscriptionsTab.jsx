@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { playSound } from '../../../../hooks/useSound.js'
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
-    ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil, Check
+    ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil, Check,
+    Wallet, Bitcoin, Landmark
 } from 'lucide-react'
 
 const DEMO_PLANS = [
@@ -41,7 +42,19 @@ const CURRENCIES = [
     { value: 'RUB', label: '₽', symbol: '₽' },
     { value: 'USD', label: '$', symbol: '$' },
     { value: 'EUR', label: '€', symbol: '€' },
+    { value: 'UAH', label: '₴', symbol: '₴' },
+    { value: 'KZT', label: '₸', symbol: '₸' },
+    { value: 'BYN', label: 'Br', symbol: 'Br' },
 ]
+
+const EXCHANGE_RATES = {
+    RUB: 1,
+    USD: 0.011,
+    EUR: 0.01,
+    UAH: 0.45,
+    KZT: 5.5,
+    BYN: 0.036,
+}
 
 const IS_STRIPE_ENABLED = false
 
@@ -52,12 +65,29 @@ function formatPrice(amount, currency) {
     return `${symbol}${amount.toLocaleString('en-US')}`
 }
 
+function convertPrice(amount, from, to) {
+    if (from === to) return amount
+    const fromRate = EXCHANGE_RATES[from] ?? 1
+    const toRate = EXCHANGE_RATES[to] ?? 1
+    return Math.round((amount * toRate) / fromRate)
+}
+
+const METHOD_ICON = {
+    yookassa: Landmark,
+    stripe: CreditCard,
+    paypal: Wallet,
+    crypto: Bitcoin,
+}
+
 export function SubscriptionsTab({ data }) {
     const { t } = useTranslation()
     const { toasts, setToasts } = data
     const { user, updatePreferences } = useAuth()
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
     const [currency, setCurrency] = useState(user?.preferences?.currency || 'RUB')
+    const [paymentMethod, setPaymentMethod] = useState('yookassa')
+    const [paymentMethods, setPaymentMethods] = useState([])
+    const [rate, setRate] = useState(1)
     const [current, setCurrent] = useState(null)
     const [history, setHistory] = useState([])
     const [isYearly, setIsYearly] = useState(false)
@@ -89,7 +119,25 @@ export function SubscriptionsTab({ data }) {
     useEffect(() => {
         loadCurrentAndHistory()
         loadDynamicPricingStatus()
+        loadPaymentConfig()
     }, [currency])
+
+    // [P24] added: load geo-currency config and exchange rate
+    async function loadPaymentConfig() {
+        try {
+            const [configRes, rateRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/subscriptions/config`).then(r => r.json()),
+                fetch(`${API_BASE_URL}/subscriptions/exchange-rate?from=RUB&to=${currency}`).then(r => r.json()),
+            ])
+            if (configRes.success) {
+                setPaymentMethods(configRes.paymentMethods || [])
+                setPaymentMethod(prev => configRes.paymentMethods?.find(m => m.id === prev) ? prev : configRes.paymentMethods?.[0]?.id || 'yookassa')
+            }
+            if (rateRes.success) setRate(rateRes.rate || 1)
+        } catch (err) {
+            console.error('[SubscriptionsTab:loadPaymentConfig]', err)
+        }
+    }
 
     async function loadCurrentAndHistory() {
         setLoading(true)
@@ -112,6 +160,13 @@ export function SubscriptionsTab({ data }) {
         setCurrency(nextCurrency)
         if (updatePreferences) {
             await updatePreferences({ currency: nextCurrency })
+        }
+        try {
+            const res = await fetch(`${API_BASE_URL}/subscriptions/exchange-rate?from=RUB&to=${nextCurrency}`)
+            const json = await res.json()
+            if (json.success) setRate(json.rate || 1)
+        } catch (err) {
+            console.error('[SubscriptionsTab:handleCurrencyChange]', err)
         }
     }
 
@@ -196,46 +251,98 @@ export function SubscriptionsTab({ data }) {
     }
 
     async function handleSubscribe(planId) {
-        if (currency !== 'RUB') {
-            pushToast('error', 'Международная оплата временно недоступна. Выберите ₽ (RUB).')
-            return
-        }
-
         const plan = (Array.isArray(plans) ? plans : []).find(p => p.id === planId)
         if (!plan || plan.price <= 0) {
-            pushToast('error', 'Бесплатный тариф не требует оплаты')
+            pushToast('error', t('subscriptions.freePlanNoPayment'))
             return
         }
 
         setPaying(planId)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
+        const fallbackToYookassa = () => {
+            if (paymentMethod !== 'yookassa') {
+                setPaymentMethod('yookassa')
+                pushToast('info', t('subscriptions.fallbackToYookassa'))
+            }
+        }
+
         try {
             const token = localStorage.getItem('token')
-            const basePrice = planOverrides[plan.id] ?? plan.price
+            const planCurrency = plan.currency || 'RUB'
+            const basePrice = planOverrides[plan.id] ?? convertPrice(plan.price, planCurrency, currency)
             const amount = isYearly ? Math.round(basePrice * 12 * 0.8) : basePrice
-            const res = await fetch(`${API_BASE_URL}/payments/create`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    planId,
-                    amount,
-                    description: `Подписка ${plan.name}`,
-                }),
-            }).then(r => r.json())
+            const body = JSON.stringify({
+                planId,
+                amount,
+                currency,
+                description: `Подписка ${plan.name}`,
+            })
 
-            if (res.success && res.confirmationUrl) {
-                pushToast('success', 'Перенаправляем на страницу оплаты…')
-                window.location.href = res.confirmationUrl
-                return
+            let res
+            if (paymentMethod === 'yookassa') {
+                res = await fetch(`${API_BASE_URL}/payments/create`, {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body,
+                }).then(r => r.json())
+                if (res.success && res.confirmationUrl) {
+                    window.location.href = res.confirmationUrl
+                    return
+                }
+            } else if (paymentMethod === 'stripe') {
+                res = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ planId: plan.name, price: amount, isYearly, currency, userId: user?._id || user?.id }),
+                }).then(r => r.json())
+                if (res.url) {
+                    window.location.href = res.url
+                    return
+                }
+            } else if (paymentMethod === 'paypal') {
+                res = await fetch(`${API_BASE_URL}/paypal/create-order`, {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body,
+                }).then(r => r.json())
+                if (res.approvalUrl) {
+                    window.location.href = res.approvalUrl
+                    return
+                }
+            } else if (paymentMethod === 'crypto') {
+                res = await fetch(`${API_BASE_URL}/payments/crypto-charge`, {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ name: `AI Viral Studio — ${plan.name}`, description: `Подписка ${plan.name}`, price: amount, currency }),
+                }).then(r => r.json())
+                if (res.hosted_url) {
+                    window.open(res.hosted_url, '_blank')
+                    pushToast('success', t('subscriptions.cryptoWindowOpened'))
+                    setPaying(null)
+                    return
+                }
             }
 
-            pushToast('error', res.error || 'Не удалось создать платёж')
+            // If backend returned fallback suggestion, switch automatically
+            if (res?.fallback && res?.status === 'error') {
+                fallbackToYookassa()
+            }
+            pushToast('error', res?.error || res?.message || t('subscriptions.paymentError'))
         } catch (err) {
-            console.error('[SubscriptionsTab:handleSubscribe]', err)
-            pushToast('error', err.message || 'Ошибка при создании платежа')
+            if (err.name === 'AbortError') {
+                pushToast('error', t('subscriptions.gatewayTimeout'))
+                fallbackToYookassa()
+            } else {
+                console.error('[SubscriptionsTab:handleSubscribe]', err)
+                pushToast('error', err.message || t('subscriptions.paymentError'))
+            }
         } finally {
+            clearTimeout(timeoutId)
             setPaying(null)
         }
     }
@@ -282,6 +389,28 @@ export function SubscriptionsTab({ data }) {
                             </button>
                         ))}
                     </div>
+                    {paymentMethods.length > 0 && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {paymentMethods.map((method) => {
+                                const Icon = METHOD_ICON[method.id] || CreditCard
+                                return (
+                                    <button
+                                        key={method.id}
+                                        onClick={() => setPaymentMethod(method.id)}
+                                        title={method.name}
+                                        className={`min-h-[44px] min-w-[44px] px-3 py-1.5 rounded-lg glass text-sm flex items-center gap-2 transition-colors ${
+                                            paymentMethod === method.id
+                                                ? 'bg-[var(--primary)] text-[var(--text-inverse)]'
+                                                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                                        }`}
+                                    >
+                                        <Icon size={16} />
+                                        <span className="hidden sm:inline">{method.name}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )}
                     <button
                         onClick={() => setIsYearly(!isYearly)}
                         className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-sm text-[var(--text)] hover:bg-[var(--surface)] transition-colors w-fit"
@@ -361,9 +490,11 @@ export function SubscriptionsTab({ data }) {
                         const isCurrent = currentPlanId === plan.id
                         const isFree = plan.id === 'free'
                         const basePrice = planOverrides[plan.id] ?? plan.price
+                        const planCurrency = plan.currency || 'RUB'
+                        const convertedPrice = convertPrice(basePrice, planCurrency, currency)
                         const displayPrice = isYearly && !isFree
-                            ? Math.round(basePrice * 12 * 0.8)
-                            : basePrice
+                            ? Math.round(convertedPrice * 12 * 0.8)
+                            : convertedPrice
                         const isRecommended = plan.popular || plan.id === 'pro'
 
                         return (
@@ -415,7 +546,7 @@ export function SubscriptionsTab({ data }) {
                                                 <div className="text-4xl font-bold text-[var(--text)]">{t('subscriptions.free')}</div>
                                             ) : (
                                                 <div className="text-4xl font-bold text-[var(--text)] flex items-center gap-2">
-                                                    {formatPrice(displayPrice, plan.currency)}
+                                                    {formatPrice(displayPrice, currency)}
                                                     <span className="text-xs text-[var(--text-muted)] font-normal">/{isYearly ? 'год' : 'мес'}</span>
                                                     {isOwnerOrAdmin && (
                                                         <button

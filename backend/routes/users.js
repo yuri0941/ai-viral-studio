@@ -48,6 +48,24 @@ router.get('/me/watermark-eligibility', protect, async (req, res) => {
     }
 })
 
+// [P24] fixed: avatar upload endpoint
+router.patch('/me/avatar', protect, async (req, res) => {
+    try {
+        const { avatar } = req.body || {}
+        if (typeof avatar !== 'string' || !avatar.startsWith('data:image/')) {
+            return res.status(400).json({ success: false, message: 'Avatar must be a base64 image' })
+        }
+        // 2MB limit for base64 string length approximation
+        if (avatar.length > 2.8e6) {
+            return res.status(413).json({ success: false, message: 'Avatar image exceeds 2MB limit' })
+        }
+        const user = await User.findByIdAndUpdate(req.user._id || req.user.id, { avatar }, { new: true }).select('avatar')
+        res.json({ success: true, avatar: user.avatar })
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message })
+    }
+})
+
 router.post('/change-password', protect, changePassword)
 router.post('/change-email', protect, changeEmail)
 router.delete('/me/data', protect, deleteMyData)

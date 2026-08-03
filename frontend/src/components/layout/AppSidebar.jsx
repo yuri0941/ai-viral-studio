@@ -338,8 +338,12 @@ export function AppSidebar({
             {/* User */}
             <div className="p-3 border-t border-[var(--border)]">
                 <div className={`flex items-center gap-3 px-3 py-2 ${isExpanded ? '' : 'justify-center'}`}>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary)] flex items-center justify-center text-xs font-bold text-[var(--text-inverse)] flex-shrink-0">
-                        {initials || <Globe className="w-4 h-4" />}
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary)] flex items-center justify-center text-xs font-bold text-[var(--text-inverse)] flex-shrink-0 overflow-hidden">
+                        {user?.avatar ? (
+                            <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                        ) : (
+                            initials || <Globe className="w-4 h-4" />
+                        )}
                     </div>
                     {isExpanded && (
                         <div className="min-w-0">

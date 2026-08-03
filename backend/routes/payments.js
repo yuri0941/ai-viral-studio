@@ -42,53 +42,62 @@ router.get('/status', protect, getPaymentStatus)
  * Создаёт Stripe Checkout Session для подписки
  */
 router.post('/create-checkout-session', async (req, res) => {
-    try {
-        if (!stripe) {
-            return res.status(503).json({ error: 'Stripe not configured' })
-        }
+    let attempts = 0
+    const maxAttempts = 2
+    let lastError = null
 
-        const { planId, price, isYearly, userId } = req.body
-
-        if (!planId || !price || price <= 0) {
-            return res.status(400).json({ error: 'Invalid plan or price' })
-        }
-
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [{
-                price_data: {
-                    currency: 'usd',
-                    product_data: {
-                        name: `AI Viral Studio — ${planId}`,
-                        description: isYearly ? 'Годовая подписка' : 'Месячная подписка'
-                    },
-                    unit_amount: Math.round(price * 100), // в центах
-                    recurring: isYearly
-                        ? { interval: 'year' }
-                        : { interval: 'month' }
-                },
-                quantity: 1,
-            }],
-            mode: 'subscription',
-            success_url: `${process.env.FRONTEND_URL}/settings?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.FRONTEND_URL}/settings?payment=cancel`,
-            metadata: {
-                userId: userId || 'anonymous',
-                planId: planId,
-                isYearly: String(isYearly)
+    while (attempts < maxAttempts) {
+        attempts++
+        try {
+            if (!stripe) {
+                return res.status(503).json({ status: 'error', error: 'Stripe not configured', fallback: 'yookassa' })
             }
-        })
 
-        res.json({
-            success: true,
-            url: session.url,
-            sessionId: session.id
-        })
+            const { planId, price, isYearly, currency = 'USD', userId } = req.body
 
-    } catch (err) {
-        console.error('Stripe error:', err.message)
-        res.status(500).json({ error: err.message })
+            if (!planId || !price || price <= 0) {
+                return res.status(400).json({ status: 'error', error: 'Invalid plan or price' })
+            }
+
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ['card'],
+                line_items: [{
+                    price_data: {
+                        currency: currency.toLowerCase(),
+                        product_data: {
+                            name: `AI Viral Studio — ${planId}`,
+                            description: isYearly ? 'Годовая подписка' : 'Месячная подписка'
+                        },
+                        unit_amount: Math.round(price * 100), // в центах
+                        recurring: isYearly
+                            ? { interval: 'year' }
+                            : { interval: 'month' }
+                    },
+                    quantity: 1,
+                }],
+                mode: 'subscription',
+                success_url: `${process.env.FRONTEND_URL || ''}/settings?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${process.env.FRONTEND_URL || ''}/settings?payment=cancel`,
+                metadata: {
+                    userId: userId || 'anonymous',
+                    planId: planId,
+                    isYearly: String(isYearly)
+                }
+            })
+
+            return res.json({
+                success: true,
+                url: session.url,
+                sessionId: session.id
+            })
+        } catch (err) {
+            lastError = err
+            console.error(`Stripe error (attempt ${attempts}):`, err.message)
+            if (attempts < maxAttempts) await new Promise(r => setTimeout(r, 500))
+        }
     }
+
+    return res.status(502).json({ status: 'error', error: lastError?.message || 'Stripe connection failed', fallback: 'yookassa' })
 })
 
 /**
