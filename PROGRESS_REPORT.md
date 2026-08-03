@@ -2636,3 +2636,22 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `eeb0d90f`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
+
+
+### [2026-08-04] — ПРОМПТ №24: UI Fixes + Payments + Server Fixes
+- [x] i18n keys: settings.*, subscriptions.*, apiKeys.* (ru + en)
+- [x] SettingsPage appearance tab: theme, language, animations, sounds
+- [x] Luxury light theme: #f8f7f4 bg, shadows, glassmorphism
+- [x] Profile: avatar upload (file input, base64, preview)
+- [x] Header/Sidebar avatars use user.avatar with initials fallback
+- [x] Subscriptions: currency selector (RUB/USD/EUR/UAH/KZT/BYN), geo-IP detection
+- [x] Subscriptions: payment methods (ЮKassa, Stripe, PayPal, Crypto) with radio buttons
+- [x] Fix: Stripe error handling + loading timeout fallback
+- [x] Fix: getProviderKey ObjectId validation
+- [x] Fix: Groq model updated
+- [x] Fix: Telegram 409 conflict + deleteWebhook
+- [x] Fix: OmegaCoder JSON.parse try-catch
+- [x] Frontend build: 0 errors
+- [x] Backend check: 0 errors
+- [x] Git push: done (commit `94c8a7fa`)
+- [ ] Render deploy: manual Clear Build Cache & Deploy
