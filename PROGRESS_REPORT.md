@@ -2711,3 +2711,34 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `301baad2`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
+
+
+### [2026-08-04] — ПРОМПТ №24: OMEGA Role + Language + Groq + OmegaCoder
+- [x] auth.js: req.user содержит role
+- [x] User model: role enum verified
+- [x] omegaController.js: передаёт req.user.role во все вызовы
+- [x] privacyFirewall.js: корректная проверка owner/admin/staff/client
+- [x] contextEngine.js: роль + язык в system prompt
+- [x] omegaGuard.js: ролевая проверка MRR/инфраструктуры
+- [x] aiService.js: автоопределение языка запроса
+- [x] OmegaChat.jsx: отправка userRole на бэкенд
+- [x] Groq: llama-3.1-70b-versatile → llama-3.3-70b-versatile + fallback chain
+- [x] OmegaCoder: ES6 import/export → CommonJS module.exports/require
+- [x] OmegaCoder: markdown stripper + syntax validation
+- [x] OmegaCoder: system prompt "CommonJS only, no ES6 modules"
+- [x] Frontend build: 0 errors
+- [x] Backend check: 0 errors
+- [x] Git push: done
+- [ ] Render deploy: manual Clear Build Cache & Deploy
+
+
+### [2026-08-04] — ПРОМПТ №24: Redis Integration
+- [x] ioredis installed
+- [x] redisClient.js: Redis connection with in-memory fallback
+- [x] .env.example: REDIS_URL added
+- [x] server.js: connectRedis() called after MongoDB
+- [x] Fallback preserved: in-memory cache if Redis unavailable
+- [x] Backend check: 0 errors
+- [x] Frontend build: 0 errors
+- [x] Git push: done (commit `9d1e0995`)
+- [ ] Render deploy: manual Clear Build Cache & Deploy
