@@ -86,9 +86,35 @@ function isForbidden(rule, role) {
     return false
 }
 
+// [P24] fixed: role-aware content filters
+function filterClient(draft) {
+    let text = typeof draft === 'string' ? draft : JSON.stringify(draft)
+    text = text.replace(/(?:mrr|доход|выручка|прибыль|revenue|profit).*?(?:\d[\d\s]*|платформы|студии|сервиса)/gi, '[скрыто]')
+    text = text.replace(/(?:tech stack|стек|инфраструктура|сервер|база данных|database|backend|api keys|ключи).*?(?::|=).*?\S+/gi, '[скрыто]')
+    return text
+}
+
+function filterStaff(draft) {
+    let text = typeof draft === 'string' ? draft : JSON.stringify(draft)
+    // Staff видит больше, но не MRR платформы и чужие клиентские данные
+    text = text.replace(/(?:mrr|доход|выручка|прибыль|revenue|profit).*?(?:\d[\d\s]*|платформы|студии|сервиса)/gi, '[скрыто]')
+    return text
+}
+
 export async function scan(draft, userRole, user = null) {
     const text = typeof draft === 'string' ? draft : JSON.stringify(draft)
     const role = normalizeRole(userRole)
+
+    // [P24] fixed: explicit role-based access
+    if (['owner', 'admin'].includes(role)) {
+        return { blocked: false, modified: false, text: draft, ruleId: null }
+    }
+    if (role === 'staff') {
+        return { blocked: false, modified: true, text: filterStaff(text), ruleId: null }
+    }
+    if (['creator', 'advertiser', 'business'].includes(role)) {
+        return { blocked: false, modified: true, text: filterClient(text), ruleId: null }
+    }
 
     for (const rule of PRIVACY_RULES) {
         if (!ruleMatches(rule, text)) continue
