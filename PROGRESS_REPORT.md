@@ -2685,3 +2685,14 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `4fb40617`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
+
+
+### [2026-08-04] — ПРОМПТ №24: Groq + OmegaCoder Hotfix
+- [x] Groq: llama-3.1-70b-versatile → llama-3.3-70b-versatile + fallback chain
+- [x] OmegaCoder: ES6 export/import → CommonJS module.exports/require
+- [x] OmegaCoder: node --check validation before write
+- [x] OmegaCoder: system prompt "CommonJS only, no ES6 modules"
+- [x] Backend check: 0 errors
+- [x] Frontend build: 0 errors
+- [x] Git push: done (commit `bba90731`)
+- [ ] Render deploy: manual Clear Build Cache & Deploy
