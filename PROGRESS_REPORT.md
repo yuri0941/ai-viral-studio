@@ -2666,3 +2666,22 @@
 - [x] Frontend build: 0 errors
 - [x] Git push: done (commit `450b9c5e`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
+
+
+### [2026-08-04] — ПРОМПТ №24: UI + Payments + Server Fixes + All Roles
+- [x] i18n keys: settings.*, subscriptions.*, apiKeys.* (ru + en)
+- [x] SettingsPage appearance tab: theme, language, animations, sounds
+- [x] Luxury light theme: #f8f7f4 bg, shadows, glassmorphism
+- [x] Profile: avatar upload for all roles
+- [x] Subscriptions: currency selector, geo-IP, payment methods
+- [x] Fix: Stripe error + loading timeout
+- [x] Fix: getProviderKey ObjectId validation
+- [x] Fix: Groq model fallback
+- [x] Fix: Telegram 409 conflict + deleteWebhook
+- [x] Fix: OmegaCoder markdown strip + syntax validation
+- [x] Seed: admin, staff, creator, advertiser, business test accounts
+- [x] Fix: privacyFirewall for staff/client roles
+- [x] Frontend build: 0 errors
+- [x] Backend check: 0 errors
+- [x] Git push: done (commit `4fb40617`)
+- [ ] Render deploy: manual Clear Build Cache & Deploy
