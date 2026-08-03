@@ -76,9 +76,9 @@ export const ownerApi = {
 // ============================================
 export const omegaApi = {
     status: () => request('/omega/status'),
-    chat: (message, history = [], lang = 'ru') => request('/omega/chat', {
+    chat: (message, history = [], lang = 'ru', role = 'guest') => request('/omega/chat', {
         method: 'POST',
-        body: JSON.stringify({ message, history, lang }),
+        body: JSON.stringify({ message, history, lang, userRole: role }),
     }),
     getMemory: (query, limit) => {
         const params = new URLSearchParams()

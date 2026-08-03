@@ -31,6 +31,13 @@ export function invalidateApiKeysCache() {
 // [P24] fixed: Groq model fallback chain
 const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768']
 
+// [P24] fixed: auto-detect user query language
+function detectLanguage(text) {
+    if (/[а-яё]/i.test(text)) return 'ru'
+    if (/[a-z]/i.test(text)) return 'en'
+    return 'auto'
+}
+
 // ============ CACHE ============
 const responseCache = new Map()
 const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
@@ -578,8 +585,10 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
             }
         }
 
+        const detectedLang = detectLanguage(message)
+        const langPrompt = `Язык запроса: ${detectedLang}. Отвечай строго на этом языке.`
         const messages = [
-            { role: 'system', content: `${memoryContext}${SYSTEM_PROMPT}` },
+            { role: 'system', content: `${memoryContext}${SYSTEM_PROMPT}\n\n${langPrompt}` },
             ...history.map(msg => ({
                 role: msg.role === 'user' ? 'user' : 'assistant',
                 content: msg.content

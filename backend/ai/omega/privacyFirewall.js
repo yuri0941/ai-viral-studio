@@ -107,13 +107,15 @@ export async function scan(draft, userRole, user = null) {
 
     // [P24] fixed: explicit role-based access
     if (['owner', 'admin'].includes(role)) {
-        return { blocked: false, modified: false, text: draft, ruleId: null }
+        return { allowed: true, blocked: false, modified: false, text: draft, draft, ruleId: null }
     }
     if (role === 'staff') {
-        return { blocked: false, modified: true, text: filterStaff(text), ruleId: null }
+        const staffDraft = filterStaff(text)
+        return { allowed: true, blocked: false, modified: true, text: staffDraft, draft: staffDraft, ruleId: null }
     }
     if (['creator', 'advertiser', 'business'].includes(role)) {
-        return { blocked: false, modified: true, text: filterClient(text), ruleId: null }
+        const clientDraft = filterClient(text)
+        return { allowed: true, blocked: false, modified: true, text: clientDraft, draft: clientDraft, ruleId: null }
     }
 
     for (const rule of PRIVACY_RULES) {
@@ -144,14 +146,16 @@ export async function scan(draft, userRole, user = null) {
         }
 
         return {
+            allowed: false,
             blocked: true,
             modified: true,
             text: rule.responseForOthers,
+            draft: rule.responseForOthers,
             ruleId: rule.id,
         }
     }
 
-    return { blocked: false, modified: false, text: draft, ruleId: null }
+    return { allowed: true, blocked: false, modified: false, text: draft, draft, ruleId: null }
 }
 
 export default { scan, PRIVACY_RULES }

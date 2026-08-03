@@ -67,22 +67,17 @@ export async function getContext(user, query) {
 
     const allowedReads = info.canRead.filter(r => r !== 'all').join(', ')
 
-    const lines = [
-        `Я OMEGA, ваш AI-ассистент. Роль: ${info.label}.`,
-        `Могу помочь с вашим проектом: ${projectName}.`,
-    ]
+    // [P24] fixed: role + language in system prompt
+    const systemPrompt = `Ты OMEGA, AI-ассистент AI Viral Studio. Пользователь — ${info.label} (${role}). Отвечай на языке запроса пользователя. Если запрос на русском — отвечай на русском. Если на английском — отвечай на английском. Не переключай язык без причины.
 
-    if (role === 'guest') {
-        lines.push('Доступ только к публичной информации. Для персональных данных войдите в систему.')
-    } else if (role !== 'owner') {
-        lines.push(`Доступные данные: ${allowedReads}. Конфиденциальная информация платформы скрыта.`)
-    }
+Контекст:
+- Роль: ${role}
+- Проект: ${projectName}
+- Доступные данные: ${allowedReads || 'public_info'}
+${role === 'guest' ? '- Доступ только к публичной информации. Для персональных данных войдите в систему.' : role !== 'owner' ? '- Конфиденциальная информация платформы скрыта.' : ''}
+${query ? `Текущий запрос: ${query}` : ''}`
 
-    if (query) {
-        lines.push(`Текущий запрос: ${query}`)
-    }
-
-    return lines.join('\n')
+    return systemPrompt
 }
 
 export function filterData(role, data, resourceType) {

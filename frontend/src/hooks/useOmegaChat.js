@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useOmega } from './useOmega.js'
+import { useAuth } from '../context/AuthContext.jsx'
 import { omegaApi } from '../services/api.js'
 
 const STORAGE_KEY = 'omega_chat_history'
@@ -43,6 +44,7 @@ function getDemoResponse(text) {
 
 export function useOmegaChat(options = {}) {
     const omega = useOmega(options)
+    const { user } = useAuth()
     const [messages, setMessages] = useState(() => loadHistory())
     const [input, setInput] = useState('')
     const [isTyping, setIsTyping] = useState(false)
@@ -62,7 +64,7 @@ export function useOmegaChat(options = {}) {
         setDemoMode(false)
 
         try {
-            const data = await omega.sendChatMessage(userMsg.text, messages)
+            const data = await omega.sendChatMessage(userMsg.text, messages, { role: user?.role || 'guest' })
             if (!data) throw new Error('Пустой ответ от OMEGA')
             const reply = {
                 id: generateId(),
@@ -89,7 +91,7 @@ export function useOmegaChat(options = {}) {
         } finally {
             setIsTyping(false)
         }
-    }, [messages, omega])
+    }, [messages, omega, user])
 
     const clearHistory = useCallback(() => {
         setMessages([])

@@ -33,7 +33,7 @@ export function useOmega(options = {}) {
         setStatus(core.getStatus())
     }, [])
 
-    const sendChatMessage = useCallback(async (message, history = []) => {
+    const sendChatMessage = useCallback(async (message, history = [], options = {}) => {
         if (!coreRef.current) return null
         setIsLoading(true)
         setError(null)
@@ -43,7 +43,7 @@ export function useOmega(options = {}) {
                 content: msg.text || msg.content || '',
             }))
 
-            const json = await omegaApi.chat(message, normalizedHistory)
+            const json = await omegaApi.chat(message, normalizedHistory, 'ru', options.role || 'guest')
             if (json.status !== 'success') throw new Error(json.message || 'OMEGA request failed')
 
             memoryRef.current?.store('short_term', {

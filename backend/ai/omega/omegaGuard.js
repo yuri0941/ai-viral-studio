@@ -27,9 +27,17 @@ const FORBIDDEN_PATTERNS = {
 
 const BLOCKED_MESSAGE = 'Извините, я не могу помочь с этой темой. Попробуйте переформулировать запрос.'
 
-export function checkOmegaGuard(message, lang = 'ru') {
+export function checkOmegaGuard(message, lang = 'ru', userRole = 'guest') {
   const text = String(message || '').toLowerCase()
-  const patterns = FORBIDDEN_PATTERNS[lang] || FORBIDDEN_PATTERNS.ru
+  // [P24] fixed: role-based exceptions for MRR and infrastructure questions
+  const allowMRR = ['owner', 'admin'].includes(userRole)
+  const allowInfrastructure = ['owner', 'admin', 'staff'].includes(userRole)
+  const patterns = (FORBIDDEN_PATTERNS[lang] || FORBIDDEN_PATTERNS.ru).filter(p => {
+    const pLow = p.toLowerCase()
+    if (allowMRR && /(mrr|доход|revenue|прибыль|profit)/.test(pLow)) return false
+    if (allowInfrastructure && /(tech stack|стек|инфраструктура|сервер|backend|database|база данных)/.test(pLow)) return false
+    return true
+  })
   const matched = patterns.filter(p => text.includes(p.toLowerCase()))
   return {
     blocked: matched.length > 0,

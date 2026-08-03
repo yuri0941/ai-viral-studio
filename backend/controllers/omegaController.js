@@ -48,7 +48,8 @@ export async function chat(req, res) {
         }
 
         const lang = req.body.lang || 'ru'
-        const guard = checkOmegaGuard(message, lang)
+        const userRole = req.user?.role || req.body?.userRole || 'guest'
+        const guard = checkOmegaGuard(message, lang, userRole)
         if (guard.blocked) {
             await logOmegaGuardEvent({
                 userId: req.user?.id || req.user?._id,
@@ -143,7 +144,7 @@ export async function chat(req, res) {
                 extraSystemContext ? `${extraSystemContext}\n\nВопрос: ${message}` : message,
                 history.map(h => ({ role: h.role, content: h.content || h.text })),
                 lang,
-                { userId, ownerId: userId }
+                { userId, ownerId: userId, userRole: req.user?.role || req.body?.userRole || 'guest' }
             )
 
         if (userId) {
@@ -176,7 +177,7 @@ export async function chat(req, res) {
 
         // Privacy Firewall scan перед отправкой ответа
         try {
-            const scanResult = await privacyScan(responseText, req.user?.role, req.user)
+            const scanResult = await privacyScan(responseText, userRole, req.user)
             if (scanResult.modified) {
                 responseText = scanResult.text
             }
@@ -398,7 +399,7 @@ ${base.text}
 
 Переменные: ${JSON.stringify(variables)}`
             try {
-                const aiResult = await chatWithAI(prompt, [], 'ru', { ownerId: userId })
+                const aiResult = await chatWithAI(prompt, [], 'ru', { ownerId: userId, userRole: req.user?.role || req.body?.userRole || 'guest' })
                 if (aiResult?.reply) {
                     base.aiText = aiResult.reply
                     base.provider = aiResult.provider || 'ai'
