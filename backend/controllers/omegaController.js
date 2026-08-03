@@ -17,6 +17,7 @@ import { analyzeBestTime } from '../services/bestTimeService.js'
 import { getTrends, invalidateTrendCache } from '../services/trendScanner.js'
 import { generateCover } from '../services/imageGeneration.js'
 import { searchWithFallback } from '../ai/omega/webSearch.js'
+import { generateVideoScript, generateVideoPlaceholder, startReplicateVideo } from '../services/aiVideoService.js'
 import User from '../models/User.js'
 import axios from 'axios'
 import { checkQuota, consumeGeneration } from '../services/usageQuotaService.js'
@@ -607,11 +608,36 @@ export async function speakVoice(req, res) {
     try {
         const userId = req.user?._id || req.user?.id
         if (!userId) return res.status(401).json({ status: 'error', message: 'Unauthorized' })
-        const { text } = req.body
+        const { text, voiceId } = req.body
         if (!text) return res.status(400).json({ status: 'error', message: 'Text is required' })
-        const result = await synthesizeSpeech(userId, text)
+        const result = await synthesizeSpeech(userId, text, voiceId)
         res.json({ status: 'success', data: result })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+// [P19] added: AI Video (Shorts/Reels) generation
+export async function generateVideo(req, res) {
+    try {
+        const { topic, niche, duration } = req.body || {}
+        if (!topic) return res.status(400).json({ status: 'error', message: 'topic is required' })
+
+        const script = await generateVideoScript(topic, niche, duration)
+        const placeholder = generateVideoPlaceholder(script)
+        const replicate = await startReplicateVideo(topic, duration)
+
+        return res.json({
+            status: 'success',
+            data: {
+                script,
+                placeholder,
+                replicate,
+                fallback: !replicate,
+            },
+        })
+    } catch (err) {
+        console.error('[omegaController:generateVideo]', err.message)
+        return res.status(500).json({ status: 'error', message: err.message })
     }
 }

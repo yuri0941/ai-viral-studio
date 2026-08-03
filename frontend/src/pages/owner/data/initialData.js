@@ -202,4 +202,5 @@ export const TAB_LABELS = {
     franchise: '🏪 Франшиза',
     fleet: '🚀 Fleet',
     selfHealing: '🔧 Self-Healing',
+    sandbox: '⏳ Sandbox',
 }

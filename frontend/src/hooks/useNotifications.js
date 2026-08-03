@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { playSound } from './useSound.js'
 
 const STORAGE_KEY = 'app_notifications'
 
@@ -64,6 +65,8 @@ export function useNotifications() {
     }, [])
 
     const add = useCallback((notification) => {
+        // [P19] added: notification sound
+        playSound('notification')
         setNotifications(prev => [{ ...notification, id: notification.id || Date.now(), read: false }, ...prev])
     }, [])
 

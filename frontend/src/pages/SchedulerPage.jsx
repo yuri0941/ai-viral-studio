@@ -9,6 +9,7 @@ import {
     ToggleLeft, ToggleRight, Bot
 } from 'lucide-react';
 import { omegaApi } from '../services/api';
+import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 import VisualCalendar from '../components/scheduler/VisualCalendar';
 import BestTimePicker from '../components/scheduler/BestTimePicker';
@@ -91,6 +92,13 @@ function SchedulerPage() {
     const [showABTest, setShowABTest] = useState(false);
     const [repurposingLoading, setRepurposingLoading] = useState(false);
     const [repurposingResults, setRepurposingResults] = useState(null);
+    // [P19] added: AI Video (Shorts/Reels) modal state
+    const [videoModalOpen, setVideoModalOpen] = useState(false);
+    const [videoTopic, setVideoTopic] = useState('');
+    const [videoNiche, setVideoNiche] = useState('Бизнес');
+    const [videoDuration, setVideoDuration] = useState(15);
+    const [videoLoading, setVideoLoading] = useState(false);
+    const [videoResult, setVideoResult] = useState(null);
     const [imageZoom, setImageZoom] = useState(1);
     const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -223,6 +231,48 @@ function SchedulerPage() {
         } finally {
             setRepurposingLoading(false)
         }
+    }
+
+    // [P19] added: AI Video (Shorts/Reels) generation handler
+    async function handleGenerateVideo() {
+        if (!videoTopic.trim()) return;
+        setVideoLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/omega/generate-video`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ topic: videoTopic, niche: videoNiche, duration: videoDuration }),
+            });
+            const json = await res.json();
+            if (json.status === 'success') setVideoResult(json.data);
+            else alert(json.message || 'Ошибка генерации видео');
+        } catch (err) {
+            alert('Ошибка сети: ' + err.message);
+        } finally {
+            setVideoLoading(false);
+        }
+    }
+
+    function handleScheduleVideo() {
+        if (!videoResult?.script) return;
+        const newPost = {
+            id: Date.now(),
+            title: videoResult.script.title || videoTopic,
+            platforms: ['instagram', 'tiktok', 'youtube'],
+            date: formatDateInput(new Date()),
+            time: '12:00',
+            types: ['reels', 'short'],
+            description: videoResult.script.scenes.map(s => s.text).join('\n\n'),
+            tags: '#reels #shorts #ai',
+            status: 'draft',
+            autoDelete: false,
+            autoDeleteTime: '24',
+        };
+        setPosts(prev => [newPost, ...prev]);
+        setVideoModalOpen(false);
+        setVideoResult(null);
+        setVideoTopic('');
     }
 
     const handleSave = async () => {
@@ -555,6 +605,8 @@ function SchedulerPage() {
                 <div className="flex items-center gap-2">
                     <OneClickPublish content={posts.find(p => p.status === 'draft')?.title || 'Готовый контент от OMEGA'} />
                     <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="px-3 py-2 rounded-lg bg-[#1a1a24] text-gray-400 text-sm hover:text-white transition-colors">Месяц</button>
+                    {/* [P19] added: AI Video generation trigger */}
+                    <button onClick={() => setVideoModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white font-medium rounded-lg transition-all hover:scale-105"><Film size={18} /> Сгенерировать Reels</button>
                     <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-105"><Plus size={18} /> Новый пост</button>
                 </div>
             </div>
@@ -946,6 +998,71 @@ function SchedulerPage() {
                             {mediaQueue[previewIndex].duration ? <span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={12} /> {formatDuration(mediaQueue[previewIndex].duration)}</span> : null}
                             <span className="text-xs text-gray-600">{previewIndex + 1} / {mediaQueue.length}</span>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* [P19] added: AI Video (Shorts/Reels) modal */}
+            {videoModalOpen && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-bold flex items-center gap-2"><Film className="text-violet-400" /> Сгенерировать Reels</h2>
+                            <button onClick={() => { setVideoModalOpen(false); setVideoResult(null); }} className="text-gray-400 hover:text-white">✕</button>
+                        </div>
+                        <div className="space-y-4 mb-4">
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-1">Тема видео</label>
+                                <input value={videoTopic} onChange={e => setVideoTopic(e.target.value)} placeholder="Например, 5 лайфхаков для продуктивности" className="w-full px-3 py-2 rounded-lg bg-[#252530] border border-white/10 text-white outline-none" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs text-gray-400 block mb-1">Ниша</label>
+                                    <input value={videoNiche} onChange={e => setVideoNiche(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#252530] border border-white/10 text-white outline-none" />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-400 block mb-1">Длительность (сек)</label>
+                                    <input type="number" min={10} max={60} value={videoDuration} onChange={e => setVideoDuration(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg bg-[#252530] border border-white/10 text-white outline-none" />
+                                </div>
+                            </div>
+                            <button onClick={handleGenerateVideo} disabled={videoLoading || !videoTopic.trim()} className="w-full py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 text-white font-medium flex items-center justify-center gap-2">
+                                {videoLoading ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
+                                {videoLoading ? 'Генерация…' : 'Сгенерировать сценарий'}
+                            </button>
+                        </div>
+
+                        {videoResult?.script && (
+                            <div className="space-y-4 border-t border-white/10 pt-4">
+                                <div>
+                                    <div className="text-sm text-gray-400">Заголовок</div>
+                                    <div className="text-white font-semibold">{videoResult.script.title}</div>
+                                    <div className="text-xs text-violet-400 mt-1">{videoResult.script.hook}</div>
+                                </div>
+                                <div className="space-y-2">
+                                    {videoResult.script.scenes.map((scene) => (
+                                        <div key={scene.index} className="bg-[#252530] rounded-lg p-3 text-sm">
+                                            <div className="text-emerald-400 text-xs font-medium mb-1">Сцена {scene.index} · {scene.duration}с</div>
+                                            <div className="text-white">{scene.text}</div>
+                                            <div className="text-gray-500 text-xs mt-1">{scene.visualHint}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {videoResult.placeholder?.html && (
+                                    <div>
+                                        <div className="text-xs text-gray-400 mb-2">Preview (HTML placeholder)</div>
+                                        <iframe
+                                            title="video-preview"
+                                            srcDoc={videoResult.placeholder.html}
+                                            className="w-full h-64 rounded-lg border border-white/10 bg-black"
+                                        />
+                                    </div>
+                                )}
+                                <div className="flex gap-2">
+                                    <button onClick={handleScheduleVideo} className="flex-1 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-medium">Запланировать</button>
+                                    <button onClick={() => window.open(videoResult.placeholder?.fallbackUrl, '_blank')} className="flex-1 py-2 rounded-lg bg-[#252530] hover:bg-[#303040] text-white">Открыть в Canva</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

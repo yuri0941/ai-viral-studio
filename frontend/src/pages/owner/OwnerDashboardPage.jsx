@@ -47,6 +47,7 @@ import { QRPrintTab } from './components/tabs/QRPrintTab'
 import { FranchiseTab } from './components/tabs/FranchiseTab'
 import { FleetTab } from './components/tabs/FleetTab'
 import { SelfHealingCrisisTab } from './components/tabs/SelfHealingCrisisTab'
+import { SandboxPanel } from './components/tabs/SandboxPanel'
 
 import AnalyticsPage from '../AnalyticsPage'
 import AIChatPage from '../AIChatPage'
@@ -76,7 +77,7 @@ import {
     Megaphone, Lock, Plug, Brain, FileText, Bot, MessageSquare,
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
     BrainCircuit, Database, Scale, BarChart, Search, Calendar, TrendingUp,
-    X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, QrCode, Store, Shield
+    X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, QrCode, Store, Shield, Terminal
 } from 'lucide-react'
 
 const TAB_ICONS = {
@@ -125,6 +126,7 @@ const TAB_ICONS = {
     franchise: Store,
     fleet: Rocket,
     selfHealing: Shield,
+    sandbox: Terminal,
 }
 
 export default function OwnerDashboardPage() {
@@ -185,6 +187,7 @@ export default function OwnerDashboardPage() {
             case 'franchise': return <FranchiseTab data={ownerData} />
             case 'fleet': return <FleetTab data={ownerData} />
             case 'selfHealing': return <SelfHealingCrisisTab data={ownerData} />
+            case 'sandbox': return <SandboxPanel data={ownerData} />
             case 'analytics': return <AnalyticsPage />
             case 'aiChat': return <AIChatPage />
             case 'contentAnalyzer': return <ContentAnalyzerPage />

@@ -5,6 +5,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { chatWithAI } from '../../services/aiService.js'
 import { AuditLog } from '../../models/AuditLog.js'
+import OmegaApproval from '../../models/OmegaApproval.js'
 import { Sandbox } from './sandbox.js'
 import { alertOmega } from '../../services/omegaBot.js'
 
@@ -37,7 +38,7 @@ export const FORBIDDEN_PATHS = [
     path.join(PROJECT_ROOT, 'backend/config/env.js'),
 ]
 
-export const approvalQueue = []
+// [P19] added: legacy in-memory queue removed, using MongoDB OmegaApproval model
 
 function isAllowedPath(filePath) {
     const normalized = path.normalize(filePath)
@@ -87,6 +88,61 @@ async function scanDir(dir, accumulator) {
             accumulator.push(fullPath)
         }
     }
+}
+
+// [P19] added: analyze codebase for duplicates, unused imports, slow functions
+export async function analyzeCodebase() {
+    const files = await scanAllowedFiles()
+    const summary = []
+    const importMap = new Map()
+
+    for (const filePath of files.slice(0, 50)) {
+        try {
+            const code = await fs.readFile(filePath, 'utf8')
+            const importMatches = code.match(/import\s+.*?\s+from\s+['"]([^'"]+)['"]/g) || []
+            const exports = (code.match(/export\s+(?:async\s+)?function\s+(\w+)/g) || []).map(m => m.split(/\s+/).pop())
+            summary.push({ file: path.relative(PROJECT_ROOT, filePath), imports: importMatches.length, exports: exports.length, lines: code.split('\n').length })
+            importMatches.forEach(imp => {
+                const src = imp.match(/from\s+['"]([^'"]+)['"]/)?.[1]
+                if (src) importMap.set(src, (importMap.get(src) || 0) + 1)
+            })
+        } catch (err) {
+            console.warn('[OmegaCoder:analyzeCodebase] read failed', filePath, err.message)
+        }
+    }
+
+    const duplicates = Array.from(importMap.entries())
+        .filter(([, count]) => count > 1)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+
+    const prompt = `Проанализируй кратко кодовую базу AI Viral Studio:
+Файлов: ${files.length}
+Топ дублируемых импортов: ${JSON.stringify(duplicates)}
+Сводка: ${JSON.stringify(summary.slice(0, 10))}.
+Укажи 3 приоритетных улучшения (безопасных для AI-директорий).`
+
+    let aiSummary = ''
+    try {
+        const ai = await chatWithAI(prompt, [], 'ru', { userId: 'omega' })
+        aiSummary = ai?.reply || ''
+    } catch (err) {
+        aiSummary = 'AI-анализ недоступен.'
+    }
+
+    return {
+        totalFiles: files.length,
+        duplicates,
+        summary,
+        aiSummary,
+        allowedPaths: ALLOWED_PATHS,
+    }
+}
+
+// [P19] added: run generated code in sandbox (alias/wrapper)
+export async function runInSandbox(code, filename = 'omega-sandbox.js') {
+    const sandbox = new Sandbox({ timeoutMs: 5000, memoryMb: 64 })
+    return sandbox.validate(code, { filename })
 }
 
 /**
@@ -158,8 +214,13 @@ export async function generatePatch(filePath, issueHint = '') {
     }
 }
 
+// [P19] added: alias for frontend/controller usage
+export async function generateOptimization(filePath, issue = '') {
+    return generatePatch(filePath, issue)
+}
+
 /**
- * Validate a patch in the sandbox and, if it passes, submit to owner approval queue.
+ * Validate a patch in the sandbox and, if it passes, submit to owner approval queue (MongoDB).
  */
 export async function submitToApprovalQueue(patch) {
     if (!isAllowedPath(patch.filePath)) {
@@ -181,27 +242,34 @@ export async function submitToApprovalQueue(patch) {
         throw new Error(`Patch validation failed at ${validation.stage}: ${validation.error}`)
     }
 
-    const item = {
-        id: `patch_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-        ...patch,
+    const patchId = `patch_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+    const item = await OmegaApproval.create({
+        patchId,
+        filePath: patch.filePath,
+        description: patch.description || 'Оптимизация от OMEGA',
+        patch: patch.patch,
         status: 'pending',
-        submittedAt: new Date().toISOString(),
-    }
+        validation,
+        submittedAt: new Date(),
+    })
 
-    approvalQueue.push(item)
-    await logAttempt('patch_submitted', { filePath: patch.filePath, patchId: item.id }, 'low')
-    alertOmega(`Omega Coder: новый approval request — ${path.basename(patch.filePath)} (${item.id})`).catch(() => {})
+    await logAttempt('patch_submitted', { filePath: patch.filePath, patchId: item.patchId }, 'low')
+    alertOmega(`Omega Coder: новый approval request — ${path.basename(patch.filePath)} (${item.patchId})`).catch(() => {})
 
     return item
+}
+
+// [P19] added: alias for controller usage
+export async function addToApprovalQueue(patch) {
+    return submitToApprovalQueue(patch)
 }
 
 /**
  * Owner approval: write the patch to disk and commit+push.
  */
 export async function approvePatch(patchId) {
-    const item = approvalQueue.find(p => p.id === patchId)
-    if (!item) throw new Error('Patch not found')
-    if (item.status !== 'pending') throw new Error(`Patch already ${item.status}`)
+    const item = await OmegaApproval.findOne({ patchId, status: 'pending' }).lean()
+    if (!item) throw new Error('Patch not found or already processed')
 
     if (!isAllowedPath(item.filePath)) {
         await logAttempt('forbidden_patch_approve', { filePath: item.filePath, patchId }, 'high')
@@ -209,8 +277,7 @@ export async function approvePatch(patchId) {
     }
 
     await fs.writeFile(item.filePath, item.patch, 'utf8')
-    item.status = 'applied'
-    item.appliedAt = new Date().toISOString()
+    await OmegaApproval.updateOne({ patchId }, { $set: { status: 'applied', appliedAt: new Date() } })
 
     await logAttempt('patch_applied', { filePath: item.filePath, patchId }, 'medium')
 
@@ -218,31 +285,42 @@ export async function approvePatch(patchId) {
         await execAsync(`git add "${item.filePath}" && git commit -m "feat(omega): ${item.description}" && git push origin main`, {
             cwd: PROJECT_ROOT,
         })
-        item.pushedAt = new Date().toISOString()
+        await OmegaApproval.updateOne({ patchId }, { $set: { 'metadata.pushedAt': new Date() } })
         await logAttempt('patch_pushed', { filePath: item.filePath, patchId }, 'low')
     } catch (err) {
         await logAttempt('patch_push_failed', { filePath: item.filePath, patchId, error: err.message }, 'high')
         console.warn('[OmegaCoder] git push failed:', err.message)
     }
 
-    return item
+    return OmegaApproval.findOne({ patchId }).lean()
 }
 
-export function rejectPatch(patchId) {
-    const item = approvalQueue.find(p => p.id === patchId)
+// [P19] added: apply approved patch alias
+export async function applyApprovedPatch(patchId) {
+    return approvePatch(patchId)
+}
+
+export async function rejectPatch(patchId) {
+    const item = await OmegaApproval.findOne({ patchId })
     if (!item) throw new Error('Patch not found')
     item.status = 'rejected'
-    item.rejectedAt = new Date().toISOString()
-    return item
+    item.rejectedAt = new Date()
+    await item.save()
+    return item.toObject()
 }
 
-export function getApprovalQueue() {
-    return approvalQueue.map(p => ({
-        id: p.id,
+export async function getApprovalQueue(filters = {}) {
+    const query = {}
+    if (filters.status) query.status = filters.status
+    const docs = await OmegaApproval.find(query).sort({ submittedAt: -1 }).lean()
+    return docs.map(p => ({
+        id: p.patchId,
+        patchId: p.patchId,
         filePath: p.filePath,
         description: p.description,
         status: p.status,
         submittedAt: p.submittedAt,
+        validation: p.validation,
     }))
 }
 
@@ -263,7 +341,7 @@ export async function runDailyAnalysis() {
         const patch = await generatePatch(target, 'Проведи мягкий рефакторинг: убери дублирование, улучши читаемость, добавь безопасные проверки.')
         const item = await submitToApprovalQueue(patch)
 
-        console.log('[OmegaCoder] Patch submitted:', item.id, item.filePath)
+        console.log('[OmegaCoder] Patch submitted:', item.patchId, item.filePath)
         return { status: 'submitted', item }
     } catch (err) {
         console.error('[OmegaCoder] Daily analysis failed:', err.message)

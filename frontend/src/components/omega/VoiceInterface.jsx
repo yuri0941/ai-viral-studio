@@ -6,6 +6,9 @@ export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
     const [isSpeaking, setIsSpeaking] = useState(false)
     const [elevenLabsInfo, setElevenLabsInfo] = useState(null)
     const audioRef = useRef(null)
+    // [P19] added: MediaRecorder refs for backend STT
+    const mediaRecorderRef = useRef(null)
+    const audioChunksRef = useRef([])
 
     const checkElevenLabs = useCallback(async () => {
         try {
@@ -27,7 +30,8 @@ export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
         checkElevenLabs()
     }, [checkElevenLabs])
 
-    const startVoiceInput = () => {
+    // [P19] added: fallback Web Speech API STT
+    const startWebSpeechFallback = () => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
         if (!SpeechRecognition) {
             alert('Голосовой ввод не поддерживается в этом браузере')
@@ -45,6 +49,64 @@ export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
         }
         recognition.onerror = () => setIsListening(false)
         recognition.start()
+    }
+
+    // [P19] added: backend Whisper STT via MediaRecorder
+    const startRecording = async () => {
+        if (!navigator.mediaDevices?.getUserMedia) {
+            startWebSpeechFallback()
+            return
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            const mediaRecorder = new MediaRecorder(stream)
+            mediaRecorderRef.current = mediaRecorder
+            audioChunksRef.current = []
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) audioChunksRef.current.push(e.data)
+            }
+
+            mediaRecorder.onstop = async () => {
+                setIsListening(false)
+                stream.getTracks().forEach(t => t.stop())
+                const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+                if (blob.size === 0) return
+                try {
+                    const token = localStorage.getItem('token')
+                    const formData = new FormData()
+                    formData.append('audio', blob, 'recording.webm')
+                    const res = await fetch('/api/omega/voice/stt', {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${token}` },
+                        body: formData,
+                    })
+                    const json = await res.json()
+                    const data = json?.data
+                    if (data?.status === 'ok' && data.transcript) {
+                        onTranscript?.(data.transcript)
+                    } else {
+                        setElevenLabsInfo(data?.message || 'Распознавание недоступно, пробуем браузерный ввод')
+                        startWebSpeechFallback()
+                    }
+                } catch (err) {
+                    console.error('[VoiceInterface:stt]', err)
+                    startWebSpeechFallback()
+                }
+            }
+
+            mediaRecorder.start()
+            setIsListening(true)
+        } catch (err) {
+            console.error('[VoiceInterface:mic]', err)
+            startWebSpeechFallback()
+        }
+    }
+
+    const stopRecording = () => {
+        try {
+            mediaRecorderRef.current?.stop()
+        } catch {}
     }
 
     const speak = async () => {
@@ -85,9 +147,13 @@ export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
         return (
             <button
                 type="button"
-                onClick={startVoiceInput}
+                onMouseDown={startRecording}
+                onMouseUp={stopRecording}
+                onMouseLeave={stopRecording}
+                onTouchStart={startRecording}
+                onTouchEnd={stopRecording}
                 className={`p-2 rounded-lg transition-colors ${isListening ? 'bg-red-500/20 text-red-400' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
-                title={isListening ? 'Слушаю...' : 'Голосовой ввод'}
+                title={isListening ? 'Слушаю...' : 'Голосовой ввод (удерживайте)'}
                 aria-label="Голосовой ввод"
             >
                 <Mic size={16} />
@@ -99,8 +165,11 @@ export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
         <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-4 space-y-3">
             <div className="flex items-center gap-3">
                 <button
-                    onMouseDown={startVoiceInput}
-                    onTouchStart={startVoiceInput}
+                    onMouseDown={startRecording}
+                    onMouseUp={stopRecording}
+                    onMouseLeave={stopRecording}
+                    onTouchStart={startRecording}
+                    onTouchEnd={stopRecording}
                     className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
                         isListening ? 'bg-red-500/20 text-red-400' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
                     }`}
@@ -112,7 +181,7 @@ export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
                         {isListening ? 'Слушаю... отпустите, когда закончите' : 'Зажмите 🎤 и говорите'}
                     </div>
                     <div className="text-xs text-gray-500">
-                        {isListening ? 'Распознавание через Web Speech API' : 'Текст появится в поле ввода'}
+                        {isListening ? 'Распознавание через OMEGA Whisper' : 'Текст появится в поле ввода'}
                     </div>
                 </div>
                 {textToSpeak && (

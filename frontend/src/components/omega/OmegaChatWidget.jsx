@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Bot, X, MessageSquare, Minimize2 } from 'lucide-react'
 import { OmegaChatContainer } from './OmegaChat.jsx'
+import { playSound } from '../../hooks/useSound.js'
 
 const WIDGET_WIDTH = 380
 const WIDGET_HEIGHT = 600
@@ -141,7 +142,11 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
         if (isDragging || dragRef.current.moved) return
         setIsOpen(prev => {
             const next = !prev
-            if (next) setHasUnread(false)
+            if (next) {
+                setHasUnread(false)
+                // [P19] added: activation sound
+                playSound('omega-activate')
+            }
             if (next && window.innerWidth >= 640) {
                 setPosition(prevPos => ({
                     x: constrain(prevPos.x, 0, Math.max(0, window.innerWidth - WIDGET_WIDTH)),

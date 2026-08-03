@@ -2518,3 +2518,14 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен
 - [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
+
+
+### [2026-08-02] — ПРОМПТ №19: AI Video + Voice + Sound + OmegaCoder v2
+- [x] AI Video (Reels/Shorts из текста, placeholder/fallback): да
+- [x] Voice Mode (Whisper STT + ElevenLabs TTS + fallback): да
+- [x] Sound Design (5 звуков, hook, toggle): да
+- [x] OmegaCoder v2 (анализ, sandbox, approval queue): да
+- [x] Backend check: успешно
+- [x] Frontend build: успешно
+- [x] Git push: выполнен
+- [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy

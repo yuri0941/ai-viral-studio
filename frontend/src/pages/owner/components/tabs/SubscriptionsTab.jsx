@@ -5,6 +5,7 @@ import { useAuth } from '../../../../context/AuthContext.jsx'
 import { useSmartData } from '../../../../hooks/useSmartData'
 import { API_BASE_URL } from '../../../../config.js'
 import { useTranslation } from 'react-i18next'
+import { playSound } from '../../../../hooks/useSound.js'
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
     ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil, Check
@@ -113,6 +114,9 @@ export function SubscriptionsTab({ data }) {
 
     function pushToast(type, message) {
         const id = Date.now() + Math.random()
+        // [P19] added: sound feedback for success/error toasts
+        if (type === 'success') playSound('success')
+        if (type === 'error') playSound('error')
         setToasts((prev) => [...prev, { id, type, message }])
         setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000)
     }

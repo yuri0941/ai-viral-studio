@@ -7,6 +7,7 @@ import { Bot, User, Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown, Mi
 import { useOmegaChat } from '../../hooks/useOmegaChat.js'
 import { VectorStoreStatus } from './VectorStoreStatus.jsx'
 import { UsageQuotaWidget } from './UsageQuotaWidget.jsx'
+import { playSound } from '../../hooks/useSound.js'
 
 import { VoiceInterface } from './VoiceInterface.jsx'
 
@@ -46,6 +47,8 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
 
     const handleSubmit = (e) => {
         e.preventDefault()
+        // [P19] added: message sent sound
+        playSound('message-sent')
         sendMessage(input)
     }
 
