@@ -16,9 +16,11 @@ function ReasoningBlock({ reasoning }) {
     if (!reasoning) return null
     return (
         <div className="mt-2">
+            {/* [P23] fixed: reasoning toggle touch target */}
             <button
+                type="button"
                 onClick={() => setOpen(o => !o)}
-                className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
+                className="min-h-[44px] flex items-center gap-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors p-2 -ml-2"
             >
                 {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 Как OMEGA пришла к этому выводу?
@@ -102,9 +104,11 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                     <VectorStoreStatus />
                     <UsageQuotaWidget />
                 </div>
+                {/* [P23] fixed: 44×44 header action touch target */}
                 <button
+                    type="button"
                     onClick={clearHistory}
-                    className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--surface)] transition-colors"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--surface)] transition-colors"
                     title="Очистить историю"
                 >
                     <Trash2 size={14} />
@@ -122,10 +126,11 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                         <div className="text-xs text-[var(--text-muted)]">
                             OMEGA всё равно может отвечать через серверные провайдеры. Если все провайдеры недоступны, включится демо-режим.
                         </div>
+                        {/* [P23] fixed: API-keys button touch target */}
                         <button
                             type="button"
                             onClick={onOpenApiKeys}
-                            className="flex items-center gap-1.5 text-xs text-[var(--success)] hover:text-[var(--success)] font-medium"
+                            className="min-h-[44px] flex items-center gap-1.5 text-xs text-[var(--success)] hover:text-[var(--success)] font-medium p-2"
                         >
                             Перейти в API Keys <ArrowRight size={12} />
                         </button>
@@ -173,9 +178,11 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                                         {msg.cached && (
                                             <span className="text-[10px] text-[var(--text-muted)]">cached</span>
                                         )}
+                                        {/* [P23] fixed: speak button touch target */}
                                         <button
+                                            type="button"
                                             onClick={speakLastOmegaReply}
-                                            className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                                            className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                                             title="Озвучить"
                                             aria-label="Озвучить"
                                         >
@@ -194,17 +201,20 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                                 )}
                                 {!isUser && msg.memoryId && !msg.demo && (
                                     <div className="mt-2 flex items-center gap-1">
+                                        {/* [P23] fixed: rating buttons touch targets */}
                                         <button
+                                            type="button"
                                             onClick={() => rateMessage?.(msg.id, 1)}
-                                            className={`p-1.5 rounded-lg transition-colors ${msg.userRating === 1 ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'text-[var(--text-muted)] hover:text-[var(--success)] hover:bg-[var(--surface)]'}`}
+                                            className={`min-w-[44px] min-h-[44px] flex items-center justify-center p-1.5 rounded-lg transition-colors ${msg.userRating === 1 ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'text-[var(--text-muted)] hover:text-[var(--success)] hover:bg-[var(--surface)]'}`}
                                             title="Полезно"
                                             aria-label="Полезно"
                                         >
                                             <ThumbsUp size={14} />
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => rateMessage?.(msg.id, -1)}
-                                            className={`p-1.5 rounded-lg transition-colors ${msg.userRating === -1 ? 'bg-[var(--danger)]/20 text-[var(--danger)]' : 'text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--surface)]'}`}
+                                            className={`min-w-[44px] min-h-[44px] flex items-center justify-center p-1.5 rounded-lg transition-colors ${msg.userRating === -1 ? 'bg-[var(--danger)]/20 text-[var(--danger)]' : 'text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--surface)]'}`}
                                             title="Не полезно"
                                             aria-label="Не полезно"
                                         >
@@ -247,10 +257,11 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                         placeholder='Сообщение OMEGA...'
                         className="flex-1 bg-transparent text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none"
                     />
+                    {/* [P23] fixed: submit button touch target */}
                     <button
                         type="submit"
                         disabled={!input.trim() || isTyping}
-                        className="p-2 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 disabled:opacity-50 transition-colors"
+                        className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 disabled:opacity-50 transition-colors"
                     >
                         <Send size={16} />
                     </button>

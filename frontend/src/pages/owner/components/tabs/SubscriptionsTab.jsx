@@ -72,6 +72,9 @@ export function SubscriptionsTab({ data }) {
     const [editingPlanId, setEditingPlanId] = useState(null)
     const [editPrice, setEditPrice] = useState('')
     const [planOverrides, setPlanOverrides] = useState({})
+    // [P23] fixed: loading states for async plan-price actions
+    const [savingPlanId, setSavingPlanId] = useState(null)
+    const [applyingPlan, setApplyingPlan] = useState(null)
     // [P18] added: dynamic pricing badge
     const [dynamicBadge, setDynamicBadge] = useState(null)
 
@@ -167,6 +170,7 @@ export function SubscriptionsTab({ data }) {
             pushToast('error', 'Некорректная цена')
             return
         }
+        setSavingPlanId(planId)
         try {
             const token = localStorage.getItem('token')
             const res = await fetch(`${API_BASE_URL}/owner/subscription-plans/${planId}`, {
@@ -186,6 +190,8 @@ export function SubscriptionsTab({ data }) {
             setPlanOverrides(prev => ({ ...prev, [planId]: price }))
             setEditingPlanId(null)
             pushToast('success', t('subscriptions.priceUpdated'))
+        } finally {
+            setSavingPlanId(null)
         }
     }
 
@@ -265,20 +271,22 @@ export function SubscriptionsTab({ data }) {
                             <button
                                 key={cur.value}
                                 onClick={() => handleCurrencyChange(cur.value)}
-                                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                                className={`min-h-[44px] px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                                     currency === cur.value
                                         ? 'bg-[var(--primary)] text-[var(--text-inverse)]'
                                         : 'text-[var(--text-muted)] hover:text-[var(--text)]'
                                 }`}
                             >
+                                {/* [P23] fixed: currency button touch target */}
                                 {cur.label}
                             </button>
                         ))}
                     </div>
                     <button
                         onClick={() => setIsYearly(!isYearly)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-sm text-[var(--text)] hover:bg-[var(--surface)] transition-colors w-fit"
+                        className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-sm text-[var(--text)] hover:bg-[var(--surface)] transition-colors w-fit"
                     >
+                        {/* [P23] fixed: billing toggle touch target */}
                         {isYearly ? <ToggleRight size={16} className="text-emerald-400" /> : <ToggleLeft size={16} className="text-gray-500" />}
                         {isYearly ? t('subscriptions.yearly') : t('subscriptions.monthly')}
                     </button>
@@ -286,8 +294,9 @@ export function SubscriptionsTab({ data }) {
                     {(user?.role === 'owner' || user?.role === 'admin') && (
                         <button
                             onClick={() => setPricingOpen(true)}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-sm text-[var(--primary)] hover:bg-[var(--surface)] transition-colors"
+                            className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-sm text-[var(--primary)] hover:bg-[var(--surface)] transition-colors"
                         >
+                            {/* [P23] fixed: pricing-engine button touch target */}
                             <Sparkles size={16} />
                             AI-анализ цен
                         </button>
@@ -384,14 +393,18 @@ export function SubscriptionsTab({ data }) {
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={() => savePlanPrice(plan.id)}
-                                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs hover:bg-emerald-500/20"
+                                                    disabled={savingPlanId === plan.id}
+                                                    className="flex-1 min-h-[44px] flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs hover:bg-emerald-500/20 disabled:opacity-50"
                                                 >
-                                                    <Check size={12} /> {t('subscriptions.savePrice')}
+                                                    {/* [P23] fixed: save-price loading + touch target */}
+                                                    {savingPlanId === plan.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check size={12} />} {t('subscriptions.savePrice')}
                                                 </button>
                                                 <button
                                                     onClick={() => setEditingPlanId(null)}
-                                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg glass text-[var(--text-muted)] text-xs hover:bg-[var(--surface)]"
+                                                    disabled={savingPlanId === plan.id}
+                                                    className="flex-1 min-h-[44px] flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg glass text-[var(--text-muted)] text-xs hover:bg-[var(--surface)] disabled:opacity-50"
                                                 >
+                                                    {/* [P23] fixed: cancel-edit touch target */}
                                                     <X size={12} /> {t('subscriptions.cancel')}
                                                 </button>
                                             </div>
@@ -408,8 +421,9 @@ export function SubscriptionsTab({ data }) {
                                                         <button
                                                             onClick={() => { setEditingPlanId(plan.id); setEditPrice(String(planOverrides[plan.id] ?? plan.price)) }}
                                                             disabled={isFree}
-                                                            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--surface)] transition-colors disabled:opacity-50"
+                                                            className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--surface)] transition-colors disabled:opacity-50"
                                                         >
+                                                            {/* [P23] fixed: edit-price pencil touch target */}
                                                             <Pencil size={14} />
                                                         </button>
                                                     )}
@@ -442,7 +456,7 @@ export function SubscriptionsTab({ data }) {
                                 <button
                                     onClick={() => !isCurrent && !isFree && handleSubscribe(plan.id)}
                                     disabled={isCurrent || isFree || paying === plan.id}
-                                    className={`w-full py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                                    className={`w-full min-h-[44px] py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                                         isCurrent
                                             ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)] cursor-default'
                                             : isFree
@@ -452,6 +466,7 @@ export function SubscriptionsTab({ data }) {
                                             : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25'
                                     }`}
                                 >
+                                    {/* [P23] fixed: subscribe button touch target */}
                                     {paying === plan.id ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                                     {isCurrent ? t('subscriptions.active') : isFree ? t('subscriptions.free') : paying === plan.id ? t('subscriptions.processing') : t('subscriptions.subscribe')}
                                 </button>
@@ -491,8 +506,9 @@ export function SubscriptionsTab({ data }) {
                     <button
                         onClick={saveQuotaSettings}
                         disabled={savingQuota}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
+                        className="min-h-[44px] flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
                     >
+                        {/* [P23] fixed: quota button touch target */}
                         {savingQuota ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
                         {t('subscriptions.saveQuota')}
                     </button>
@@ -518,12 +534,14 @@ export function SubscriptionsTab({ data }) {
             {/* [P18] added: AI Pricing Engine modal */}
             {pricingOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl p-4">
-                    <div className="w-full max-w-2xl rounded-2xl border border-[var(--border)] glass shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                    {/* [P23] fixed: modal max-width respects viewport */}
+                    <div className="w-full max-w-[95vw] sm:max-w-2xl rounded-2xl border border-[var(--border)] glass shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
                             <h3 className="text-base font-semibold text-[var(--text)] flex items-center gap-2">
                                 <Sparkles size={18} className="text-[var(--primary)]" /> AI-анализ цен
                             </h3>
-                            <button onClick={() => setPricingOpen(false)} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors">
+                            <button onClick={() => setPricingOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors">
+                                {/* [P23] fixed: close-modal touch target */}
                                 <X size={18} />
                             </button>
                         </div>
@@ -580,8 +598,9 @@ export function SubscriptionsTab({ data }) {
                                     }
                                 }}
                                 disabled={pricingLoading}
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
+                                className="min-h-[44px] flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
                             >
+                                {/* [P23] fixed: analyze button touch target */}
                                 {pricingLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                                 {pricingLoading ? 'Анализ…' : 'Проанализировать'}
                             </button>
@@ -607,6 +626,7 @@ export function SubscriptionsTab({ data }) {
                                                 <button
                                                     onClick={async () => {
                                                         const planId = rec.plan?.toLowerCase()
+                                                        setApplyingPlan(planId)
                                                         const token = localStorage.getItem('token')
                                                         try {
                                                             const res = await fetch(`${API_BASE_URL}/subscriptions/plan-price`, {
@@ -621,10 +641,15 @@ export function SubscriptionsTab({ data }) {
                                                             } else pushToast('error', json.error || 'Ошибка')
                                                         } catch (err) {
                                                             pushToast('error', err.message)
+                                                        } finally {
+                                                            setApplyingPlan(null)
                                                         }
                                                     }}
-                                                    className="px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white text-xs font-medium hover:opacity-90 transition-opacity"
+                                                    disabled={applyingPlan === rec.plan?.toLowerCase()}
+                                                    className="min-h-[44px] px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-1"
                                                 >
+                                                    {/* [P23] fixed: apply-price loading + touch target */}
+                                                    {applyingPlan === rec.plan?.toLowerCase() && <Loader2 className="w-3 h-3 animate-spin" />}
                                                     Применить
                                                 </button>
                                             </div>

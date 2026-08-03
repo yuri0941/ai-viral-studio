@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import {
     User, Diamond, Link2, Bell, Shield, Palette, LogOut,
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
@@ -13,7 +14,7 @@ import {
 
 function SettingsPage() {
     const { t } = useTranslation();
-    const { user, logout, updateUser } = useAuth();
+    const { user, logout, updateUser, updatePreferences } = useAuth();
     const [activeTab, setActiveTab] = useState('profile');
     const [saved, setSaved] = useState(false);
     const [theme, setTheme] = useState('dark');
@@ -48,6 +49,10 @@ function SettingsPage() {
     });
     const [soundEnabled, setSoundEnabled] = useState(() => {
         const saved = localStorage.getItem('omega_sound_enabled');
+        return saved ? JSON.parse(saved) : true;
+    });
+    const [animationsEnabled, setAnimationsEnabled] = useState(() => {
+        const saved = localStorage.getItem('omega_animations_enabled');
         return saved ? JSON.parse(saved) : true;
     });
     const [profile, setProfile] = useState({
@@ -117,10 +122,10 @@ function SettingsPage() {
         const urlParams = new URLSearchParams(window.location.search);
         const paymentStatus = urlParams.get('payment');
         if (paymentStatus === 'success') {
-            showToast('✅ Оплата прошла успешно! Подписка активирована.', 'success');
+            showToast(t('settings.paymentSuccess'), 'success');
             window.history.replaceState({}, document.title, window.location.pathname);
         } else if (paymentStatus === 'cancel') {
-            showToast('❌ Оплата отменена.', 'error');
+            showToast(t('settings.paymentCancelled'), 'error');
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     }, []);
@@ -295,7 +300,7 @@ function SettingsPage() {
         { id: 'notifications', label: t('settings.notifications'), icon: Bell },
         { id: 'security', label: t('settings.security'), icon: Shield },
         { id: 'appearance', label: t('settings.appearance'), icon: Palette },
-        { id: 'watermark', label: 'Watermark', icon: Stamp },
+        { id: 'watermark', label: t('settings.watermark'), icon: Stamp },
     ];
 
     const socialPlatforms = [
@@ -363,7 +368,7 @@ function SettingsPage() {
         <div className="space-y-6">
             <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Camera size={18} className="text-[var(--success)]" /> Аватар профиля
+                    <Camera size={18} className="text-[var(--success)]" /> {t('settings.avatar')}
                 </h3>
                 <div className="flex items-center gap-4">
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-3xl font-bold text-[var(--text-inverse)]">
@@ -373,7 +378,7 @@ function SettingsPage() {
                         <button className="px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-xl text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all flex items-center gap-2">
                             <Camera size={14} /> {t('settings.profile')}
                         </button>
-                        <p className="text-xs text-[var(--text-muted)] mt-2">JPG, PNG до 5MB</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-2">{t('settings.avatarHint')}</p>
                     </div>
                 </div>
             </div>
@@ -421,7 +426,7 @@ function SettingsPage() {
                             onChange={e => setProfile({ ...profile, niche: e.target.value })}
                             className={inputClass}
                         >
-                            <option value="">Выберите нишу</option>
+                            <option value="">{t('settings.selectNiche')}</option>
                             <option value="tech">Технологии</option>
                             <option value="fitness">Фитнес</option>
                             <option value="travel">Путешествия</option>
@@ -478,7 +483,7 @@ function SettingsPage() {
                             <p className="text-[var(--success)] font-bold text-xl mt-1">{userSubscription.planName}</p>
                             <div className="flex items-center gap-4 mt-2 text-sm text-[var(--text-muted)]">
                                 <span className="flex items-center gap-1">
-                                    <Calendar size={14} /> Следующая оплата: {formatDate(userSubscription.nextBillingDate)}
+                                    <Calendar size={14} /> {t('settings.nextBilling')}: {formatDate(userSubscription.nextBillingDate)}
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <CreditCard size={14} />
@@ -487,7 +492,7 @@ function SettingsPage() {
                             </div>
                             {userSubscription.lockedPrice !== plans.find(p => p.id === userSubscription.planId)?.price && (
                                 <p className="text-xs text-[var(--warning)] mt-1">
-                                    💰 Грандфазеринг: вы платите старую цену ${userSubscription.lockedPrice}/мес до {formatDate(userSubscription.nextBillingDate)}
+                                    💰 {t('settings.grandfathered', { price: userSubscription.lockedPrice, date: formatDate(userSubscription.nextBillingDate) })}
                                 </p>
                             )}
                         </div>
@@ -497,7 +502,7 @@ function SettingsPage() {
                         onClick={handleCancelSubscription}
                         className="mt-4 px-4 py-2 bg-[var(--danger)]/20 text-[var(--danger)] rounded-xl text-sm hover:bg-[var(--danger)]/30 transition-colors"
                     >
-                        Отменить подписку
+                        {t('settings.cancelSubscription')}
                     </button>
                 </div>
             )}
@@ -530,7 +535,7 @@ function SettingsPage() {
                         <div key={plan.id} className={`luxury-card glass p-5 ${subscribed ? 'border-[var(--success)]' : plan.popular ? 'border-[var(--primary)]' : ''}`}>
                             {plan.popular && !subscribed && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-full">
-                                    Популярный
+                                    {t('settings.popular')}
                                 </div>
                             )}
                             {subscribed && (
@@ -544,11 +549,11 @@ function SettingsPage() {
                             </div>
                             <div className="text-2xl font-bold my-2 text-[var(--text)]">
                                 ${currentPrice}
-                                <span className="text-sm text-[var(--text-muted)] font-normal">/{isYearly ? 'год' : 'мес'}</span>
+                                <span className="text-sm text-[var(--text-muted)] font-normal">/{isYearly ? t('settings.yearly') : t('settings.monthly')}</span>
                             </div>
                             {isGrandfathered && (
                                 <p className="text-xs text-[var(--warning)] mb-2">
-                                    Старая цена: ${userSubscription.lockedPrice}/мес → новая: ${plan.price}/мес (с {formatDate(userSubscription.nextBillingDate)})
+                                    {t('settings.priceChange', { oldPrice: userSubscription.lockedPrice, newPrice: plan.price, date: formatDate(userSubscription.nextBillingDate) })}
                                 </p>
                             )}
                             <ul className="space-y-2 mt-4">
@@ -567,7 +572,7 @@ function SettingsPage() {
                                         className="w-full py-2 rounded-xl font-medium transition-all bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25 disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
                                         <CreditCard size={16} />
-                                        {paymentLoading ? 'Загрузка...' : `Оплатить $${currentPrice}`}
+                                        {paymentLoading ? t('settings.loading') : `${t('settings.pay')} $${currentPrice}`}
                                     </button>
                                     <button
                                         onClick={() => handleCryptoPayment(plan)}
@@ -575,7 +580,7 @@ function SettingsPage() {
                                         className="w-full py-2 rounded-xl font-medium transition-all glass text-[var(--text)] border border-[var(--border)] flex items-center justify-center gap-2"
                                     >
                                         <Bitcoin size={16} className="text-orange-400" />
-                                        {paymentLoading ? 'Загрузка...' : 'Крипта (USDT/BTC/ETH)'}
+                                        {paymentLoading ? t('settings.loading') : t('settings.payWithCrypto')}
                                     </button>
                                     <button
                                         onClick={() => handlePayPalPayment(plan)}
@@ -583,7 +588,7 @@ function SettingsPage() {
                                         className="w-full py-2 rounded-xl font-medium transition-all bg-[#003087]/80 hover:bg-[#002a6e] text-white flex items-center justify-center gap-2"
                                     >
                                         <Wallet size={16} />
-                                        {paymentLoading ? 'Загрузка...' : 'PayPal'}
+                                        {paymentLoading ? t('settings.loading') : t('settings.payWithPayPal')}
                                     </button>
                                 </div>
                             ) : (
@@ -597,7 +602,7 @@ function SettingsPage() {
                                             : 'glass text-[var(--text)]'
                                         }`}
                                 >
-                                    {subscribed ? t('settings.active') : 'Выбрать'}
+                                    {subscribed ? t('settings.active') : t('settings.choosePlan')}
                                 </button>
                             )}
                         </div>
@@ -607,19 +612,19 @@ function SettingsPage() {
 
             {userSubscription && (
                 <div className="luxury-card glass p-6 mb-4">
-                    <h3 className="text-lg font-semibold mb-4 text-[var(--text)]">История подписки</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-[var(--text)]">{t('settings.subscriptionHistory')}</h3>
                     <div className="space-y-3">
                         <div className="flex items-center justify-between p-3 glass rounded-xl">
                             <div>
                                 <div className="font-medium text-[var(--text)]">{userSubscription.planName}</div>
                                 <div className="text-sm text-[var(--text-muted)]">
-                                    С {formatDate(userSubscription.startDate)} • {userSubscription.billingCycle === 'yearly' ? t('settings.yearly') : userSubscription.billingCycle === 'free' ? t('settings.free') : t('settings.monthly')}
+                                    {t('settings.fromDate', { date: formatDate(userSubscription.startDate) })} • {userSubscription.billingCycle === 'yearly' ? t('settings.yearly') : userSubscription.billingCycle === 'free' ? t('settings.free') : t('settings.monthly')}
                                 </div>
                             </div>
                             <div className="text-right">
                                 <div className="font-bold text-[var(--success)]">${userSubscription.price}</div>
                                 <div className={`text-xs ${userSubscription.isActive ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
-                                    {userSubscription.isActive ? t('settings.active') : 'Отменена'}
+                                    {userSubscription.isActive ? t('settings.active') : t('settings.cancelled')}
                                 </div>
                             </div>
                         </div>
@@ -697,10 +702,10 @@ function SettingsPage() {
                 <Bell size={18} className="text-[var(--success)]" /> {t('settings.notifications')}
             </h3>
             {[
-                { id: 'email', label: 'Email-уведомления', desc: 'Получать уведомления на email', icon: Mail },
-                { id: 'push', label: 'Push-уведомления', desc: 'Уведомления в браузере', icon: Smartphone },
-                { id: 'marketing', label: 'Маркетинговые письма', desc: 'Новости и акции', icon: Sparkles },
-                { id: 'weekly', label: 'Еженедельный отчёт', desc: 'Статистика каждый понедельник', icon: Zap },
+                { id: 'email', label: t('settings.notifyEmail'), desc: t('settings.notifyEmailDesc'), icon: Mail },
+                { id: 'push', label: t('settings.notifyPush'), desc: t('settings.notifyPushDesc'), icon: Smartphone },
+                { id: 'marketing', label: t('settings.notifyMarketing'), desc: t('settings.notifyMarketingDesc'), icon: Sparkles },
+                { id: 'weekly', label: t('settings.notifyWeekly'), desc: t('settings.notifyWeeklyDesc'), icon: Zap },
             ].map(item => {
                 const Icon = item.icon;
                 return (
@@ -735,15 +740,15 @@ function SettingsPage() {
         const { currentPassword, newPassword, confirmPassword } = passwordForm;
 
         if (!currentPassword || !newPassword || !confirmPassword) {
-            setPasswordError('Заполните все поля');
+            setPasswordError(t('settings.fieldRequired'));
             return;
         }
         if (newPassword !== confirmPassword) {
-            setPasswordError('Пароли не совпадают');
+            setPasswordError(t('settings.passwordMismatch'));
             return;
         }
         if (newPassword.length < 6) {
-            setPasswordError('Пароль минимум 6 символов');
+            setPasswordError(t('settings.passwordMinLength'));
             return;
         }
 
@@ -760,13 +765,13 @@ function SettingsPage() {
             });
             const data = await response.json();
             if (data.success) {
-                setPasswordSuccess('Пароль успешно изменён');
+                setPasswordSuccess(t('settings.passwordChanged'));
                 setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
             } else {
-                setPasswordError(data.message || 'Ошибка смены пароля');
+                setPasswordError(data.message || t('settings.passwordError'));
             }
         } catch (err) {
-            setPasswordError('Ошибка сервера');
+            setPasswordError(t('settings.serverError'));
         } finally {
             setPasswordLoading(false);
         }
@@ -781,11 +786,11 @@ function SettingsPage() {
 
         const { newEmail, currentPassword } = emailForm;
         if (!newEmail || !currentPassword) {
-            setEmailError('Заполните все поля');
+            setEmailError(t('settings.fieldRequired'));
             return;
         }
         if (!/^\S+@\S+\.\S+$/.test(newEmail)) {
-            setEmailError('Некорректный email');
+            setEmailError(t('settings.emailInvalid'));
             return;
         }
 
@@ -802,22 +807,22 @@ function SettingsPage() {
             });
 
             if (response.status === 429) {
-                setEmailError('Слишком много попыток. Подождите 1 минуту.');
+                setEmailError(t('settings.rateLimited'));
                 return;
             }
 
             const data = await response.json();
             if (response.ok && data.success) {
-                setEmailSuccess('Email успешно изменён');
+                setEmailSuccess(t('settings.emailChanged'));
                 if (data.token) localStorage.setItem('token', data.token);
                 if (data.user?.email) updateUser({ email: data.user.email });
                 setEmailForm({ newEmail: '', currentPassword: '' });
                 setTimeout(() => window.location.reload(), 1200);
             } else {
-                setEmailError(data.message || data.error || 'Ошибка смены email');
+                setEmailError(data.message || data.error || t('settings.emailError'));
             }
         } catch (err) {
-            setEmailError('Ошибка сети. Попробуйте позже.');
+            setEmailError(t('settings.networkError'));
         } finally {
             setEmailLoading(false);
         }
@@ -827,7 +832,7 @@ function SettingsPage() {
         <div className="space-y-6">
             <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
-                    <Lock size={18} className="text-[var(--success)]" /> Смена пароля
+                    <Lock size={18} className="text-[var(--success)]" /> {t('settings.changePassword')}
                 </h3>
                 <form onSubmit={handlePasswordChange} className="space-y-3">
                     {passwordError && (
@@ -858,7 +863,7 @@ function SettingsPage() {
                                 type="button"
                                 onClick={() => field.toggle(v => !v)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                                aria-label={field.show ? 'Скрыть пароль' : 'Показать пароль'}
+                                aria-label={field.show ? t('settings.hidePassword') : t('settings.showPassword')}
                             >
                                 {field.show ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
@@ -870,14 +875,14 @@ function SettingsPage() {
                         disabled={passwordLoading}
                         className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
                     >
-                        {passwordLoading ? 'Сохранение...' : t('settings.updatePassword')}
+                        {passwordLoading ? t('settings.saving') : t('settings.updatePassword')}
                     </button>
                 </form>
             </div>
 
             <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
-                    <Mail size={18} className="text-[var(--success)]" /> Смена email
+                    <Mail size={18} className="text-[var(--success)]" /> {t('settings.changeEmail')}
                 </h3>
                 <form onSubmit={handleEmailChange} className="space-y-3">
                     {emailError && (
@@ -923,7 +928,7 @@ function SettingsPage() {
                         disabled={emailLoading}
                         className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
                     >
-                        {emailLoading ? 'Сохранение...' : t('settings.saveChanges')}
+                        {emailLoading ? t('settings.saving') : t('settings.saveChanges')}
                     </button>
                 </form>
             </div>
@@ -936,13 +941,13 @@ function SettingsPage() {
                         </div>
                         <div>
                             <div className="font-medium text-[var(--text)]">{t('settings.twoFactor')}</div>
-                            <div className="text-sm text-[var(--text-muted)]">Дополнительная защита аккаунта</div>
+                            <div className="text-sm text-[var(--text-muted)]">{t('settings.twoFactorDesc')}</div>
                         </div>
                     </div>
                     <button
                         onClick={() => setTwoFA(!twoFA)}
                         className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${twoFA ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
-                        aria-label={twoFA ? 'Выключить 2FA' : 'Включить 2FA'}
+                        aria-label={twoFA ? t('settings.disable2FA') : t('settings.enable2FA')}
                     >
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${twoFA ? 'translate-x-6' : ''}`} />
                     </button>
@@ -978,10 +983,10 @@ function SettingsPage() {
             if (data.success && data.data?.url) {
                 setWatermarkPreview(data.data.url);
             } else {
-                showToast('Не удалось сгенерировать превью', 'error');
+                showToast(t('settings.previewError'), 'error');
             }
         } catch (err) {
-            showToast('Ошибка превью: ' + err.message, 'error');
+            showToast(t('settings.previewError') + ': ' + err.message, 'error');
         } finally {
             setWatermarkLoading(false);
         }
@@ -1000,12 +1005,12 @@ function SettingsPage() {
             if (data.success) {
                 setWatermarkSaved(true);
                 setTimeout(() => setWatermarkSaved(false), 2000);
-                showToast('Настройки водяного знака сохранены', 'success');
+                showToast(t('settings.watermarkSaved'), 'success');
             } else {
-                showToast(data.message || 'Ошибка сохранения', 'error');
+                showToast(data.message || t('settings.watermarkSaveError'), 'error');
             }
         } catch (err) {
-            showToast('Ошибка сохранения: ' + err.message, 'error');
+            showToast(t('settings.watermarkSaveError') + ': ' + err.message, 'error');
         } finally {
             setWatermarkLoading(false);
         }
@@ -1015,22 +1020,22 @@ function SettingsPage() {
         <div className="space-y-6">
             <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-[var(--text)]">
-                    <Stamp size={18} className="text-[var(--success)]" /> Watermark «Сделано в OMEGA»
+                    <Stamp size={18} className="text-[var(--success)]" /> {t('settings.watermarkTitle')}
                 </h3>
                 <p className="text-sm text-[var(--text-muted)] mb-4">
-                    Автоматический водяной знак на контенте. Отключить могут владелец, Pro+ ($10/мес) или Enterprise.
+                    {t('settings.watermarkDesc')}
                 </p>
 
                 <div className="flex items-center justify-between p-4 glass rounded-xl mb-4">
                     <div>
-                        <div className="font-medium text-[var(--text)]">Активировать водяной знак</div>
-                        <div className="text-xs text-[var(--text-muted)]">Показывать на всех изображениях</div>
+                        <div className="font-medium text-[var(--text)]">{t('settings.watermarkEnabled')}</div>
+                        <div className="text-xs text-[var(--text-muted)]">{t('settings.watermarkEnabledDesc')}</div>
                     </div>
                     <button
                         onClick={() => handleWatermarkChange('enabled', !watermark.enabled)}
                         disabled={!watermark.enabled && !watermarkEligibility.canDisable}
                         className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${watermark.enabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
-                        aria-label={watermark.enabled ? 'Выключить' : 'Включить'}
+                        aria-label={watermark.enabled ? t('settings.disable') : t('settings.enable')}
                     >
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${watermark.enabled ? 'translate-x-6' : ''}`} />
                     </button>
@@ -1038,27 +1043,27 @@ function SettingsPage() {
 
                 {!watermarkEligibility.canDisable && (
                     <div className="p-3 rounded-xl bg-[var(--warning)]/10 border border-[var(--warning)]/20 text-xs text-[var(--warning)] mb-4">
-                        Для отключения водяного знака требуется подписка Pro+ или Enterprise.
+                        {t('settings.watermarkUpgrade')}
                     </div>
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label className="text-xs text-[var(--text-muted)] mb-1 block">Позиция</label>
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('settings.position')}</label>
                         <select
                             value={watermark.position}
                             onChange={e => handleWatermarkChange('position', e.target.value)}
                             className={inputClass}
                         >
-                            <option value="bottom-right">Нижний правый угол</option>
-                            <option value="bottom-left">Нижний левый угол</option>
-                            <option value="top-right">Верхний правый угол</option>
-                            <option value="top-left">Верхний левый угол</option>
-                            <option value="center">Центр</option>
+                            <option value="bottom-right">{t('settings.positionBottomRight')}</option>
+                            <option value="bottom-left">{t('settings.positionBottomLeft')}</option>
+                            <option value="top-right">{t('settings.positionTopRight')}</option>
+                            <option value="top-left">{t('settings.positionTopLeft')}</option>
+                            <option value="center">{t('settings.positionCenter')}</option>
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs text-[var(--text-muted)] mb-1 block">Размер ({Math.round(watermark.size * 100)}%)</label>
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('settings.size')} ({Math.round(watermark.size * 100)}%)</label>
                         <input
                             type="range"
                             min="5"
@@ -1069,7 +1074,7 @@ function SettingsPage() {
                         />
                     </div>
                     <div>
-                        <label className="text-xs text-[var(--text-muted)] mb-1 block">Прозрачность ({Math.round(watermark.opacity * 100)}%)</label>
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('settings.opacity')} ({Math.round(watermark.opacity * 100)}%)</label>
                         <input
                             type="range"
                             min="10"
@@ -1088,7 +1093,7 @@ function SettingsPage() {
                         className="px-4 py-2 rounded-xl bg-[var(--surface)] text-[var(--text)] text-sm hover:bg-[var(--primary-soft)] transition-colors disabled:opacity-50 flex items-center gap-2"
                     >
                         {watermarkLoading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-                        Сгенерировать превью
+                        {t('settings.generatePreview')}
                     </button>
                     <button
                         onClick={handleSaveWatermark}
@@ -1096,14 +1101,14 @@ function SettingsPage() {
                         className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
                     >
                         {watermarkSaved ? <Check size={16} /> : <Save size={16} />}
-                        {watermarkSaved ? 'Сохранено' : 'Сохранить'}
+                        {watermarkSaved ? t('settings.saved') : t('settings.saveChanges')}
                     </button>
                 </div>
             </div>
 
             {watermarkPreview && (
                 <div className="luxury-card glass p-6 mb-4">
-                    <h3 className="text-lg font-semibold mb-4 text-[var(--text)]">Превью</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-[var(--text)]">{t('settings.preview')}</h3>
                     <div className="rounded-xl overflow-hidden bg-[var(--surface)] max-w-md">
                         <img src={watermarkPreview} alt="Watermark preview" className="w-full h-auto" />
                     </div>
@@ -1111,6 +1116,13 @@ function SettingsPage() {
             )}
         </div>
     );
+
+    const handleAnimationsToggle = () => {
+        const next = !animationsEnabled;
+        setAnimationsEnabled(next);
+        localStorage.setItem('omega_animations_enabled', JSON.stringify(next));
+        document.documentElement.classList.toggle('reduce-motion', !next);
+    };
 
     const renderAppearance = () => (
         <div className="luxury-card glass p-6 mb-4 space-y-6">
@@ -1138,21 +1150,50 @@ function SettingsPage() {
             </div>
 
             <div className="border-t border-[var(--border)] pt-6">
+                <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('settings.language')}</label>
+                <select
+                    value={profile.language}
+                    onChange={e => { setProfile({ ...profile, language: e.target.value }); i18n.changeLanguage(e.target.value); }}
+                    className={inputClass}
+                >
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                </select>
+            </div>
+
+            <div className="border-t border-[var(--border)] pt-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
                     {soundEnabled ? <Volume2 size={18} className="text-[var(--success)]" /> : <VolumeX size={18} className="text-[var(--text-muted)]" />}
-                    Звуковое сопровождение
+                    {t('settings.soundTitle')}
                 </h3>
                 <div className="flex items-center justify-between p-4 glass rounded-xl transition-all">
                     <div>
-                        <div className="font-medium text-[var(--text)]">Звуки OMEGA</div>
-                        <div className="text-sm text-[var(--text-muted)]">Активация, уведомления, сообщения</div>
+                        <div className="font-medium text-[var(--text)]">{t('settings.soundToggleLabel')}</div>
+                        <div className="text-sm text-[var(--text-muted)]">{t('settings.soundDescription')}</div>
                     </div>
                     <button
                         onClick={handleSoundToggle}
                         className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${soundEnabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
-                        aria-label={soundEnabled ? 'Выключить звуки' : 'Включить звуки'}
+                        aria-label={soundEnabled ? t('settings.disableSounds') : t('settings.enableSounds')}
                     >
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${soundEnabled ? 'translate-x-6' : ''}`} />
+                    </button>
+                </div>
+            </div>
+
+            <div className="border-t border-[var(--border)] pt-6">
+                <div className="flex items-center justify-between p-4 glass rounded-xl transition-all">
+                    <div>
+                        <div className="font-medium text-[var(--text)]">{t('settings.animations')}</div>
+                        <div className="text-sm text-[var(--text-muted)]">{t('settings.animationsDesc')}</div>
+                    </div>
+                    <button
+                        onClick={handleAnimationsToggle}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${animationsEnabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                        aria-label={animationsEnabled ? t('settings.disableAnimations') : t('settings.enableAnimations')}
+                    >
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${animationsEnabled ? 'translate-x-6' : ''}`} />
                     </button>
                 </div>
             </div>

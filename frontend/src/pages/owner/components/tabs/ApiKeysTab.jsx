@@ -268,13 +268,14 @@ export function ApiKeysTab({ data }) {
                                             <RefreshCw size={12} /> {t('apiKeys.rotate')}
                                         </button>
                                     )}
+                                    {/* [P23] fixed: enlarged switch to 44×44 touch target */}
                                     <button
                                         onClick={() => toggleProvider(provider.id)}
                                         disabled={toggling[provider.id]}
-                                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 disabled:opacity-50 ${provider.enabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                                        className={`relative w-12 min-h-[44px] rounded-full flex items-center justify-center transition-colors duration-300 disabled:opacity-50 ${provider.enabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
                                         aria-label={provider.enabled ? 'Выключить' : 'Включить'}
                                     >
-                                        <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-[var(--text-inverse)] shadow-md transition-transform duration-300 ${provider.enabled ? 'translate-x-6' : ''}`} />
+                                        <span className={`absolute top-1/2 -translate-y-1/2 left-1 w-4 h-4 rounded-full bg-[var(--text-inverse)] shadow-md transition-transform duration-300 ${provider.enabled ? 'translate-x-6' : ''}`} />
                                     </button>
                                 </div>
                             </div>

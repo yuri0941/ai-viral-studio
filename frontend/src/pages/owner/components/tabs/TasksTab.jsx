@@ -178,13 +178,14 @@ export function TasksTab({ data }) {
                     <h2 className="text-lg font-semibold text-[var(--text)]">{t('tasks.title', 'Задачи и Kanban')}</h2>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                    {/* [P23] fixed: fluid search width */}
                     <div className="relative">
                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             placeholder={t('tasks.search', 'Поиск задач…')}
-                            className="pl-9 pr-3 py-2 rounded-xl glass text-[var(--text)] text-xs outline-none focus:border-[var(--primary)]/50 w-48 border border-[var(--border)] bg-transparent"
+                            className="pl-9 pr-3 py-2 rounded-xl glass text-[var(--text)] text-xs outline-none focus:border-[var(--primary)]/50 w-full max-w-xs border border-[var(--border)] bg-transparent"
                         />
                     </div>
                     <select
@@ -236,6 +237,7 @@ export function TasksTab({ data }) {
                 </div>
             ) : (
                 <div className="flex gap-4 overflow-x-auto pb-2">
+                    {/* [P23] fixed: responsive Kanban column widths */}
                     {COLUMNS.map(col => {
                         const colTasks = filteredTasks.filter(t => t.status === col.id)
                         const isOver = dragOverColumn === col.id
@@ -245,7 +247,7 @@ export function TasksTab({ data }) {
                                 onDragOver={e => handleDragOver(e, col.id)}
                                 onDragLeave={handleDragLeave}
                                 onDrop={e => handleDrop(e, col.id)}
-                                className={`flex-shrink-0 w-80 rounded-2xl border border-[var(--border)] glass p-3 transition-colors ${isOver ? 'ring-2 ring-[var(--primary)]/30 bg-[var(--primary)]/5' : ''}`}
+                                className={`flex-shrink-0 w-[85vw] sm:w-80 max-w-full rounded-2xl border border-[var(--border)] glass p-3 transition-colors ${isOver ? 'ring-2 ring-[var(--primary)]/30 bg-[var(--primary)]/5' : ''}`}
                             >
                                 <div className="flex items-center justify-between mb-3 px-1">
                                     <div className="flex items-center gap-2">
@@ -253,7 +255,8 @@ export function TasksTab({ data }) {
                                         <span className="text-sm font-medium text-[var(--text)]">{t(`tasks.column.${col.labelKey}`, col.labelKey)}</span>
                                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]">{colTasks.length}</span>
                                     </div>
-                                    <button onClick={addTask} className="p-1 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
+                                    {/* [P23] fixed: 44×44 add-task touch target */}
+                                    <button onClick={addTask} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
                                         <Plus size={14} />
                                     </button>
                                 </div>
@@ -328,12 +331,13 @@ export function TasksTab({ data }) {
                             onClick={() => setSelectedTask(null)}
                             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
                         />
+                        {/* [P23] fixed: sidebar uses max-w-[95vw] and is responsive */}
                         <motion.div
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed right-0 top-0 h-full w-96 glass z-50 border-l border-[var(--border)] shadow-2xl overflow-y-auto"
+                            className="fixed right-0 top-0 h-full w-full sm:w-96 max-w-[95vw] glass z-50 border-l border-[var(--border)] shadow-2xl overflow-y-auto"
                         >
                             <div className="p-6 space-y-6">
                                 <div className="flex items-start justify-between gap-4">
@@ -344,7 +348,8 @@ export function TasksTab({ data }) {
                                         </div>
                                         <h3 className="text-lg font-semibold text-[var(--text)]">{selectedTask.title}</h3>
                                     </div>
-                                    <button onClick={() => setSelectedTask(null)} className="p-2 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
+                                    {/* [P23] fixed: 44×44 close button touch target */}
+                                    <button onClick={() => setSelectedTask(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
                                         <X size={18} />
                                     </button>
                                 </div>
@@ -386,8 +391,9 @@ export function TasksTab({ data }) {
                                             <button
                                                 key={idx}
                                                 onClick={() => toggleChecklist(selectedTask.id, idx)}
-                                                className="w-full flex items-center gap-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface)] p-2 rounded-lg transition-colors"
+                                                className="w-full min-h-[44px] flex items-center gap-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface)] p-2 rounded-lg transition-colors"
                                             >
+                                                {/* [P23] fixed: checklist row touch target */}
                                                 <span className={`w-4 h-4 rounded border flex items-center justify-center ${item.done ? 'bg-emerald-500 border-emerald-500' : 'border-[var(--border-strong)]'}`}>
                                                     {item.done && <CheckSquare size={12} className="text-white" />}
                                                 </span>
@@ -450,8 +456,9 @@ export function TasksTab({ data }) {
                                     exit={{ opacity: 0, y: 20, scale: 0.8 }}
                                     transition={{ delay: i * 0.05 }}
                                     onClick={() => { item.action(); if (item.label !== t('tasks.filter', 'Фильтр') && item.label !== t('tasks.sort', 'Сортировка')) setFabOpen(false) }}
-                                    className={`flex items-center gap-2 px-3 py-2 rounded-full text-white text-xs shadow-lg ${item.color} hover:opacity-90 transition-opacity`}
+                                    className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-full text-white text-xs shadow-lg ${item.color} hover:opacity-90 transition-opacity`}
                                 >
+                                    {/* [P23] fixed: FAB action touch target */}
                                     <item.icon size={14} /> {item.label}
                                 </motion.button>
                             ))}

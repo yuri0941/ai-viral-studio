@@ -6,9 +6,9 @@
 
 @layer base {
     :root {
-        --bg: #faf9f6;
+        --bg: #f8f7f4;
         --bg-secondary: #ffffff;
-        --surface: rgba(255, 255, 255, 0.8);
+        --surface: rgba(255, 255, 255, 0.85);
         --card: #ffffff;
         --card-hover: #f5f5f0;
         --text: #1a1a2e;
@@ -17,7 +17,7 @@
         --text-inverse: #ffffff;
         --border: rgba(0, 0, 0, 0.06);
         --border-strong: rgba(0, 0, 0, 0.12);
-        --glass: rgba(255, 255, 255, 0.6);
+        --glass: rgba(255, 255, 255, 0.7);
         --primary: #7c3aed;
         --primary-soft: rgba(124, 58, 237, 0.08);
         --primary-hover: #6d28d9;
@@ -83,6 +83,24 @@
         --font-sans: 'Inter', 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
         --font-serif: 'Playfair Display', Georgia, serif;
         --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    .light body {
+        background: var(--bg);
+        color: var(--text);
+    }
+
+    .light .luxury-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+    }
+
+    .light .glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid var(--border);
     }
 
     html {

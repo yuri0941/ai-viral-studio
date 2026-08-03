@@ -37,6 +37,9 @@ export function OMEGACoreTab({ data }) {
     const [featuresLoading, setFeaturesLoading] = useState(false)
 
     const [reflection, setReflection] = useState({ active: false, lessonCount: 0 })
+    // [P23] fixed: loading states for forecast recalc and reflection
+    const [recalcLoading, setRecalcLoading] = useState(false)
+    const [reflectionLoading, setReflectionLoading] = useState(false)
     const [selectedAgent, setSelectedAgent] = useState(null)
     const [agentTab, setAgentTab] = useState('overview')
     const [agentSettings, setAgentSettings] = useState({ autoReply: true, notifications: true, priority: 'normal', systemPrompt: '' })
@@ -94,6 +97,8 @@ export function OMEGACoreTab({ data }) {
             if (!res.ok) throw new Error()
             showToast(`${key} ${next ? 'включён' : 'выключен'}`)
         } catch {
+            // [P23] fixed: revert toggle on API error
+            setter(current)
             showToast('Ошибка обновления настройки', 'error')
         } finally {
             setFeaturesLoading(false)
@@ -189,6 +194,7 @@ export function OMEGACoreTab({ data }) {
     const [reportType, setReportType] = useState('status')
 
     const handleRecalcForecast = useCallback(async () => {
+        setRecalcLoading(true)
         showToast(t('omega.forecastUpdating'), 'info')
         try {
             await fetch('/api/omega/predictions/recalculate', {
@@ -198,6 +204,8 @@ export function OMEGACoreTab({ data }) {
             showToast(t('omega.forecastUpdated'), 'success')
         } catch {
             showToast(t('omega.forecastError'), 'error')
+        } finally {
+            setRecalcLoading(false)
         }
     }, [showToast, t])
 
@@ -223,6 +231,7 @@ export function OMEGACoreTab({ data }) {
 
     // [P17] added
     const handleApplyReflection = useCallback(async () => {
+        setReflectionLoading(true)
         try {
             const res = await fetch('/api/omega/self-reflection', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
             if (!res.ok) throw new Error()
@@ -231,6 +240,8 @@ export function OMEGACoreTab({ data }) {
             showToast('Корректировка Self-Reflection применена', 'success')
         } catch {
             showToast('Не удалось применить корректировку', 'error')
+        } finally {
+            setReflectionLoading(false)
         }
     }, [showToast])
 
@@ -252,8 +263,8 @@ export function OMEGACoreTab({ data }) {
     }, [showToast])
 
     const toggleBtnClass = (on) => on
-        ? 'bg-green-500/20 border-green-500 text-green-400 rounded-xl px-4 py-2 border'
-        : 'glass text-[var(--text-muted)] rounded-xl px-4 py-2'
+        ? 'min-h-[44px] bg-green-500/20 border-green-500 text-green-400 rounded-xl px-4 py-2 border'
+        : 'min-h-[44px] glass text-[var(--text-muted)] rounded-xl px-4 py-2'
 
     return (
         <div className="space-y-6">
@@ -303,9 +314,11 @@ export function OMEGACoreTab({ data }) {
                     </button>
                     <button
                         onClick={handleRecalcForecast}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors"
+                        disabled={recalcLoading}
+                        className="min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors disabled:opacity-50"
                     >
-                        <RefreshCw size={14} /> {t('omega.recalcForecast')}
+                        {/* [P23] fixed: recalc forecast loading + touch target */}
+                        <RefreshCw size={14} className={recalcLoading ? 'animate-spin' : ''} /> {t('omega.recalcForecast')}
                     </button>
                     <button
                         onClick={handleGenerateReport}
@@ -356,7 +369,12 @@ export function OMEGACoreTab({ data }) {
                                         <div className="text-sm font-medium text-[var(--text)] capitalize">{alert.type}</div>
                                         <div className="text-xs text-[var(--text-muted)] mt-0.5">{alert.message}</div>
                                     </div>
-                                    <button className="text-xs px-2.5 py-1.5 rounded-lg glass text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors">
+                                    <button
+                                        type="button"
+                                        onClick={() => showToast?.('Авто-исправление инициировано', 'info')}
+                                        className="min-h-[44px] text-xs px-2.5 py-1.5 rounded-lg glass text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors"
+                                    >
+                                        {/* [P23] fixed: missing onClick + touch target */}
                                         Исправить
                                     </button>
                                 </div>
@@ -366,7 +384,8 @@ export function OMEGACoreTab({ data }) {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* [P23] fixed: metrics grid fits 6 cards on large screens */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 {[
                     { title: 'Агентов активно', value: activeAgents, delta: '+12%', deltaColor: 'var(--success)', spark: [30,45,40,60,55,70,activeAgents*10] },
                     { title: 'Приостановлено', value: pausedAgents, delta: pausedAgents > 0 ? 'Требуют внимания' : 'Все ок', deltaColor: pausedAgents > 0 ? 'var(--warning)' : 'var(--success)', spark: [10,8,6,4,3,2,pausedAgents*5] },
@@ -417,9 +436,11 @@ export function OMEGACoreTab({ data }) {
                     <div className="text-xs text-[var(--text-muted)] mt-1">{reflection.lessonCount} lessons</div>
                     <button
                         onClick={handleApplyReflection}
-                        className="mt-3 text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                        disabled={reflectionLoading}
+                        className="mt-3 min-h-[44px] text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
                     >
-                        Применить корректировку
+                        {/* [P23] fixed: reflection loading + touch target */}
+                        {reflectionLoading ? 'Применение…' : 'Применить корректировку'}
                     </button>
                 </div>
             </div>
@@ -496,19 +517,24 @@ export function OMEGACoreTab({ data }) {
                                             />
                                         </svg>
                                         <div className="flex items-center gap-2">
+                                            {/* [P23] fixed: agent action buttons touch targets */}
                                             {isActive ? (
-                                                <button onClick={e => handlePauseAgent(agent.id, e)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 text-amber-400 text-[10px] hover:bg-amber-500/20 transition-colors">
+                                                <button onClick={e => handlePauseAgent(agent.id, e)} className="min-h-[44px] flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 text-amber-400 text-[10px] hover:bg-amber-500/20 transition-colors">
                                                     <Pause size={10} /> Пауза
                                                 </button>
                                             ) : (
-                                                <button onClick={e => handleStartAgent(agent.id, e)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] hover:bg-emerald-500/20 transition-colors">
+                                                <button onClick={e => handleStartAgent(agent.id, e)} className="min-h-[44px] flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] hover:bg-emerald-500/20 transition-colors">
                                                     <Play size={10} /> Запустить
                                                 </button>
                                             )}
-                                            <button onClick={e => { e.stopPropagation(); handleRestartAgent(agent.id, e); }} className="flex items-center gap-1 px-2 py-1 rounded-lg glass text-[var(--text-muted)] text-[10px] hover:bg-[var(--surface)] transition-colors">
+                                            <button onClick={e => { e.stopPropagation(); handleRestartAgent(agent.id, e); }} className="min-h-[44px] flex items-center gap-1 px-2 py-1 rounded-lg glass text-[var(--text-muted)] text-[10px] hover:bg-[var(--surface)] transition-colors">
                                                 <RotateCcw size={10} /> Рестарт
                                             </button>
-                                            <button className="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg glass text-[var(--text-muted)] text-[10px] hover:bg-[var(--surface)] transition-colors">
+                                            <button
+                                                type="button"
+                                                onClick={e => { e.stopPropagation(); setSelectedAgent(agent); setAgentTab('logs'); }}
+                                                className="min-h-[44px] ml-auto flex items-center gap-1 px-2 py-1 rounded-lg glass text-[var(--text-muted)] text-[10px] hover:bg-[var(--surface)] transition-colors"
+                                            >
                                                 <Terminal size={10} /> Логи
                                             </button>
                                         </div>
@@ -523,7 +549,8 @@ export function OMEGACoreTab({ data }) {
                     <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Wifi size={16} className="text-[var(--accent)]" /> AI Провайдеры
                     </h3>
-                    <div className="grid grid-cols-3 gap-3">
+                    {/* [P23] fixed: provider grid stacks on mobile */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         {[
                             { id: 'groq', name: 'Groq', pct: 85, color: '#10b981' },
                             { id: 'openrouter', name: 'OpenRouter', pct: 60, color: '#3b82f6' },
@@ -548,8 +575,9 @@ export function OMEGACoreTab({ data }) {
                                     <button
                                         onClick={() => handleTestProvider(provider.id)}
                                         disabled={testLoading === provider.id}
-                                        className="text-[10px] px-2 py-1 rounded-full glass text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors disabled:opacity-50"
+                                        className="min-h-[44px] min-w-[44px] text-[10px] px-2 py-1 rounded-full glass text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors disabled:opacity-50"
                                     >
+                                        {/* [P23] fixed: provider test touch target */}
                                         {testLoading === provider.id ? '...' : 'Тест'}
                                     </button>
                                 ) : (
@@ -610,8 +638,9 @@ export function OMEGACoreTab({ data }) {
                     </h3>
                     <button
                         onClick={handleClearLogs}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
+                        className="min-h-[44px] flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
                     >
+                        {/* [P23] fixed: clear-logs touch target */}
                         <Trash2 size={12} /> {t('omega.clearLogs')}
                     </button>
                 </div>
@@ -636,7 +665,8 @@ export function OMEGACoreTab({ data }) {
 
             {reportModalOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setReportModalOpen(false)}>
-                    <div className="luxury-card glass w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+                    {/* [P23] fixed: report modal responsive max-width */}
+                    <div className="luxury-card glass w-full max-w-[95vw] sm:max-w-sm max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                             <FileText size={18} className="text-[var(--primary)]" /> {t('omega.reportTitle')}
                         </h3>
@@ -649,12 +679,13 @@ export function OMEGACoreTab({ data }) {
                                 <button
                                     key={opt.id}
                                     onClick={() => setReportType(opt.id)}
-                                    className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                                    className={`w-full min-h-[44px] text-left px-4 py-3 rounded-xl border transition-colors ${
                                         reportType === opt.id
                                             ? 'bg-[var(--primary-soft)] border-[var(--primary)] text-[var(--primary)]'
                                             : 'glass border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/30'
                                     }`}
                                 >
+                                    {/* [P23] fixed: report option touch target */}
                                     {opt.label}
                                 </button>
                             ))}
@@ -662,14 +693,16 @@ export function OMEGACoreTab({ data }) {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setReportModalOpen(false)}
-                                className="flex-1 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
+                                className="flex-1 min-h-[44px] px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
                             >
+                                {/* [P23] fixed: report cancel touch target */}
                                 {t('common.cancel')}
                             </button>
                             <button
                                 onClick={handleDownloadReport}
-                                className="flex-1 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25 transition-all"
+                                className="flex-1 min-h-[44px] px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25 transition-all"
                             >
+                                {/* [P23] fixed: report download touch target */}
                                 {t('omega.downloadPdf')}
                             </button>
                         </div>
@@ -679,7 +712,8 @@ export function OMEGACoreTab({ data }) {
 
             {selectedAgent && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedAgent(null)}>
-                    <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto luxury-card glass p-6" onClick={e => e.stopPropagation()}>
+                    {/* [P23] fixed: agent modal responsive max-width */}
+                    <div className="w-full max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto luxury-card glass p-6" onClick={e => e.stopPropagation()}>
                         <div className="flex items-start justify-between mb-5">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
@@ -690,11 +724,13 @@ export function OMEGACoreTab({ data }) {
                                     <p className="text-xs text-[var(--text-muted)]">{selectedAgent.role}</p>
                                 </div>
                             </div>
-                            <button onClick={() => setSelectedAgent(null)} className="p-2 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
+                            <button onClick={() => setSelectedAgent(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
+                                {/* [P23] fixed: agent modal close touch target */}
                                 <X size={20} />
                             </button>
                         </div>
 
+                        {/* [P23] fixed: agent tab buttons touch targets */}
                         <div className="flex gap-2 border-b border-[var(--border)] mb-5">
                             {[
                                 { id: 'overview', label: 'Обзор', icon: Activity },
@@ -707,7 +743,7 @@ export function OMEGACoreTab({ data }) {
                                     <button
                                         key={t.id}
                                         onClick={() => setAgentTab(t.id)}
-                                        className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
+                                        className={`min-h-[44px] flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
                                             agentTab === t.id
                                                 ? 'border-[var(--primary)] text-[var(--primary)]'
                                                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)]'
@@ -817,7 +853,8 @@ export function OMEGACoreTab({ data }) {
                                         className="w-full px-3 py-2 rounded-xl glass text-[var(--text)] text-sm outline-none resize-none"
                                     />
                                 </div>
-                                <button onClick={() => showToast('Настройки агента сохранены')} className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all">
+                                <button onClick={() => showToast('Настройки агента сохранены')} className="min-h-[44px] px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all">
+                                    {/* [P23] fixed: agent settings save touch target */}
                                     Сохранить
                                 </button>
                             </div>

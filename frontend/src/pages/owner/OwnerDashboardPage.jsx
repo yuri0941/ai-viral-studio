@@ -269,7 +269,8 @@ export default function OwnerDashboardPage() {
                         t.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                     }`}>
                         <span className="text-sm font-medium">{t.message}</span>
-                        <button onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))} className="text-gray-500 hover:text-white">
+                        <button onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-500 hover:text-white">
+                            {/* [P23] fixed: toast close touch target */}
                             <X size={14} />
                         </button>
                     </div>
