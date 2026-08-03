@@ -2742,3 +2742,12 @@
 - [x] Frontend build: 0 errors
 - [x] Git push: done (commit `9d1e0995`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
+
+
+### [2026-08-04] — ПРОМПТ №24: StaffDashboardPage Fix
+- [x] StaffDashboardPage.jsx: all cell renderers are functions, imports verified
+- [x] VirtualTable.jsx: typeof column.cell === 'function' guard
+- [x] Frontend build: 0 errors
+- [x] Backend check: 0 errors
+- [x] Git push: done (commit `90c3787c`)
+- [ ] Render deploy: manual Clear Build Cache & Deploy
