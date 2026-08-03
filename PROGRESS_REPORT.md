@@ -2452,3 +2452,21 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
+
+
+### [2026-08-02] — ПРОМПТ FIX: OMEGA + Tabs + Interactivity
+- [x] AdminDashboardPage.jsx TDZ error fixed: да (функции handleToggleStatus/openEditModal/openDeleteModal перенесены ДО useMemo)
+- [x] OMEGA Core buttons work (toggle + API): да (автопилот, predictive, repurposing, voice + эндпоинты; recalc + PDF report)
+- [x] Business Spawning wizard (5 steps, luxury): да (`frontend/src/pages/owner/BusinessSpawnerPage.jsx`)
+- [x] Boardroom interactive (5 agents, voting, consensus): да (`frontend/src/pages/owner/BoardroomPage.jsx`)
+- [x] Referrals tab luxury (stats, tiers, payouts, materials): да (`frontend/src/pages/owner/components/tabs/ReferralsTab.jsx`)
+- [x] Tasks/Kanban premium (dnd, quick view, FAB, filters): да (`frontend/src/pages/owner/components/tabs/TasksTab.jsx`)
+- [x] AI Agents detailed (logs, stats, settings, sparklines): да (`OMEGACoreTab.jsx`)
+- [x] Subscription prices editable by owner: да (`SubscriptionsTab.jsx` + `PATCH /api/owner/subscription-plans/:planId`)
+- [x] Social networks editable in profile: да (`SettingsPage.jsx` + `PATCH /api/users/me/socials`)
+- [x] Sidebar active tab highlight: да (`AppSidebar.jsx` — `border-l-[3px] bg-[var(--primary-soft)]`)
+- [x] Light theme contrast fixed: да (кнопка "Тренировать" в `OmegaSkillsTab.jsx` — primary text/border/bg)
+- [x] Backend check: успешно (node --check all changed files)
+- [x] Frontend build: успешно (vite build 0 errors)
+- [x] Git push: выполнен (коммит 33f14b4b)
+- [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
