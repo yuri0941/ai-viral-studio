@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
     User, Diamond, Link2, Bell, Shield, Palette, LogOut,
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
     Send, Globe, Moon, Sun, Smartphone, Mail, Lock, Eye, EyeOff,
     ChevronRight, Sparkles, Crown, Zap, Users, Calendar, CreditCard,
-    Wallet, Bitcoin, Volume2, VolumeX, Linkedin, Loader2
+    Wallet, Bitcoin, Volume2, VolumeX, Linkedin, Loader2, Monitor
 } from 'lucide-react';
 
 function SettingsPage() {
+    const { t } = useTranslation();
     const { user, logout, updateUser } = useAuth();
     const [activeTab, setActiveTab] = useState('profile');
     const [saved, setSaved] = useState(false);
@@ -56,13 +58,13 @@ function SettingsPage() {
         timezone: user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'
     });
     const [socials, setSocials] = useState({
-        instagram: { username: '', link: '' },
-        tiktok: { username: '', link: '' },
-        youtube: { username: '', link: '' },
-        telegram: { username: '', link: '' },
-        vk: { username: '', link: '' },
-        twitter: { username: '', link: '' },
-        linkedin: { username: '', link: '' },
+        instagram: { username: '', link: '', published: false },
+        tiktok: { username: '', link: '', published: false },
+        youtube: { username: '', link: '', published: false },
+        telegram: { username: '', link: '', published: false },
+        vk: { username: '', link: '', published: false },
+        twitter: { username: '', link: '', published: false },
+        linkedin: { username: '', link: '', published: false },
     });
     const [savingSocials, setSavingSocials] = useState(false);
     const [socialsSaved, setSocialsSaved] = useState(false);
@@ -77,12 +79,11 @@ function SettingsPage() {
     useEffect(() => {
         if (user?.socials) {
             setSocials(prev => ({ ...prev, ...Object.fromEntries(
-                Object.entries(user.socials).map(([k, v]) => [k, typeof v === 'string' ? { username: v, link: '' } : v])
+                Object.entries(user.socials).map(([k, v]) => [k, typeof v === 'string' ? { username: v, link: '', published: false } : { ...v, published: v.published ?? false }])
             )}))
         }
     }, [user?.socials])
 
-    // Проверяем статус платежа из URL (после редиректа от Stripe)
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const paymentStatus = urlParams.get('payment');
@@ -95,7 +96,6 @@ function SettingsPage() {
         }
     }, []);
 
-    // Загружаем цены из localStorage (синхронизация с OwnerDashboard)
     const [plans, setPlans] = useState(() => {
         const saved = localStorage.getItem('owner_subscriptions');
         if (saved) {
@@ -108,7 +108,6 @@ function SettingsPage() {
                 { id: 'enterprise', name: parsed[4]?.name || 'Enterprise', price: parsed[4]?.price || 300, color: 'from-purple-500 to-pink-600', features: parsed[4]?.features || ['Кастом решения', 'On-premise', 'SLA 99.9%'] },
             ];
         }
-        // Дефолтные цены
         return [
             { id: 'free', name: 'Free', price: 0, color: 'from-gray-600 to-gray-700', features: ['1 проект', 'Базовая аналитика', 'Email поддержка'] },
             { id: 'creator', name: 'Creator', price: 10, color: 'from-blue-500 to-blue-600', features: ['5 проектов', 'Расширенная аналитика', 'Приоритетная поддержка'] },
@@ -121,20 +120,16 @@ function SettingsPage() {
     const getYearlyPrice = (monthlyPrice) => monthlyPrice * 10;
 
     const getCurrentPrice = (plan) => {
-        // Грандфазеринг: если у пользователя активная подписка и цена изменилась
         if (userSubscription && userSubscription.planId === plan.id && userSubscription.isActive) {
             const now = new Date();
             const nextBilling = new Date(userSubscription.nextBillingDate);
             if (now < nextBilling) {
-                // До конца текущего периода — старая цена
                 return isYearly ? getYearlyPrice(userSubscription.lockedPrice) : userSubscription.lockedPrice;
             }
         }
-        // Новая цена
         return isYearly ? getYearlyPrice(plan.price) : plan.price;
     };
 
-    // ============ ОПЛАТА ЧЕРЕЗ STRIPE ============
     const handleStripePayment = async (plan) => {
         try {
             setPaymentLoading(true);
@@ -161,7 +156,6 @@ function SettingsPage() {
         }
     };
 
-    // ============ ОПЛАТА ЧЕРЕЗ PAYPAL ============
     const handlePayPalPayment = async (plan) => {
         try {
             setPaymentLoading(true);
@@ -189,7 +183,6 @@ function SettingsPage() {
         }
     };
 
-    // ============ ОПЛАТА КРИПТОЙ ЧЕРЕЗ COINBASE ============
     const handleCryptoPayment = async (plan) => {
         try {
             setPaymentLoading(true);
@@ -216,7 +209,6 @@ function SettingsPage() {
         }
     };
 
-    // Простой toast (если нет showToast в проекте)
     const showToast = (message, type = 'info') => {
         if (window.showToast) {
             window.showToast(message, type);
@@ -226,17 +218,13 @@ function SettingsPage() {
     };
 
     const handleSubscribe = (plan) => {
-        // Если платный план — перенаправляем на оплату
         if (plan.price > 0) {
             handleStripePayment(plan);
             return;
         }
-
-        // Free план — активируем сразу
         const now = new Date();
         const nextBilling = new Date(now);
         nextBilling.setFullYear(nextBilling.getFullYear() + 100);
-
         const subscription = {
             planId: plan.id,
             planName: plan.name,
@@ -248,7 +236,6 @@ function SettingsPage() {
             isActive: true,
             autoRenew: false
         };
-
         localStorage.setItem('user_subscription', JSON.stringify(subscription));
         setUserSubscription(subscription);
         setSaved(true);
@@ -273,12 +260,12 @@ function SettingsPage() {
     };
 
     const tabs = [
-        { id: 'profile', label: 'Профиль', icon: User },
-        { id: 'subscription', label: 'Подписка', icon: Diamond },
-        { id: 'socials', label: 'Соцсети', icon: Link2 },
-        { id: 'notifications', label: 'Уведомления', icon: Bell },
-        { id: 'security', label: 'Безопасность', icon: Shield },
-        { id: 'appearance', label: 'Внешний вид', icon: Palette },
+        { id: 'profile', label: t('settings.profile'), icon: User },
+        { id: 'subscription', label: t('settings.subscription'), icon: Diamond },
+        { id: 'socials', label: t('settings.socials'), icon: Link2 },
+        { id: 'notifications', label: t('settings.notifications'), icon: Bell },
+        { id: 'security', label: t('settings.security'), icon: Shield },
+        { id: 'appearance', label: t('settings.appearance'), icon: Palette },
     ];
 
     const socialPlatforms = [
@@ -313,10 +300,10 @@ function SettingsPage() {
             if (!res.ok) throw new Error('Network error');
             setSocialsSaved(true);
             setTimeout(() => setSocialsSaved(false), 2000);
-            showToast('Соцсети сохранены', 'success');
+            showToast(t('settings.socialsSaved'), 'success');
         } catch (err) {
             console.warn('[SettingsPage] save socials failed:', err.message);
-            showToast('Соцсети сохранены локально', 'info');
+            showToast(t('settings.socialsSavedLocal'), 'info');
             setSocialsSaved(true);
             setTimeout(() => setSocialsSaved(false), 2000);
         } finally {
@@ -326,72 +313,83 @@ function SettingsPage() {
 
     const handleThemeChange = (newTheme) => {
         setTheme(newTheme);
-        document.documentElement.classList.toggle('light', newTheme === 'light');
+        const root = document.documentElement;
+        root.classList.remove('light', 'dark');
+        if (newTheme === 'system') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (prefersDark) root.classList.add('dark');
+            else root.classList.add('light');
+        } else {
+            root.classList.add(newTheme);
+        }
+        try {
+            localStorage.setItem('ai-viral-theme', newTheme);
+        } catch {}
     };
+
+    const inputClass = "w-full px-4 py-3 glass rounded-xl text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:ring-2 focus:ring-[var(--primary)]/50 bg-transparent transition-all";
 
     const renderProfile = () => (
         <div className="space-y-6">
-            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
+            <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Camera size={18} className="text-[var(--success)]" /> Аватар профиля
                 </h3>
                 <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-3xl font-bold text-[var(--text-inverse)]"> // [P16-CONTINUE] added
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-3xl font-bold text-[var(--text-inverse)]">
                         {profile.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                        <button className="px-4 py-2 bg-[var(--success)]/20 text-[var(--success)] rounded-lg text-sm font-medium hover:bg-[var(--success)]/30 transition-colors flex items-center gap-2"> // [P16-CONTINUE] added
-                            <Camera size={14} /> Загрузить фото
+                        <button className="px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-xl text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all flex items-center gap-2">
+                            <Camera size={14} /> {t('settings.profile')}
                         </button>
                         <p className="text-xs text-[var(--text-muted)] mt-2">JPG, PNG до 5MB</p>
                     </div>
                 </div>
             </div>
 
-            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
+            <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <User size={18} className="text-[var(--success)]" /> Личная информация
+                    <User size={18} className="text-[var(--success)]" /> {t('settings.profile')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="relative">
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('settings.name')}</label>
                         <input
                             type="text"
                             id="settings-name"
                             value={profile.name}
                             onChange={e => setProfile({ ...profile, name: e.target.value })}
-                            placeholder=" "
-                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-colors text-[var(--text)]" // [P16-CONTINUE] added
+                            className={inputClass}
                         />
-                        <label htmlFor="settings-name" className="absolute left-4 top-2.5 text-sm text-[var(--text-muted)] transition-all peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-[var(--primary)] peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">Имя</label> // [P16-CONTINUE] added: floating label
                     </div>
                     <div className="relative">
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('settings.email')}</label>
                         <input
                             type="email"
                             id="settings-email"
                             value={profile.email}
                             onChange={e => setProfile({ ...profile, email: e.target.value })}
-                            placeholder=" "
-                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-colors text-[var(--text)]" // [P16-CONTINUE] added
+                            className={inputClass}
                         />
-                        <label htmlFor="settings-email" className="absolute left-4 top-2.5 text-sm text-[var(--text-muted)] transition-all peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-[var(--primary)] peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">Email</label> // [P16-CONTINUE] added
                     </div>
                     <div className="md:col-span-2 relative">
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('settings.bio')}</label>
                         <textarea
                             id="settings-bio"
                             value={profile.bio}
                             onChange={e => setProfile({ ...profile, bio: e.target.value })}
-                            placeholder=" "
                             rows={3}
-                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none resize-none transition-colors text-[var(--text)]" // [P16-CONTINUE] added
+                            className={inputClass + ' resize-none'}
                         />
-                        <label htmlFor="settings-bio" className="absolute left-4 top-2.5 text-sm text-[var(--text-muted)] transition-all peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-[var(--primary)] peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">О себе</label> // [P16-CONTINUE] added
                     </div>
                     <div className="relative">
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('settings.niche')}</label>
                         <select
                             id="settings-niche"
                             value={profile.niche}
                             onChange={e => setProfile({ ...profile, niche: e.target.value })}
-                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-colors text-[var(--text)] appearance-none" // [P16-CONTINUE] added
+                            className={inputClass}
                         >
                             <option value="">Выберите нишу</option>
                             <option value="tech">Технологии</option>
@@ -401,54 +399,52 @@ function SettingsPage() {
                             <option value="gaming">Игры</option>
                             <option value="business">Бизнес</option>
                         </select>
-                        <label htmlFor="settings-niche" className="absolute left-4 -top-2.5 text-xs text-[var(--primary)] bg-[var(--bg)] px-1 pointer-events-none">Ниша</label> // [P16-CONTINUE] added: floating label for select
                     </div>
                     <div className="relative">
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('settings.language')}</label>
                         <select
                             id="settings-language"
                             value={profile.language}
                             onChange={e => setProfile({ ...profile, language: e.target.value })}
-                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-colors text-[var(--text)] appearance-none" // [P16-CONTINUE] added
+                            className={inputClass}
                         >
                             <option value="ru">Русский</option>
                             <option value="en">English</option>
                             <option value="es">Español</option>
                         </select>
-                        <label htmlFor="settings-language" className="absolute left-4 -top-2.5 text-xs text-[var(--primary)] bg-[var(--bg)] px-1 pointer-events-none">Язык</label> // [P16-CONTINUE] added
                     </div>
                     <div className="relative">
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('settings.timezone')}</label>
                         <select
                             id="settings-timezone"
                             value={profile.timezone}
                             onChange={e => setProfile({ ...profile, timezone: e.target.value })}
-                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none transition-colors text-[var(--text)] appearance-none" // [P16-CONTINUE] added
+                            className={inputClass}
                         >
                             {['UTC', 'Europe/Moscow', 'Europe/London', 'America/New_York', 'America/Los_Angeles', 'Asia/Dubai', 'Asia/Shanghai', 'Asia/Tokyo'].map(tz => (
                                 <option key={tz} value={tz}>{tz}</option>
                             ))}
                         </select>
-                        <label htmlFor="settings-timezone" className="absolute left-4 -top-2.5 text-xs text-[var(--primary)] bg-[var(--bg)] px-1 pointer-events-none">Часовой пояс</label> // [P16-CONTINUE] added
                     </div>
                 </div>
             </div>
 
             <button
                 onClick={handleSave}
-                className="magnetic-btn w-full py-3 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--text-inverse)] font-semibold rounded-xl transition-all flex items-center justify-center gap-2" // [P16-CONTINUE] added
+                className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all flex items-center justify-center gap-2"
             >
-                {saved ? <><Check size={18} /> Сохранено!</> : <><Save size={18} /> Сохранить изменения</>}
+                {saved ? <><Check size={18} /> {t('settings.saved')}</> : <><Save size={18} /> {t('settings.saveChanges')}</>}
             </button>
         </div>
     );
 
     const renderSubscription = () => (
         <div className="space-y-6">
-            {/* Активная подписка */}
             {userSubscription && userSubscription.isActive && (
-                <div className="glass-card p-6 rounded-[var(--radius-xl)] border-l-4 border-[var(--success)]"> // [P16-CONTINUE] added
+                <div className="luxury-card glass p-6 mb-4 border-l-4 border-[var(--success)]">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="text-lg font-semibold text-[var(--text)]">Текущий план</h3>
+                            <h3 className="text-lg font-semibold text-[var(--text)]">{t('settings.currentPlan')}</h3>
                             <p className="text-[var(--success)] font-bold text-xl mt-1">{userSubscription.planName}</p>
                             <div className="flex items-center gap-4 mt-2 text-sm text-[var(--text-muted)]">
                                 <span className="flex items-center gap-1">
@@ -456,7 +452,7 @@ function SettingsPage() {
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <CreditCard size={14} />
-                                    {userSubscription.billingCycle === 'yearly' ? 'Годовой' : userSubscription.billingCycle === 'free' ? 'Бесплатно' : 'Месячный'}
+                                    {userSubscription.billingCycle === 'yearly' ? t('settings.yearly') : userSubscription.billingCycle === 'free' ? t('settings.free') : t('settings.monthly')}
                                 </span>
                             </div>
                             {userSubscription.lockedPrice !== plans.find(p => p.id === userSubscription.planId)?.price && (
@@ -469,32 +465,30 @@ function SettingsPage() {
                     </div>
                     <button
                         onClick={handleCancelSubscription}
-                        className="mt-4 px-4 py-2 bg-[var(--danger)]/20 text-[var(--danger)] rounded-lg text-sm hover:bg-[var(--danger)]/30 transition-colors" // [P16-CONTINUE] added
+                        className="mt-4 px-4 py-2 bg-[var(--danger)]/20 text-[var(--danger)] rounded-xl text-sm hover:bg-[var(--danger)]/30 transition-colors"
                     >
                         Отменить подписку
                     </button>
                 </div>
             )}
 
-            {/* Переключатель Месяц/Год */}
             <div className="flex justify-center">
-                <div className="inline-flex glass rounded-full p-1"> // [P16-CONTINUE] added
+                <div className="inline-flex glass rounded-full p-1">
                     <button
                         onClick={() => setIsYearly(false)}
-                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!isYearly ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`} // [P16-CONTINUE] added
+                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!isYearly ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
                     >
-                        Месяц
+                        {t('settings.monthly')}
                     </button>
                     <button
                         onClick={() => setIsYearly(true)}
-                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${isYearly ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`} // [P16-CONTINUE] added
+                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${isYearly ? 'bg-[var(--primary)] text-[var(--text-inverse)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
                     >
-                        Год ×10
+                        {t('settings.yearly')}
                     </button>
                 </div>
             </div>
 
-            {/* Тарифные планы */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {plans.map(plan => {
                     const currentPrice = getCurrentPrice(plan);
@@ -503,20 +497,20 @@ function SettingsPage() {
                         userSubscription.lockedPrice !== plan.price && userSubscription.isActive;
 
                     return (
-                        <div key={plan.id} className={`relative glass-card p-5 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300 ${subscribed ? 'border-[var(--success)]' : plan.popular ? 'border-[var(--primary)]/50' : 'border-[var(--border)]'}`}> // [P16-CONTINUE] added
+                        <div key={plan.id} className={`luxury-card glass p-5 ${subscribed ? 'border-[var(--success)]' : plan.popular ? 'border-[var(--primary)]' : ''}`}>
                             {plan.popular && !subscribed && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--primary)] text-[var(--text-inverse)] text-xs font-bold rounded-full">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-full">
                                     Популярный
                                 </div>
                             )}
                             {subscribed && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--success)] text-[var(--text-inverse)] text-xs font-bold rounded-full">
-                                    Активен
+                                    {t('settings.active')}
                                 </div>
                             )}
                             <div className="flex items-center gap-2 mb-2">
                                 <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${plan.color}`} />
-                                <h4 className="font-bold text-lg text-[var(--text)]">{plan.name}</h4>
+                                <h4 className="font-bold text-lg text-[var(--text)] capitalize">{plan.name}</h4>
                             </div>
                             <div className="text-2xl font-bold my-2 text-[var(--text)]">
                                 ${currentPrice}
@@ -535,13 +529,12 @@ function SettingsPage() {
                                 ))}
                             </ul>
 
-                            {/* КНОПКИ ОПЛАТЫ */}
                             {plan.price > 0 && !subscribed ? (
                                 <div className="space-y-2 mt-4">
                                     <button
                                         onClick={() => handleStripePayment(plan)}
                                         disabled={paymentLoading}
-                                        className="magnetic-btn w-full py-2 rounded-lg font-medium transition-all bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--text-inverse)] disabled:opacity-50 flex items-center justify-center gap-2" // [P16-CONTINUE] added
+                                        className="w-full py-2 rounded-xl font-medium transition-all bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25 disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
                                         <CreditCard size={16} />
                                         {paymentLoading ? 'Загрузка...' : `Оплатить $${currentPrice}`}
@@ -549,7 +542,7 @@ function SettingsPage() {
                                     <button
                                         onClick={() => handleCryptoPayment(plan)}
                                         disabled={paymentLoading}
-                                        className="w-full py-2 rounded-lg font-medium transition-all glass hover:bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] flex items-center justify-center gap-2" // [P16-CONTINUE] added
+                                        className="w-full py-2 rounded-xl font-medium transition-all glass text-[var(--text)] border border-[var(--border)] flex items-center justify-center gap-2"
                                     >
                                         <Bitcoin size={16} className="text-orange-400" />
                                         {paymentLoading ? 'Загрузка...' : 'Крипта (USDT/BTC/ETH)'}
@@ -557,7 +550,7 @@ function SettingsPage() {
                                     <button
                                         onClick={() => handlePayPalPayment(plan)}
                                         disabled={paymentLoading}
-                                        className="w-full py-2 rounded-lg font-medium transition-all bg-[#003087]/80 hover:bg-[#002a6e] text-white flex items-center justify-center gap-2" // [P16-CONTINUE] added: kept PayPal brand
+                                        className="w-full py-2 rounded-xl font-medium transition-all bg-[#003087]/80 hover:bg-[#002a6e] text-white flex items-center justify-center gap-2"
                                     >
                                         <Wallet size={16} />
                                         {paymentLoading ? 'Загрузка...' : 'PayPal'}
@@ -567,14 +560,14 @@ function SettingsPage() {
                                 <button
                                     onClick={() => !subscribed && handleSubscribe(plan)}
                                     disabled={subscribed}
-                                    className={`w-full mt-4 py-2 rounded-lg font-medium transition-all ${subscribed
+                                    className={`w-full mt-4 py-2 rounded-xl font-medium transition-all ${subscribed
                                         ? 'bg-[var(--success)]/20 text-[var(--success)] cursor-default'
                                         : plan.popular
-                                            ? 'bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--text-inverse)]'
-                                            : 'glass hover:bg-[var(--surface)] text-[var(--text)]'
-                                        }`} // [P16-CONTINUE] added
+                                            ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25'
+                                            : 'glass text-[var(--text)]'
+                                        }`}
                                 >
-                                    {subscribed ? 'Активен' : 'Выбрать'}
+                                    {subscribed ? t('settings.active') : 'Выбрать'}
                                 </button>
                             )}
                         </div>
@@ -582,22 +575,21 @@ function SettingsPage() {
                 })}
             </div>
 
-            {/* История подписок */}
             {userSubscription && (
-                <div className="glass-card p-6 rounded-[var(--radius-xl)]"> // [P16-CONTINUE] added
+                <div className="luxury-card glass p-6 mb-4">
                     <h3 className="text-lg font-semibold mb-4 text-[var(--text)]">История подписки</h3>
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 glass rounded-lg"> // [P16-CONTINUE] added
+                        <div className="flex items-center justify-between p-3 glass rounded-xl">
                             <div>
                                 <div className="font-medium text-[var(--text)]">{userSubscription.planName}</div>
                                 <div className="text-sm text-[var(--text-muted)]">
-                                    С {formatDate(userSubscription.startDate)} • {userSubscription.billingCycle === 'yearly' ? 'Годовой' : userSubscription.billingCycle === 'free' ? 'Бесплатно' : 'Месячный'}
+                                    С {formatDate(userSubscription.startDate)} • {userSubscription.billingCycle === 'yearly' ? t('settings.yearly') : userSubscription.billingCycle === 'free' ? t('settings.free') : t('settings.monthly')}
                                 </div>
                             </div>
                             <div className="text-right">
                                 <div className="font-bold text-[var(--success)]">${userSubscription.price}</div>
                                 <div className={`text-xs ${userSubscription.isActive ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
-                                    {userSubscription.isActive ? 'Активна' : 'Отменена'}
+                                    {userSubscription.isActive ? t('settings.active') : 'Отменена'}
                                 </div>
                             </div>
                         </div>
@@ -609,17 +601,17 @@ function SettingsPage() {
 
     const renderSocials = () => (
         <div className="space-y-4">
-            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
+            <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
-                    <Link2 size={18} className="text-[var(--success)]" /> Социальные сети
+                    <Link2 size={18} className="text-[var(--success)]" /> {t('settings.socials')}
                 </h3>
                 <div className="space-y-3">
                     {socialPlatforms.map(platform => {
                         const Icon = platform.icon;
-                        const data = socials[platform.id] || { username: '', link: '' };
+                        const data = socials[platform.id] || { username: '', link: '', published: false };
                         const isConnected = data.username || data.link;
                         return (
-                            <div key={platform.id} className="flex items-start gap-4 p-4 glass rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all"> // [P16-FIX] updated
+                            <div key={platform.id} className="flex items-start gap-4 p-4 glass rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all">
                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: platform.color + '20' }}>
                                     <Icon size={24} style={{ color: platform.color }} />
                                 </div>
@@ -631,21 +623,29 @@ function SettingsPage() {
                                             value={data.username}
                                             onChange={e => setSocials({ ...socials, [platform.id]: { ...data, username: e.target.value } })}
                                             placeholder={platform.usernamePlaceholder}
-                                            className="w-full px-3 py-1.5 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors" // [P16-FIX] updated
+                                            className="w-full px-3 py-2 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors"
                                         />
                                     </div>
                                     <div>
-                                        <div className="font-medium text-[var(--text-muted)] text-sm mb-1">Ссылка</div>
+                                        <div className="font-medium text-[var(--text-muted)] text-sm mb-1">{t('settings.socialLink')}</div>
                                         <input
                                             type="text"
                                             value={data.link}
                                             onChange={e => setSocials({ ...socials, [platform.id]: { ...data, link: e.target.value } })}
                                             placeholder={platform.linkPlaceholder}
-                                            className="w-full px-3 py-1.5 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors" // [P16-FIX] updated
+                                            className="w-full px-3 py-2 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors"
                                         />
                                     </div>
                                 </div>
-                                <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-2 ${isConnected ? 'bg-[var(--success)] animate-pulse' : 'bg-[var(--text-muted)]'}`}></div> // [P16-CONTINUE] added
+                                <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                                    <span className={`w-3 h-3 rounded-full flex-shrink-0 mt-2 ${isConnected ? 'bg-[var(--success)] animate-pulse' : 'bg-[var(--text-muted)]'}`} />
+                                    <button
+                                        onClick={() => setSocials({ ...socials, [platform.id]: { ...data, published: !data.published } })}
+                                        className={`text-[10px] px-2 py-1 rounded-full border transition-colors ${data.published ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'glass text-[var(--text-muted)] border-[var(--border)]'}`}
+                                    >
+                                        {t('settings.publish')}
+                                    </button>
+                                </div>
                             </div>
                         );
                     })}
@@ -653,18 +653,18 @@ function SettingsPage() {
                 <button
                     onClick={handleSaveSocials}
                     disabled={savingSocials}
-                    className="magnetic-btn w-full mt-4 py-3 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--text-inverse)] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50" // [P16-FIX] updated
+                    className="w-full mt-4 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                    {savingSocials ? <Loader2 size={18} className="animate-spin" /> : socialsSaved ? <><Check size={18} /> Сохранено!</> : <><Save size={18} /> Сохранить соцсети</>}
+                    {savingSocials ? <Loader2 size={18} className="animate-spin" /> : socialsSaved ? <><Check size={18} /> {t('settings.saved')}</> : <><Save size={18} /> {t('settings.saveChanges')}</>}
                 </button>
             </div>
         </div>
     );
 
     const renderNotifications = () => (
-        <div className="glass-card p-6 rounded-[var(--radius-xl)] space-y-4"> // [P16-CONTINUE] added
+        <div className="luxury-card glass p-6 mb-4 space-y-4">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
-                <Bell size={18} className="text-[var(--success)]" /> Настройки уведомлений
+                <Bell size={18} className="text-[var(--success)]" /> {t('settings.notifications')}
             </h3>
             {[
                 { id: 'email', label: 'Email-уведомления', desc: 'Получать уведомления на email', icon: Mail },
@@ -674,9 +674,9 @@ function SettingsPage() {
             ].map(item => {
                 const Icon = item.icon;
                 return (
-                    <div key={item.id} className="flex items-center justify-between p-4 glass rounded-xl hover:scale-[1.01] transition-all duration-300"> // [P16-CONTINUE] added
+                    <div key={item.id} className="flex items-center justify-between p-4 glass rounded-xl transition-all">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg glass flex items-center justify-center"> // [P16-CONTINUE] added
+                            <div className="w-10 h-10 rounded-lg glass flex items-center justify-center">
                                 <Icon size={18} className="text-[var(--success)]" />
                             </div>
                             <div>
@@ -686,10 +686,10 @@ function SettingsPage() {
                         </div>
                         <button
                             onClick={() => setNotifications({ ...notifications, [item.id]: !notifications[item.id] })}
-                            className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${notifications[item.id] ? 'bg-[var(--success)]' : 'bg-[var(--surface)]'}`} // [P16-CONTINUE] added
+                            className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${notifications[item.id] ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
                             aria-label={notifications[item.id] ? 'Выключить' : 'Включить'}
                         >
-                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${notifications[item.id] ? 'translate-x-6' : ''}`} /> // [P16-CONTINUE] added
+                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${notifications[item.id] ? 'translate-x-6' : ''}`} />
                         </button>
                     </div>
                 );
@@ -795,98 +795,68 @@ function SettingsPage() {
 
     const renderSecurity = () => (
         <div className="space-y-6">
-            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
+            <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
                     <Lock size={18} className="text-[var(--success)]" /> Смена пароля
                 </h3>
                 <form onSubmit={handlePasswordChange} className="space-y-3">
                     {passwordError && (
-                        <div className="p-2.5 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/20 text-[var(--danger)] text-xs"> // [P16-CONTINUE] added
+                        <div className="p-2.5 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/20 text-[var(--danger)] text-xs">
                             {passwordError}
                         </div>
                     )}
                     {passwordSuccess && (
-                        <div className="p-2.5 rounded-lg bg-[var(--success)]/10 border border-[var(--success)]/20 text-[var(--success)] text-xs"> // [P16-CONTINUE] added
+                        <div className="p-2.5 rounded-lg bg-[var(--success)]/10 border border-[var(--success)]/20 text-[var(--success)] text-xs">
                             {passwordSuccess}
                         </div>
                     )}
 
-                    <div className="relative">
-                        <input
-                            type={showCurrentPassword ? 'text' : 'password'}
-                            value={passwordForm.currentPassword}
-                            onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                            placeholder="Текущий пароль"
-                            className="w-full pl-4 pr-12 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] placeholder-[var(--text-muted)]" // [P16-CONTINUE] added
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowCurrentPassword(v => !v)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                            aria-label={showCurrentPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                        >
-                            {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                    </div>
-
-                    <div className="relative">
-                        <input
-                            type={showNewPassword ? 'text' : 'password'}
-                            value={passwordForm.newPassword}
-                            onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                            placeholder="Новый пароль"
-                            className="w-full pl-4 pr-12 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] placeholder-[var(--text-muted)]" // [P16-CONTINUE] added
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowNewPassword(v => !v)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                            aria-label={showNewPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                        >
-                            {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                    </div>
-
-                    <div className="relative">
-                        <input
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            value={passwordForm.confirmPassword}
-                            onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                            placeholder="Подтвердите пароль"
-                            className="w-full pl-4 pr-12 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] placeholder-[var(--text-muted)]" // [P16-CONTINUE] added
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(v => !v)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                            aria-label={showConfirmPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                        >
-                            {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                    </div>
+                    {[
+                        { key: 'currentPassword', value: passwordForm.currentPassword, setter: setPasswordForm, show: showCurrentPassword, toggle: setShowCurrentPassword, placeholder: t('settings.currentPassword') },
+                        { key: 'newPassword', value: passwordForm.newPassword, setter: setPasswordForm, show: showNewPassword, toggle: setShowNewPassword, placeholder: t('settings.newPassword') },
+                        { key: 'confirmPassword', value: passwordForm.confirmPassword, setter: setPasswordForm, show: showConfirmPassword, toggle: setShowConfirmPassword, placeholder: t('settings.confirmPassword') },
+                    ].map(field => (
+                        <div key={field.key} className="relative">
+                            <input
+                                type={field.show ? 'text' : 'password'}
+                                value={field.value}
+                                onChange={e => field.setter(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                placeholder={field.placeholder}
+                                className={inputClass + ' pr-12'}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => field.toggle(v => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                                aria-label={field.show ? 'Скрыть пароль' : 'Показать пароль'}
+                            >
+                                {field.show ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
+                    ))}
 
                     <button
                         type="submit"
                         disabled={passwordLoading}
-                        className="magnetic-btn w-full py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] disabled:opacity-50 text-[var(--text-inverse)] font-medium rounded-lg transition-all" // [P16-CONTINUE] added
+                        className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
                     >
-                        {passwordLoading ? 'Сохранение...' : 'Обновить пароль'}
+                        {passwordLoading ? 'Сохранение...' : t('settings.updatePassword')}
                     </button>
                 </form>
             </div>
 
-            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
+            <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
                     <Mail size={18} className="text-[var(--success)]" /> Смена email
                 </h3>
                 <form onSubmit={handleEmailChange} className="space-y-3">
                     {emailError && (
-                        <div className="p-2.5 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/20 text-[var(--danger)] text-xs"> // [P16-CONTINUE] added
+                        <div className="p-2.5 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/20 text-[var(--danger)] text-xs">
                             {emailError}
                         </div>
                     )}
                     {emailSuccess && (
-                        <div className="p-2.5 rounded-lg bg-[var(--success)]/10 border border-[var(--success)]/20 text-[var(--success)] text-xs"> // [P16-CONTINUE] added
+                        <div className="p-2.5 rounded-lg bg-[var(--success)]/10 border border-[var(--success)]/20 text-[var(--success)] text-xs">
                             {emailSuccess}
                         </div>
                     )}
@@ -894,30 +864,25 @@ function SettingsPage() {
                     <div className="relative">
                         <input
                             type="email"
-                            id="settings-new-email"
                             value={emailForm.newEmail}
                             onChange={e => setEmailForm({ ...emailForm, newEmail: e.target.value })}
-                            placeholder=" "
-                            className="peer w-full px-4 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] transition-colors" // [P16-CONTINUE] added
+                            placeholder={t('settings.email')}
+                            className={inputClass}
                         />
-                        <label htmlFor="settings-new-email" className="absolute left-4 top-2.5 text-sm text-[var(--text-muted)] transition-all peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-[var(--primary)] peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">Новый email</label> // [P16-CONTINUE] added
                     </div>
 
                     <div className="relative">
                         <input
                             type={showEmailPassword ? 'text' : 'password'}
-                            id="settings-email-password"
                             value={emailForm.currentPassword}
                             onChange={e => setEmailForm({ ...emailForm, currentPassword: e.target.value })}
-                            placeholder=" "
-                            className="peer w-full pl-4 pr-12 py-2.5 glass rounded-lg border border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--text)] transition-colors" // [P16-CONTINUE] added
+                            placeholder={t('settings.currentPassword')}
+                            className={inputClass + ' pr-12'}
                         />
-                        <label htmlFor="settings-email-password" className="absolute left-4 top-2.5 text-sm text-[var(--text-muted)] transition-all peer-focus:-translate-y-6 peer-focus:text-xs peer-focus:text-[var(--primary)] peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:text-xs pointer-events-none">Текущий пароль</label> // [P16-CONTINUE] added
                         <button
                             type="button"
                             onClick={() => setShowEmailPassword(v => !v)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                            aria-label={showEmailPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                         >
                             {showEmailPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
@@ -926,30 +891,30 @@ function SettingsPage() {
                     <button
                         type="submit"
                         disabled={emailLoading}
-                        className="magnetic-btn w-full py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] disabled:opacity-50 text-[var(--text-inverse)] font-medium rounded-lg transition-all" // [P16-CONTINUE] added
+                        className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
                     >
-                        {emailLoading ? 'Сохранение...' : 'Сохранить'}
+                        {emailLoading ? 'Сохранение...' : t('settings.saveChanges')}
                     </button>
                 </form>
             </div>
 
-            <div className="glass-card p-6 rounded-[var(--radius-xl)] hover:scale-[1.02] transition-all duration-300"> // [P16-CONTINUE] added
+            <div className="luxury-card glass p-6 mb-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg glass flex items-center justify-center"> // [P16-CONTINUE] added
+                        <div className="w-10 h-10 rounded-lg glass flex items-center justify-center">
                             <Shield size={18} className="text-[var(--success)]" />
                         </div>
                         <div>
-                            <div className="font-medium text-[var(--text)]">Двухфакторная аутентификация</div>
+                            <div className="font-medium text-[var(--text)]">{t('settings.twoFactor')}</div>
                             <div className="text-sm text-[var(--text-muted)]">Дополнительная защита аккаунта</div>
                         </div>
                     </div>
                     <button
                         onClick={() => setTwoFA(!twoFA)}
-                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${twoFA ? 'bg-[var(--success)]' : 'bg-[var(--surface)]'}`} // [P16-CONTINUE] added
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${twoFA ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
                         aria-label={twoFA ? 'Выключить 2FA' : 'Включить 2FA'}
                     >
-                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${twoFA ? 'translate-x-6' : ''}`} /> // [P16-CONTINUE] added
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${twoFA ? 'translate-x-6' : ''}`} />
                     </button>
                 </div>
             </div>
@@ -963,45 +928,46 @@ function SettingsPage() {
     };
 
     const renderAppearance = () => (
-        <div className="glass-card p-6 rounded-[var(--radius-xl)] space-y-6"> // [P16-CONTINUE] added
+        <div className="luxury-card glass p-6 mb-4 space-y-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
-                <Palette size={18} className="text-[var(--success)]" /> Тема оформления
+                <Palette size={18} className="text-[var(--success)]" /> {t('settings.theme')}
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-                <button
-                    onClick={() => handleThemeChange('dark')}
-                    className={`p-6 rounded-xl border-2 transition-all ${theme === 'dark' ? 'border-[var(--primary)] glass' : 'border-[var(--border)] hover:border-[var(--primary)]/30'}`} // [P16-CONTINUE] added
-                >
-                    <Moon size={32} className="mx-auto mb-3 text-[var(--text-muted)]" />
-                    <div className="font-medium text-[var(--text)]">Тёмная</div>
-                    <div className="text-sm text-[var(--text-muted)]">Классический тёмный режим</div>
-                </button>
-                <button
-                    onClick={() => handleThemeChange('light')}
-                    className={`p-6 rounded-xl border-2 transition-all ${theme === 'light' ? 'border-[var(--primary)] glass' : 'border-[var(--border)] hover:border-[var(--primary)]/30'}`} // [P16-CONTINUE] added
-                >
-                    <Sun size={32} className="mx-auto mb-3 text-yellow-400" />
-                    <div className="font-medium text-[var(--text)]">Светлая</div>
-                    <div className="text-sm text-[var(--text-muted)]">Светлый режим для дневного времени</div>
-                </button>
+            <div className="grid grid-cols-3 gap-4">
+                {[
+                    { id: 'dark', label: t('settings.dark'), icon: Moon },
+                    { id: 'light', label: t('settings.light'), icon: Sun },
+                    { id: 'system', label: t('settings.system'), icon: Monitor },
+                ].map(opt => {
+                    const Icon = opt.icon;
+                    return (
+                        <button
+                            key={opt.id}
+                            onClick={() => handleThemeChange(opt.id)}
+                            className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${theme === opt.id ? 'border-[var(--primary)] bg-[var(--primary-soft)]' : 'border-[var(--border)] hover:border-[var(--primary)]/30'}`}
+                        >
+                            <Icon size={24} className={opt.id === 'light' ? 'text-yellow-400' : 'text-[var(--text-muted)]'} />
+                            <span className="text-sm font-medium text-[var(--text)]">{opt.label}</span>
+                        </button>
+                    );
+                })}
             </div>
 
-            <div className="border-t border-[var(--border)] pt-6"> // [P16-CONTINUE] added
+            <div className="border-t border-[var(--border)] pt-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
                     {soundEnabled ? <Volume2 size={18} className="text-[var(--success)]" /> : <VolumeX size={18} className="text-[var(--text-muted)]" />}
                     Звуковое сопровождение
                 </h3>
-                <div className="flex items-center justify-between p-4 glass rounded-xl hover:scale-[1.01] transition-all duration-300"> // [P16-CONTINUE] added
+                <div className="flex items-center justify-between p-4 glass rounded-xl transition-all">
                     <div>
                         <div className="font-medium text-[var(--text)]">Звуки OMEGA</div>
                         <div className="text-sm text-[var(--text-muted)]">Активация, уведомления, сообщения</div>
                     </div>
                     <button
                         onClick={handleSoundToggle}
-                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${soundEnabled ? 'bg-[var(--success)]' : 'bg-[var(--surface)]'}`} // [P16-CONTINUE] added
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${soundEnabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
                         aria-label={soundEnabled ? 'Выключить звуки' : 'Включить звуки'}
                     >
-                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${soundEnabled ? 'translate-x-6' : ''}`} /> // [P16-CONTINUE] added
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${soundEnabled ? 'translate-x-6' : ''}`} />
                     </button>
                 </div>
             </div>
@@ -1021,30 +987,29 @@ function SettingsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] p-4 md:p-6"> // [P16-CONTINUE] added
+        <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] p-4 md:p-6">
             <div className="mb-6">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center"> // [P16-CONTINUE] added
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center">
                         <Palette size={20} className="text-[var(--text-inverse)]" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-[var(--text)]">Настройки</h1>
-                        <p className="text-[var(--text-muted)] text-sm">Управляй профилем, подпиской и интеграциями</p>
+                        <h1 className="text-2xl font-bold text-[var(--text)]">{t('settings.title')}</h1>
+                        <p className="text-[var(--text-muted)] text-sm">{t('settings.subtitle')}</p>
                     </div>
                 </div>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6">
-                {/* Sidebar Tabs */}
                 <div className="lg:w-64 flex-shrink-0">
-                    <div className="glass-card rounded-[var(--radius-xl)] overflow-hidden"> // [P16-CONTINUE] added
+                    <div className="glass rounded-2xl p-2">
                         {tabs.map(tab => {
                             const Icon = tab.icon;
                             return (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:bg-[var(--surface)] ${activeTab === tab.id ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-l-[3px] border-[var(--primary)]' : 'text-[var(--text-muted)] border-l-[3px] border-transparent'}`} // [P16-CONTINUE] added
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all rounded-xl mb-1 ${activeTab === tab.id ? 'bg-[var(--primary-soft)] text-[var(--primary)] border-l-[3px] border-[var(--primary)]' : 'text-[var(--text-muted)] border-l-[3px] border-transparent hover:bg-[var(--surface)]'}`}
                                 >
                                     <Icon size={18} />
                                     <span className="font-medium">{tab.label}</span>
@@ -1052,18 +1017,17 @@ function SettingsPage() {
                                 </button>
                             );
                         })}
-                        <div className="border-t border-[var(--border)] mt-2 pt-2"> // [P16-CONTINUE] added
+                        <div className="border-t border-[var(--border)] mt-2 pt-2">
                             <button
                                 onClick={logout}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-all" // [P16-CONTINUE] added
+                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-all rounded-xl"
                             >
-                                <LogOut size={18} /> Выйти
+                                <LogOut size={18} /> {t('settings.logout')}
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Content */}
                 <div className="flex-1 min-w-0">
                     {renderContent()}
                 </div>

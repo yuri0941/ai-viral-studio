@@ -279,14 +279,13 @@ function App() {
                 <Route path="/roadmap" element={<PublicRoadmap />} />
                 <Route path="/onboarding" element={<OnboardingWizard />} />
 
-                <Route path="*" element={
-                    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white">
-                        <div className="text-center px-4">
-                            <h1 className="text-5xl sm:text-6xl font-bold text-[#00ff41] mb-4">404</h1>
-                            <p className="text-gray-400 text-sm sm:text-base">Страница не найдена</p>
-                        </div>
-                    </div>
+                <Route path="/business" element={
+                    <ProtectedRoute allowedRoles={['business', 'owner', 'admin']}>
+                        <Navigate to="/dashboard" replace />
+                    </ProtectedRoute>
                 } />
+
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             </Suspense>
 

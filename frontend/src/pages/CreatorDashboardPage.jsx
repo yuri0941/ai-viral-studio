@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import {
     LayoutDashboard, Video, Eye, Users, Heart, DollarSign,
@@ -119,12 +120,13 @@ function PlatformIcon({ platform }) {
 }
 
 function StatusBadge({ status }) {
+    const { t } = useTranslation()
     const styles = {
         viral: 'bg-[var(--success)]/15 text-[var(--success)] border-[var(--success)]/20',
         trending: 'bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/20',
         stable: 'bg-[var(--surface)] text-[var(--text-muted)] border-[var(--border-strong)]'
     }
-    const labels = { viral: 'Вирусный', trending: 'В тренде', stable: 'Стабильно' }
+    const labels = { viral: t('creator.statusViral', 'Вирусный'), trending: t('creator.statusTrending', 'В тренде'), stable: t('creator.statusStable', 'Стабильно') }
     return (
         <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${styles[status] || styles.stable}`}>
             {status === 'viral' && <Flame size={10} className="animate-pulse" />}
@@ -133,12 +135,13 @@ function StatusBadge({ status }) {
     )
 }
 
-function StatCard({ label, value, sub, icon: Icon, iconBg = 'bg-[var(--primary-soft)]', iconColor = 'text-[var(--primary)]' }) {
+// [P16-FIX] added: glass bento stat card with gradient icon
+function StatCard({ label, value, sub, icon: Icon, gradient = 'from-[var(--primary)] to-[var(--accent)]' }) {
     return (
-        <div className="glass-card p-5 hover:-translate-y-0.5 transition-transform">
+        <div className="glass p-5 hover:-translate-y-0.5 transition-transform">
             <div className="flex items-center justify-between mb-3">
-                <div className={`p-2.5 rounded-xl ${iconBg}`}>
-                    <Icon size={20} className={iconColor} />
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}>
+                    <Icon size={20} className="text-white" />
                 </div>
                 {sub && <span className="text-xs text-[var(--success)]">{sub}</span>}
             </div>
@@ -148,16 +151,17 @@ function StatCard({ label, value, sub, icon: Icon, iconBg = 'bg-[var(--primary-s
     )
 }
 
+// [P16-FIX] added: gradient quick action button
 function QuickAction({ icon: Icon, label, color, onClick }) {
     return (
         <button
             onClick={onClick}
-            className="group relative overflow-hidden rounded-2xl p-5 bg-[var(--bg-secondary)] border border-[var(--border)] text-left hover:border-[var(--border-strong)] transition-all hover:-translate-y-0.5"
+            className="group relative overflow-hidden rounded-2xl p-5 glass text-left hover:border-[var(--border-strong)] transition-all hover:-translate-y-0.5"
         >
             <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-10 group-hover:opacity-15 transition-opacity`} />
             <div className="relative">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${color} mb-3`}>
-                    <Icon size={20} className="text-[var(--text)]" />
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${color} mb-3 shadow-lg`}>
+                    <Icon size={20} className="text-white" />
                 </div>
                 <p className="text-[var(--text)] font-medium text-sm">{label}</p>
             </div>
@@ -166,6 +170,7 @@ function QuickAction({ icon: Icon, label, color, onClick }) {
 }
 
 function CreatorDashboardPage() {
+    const { t } = useTranslation()
     const { user } = useAuth()
     const [period, setPeriod] = useState('week')
     const [stats, setStats] = useState({
@@ -190,10 +195,10 @@ function CreatorDashboardPage() {
     const chartData = useMemo(() => period === 'week' ? VIRALITY_WEEK : VIRALITY_MONTH, [period])
 
     const incomeSources = [
-        { label: 'AdSense / Creator Fund', value: stats.income * 0.45, color: 'bg-[var(--success)]' },
-        { label: 'Спонсорские интеграции', value: stats.income * 0.35, color: 'bg-[var(--accent)]' },
-        { label: 'Свои продукты', value: stats.income * 0.15, color: 'bg-[var(--primary)]' },
-        { label: 'Донаты / Подписки', value: stats.income * 0.05, color: 'bg-[var(--accent-warm)]' },
+        { label: t('creator.sourceAds', 'AdSense / Creator Fund'), value: stats.income * 0.45, color: 'bg-[var(--success)]' },
+        { label: t('creator.sourceSponsors', 'Спонсорские интеграции'), value: stats.income * 0.35, color: 'bg-[var(--accent)]' },
+        { label: t('creator.sourceProducts', 'Свои продукты'), value: stats.income * 0.15, color: 'bg-[var(--primary)]' },
+        { label: t('creator.sourceDonations', 'Донаты / Подписки'), value: stats.income * 0.05, color: 'bg-[var(--accent-warm)]' },
     ]
 
     return (
@@ -202,74 +207,83 @@ function CreatorDashboardPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-[var(--text)]">
-                        Привет, {user?.name || 'Creator'}! 👋
+                        {t('creator.greeting', { name: user?.name || 'Creator' })}
                     </h1>
                     <p className="text-[var(--text-muted)] text-sm mt-1">
-                        Твой личный кабинет создателя контента
+                        {t('creator.subtitle')}
                     </p>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
                     <Clock size={14} />
-                    <span>Последнее обновление: {new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span>{t('creator.lastUpdated', { time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) })}</span>
                 </div>
             </div>
 
-            {/* [P16-CONTINUE] added: content-first hero — next post preview */}
+            {/* [P16-FIX] added: content-first hero — next post preview with glass card */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 glass-card-strong p-6 md:p-8 relative overflow-hidden group">
+                <div className="lg:col-span-2 glass p-6 md:p-8 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--primary)]/10 rounded-full blur-3xl group-hover:bg-[var(--accent)]/10 transition-colors" />
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-3">
-                            <span className="px-2.5 py-1 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] text-[10px] font-medium">Следующий пост</span>
-                            <span className="text-[10px] text-[var(--text-muted)]">Рекомендуемое время: 18:00</span>
+                            <span className="px-2.5 py-1 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] text-[10px] font-medium">{t('creator.nextPost')}</span>
+                            <span className="text-[10px] text-[var(--text-muted)]">{t('creator.recommendedTime', { time: '18:00' })}</span>
                         </div>
                         <h2 className="text-2xl md:text-3xl font-serif font-semibold text-[var(--text)] mb-3">3 мифа о вашей нише, которые убивают рост</h2>
                         <p className="text-sm text-[var(--text-muted)] max-w-xl mb-6">
                             OMEGA подготовила черновик с хуком, структурой и CTA. Проверьте, отредактируйте и опубликуйте в один клик.
                         </p>
                         <div className="flex flex-wrap items-center gap-3">
-                            <button onClick={() => alert('Публикация...')} className="magnetic-btn inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[var(--text)] text-[var(--text-inverse)] font-medium hover:scale-105 transition-transform">
-                                Опубликовать
+                            <button onClick={() => alert('Публикация...')} className="magnetic-btn inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity">
+                                {t('creator.publish')}
                             </button>
-                            <button onClick={() => alert('Редактирование...')} className="inline-flex items-center gap-2 px-5 py-3 rounded-full glass-card text-[var(--text)] text-sm hover:bg-[var(--surface)] transition-colors">
-                                Редактировать
+                            <button onClick={() => alert('Редактирование...')} className="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-[var(--text)] text-sm hover:bg-[var(--surface)] transition-colors">
+                                {t('creator.edit')}
                             </button>
                         </div>
                     </div>
                 </div>
 
                 {/* AI Nudge */}
-                <div className="glass-card p-5 flex flex-col justify-between">
+                <div className="glass p-5 flex flex-col justify-between">
                     <div>
                         <div className="flex items-center gap-2 mb-3">
-                            <div className="w-8 h-8 rounded-xl bg-[var(--accent-warm)]/10 flex items-center justify-center">
-                                <Lightbulb className="w-4 h-4 text-[var(--accent-warm)]" />
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                                <Lightbulb className="w-4 h-4 text-white" />
                             </div>
-                            <span className="text-sm font-medium text-[var(--text)]">💡 OMEGA советует</span>
+                            <span className="text-sm font-medium text-[var(--text)]">{t('creator.omegaTip')}</span>
                         </div>
-                        <p className="text-sm text-[var(--text-muted)] mb-4">Опубликуйте в 18:00 — активность аудитории на 24% выше.</p>
+                        <p className="text-sm text-[var(--text-muted)] mb-4">{t('creator.omegaTipText', 'Опубликуйте в 18:00 — активность аудитории на 24% выше.')}</p>
                     </div>
-                    <button onClick={() => alert('Время применено')} className="w-full py-2.5 rounded-xl bg-[var(--primary)] text-[var(--text-inverse)] text-sm font-medium hover:opacity-90 transition-opacity">
-                        Применить
+                    <button onClick={() => alert('Время применено')} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity">
+                        {t('creator.apply')}
                     </button>
                 </div>
             </div>
 
-            {/* [P16-CONTINUE] added: content pipeline horizontal scroll */}
+            {/* [P16-FIX] added: bento stats grid with glass cards and gradient icons */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <StatCard label={t('creator.posts')} value={stats.posts} sub={t('creator.subPosts', '+3 за неделю')} icon={Video} gradient="from-emerald-500 to-teal-600" />
+                <StatCard label={t('creator.views')} value={formatNumber(stats.views)} sub="+18%" icon={Eye} gradient="from-sky-500 to-blue-600" />
+                <StatCard label={t('creator.followers')} value={formatNumber(stats.followers)} sub="+156" icon={Users} gradient="from-violet-500 to-fuchsia-600" />
+                <StatCard label={t('creator.engagement')} value={`${stats.engagement}%`} sub="+0.8%" icon={Heart} gradient="from-amber-500 to-orange-600" />
+                <StatCard label={t('creator.income')} value={`$${stats.income}`} sub={t('creator.perDay', { amount: '$42' })} icon={DollarSign} gradient="from-emerald-500 to-green-600" />
+            </div>
+
+            {/* [P16-FIX] added: content pipeline horizontal scroll with glass cards */}
             <div>
                 <div className="flex items-center justify-between mb-3">
                     <h2 className="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
                         <Calendar size={18} className="text-[var(--primary)]" />
-                        Content Pipeline
+                        {t('creator.contentPipeline')}
                     </h2>
-                    <button className="text-xs text-[var(--primary)] hover:underline">Все посты</button>
+                    <button className="text-xs text-[var(--primary)] hover:underline">{t('creator.allPosts')}</button>
                 </div>
                 <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
-                    {PORTFOLIO_WORKS.map((work, i) => (
-                        <div key={work.id} className="min-w-[220px] md:min-w-[260px] glass-card p-3 hover:border-[var(--primary)]/30 transition-colors cursor-pointer group">
+                    {PORTFOLIO_WORKS.map((work) => (
+                        <div key={work.id} className="min-w-[220px] md:min-w-[260px] glass p-3 hover:border-[var(--primary)]/30 transition-colors cursor-pointer group">
                             <div className="w-full h-32 rounded-xl bg-[var(--surface)] overflow-hidden mb-3 relative">
                                 {work.thumbnail ? (
-                                    <img src={work.thumbnail} alt={work.title} className="w-full h-full object-cover" />
+                                    <img src={work.thumbnail} alt={work.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
                                         <Play size={24} />
@@ -290,22 +304,22 @@ function CreatorDashboardPage() {
                     ))}
                     <button className="min-w-[160px] h-[180px] rounded-2xl border border-dashed border-[var(--border-strong)] flex flex-col items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--primary)]/30 transition-colors">
                         <Plus size={24} />
-                        <span className="text-sm">Добавить</span>
+                        <span className="text-sm">{t('creator.add')}</span>
                     </button>
                 </div>
             </div>
 
             {/* Achievement Widget */}
-            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+            <div className="glass p-5">
                 <div className="flex items-center gap-2 mb-4">
                     <Trophy className="w-5 h-5 text-[var(--accent-warm)]" />
-                    <h3 className="font-semibold text-[var(--text)]">Достижения</h3>
+                    <h3 className="font-semibold text-[var(--text)]">{t('creator.achievements')}</h3>
                 </div>
                 <div className="flex flex-wrap gap-3">
                     {[
-                        { id: 'first_step', label: 'First Step', icon: Award, color: 'from-[var(--success)] to-[var(--success)]/70', desc: 'Завершён онбординг' },
-                        { id: 'consistency', label: 'Consistency', icon: Flame, color: 'from-orange-500 to-red-500', desc: '7 дней публикаций' },
-                        { id: 'viral_hit', label: 'Viral Hit', icon: TrendingUp, color: 'from-purple-500 to-pink-500', desc: '10K просмотров' },
+                        { id: 'first_step', label: 'First Step', icon: Award, color: 'from-emerald-500 to-emerald-700', desc: t('creator.achOnboarding', 'Завершён онбординг') },
+                        { id: 'consistency', label: 'Consistency', icon: Flame, color: 'from-orange-500 to-red-500', desc: t('creator.achConsistency', '7 дней публикаций') },
+                        { id: 'viral_hit', label: 'Viral Hit', icon: TrendingUp, color: 'from-purple-500 to-pink-500', desc: t('creator.achViral', '10K просмотров') },
                     ].map(a => {
                         const Icon = a.icon
                         const unlocked = a.id !== 'viral_hit'
@@ -314,20 +328,17 @@ function CreatorDashboardPage() {
                                 key={a.id}
                                 className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:scale-105 ${
                                     unlocked
-                                        ? 'bg-gradient-to-br from-[var(--surface)] to-[var(--bg-secondary)] border-[var(--border-strong)]'
+                                        ? 'bg-[var(--surface)] border-[var(--border-strong)]'
                                         : 'bg-[var(--surface)] border-[var(--border)] opacity-50'
                                 }`}
                             >
                                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center shadow-lg`}>
-                                    <Icon className="w-5 h-5 text-[var(--text)]" />
+                                    <Icon className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
                                     <div className="text-sm font-semibold text-[var(--text)]">{a.label}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">{a.desc}</div>
                                 </div>
-                                {unlocked && (
-                                    <div className="absolute inset-0 rounded-xl border border-[var(--border-strong)] pointer-events-none group-hover:border-[var(--primary)]/30 transition-colors" />
-                                )}
                             </div>
                         )
                     })}
@@ -335,53 +346,44 @@ function CreatorDashboardPage() {
             </div>
 
             {/* Streak Counter */}
-            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+            <div className="glass p-5">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Flame className="w-5 h-5 text-orange-400" />
-                        <h3 className="font-semibold text-[var(--text)]">🔥 Вы публикуете 7 дней подряд!</h3>
+                        <h3 className="font-semibold text-[var(--text)]">{t('creator.streak', { days: 7 })}</h3>
                     </div>
-                    <span className="text-xs text-[var(--success)] font-medium">7 / 7</span>
+                    <span className="text-xs text-[var(--success)] font-medium">{t('creator.streakProgress', { current: 7, total: 7 })}</span>
                 </div>
                 <div className="flex gap-1 mb-3">
                     {Array.from({ length: 7 }).map((_, i) => (
                         <div key={i} className="h-2 flex-1 rounded-full bg-[var(--success)]" />
                     ))}
                 </div>
-                <p className="text-xs text-[var(--text-muted)]">Так держать! Завтра откроется бейдж Consistency.</p>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <StatCard label="Постов" value={stats.posts} sub="+3 за неделю" icon={Video} iconBg="bg-[var(--success)]/10" iconColor="text-[var(--success)]" />
-                <StatCard label="Просмотров" value={formatNumber(stats.views)} sub="+18%" icon={Eye} iconBg="bg-[var(--accent)]/10" iconColor="text-[var(--accent)]" />
-                <StatCard label="Подписчиков" value={formatNumber(stats.followers)} sub="+156" icon={Users} iconBg="bg-[var(--primary)]/10" iconColor="text-[var(--primary)]" />
-                <StatCard label="Вовлечённость" value={`${stats.engagement}%`} sub="+0.8%" icon={Heart} iconBg="bg-[var(--accent-warm)]/10" iconColor="text-[var(--accent-warm)]" />
-                <StatCard label="Доход ( est. )" value={`$${stats.income}`} sub="~$42/день" icon={DollarSign} iconBg="bg-[var(--success)]/10" iconColor="text-[var(--success)]" />
+                <p className="text-xs text-[var(--text-muted)]">{t('creator.streakMotivation')}</p>
             </div>
 
             {/* Quick Actions */}
             <div>
                 <h2 className="text-lg font-semibold text-[var(--text)] mb-3 flex items-center gap-2">
                     <LayoutDashboard size={18} className="text-[var(--success)]" />
-                    Быстрые действия
+                    {t('creator.quickActions')}
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <QuickAction icon={Plus} label="Создать пост" color="from-emerald-500 to-emerald-700" onClick={() => {}} />
-                    <QuickAction icon={Calendar} label="Запланировать" color="from-blue-500 to-blue-700" onClick={() => {}} />
-                    <QuickAction icon={BarChartIcon} label="Анализ конкурента" color="from-purple-500 to-purple-700" onClick={() => {}} />
-                    <QuickAction icon={Bot} label="AI Chat" color="from-amber-500 to-amber-700" onClick={() => {}} />
+                    <QuickAction icon={Plus} label={t('creator.createPost')} color="from-emerald-500 to-emerald-700" onClick={() => {}} />
+                    <QuickAction icon={Calendar} label={t('creator.schedule')} color="from-blue-500 to-blue-700" onClick={() => {}} />
+                    <QuickAction icon={BarChartIcon} label={t('creator.competitorAnalysis')} color="from-purple-500 to-pink-600" onClick={() => {}} />
+                    <QuickAction icon={Bot} label={t('creator.aiChat')} color="from-amber-500 to-orange-600" onClick={() => {}} />
                 </div>
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Virality chart */}
-                <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+                <div className="lg:col-span-2 glass p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
                             <TrendingUp size={18} className="text-[var(--success)]" />
-                            Вирусность
+                            {t('creator.virality')}
                         </h2>
                         <div className="flex items-center gap-1 bg-[var(--surface)] rounded-lg p-1">
                             {['week', 'month'].map(p => (
@@ -394,7 +396,7 @@ function CreatorDashboardPage() {
                                             : 'text-[var(--text-muted)] hover:text-[var(--text)]'
                                     }`}
                                 >
-                                    {p === 'week' ? 'Неделя' : 'Месяц'}
+                                    {p === 'week' ? t('creator.week') : t('creator.month')}
                                 </button>
                             ))}
                         </div>
@@ -422,10 +424,10 @@ function CreatorDashboardPage() {
                 </div>
 
                 {/* Platform distribution */}
-                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+                <div className="glass p-5">
                     <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <PieChart size={18} className="text-[var(--primary)]" />
-                        Распределение по площадкам
+                        {t('creator.platformDistribution')}
                     </h2>
                     <div className="h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -463,42 +465,40 @@ function CreatorDashboardPage() {
 
             {/* Portfolio + Monetization */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                {/* Portfolio */}
-                <div className="xl:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+                {/* [P16-FIX] added: masonry portfolio with hover-zoom */}
+                <div className="xl:col-span-2 glass p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
                             <Award size={18} className="text-[var(--accent-warm)]" />
-                            Портфолио работ
+                            {t('creator.portfolio')}
                         </h2>
                         <button className="text-xs text-[var(--success)] hover:text-[var(--success)]/80 flex items-center gap-1">
-                            Все работы <ChevronRight size={14} />
+                            {t('creator.allWorks')} <ChevronRight size={14} />
                         </button>
                     </div>
-                    <div className="space-y-3">
+                    <div className="columns-1 sm:columns-2 gap-4 space-y-4">
                         {PORTFOLIO_WORKS.map(work => (
-                            <div key={work.id} className="flex gap-4 p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors">
-                                <div className="w-24 h-16 rounded-lg bg-black/30 flex items-center justify-center shrink-0 overflow-hidden">
+                            <div key={work.id} className="break-inside-avoid luxury-card overflow-hidden group cursor-pointer hover:border-[var(--border-strong)] transition-colors">
+                                <div className="w-full h-40 bg-[var(--surface)] overflow-hidden relative">
                                     {work.thumbnail ? (
-                                        <img src={work.thumbnail} alt={work.title} className="w-full h-full object-cover" />
+                                        <img src={work.thumbnail} alt={work.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center text-[var(--text-muted)]">
-                                            <Play size={16} />
+                                        <div className="w-full h-full flex flex-col items-center justify-center text-[var(--text-muted)]">
+                                            <Play size={28} />
                                         </div>
                                     )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div>
-                                            <h3 className="text-sm font-medium text-[var(--text)] truncate">{work.title}</h3>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <PlatformIcon platform={work.platform} />
-                                                <span className="text-xs text-[var(--text-muted)] capitalize">{work.platform}</span>
-                                                <StatusBadge status={work.status} />
-                                            </div>
-                                        </div>
-                                        <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">{work.publishedAt}</span>
+                                    <div className="absolute top-2 right-2">
+                                        <StatusBadge status={work.status} />
                                     </div>
-                                    <div className="flex items-center gap-4 mt-2 text-xs text-[var(--text-muted)]">
+                                </div>
+                                <div className="p-4">
+                                    <h3 className="text-sm font-medium text-[var(--text)] truncate mb-1">{work.title}</h3>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <PlatformIcon platform={work.platform} />
+                                        <span className="text-xs text-[var(--text-muted)] capitalize">{work.platform}</span>
+                                        <span className="text-xs text-[var(--text-muted)]">{work.publishedAt}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
                                         <span className="flex items-center gap-1"><Eye size={12} /> {formatNumber(work.views)}</span>
                                         <span className="flex items-center gap-1"><Heart size={12} /> {formatNumber(work.likes)}</span>
                                         <span className="flex items-center gap-1"><MessageCircle size={12} /> {formatNumber(work.comments)}</span>
@@ -511,14 +511,14 @@ function CreatorDashboardPage() {
                 </div>
 
                 {/* Monetization */}
-                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+                <div className="glass p-5">
                     <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <DollarSign size={18} className="text-[var(--success)]" />
-                        Монетизация
+                        {t('creator.monetization')}
                     </h2>
                     <div className="mb-5">
                         <p className="text-3xl font-bold text-[var(--text)]">${stats.income}</p>
-                        <p className="text-sm text-[var(--text-muted)]">Приблизительный доход за 30 дней</p>
+                        <p className="text-sm text-[var(--text-muted)]">{t('creator.income30Days')}</p>
                     </div>
                     <div className="space-y-4">
                         {incomeSources.map(source => (
@@ -537,22 +537,20 @@ function CreatorDashboardPage() {
                         ))}
                     </div>
                     <div className="mt-5 p-3 rounded-xl bg-[var(--success)]/5 border border-[var(--success)]/10">
-                        <p className="text-xs text-[var(--success)]">
-                            💡 Совет: при росте до $2K/мес добавьте цифровой продукт — это увеличит маржу на 30-40%.
-                        </p>
+                        <p className="text-xs text-[var(--success)]">{t('creator.monetizationTip')}</p>
                     </div>
                 </div>
             </div>
 
             {/* Activity + AI Tips */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
-                    <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Последняя активность</h2>
+                <div className="glass p-5">
+                    <h2 className="text-lg font-semibold text-[var(--text)] mb-4">{t('creator.recentActivity')}</h2>
                     <div className="space-y-4">
                         {RECENT_ACTIVITY.map((item, i) => (
                             <div key={i} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
-                                <div className="w-8 h-8 rounded-lg bg-[var(--surface)] flex items-center justify-center shrink-0">
-                                    <item.icon size={14} className="text-[var(--success)]" />
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center shrink-0">
+                                    <item.icon size={14} className="text-white" />
                                 </div>
                                 <div>
                                     <p className="text-[var(--text)] text-sm">{item.text}</p>
@@ -563,10 +561,10 @@ function CreatorDashboardPage() {
                     </div>
                 </div>
 
-                <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-5">
+                <div className="glass p-5">
                     <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Sparkles size={18} className="text-[var(--accent-warm)]" />
-                        AI Рекомендации
+                        {t('creator.aiTips')}
                     </h2>
                     <div className="space-y-3">
                         {AI_TIPS.map((tip, i) => (

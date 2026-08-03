@@ -4,7 +4,7 @@ import { StatusBadge } from '../common/StatusBadge'
 import {
     Brain, Activity, Zap, RefreshCw, Trash2, Terminal,
     AlertTriangle, Server, Bot, Play, Pause, RotateCcw, FileText, Wifi, ToggleLeft, ToggleRight, KeyRound, Moon, Sparkles,
-    Settings, BarChart2, Cpu, X, MessageSquare
+    Settings, BarChart2, Cpu, X, MessageSquare, Plus, CheckCircle2, CheckCircle
 } from 'lucide-react'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
 import {
@@ -12,7 +12,8 @@ import {
     CartesianGrid, Legend
 } from 'recharts'
 import { formatDateTime } from '../../utils/helpers'
-import { jsPDF } from 'jspdf' // [P16-FIX] added for OMEGA report download
+import { jsPDF } from 'jspdf'
+import { useTranslation } from 'react-i18next'
 
 const PROVIDERS = [
     { id: 'groq', name: 'Groq', status: 'active' },
@@ -21,13 +22,18 @@ const PROVIDERS = [
 ]
 
 export function OMEGACoreTab({ data }) {
+    const { t } = useTranslation()
     const { agents, servers, systemLogs, aiAnalytics, showToast, clearOldLogs, setAgents } = data
     const logEndRef = useRef(null)
     const [testLoading, setTestLoading] = useState(null)
-    const [autopilotEnabled, setAutopilotEnabled] = useState(false)
-    const [autopilotLoading, setAutopilotLoading] = useState(false)
-    const [features, setFeatures] = useState({ autopilot: false, predictive: false, repurposing: false, voice: false })
+
+    // [P16-FIX] added: dedicated toggle states for OMEGA Core features
+    const [autopilotOn, setAutopilotOn] = useState(false)
+    const [predictiveOn, setPredictiveOn] = useState(false)
+    const [repurposingOn, setRepurposingOn] = useState(false)
+    const [voiceOn, setVoiceOn] = useState(false)
     const [featuresLoading, setFeaturesLoading] = useState(false)
+
     const [reflection, setReflection] = useState({ active: false, lessonCount: 0 })
     const [selectedAgent, setSelectedAgent] = useState(null)
     const [agentTab, setAgentTab] = useState('overview')
@@ -45,86 +51,49 @@ export function OMEGACoreTab({ data }) {
             .then(r => r.ok ? r.json() : null)
             .then(json => {
                 if (json?.data?.features) {
-                    setFeatures(json.data.features)
-                    setAutopilotEnabled(!!json.data.features.autopilot)
+                    const f = json.data.features
+                    setAutopilotOn(!!f.autopilot)
+                    setPredictiveOn(!!f.predictive)
+                    setRepurposingOn(!!f.repurposing)
+                    setVoiceOn(!!f.voice)
                 }
             })
             .catch(() => {})
     }, [])
 
     // [P16-FIX] added: individual OMEGA feature toggles with dedicated API endpoints
-    const callFeatureApi = async (key, value) => {
+    const toggleFeature = async (key, current, setter) => {
         setFeaturesLoading(true)
+        const next = !current
+        setter(next)
         try {
             let endpoint = '/api/owner/settings'
-            let method = 'PUT'
-            let body = JSON.stringify({ features: { ...features, [key]: value } })
-
+            let body = JSON.stringify({ features: { [key]: next } })
             if (key === 'autopilot') {
                 endpoint = '/api/omega/autopilot/toggle'
-                method = 'POST'
-                body = JSON.stringify({ enabled: value })
+                body = JSON.stringify({ enabled: next })
             } else if (key === 'predictive') {
                 endpoint = '/api/analytics/predictive/enable'
-                method = 'POST'
-                body = JSON.stringify({ enabled: value })
+                body = JSON.stringify({ enabled: next })
             } else if (key === 'repurposing') {
                 endpoint = '/api/omega/repurposing/enable'
-                method = 'POST'
-                body = JSON.stringify({ enabled: value })
+                body = JSON.stringify({ enabled: next })
             } else if (key === 'voice') {
                 endpoint = '/api/omega/voice/enable'
-                method = 'POST'
-                body = JSON.stringify({ enabled: value })
+                body = JSON.stringify({ enabled: next })
             }
-
             const res = await fetch(endpoint, {
-                method,
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body,
             })
             if (!res.ok) throw new Error()
-            showToast(`${key} ${value ? 'включён' : 'выключен'}`)
+            showToast(`${key} ${next ? 'включён' : 'выключен'}`)
         } catch {
             showToast('Ошибка обновления настройки', 'error')
         } finally {
             setFeaturesLoading(false)
         }
-    }
-
-    const updateFeature = async (key, value) => {
-        // generic fallback kept for compatibility
-        setFeaturesLoading(true)
-        try {
-            const res = await fetch('/api/owner/settings', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ features: { ...features, [key]: value } }),
-            })
-            const json = await res.json()
-            if (json?.data?.features) {
-                setFeatures(json.data.features)
-                if (key === 'autopilot') setAutopilotEnabled(!!json.data.features.autopilot)
-                showToast(`${key} ${value ? 'включён' : 'выключен'}`)
-            }
-        } catch {
-            showToast('Ошибка обновления настройки', 'error')
-        } finally {
-            setFeaturesLoading(false)
-        }
-    }
-
-    const toggleAutopilot = async () => {
-        const next = !autopilotEnabled
-        setAutopilotEnabled(next)
-        setFeatures(prev => ({ ...prev, autopilot: next }))
-        await callFeatureApi('autopilot', next)
-    }
-
-    const toggleFeature = (key) => async () => {
-        const next = !features[key]
-        setFeatures(prev => ({ ...prev, [key]: next }))
-        await callFeatureApi(key, next)
     }
 
     const activeAgents = agents.filter(a => a.status === 'active').length
@@ -180,7 +149,6 @@ export function OMEGACoreTab({ data }) {
         showToast('Логи старше 30 дней очищены')
     }, [clearOldLogs, showToast])
 
-    // [P16-FIX] added: deterministic fake metrics for each agent
     const getAgentMetrics = useCallback((agent) => {
         const seed = String(agent.id).split('').reduce((s, ch) => s + ch.charCodeAt(0), 0)
         const uptime = (99.5 + (seed % 50) / 100).toFixed(1)
@@ -217,25 +185,23 @@ export function OMEGACoreTab({ data }) {
     const [reportType, setReportType] = useState('status')
 
     const handleRecalcForecast = useCallback(async () => {
-        // [P16-FIX] added: call recalc endpoint then show completion toast
-        showToast('Прогноз обновляется...', 'info')
+        showToast(t('omega.forecastUpdating'), 'info')
         try {
             await fetch('/api/omega/predictions/recalculate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             })
-            showToast('Прогноз обновлён', 'success')
+            showToast(t('omega.forecastUpdated'), 'success')
         } catch {
-            showToast('Ошибка пересчёта прогноза', 'error')
+            showToast(t('omega.forecastError'), 'error')
         }
-    }, [showToast])
+    }, [showToast, t])
 
     const handleGenerateReport = useCallback(() => {
         setReportModalOpen(true)
     }, [])
 
     const handleDownloadReport = useCallback(() => {
-        // [P16-FIX] added: generate a simple PDF report using jsPDF
         setReportModalOpen(false)
         const doc = new jsPDF()
         const title = reportType === 'status' ? 'OMEGA Status Report' : reportType === 'financial' ? 'OMEGA Financial Report' : 'OMEGA Agents Report'
@@ -268,13 +234,16 @@ export function OMEGACoreTab({ data }) {
         }
     }, [showToast])
 
+    const toggleBtnClass = (on) => on
+        ? 'bg-green-500/20 border-green-500 text-green-400 rounded-xl px-4 py-2 border'
+        : 'glass text-[var(--text-muted)] rounded-xl px-4 py-2'
+
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <Brain size={20} className="text-purple-400" />
-                    <h2 className="text-lg font-semibold text-[var(--text)]">OMEGA Core</h2>
+                    <Brain size={20} className="text-[var(--primary)]" />
+                    <h2 className="text-lg font-semibold text-[var(--text)]">{t('omega.title')}</h2>
                     <StatusBadge status="active" label="ONLINE" pulse />
                     <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border ${reflection.active ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-gray-500/10 border-gray-500/20 text-gray-400'}`}>
                         <Sparkles size={12} />
@@ -283,86 +252,69 @@ export function OMEGACoreTab({ data }) {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <button
-                        onClick={toggleAutopilot}
+                        onClick={() => toggleFeature('autopilot', autopilotOn, setAutopilotOn)}
                         disabled={featuresLoading}
                         title="⚠️ OMEGA будет сама публиковать посты. Включайте только после проверки!"
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-colors ${
-                            autopilotEnabled
-                                ? 'bg-green-500/20 border-green-500 text-green-400 hover:bg-green-500/30'
-                                : 'bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10'
-                        }`}
+                        className={`flex items-center gap-2 transition-colors ${toggleBtnClass(autopilotOn)}`}
                     >
-                        {autopilotEnabled ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
-                        🤖 AutoPilot: {autopilotEnabled ? 'ON' : 'OFF'}
+                        {autopilotOn ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                        🤖 {t('omega.autopilot')}: {autopilotOn ? 'ON' : 'OFF'}
                     </button>
                     <button
-                        onClick={toggleFeature('predictive')}
+                        onClick={() => toggleFeature('predictive', predictiveOn, setPredictiveOn)}
                         disabled={featuresLoading}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-colors ${
-                            features.predictive
-                                ? 'bg-green-500/20 border-green-500 text-green-400 hover:bg-green-500/30'
-                                : 'bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10'
-                        }`}
+                        className={`flex items-center gap-2 transition-colors ${toggleBtnClass(predictiveOn)}`}
                     >
-                        {features.predictive ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
-                        🔮 Predictive
+                        {predictiveOn ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                        🔮 {t('omega.predictive')}
                     </button>
                     <button
-                        onClick={toggleFeature('repurposing')}
+                        onClick={() => toggleFeature('repurposing', repurposingOn, setRepurposingOn)}
                         disabled={featuresLoading}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-colors ${
-                            features.repurposing
-                                ? 'bg-green-500/20 border-green-500 text-green-400 hover:bg-green-500/30'
-                                : 'bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10'
-                        }`}
+                        className={`flex items-center gap-2 transition-colors ${toggleBtnClass(repurposingOn)}`}
                     >
-                        {features.repurposing ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
-                        ♻️ Repurposing
+                        {repurposingOn ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                        ♻️ {t('omega.repurposing')}
                     </button>
                     <button
-                        onClick={toggleFeature('voice')}
+                        onClick={() => toggleFeature('voice', voiceOn, setVoiceOn)}
                         disabled={featuresLoading}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-colors ${
-                            features.voice
-                                ? 'bg-green-500/20 border-green-500 text-green-400 hover:bg-green-500/30'
-                                : 'bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10'
-                        }`}
+                        className={`flex items-center gap-2 transition-colors ${toggleBtnClass(voiceOn)}`}
                     >
-                        {features.voice ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
-                        🎤 Voice
+                        {voiceOn ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                        🎤 {t('omega.voice')}
                     </button>
                     <button
                         onClick={handleRecalcForecast}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-400 hover:bg-purple-500/20 transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors"
                     >
-                        <RefreshCw size={14} /> Пересчитать прогноз
+                        <RefreshCw size={14} /> {t('omega.recalcForecast')}
                     </button>
                     <button
                         onClick={handleGenerateReport}
                         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors"
                     >
-                        <FileText size={14} /> Отчёт
+                        <FileText size={14} /> {t('omega.report')}
                     </button>
                 </div>
-                {autopilotEnabled && (
-                    <div className="text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
-                        ⚠️ AutoPilot активен. OMEGA будет сама публиковать посты по расписанию. Убедитесь, что подключены соцсети и контент проверен.
-                    </div>
-                )}
             </div>
 
-            {/* [P16-CONTINUE] added: luxury horizontal alert cards with left-border and auto-dismiss progress */}
+            {autopilotOn && (
+                <div className="text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                    ⚠️ AutoPilot активен. OMEGA будет сама публиковать посты по расписанию. Убедитесь, что подключены соцсети и контент проверен.
+                </div>
+            )}
+
             {alerts.length > 0 && (
                 <div className="space-y-3">
                     {alerts.map(alert => {
                         const isError = alert.severity === 'high'
                         const isWarning = alert.severity === 'medium'
-                        const isServer = alert.type === 'server' && alert.severity !== 'high'
                         const accent = isError ? 'red-500' : isWarning ? 'amber-500' : 'blue-500'
                         return (
                             <div key={alert.id} className={`relative overflow-hidden rounded-2xl border-l-[3px] bg-${accent.split('-')[0]}-500/5 border-${accent} p-4`}>
                                 {isError && (
-                                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-${accent}">
+                                    <div className="absolute top-0 left-0 right-0 h-[2px]">
                                         <div className="h-full bg-${accent} opacity-60 animate-shrink-x" style={{ animation: 'shrinkX 10s linear forwards' }} />
                                     </div>
                                 )}
@@ -372,7 +324,7 @@ export function OMEGACoreTab({ data }) {
                                         <div className="text-sm font-medium text-[var(--text)] capitalize">{alert.type}</div>
                                         <div className="text-xs text-[var(--text-muted)] mt-0.5">{alert.message}</div>
                                     </div>
-                                    <button className="text-xs px-2.5 py-1.5 rounded-lg bg-white/5 text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors">
+                                    <button className="text-xs px-2.5 py-1.5 rounded-lg glass text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors">
                                         Исправить
                                     </button>
                                 </div>
@@ -382,7 +334,6 @@ export function OMEGACoreTab({ data }) {
                 </div>
             )}
 
-            {/* [P16-CONTINUE] added: luxury hero metrics with serif numbers, deltas and sparklines */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 {[
                     { title: 'Агентов активно', value: activeAgents, delta: '+12%', deltaColor: 'var(--success)', spark: [30,45,40,60,55,70,activeAgents*10] },
@@ -390,7 +341,7 @@ export function OMEGACoreTab({ data }) {
                     { title: 'Средний CPU', value: avgCpu, suffix: '%', delta: avgCpu > 80 ? '▲ Высокая нагрузка' : '▲ Стабильно', deltaColor: avgCpu > 80 ? 'var(--danger)' : 'var(--success)', spark: [40,45,50,48,55,60,avgCpu] },
                     { title: 'Серверов оффлайн', value: offlineServers, delta: offlineServers > 0 ? '▲ Тревога' : '▲ Все онлайн', deltaColor: offlineServers > 0 ? 'var(--danger)' : 'var(--success)', spark: [2,1,1,0,0,0,offlineServers*2] },
                 ].map((metric, i) => (
-                    <div key={i} className="glass-card p-5 transition-all hover:scale-[1.02]">
+                    <div key={i} className="luxury-card glass p-5">
                         <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">{metric.title}</div>
                         <div className="text-5xl font-serif font-medium text-[var(--text)] mb-1">{metric.value}{metric.suffix}</div>
                         <div className="text-xs mb-3" style={{ color: metric.deltaColor }}>{metric.delta}</div>
@@ -404,9 +355,9 @@ export function OMEGACoreTab({ data }) {
                         </svg>
                     </div>
                 ))}
-                <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-[var(--primary)]/20 to-[var(--accent)]/10 text-[var(--primary)] border-[var(--primary)]/20 p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-[var(--primary)]/10 group">
+                <div className="luxury-card glass p-5 relative overflow-hidden bg-gradient-to-br from-[var(--primary)]/20 to-[var(--accent)]/10 text-[var(--primary)] border-[var(--primary)]/20">
                     <div className="flex items-start justify-between mb-3">
-                        <div className="p-2.5 rounded-xl bg-white/5 backdrop-blur-sm">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
                             <Moon size={20} />
                         </div>
                         <div className="flex items-center gap-1.5">
@@ -423,25 +374,24 @@ export function OMEGACoreTab({ data }) {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* [P16-FIX] added: detailed AI agent cards with metrics, sparkline and actions */}
-                <div className="lg:col-span-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                <div className="lg:col-span-2 luxury-card glass p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
-                            <Bot size={16} className="text-[var(--primary)]" /> AI Агенты
+                            <Bot size={16} className="text-[var(--primary)]" /> {t('omega.agents')}
                         </h3>
                         <button
                             onClick={() => showToast('Добавление агента: выберите шаблон в настройках OMEGA')}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-[var(--primary)] text-xs hover:bg-[var(--primary)]/20 transition-colors"
                         >
-                            <Plus size={14} /> Добавить агента
+                            <Plus size={14} /> {t('omega.addAgent')}
                         </button>
                     </div>
                     {agents.length === 0 ? (
                         <EmptyState
                             icon={KeyRound}
-                            title="Запустите AI-провайдеров в API Keys"
-                            description="Добавьте ключи Groq, OpenRouter или других провайдеров, чтобы активировать AI-агентов OMEGA."
-                            actionLabel="Перейти в API Keys"
+                            title={t('omega.noAgents')}
+                            description={t('omega.noAgentsDesc')}
+                            actionLabel={t('omega.goToApiKeys')}
                             onAction={() => window.location.href = '/owner?tab=apiKeys'}
                             compact
                         />
@@ -454,34 +404,34 @@ export function OMEGACoreTab({ data }) {
                                     <div
                                         key={agent.id}
                                         onClick={() => { setSelectedAgent(agent); setAgentTab('overview') }}
-                                        className="cursor-pointer glass-card p-4 transition-all duration-300 hover:scale-[1.02] hover:border-[var(--primary)]/30"
+                                        className="cursor-pointer luxury-card glass p-4 hover:border-[var(--primary)]/30"
                                     >
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center">
-                                                    <Bot size={24} className="text-[var(--text)]" />
+                                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
+                                                    <Bot size={24} className="text-[var(--primary)]" />
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-bold text-[var(--text)]">{agent.name}</div>
                                                     <div className="text-[10px] text-[var(--text-muted)]">{agent.role}</div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[var(--bg)] border border-[var(--border)]">
+                                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full glass">
                                                 <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
                                                 <span className="text-[10px] text-[var(--text-muted)] capitalize">{isActive ? 'active' : 'paused'}</span>
                                             </div>
                                         </div>
                                         <p className="text-xs text-[var(--text-muted)] line-clamp-2 mb-3">{agent.description}</p>
                                         <div className="grid grid-cols-3 gap-2 mb-3">
-                                            <div className="text-center p-2 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
+                                            <div className="text-center p-2 rounded-lg glass">
                                                 <div className="text-xs font-bold text-[var(--text)]">{metrics.uptime}%</div>
                                                 <div className="text-[9px] text-[var(--text-muted)]">Uptime</div>
                                             </div>
-                                            <div className="text-center p-2 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
+                                            <div className="text-center p-2 rounded-lg glass">
                                                 <div className="text-xs font-bold text-[var(--text)]">{metrics.tasksToday}</div>
                                                 <div className="text-[9px] text-[var(--text-muted)]">Tasks</div>
                                             </div>
-                                            <div className="text-center p-2 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
+                                            <div className="text-center p-2 rounded-lg glass">
                                                 <div className="text-xs font-bold text-[var(--text)]">{metrics.avgResponse}ms</div>
                                                 <div className="text-[9px] text-[var(--text-muted)]">Avg</div>
                                             </div>
@@ -504,10 +454,10 @@ export function OMEGACoreTab({ data }) {
                                                     <Play size={10} /> Запустить
                                                 </button>
                                             )}
-                                            <button onClick={e => { e.stopPropagation(); handleRestartAgent(agent.id); }} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-muted)] text-[10px] hover:bg-[var(--surface)] transition-colors">
+                                            <button onClick={e => { e.stopPropagation(); handleRestartAgent(agent.id, e); }} className="flex items-center gap-1 px-2 py-1 rounded-lg glass text-[var(--text-muted)] text-[10px] hover:bg-[var(--surface)] transition-colors">
                                                 <RotateCcw size={10} /> Рестарт
                                             </button>
-                                            <button className="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-muted)] text-[10px] hover:bg-[var(--surface)] transition-colors">
+                                            <button className="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg glass text-[var(--text-muted)] text-[10px] hover:bg-[var(--surface)] transition-colors">
                                                 <Terminal size={10} /> Логи
                                             </button>
                                         </div>
@@ -518,10 +468,9 @@ export function OMEGACoreTab({ data }) {
                     )}
                 </div>
 
-                {/* [P16-CONTINUE] added: radial progress bars for providers + business health */}
-                <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                <div className="luxury-card glass p-5">
                     <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
-                        <Wifi size={16} className="text-blue-400" /> AI Провайдеры
+                        <Wifi size={16} className="text-[var(--accent)]" /> AI Провайдеры
                     </h3>
                     <div className="grid grid-cols-3 gap-3">
                         {[
@@ -529,7 +478,7 @@ export function OMEGACoreTab({ data }) {
                             { id: 'openrouter', name: 'OpenRouter', pct: 60, color: '#3b82f6' },
                             { id: 'deepseek', name: 'DeepSeek', pct: 0, color: '#6b7280', test: true },
                         ].map(provider => (
-                            <div key={provider.id} className="flex flex-col items-center text-center p-2 rounded-xl bg-white/[0.02] border border-[var(--border)]">
+                            <div key={provider.id} className="flex flex-col items-center text-center p-2 rounded-xl glass">
                                 <div className="relative w-16 h-16 mb-2">
                                     <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                                         <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-strong)" strokeWidth="8" />
@@ -548,7 +497,7 @@ export function OMEGACoreTab({ data }) {
                                     <button
                                         onClick={() => handleTestProvider(provider.id)}
                                         disabled={testLoading === provider.id}
-                                        className="text-[10px] px-2 py-1 rounded-full bg-white/5 text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors disabled:opacity-50"
+                                        className="text-[10px] px-2 py-1 rounded-full glass text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors disabled:opacity-50"
                                     >
                                         {testLoading === provider.id ? '...' : 'Тест'}
                                     </button>
@@ -569,11 +518,11 @@ export function OMEGACoreTab({ data }) {
                             <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                                 <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-strong)" strokeWidth="8" />
                                 <circle cx="50" cy="50" r="42" fill="none" stroke="var(--success)" strokeWidth="8"
-                                    strokeDasharray={`${aiAnalytics.businessHealth * 2.64} 264`}
+                                    strokeDasharray={`${(aiAnalytics?.businessHealth || 0) * 2.64} 264`}
                                     strokeLinecap="round" className="drop-shadow-[0_0_8px_var(--success)]" />
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-2xl font-bold text-[var(--text)]">{aiAnalytics.businessHealth}</span>
+                                <span className="text-2xl font-bold text-[var(--text)]">{aiAnalytics?.businessHealth || 0}</span>
                             </div>
                         </div>
                     </div>
@@ -581,22 +530,21 @@ export function OMEGACoreTab({ data }) {
                 </div>
             </div>
 
-            {/* System load chart */}
-            <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+            <div className="luxury-card glass p-5">
                 <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
-                    <Server size={16} className="text-blue-400" /> Загрузка серверов
+                    <Server size={16} className="text-[var(--accent)]" /> Загрузка серверов
                 </h3>
                 <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                            <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-strong)" />
+                            <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#0f0f1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                itemStyle={{ color: '#fff', fontSize: 12 }}
+                                contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '12px' }}
+                                itemStyle={{ color: 'var(--text)', fontSize: 12 }}
                             />
-                            <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                            <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
                             <Bar dataKey="CPU" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                             <Bar dataKey="RAM" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                         </BarChart>
@@ -604,58 +552,56 @@ export function OMEGACoreTab({ data }) {
                 </div>
             </div>
 
-            {/* Logs console */}
-            <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+            <div className="luxury-card glass p-5">
                 <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
-                        <Terminal size={16} className="text-gray-400" /> Консоль логов
+                        <Terminal size={16} className="text-[var(--text-muted)]" /> {t('omega.logs')}
                     </h3>
                     <button
                         onClick={handleClearLogs}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 text-xs text-gray-400 hover:text-[var(--text)] hover:bg-white/10 transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
                     >
-                        <Trash2 size={12} /> Очистить &gt;30 дней
+                        <Trash2 size={12} /> {t('omega.clearLogs')}
                     </button>
                 </div>
-                <div className="h-48 overflow-y-auto rounded-xl bg-black/40 border border-[var(--border)] p-3 font-mono text-xs space-y-1">
+                <div className="h-48 overflow-y-auto rounded-xl glass p-3 font-mono text-xs space-y-1">
                     {systemLogs.length === 0 && (
-                        <div className="text-gray-600">Нет логов...</div>
+                        <div className="text-[var(--text-muted)]">Нет логов...</div>
                     )}
                     {systemLogs.map(log => (
                         <div key={log.id} className="flex items-start gap-2">
-                            <span className="text-gray-600 whitespace-nowrap">{formatDateTime(log.timestamp)}</span>
+                            <span className="text-[var(--text-muted)] whitespace-nowrap">{formatDateTime(log.timestamp)}</span>
                             <span className={`uppercase ${
                                 log.level === 'error' ? 'text-red-400' :
                                 log.level === 'warning' ? 'text-yellow-400' :
                                 'text-emerald-400'
                             }`}>[{log.level}]</span>
-                            <span className="text-gray-300"><span className="text-gray-500">[{log.source}]</span> {log.message}</span>
+                            <span className="text-[var(--text)]"><span className="text-[var(--text-muted)]">[{log.source}]</span> {log.message}</span>
                         </div>
                     ))}
                     <div ref={logEndRef} />
                 </div>
             </div>
 
-            {/* [P16-HOTFIX-v2] Report modal */}
             {reportModalOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setReportModalOpen(false)}>
-                    <div className="glass-card-strong w-full max-w-sm p-6 rounded-[var(--radius-xl)]" onClick={e => e.stopPropagation()}>
+                    <div className="luxury-card glass w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
-                            <FileText size={18} className="text-[var(--primary)]" /> Сгенерировать отчёт
+                            <FileText size={18} className="text-[var(--primary)]" /> {t('omega.reportTitle')}
                         </h3>
                         <div className="space-y-2 mb-6">
                             {[
-                                { id: 'status', label: 'OMEGA Status' },
-                                { id: 'financial', label: 'Financial' },
-                                { id: 'agents', label: 'Agents' },
+                                { id: 'status', label: t('omega.reportStatus') },
+                                { id: 'financial', label: t('omega.reportFinancial') },
+                                { id: 'agents', label: t('omega.reportAgents') },
                             ].map(opt => (
                                 <button
                                     key={opt.id}
                                     onClick={() => setReportType(opt.id)}
                                     className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
                                         reportType === opt.id
-                                            ? 'bg-[var(--primary)]/10 border-[var(--primary)] text-[var(--text)]'
-                                            : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/30'
+                                            ? 'bg-[var(--primary-soft)] border-[var(--primary)] text-[var(--primary)]'
+                                            : 'glass border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--primary)]/30'
                                     }`}
                                 >
                                     {opt.label}
@@ -667,27 +613,26 @@ export function OMEGACoreTab({ data }) {
                                 onClick={() => setReportModalOpen(false)}
                                 className="flex-1 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
                             >
-                                Отмена
+                                {t('common.cancel')}
                             </button>
                             <button
                                 onClick={handleDownloadReport}
-                                className="flex-1 px-4 py-2 rounded-xl bg-[var(--primary)] text-[var(--text-inverse)] hover:opacity-90 transition-opacity"
+                                className="flex-1 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25 transition-all"
                             >
-                                Скачать PDF
+                                {t('omega.downloadPdf')}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* [P16-FIX] added: AI agent detail modal with tabs */}
             {selectedAgent && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedAgent(null)}>
-                    <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6" onClick={e => e.stopPropagation()}>
+                    <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto luxury-card glass p-6" onClick={e => e.stopPropagation()}>
                         <div className="flex items-start justify-between mb-5">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center">
-                                    <Bot size={24} className="text-[var(--text)]" />
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
+                                    <Bot size={24} className="text-[var(--primary)]" />
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-[var(--text)]">{selectedAgent.name}</h3>
@@ -735,7 +680,7 @@ export function OMEGACoreTab({ data }) {
                                             { label: 'Avg response', value: `${m.avgResponse}ms` },
                                             { label: 'Статус', value: selectedAgent.status },
                                         ].map(s => (
-                                            <div key={s.label} className="p-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-center">
+                                            <div key={s.label} className="p-3 rounded-xl glass text-center">
                                                 <div className="text-xs text-[var(--text-muted)]">{s.label}</div>
                                                 <div className="text-sm font-bold text-[var(--text)]">{s.value}</div>
                                             </div>
@@ -744,11 +689,11 @@ export function OMEGACoreTab({ data }) {
                                 </div>
                                 <div className="space-y-2">
                                     <div className="text-xs text-[var(--text-muted)]">CPU</div>
-                                    <div className="h-2 bg-[var(--bg)] rounded-full overflow-hidden">
+                                    <div className="h-2 bg-[var(--surface)] rounded-full overflow-hidden">
                                         <div className="h-full bg-blue-500" style={{ width: `${getAgentMetrics(selectedAgent).cpu}%` }} />
                                     </div>
                                     <div className="text-xs text-[var(--text-muted)]">RAM</div>
-                                    <div className="h-2 bg-[var(--bg)] rounded-full overflow-hidden">
+                                    <div className="h-2 bg-[var(--surface)] rounded-full overflow-hidden">
                                         <div className="h-full bg-purple-500" style={{ width: `${getAgentMetrics(selectedAgent).ram}%` }} />
                                     </div>
                                 </div>
@@ -772,12 +717,12 @@ export function OMEGACoreTab({ data }) {
                         )}
 
                         {agentTab === 'logs' && (
-                            <div className="h-64 overflow-y-auto rounded-xl bg-black/40 border border-[var(--border)] p-3 font-mono text-xs space-y-1">
+                            <div className="h-64 overflow-y-auto rounded-xl glass p-3 font-mono text-xs space-y-1">
                                 {getAgentLogs(selectedAgent).map(log => (
                                     <div key={log.id} className="flex items-start gap-2">
-                                        <span className="text-gray-600 whitespace-nowrap">{log.time}</span>
+                                        <span className="text-[var(--text-muted)] whitespace-nowrap">{log.time}</span>
                                         <span className={`uppercase ${log.level === 'error' ? 'text-red-400' : log.level === 'warning' ? 'text-yellow-400' : 'text-emerald-400'}`}>[{log.level}]</span>
-                                        <span className="text-gray-300"><span className="text-gray-500">[{log.source}]</span> {log.message}</span>
+                                        <span className="text-[var(--text)]"><span className="text-[var(--text-muted)]">[{log.source}]</span> {log.message}</span>
                                     </div>
                                 ))}
                             </div>
@@ -789,7 +734,7 @@ export function OMEGACoreTab({ data }) {
                                     { key: 'autoReply', label: 'Авто-ответ на типовые запросы' },
                                     { key: 'notifications', label: 'Уведомления о сбоях' },
                                 ].map(setting => (
-                                    <label key={setting.key} className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] cursor-pointer">
+                                    <label key={setting.key} className="flex items-center justify-between p-3 rounded-xl glass cursor-pointer">
                                         <span className="text-sm text-[var(--text)]">{setting.label}</span>
                                         <input
                                             type="checkbox"
@@ -804,7 +749,7 @@ export function OMEGACoreTab({ data }) {
                                     <select
                                         value={agentSettings.priority}
                                         onChange={e => setAgentSettings(prev => ({ ...prev, priority: e.target.value }))}
-                                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] text-sm outline-none"
+                                        className="w-full px-3 py-2 rounded-xl glass text-[var(--text)] text-sm outline-none"
                                     >
                                         <option value="low">Low</option>
                                         <option value="normal">Normal</option>
@@ -818,10 +763,10 @@ export function OMEGACoreTab({ data }) {
                                         onChange={e => setAgentSettings(prev => ({ ...prev, systemPrompt: e.target.value }))}
                                         rows={5}
                                         placeholder="Введите system prompt..."
-                                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] text-sm outline-none resize-none"
+                                        className="w-full px-3 py-2 rounded-xl glass text-[var(--text)] text-sm outline-none resize-none"
                                     />
                                 </div>
-                                <button onClick={() => showToast('Настройки агента сохранены')} className="px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-sm hover:opacity-90">
+                                <button onClick={() => showToast('Настройки агента сохранены')} className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all">
                                     Сохранить
                                 </button>
                             </div>
@@ -839,10 +784,10 @@ export function OMEGACoreTab({ data }) {
                                                     <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                                            <XAxis dataKey="day" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                            <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                            <Tooltip contentStyle={{ backgroundColor: '#0f0f1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-strong)" />
+                                            <XAxis dataKey="day" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                            <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '12px' }} />
                                             <Area type="monotone" dataKey="tasks" stroke="var(--primary)" fillOpacity={1} fill="url(#colorTasks)" />
                                         </AreaChart>
                                     </ResponsiveContainer>
@@ -851,11 +796,11 @@ export function OMEGACoreTab({ data }) {
                                     <div className="text-xs text-[var(--text-muted)] mb-2">Успешность / Среднее время (мс)</div>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart data={getAgentStats(selectedAgent)}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                                            <XAxis dataKey="day" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                            <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                            <Tooltip contentStyle={{ backgroundColor: '#0f0f1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
-                                            <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-strong)" />
+                                            <XAxis dataKey="day" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                            <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '12px' }} />
+                                            <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
                                             <Line type="monotone" dataKey="success" stroke="#10b981" strokeWidth={2} dot={false} name="Успешность %" />
                                             <Line type="monotone" dataKey="time" stroke="#3b82f6" strokeWidth={2} dot={false} name="Время мс" />
                                         </LineChart>
@@ -869,3 +814,5 @@ export function OMEGACoreTab({ data }) {
         </div>
     )
 }
+
+export default OMEGACoreTab

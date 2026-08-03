@@ -114,13 +114,13 @@ export function DashboardShell({
     }, [user?.preferences?.theme, theme, setTheme])
 
     const handleThemeToggle = useCallback(() => {
-        const next = theme === 'dark' ? 'light' : 'dark'
+        const next = appliedTheme === 'dark' ? 'light' : 'dark'
         setTheme(next)
         const prefs = user?.preferences || {}
         if (prefs.theme !== next) {
             updateUser({ preferences: { ...prefs, theme: next } })
         }
-    }, [theme, setTheme, updateUser, user?.preferences])
+    }, [appliedTheme, setTheme, updateUser, user?.preferences]) // [P16-FIX] sync toggle with appliedTheme
 
     useEffect(() => {
         if (viewport.isMobile) {

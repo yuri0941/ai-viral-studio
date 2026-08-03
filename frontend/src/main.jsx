@@ -22,14 +22,18 @@ const queryClient = new QueryClient({
     },
 })
 
-Rollbar.init({
-    accessToken: import.meta.env.VITE_ROLLBAR_ACCESS_TOKEN || process.env.VITE_ROLLBAR_ACCESS_TOKEN,
-    captureUncaught: true,
-    captureUnhandledRejections: true,
-    payload: {
-        environment: import.meta.env.MODE || 'production',
-    },
-})
+try {
+    Rollbar.init({
+        accessToken: import.meta.env.VITE_ROLLBAR_ACCESS_TOKEN || process.env.VITE_ROLLBAR_ACCESS_TOKEN,
+        captureUncaught: true,
+        captureUnhandledRejections: true,
+        payload: {
+            environment: import.meta.env.MODE || 'production',
+        },
+    })
+} catch (err) {
+    console.warn('[Rollbar] init failed:', err) // [P16-FIX] guard Rollbar init
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>

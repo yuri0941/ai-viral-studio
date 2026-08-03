@@ -60,12 +60,12 @@ export function VirtualTable({
     return (
         <div
             ref={parentRef}
-            className={`overflow-auto rounded-2xl border border-white/5 bg-[#0f0f1a] ${className}`}
+            className={`overflow-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] ${className}`}
             style={{ maxHeight }}
         >
             <div className="min-w-full inline-block">
                 {/* Header */}
-                <div className={`sticky top-0 z-10 grid border-b border-white/5 bg-[#13131f] ${headerClassName}`}
+                <div className={`sticky top-0 z-10 grid border-b border-[var(--border)] bg-[var(--bg-secondary)] ${headerClassName}`}
                     style={{
                         gridTemplateColumns: columns.map(c => c.width || '1fr').join(' '),
                     }}
@@ -74,13 +74,13 @@ export function VirtualTable({
                         <button
                             key={String(col.key)}
                             onClick={() => col.sortable !== false && handleSort(col.key)}
-                            className={`px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider flex items-center gap-1 ${
-                                col.sortable !== false ? 'hover:text-white cursor-pointer' : 'cursor-default'
+                            className={`px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1 ${
+                                col.sortable !== false ? 'hover:text-[var(--text)] cursor-pointer' : 'cursor-default'
                             }`}
                         >
                             {col.header}
                             {col.sortable !== false && sortConfig.key === col.key && (
-                                <span className="text-[10px] text-[#8B5CF6]">
+                                <span className="text-[10px] text-[var(--primary)]">
                                     {sortConfig.direction === 'asc' ? '▲' : '▼'}
                                 </span>
                             )}
@@ -97,9 +97,9 @@ export function VirtualTable({
                             <div
                                 key={rowKey}
                                 onClick={() => onRowClick?.(item)}
-                                className={`absolute top-0 left-0 right-0 grid border-b border-white/5 hover:bg-white/[0.03] transition-colors ${
+                                className={`absolute top-0 left-0 right-0 grid border-b border-[var(--border)] hover:bg-[var(--primary-soft)] transition-colors ${
                                     onRowClick ? 'cursor-pointer' : ''
-                                } ${striped && virtualItem.index % 2 === 1 ? 'bg-white/[0.015]' : ''} ${rowClassName}`}
+                                } ${striped && virtualItem.index % 2 === 1 ? 'bg-[var(--surface)]/50' : ''} ${rowClassName}`}
                                 style={{
                                     height: `${virtualItem.size}px`,
                                     transform: `translateY(${virtualItem.start}px)`,
@@ -107,7 +107,7 @@ export function VirtualTable({
                                 }}
                             >
                                 {columns.map(col => (
-                                    <div key={String(col.key)} className="px-4 py-3 flex items-center text-sm text-gray-300 overflow-hidden">
+                                    <div key={String(col.key)} className="px-4 py-3 flex items-center text-sm text-[var(--text)] overflow-hidden">
                                         {col.cell
                                             ? col.cell(item, virtualItem.index)
                                             : item[col.key] ?? '—'}

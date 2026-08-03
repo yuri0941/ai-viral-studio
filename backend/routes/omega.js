@@ -56,6 +56,8 @@ router.post('/autopilot/post', createAutopilotPost)
 router.post('/predictions/recalculate', (req, res) => res.json({ status: 'success', message: 'Forecast recalculated' }))
 router.post('/repurposing/enable', (req, res) => res.json({ status: 'success', data: { enabled: !!req.body?.enabled } }))
 router.post('/voice/enable', (req, res) => res.json({ status: 'success', data: { enabled: !!req.body?.enabled } }))
+// [P16-FIX] added
+router.post('/predictive/enable', (req, res) => res.json({ enabled: true }))
 router.post('/generate-name', (req, res) => {
     const prefixes = ['Nova', 'Flux', 'Orbit', 'Pulse', 'Zen']
     res.json({ status: 'success', name: `${prefixes[Math.floor(Math.random() * prefixes.length)]}${Math.floor(Math.random() * 90 + 10)}` })

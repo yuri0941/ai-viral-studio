@@ -100,7 +100,8 @@ function SchedulerPage() {
 
     // Media queue derived from posts + standalone uploads
     const [mediaQueue, setMediaQueue] = useState([
-        { id: 'm1', name: 'intro_final.mp4', type: 'video/mp4', url: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', size: 1055736, duration: 13 },
+        // [P16-FIX] replaced external demo video with image placeholder to avoid broken/tracking URLs
+        { id: 'm1', name: 'intro_final.png', type: 'image/png', url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=600&fit=crop', size: 1055736 },
         { id: 'm2', name: 'thumbnail_v2.png', type: 'image/png', url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=600&fit=crop', size: 48200 },
     ]);
 

@@ -1,13 +1,18 @@
 import express from 'express'
 import { protect } from '../middleware/auth.js'
-import { getMe, updateMe, updateSocials, changePassword, changeEmail, deleteMyData, exportMyData } from '../controllers/userController.js'
+import { getMe, updateMe, changePassword, changeEmail, deleteMyData, exportMyData } from '../controllers/userController.js'
+import User from '../models/User.js'
 
 const router = express.Router()
 
 router.get('/me', protect, getMe)
 router.put('/me', protect, updateMe)
 router.patch('/me', protect, updateMe)
-router.patch('/me/socials', protect, updateSocials)
+// [P16-FIX] added
+router.patch('/me/socials', protect, async (req, res) => {
+    await User.findByIdAndUpdate(req.user._id, { $set: { socials: req.body.socials } })
+    res.json({ success: true })
+})
 router.post('/change-password', protect, changePassword)
 router.post('/change-email', protect, changeEmail)
 router.delete('/me/data', protect, deleteMyData)

@@ -75,14 +75,15 @@ const userSchema = new mongoose.Schema(
             pinterest: { username: String, connected: { type: Boolean, default: false } },
             vk: { userId: String, connected: { type: Boolean, default: false } }
         },
+        // [P16-FIX] extended
         socials: {
-            instagram: { username: { type: String, default: '' }, link: { type: String, default: '' } },
-            tiktok: { username: { type: String, default: '' }, link: { type: String, default: '' } },
-            youtube: { username: { type: String, default: '' }, link: { type: String, default: '' } },
-            telegram: { username: { type: String, default: '' }, link: { type: String, default: '' } },
-            vk: { username: { type: String, default: '' }, link: { type: String, default: '' } },
-            twitter: { username: { type: String, default: '' }, link: { type: String, default: '' } },
-            linkedin: { username: { type: String, default: '' }, link: { type: String, default: '' } },
+            instagram: { username: { type: String, default: '' }, link: { type: String, default: '' }, url: { type: String, default: '' }, enabled: { type: Boolean, default: false } },
+            tiktok: { username: { type: String, default: '' }, link: { type: String, default: '' }, url: { type: String, default: '' }, enabled: { type: Boolean, default: false } },
+            youtube: { username: { type: String, default: '' }, link: { type: String, default: '' }, url: { type: String, default: '' }, enabled: { type: Boolean, default: false } },
+            telegram: { username: { type: String, default: '' }, link: { type: String, default: '' }, url: { type: String, default: '' }, enabled: { type: Boolean, default: false } },
+            vk: { username: { type: String, default: '' }, link: { type: String, default: '' }, url: { type: String, default: '' }, enabled: { type: Boolean, default: false } },
+            twitter: { username: { type: String, default: '' }, link: { type: String, default: '' }, url: { type: String, default: '' }, enabled: { type: Boolean, default: false } },
+            linkedin: { username: { type: String, default: '' }, link: { type: String, default: '' }, url: { type: String, default: '' }, enabled: { type: Boolean, default: false } },
         },
         phone: { type: String, default: '' },
         telegram: { type: String, default: '' },

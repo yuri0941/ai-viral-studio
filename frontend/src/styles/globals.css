@@ -6,66 +6,80 @@
 
 @layer base {
     :root {
-        /* [P16-FIX] Luxury design system V2 — light theme */
-        --bg: #faf9f7;
+        --bg: #faf9f6;
         --bg-secondary: #ffffff;
-        --surface: #f5f3f0;
+        --surface: rgba(255, 255, 255, 0.8);
         --card: #ffffff;
-        --card-hover: #f0eeeb;
-        --text: #1a1a1a;
-        --text-muted: #6b6b6b;
+        --card-hover: #f5f5f0;
+        --text: #1a1a2e;
+        --text-secondary: #4a4a5a;
+        --text-muted: #6b6b7b;
         --text-inverse: #ffffff;
         --border: rgba(0, 0, 0, 0.06);
         --border-strong: rgba(0, 0, 0, 0.12);
-        --glass: rgba(255, 255, 255, 0.65);
+        --glass: rgba(255, 255, 255, 0.6);
         --primary: #7c3aed;
-        --primary-soft: #ede9fe;
+        --primary-soft: rgba(124, 58, 237, 0.08);
+        --primary-hover: #6d28d9;
         --accent: #0ea5e9;
         --accent-warm: #f59e0b;
+        --accent-gradient: linear-gradient(135deg, #7c3aed, #c026d3, #f59e0b);
         --success: #10b981;
         --warning: #f59e0b;
         --danger: #ef4444;
-        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.02);
+        --error: #ef4444;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+        --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
         --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-        --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+        --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
         --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-        --radius-sm: 8px;
+        --radius-sm: 12px;
+        --radius: 16px;
         --radius-md: 14px;
         --radius-lg: 20px;
         --radius-xl: 28px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
         --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
         --font-serif: 'Playfair Display', Georgia, serif;
         --font-mono: 'JetBrains Mono', monospace;
     }
 
     .dark {
-        /* [P16-FIX] Luxury design system V2 — dark theme */
-        --bg: #0c0a09;
-        --bg-secondary: #1c1917;
-        --surface: #292524;
-        --card: #1c1917;
-        --card-hover: #292524;
-        --text: #fafaf9;
-        --text-muted: #a8a29e;
+        --bg: #050508;
+        --bg-secondary: #0a0a0f;
+        --surface: rgba(255, 255, 255, 0.03);
+        --card: rgba(255, 255, 255, 0.04);
+        --card-hover: rgba(255, 255, 255, 0.06);
+        --text: #f0f0f5;
+        --text-secondary: #a0a0b0;
+        --text-muted: #6b6b7b;
         --text-inverse: #1c1917;
         --border: rgba(255, 255, 255, 0.06);
         --border-strong: rgba(255, 255, 255, 0.1);
-        --glass: rgba(28, 25, 23, 0.6);
+        --glass: rgba(255, 255, 255, 0.03);
         --primary: #a78bfa;
-        --primary-soft: #4c1d95;
+        --primary-soft: rgba(167, 139, 250, 0.1);
+        --primary-hover: #8b5cf6;
         --accent: #38bdf8;
         --accent-warm: #fbbf24;
+        --accent-gradient: linear-gradient(135deg, #a78bfa, #c026d3, #f59e0b);
         --success: #10b981;
         --warning: #f59e0b;
         --danger: #ef4444;
-        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+        --error: #ef4444;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+        --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
         --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-        --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
         --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-        --radius-sm: 8px;
+        --radius-sm: 12px;
+        --radius: 16px;
         --radius-md: 14px;
         --radius-lg: 20px;
         --radius-xl: 28px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
         --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
         --font-serif: 'Playfair Display', Georgia, serif;
         --font-mono: 'JetBrains Mono', monospace;
@@ -119,7 +133,6 @@
         color: var(--primary);
     }
 
-    /* [P16-FIX] Subtle film-grain noise overlay */
     .noise-bg::before {
         content: '';
         position: fixed;
@@ -162,7 +175,7 @@
     }
 
     .gradient-text {
-        @apply bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4];
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-violet-500 to-fuchsia-500;
     }
 
     .coral-accent { color: #F97316; }
@@ -182,7 +195,6 @@
     }
 }
 
-/* [P16-FIX] Theme hardcode overrides — kept minimal */
 body {
     background: var(--bg);
     color: var(--text);
@@ -205,7 +217,37 @@ body {
     border-color: var(--border) !important;
 }
 
-/* [P16-CONTINUE] added: legal page content styling */
+/* Luxury glass & card utilities */
+.glass {
+    background: var(--glass);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--border);
+}
+
+.luxury-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.luxury-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(124, 58, 237, 0.2);
+}
+
+button, .btn {
+    transition: transform 0.2s var(--spring), box-shadow 0.2s ease;
+}
+
+button:active, .btn:active {
+    transform: scale(0.96);
+}
+
+/* Legal page content styling */
 .legal-page-content h1 {
     font-family: var(--font-serif);
     color: var(--text);

@@ -2470,3 +2470,25 @@
 - [x] Frontend build: успешно (vite build 0 errors)
 - [x] Git push: выполнен
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
+
+### [2026-08-03] — MASTER FIX v16.1
+- [x] P16 artifacts removed (SettingsPage, ApiKeysTab, SubscriptionsTab, OMEGACoreTab)
+- [x] Plus import fixed in OMEGACoreTab.jsx
+- [x] 404 role switch fixed (App.jsx catch-all + SidebarDock exact paths)
+- [x] API: /api/omega/brand-voice, /api/analytics/overview, /api/omega/autopilot/toggle, /api/analytics/predictive/enable, /api/omega/repurposing/enable, /api/omega/voice/enable, /api/omega/predictions/recalculate
+- [x] globals.css v3 luxury (Inter + JetBrains Mono, full variable set)
+- [x] animations.css: shimmer, pulse-glow, float, fadeInUp
+- [x] Favicon.svg added
+- [x] OverviewTab, ApiKeysTab, OMEGACoreTab, SettingsPage, SubscriptionsTab, FinanceTab, TasksTab, Team — luxury redesign
+- [x] Staff/Creator/Advertiser/Admin dashboards — luxury redesign
+- [x] i18n keys added (ru.json + en.json)
+- [x] Light theme full contrast verified
+- [x] Sidebar active highlight synchronized with URL
+- [x] Empty states + shimmer loaders
+- [x] Rollbar try/catch guard in main.jsx
+- [x] External demo video replaced with local placeholder
+- [x] User socials backend (User model + PATCH /api/users/me/socials)
+- [x] Frontend build: 0 errors
+- [x] Backend check: passed
+- [x] Git push: done
+- [ ] Render deploy: manual

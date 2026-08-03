@@ -10,7 +10,7 @@ import {
     Palette, LayoutTemplate, Flame, Cpu,
 } from 'lucide-react'
 
-// [P16-CONTINUE] added: floating glass dock for desktop dashboards
+// [P16-FIX] added: floating glass dock for desktop dashboards
 
 const OWNER_GROUPS = [
     {
@@ -184,16 +184,13 @@ export function SidebarDock({ userRole = 'creator', user, onLogout }) {
             <button
                 key={item.id || item.path}
                 onClick={() => handleItemClick(item)}
-                className={`group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all min-h-[44px] ${
+                className={`group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-r-xl transition-all min-h-[44px] border-l-[3px] ${
                     active
-                        ? 'bg-[var(--primary)]/10 text-[var(--text)]'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'
+                        ? 'border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]'
+                        : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'
                 }`}
                 title={item.label}
             >
-                {active && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--primary)]" />
-                )}
                 <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-[var(--primary)]' : ''}`} />
                 {expanded && (
                     <span className="text-sm font-medium truncate whitespace-nowrap">{item.label}</span>

@@ -215,7 +215,7 @@
     animation-fill-mode: forwards;
 }
 
-/* [P16-CONTINUE] added: auto-dismiss progress bar shrink */
+/* auto-dismiss progress bar shrink */
 @keyframes shrinkX {
     from { transform: scaleX(1); }
     to { transform: scaleX(0); }
@@ -223,4 +223,45 @@
 .animate-shrink-x {
     animation: shrinkX 10s linear forwards;
     transform-origin: left;
+}
+
+/* [P16-FIX] added: fadeInUp entrance animation */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up {
+    animation: fadeInUp 0.5s ease-out;
+}
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* [P16-FIX] added: float animation */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+.float {
+    animation: float 3s ease-in-out infinite;
+}
+
+/* [P16-FIX] added: pulse glow */
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(124, 58, 237, 0); }
+}
+.pulse-glow {
+    animation: pulse-glow 2s infinite;
+}
+
+/* [P16-FIX] added: shimmer skeleton */
+.shimmer {
+    background: linear-gradient(90deg, var(--card) 25%, var(--card-hover) 50%, var(--card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
 }

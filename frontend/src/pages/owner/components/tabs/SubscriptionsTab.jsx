@@ -4,9 +4,10 @@ import { subscriptionsApi, yookassaApi, stripeApi } from '../../../../services/a
 import { useAuth } from '../../../../context/AuthContext.jsx'
 import { useSmartData } from '../../../../hooks/useSmartData'
 import { API_BASE_URL } from '../../../../config.js'
+import { useTranslation } from 'react-i18next'
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
-    ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil
+    ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil, Check
 } from 'lucide-react'
 
 const DEMO_PLANS = [
@@ -31,7 +32,7 @@ const COLORS = {
     starter: '#3b82f6',
     creator: '#2563eb',
     pro: '#8b5cf6',
-    agency: '#00ff41',
+    agency: '#10b981',
     enterprise: '#f0883e',
 }
 
@@ -51,6 +52,7 @@ function formatPrice(amount, currency) {
 }
 
 export function SubscriptionsTab({ data }) {
+    const { t } = useTranslation()
     const { toasts, setToasts } = data
     const { user, updatePreferences } = useAuth()
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
@@ -153,15 +155,14 @@ export function SubscriptionsTab({ data }) {
             if (json.status === 'success' || json.success) {
                 setPlanOverrides(prev => ({ ...prev, [planId]: price }))
                 setEditingPlanId(null)
-                pushToast('success', 'Цена обновлена')
+                pushToast('success', t('subscriptions.priceUpdated'))
             } else {
                 pushToast('error', json.message || 'Ошибка сохранения')
             }
         } catch (err) {
-            // fallback: update locally if backend endpoint not available
             setPlanOverrides(prev => ({ ...prev, [planId]: price }))
             setEditingPlanId(null)
-            pushToast('success', 'Цена обновлена (локально)')
+            pushToast('success', t('subscriptions.priceUpdated'))
         }
     }
 
@@ -214,33 +215,36 @@ export function SubscriptionsTab({ data }) {
 
     if (loading) {
         return (
-            <div className="p-6 flex items-center gap-3 text-[var(--text-muted)]">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Загрузка подписок…
+            <div className="p-6 space-y-4">
+                <div className="h-40 shimmer rounded-2xl" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="h-64 shimmer rounded-2xl" />
+                    <div className="h-64 shimmer rounded-2xl" />
+                    <div className="h-64 shimmer rounded-2xl" />
+                </div>
             </div>
         )
     }
 
     return (
         <div className="space-y-8 p-6">
-            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-[var(--text)] flex items-center gap-2">
-                        <CreditCard className="w-6 h-6 text-[#00ff41]" />
-                        Подписки
+                        <CreditCard className="w-6 h-6 text-[var(--success)]" />
+                        {t('subscriptions.title')}
                     </h2>
-                    <p className="text-[var(--text-muted)] mt-1">Управление тарифами и оплатой</p>
+                    <p className="text-[var(--text-muted)] mt-1">{t('subscriptions.subtitle')}</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-[var(--card)] border border-[var(--border)] rounded-lg p-1">
+                <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center glass rounded-lg p-1">
                         {CURRENCIES.map((cur) => (
                             <button
                                 key={cur.value}
                                 onClick={() => handleCurrencyChange(cur.value)}
                                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                                     currency === cur.value
-                                        ? 'bg-[var(--accent)] text-[var(--bg-primary)]'
+                                        ? 'bg-[var(--primary)] text-[var(--text-inverse)]'
                                         : 'text-[var(--text-muted)] hover:text-[var(--text)]'
                                 }`}
                             >
@@ -250,15 +254,15 @@ export function SubscriptionsTab({ data }) {
                     </div>
                     <button
                         onClick={() => setIsYearly(!isYearly)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm text-[var(--text)] hover:bg-[var(--card-hover)] transition-colors w-fit"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-sm text-[var(--text)] hover:bg-[var(--surface)] transition-colors w-fit"
                     >
                         {isYearly ? <ToggleRight size={16} className="text-emerald-400" /> : <ToggleLeft size={16} className="text-gray-500" />}
-                        {isYearly ? 'Годовой (−20%)' : 'Месячный'}
+                        {isYearly ? t('subscriptions.yearly') : t('subscriptions.monthly')}
                     </button>
                     {(user?.role === 'owner' || user?.role === 'admin') && (
                         <button
                             onClick={() => setPricingOpen(true)}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm text-[var(--primary)] hover:bg-[var(--card-hover)] transition-colors"
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-sm text-[var(--primary)] hover:bg-[var(--surface)] transition-colors"
                         >
                             <Sparkles size={16} />
                             AI-анализ цен
@@ -267,19 +271,18 @@ export function SubscriptionsTab({ data }) {
                 </div>
             </div>
 
-            {/* Current subscription */}
             {current && (
-                <div className="rounded-2xl bg-[var(--card)] border border-[var(--border)] p-5">
+                <div className={`luxury-card glass p-6 ${current.status === 'active' ? 'border-[var(--success)] ring-1 ring-[var(--success)]/20' : ''}`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-start gap-4">
                             <div
-                                className="w-10 h-10 rounded-xl flex items-center justify-center text-[#0a0a0f] font-bold"
+                                className="w-12 h-12 rounded-2xl flex items-center justify-center text-[var(--text-inverse)] font-bold"
                                 style={{ backgroundColor: COLORS[currentPlanId] || COLORS.free }}
                             >
                                 {(current.plan || 'F').charAt(0).toUpperCase()}
                             </div>
                             <div>
-                                <p className="text-sm text-[var(--text-muted)]">Текущий тариф</p>
+                                <p className="text-sm text-[var(--text-muted)]">{t('subscriptions.currentPlan')}</p>
                                 <h3 className="text-xl font-bold text-[var(--text)] capitalize">{current.plan}</h3>
                                 <div className="flex items-center gap-3 mt-1 flex-wrap">
                                     <StatusBadge status={current.status === 'active' ? 'active' : 'warning'} label={current.status} />
@@ -298,42 +301,36 @@ export function SubscriptionsTab({ data }) {
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-2xl font-bold text-[var(--text)]">
-                                {current.price > 0 ? formatPrice(current.price, current.currency) : 'Free'}
+                            <p className="text-4xl font-bold text-[var(--text)]">
+                                {current.price > 0 ? formatPrice(current.price, current.currency) : t('subscriptions.free')}
                             </p>
-                            <p className="text-sm text-[var(--text-muted)]">{current.interval === 'year' ? 'в год' : 'в месяц'}</p>
+                            <p className="text-sm text-[var(--text-muted)]">{current.interval === 'year' ? t('subscriptions.yearly') : t('subscriptions.monthly')}</p>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Plans */}
             <div>
-                <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Доступные тарифы</h3>
+                <h3 className="text-lg font-semibold text-[var(--text)] mb-4">{t('subscriptions.availablePlans')}</h3>
                 {isDemo && (
                     <div className="bg-yellow-900/30 text-yellow-400 text-sm rounded-lg px-3 py-2 mb-4">
                         📊 Пример тарифов — подключите платёжную систему
                     </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    {(() => {
-                        const safeData = Array.isArray(plans) ? plans : []
-                        return safeData.map((plan) => {
+                    {safePlans.map((plan) => {
                         const isCurrent = currentPlanId === plan.id
                         const isFree = plan.id === 'free'
                         const basePrice = planOverrides[plan.id] ?? plan.price
                         const displayPrice = isYearly && !isFree
                             ? Math.round(basePrice * 12 * 0.8)
                             : basePrice
+                        const isRecommended = plan.popular || plan.id === 'pro'
 
                         return (
                             <div
                                 key={plan.id}
-                                className={`rounded-2xl border p-5 transition-all ${
-                                    isCurrent
-                                        ? 'bg-[var(--card)] border-[#00ff41]/50 ring-1 ring-[#00ff41]/20'
-                                        : 'bg-[var(--card)] border-[var(--border)] hover:border-[var(--border)] hover:shadow-lg'
-                                }`}
+                                className={`luxury-card p-5 ${isRecommended ? 'border-2 border-[var(--primary)] shadow-lg shadow-violet-500/10' : ''} ${isCurrent ? 'border-[var(--success)]' : ''}`}
                             >
                                 <div className="flex items-center gap-2 mb-3">
                                     <div
@@ -341,7 +338,7 @@ export function SubscriptionsTab({ data }) {
                                         style={{ backgroundColor: COLORS[plan.id] || '#6b7280' }}
                                     />
                                     <h4 className="text-sm font-semibold text-[var(--text)] capitalize">{plan.name}</h4>
-                                    {isCurrent && <CheckCircle className="w-4 h-4 text-[#00ff41] ml-auto" />}
+                                    {isCurrent && <CheckCircle className="w-4 h-4 text-[var(--success)] ml-auto" />}
                                 </div>
 
                                 <div className="mb-4">
@@ -352,29 +349,29 @@ export function SubscriptionsTab({ data }) {
                                                 value={editPrice}
                                                 onChange={e => setEditPrice(e.target.value)}
                                                 disabled={isFree}
-                                                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] text-sm outline-none focus:border-[var(--primary)]/50 disabled:opacity-50"
+                                                className="w-full px-3 py-2 rounded-lg glass text-[var(--text)] text-sm outline-none focus:border-[var(--primary)]/50 disabled:opacity-50"
                                             />
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={() => savePlanPrice(plan.id)}
                                                     className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs hover:bg-emerald-500/20"
                                                 >
-                                                    <CheckCircle size={12} /> Сохранить
+                                                    <Check size={12} /> {t('subscriptions.savePrice')}
                                                 </button>
                                                 <button
                                                     onClick={() => setEditingPlanId(null)}
-                                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-[var(--card-hover)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface)]"
+                                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg glass text-[var(--text-muted)] text-xs hover:bg-[var(--surface)]"
                                                 >
-                                                    <X size={12} /> Отмена
+                                                    <X size={12} /> {t('subscriptions.cancel')}
                                                 </button>
                                             </div>
                                         </div>
                                     ) : (
                                         <>
                                             {isFree ? (
-                                                <div className="text-2xl font-bold text-[var(--text)]">Free</div>
+                                                <div className="text-4xl font-bold text-[var(--text)]">{t('subscriptions.free')}</div>
                                             ) : (
-                                                <div className="text-2xl font-bold text-[var(--text)] flex items-center gap-2">
+                                                <div className="text-4xl font-bold text-[var(--text)] flex items-center gap-2">
                                                     {formatPrice(displayPrice, plan.currency)}
                                                     <span className="text-xs text-[var(--text-muted)] font-normal">/{isYearly ? 'год' : 'мес'}</span>
                                                     {isOwnerOrAdmin && (
@@ -389,7 +386,7 @@ export function SubscriptionsTab({ data }) {
                                                 </div>
                                             )}
                                             {isYearly && !isFree && (
-                                                <p className="text-xs text-emerald-400 mt-1">Экономия 20%</p>
+                                                <p className="text-xs text-emerald-400 mt-1">{t('subscriptions.discount')}</p>
                                             )}
                                         </>
                                     )}
@@ -403,7 +400,10 @@ export function SubscriptionsTab({ data }) {
                                             : String(raw).split(', ').filter(Boolean)
                                         return list.map((f, i) => (
                                             <div key={i} className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-                                                <div className="w-1 h-1 rounded-full bg-[#00ff41]" /> {f}
+                                                <div className="w-5 h-5 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center">
+                                                    <Check size={12} />
+                                                </div>
+                                                {f}
                                             </div>
                                         ))
                                     })()}
@@ -412,31 +412,30 @@ export function SubscriptionsTab({ data }) {
                                 <button
                                     onClick={() => !isCurrent && !isFree && handleSubscribe(plan.id)}
                                     disabled={isCurrent || isFree || paying === plan.id}
-                                    className={`w-full py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                                    className={`w-full py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                                         isCurrent
-                                            ? 'bg-[#00ff41]/10 text-[#00ff41] cursor-default'
+                                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)] cursor-default'
                                             : isFree
-                                            ? 'bg-[var(--card-hover)] text-[var(--text-muted)] cursor-default'
+                                            ? 'glass text-[var(--text-muted)] cursor-default'
                                             : paying === plan.id
-                                            ? 'bg-[var(--card-hover)] text-[var(--text-muted)] cursor-wait'
-                                            : 'bg-[#00ff41] text-[#0a0a0f] hover:bg-[#00ff41]/90'
+                                            ? 'glass text-[var(--text-muted)] cursor-wait'
+                                            : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25'
                                     }`}
                                 >
                                     {paying === plan.id ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                                    {isCurrent ? 'Активен' : isFree ? 'Бесплатно' : paying === plan.id ? 'Создание…' : 'Оформить'}
+                                    {isCurrent ? t('subscriptions.active') : isFree ? t('subscriptions.free') : paying === plan.id ? t('subscriptions.processing') : t('subscriptions.subscribe')}
                                 </button>
                             </div>
                         )
-                    })})()}
+                    })}
                 </div>
             </div>
 
-            {/* Quota settings for owner */}
             {(user?.role === 'owner' || user?.role === 'admin') && (
-                <div className="rounded-2xl bg-[var(--card)] border border-[var(--border)] p-5 space-y-4">
+                <div className="luxury-card glass p-5 space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                         <Settings className="w-5 h-5 text-[var(--text-muted)]" />
-                        <h3 className="text-lg font-semibold text-[var(--text)]">Настройки лимитов генераций</h3>
+                        <h3 className="text-lg font-semibold text-[var(--text)]">{t('subscriptions.quotaSettings')}</h3>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {[
@@ -452,7 +451,7 @@ export function SubscriptionsTab({ data }) {
                                         type="number"
                                         value={quotaSettings[field.key]}
                                         onChange={e => setQuotaSettings(prev => ({ ...prev, [field.key]: parseFloat(e.target.value) || 0 }))}
-                                        className="flex-1 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-sm text-[var(--text)] outline-none"
+                                        className="flex-1 px-3 py-2 rounded-lg glass text-sm text-[var(--text)] outline-none"
                                     />
                                     <span className="text-xs text-[var(--text-muted)]">{field.suffix}</span>
                                 </div>
@@ -462,16 +461,15 @@ export function SubscriptionsTab({ data }) {
                     <button
                         onClick={saveQuotaSettings}
                         disabled={savingQuota}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#00ff41] text-[#0a0a0f] text-sm font-medium transition-colors disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
                     >
                         {savingQuota ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                        Сохранить лимиты
+                        {t('subscriptions.saveQuota')}
                     </button>
                 </div>
             )}
 
-            {/* International / Stripe note */}
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 flex items-start gap-3">
+            <div className="rounded-xl border border-[var(--border)] glass p-4 flex items-start gap-3">
                 <Globe className="w-5 h-5 text-[var(--text-muted)] mt-0.5" />
                 <div>
                     <p className="text-sm font-medium text-[var(--text)]">Международные платежи</p>
@@ -487,15 +485,14 @@ export function SubscriptionsTab({ data }) {
                 </div>
             </div>
 
-            {/* AI Pricing Modal */}
             {pricingOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl p-4">
-                    <div className="w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                    <div className="w-full max-w-2xl rounded-2xl border border-[var(--border)] glass shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
                             <h3 className="text-base font-semibold text-[var(--text)] flex items-center gap-2">
                                 <Sparkles size={18} className="text-[var(--primary)]" /> AI-анализ цен
                             </h3>
-                            <button onClick={() => setPricingOpen(false)} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--card-hover)] transition-colors">
+                            <button onClick={() => setPricingOpen(false)} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors">
                                 <X size={18} />
                             </button>
                         </div>
@@ -506,7 +503,7 @@ export function SubscriptionsTab({ data }) {
                                     <input
                                         value={pricingForm.niche}
                                         onChange={(e) => setPricingForm(p => ({ ...p, niche: e.target.value }))}
-                                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm text-[var(--text)] outline-none focus:border-[var(--primary)]/50"
+                                        className="w-full px-3 py-2 rounded-xl glass text-sm text-[var(--text)] outline-none focus:border-[var(--primary)]/50"
                                     />
                                 </div>
                                 <div>
@@ -514,7 +511,7 @@ export function SubscriptionsTab({ data }) {
                                     <input
                                         value={pricingForm.region}
                                         onChange={(e) => setPricingForm(p => ({ ...p, region: e.target.value }))}
-                                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm text-[var(--text)] outline-none focus:border-[var(--primary)]/50"
+                                        className="w-full px-3 py-2 rounded-xl glass text-sm text-[var(--text)] outline-none focus:border-[var(--primary)]/50"
                                     />
                                 </div>
                             </div>
@@ -524,7 +521,7 @@ export function SubscriptionsTab({ data }) {
                                     value={pricingForm.competitorPrices}
                                     onChange={(e) => setPricingForm(p => ({ ...p, competitorPrices: e.target.value }))}
                                     placeholder="19, 29, 49, 99"
-                                    className="w-full px-3 py-2 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--primary)]/50"
+                                    className="w-full px-3 py-2 rounded-xl glass text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--primary)]/50"
                                 />
                             </div>
                             <button
@@ -552,7 +549,7 @@ export function SubscriptionsTab({ data }) {
                                     }
                                 }}
                                 disabled={pricingLoading}
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
                             >
                                 {pricingLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                                 {pricingLoading ? 'Анализ…' : 'Проанализировать'}
@@ -562,7 +559,7 @@ export function SubscriptionsTab({ data }) {
                                 <div className="space-y-3 pt-2">
                                     <div className="text-sm text-[var(--text-muted)]">Позиционирование: <span className="text-[var(--text)] font-medium">{pricingResult.marketPosition}</span></div>
                                     {pricingResult.recommendations.map((rec) => (
-                                        <div key={rec.plan} className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div key={rec.plan} className="rounded-xl border border-[var(--border)] glass p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                             <div>
                                                 <div className="font-semibold text-[var(--text)]">{rec.plan}</div>
                                                 <div className="text-xs text-[var(--text-muted)] mt-1">{rec.reasoning}</div>
@@ -595,7 +592,7 @@ export function SubscriptionsTab({ data }) {
                                                             pushToast('error', err.message)
                                                         }
                                                     }}
-                                                    className="px-3 py-1.5 rounded-lg bg-[var(--accent)] text-[var(--bg-secondary)] text-xs font-medium hover:opacity-90 transition-opacity"
+                                                    className="px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white text-xs font-medium hover:opacity-90 transition-opacity"
                                                 >
                                                     Применить
                                                 </button>
@@ -609,16 +606,15 @@ export function SubscriptionsTab({ data }) {
                 </div>
             )}
 
-            {/* History */}
             {safeHistory.length > 0 && (
                 <div>
                     <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Receipt className="w-5 h-5" />
                         История подписок
                     </h3>
-                    <div className="overflow-x-auto rounded-2xl border border-[var(--border)]">
+                    <div className="overflow-x-auto rounded-2xl border border-[var(--border)] glass">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-[var(--bg-secondary)] text-[var(--text-muted)]">
+                            <thead className="bg-[var(--bg-secondary)] text-[var(--text-muted)] sticky top-0">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Тариф</th>
                                     <th className="px-4 py-3 font-medium">Статус</th>
@@ -629,11 +625,11 @@ export function SubscriptionsTab({ data }) {
                             </thead>
                             <tbody className="divide-y divide-[var(--border)]">
                                 {safeHistory.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-[var(--card-hover)]">
+                                    <tr key={idx} className="hover:bg-[var(--primary-soft)]/30 transition-colors">
                                         <td className="px-4 py-3 text-[var(--text)] capitalize">{item.plan}</td>
                                         <td className="px-4 py-3"><StatusBadge status={item.status} label={item.status} /></td>
                                         <td className="px-4 py-3 text-[var(--text)]">
-                                            {item.price > 0 ? formatPrice(item.price, item.currency) : 'Free'}
+                                            {item.price > 0 ? formatPrice(item.price, item.currency) : t('subscriptions.free')}
                                         </td>
                                         <td className="px-4 py-3 text-[var(--text-muted)]">{item.interval === 'year' ? 'год' : 'мес'}</td>
                                         <td className="px-4 py-3 text-[var(--text-muted)]">

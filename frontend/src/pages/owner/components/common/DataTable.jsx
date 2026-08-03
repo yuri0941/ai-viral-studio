@@ -13,6 +13,9 @@ export function DataTable({
     onDelete,
     emptyText = 'Нет данных',
     rowClassName = () => '',
+    className = '',
+    wrapperClassName = '',
+    stickyHeader = false,
 }) {
     const [sortCol, setSortCol] = useState(null)
     const [sortDir, setSortDir] = useState('asc')
@@ -65,25 +68,25 @@ export function DataTable({
     }
 
     return (
-        <div className="w-full">
+        <div className={`w-full ${className}`}>
             {(searchable || exportable) && (
                 <div className="flex items-center gap-3 mb-4">
                     {searchable && (
                         <div className="relative flex-1 max-w-sm">
-                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input
                                 type="text"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Поиск..."
-                                className="w-full pl-9 pr-3 py-2 bg-[#0f0f1a] border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500/30"
+                                className="w-full pl-9 pr-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--primary)]/30"
                             />
                         </div>
                     )}
                     {exportable && (
                         <button
                             onClick={() => exportToCSV(filtered, 'export.csv')}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-gray-300 transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--surface)] hover:bg-[var(--primary-soft)] text-xs text-[var(--text)] transition-colors"
                         >
                             <Download size={14} /> CSV
                         </button>
@@ -91,24 +94,24 @@ export function DataTable({
                 </div>
             )}
 
-            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0f0f1a]">
+            <div className={`overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] ${wrapperClassName}`}>
                 <table className="w-full text-sm">
-                    <thead>
-                        <tr className="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
+                    <thead className={stickyHeader ? 'sticky top-0 z-10' : ''}>
+                        <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-muted)] text-xs uppercase tracking-wider">
                             {selectable && (
                                 <th className="px-4 py-3 w-10">
                                     <input
                                         type="checkbox"
                                         checked={filtered.length > 0 && selected.size === filtered.length}
                                         onChange={toggleAll}
-                                        className="rounded border-gray-600 bg-transparent"
+                                        className="rounded border-[var(--border-strong)] bg-transparent"
                                     />
                                 </th>
                             )}
                             {columns.map(col => (
                                 <th
                                     key={col.key}
-                                    className={`px-4 py-3 text-left font-medium ${col.sortable !== false ? 'cursor-pointer hover:text-white select-none' : ''}`}
+                                    className={`px-4 py-3 text-left font-medium ${col.sortable !== false ? 'cursor-pointer hover:text-[var(--text)] select-none' : ''}`}
                                     onClick={() => col.sortable !== false && handleSort(col.key)}
                                 >
                                     <div className="flex items-center gap-1">
@@ -122,10 +125,10 @@ export function DataTable({
                             {(onEdit || onDelete) && <th className="px-4 py-3 w-20">Действия</th>}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-[var(--border)]">
                         {filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={columns.length + (selectable ? 1 : 0) + (onEdit || onDelete ? 1 : 0)} className="px-4 py-12 text-center text-gray-500">
+                                <td colSpan={columns.length + (selectable ? 1 : 0) + (onEdit || onDelete ? 1 : 0)} className="px-4 py-12 text-center text-[var(--text-muted)]">
                                     {emptyText}
                                 </td>
                             </tr>
@@ -133,7 +136,7 @@ export function DataTable({
                             <tr
                                 key={row.id}
                                 onClick={() => onRowClick?.(row)}
-                                className={`transition-colors ${onRowClick ? 'cursor-pointer' : ''} hover:bg-white/[0.02] ${rowClassName(row)}`}
+                                className={`transition-colors ${onRowClick ? 'cursor-pointer' : ''} hover:bg-[var(--surface)] ${rowClassName(row)}`}
                             >
                                 {selectable && (
                                     <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
@@ -141,12 +144,12 @@ export function DataTable({
                                             type="checkbox"
                                             checked={selected.has(row.id)}
                                             onChange={() => toggleSelect(row.id)}
-                                            className="rounded border-gray-600 bg-transparent"
+                                            className="rounded border-[var(--border-strong)] bg-transparent"
                                         />
                                     </td>
                                 )}
                                 {columns.map(col => (
-                                    <td key={col.key} className="px-4 py-3 text-gray-300">
+                                    <td key={col.key} className="px-4 py-3 text-[var(--text)]">
                                         {col.render ? col.render(row) : row[col.key]}
                                     </td>
                                 ))}
@@ -154,12 +157,12 @@ export function DataTable({
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
                                             {onEdit && (
-                                                <button onClick={e => { e.stopPropagation(); onEdit(row) }} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-blue-400 transition-colors">
+                                                <button onClick={e => { e.stopPropagation(); onEdit(row) }} className="p-1.5 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--info)] transition-colors">
                                                     <Edit size={14} />
                                                 </button>
                                             )}
                                             {onDelete && (
-                                                <button onClick={e => { e.stopPropagation(); onDelete(row.id) }} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors">
+                                                <button onClick={e => { e.stopPropagation(); onDelete(row.id) }} className="p-1.5 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors">
                                                     <Trash2 size={14} />
                                                 </button>
                                             )}
