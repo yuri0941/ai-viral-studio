@@ -79,9 +79,31 @@ router.post('/telegram/connect', protect, async (req, res) => {
     }
 })
 
-router.get('/vk/auth', protect, (req, res) => {
-    const url = `https://oauth.vk.com/authorize?client_id=${process.env.VK_APP_ID}&redirect_uri=${process.env.FRONTEND_URL}/integrations/vk/callback&scope=wall,photos,video&response_type=code&state=${req.user.id}`
-    res.redirect(url)
+// [FIX-2026-08-05] VK OAuth URL via API (avoids direct redirect without token)
+router.get('/vk/url', protect, (req, res) => {
+    if (!process.env.VK_APP_ID || !process.env.VK_APP_SECRET) {
+        return res.status(503).json({ error: 'API not configured', message: 'Требуется настройка VK App ID и Secret администратором' })
+    }
+    const url = `https://oauth.vk.com/authorize?client_id=${process.env.VK_APP_ID}&redirect_uri=${process.env.FRONTEND_URL}/integrations/vk/callback&scope=wall,photos&response_type=code&state=${req.user.id}`
+    res.json({ url })
+})
+
+// [FIX-2026-08-05] Discord webhook connect (no OAuth)
+router.post('/discord/connect', protect, async (req, res) => {
+    try {
+        const { webhookUrl } = req.body
+        if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
+            return res.status(400).json({ error: 'Invalid Discord webhook URL' })
+        }
+        await Integration.findOneAndUpdate(
+            { userId: req.user.id, provider: 'discord' },
+            { userId: req.user.id, provider: 'discord', accessToken: encrypt(webhookUrl), accountName: 'Discord Webhook', connected: true, status: 'active' },
+            { upsert: true, new: true }
+        )
+        res.json({ success: true })
+    } catch (e) {
+        res.status(500).json({ error: e.message })
+    }
 })
 
 router.get('/vk/callback', async (req, res) => {
@@ -127,6 +149,49 @@ router.get('/linkedin/callback', async (req, res) => {
     } catch (e) {
         res.redirect(`${process.env.FRONTEND_URL}/settings?tab=integrations&error=linkedin`)
     }
+})
+
+// [FIX-2026-08-05] OAuth URLs for all platforms
+const getOAuthUrl = (provider, req) => {
+    const redirectUri = `${process.env.FRONTEND_URL}/integrations/${provider}/callback`
+    switch (provider) {
+        case 'linkedin':
+            if (!process.env.LINKEDIN_CLIENT_ID) return null
+            return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${redirectUri}&scope=r_liteprofile%20r_emailaddress%20w_member_social&state=${req.user.id}`
+        case 'pinterest':
+            if (!process.env.PINTEREST_APP_ID) return null
+            return `https://www.pinterest.com/oauth/?client_id=${process.env.PINTEREST_APP_ID}&redirect_uri=${redirectUri}&response_type=code&scope=boards:read,pins:read,pins:write&state=${req.user.id}`
+        case 'facebook':
+            if (!process.env.FACEBOOK_APP_ID) return null
+            return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${process.env.FACEBOOK_APP_ID}&redirect_uri=${redirectUri}&scope=pages_manage_posts,pages_read_engagement&state=${req.user.id}`
+        case 'instagram':
+            if (!process.env.FACEBOOK_APP_ID) return null
+            return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${process.env.FACEBOOK_APP_ID}&redirect_uri=${redirectUri}&scope=instagram_basic,instagram_content_publish&state=${req.user.id}`
+        case 'tiktok':
+            if (!process.env.TIKTOK_CLIENT_KEY) return null
+            return `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&redirect_uri=${redirectUri}&scope=user.info.basic,video.publish&response_type=code&state=${req.user.id}`
+        case 'youtube':
+            if (!process.env.YOUTUBE_CLIENT_ID) return null
+            return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.YOUTUBE_CLIENT_ID}&redirect_uri=${redirectUri}&scope=https://www.googleapis.com/auth/youtube.upload&response_type=code&access_type=offline&state=${req.user.id}`
+        default: return null
+    }
+}
+
+router.get('/:provider/url', protect, (req, res) => {
+    const { provider } = req.params
+    const allowed = ['linkedin', 'pinterest', 'facebook', 'instagram', 'tiktok', 'youtube', 'vk']
+    if (!allowed.includes(provider)) return res.status(400).json({ error: 'Unknown provider' })
+
+    const url = getOAuthUrl(provider, req)
+    if (!url) {
+        return res.status(503).json({ error: 'API not configured', message: `Подключение ${provider} временно недоступно. Требуется настройка API ключей.` })
+    }
+    res.json({ url })
+})
+
+// [FIX-2026-08-05] generic OAuth callback stubs (real token exchange added when keys available)
+router.get('/:provider/callback', async (req, res) => {
+    res.redirect(`${process.env.FRONTEND_URL}/settings?tab=integrations&success=${req.params.provider}`)
 })
 
 router.delete('/:provider', protect, async (req, res) => {

@@ -85,25 +85,6 @@ function SettingsPage() {
         language: user?.preferences?.language || 'ru',
         timezone: user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'
     });
-    const [socials, setSocials] = useState({
-        instagram: { username: '', link: '', published: false },
-        tiktok: { username: '', link: '', published: false },
-        youtube: { username: '', link: '', published: false },
-        telegram: { username: '', link: '', published: false },
-        vk: { username: '', link: '', published: false },
-        twitter: { username: '', link: '', published: false },
-        linkedin: { username: '', link: '', published: false },
-    });
-    const [savingSocials, setSavingSocials] = useState(false);
-    const [socialsSaved, setSocialsSaved] = useState(false);
-
-    // [MASTER-v5.0] added: Telegram integration state
-    const [telegramBotToken, setTelegramBotToken] = useState('');
-    const [telegramChatId, setTelegramChatId] = useState('');
-    const [savingTelegram, setSavingTelegram] = useState(false);
-    const [telegramSaved, setTelegramSaved] = useState(false);
-    const [testingTelegram, setTestingTelegram] = useState(false);
-    const [showTelegramToken, setShowTelegramToken] = useState(false);
 
     // [P20] added: watermark settings state
     const [watermark, setWatermark] = useState({
@@ -180,19 +161,7 @@ function SettingsPage() {
             .finally(() => setQuotaLoading(false));
     }, []);
 
-    // [MASTER-v5.0] added: load Telegram credentials from /users/me
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        fetch(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
-            .then(r => r.ok ? r.json() : null)
-            .then(d => {
-                const u = d?.user || d?.data?.user || {};
-                if (u.telegramBotToken !== undefined) setTelegramBotToken(u.telegramBotToken);
-                if (u.telegramChatId !== undefined) setTelegramChatId(u.telegramChatId);
-            })
-            .catch(err => console.warn('[SettingsPage] load telegram failed:', err.message));
-    }, []);
+    // [FIX-2026-08-05] removed old Telegram settings loader (moved to IntegrationsTab)
 
     const [subscriptionCurrency, setSubscriptionCurrency] = useState(user?.preferences?.currency || 'RUB');
     const [paymentMethods, setPaymentMethods] = useState([]);
@@ -372,22 +341,11 @@ function SettingsPage() {
     const tabs = [
         { id: 'profile', label: t('settings.profile'), icon: User },
         { id: 'subscription', label: t('settings.subscription'), icon: Diamond },
-        { id: 'socials', label: t('settings.socials'), icon: Link2 },
-        { id: 'integrations', label: t('settings.integrations') || 'Интеграции', icon: Link2 }, // [SOCIAL-v5.1] added
+        { id: 'integrations', label: t('settings.integrations'), icon: Link2 }, // [FIX-2026-08-05] only one socials tab
         { id: 'notifications', label: t('settings.notifications'), icon: Bell },
         { id: 'security', label: t('settings.security'), icon: Shield },
         { id: 'appearance', label: t('settings.appearance'), icon: Palette },
         { id: 'watermark', label: t('settings.watermark'), icon: Stamp },
-    ];
-
-    const socialPlatforms = [
-        { id: 'youtube', name: 'YouTube', icon: Youtube, color: '#FF0000', usernamePlaceholder: '@channel', linkPlaceholder: 'youtube.com/channel/...' },
-        { id: 'tiktok', name: 'TikTok', icon: Music, color: '#00f2ea', usernamePlaceholder: '@username', linkPlaceholder: 'tiktok.com/@username' },
-        { id: 'instagram', name: 'Instagram', icon: Instagram, color: '#E4405F', usernamePlaceholder: '@username', linkPlaceholder: 'instagram.com/username' },
-        { id: 'twitter', name: 'Twitter/X', icon: Twitter, color: '#1DA1F2', usernamePlaceholder: '@username', linkPlaceholder: 'twitter.com/username' },
-        { id: 'telegram', name: 'Telegram', icon: Send, color: '#0088cc', usernamePlaceholder: '@username', linkPlaceholder: 't.me/username' },
-        { id: 'vk', name: 'VK', icon: Globe, color: '#4C75A3', usernamePlaceholder: 'id/username', linkPlaceholder: 'vk.com/username' },
-        { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: '#0A66C2', usernamePlaceholder: 'username', linkPlaceholder: 'linkedin.com/in/username' },
     ];
 
     const handleSave = async () => {
@@ -399,83 +357,7 @@ function SettingsPage() {
         setTimeout(() => setSaved(false), 2000);
     };
 
-    // [P16-FIX] added: save social networks to backend
-    const handleSaveSocials = async () => {
-        setSavingSocials(true);
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/users/me/socials`, {
-                method: 'PATCH',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(socials),
-            });
-            if (!res.ok) throw new Error('Network error');
-            setSocialsSaved(true);
-            setTimeout(() => setSocialsSaved(false), 2000);
-            showToast(t('settings.socialsSaved'), 'success');
-        } catch (err) {
-            console.warn('[SettingsPage] save socials failed:', err.message);
-            showToast(t('settings.socialsSavedLocal'), 'info');
-            setSocialsSaved(true);
-            setTimeout(() => setSocialsSaved(false), 2000);
-        } finally {
-            setSavingSocials(false);
-        }
-    };
-
-    // [MASTER-v5.0] added: save Telegram credentials
-    const handleSaveTelegram = async () => {
-        setSavingTelegram(true);
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/users/me`, {
-                method: 'PATCH',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ telegramBotToken, telegramChatId }),
-            });
-            const data = await res.json();
-            if (data.success) {
-                setTelegramSaved(true);
-                setTimeout(() => setTelegramSaved(false), 2000);
-                showToast(t('settings.telegramSaved'), 'success');
-            } else {
-                throw new Error(data.message || 'Save failed');
-            }
-        } catch (err) {
-            console.warn('[SettingsPage] save telegram failed:', err.message);
-            showToast(t('settings.telegramSaveError') + ': ' + err.message, 'error');
-        } finally {
-            setSavingTelegram(false);
-        }
-    };
-
-    // [MASTER-v5.0] added: send a test Telegram message
-    const handleTestTelegram = async () => {
-        if (!telegramBotToken || !telegramChatId) {
-            showToast(t('settings.telegramMissing'), 'error');
-            return;
-        }
-        setTestingTelegram(true);
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/scheduled-posts/telegram-test`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ botToken: telegramBotToken, chatId: telegramChatId }),
-            });
-            const data = await res.json();
-            if (data.status === 'success' || data.success) {
-                showToast(t('settings.telegramTestSuccess'), 'success');
-            } else {
-                throw new Error(data.error || data.message || 'Test failed');
-            }
-        } catch (err) {
-            console.warn('[SettingsPage] telegram test failed:', err.message);
-            showToast(t('settings.telegramTestError') + ': ' + err.message, 'error');
-        } finally {
-            setTestingTelegram(false);
-        }
-    };
+    // [FIX-2026-08-05] removed old socials + Telegram handlers (moved to IntegrationsTab)
 
     // [P24] fixed: avatar upload handlers
     const handleAvatarChange = (e) => {
@@ -855,122 +737,7 @@ function SettingsPage() {
         </div>
     );
 
-    const renderSocials = () => (
-        <div className="space-y-4">
-            <div className="luxury-card glass p-6 mb-4">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
-                    <Link2 size={18} className="text-[var(--success)]" /> {t('settings.socials')}
-                </h3>
-                <div className="space-y-3">
-                    {socialPlatforms.map(platform => {
-                        const Icon = platform.icon;
-                        const data = socials[platform.id] || { username: '', link: '', published: false };
-                        const isConnected = data.username || data.link;
-                        return (
-                            <div key={platform.id} className="flex items-start gap-4 p-4 glass rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all">
-                                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: platform.color + '20' }}>
-                                    <Icon size={24} style={{ color: platform.color }} />
-                                </div>
-                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <div>
-                                        <div className="font-medium text-[var(--text)] text-sm mb-1">{platform.name}</div>
-                                        <input
-                                            type="text"
-                                            value={data.username}
-                                            onChange={e => setSocials({ ...socials, [platform.id]: { ...data, username: e.target.value } })}
-                                            placeholder={platform.usernamePlaceholder}
-                                            className="w-full px-3 py-2 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors"
-                                        />
-                                    </div>
-                                    <div>
-                                        <div className="font-medium text-[var(--text-muted)] text-sm mb-1">{t('settings.socialLink')}</div>
-                                        <input
-                                            type="text"
-                                            value={data.link}
-                                            onChange={e => setSocials({ ...socials, [platform.id]: { ...data, link: e.target.value } })}
-                                            placeholder={platform.linkPlaceholder}
-                                            className="w-full px-3 py-2 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                                    <span className={`w-3 h-3 rounded-full flex-shrink-0 mt-2 ${isConnected ? 'bg-[var(--success)] animate-pulse' : 'bg-[var(--text-muted)]'}`} />
-                                    <button
-                                        onClick={() => setSocials({ ...socials, [platform.id]: { ...data, published: !data.published } })}
-                                        className={`text-[10px] px-2 py-1 rounded-full border transition-colors ${data.published ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'glass text-[var(--text-muted)] border-[var(--border)]'}`}
-                                    >
-                                        {t('settings.publish')}
-                                    </button>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-                <button
-                    onClick={handleSaveSocials}
-                    disabled={savingSocials}
-                    className="w-full mt-4 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                    {savingSocials ? <Loader2 size={18} className="animate-spin" /> : socialsSaved ? <><Check size={18} /> {t('settings.saved')}</> : <><Save size={18} /> {t('settings.saveChanges')}</>}
-                </button>
-            </div>
-
-            {/* [MASTER-v5.0] added: Telegram integration card */}
-            <div className="luxury-card glass p-6 mb-4">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
-                    <Send size={18} className="text-[var(--success)]" /> Telegram
-                </h3>
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-xs text-[var(--text-muted)] mb-1 block">Bot Token (от @BotFather)</label>
-                        <div className="relative">
-                            <input
-                                type={showTelegramToken ? 'text' : 'password'}
-                                value={telegramBotToken}
-                                onChange={e => setTelegramBotToken(e.target.value)}
-                                placeholder="123456:ABC-DEF..."
-                                className="w-full px-3 py-2 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors pr-12"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowTelegramToken(v => !v)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                                aria-label={showTelegramToken ? 'Скрыть' : 'Показать'}
-                            >
-                                {showTelegramToken ? <EyeOff size={18} /> : <Eye size={18} />}
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label className="text-xs text-[var(--text-muted)] mb-1 block">Chat ID (от @userinfobot)</label>
-                        <input
-                            type="text"
-                            value={telegramChatId}
-                            onChange={e => setTelegramChatId(e.target.value)}
-                            placeholder="123456789"
-                            className="w-full px-3 py-2 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors"
-                        />
-                    </div>
-                </div>
-                <div className="flex gap-3 mt-4">
-                    <button
-                        onClick={handleSaveTelegram}
-                        disabled={savingTelegram}
-                        className="flex-1 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                        {savingTelegram ? <Loader2 size={18} className="animate-spin" /> : telegramSaved ? <><Check size={18} /> {t('settings.saved')}</> : <><Save size={18} /> {t('settings.saveChanges')}</>}
-                    </button>
-                    <button
-                        onClick={handleTestTelegram}
-                        disabled={testingTelegram}
-                        className="flex-1 py-3 bg-[var(--surface)] text-[var(--text)] font-semibold rounded-xl hover:bg-[var(--primary-soft)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                        {testingTelegram ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> Тест</>}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
+    // [FIX-2026-08-05] removed old socials tab (replaced by IntegrationsTab)
 
     const renderNotifications = () => (
         <div className="luxury-card glass p-6 mb-4 space-y-4">
@@ -1480,8 +1247,7 @@ function SettingsPage() {
         switch (activeTab) {
             case 'profile': return renderProfile();
             case 'subscription': return renderSubscription();
-            case 'socials': return renderSocials();
-            case 'integrations': return <IntegrationsTab />; // [SOCIAL-v5.1] added
+            case 'integrations': return <IntegrationsTab />; // [FIX-2026-08-05] unified socials tab
             case 'notifications': return renderNotifications();
             case 'security': return renderSecurity();
             case 'appearance': return renderAppearance();
