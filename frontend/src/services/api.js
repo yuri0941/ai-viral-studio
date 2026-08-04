@@ -8,7 +8,8 @@ const API_BASE = API_URL
 
 function getAuthHeaders() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-    return token ? { Authorization: `Bearer ${token}` } : {}
+    // [HOTFIX-2026-08-04] added — always send Authorization header
+    return { Authorization: `Bearer ${token || ''}` }
 }
 
 async function request(path, options = {}) {
@@ -22,12 +23,21 @@ async function request(path, options = {}) {
         ...options,
     })
 
-    if (!res.ok) {
+    // [HOTFIX-2026-08-04] added JSON guard
+    const contentType = res.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
         const text = await res.text()
-        throw new Error(`HTTP ${res.status}: ${text}`)
+        console.error('Non-JSON response from', url, ':', text.slice(0, 200))
+        throw new Error('Сервер вернул HTML вместо JSON. Возможно, endpoint не найден.')
     }
 
-    return res.json()
+    const data = await res.json()
+
+    if (!res.ok) {
+        throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+    }
+
+    return data
 }
 
 // ============================================
@@ -76,9 +86,9 @@ export const ownerApi = {
 // ============================================
 export const omegaApi = {
     status: () => request('/omega/status'),
-    chat: (message, history = [], lang = 'ru', role = 'guest') => request('/omega/chat', {
+    chat: (message, history = [], lang = 'ru', role = 'guest', userId = null) => request('/omega/chat', {
         method: 'POST',
-        body: JSON.stringify({ message, history, lang, userRole: role }),
+        body: JSON.stringify({ message, history, lang, userRole: role, userId }),
     }),
     getMemory: (query, limit) => {
         const params = new URLSearchParams()

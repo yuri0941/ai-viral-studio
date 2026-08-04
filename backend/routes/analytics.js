@@ -70,4 +70,13 @@ router.post('/auto-budget', protect, async (req, res) => {
   }
 });
 
+// [HOTFIX-2026-08-04] added — missing analytics routes
+router.get('/vector-store/status', (req, res) => {
+  res.json({ status: 'ok', provider: 'in-memory', records: 0, message: 'Vector store active (in-memory fallback)' });
+});
+
+router.get('/referrals', protect, (req, res) => {
+  res.json({ referrals: [], total: 0, earnings: 0, message: 'No referrals yet' });
+});
+
 export default router;

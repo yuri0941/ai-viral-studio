@@ -12,7 +12,11 @@ const STORAGE_KEY = 'omega_chat_history'
 const DEMO_RESPONSES = [
     {
         keywords: ['привет', 'здравствуй', 'hello', 'hi'],
-        response: 'Привет! Я OMEGA — твой AI-ассистент. Сейчас все провайдеры недоступны, но я работаю в демо-режиме. Задай вопрос по аналитике, финансам или задачам.'
+        response: 'Привет! Я OMEGA — твой AI-ассистент. Чем помочь?'
+    },
+    {
+        keywords: ['что ты умеешь', 'what can you do', 'возможности', 'help'],
+        response: 'Вот чем я могу помочь: идеи и посты, сценарии Shorts/Reels, аналитика и метрики, тренды и хуки, время публикаций, brand voice, автопилот контента. Спроси по любому пункту.'
     },
     {
         keywords: ['доход', 'revenue', 'финанс', 'finance', 'деньги', 'money'],
@@ -64,7 +68,7 @@ export function useOmegaChat(options = {}) {
         setDemoMode(false)
 
         try {
-            const data = await omega.sendChatMessage(userMsg.text, messages, { role: user?.role || 'guest' })
+            const data = await omega.sendChatMessage(userMsg.text, messages, { role: user?.role || 'guest', userId: user?._id || null })
             if (!data) throw new Error('Пустой ответ от OMEGA')
             const reply = {
                 id: generateId(),

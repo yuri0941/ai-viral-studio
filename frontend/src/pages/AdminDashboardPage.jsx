@@ -109,11 +109,11 @@ function AdminDashboardPage() {
 
     // --- FILTERED USERS ---
     const filteredUsers = users.filter(u =>
-        (u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.role.toLowerCase().includes(searchQuery.toLowerCase())) &&
-        (roleFilter === 'all' || u.role === roleFilter) &&
-        (statusFilter === 'all' || u.status === statusFilter)
+        ((u?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (u?.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (u?.role || '').toLowerCase().includes(searchQuery.toLowerCase())) &&
+        (roleFilter === 'all' || u?.role === roleFilter) &&
+        (statusFilter === 'all' || u?.status === statusFilter)
     ).sort((a, b) => {
         let valA = a[sortBy], valB = b[sortBy]
         if (sortBy === 'joined') { valA = new Date(valA); valB = new Date(valB) }
@@ -260,17 +260,17 @@ function AdminDashboardPage() {
             ),
         },
         { key: 'id', header: t('admin.id', 'ID'), width: '80px', cell: (u) => <span className="text-[var(--text-muted)]">#{u.id}</span> },
-        { key: 'name', header: t('admin.name'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)] font-medium">{u.name}</span> },
-        { key: 'email', header: t('admin.email'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)]">{u.email}</span> },
+        { key: 'name', header: t('admin.name'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)] font-medium">{u?.name || '—'}</span> },
+        { key: 'email', header: t('admin.email'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)]">{u?.email || '—'}</span> },
         {
             key: 'role',
             header: t('admin.role'),
             width: '130px',
             cell: (u) => (
                 <select
-                    value={u.role}
+                    value={u?.role || 'creator'}
                     onChange={e => handleChangeRole(u.id, e.target.value)}
-                    className={`px-2.5 py-1 rounded-full text-xs border bg-transparent outline-none ${getRoleColor(u.role)}`}
+                    className={`px-2.5 py-1 rounded-full text-xs border bg-transparent outline-none ${getRoleColor(u?.role)}`}
                 >
                     {['creator', 'business', 'advertiser', 'staff', 'admin'].map(r => (
                         <option key={r} value={r} className="bg-[var(--card)]">{t(`admin.roles.${r}`)}</option>
@@ -283,14 +283,14 @@ function AdminDashboardPage() {
             header: t('admin.status'),
             width: '130px',
             cell: (u) => (
-                <span className={`flex items-center gap-1.5 text-sm font-medium ${getStatusColor(u.status)}`}>
-                    {getStatusIcon(u.status)}
-                    {getStatusLabel(u.status)}
+                <span className={`flex items-center gap-1.5 text-sm font-medium ${getStatusColor(u?.status)}`}>
+                    {u?.status ? getStatusIcon(u.status) : null}
+                    {u?.status ? getStatusLabel(u.status) : '—'}
                 </span>
             ),
         },
-        { key: 'posts', header: t('admin.posts'), width: '90px', cell: (u) => <span className="text-[var(--text)]">{u.posts}</span> },
-        { key: 'joined', header: t('admin.joined'), width: '150px', cell: (u) => <span className="text-[var(--text-muted)] text-sm">{u.joined}</span> },
+        { key: 'posts', header: t('admin.posts'), width: '90px', cell: (u) => <span className="text-[var(--text)]">{u?.posts ?? '—'}</span> },
+        { key: 'joined', header: t('admin.joined'), width: '150px', cell: (u) => <span className="text-[var(--text-muted)] text-sm">{u?.joined ? new Date(u.joined).toLocaleDateString() : '—'}</span> },
         {
             key: 'actions',
             header: t('admin.actions'),
@@ -307,13 +307,13 @@ function AdminDashboardPage() {
                     </button>
                     <button
                         onClick={() => handleToggleStatus(u.id)}
-                        className={`p-2 rounded-lg transition-colors ${u.status === 'active'
+                        className={`p-2 rounded-lg transition-colors ${u?.status === 'active'
                             ? 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)] hover:bg-[var(--accent-warm)]/20'
                             : 'bg-[var(--success)]/10 text-[var(--success)] hover:bg-[var(--success)]/20'
                             }`}
-                        title={u.status === 'active' ? t('admin.ban') : t('admin.unban')}
+                        title={u?.status === 'active' ? t('admin.ban') : t('admin.unban')}
                     >
-                        {u.status === 'active' ? <Lock size={14} /> : <Unlock size={14} />}
+                        {u?.status === 'active' ? <Lock size={14} /> : <Unlock size={14} />}
                     </button>
                     <button
                         onClick={() => openDeleteModal(u)}

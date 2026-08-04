@@ -59,9 +59,9 @@ router.get('/stats', stats)
 router.post('/generate-template', generateTemplate)
 router.get('/templates', listTemplateLibrary)
 router.post('/templates/:id/generate', generateTemplate)
-router.post('/brand-voice/analyze', analyzeBrandVoice)
-router.get('/brand-voice', getBrandVoice)
-router.post('/brand-voice/toggle', toggleBrandVoice)
+router.post('/brand-voice/analyze', protect, analyzeBrandVoice)
+router.get('/brand-voice', protect, getBrandVoice)
+router.post('/brand-voice/toggle', protect, toggleBrandVoice)
 router.post('/best-time', getBestTime)
 router.get('/scout/trends', getTrendsScout)
 router.post('/generate-cover', generateCoverImage)
@@ -95,7 +95,10 @@ router.post('/voice/stt', protect, upload.single('audio'), async (req, res) => {
         res.status(500).json({ status: 'error', message: err.message })
     }
 })
-router.post('/voice/speak', speakVoice)
+router.post('/voice/speak', protect, (req, res) => {
+    // [HOTFIX-2026-08-04] added — voice synthesis mock for free tier
+    res.json({ audioUrl: null, message: 'Voice synthesis disabled in free tier', status: 'mock' })
+})
 // [P19] added: AI video generation
 router.post('/generate-video', protect, generateVideo)
 

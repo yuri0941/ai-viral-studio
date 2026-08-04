@@ -42,13 +42,22 @@ export async function getStatus(req, res) {
 
 export async function chat(req, res) {
     try {
-        const { message, history = [] } = req.body
+        const { message, history = [], userRole = 'guest', userId: chatUserId } = req.body
         if (!message) {
             return res.status(400).json({ status: 'error', message: 'message is required' })
         }
 
         const lang = req.body.lang || 'ru'
-        const userRole = req.user?.role || req.body?.userRole || 'guest'
+        // [HOTFIX-2026-08-04] added role context
+        const roleContext = {
+            owner: 'Вы владелец платформы. Полный доступ.',
+            admin: 'Вы администратор. Доступ: пользователи, модерация.',
+            staff: 'Вы сотрудник поддержки. Доступ: тикеты, база знаний.',
+            creator: 'Вы клиент (creator). Доступ: свой проект, аналитика, контент.',
+            advertiser: 'Вы рекламодатель. Доступ: кампании, бюджет.',
+            guest: 'Вы гость. Доступ: демо-режим.'
+        }[userRole] || 'Вы пользователь.'
+
         const guard = checkOmegaGuard(message, lang, userRole)
         if (guard.blocked) {
             await logOmegaGuardEvent({
@@ -144,7 +153,7 @@ export async function chat(req, res) {
                 extraSystemContext ? `${extraSystemContext}\n\nВопрос: ${message}` : message,
                 history.map(h => ({ role: h.role, content: h.content || h.text })),
                 lang,
-                { userId, ownerId: userId, userRole: req.user?.role || req.body?.userRole || 'guest' }
+                { userId, ownerId: userId, userRole, extraSystem: roleContext, chatUserId }
             )
 
         if (userId) {

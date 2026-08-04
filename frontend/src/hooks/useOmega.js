@@ -43,7 +43,7 @@ export function useOmega(options = {}) {
                 content: msg.text || msg.content || '',
             }))
 
-            const json = await omegaApi.chat(message, normalizedHistory, 'ru', options.role || 'guest')
+            const json = await omegaApi.chat(message, normalizedHistory, 'ru', options.role || 'guest', options.userId || null)
             if (json.status !== 'success') throw new Error(json.message || 'OMEGA request failed')
 
             memoryRef.current?.store('short_term', {

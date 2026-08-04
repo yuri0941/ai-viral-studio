@@ -89,7 +89,7 @@ const DEMO_TEMPLATES = [
     {
         id: 'greeting',
         tags: ['привет', 'здравствуй', 'hello', 'hi', 'ку', 'start'],
-        response: 'Привет! Я OMEGA, ваш AI-ассистент по SMM. Готова помочь с идеями, скриптами, хуками и аналитикой. О чём поговорим?'
+        response: 'Привет! Я OMEGA, твой AI-ассистент. Чем помочь?'
     },
     {
         id: 'post',
@@ -123,8 +123,20 @@ const DEMO_TEMPLATES = [
     }
 ]
 
-function smartDemoReply(message, lang = 'ru') {
+function smartDemoReply(message, lang = 'ru', userRole = 'guest') {
     const lower = message.toLowerCase()
+
+    // [HOTFIX-2026-08-04] added — short greeting, no monologue
+    if (lower.includes('привет') || lower.includes('здравствуй') || lower.includes('hello') || lower.includes('hi')) {
+        return userRole === 'owner'
+            ? 'Привет, босс! OMEGA на связи. Чем займёмся?'
+            : 'Привет! Я OMEGA, твой AI-ассистент. Чем помочь сегодня?'
+    }
+    // [HOTFIX-2026-08-04] added — capabilities list only on explicit request
+    if (lower.includes('что ты умеешь') || lower.includes('what can you do') || lower.includes('возможности')) {
+        return 'Вот чем я могу помочь: идеи и посты, сценарии Shorts/Reels, аналитика и метрики, тренды и хуки, время публикаций, brand voice, автопилот контента. Спроси по любому пункту.'
+    }
+
     const allTemplates = [...DEMO_TEMPLATES, ...TEMPLATES]
     // Match by tags; prefer templates with more matching tags
     const scored = allTemplates
@@ -587,8 +599,11 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
 
         const detectedLang = detectLanguage(message)
         const langPrompt = `Язык запроса: ${detectedLang}. Отвечай строго на этом языке.`
+        // [HOTFIX-2026-08-04] added role context
+        const extraSystem = options.extraSystem || ''
+        const systemParts = [memoryContext, extraSystem, SYSTEM_PROMPT, langPrompt].filter(Boolean)
         const messages = [
-            { role: 'system', content: `${memoryContext}${SYSTEM_PROMPT}\n\n${langPrompt}` },
+            { role: 'system', content: systemParts.join('\n\n') },
             ...history.map(msg => ({
                 role: msg.role === 'user' ? 'user' : 'assistant',
                 content: msg.content
@@ -617,7 +632,8 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
         return { success: true, ...value }
     } catch (error) {
         console.error('AI Service Error:', error.message)
-        const reply = smartDemoReply(message, lang)
+        // [HOTFIX-2026-08-04] added — pass role to demo reply
+        const reply = smartDemoReply(message, lang, options.userRole)
         return {
             success: true,
             demo: true,

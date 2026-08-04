@@ -10,7 +10,7 @@ function getRedisUrl() {
 export async function connectRedis() {
   const url = getRedisUrl();
   if (!url) {
-    console.log('⚠️ Redis не подключён — используется in-memory cache (сбросится при перезапуске)');
+    console.info('[Cache] Redis not configured — using in-memory fallback. OK for free tier. Data resets on server restart.');
     return false;
   }
   try {

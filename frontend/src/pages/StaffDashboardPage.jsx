@@ -247,18 +247,18 @@ function StaffDashboardPage() {
     }
 
     const ticketColumns = useMemo(() => [
-        { key: 'id', header: t('staff.id'), width: '70px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">#{ticket.id}</span> },
-        { key: 'user', header: t('staff.user'), width: '1.5fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket.user}</span> },
-        { key: 'subject', header: t('staff.subject'), width: '2fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket.subject}</span> },
+        { key: 'id', header: t('staff.id'), width: '70px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">#{ticket?.id || '—'}</span> },
+        { key: 'user', header: t('staff.user'), width: '1.5fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket?.user || '—'}</span> },
+        { key: 'subject', header: t('staff.subject'), width: '2fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket?.subject || '—'}</span> },
         {
             key: 'priority',
             header: t('staff.priority'),
             width: '120px',
             cell: (ticket) => (
                 <select
-                    value={ticket.priority}
+                    value={ticket?.priority || 'low'}
                     onChange={e => changePriority(ticket.id, e.target.value)}
-                    className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getPriorityStyle(ticket.priority)}`}
+                    className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getPriorityStyle(ticket?.priority)}`}
                 >
                     <option value="high" className="bg-[var(--card)]">{t('tasks.priorityHigh', 'Высокий')}</option>
                     <option value="medium" className="bg-[var(--card)]">{t('tasks.priorityMedium', 'Средний')}</option>
@@ -272,9 +272,9 @@ function StaffDashboardPage() {
             width: '130px',
             cell: (ticket) => (
                 <select
-                    value={ticket.status}
+                    value={ticket?.status || 'open'}
                     onChange={e => changeStatus(ticket.id, e.target.value)}
-                    className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getStatusStyle(ticket.status)}`}
+                    className={`px-2 py-1 rounded-full text-xs border bg-transparent outline-none ${getStatusStyle(ticket?.status)}`}
                 >
                     <option value="open" className="bg-[var(--card)]">{t('staff.open')}</option>
                     <option value="in_progress" className="bg-[var(--card)]">{t('staff.inProgress')}</option>
@@ -283,8 +283,8 @@ function StaffDashboardPage() {
                 </select>
             ),
         },
-        { key: 'assignedTo', header: t('staff.assigned'), width: '110px', cell: (ticket) => <span className="text-[var(--text)] text-xs">{ticket.assignedTo ? ticket.assignedTo.split('@')[0] : t('staff.unassigned')}</span> },
-        { key: 'time', header: t('staff.time'), width: '100px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">{ticket.time}</span> },
+        { key: 'assignedTo', header: t('staff.assigned'), width: '110px', cell: (ticket) => <span className="text-[var(--text)] text-xs">{ticket?.assignedTo ? ticket.assignedTo.split('@')[0] : t('staff.unassigned')}</span> },
+        { key: 'time', header: t('staff.time'), width: '100px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">{ticket?.time || '—'}</span> },
         {
             key: 'actions',
             header: t('staff.action'),

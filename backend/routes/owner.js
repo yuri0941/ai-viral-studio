@@ -48,7 +48,17 @@ router.patch('/subscription-plans/:planId', protect, authorize('owner', 'admin')
 })
 
 // Owner settings (OMEGA features toggles)
-router.get('/settings', protect, authorize('owner', 'admin'), getOwnerSettings)
+// [HOTFIX-2026-08-04] added — generic settings for all authenticated users, owner-specific for owner/admin
+router.get('/settings', protect, async (req, res) => {
+    try {
+        if (req.user?.role === 'owner' || req.user?.role === 'admin') {
+            return getOwnerSettings(req, res)
+        }
+        res.json({ settings: { theme: 'dark', language: 'ru', notifications: true } })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
 router.put('/settings', protect, authorize('owner', 'admin'), updateOwnerSettings)
 
 // AI Provider toggles & real status

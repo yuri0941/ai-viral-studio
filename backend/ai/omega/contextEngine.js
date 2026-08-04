@@ -77,6 +77,11 @@ export async function getContext(user, query) {
 ${role === 'guest' ? '- Доступ только к публичной информации. Для персональных данных войдите в систему.' : role !== 'owner' ? '- Конфиденциальная информация платформы скрыта.' : ''}
 ${query ? `Текущий запрос: ${query}` : ''}`
 
+    // [HOTFIX-2026-08-04] added role restriction
+    if (role && role !== 'owner') {
+        systemPrompt += '\n\nВы не владелец платформы. Не раскрывай финансы платформы, чужие проекты, личные данные.'
+    }
+
     return systemPrompt
 }
 

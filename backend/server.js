@@ -11,6 +11,7 @@ import mongoose from 'mongoose'
 import { connectDB, isConnected } from './config/database.js'
 import { connectRedis } from './config/redisClient.js' // [P24] fixed: Redis import
 import { errorHandler } from './middleware/errorHandler.js'
+import { protect } from './middleware/auth.js' // [HOTFIX-2026-08-04] added — protect for fallback routes
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import bot from './services/ownerBot.js'
 
@@ -140,15 +141,16 @@ if (isConnected) {
 
 // CORS must be first — before any route or body parser
 // CORS: explicit origins + dynamic Cloudflare Pages subdomains
-const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://ai-viral-studio.pages.dev',
-    process.env.FRONTEND_URL,
-].filter(Boolean)
-
-app.use(cors({
+// [HOTFIX-2026-08-04] added — include aiviral-studio.ru, PATCH, explicit headers
+const corsOptions = {
     origin: function (origin, callback) {
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'https://ai-viral-studio.pages.dev',
+            'https://aiviral-studio.ru',
+            process.env.FRONTEND_URL,
+        ].filter(Boolean)
         // Allow requests with no origin (curl, server-to-server, mobile apps)
         if (!origin) return callback(null, true)
         if (allowedOrigins.includes(origin)) return callback(null, true)
@@ -156,13 +158,15 @@ app.use(cors({
         if (/^https:\/\/[^/]+\.pages\.dev$/.test(origin)) return callback(null, true)
         callback(new Error('Not allowed by CORS'))
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-}))
+}
+
+app.use(cors(corsOptions))
 
 // Preflight for all routes
-app.options('*', cors())
+app.options('*', cors(corsOptions))
 
 // Helmet after CORS so security headers apply without blocking preflight
 app.use(helmet())
@@ -270,6 +274,11 @@ app.use('/api/upload', uploadRoutes)  // [P21] added: image upload optimization
 app.use('/api/roadmap', roadmapRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/self-improvement', selfImprovementRoutes)
+
+// [HOTFIX-2026-08-04] added — finance transactions fallback
+app.get('/api/finance/transactions', protect, (req, res) => {
+    res.json({ transactions: [], total: 0, currency: 'RUB' })
+})
 
 // Public QR short-link redirect (must be outside /api rate limiting)
 app.get('/qr/:shortCode', qrController.redirectScan)
