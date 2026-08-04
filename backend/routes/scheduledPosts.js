@@ -3,6 +3,8 @@ import { protect } from '../middleware/auth.js'
 import ScheduledPost from '../models/ScheduledPost.js'
 import User from '../models/User.js'
 import { publishToTelegram } from '../services/telegramPublish.js'
+import { publish } from '../services/publishers/index.js'
+import Integration from '../models/Integration.js'
 
 const router = express.Router()
 
@@ -120,6 +122,43 @@ router.post('/telegram-test', protect, async (req, res) => {
         res.json({ status: 'success', data: result })
     } catch (err) {
         console.error('[scheduledPosts:telegram-test]', err.message)
+        res.status(500).json({ status: 'error', error: err.message })
+    }
+})
+
+// [SOCIAL-v5.1] added: publish to connected social platforms
+router.post('/:id/publish', protect, async (req, res) => {
+    try {
+        const userId = req.user?._id || req.user?.id
+        const post = await ScheduledPost.findOne({ _id: req.params.id, userId })
+        if (!post) return res.status(404).json({ status: 'error', error: 'Post not found' })
+
+        const platforms = req.body.platforms || post.platforms || []
+        const results = []
+
+        for (const platform of platforms) {
+            const integration = await Integration.findOne({ userId, provider: platform, isActive: true })
+            if (!integration) {
+                results.push({ platform, status: 'skipped', reason: 'Not connected' })
+                continue
+            }
+
+            try {
+                const result = await publish(platform, integration, post)
+                results.push({ platform, status: 'published', result })
+            } catch (e) {
+                results.push({ platform, status: 'error', error: e.message })
+            }
+        }
+
+        post.status = results.some(r => r.status === 'published') ? 'published' : 'failed'
+        post.publishResults = results
+        post.publishedAt = new Date()
+        await post.save()
+
+        res.json({ status: 'success', data: { results } })
+    } catch (err) {
+        console.error('[scheduledPosts:publish]', err.message)
         res.status(500).json({ status: 'error', error: err.message })
     }
 })

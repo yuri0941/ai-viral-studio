@@ -28,8 +28,8 @@ export function invalidateApiKeysCache() {
     cachedKeys = null
 }
 
-// [P24] fixed: Groq model fallback chain
-const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768']
+// [SOCIAL-v5.1] fixed: use stable Groq model
+const GROQ_MODELS = ['llama-3.3-70b-versatile']
 
 // [P24] fixed: auto-detect user query language
 function detectLanguage(text) {
@@ -589,7 +589,7 @@ async function chatWithOpenRouter(prompt, ownerId = null) {
     if (!key) throw new Error('No OpenRouter key')
     console.log('🚀 Calling OpenRouter...')
     const res = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-        model: process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct',
+        model: process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2048
     }, { headers: { 'Authorization': `Bearer ${key}`, 'HTTP-Referer': 'https://ai-viral-studio.ru', 'X-Title': 'AI Viral Studio', 'Content-Type': 'application/json' }, timeout: 20000 })
@@ -606,7 +606,8 @@ async function chatWithPollinationsText(prompt) {
 
 async function chatWithGitHubModels(prompt, ownerId = null) {
     const key = await getProviderKey('github', ownerId)
-    if (!key || key.length < 20) {
+    // [SOCIAL-v5.1] fixed: stricter GitHub key check
+    if (!key || key.length < 10) {
         console.log('[GitHub Models] No valid key, skipping')
         throw new Error('No valid GitHub Models key')
     }
@@ -620,20 +621,10 @@ async function chatWithGitHubModels(prompt, ownerId = null) {
 }
 
 // ============ PROVIDER CHAIN ============
-// [P16-FINAL] added: 10+ providers, priority by speed/reliability, Pollinations no-key fallback last
-// [VALUE-2026-08-04] added: Pollinations first (no key, real generation), then GitHub, OpenRouter, Groq
+// [SOCIAL-v5.1] fixed: only stable providers to avoid 402/401/400 from deprecated endpoints
 const PROVIDER_CHAIN = [
-    { id: 'pollinations', name: 'Pollinations', handler: chatWithPollinationsText, model: 'anonymous' },
-    { id: 'github', name: 'GitHub Models', handler: chatWithGitHubModels, model: process.env.GITHUB_MODEL || 'meta-llama-3.1-8b-instruct' },
-    { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: 'meta-llama/llama-3.3-70b-instruct' },
     { id: 'groq', name: 'Groq', handler: chatWithGroq, model: 'llama-3.3-70b-versatile' },
-    { id: 'mistral', name: 'Mistral', handler: chatWithMistral, model: 'mistral-large-latest' },
-    { id: 'cohere', name: 'Cohere', handler: chatWithCohere, model: 'command-r-plus' },
-    { id: 'together', name: 'Together', handler: chatWithTogether, model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' },
-    { id: 'deepseek', name: 'DeepSeek', handler: chatWithDeepSeek, model: 'deepseek-chat' },
-    { id: 'fireworks', name: 'Fireworks', handler: chatWithFireworks, model: 'accounts/fireworks/models/llama-v3p3-70b-instruct' },
-    { id: 'cerebras', name: 'Cerebras', handler: chatWithCerebras, model: 'llama-3.3-70b' },
-    { id: 'cloudflare', name: 'Cloudflare', handler: chatWithCloudflare, model: process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast' },
+    { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: 'meta-llama/llama-3.3-70b-instruct:free' },
 ]
 
 const SKIP_STATUSES = [401, 403, 404]

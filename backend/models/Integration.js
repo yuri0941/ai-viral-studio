@@ -3,12 +3,11 @@ import mongoose from 'mongoose'
 const integrationSchema = new mongoose.Schema({
     provider: {
         type: String,
-        enum: ['youtube', 'tiktok', 'instagram', 'twitter', 'telegram', 'vk', 'facebook'],
+        enum: ['telegram', 'vk', 'linkedin', 'pinterest', 'facebook', 'instagram', 'tiktok', 'youtube', 'discord'],
         required: true,
     },
     name: {
         type: String,
-        required: true,
         trim: true,
     },
     ownerId: {
@@ -18,6 +17,7 @@ const integrationSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+        required: true,
     },
     connected: {
         type: Boolean,
@@ -46,10 +46,29 @@ const integrationSchema = new mongoose.Schema({
     accessToken: {
         type: String,
         select: false,
+        required: true,
     },
     refreshToken: {
         type: String,
         select: false,
+    },
+    expiresAt: {
+        type: Date,
+    },
+    accountName: {
+        type: String,
+    },
+    accountId: {
+        type: String,
+    },
+    isActive: {
+        type: Boolean,
+        default: true,
+    },
+    settings: {
+        autoPublish: { type: Boolean, default: false },
+        defaultHashtags: { type: String, default: '' },
+        bestTime: { type: String, default: '18:00' },
     },
     metadata: {
         type: mongoose.Schema.Types.Mixed,
@@ -60,6 +79,8 @@ const integrationSchema = new mongoose.Schema({
 })
 
 integrationSchema.index({ ownerId: 1, provider: 1 })
+// [SOCIAL-v5.1] added unique user+provider index
+integrationSchema.index({ userId: 1, provider: 1 }, { unique: true })
 
 export const Integration = mongoose.model('Integration', integrationSchema)
 export default Integration

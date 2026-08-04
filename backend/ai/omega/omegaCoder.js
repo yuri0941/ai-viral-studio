@@ -408,13 +408,18 @@ export async function runDailyAnalysis() {
 let dailyTimer = null
 
 export function scheduleDailyAnalysis() {
+    // [SOCIAL-v5.1] disabled: daily analysis disabled to prevent sandbox import errors
     if (dailyTimer) return
+    console.log('[OmegaCoder] Daily analysis is disabled')
+    return
+    /*
     const DAY_MS = 24 * 60 * 60 * 1000
     runDailyAnalysis().catch(err => console.error('[OmegaCoder] initial analysis failed:', err.message))
     dailyTimer = setInterval(() => {
         runDailyAnalysis().catch(err => console.error('[OmegaCoder] scheduled analysis failed:', err.message))
     }, DAY_MS)
     console.log('[OmegaCoder] Daily analysis scheduled every 24h')
+    */
 }
 
 export function stopDailyAnalysis() {

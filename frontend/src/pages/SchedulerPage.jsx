@@ -89,6 +89,9 @@ function SchedulerPage() {
     const [showABTest, setShowABTest] = useState(false);
     const [repurposingLoading, setRepurposingLoading] = useState(false);
     const [repurposingResults, setRepurposingResults] = useState(null);
+    // [SOCIAL-v5.1] added: connected platforms for auto-publishing
+    const [availablePlatforms, setAvailablePlatforms] = useState([]);
+    const [publishNowFlag, setPublishNowFlag] = useState(false);
     // [P19] added: AI Video (Shorts/Reels) modal state
     const [videoModalOpen, setVideoModalOpen] = useState(false);
     const [videoTopic, setVideoTopic] = useState('');
@@ -152,6 +155,18 @@ function SchedulerPage() {
     useEffect(() => {
         loadPosts();
     }, [loadPosts]);
+
+    // [SOCIAL-v5.1] added: load connected social platforms
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        fetch(`${API_BASE_URL}/integrations/my`, { headers: { Authorization: `Bearer ${token}` }})
+            .then(r => r.json())
+            .then(data => {
+                const providers = Array.isArray(data) ? data.map(i => i.provider) : [];
+                setAvailablePlatforms(providers);
+            })
+            .catch(err => console.warn('[Scheduler] failed to load integrations:', err));
+    }, []);
 
     // Media queue derived from posts + standalone uploads
     const [mediaQueue, setMediaQueue] = useState([
@@ -339,6 +354,7 @@ function SchedulerPage() {
             status: 'scheduled',
         };
 
+        let createdPost = null;
         try {
             if (editingPost?._id || editingPost?.id) {
                 const id = editingPost._id || editingPost.id;
@@ -348,10 +364,19 @@ function SchedulerPage() {
                     body: JSON.stringify(backendPayload),
                 });
             } else {
-                await fetch(`${API_BASE_URL}/scheduled-posts`, {
+                const res = await fetch(`${API_BASE_URL}/scheduled-posts`, {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify(backendPayload),
+                });
+                createdPost = await res.json().catch(() => null);
+            }
+            // [SOCIAL-v5.1] added: publish immediately if requested
+            if (publishNowFlag && createdPost?.data?._id) {
+                await fetch(`${API_BASE_URL}/scheduled-posts/${createdPost.data._id}/publish`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ platforms: formData.platforms }),
                 });
             }
             await loadPosts();
@@ -372,6 +397,7 @@ function SchedulerPage() {
         }
         setShowModal(false);
         setUploadedFile(null);
+        setPublishNowFlag(false);
     };
 
     const handleDelete = async (id) => {
@@ -967,6 +993,17 @@ function SchedulerPage() {
                                 >
                                     {repurposingLoading ? 'Генерация...' : '♻️ Репурпозить'}
                                 </button>
+                                <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={publishNowFlag}
+                                        onChange={e => setPublishNowFlag(e.target.checked)}
+                                        disabled={!editingPost?._id && availablePlatforms.length === 0}
+                                        className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-emerald-500 focus:ring-emerald-500"
+                                    />
+                                    <span>Опубликовать сейчас</span>
+                                    {availablePlatforms.length === 0 && <span className="text-xs text-orange-400">(сначала подключите соцсети)</span>}
+                                </label>
                                 <button onClick={handleSave} disabled={!formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="flex-1 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-medium rounded-lg transition-all hover:scale-[1.02]">{editingPost ? 'Сохранить' : 'Создать'}</button>
                             </div>
 

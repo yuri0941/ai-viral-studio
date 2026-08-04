@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { PLANS, getPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
+import IntegrationsTab from './settings/IntegrationsTab.jsx'; // [SOCIAL-v5.1] added
 import {
     User, Diamond, Link2, Bell, Shield, Palette, LogOut,
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
@@ -372,6 +373,7 @@ function SettingsPage() {
         { id: 'profile', label: t('settings.profile'), icon: User },
         { id: 'subscription', label: t('settings.subscription'), icon: Diamond },
         { id: 'socials', label: t('settings.socials'), icon: Link2 },
+        { id: 'integrations', label: t('settings.integrations') || 'Интеграции', icon: Link2 }, // [SOCIAL-v5.1] added
         { id: 'notifications', label: t('settings.notifications'), icon: Bell },
         { id: 'security', label: t('settings.security'), icon: Shield },
         { id: 'appearance', label: t('settings.appearance'), icon: Palette },
@@ -1479,6 +1481,7 @@ function SettingsPage() {
             case 'profile': return renderProfile();
             case 'subscription': return renderSubscription();
             case 'socials': return renderSocials();
+            case 'integrations': return <IntegrationsTab />; // [SOCIAL-v5.1] added
             case 'notifications': return renderNotifications();
             case 'security': return renderSecurity();
             case 'appearance': return renderAppearance();

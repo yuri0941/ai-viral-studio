@@ -4,7 +4,7 @@ const scheduledPostSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   title: { type: String, required: true },
   content: { type: String, default: '' },
-  platforms: [{ type: String, enum: ['youtube', 'tiktok', 'instagram', 'twitter', 'telegram', 'vk'] }],
+  platforms: [{ type: String, enum: ['telegram', 'vk', 'linkedin', 'pinterest', 'facebook', 'instagram', 'tiktok', 'youtube', 'discord'] }],
   types: [{ type: String, enum: ['video', 'short', 'reels', 'post', 'story', 'carousel'] }],
   mediaUrl: { type: String, default: '' },
   hashtags: { type: String, default: '' },
@@ -13,6 +13,9 @@ const scheduledPostSchema = new mongoose.Schema({
   publishedUrl: { type: String, default: '' },
   errorMessage: { type: String, default: '' },
   autoPilotEnabled: { type: Boolean, default: false },
+  // [SOCIAL-v5.1] added publishing metadata
+  publishResults: [{ platform: String, status: String, result: Object, error: String }],
+  publishedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 })

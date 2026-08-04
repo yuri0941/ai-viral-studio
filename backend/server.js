@@ -80,6 +80,7 @@ import { runEvolutionCron } from './services/templateEvolution.js'
 import { resolveABTests } from './services/abAutoLearning.js'
 import { createOmegaBackend } from './ai/omega/index.js'
 import { startSubscriptionCron } from './services/subscriptionCron.js'
+import { startAutoPublisher } from './services/autoPublisher.js'  // [SOCIAL-v5.1] added
 
 // Connect to database before starting server
 await connectDB()
@@ -136,6 +137,9 @@ if (isConnected) {
 
 // [MASTER-v5.0] added: subscription lifecycle cron
 startSubscriptionCron()
+
+// [SOCIAL-v5.1] added: auto-publishing cron
+startAutoPublisher()
 
 // Seed default OMEGA agents after DB connection
 if (isConnected) {
