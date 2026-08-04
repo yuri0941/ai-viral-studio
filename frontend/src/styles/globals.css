@@ -328,3 +328,91 @@ button:active, .btn:active {
 .legal-page-content a:hover {
     color: var(--accent);
 }
+
+
+/* [MASTER-v5.6] Universal Luxury Design System */
+:root {
+  --lux-bg: #0a0a1f;
+  --lux-card: rgba(255,255,255,0.03);
+  --lux-border: rgba(255,255,255,0.08);
+  --lux-border-hover: rgba(139,92,246,0.3);
+  --lux-text: #ffffff;
+  --lux-text-muted: rgba(255,255,255,0.5);
+  --lux-primary: #8B5CF6;
+  --lux-cyan: #06B6D4;
+  --lux-rose: #F43F5E;
+  --lux-glow: 0 0 20px -5px rgba(139,92,246,0.3);
+}
+
+@layer components {
+  .luxury-card {
+    background: var(--lux-card);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--lux-border);
+    border-radius: 20px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .luxury-card::before {
+    content: ''; position: absolute; top: -50%; right: -50%; width: 100%; height: 100%;
+    background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);
+    opacity: 0; transition: opacity 0.5s; pointer-events: none;
+  }
+  .luxury-card:hover::before { opacity: 1; }
+  .luxury-card:hover {
+    border-color: var(--lux-border-hover);
+    transform: translateY(-4px);
+    box-shadow: var(--lux-glow), 0 8px 32px -8px rgba(0,0,0,0.5);
+  }
+  .luxury-btn {
+    position: relative; padding: 10px 24px; border-radius: 12px; font-weight: 600; font-size: 14px;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); overflow: hidden;
+  }
+  .luxury-btn-primary {
+    background: linear-gradient(135deg, rgba(139,92,246,0.9), rgba(217,70,239,0.9));
+    color: white; border: 1px solid rgba(139,92,246,0.3);
+  }
+  .luxury-btn-primary:hover {
+    box-shadow: 0 0 30px -5px rgba(139,92,246,0.4);
+    transform: translateY(-2px) scale(1.02);
+  }
+  .luxury-btn-primary:active { transform: scale(0.96); }
+  .shimmer-slow {
+    position: relative; overflow: hidden;
+  }
+  .shimmer-slow::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+    transform: translateX(-100%); animation: shimmer 4s infinite;
+  }
+}
+
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+/* Mobile Adaptive */
+@media (pointer: coarse) {
+  .luxury-card {
+    backdrop-filter: blur(8px) saturate(140%);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    border-radius: 16px; padding: 20px;
+    transform: none !important;
+  }
+  .luxury-card:active {
+    transform: scale(0.98) !important;
+    border-color: var(--lux-border-hover);
+  }
+  .luxury-card::before { display: none; }
+  .luxury-btn-primary:hover { transform: none; box-shadow: none; }
+  .luxury-btn-primary:active { transform: scale(0.95); opacity: 0.9; }
+  .shimmer-slow::after { animation-duration: 6s; }
+}
+
+@supports (padding: max(0px)) {
+  .safe-bottom { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+  .safe-top { padding-top: max(16px, env(safe-area-inset-top)); }
+}
+
+button, a, [role="button"], input, select, textarea { min-height: 44px; }

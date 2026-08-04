@@ -11,6 +11,39 @@ import { playSound } from '../../hooks/useSound.js'
 
 import { VoiceInterface } from './VoiceInterface.jsx'
 
+// [MASTER-v5.6] Cinematic message bubble with orb avatar
+const MessageBubble = ({ message, isUser, isTyping }) => {
+    return (
+        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+            {!isUser && (
+                <div className="w-8 h-8 rounded-full mr-3 relative flex-shrink-0 hidden sm:block">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-violet-500 via-fuchsia-500 to-cyan-500 animate-spin-slow" style={{ animationDuration: '8s' }} />
+                    <div className="absolute inset-[2px] rounded-full bg-[#0a0a1f] flex items-center justify-center"><span className="text-xs">Ω</span></div>
+                    {isTyping && <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />}
+                </div>
+            )}
+            <div className={`
+                max-w-[85%] sm:max-w-[75%] px-4 py-3 rounded-2xl relative
+                ${isUser ? 'bg-gradient-to-br from-violet-600/40 to-fuchsia-600/30 border border-violet-500/20 rounded-br-sm' : 'luxury-card rounded-bl-sm'}
+                transition-all duration-300
+            `}>
+                {isTyping ? (
+                    <div className="flex items-center gap-1.5 h-6 px-2">
+                        <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-100 leading-relaxed">{message.text}</p>
+                )}
+                <span className="text-[10px] text-gray-500 mt-1.5 block text-right">
+                    {new Date(message.time || Date.now()).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+            </div>
+        </div>
+    );
+};
+
 function ReasoningBlock({ reasoning }) {
     const [open, setOpen] = useState(false)
     if (!reasoning) return null
@@ -156,17 +189,23 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                             key={msg.id}
                             className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
                         >
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                isUser ? 'bg-[var(--success)]/20' : 'bg-[var(--primary)]/20'
-                            }`}>
-                                {isUser ? <User size={14} className="text-[var(--success)]" /> : <Bot size={14} className="text-[var(--primary)]" />}
-                            </div>
+                            {/* [MASTER-v5.6] orb avatar for OMEGA */}
+                            {!isUser ? (
+                                <div className="w-8 h-8 rounded-full mr-3 relative flex-shrink-0 hidden sm:block">
+                                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-violet-500 via-fuchsia-500 to-cyan-500 animate-spin-slow" style={{ animationDuration: '8s' }} />
+                                    <div className="absolute inset-[2px] rounded-full bg-[#0a0a1f] flex items-center justify-center"><span className="text-xs">Ω</span></div>
+                                </div>
+                            ) : (
+                                <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-[var(--success)]/20">
+                                    <User size={14} className="text-[var(--success)]" />
+                                </div>
+                            )}
                             <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm ${
                                 isUser
-                                    ? 'bg-[var(--success)]/10 text-[var(--text)] border border-[var(--success)]/20'
+                                    ? 'bg-gradient-to-br from-violet-600/40 to-fuchsia-600/30 text-white border border-violet-500/20 rounded-br-sm'
                                     : msg.error || msg.demo
                                         ? 'bg-[var(--accent-warm)]/10 text-[var(--text)] border border-[var(--accent-warm)]/20'
-                                        : 'bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]'
+                                        : 'luxury-card rounded-bl-sm'
                             }`}>
                                 {msg.text}
                                 {!isUser && <ReasoningBlock reasoning={msg.reasoning} />}
@@ -227,17 +266,16 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                     )
                 })}
                 {isTyping && (
-                    <div className="flex gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-[var(--primary)]/20 flex items-center justify-center">
-                            <Bot size={14} className="text-[var(--primary)]" />
+                    <div className="flex gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-full mr-3 relative flex-shrink-0 hidden sm:block">
+                            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-violet-500 via-fuchsia-500 to-cyan-500 animate-spin-slow" style={{ animationDuration: '8s' }} />
+                            <div className="absolute inset-[2px] rounded-full bg-[#0a0a1f] flex items-center justify-center"><span className="text-xs">Ω</span></div>
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
                         </div>
-                        <div className="px-4 py-2.5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--text-muted)] flex items-center gap-2">
-                            <span className="text-xs text-[var(--text-muted)]">OMEGA думает</span>
-                            <span className="inline-flex gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" />
-                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce [animation-delay:0.1s]" />
-                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce [animation-delay:0.2s]" />
-                            </span>
+                        <div className="luxury-card rounded-bl-sm px-4 py-3 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
                     </div>
                 )}

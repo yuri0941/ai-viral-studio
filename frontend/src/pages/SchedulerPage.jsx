@@ -670,31 +670,21 @@ function SchedulerPage() {
                 </div>
             )}
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-                <div className="bg-[#1a1a24] rounded-xl p-4 border border-emerald-500/20">
-                    <div className="text-emerald-400 text-xs font-medium mb-1">Всего постов</div>
-                    <div className="text-2xl font-bold">{totalPosts}</div>
-                </div>
-                <div className="bg-[#1a1a24] rounded-xl p-4 border border-yellow-500/20">
-                    <div className="text-yellow-400 text-xs font-medium mb-1">Запланировано</div>
-                    <div className="text-2xl font-bold">{scheduledPosts}</div>
-                </div>
-                <div className="bg-[#1a1a24] rounded-xl p-4 border border-blue-500/20">
-                    <div className="text-blue-400 text-xs font-medium mb-1">Черновики</div>
-                    <div className="text-2xl font-bold">{draftPosts}</div>
-                </div>
-                <div className="bg-[#1a1a24] rounded-xl p-4 border border-purple-500/20">
-                    <div className="text-purple-400 text-xs font-medium mb-1">Опубликовано</div>
-                    <div className="text-2xl font-bold">{publishedPosts}</div>
-                </div>
-                <div className="bg-[#1a1a24] rounded-xl p-4 border border-white/5">
-                    <div className="text-xs text-gray-400 mb-1 flex items-center gap-1"><Zap size={12} /> Автопубликация</div>
-                    <button onClick={() => setAutoPublish(!autoPublish)} className="flex items-center gap-2 text-sm font-medium">
-                        {autoPublish ? <ToggleRight size={20} className="text-emerald-400" /> : <ToggleLeft size={20} className="text-gray-500" />}
-                        {autoPublish ? 'Вкл' : 'Выкл'}
-                    </button>
-                </div>
+            {/* [LUXURY-UI] added: premium stats cards with glow */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
+                {[
+                    { label: 'Всего постов', value: totalPosts, color: 'from-blue-500 to-cyan-500' },
+                    { label: 'Запланировано', value: scheduledPosts, color: 'from-amber-500 to-orange-500' },
+                    { label: 'Черновики', value: draftPosts, color: 'from-slate-500 to-gray-500' },
+                    { label: 'Опубликовано', value: publishedPosts, color: 'from-emerald-500 to-teal-500' },
+                    { label: 'Автопубликация', value: autoPublish ? 'Вкл' : 'Выкл', color: 'from-violet-500 to-fuchsia-500' }
+                ].map(stat => (
+                    <div key={stat.label} className="relative overflow-hidden rounded-2xl bg-[var(--card)] border border-[var(--border)] p-4 hover:border-white/20 transition group">
+                        <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${stat.color} opacity-10 blur-2xl rounded-full -mr-10 -mt-10 group-hover:opacity-20 transition`} />
+                        <p className="text-xs text-gray-400 mb-1">{stat.label}</p>
+                        <p className="text-2xl font-bold text-white">{stat.value}</p>
+                    </div>
+                ))}
             </div>
 
             {/* Controls */}
@@ -709,24 +699,27 @@ function SchedulerPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <OneClickPublish content={posts.find(p => p.status === 'draft')?.title || 'Готовый контент от OMEGA'} />
-                    <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="px-3 py-2 rounded-lg bg-[#1a1a24] text-gray-400 text-sm hover:text-white transition-colors">Месяц</button>
+                    <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition border border-white/10 hover:border-white/20">Месяц</button>
                     {/* [P19] added: AI Video generation trigger */}
-                    <button onClick={() => setVideoModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white font-medium rounded-lg transition-all hover:scale-105"><Film size={18} /> Сгенерировать Reels</button>
-                    <button onClick={() => openModal()} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-medium rounded-lg transition-all hover:scale-105"><Plus size={18} /> Новый пост</button>
+                    {/* [LUXURY-UI] added: premium gradient button with shadow */}
+                    <button onClick={() => setVideoModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium rounded-xl shadow-lg shadow-pink-500/20 transition-all hover:scale-105"><Film size={18} /> Сгенерировать Reels</button>
+                    {/* [LUXURY-UI] added: premium white CTA button */}
+                    <button onClick={() => openModal()} className="flex items-center gap-2 px-5 py-2.5 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-all hover:scale-105"><Plus size={18} /> Новый пост</button>
                 </div>
             </div>
 
             {/* Calendar Grid */}
-            <div className="bg-[#1a1a24] rounded-xl border border-white/5 overflow-hidden mb-8">
-                <div className="grid grid-cols-7 border-b border-white/5">
+            {/* [LUXURY-UI] added: glassmorphic calendar container */}
+            <div className="bg-[#0f0f1a]/80 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden mb-8">
+                <div className="grid grid-cols-7 border-b border-white/10">
                     {WEEK_DAYS.map((day, i) => {
                         const date = weekDates[i];
                         const isToday = new Date().toDateString() === date.toDateString();
                         return (
-                            <div key={day} className={`p-3 text-center border-r border-white/5 last:border-r-0 ${isToday ? 'bg-emerald-500/10' : ''}`}>
-                                <div className="text-xs text-gray-400 mb-1">{day}</div>
-                                <div className={`text-lg font-bold ${isToday ? 'text-emerald-400' : ''}`}>{date.getDate()}</div>
-                                {isToday && <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full mx-auto mt-1"></div>}
+                            <div key={day} className={`p-3 text-center border-r border-white/10 last:border-r-0 transition-colors ${isToday ? 'bg-violet-500/5 border-b-2 border-b-violet-500/50' : ''}`}>
+                                <div className="text-xs font-medium text-gray-400 mb-1">{day}</div>
+                                <div className={`text-lg font-bold ${isToday ? 'text-violet-400' : 'text-white'}`}>{date.getDate()}</div>
+                                {isToday && <div className="w-1.5 h-1.5 bg-violet-400 rounded-full mx-auto mt-1 shadow-[0_0_8px_rgba(167,139,250,0.6)]"></div>}
                             </div>
                         );
                     })}
@@ -746,7 +739,8 @@ function SchedulerPage() {
             </div>
 
             {/* Media queue */}
-            <div className="bg-[#1a1a24] rounded-xl border border-white/5 p-5 mb-6">
+            {/* [LUXURY-UI] added: glassmorphic media queue */}
+            <div className="bg-[#0f0f1a]/80 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-5 mb-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold flex items-center gap-2"><Film className="w-4 h-4 text-purple-400" /> Очередь медиа</h3>
                     <span className="text-xs text-gray-500">{mediaQueue.length} файлов</span>
@@ -764,10 +758,10 @@ function SchedulerPage() {
                         mediaQueue.map((media, idx) => (
                             <div
                                 key={media.id}
-                                className="shrink-0 flex flex-col gap-1.5 group"
+                                className="shrink-0 flex flex-col gap-2 group"
                             >
                                 <div
-                                    className="relative w-[160px] h-[120px] md:w-[200px] md:h-[150px] rounded-xl overflow-hidden border border-white/10 bg-black cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105 hover:border-emerald-500/30"
+                                    className="relative w-[160px] h-[120px] md:w-[200px] md:h-[150px] rounded-xl overflow-hidden border border-white/10 bg-black cursor-pointer transition-all duration-200 hover:shadow-xl hover:scale-[1.02] hover:border-white/20"
                                     onClick={() => setPreviewIndex(idx)}
                                 >
                                     {media.type?.startsWith('video/') ? (
@@ -803,9 +797,10 @@ function SchedulerPage() {
                                         </span>
                                     </div>
                                 </div>
+                                {/* [LUXURY-UI] added: premium media card metadata */}
                                 <div className="w-[160px] md:w-[200px]">
-                                    <p className="text-xs text-white truncate" title={media.name}>{media.name}</p>
-                                    <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                                    <p className="text-xs text-gray-400 truncate" title={media.name}>{media.name}</p>
+                                    <div className="flex items-center gap-2 text-[10px] text-gray-500 mt-1">
                                         {media.size ? <span>{formatSize(media.size)}</span> : null}
                                         {media.duration ? <span className="flex items-center gap-0.5"><Clock size={10} /> {formatDuration(media.duration)}</span> : null}
                                     </div>
@@ -816,7 +811,7 @@ function SchedulerPage() {
                     {mediaQueue.length > 0 && (
                         <button
                             onClick={() => mediaFileInputRef.current?.click()}
-                            className="shrink-0 flex flex-col items-center justify-center w-[160px] h-[120px] md:w-[200px] md:h-[150px] rounded-xl border-2 border-dashed border-white/10 hover:border-emerald-500/30 hover:bg-white/5 transition-colors text-gray-500"
+                            className="shrink-0 flex flex-col items-center justify-center w-[160px] h-[120px] md:w-[200px] md:h-[150px] rounded-xl border-2 border-dashed border-white/10 hover:border-emerald-500/30 hover:bg-white/5 transition-all duration-200 hover:scale-[1.02] text-gray-500"
                         >
                             <Plus size={24} />
                             <span className="text-xs mt-1">Загрузить</span>
@@ -827,13 +822,17 @@ function SchedulerPage() {
             </div>
 
             {/* Modal */}
+            {/* [LUXURY-UI] added: premium glassmorphism modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold">{editingPost ? 'Редактировать пост' : 'Новый пост'}</h2>
-                                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white text-xl">✕</button>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#0f0f1a] border border-white/10 shadow-2xl rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="p-8">
+                            <div className="flex items-center justify-between mb-2">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">{editingPost ? 'Редактировать пост' : 'Новый пост'}</h2>
+                                    <p className="text-sm text-gray-400 mt-1">Заполните детали публикации</p>
+                                </div>
+                                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white text-xl transition-colors">✕</button>
                             </div>
 
                             {/* Templates */}
@@ -841,7 +840,7 @@ function SchedulerPage() {
                                 <label className="text-xs text-gray-500 mb-2 block flex items-center gap-1"><LayoutTemplate size={12} /> Шаблоны</label>
                                 <div className="flex flex-wrap gap-2">
                                     {TEMPLATES.map(t => (
-                                        <button key={t.id} onClick={() => applyTemplate(t)} className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-emerald-500/30 hover:bg-emerald-500/10 text-xs text-gray-300 transition-colors">
+                                        <button key={t.id} onClick={() => applyTemplate(t)} className="px-3 py-1.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/20 hover:bg-violet-500/30 text-xs transition-colors">
                                             {t.name}
                                         </button>
                                     ))}
@@ -854,7 +853,7 @@ function SchedulerPage() {
                                         <label className="text-sm text-gray-400">Название</label>
                                         <button onClick={() => generateAI('title')} className="text-xs text-emerald-400 flex items-center gap-1 hover:underline"><Sparkles size={12} /> AI</button>
                                     </div>
-                                    <input type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Название поста" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" />
+                                    <input type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Название поста" className="luxury-input" />
                                 </div>
 
                                 <div>
@@ -894,7 +893,7 @@ function SchedulerPage() {
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="text-sm text-gray-400 mb-1 block">Дата</label>
-                                        <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" />
+                                        <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="luxury-input" />
                                     </div>
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
@@ -904,7 +903,7 @@ function SchedulerPage() {
                                                 onSelect={(time) => setFormData(prev => ({ ...prev, time }))}
                                             />
                                         </div>
-                                        <input type="time" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" />
+                                        <input type="time" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} className="luxury-input" />
                                     </div>
                                 </div>
 
@@ -913,7 +912,7 @@ function SchedulerPage() {
                                         <label className="text-sm text-gray-400">Описание</label>
                                         <button onClick={() => generateAI('desc')} className="text-xs text-emerald-400 flex items-center gap-1 hover:underline"><Sparkles size={12} /> AI</button>
                                     </div>
-                                    <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Описание поста..." rows={3} className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none resize-none" />
+                                    <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Описание поста..." rows={4} className="luxury-input min-h-[120px] resize-y text-base leading-relaxed" />
                                 </div>
 
                                 <div>
@@ -921,7 +920,7 @@ function SchedulerPage() {
                                         <label className="text-sm text-gray-400">Теги</label>
                                         <button onClick={() => generateAI('tags')} className="text-xs text-emerald-400 flex items-center gap-1 hover:underline"><Hash size={12} /> AI</button>
                                     </div>
-                                    <input type="text" value={formData.tags} onChange={e => setFormData({ ...formData, tags: e.target.value })} placeholder="#теги #через #пробел" className="w-full px-4 py-2 bg-[#252530] rounded-lg border border-white/10 focus:border-emerald-500 outline-none" />
+                                    <input type="text" value={formData.tags} onChange={e => setFormData({ ...formData, tags: e.target.value })} placeholder="#теги #через #пробел" className="luxury-input" />
                                 </div>
 
                                 <PredictionCard
@@ -930,15 +929,16 @@ function SchedulerPage() {
                                     platform={formData.platforms?.[0] || 'tiktok'}
                                 />
 
-                                <div className="bg-[#252530] rounded-lg p-4 border border-white/5">
+                                {/* [LUXURY-UI] added: premium checkbox card */}
+                                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                                     <div className="flex items-center gap-3 mb-3">
                                         <input type="checkbox" id="autoDelete" checked={formData.autoDelete} onChange={e => setFormData({ ...formData, autoDelete: e.target.checked })} className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-emerald-500 focus:ring-emerald-500" />
-                                        <label htmlFor="autoDelete" className="text-sm cursor-pointer flex items-center gap-2"><Trash size={14} className="text-red-400" /><span>Удалить после публикации</span></label>
+                                        <label htmlFor="autoDelete" className="text-sm cursor-pointer flex items-center gap-2 text-gray-300"><Trash size={14} className="text-red-400" /><span>Удалить после публикации</span></label>
                                     </div>
                                     {formData.autoDelete && (
                                         <div className="flex items-center gap-2 ml-7">
                                             <span className="text-sm text-gray-400">Через</span>
-                                            <select value={formData.autoDeleteTime} onChange={e => setFormData({ ...formData, autoDeleteTime: e.target.value })} className="px-3 py-1 bg-[#1a1a24] rounded border border-white/10 text-sm">
+                                            <select value={formData.autoDeleteTime} onChange={e => setFormData({ ...formData, autoDeleteTime: e.target.value })} className="luxury-input !py-1 !px-3 text-sm">
                                                 <option value="1">1 час</option>
                                                 <option value="6">6 часов</option>
                                                 <option value="12">12 часов</option>
@@ -964,47 +964,42 @@ function SchedulerPage() {
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 mt-6">
-                                <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 bg-[#252530] rounded-lg hover:bg-[#303040] transition-colors">Отмена</button>
-                                <button
-                                    onClick={() => {
-                                        setPreviewPost({
-                                            platform: formData.platforms[0],
-                                            content: formData.description,
-                                            hashtags: formData.tags.split(/\s+/).filter(Boolean),
-                                            mediaUrl: uploadedFile ? URL.createObjectURL(uploadedFile) : null,
-                                        })
-                                        setShowPreview(true)
-                                    }}
-                                    className="flex-1 px-4 py-2 bg-[#1a1a24] border border-white/10 rounded-lg hover:bg-white/5 text-white text-sm transition-colors"
-                                >
-                                    Предпросмотр
-                                </button>
-                                <button
-                                    onClick={() => setShowABTest(true)}
-                                    className="flex-1 px-4 py-2 bg-[#1a1a24] border border-white/10 rounded-lg hover:bg-white/5 text-white text-sm transition-colors"
-                                >
-                                    A/B тест
-                                </button>
-                                <button
-                                    onClick={handleRepurpose}
-                                    disabled={repurposingLoading || !editingPost?._id}
-                                    className="flex-1 px-4 py-2 bg-[#1a1a24] border border-white/10 rounded-lg hover:bg-white/5 text-blue-400 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {repurposingLoading ? 'Генерация...' : '♻️ Репурпозить'}
-                                </button>
-                                <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={publishNowFlag}
-                                        onChange={e => setPublishNowFlag(e.target.checked)}
-                                        disabled={!editingPost?._id && availablePlatforms.length === 0}
-                                        className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-emerald-500 focus:ring-emerald-500"
-                                    />
-                                    <span>Опубликовать сейчас</span>
-                                    {availablePlatforms.length === 0 && <span className="text-xs text-orange-400">(сначала подключите соцсети)</span>}
-                                </label>
-                                <button onClick={handleSave} disabled={!formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="flex-1 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-medium rounded-lg transition-all hover:scale-[1.02]">{editingPost ? 'Сохранить' : 'Создать'}</button>
+                            {/* [LUXURY-UI] added: premium modal footer */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-white/10">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition border border-white/10 hover:border-white/20">
+                                        Отмена
+                                    </button>
+                                    <button type="button" onClick={() => { setPreviewPost({ platform: formData.platforms[0], content: formData.description, hashtags: formData.tags.split(/\s+/).filter(Boolean), mediaUrl: uploadedFile ? URL.createObjectURL(uploadedFile) : null }); setShowPreview(true); }} className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition border border-white/10 hover:border-white/20 flex items-center gap-2">
+                                        <span>👁</span> Предпросмотр
+                                    </button>
+                                    <button type="button" onClick={() => setShowABTest(true)} className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition border border-white/10 hover:border-white/20 flex items-center gap-2">
+                                        <span>🔄</span> A/B тест
+                                    </button>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <button type="button" onClick={handleRepurpose} disabled={repurposingLoading || !editingPost?._id} className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-blue-400 text-sm font-medium transition border border-white/10 hover:border-white/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <span>♻️</span> {repurposingLoading ? 'Генерация...' : 'Репост'}
+                                    </button>
+                                    <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer px-1">
+                                        <input
+                                            type="checkbox"
+                                            checked={publishNowFlag}
+                                            onChange={e => setPublishNowFlag(e.target.checked)}
+                                            disabled={!editingPost?._id && availablePlatforms.length === 0}
+                                            className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-emerald-500 focus:ring-emerald-500"
+                                        />
+                                        <span>Опубликовать сейчас</span>
+                                        {availablePlatforms.length === 0 && <span className="text-xs text-orange-400">(сначала подключите соцсети)</span>}
+                                    </label>
+                                    <button type="button" onClick={handleSave} disabled={!formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-lg shadow-emerald-500/25 transition transform hover:scale-[1.02] flex items-center gap-2">
+                                        <span>🚀</span> Опубликовать
+                                    </button>
+                                    <button type="button" onClick={handleSave} disabled={!formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-lg shadow-violet-500/25 transition transform hover:scale-[1.02]">
+                                        {editingPost ? 'Сохранить' : 'Создать'}
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Repurposing results */}

@@ -14,6 +14,8 @@ import { errorHandler } from './middleware/errorHandler.js'
 import { protect } from './middleware/auth.js' // [HOTFIX-2026-08-04] added — protect for fallback routes
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import bot from './services/ownerBot.js'
+import { initOwnerBot } from './services/ownerBot.js'
+import { initOmegaBot } from './services/omegaBot.js'
 import { Campaign } from './models/Campaign.js'
 import Ticket from './models/Ticket.js'
 import User from './models/User.js'
@@ -88,6 +90,10 @@ import { startAutoPublisher } from './services/autoPublisher.js'  // [SOCIAL-v5.
 // Connect to database before starting server
 await connectDB()
 await connectRedis() // [P24] fixed: connect Redis with in-memory fallback
+
+// [MASTER-v5.6-CONT] init Telegram bots after DB connect
+initOwnerBot()
+initOmegaBot()
 
 // [MASTER-v5.0] added: auto-audit after DB connect
 if (isConnected) {

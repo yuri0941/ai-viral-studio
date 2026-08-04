@@ -317,15 +317,21 @@ export function AppSidebar({
                                         <button
                                             key={item.id || item.path}
                                             onClick={() => handleItemClick(item)}
-                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-r-xl text-sm font-medium transition-all text-left relative min-h-[44px] ${
-                                                active
-                                                    ? 'text-[var(--text)] bg-[var(--primary-soft)] border-l-[3px] border-[var(--primary)]'
-                                                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'
-                                            } ${isExpanded ? '' : 'justify-center'}`}
+                                            className={`
+                                                relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 w-full text-left min-h-[44px]
+                                                ${active
+                                                    ? 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/10 border-l-[3px] border-violet-500 text-white shadow-[0_0_20px_-5px_rgba(139,92,246,0.3)]'
+                                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                                }
+                                                ${isExpanded ? '' : 'justify-center'}
+                                            `}
                                             title={itemLabel(item)}
                                         >
-                                            <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-[var(--primary)]' : ''}`} />
-                                            {isExpanded && <span className="truncate">{itemLabel(item)}</span>}
+                                            <div className={`transition-transform duration-200 ${active ? 'scale-110' : ''}`}>
+                                                <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-violet-400' : ''}`} />
+                                            </div>
+                                            {isExpanded && <span className="font-medium text-sm truncate">{itemLabel(item)}</span>}
+                                            {active && <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(139,92,246,0.8)]" />}
                                         </button>
                                     )
                                 })}

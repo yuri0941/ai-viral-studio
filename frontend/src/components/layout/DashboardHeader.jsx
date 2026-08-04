@@ -154,41 +154,35 @@ export function DashboardHeader({
     }
 
     return (
-        <header className="sticky top-0 z-30 bg-[var(--bg)]/80 backdrop-blur-md border-b border-[var(--border)] px-4 lg:px-8 py-4 transition-colors duration-300">
-            <div className="flex items-center justify-between max-w-[1600px] mx-auto">
+        // [MASTER-v5.6] luxury header
+        <header className="sticky top-0 z-30 w-full luxury-card rounded-none border-x-0 border-t-0 border-b border-white/10 safe-top">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={onMenuClick}
-                        className="lg:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-                        aria-label="Открыть меню"
-                    >
-                        <Menu className="w-5 h-5 text-[var(--text)]" />
-                    </button>
-                    <h1 className="text-lg font-semibold text-[var(--text)] truncate">{title}</h1>
+                    {onMenuClick && (
+                        <button onClick={onMenuClick} className="lg:hidden p-2 -ml-2 rounded-xl hover:bg-white/5 transition-colors">
+                            <Menu className="w-5 h-5 text-white" />
+                        </button>
+                    )}
+                    <h1 className="text-lg font-bold text-white tracking-tight truncate">{title}</h1>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                     {showSearch && (
-                        <div className="hidden md:flex items-center bg-[var(--bg-secondary)] rounded-lg px-3 py-1.5 border border-[var(--border)]">
-                            <Search className="w-4 h-4 text-[var(--text-muted)] mr-2" />
-                            <input
-                                type="text"
-                                placeholder="Поиск..."
-                                className="bg-transparent text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none w-40"
-                            />
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
+                            <Search className="w-4 h-4 text-gray-400" />
+                            <input type="text" placeholder="Поиск..." className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-32 lg:w-48" />
                         </div>
                     )}
 
                     <div className="relative">
                         <button
                             onClick={() => setLangOpen(o => !o)}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors text-xs font-medium text-[var(--text)]"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-xs font-medium text-gray-200"
                             aria-label="Выбрать язык"
-                            title="Русский / English"
                         >
-                            <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                            <Globe className="w-3.5 h-3.5 text-gray-400" />
                             <span className="uppercase">{language}</span>
-                            <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${langOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${langOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {langOpen && (
                             <div className="absolute right-0 mt-2 w-32 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl overflow-hidden z-50">
@@ -210,9 +204,8 @@ export function DashboardHeader({
 
                     <button
                         onClick={onThemeToggle}
-                        className="p-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors text-[var(--text)]"
+                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-white"
                         aria-label="Переключить тему"
-                        title={isDark ? 'Светлая тема' : 'Тёмная тема'}
                     >
                         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                     </button>
@@ -282,11 +275,11 @@ export function DashboardHeader({
 
                     <button
                         onClick={handleNotificationsClick}
-                        className="p-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors relative"
+                        className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                     >
-                        <Bell className={`w-5 h-5 ${pushSubscribed ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`} />
+                        <Bell className={`w-5 h-5 ${pushSubscribed ? 'text-emerald-400' : 'text-gray-300'}`} />
                         {unreadCount > 0 && (
-                            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-[var(--text)] text-[9px] rounded-full flex items-center justify-center font-bold">
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
                                 {unreadCount > 9 ? '9+' : unreadCount}
                             </span>
                         )}
@@ -295,30 +288,20 @@ export function DashboardHeader({
                     {user?.role === 'owner' && (
                         <button
                             onClick={handleEmergencyToggle}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                emergencyStopped
-                                    ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                                    : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                            }`}
-                            title={emergencyStopped ? 'RESUME OMEGA' : 'STOP OMEGA'}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-semibold hover:bg-rose-500/30 transition-colors"
                         >
-                            {emergencyStopped ? <Play className="w-3.5 h-3.5" /> : <OctagonAlert className="w-3.5 h-3.5" />}
-                            <span className="hidden sm:inline">{emergencyStopped ? '▶️ RESUME' : '🛑 STOP'}</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />STOP
                         </button>
                     )}
 
                     <button
                         onClick={() => setProfileOpen(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--card-hover)] transition-colors"
+                        className="flex items-center gap-2 pl-2 border-l border-white/10"
                     >
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center text-xs font-bold text-white overflow-hidden">
-                            {user?.avatar ? (
-                                <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
-                            ) : (
-                                user?.name?.[0]?.toUpperCase() || <User size={14} />
-                            )}
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-bold text-white">
+                            {user?.name?.[0]?.toUpperCase() || <User size={14} />}
                         </div>
-                        <span className="text-sm text-[var(--text)] hidden sm:inline">{user?.name || 'User'}</span>
+                        <span className="hidden md:block text-sm text-gray-300">{user?.name || 'Owner'}</span>
                     </button>
                 </div>
             </div>

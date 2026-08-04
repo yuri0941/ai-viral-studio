@@ -282,3 +282,24 @@ input[type="radio"] {
     --text: #111111;
     --border: rgba(0, 0, 0, 0.1);
 }
+
+
+/* [LUXURY-UI] added: premium utility classes */
+@layer utilities {
+  .luxury-card {
+    @apply bg-[var(--card)] border border-[var(--border)] rounded-2xl backdrop-blur-sm;
+    box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .luxury-button {
+    @apply px-5 py-2.5 rounded-xl font-medium transition-all duration-200;
+  }
+
+  .luxury-button-primary {
+    @apply luxury-button bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-[1.02];
+  }
+
+  .luxury-input {
+    @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 outline-none transition;
+  }
+}

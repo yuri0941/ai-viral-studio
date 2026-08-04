@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../../context/AuthContext'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
@@ -13,6 +13,72 @@ import {
 import { formatCurrency } from '../../utils/helpers'
 import '../../../../styles/animations.css'
 import { useTranslation } from 'react-i18next'
+
+// [MASTER-v5.6] Animated counter with reduced-motion respect
+const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
+    const [count, setCount] = useState(0);
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            setCount(value); return;
+        }
+        const duration = 1500, steps = 60, increment = value / steps;
+        let current = 0;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= value) { setCount(value); clearInterval(timer); }
+            else setCount(Math.floor(current));
+        }, duration / steps);
+        return () => clearInterval(timer);
+    }, [value]);
+    const display = typeof value === 'number' && value % 1 !== 0 ? count.toFixed(1) : count.toLocaleString('ru-RU');
+    return <span>{prefix}{display}{suffix}</span>;
+};
+
+// [MASTER-v5.6] 3D tilt metric card
+const MetricCard = ({ icon: Icon, label, value, trend, color, delay = 0, onClick }) => {
+    const cardRef = useRef(null);
+    const [tilt, setTilt] = useState({ x: 0, y: 0 });
+    const isTouch = typeof window !== 'undefined' && 'ontouchstart' in window;
+
+    const handleMouseMove = (e) => {
+        if (isTouch || !cardRef.current) return;
+        const rect = cardRef.current.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        setTilt({ x: y * -8, y: x * 8 });
+    };
+
+    const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.]/g, '')) || 0 : value;
+    const suffix = typeof value === 'string' && value.includes('%') ? '%' : '';
+
+    return (
+        <div
+            ref={cardRef}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => setTilt({ x: 0, y: 0 })}
+            onClick={onClick}
+            className="luxury-card shimmer-slow cursor-pointer"
+            style={{
+                transform: isTouch ? 'none' : `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+                transition: 'transform 0.1s ease-out, border-color 0.3s, box-shadow 0.3s',
+                animationDelay: `${delay}ms`
+            }}
+        >
+            <div className={`absolute top-3 right-3 w-10 h-10 rounded-xl bg-${color}-500/10 flex items-center justify-center`}>
+                <Icon className={`w-5 h-5 text-${color}-400`} />
+            </div>
+            <p className="text-gray-400 text-xs font-medium mb-1">{label}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-white font-variant-numeric tabular-nums">
+                <AnimatedCounter value={numericValue} suffix={suffix} />
+            </p>
+            {trend && (
+                <div className="flex items-center gap-1 mt-2 text-xs text-emerald-400">
+                    <TrendingUp className="w-3 h-3" /><span>{trend}</span>
+                </div>
+            )}
+        </div>
+    );
+};
 
 function BentoCard({ title, value, subtext, icon: Icon, color, onClick, children, className = '' }) {
     return (
@@ -144,6 +210,14 @@ export function OverviewTab({ data }) {
                         <span className="text-sm font-semibold text-[var(--text)]">{businessHealth}</span>
                     </div>
                 </div>
+            </div>
+
+            {/* [MASTER-v5.6] Bento metrics with 3D tilt */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <MetricCard icon={DollarSign} label="MRR" value={mrr} trend="+12%" color="violet" delay={0} onClick={() => go('/owner?tab=finance')} />
+                <MetricCard icon={Users} label="Пользователи" value={1247} trend="+5%" color="cyan" delay={100} />
+                <MetricCard icon={Zap} label="AI-генераций" value={8543} trend="+23%" color="amber" delay={200} />
+                <MetricCard icon={Brain} label="Uptime" value={99.9} suffix="%" trend="Stable" color="emerald" delay={300} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -68,11 +68,11 @@ export default function VisualCalendar({ posts = [], weekDates = [], onDateClick
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, date, index)}
                         onClick={() => onDateClick?.(formatDateInput(date))}
-                        className={`bg-white/5 rounded-xl min-h-[100px] p-2 flex flex-col gap-1.5 transition-colors cursor-pointer hover:bg-white/[0.08] ${
-                            isToday ? 'ring-1 ring-emerald-500/40' : ''
-                        } ${isDragOver ? 'bg-emerald-500/10 ring-1 ring-emerald-500/30' : ''}`}
+                        className={`bg-white/[0.03] rounded-xl min-h-[100px] p-2 flex flex-col gap-1.5 transition-all cursor-pointer hover:bg-white/[0.06] border border-white/5 hover:border-white/10 ${
+                            isToday ? 'bg-violet-500/5 border-violet-500/50' : ''
+                        } ${isDragOver ? 'bg-emerald-500/10 border-emerald-500/30' : ''}`}
                     >
-                        <div className={`text-sm font-medium mb-1 ${isToday ? 'text-emerald-400' : 'text-gray-400'}`}>
+                        <div className={`text-sm font-medium mb-1 ${isToday ? 'text-violet-400' : 'text-gray-400'}`}>
                             {date.getDate()}
                         </div>
 
@@ -92,8 +92,8 @@ export default function VisualCalendar({ posts = [], weekDates = [], onDateClick
                                         e.stopPropagation();
                                         onPostClick?.(post);
                                     }}
-                                    className="group relative rounded-lg p-2 hover:scale-[1.02] hover:shadow-lg transition-all duration-150 cursor-grab active:cursor-grabbing overflow-hidden"
-                                    style={{ backgroundColor: color + '25', borderLeft: `3px solid ${color}` }}
+                                    className="group relative rounded-lg px-3 py-2 text-xs text-white border border-white/10 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all duration-150 cursor-grab active:cursor-grabbing overflow-hidden"
+                                    style={{ background: `linear-gradient(to right, ${color}33, ${color}15)`, borderLeft: `3px solid ${color}` }}
                                     title={`${STATUS_LABELS[status] || status}: ${post.title}`}
                                 >
                                     {thumbnail && (

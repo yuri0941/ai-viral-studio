@@ -181,8 +181,9 @@ function SettingsPage() {
 
     const getYearlyPrice = (monthlyPrice) => monthlyPrice * 10;
 
+    // [MASTER-v5.6] fixed: use API-loaded price, not static config
     const getCurrentPrice = (plan) => {
-        const basePrice = getPrice(plan, subscriptionCurrency);
+        const basePrice = plan?.price ?? getPrice(plan, subscriptionCurrency);
         if (userSubscription && userSubscription.planId === plan.id && userSubscription.isActive) {
             const now = new Date();
             const nextBilling = new Date(userSubscription.nextBillingDate);
@@ -235,12 +236,12 @@ function SettingsPage() {
         try {
             let res;
             if (selectedPaymentMethod === 'yookassa') {
-                // [PLANS-SYNC] added: use dedicated YooKassa subscription endpoint
-                res = await fetch(`${API_BASE_URL}/yookassa/pay/subscription`, {
+                // [MASTER-v5.6] fixed: use unified checkout endpoint
+                res = await fetch(`${API_BASE_URL}/checkout/create`, {
                     method: 'POST',
                     signal: controller.signal,
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ planId: plan.id, userId: user?._id || user?.id })
+                    body: JSON.stringify({ planId: plan.id, provider: 'yookassa', currency: subscriptionCurrency })
                 }).then(r => r.json());
                 if (res.paymentUrl) {
                     window.location.href = res.paymentUrl;
@@ -654,7 +655,7 @@ function SettingsPage() {
                 {plans.map(plan => {
                     const currentPrice = getCurrentPrice(plan);
                     const subscribed = isSubscribedTo(plan.id);
-                    const basePrice = getPrice(plan, subscriptionCurrency);
+                    const basePrice = plan?.price ?? getPrice(plan, subscriptionCurrency); // [MASTER-v5.6] use API price
                     const isGrandfathered = userSubscription && userSubscription.planId === plan.id &&
                         userSubscription.lockedPrice !== basePrice && userSubscription.isActive;
                     const isFree = basePrice === 0;
