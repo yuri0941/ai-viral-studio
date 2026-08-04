@@ -1,4 +1,5 @@
-import { Referral, User } from '../models/index.js'
+import { Referral, User, UsageQuota } from '../models/index.js'
+import { topUpGenerations } from './usageQuotaService.js'
 
 const generateReferralCode = () => {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -82,6 +83,15 @@ export async function registerReferral(newUserId, referralCode) {
         referrer.creditBalance += 10
     }
     await referrer.save()
+
+    // [MONETIZE-2026-08-04] added: both sides get +50 generations
+    try {
+        await topUpGenerations(referrer.userId, 0.5)
+        await topUpGenerations(newUserId, 0.5)
+    } catch (err) {
+        console.warn('[referralService] top-up generations failed:', err.message)
+    }
+
     return referrer
 }
 

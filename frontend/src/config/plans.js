@@ -1,14 +1,55 @@
-export const PLANS = [
-  { id: 'free', name: 'Free', priceRUB: 0, priceUSD: 0, features: ['1 проект', 'Базовая аналитика', 'Email поддержка'] },
-  { id: 'starter', name: 'Starter', priceRUB: 2900, priceUSD: 29, features: ['3 проекта', 'Расширенная аналитика', 'Email поддержка'] },
-  { id: 'creator', name: 'Creator', priceRUB: 4300, priceUSD: 43, features: ['5 проектов', 'AI генерация идей', 'Приоритетная поддержка'] },
-  { id: 'pro', name: 'Pro', priceRUB: 7900, priceUSD: 79, features: ['20 проектов', 'API доступ', 'Расширенный AI'] },
-  { id: 'agency', name: 'Agency', priceRUB: 19900, priceUSD: 143, features: ['Безлимит проектов', 'White label', 'Выделенный менеджер'] },
-  { id: 'enterprise', name: 'Enterprise', priceRUB: 47500, priceUSD: 475, features: ['Кастом решения', 'On-premise', 'SLA 99.9%'] }
-];
+// [MONETIZE-2026-08-04] added unified plans
+export const PLANS = {
+  free: {
+    id: 'free',
+    name: 'Free',
+    priceRUB: 0,
+    priceUSD: 0,
+    generations: 10,
+    socials: 1,
+    projects: 1,
+    team: 1,
+    features: ['10 AI-генераций', '1 соцсеть', 'Базовый планировщик']
+  },
+  creator: {
+    id: 'creator',
+    name: 'Creator',
+    priceRUB: 2900,
+    priceUSD: 29,
+    generations: 100,
+    socials: 3,
+    projects: 2,
+    team: 1,
+    features: ['100 AI-генераций', '3 соцсети', '50 шаблонов', 'Анализ контента']
+  },
+  pro: {
+    id: 'pro',
+    name: 'Pro',
+    priceRUB: 7900,
+    priceUSD: 79,
+    generations: 500,
+    socials: 5,
+    projects: 5,
+    team: 3,
+    features: ['500 AI-генераций', '5 соцсетей', 'AI-обложки', 'A/B тесты', 'Brand Voice']
+  },
+  agency: {
+    id: 'agency',
+    name: 'Agency',
+    priceRUB: 19900,
+    priceUSD: 199,
+    generations: 5000,
+    socials: 10,
+    projects: 20,
+    team: 10,
+    features: ['5000 AI-генераций', '10 соцсетей', 'White-label', 'API доступ', 'Team seats']
+  }
+};
 
-export function getPrice(plan, currency) {
-  if (currency === 'USD') return plan.priceUSD;
-  if (currency === 'RUB') return plan.priceRUB;
-  return plan.priceRUB;
-} // [P24] fixed: unified plans config
+export const getPrice = (planId, currency = 'RUB') => {
+  const plan = PLANS[planId];
+  if (!plan) return 0;
+  return currency === 'USD' ? plan.priceUSD : plan.priceRUB;
+};
+
+export default PLANS;

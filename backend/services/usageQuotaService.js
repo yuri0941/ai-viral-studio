@@ -1,12 +1,13 @@
-import { UsageQuota, SubscriptionPlan } from '../models/index.js'
+import { UsageQuota } from '../models/index.js'
+import User from '../models/User.js'
+import { PLANS } from '../config/plans.js'
 
+// [MONETIZE-2026-08-04] updated: unified plan limits from config
 const DEFAULT_LIMITS = {
-    free: 20,
-    creator: 100,
-    business: 300,
-    pro: 500,
-    agency: 5000,
-    enterprise: 50000,
+    free: PLANS.free.generations,
+    creator: PLANS.creator.generations,
+    pro: PLANS.pro.generations,
+    agency: PLANS.agency.generations,
 }
 
 export async function getOrCreateQuota(userId, plan = null) {
@@ -14,14 +15,20 @@ export async function getOrCreateQuota(userId, plan = null) {
     if (!quota) {
         let effectivePlan = plan
         if (!effectivePlan) {
-            const user = await User.findById(userId).select('subscription').lean()
-            effectivePlan = user?.subscription || 'free'
+            try {
+                const user = await User.findById(userId).select('subscription').lean()
+                effectivePlan = user?.subscription || 'free'
+            } catch {
+                effectivePlan = 'free'
+            }
         }
-        const planConfig = await SubscriptionPlan.findOne({ name: { $regex: new RegExp(`^${effectivePlan}$`, 'i') } }).lean()
+        if (!PLANS[effectivePlan]) effectivePlan = 'free'
         quota = await UsageQuota.create({
             userId,
             plan: effectivePlan,
-            generationsLimit: planConfig?.limits?.aiRequestsPerDay * 30 || DEFAULT_LIMITS[effectivePlan] || DEFAULT_LIMITS.free,
+            generationsLimit: DEFAULT_LIMITS[effectivePlan] || PLANS.free.generations,
+            cycleStartedAt: new Date(),
+            cycleEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         })
     }
     return quota

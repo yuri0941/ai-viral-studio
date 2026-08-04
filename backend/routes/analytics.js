@@ -7,6 +7,7 @@ import {
   revenueForecast,
   autoBudgeting,
 } from '../services/predictiveEngine.js';
+import { getReferralData } from '../services/referralService.js';
 
 const router = express.Router();
 
@@ -75,8 +76,15 @@ router.get('/vector-store/status', (req, res) => {
   res.json({ status: 'ok', provider: 'in-memory', records: 0, message: 'Vector store active (in-memory fallback)' });
 });
 
-router.get('/referrals', protect, (req, res) => {
-  res.json({ referrals: [], total: 0, earnings: 0, message: 'No referrals yet' });
+router.get('/referrals', protect, async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const data = await getReferralData(userId);
+    return res.json({ status: 'success', data });
+  } catch (err) {
+    console.error('[analytics:referrals]', err.message);
+    return res.status(500).json({ status: 'error', error: err.message });
+  }
 });
 
 export default router;

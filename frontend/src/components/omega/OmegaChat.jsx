@@ -39,7 +39,7 @@ export function OmegaChatContainer(props) {
     return <OmegaChat {...chat} {...props} />
 }
 
-export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendMessage, clearHistory, apiKeys = [], onOpenApiKeys, rateMessage }) {
+export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendMessage, clearHistory, apiKeys = [], onOpenApiKeys, rateMessage, quotaError }) {
     const endRef = useRef(null)
     const [isListening, setIsListening] = useState(false)
 
@@ -243,6 +243,22 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                 )}
                 <div ref={endRef} />
             </div>
+
+            {/* [MONETIZE-2026-08-04] added: quota exceeded banner */}
+            {(quotaError || messages.some(m => m.quota)) && (
+                <div className="px-4 py-2 border-t border-[var(--border)] bg-[var(--accent-warm)]/10 flex items-center justify-between gap-3">
+                    <span className="text-xs text-[var(--accent-warm)]">
+                        ⚡ Лимит генераций исчерпан. Перейдите на платный тариф, чтобы продолжить.
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => window.location.href = '/settings?tab=subscriptions'}
+                        className="shrink-0 px-3 py-1.5 rounded-lg bg-[var(--primary)] text-[var(--text-inverse)] text-xs hover:opacity-90 transition-opacity"
+                    >
+                        + Тариф
+                    </button>
+                </div>
+            )}
 
             {/* Input */}
             <form onSubmit={handleSubmit} className="p-3 border-t border-[var(--border)]">

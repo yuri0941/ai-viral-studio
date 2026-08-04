@@ -269,6 +269,7 @@ function App() {
                 } />
 
                 <Route path="/payment/success" element={<PaymentSuccess />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
                 <Route path="/stripe-checkout" element={
                     <ProtectedRoute>
                         <StripeCheckoutPage />

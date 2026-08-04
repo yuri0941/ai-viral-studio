@@ -59,6 +59,9 @@ function SettingsPage() {
         const saved = localStorage.getItem('user_subscription');
         return saved ? JSON.parse(saved) : null;
     });
+    // [MONETIZE-2026-08-04] added: quota state for subscription card
+    const [quota, setQuota] = useState({ used: 0, limit: PLANS.free.generations });
+    const [quotaLoading, setQuotaLoading] = useState(false);
     const [notifications, setNotifications] = useState({
         email: true,
         push: false,
@@ -151,6 +154,21 @@ function SettingsPage() {
             showToast(t('settings.paymentCancelled'), 'error');
             window.history.replaceState({}, document.title, window.location.pathname);
         }
+    }, []);
+
+    // [MONETIZE-2026-08-04] added: load current quota
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        setQuotaLoading(true);
+        fetch(`${API_BASE_URL}/users/me/quota`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : null)
+            .then(d => {
+                const q = d?.data || d || {};
+                setQuota({ used: q.generationsUsed || 0, limit: q.generationsLimit || PLANS.free.generations });
+            })
+            .catch(() => setQuota({ used: 0, limit: PLANS.free.generations }))
+            .finally(() => setQuotaLoading(false));
     }, []);
 
     const [subscriptionCurrency, setSubscriptionCurrency] = useState(user?.preferences?.currency || 'RUB');
@@ -573,13 +591,18 @@ function SettingsPage() {
                         <div>
                             <h3 className="text-lg font-semibold text-[var(--text)]">{t('settings.currentPlan')}</h3>
                             <p className="text-[var(--success)] font-bold text-xl mt-1">{userSubscription.planName}</p>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-[var(--text-muted)]">
+                            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-[var(--text-muted)]">
                                 <span className="flex items-center gap-1">
                                     <Calendar size={14} /> {t('settings.nextBilling')}: {formatDate(userSubscription.nextBillingDate)}
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <CreditCard size={14} />
                                     {userSubscription.billingCycle === 'yearly' ? t('settings.yearly') : userSubscription.billingCycle === 'free' ? t('settings.free') : t('settings.monthly')}
+                                </span>
+                                {/* [MONETIZE-2026-08-04] added: generations remaining */}
+                                <span className="flex items-center gap-1">
+                                    <Zap size={14} />
+                                    {quotaLoading ? '...' : `Генераций: ${quota.used}/${quota.limit}`}
                                 </span>
                             </div>
                             {userSubscription.lockedPrice !== plans.find(p => p.id === userSubscription.planId)?.price && (
@@ -590,12 +613,21 @@ function SettingsPage() {
                         </div>
                         <Crown size={40} className="text-[var(--success)]" />
                     </div>
-                    <button
-                        onClick={handleCancelSubscription}
-                        className="mt-4 px-4 py-2 bg-[var(--danger)]/20 text-[var(--danger)] rounded-xl text-sm hover:bg-[var(--danger)]/30 transition-colors"
-                    >
-                        {t('settings.cancelSubscription')}
-                    </button>
+                    <div className="flex flex-wrap gap-3 mt-4">
+                        {/* [MONETIZE-2026-08-04] added: upgrade/renew actions */}
+                        <button
+                            onClick={() => document.getElementById('plans-grid')?.scrollIntoView({ behavior: 'smooth' })}
+                            className="px-4 py-2 bg-[var(--primary)] text-[var(--text-inverse)] rounded-xl text-sm hover:opacity-90 transition-opacity"
+                        >
+                            Продлить / Сменить тариф
+                        </button>
+                        <button
+                            onClick={handleCancelSubscription}
+                            className="px-4 py-2 bg-[var(--danger)]/20 text-[var(--danger)] rounded-xl text-sm hover:bg-[var(--danger)]/30 transition-colors"
+                        >
+                            {t('settings.cancelSubscription')}
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -647,7 +679,7 @@ function SettingsPage() {
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div id="plans-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {plans.map(plan => {
                     const currentPrice = getCurrentPrice(plan);
                     const subscribed = isSubscribedTo(plan.id);

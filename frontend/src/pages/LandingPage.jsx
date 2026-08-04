@@ -6,6 +6,8 @@ import AuthModal from '../components/auth/AuthModal'
 import { ClientChatWidget } from '../components/chat/ClientChatWidget'
 import { PWAInstallButton } from '../components/pwa/PWAInstallButton'
 import { ownerLegalInfoApi } from '../services/api.js'
+import { API_URL } from '../config.js'
+import { PLANS, getPrice } from '../config/plans.js'
 import WaitlistSection from './landing/WaitlistSection'
 import ViralDemo from './landing/ViralDemo'
 // [P16-FINAL] added: launch pill replacing beta counter
@@ -58,13 +60,14 @@ function Confetti() {
 }
 
 function LandingPage() {
-    const { isAuthenticated } = useAuth()
+    const { isAuthenticated, user } = useAuth()
     const [authModalOpen, setAuthModalOpen] = useState(false)
     const [authModalMode, setAuthModalMode] = useState('login')
     const [scrolled, setScrolled] = useState(false)
     const [activeFeature, setActiveFeature] = useState(0)
     const [legalInfo, setLegalInfo] = useState(null)
     const [chatWidgetOpen, setChatWidgetOpen] = useState(false)
+    const [billingCycle, setBillingCycle] = useState('monthly')
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -142,40 +145,37 @@ function LandingPage() {
         }
     ]
 
-    const plans = [
-        {
-            name: 'Free',
-            price: '$0',
-            period: '/мес',
-            features: ['3 AI запроса/день', '1 соцсеть', '5 анализов/мес', 'Watermark на видео'],
-            cta: 'Начать бесплатно',
-            popular: false
-        },
-        {
-            name: 'Creator',
-            price: '$29.99',
-            period: '/мес',
-            features: ['50 AI запросов/день', '3 соцсети', '50 анализов/мес', 'Без watermark', 'Приоритетная генерация'],
-            cta: 'Выбрать Creator',
-            popular: true
-        },
-        {
-            name: 'Pro',
-            price: '$79.99',
-            period: '/мес',
-            features: ['Безлимит AI', '8 соцсетей', 'Безлимит аналитика', 'AI миниатюры', 'API доступ'],
-            cta: 'Выбрать Pro',
-            popular: false
-        },
-        {
-            name: 'Agency',
-            price: '$139.99',
-            period: '/мес',
-            features: ['Безлимит всё', 'Безлимит соцсети', 'Команда до 5 чел', 'White-label', 'Приоритетная поддержка'],
-            cta: 'Выбрать Agency',
-            popular: false
+    const plans = Object.values(PLANS)
+
+    const formatPrice = (price) => new Intl.NumberFormat('ru-RU').format(price)
+
+    const handleSubscribe = async (planId) => {
+        if (!isAuthenticated || !user) {
+            setAuthModalMode('register')
+            setAuthModalOpen(true)
+            return
         }
-    ]
+        try {
+            const token = localStorage.getItem('token')
+            const res = await fetch(`${API_URL}/yookassa/pay/subscription`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ planId, userId: user._id || user.id })
+            })
+            const data = await res.json()
+            if (data.paymentUrl) {
+                window.location.href = data.paymentUrl
+            } else {
+                alert(data.error || 'Не удалось создать платёж')
+            }
+        } catch (err) {
+            console.error('[LandingPage:subscribe]', err)
+            alert('Ошибка при создании платежа')
+        }
+    }
 
     const steps = [
         {
@@ -388,37 +388,65 @@ function LandingPage() {
                     <h2 className="section-title">Тарифы</h2>
                     <p className="section-subtitle">Начни бесплатно, масштабируй когда готов</p>
 
+                    {/* [MONETIZE-2026-08-04] added: monthly/yearly toggle */}
+                    <div className="flex justify-center mb-10">
+                        <div className="inline-flex items-center gap-3 p-1 rounded-full glass border border-[var(--border)]">
+                            <button
+                                onClick={() => setBillingCycle('monthly')}
+                                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${billingCycle === 'monthly' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+                            >
+                                Месяц
+                            </button>
+                            <button
+                                onClick={() => setBillingCycle('yearly')}
+                                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${billingCycle === 'yearly' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+                            >
+                                Год <span className="text-xs opacity-80">-20%</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-                        {plans.map((plan, i) => (
-                            <div key={i} className={`relative glass rounded-2xl p-8 ${plan.popular ? 'border-[var(--success)]/40 scale-105 shadow-[0_0_40px_rgba(0,255,65,0.1)]' : ''}`}>
-                                {plan.popular && (
-                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[var(--success)] to-[#00cc33] text-[var(--text-inverse)] text-xs font-bold px-4 py-1.5 rounded-full">
-                                        Популярный
+                        {plans.map((plan, i) => {
+                            const isPopular = plan.id === 'creator'
+                            const basePrice = getPrice(plan.id, 'RUB')
+                            const isYearly = billingCycle === 'yearly'
+                            const displayPrice = plan.id === 'free' ? 0 : isYearly ? Math.round(basePrice * 12 * 0.8) : basePrice
+                            const periodLabel = plan.id === 'free' ? '' : isYearly ? '₽/год' : '₽/мес'
+                            return (
+                                <div key={i} className={`relative glass rounded-2xl p-8 ${isPopular ? 'border-[var(--success)]/40 scale-105 shadow-[0_0_40px_rgba(0,255,65,0.1)]' : ''}`}>
+                                    {isPopular && (
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[var(--success)] to-[#00cc33] text-[var(--text-inverse)] text-xs font-bold px-4 py-1.5 rounded-full">
+                                            Популярный
+                                        </div>
+                                    )}
+                                    <h3 className="text-lg font-semibold mb-2 text-[var(--text)]">{plan.name}</h3>
+                                    <div className="flex items-baseline gap-1 mb-8">
+                                        <span className="text-4xl font-black">{formatPrice(displayPrice)}</span>
+                                        <span className="text-[var(--text-muted)]">{periodLabel}</span>
                                     </div>
-                                )}
-                                <h3 className="text-lg font-semibold mb-2 text-[var(--text)]">{plan.name}</h3>
-                                <div className="flex items-baseline gap-1 mb-8">
-                                    <span className="text-4xl font-black">{plan.price}</span>
-                                    <span className="text-[var(--text-muted)]">{plan.period}</span>
+                                    <ul className="space-y-4 mb-8">
+                                        {plan.features.map((feature, j) => (
+                                            <li key={j} className="flex items-start gap-3 text-sm text-[var(--text)]">
+                                                <svg className="w-5 h-5 text-[var(--success)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                {feature}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <button
+                                        onClick={() => plan.id === 'free'
+                                            ? (isAuthenticated ? navigate('/dashboard') : (() => { setAuthModalMode('register'); setAuthModalOpen(true) })())
+                                            : handleSubscribe(plan.id)
+                                        }
+                                        className={`w-full btn ${isPopular ? 'btn-primary' : 'btn-secondary'} py-3`}
+                                    >
+                                        {plan.id === 'free' ? 'Начать бесплатно' : 'Оформить'}
+                                    </button>
                                 </div>
-                                <ul className="space-y-4 mb-8">
-                                    {plan.features.map((feature, j) => (
-                                        <li key={j} className="flex items-start gap-3 text-sm text-[var(--text)]">
-                                            <svg className="w-5 h-5 text-[var(--success)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            {feature}
-                                        </li>
-                                    ))}
-                                </ul>
-                                <button
-                                    onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true) }}
-                                    className={`w-full btn ${plan.popular ? 'btn-primary' : 'btn-secondary'} py-3`}
-                                >
-                                    {plan.cta}
-                                </button>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 </div>
             </section>

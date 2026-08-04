@@ -2,6 +2,7 @@ import express from 'express'
 import { protect } from '../middleware/auth.js'
 import { getMe, updateMe, changePassword, changeEmail, deleteMyData, exportMyData } from '../controllers/userController.js'
 import { applyWatermarkToImage, canDisableWatermark } from '../services/watermarkService.js'
+import { checkQuota } from '../services/usageQuotaService.js'
 import User from '../models/User.js'
 
 const router = express.Router()
@@ -70,6 +71,25 @@ router.post('/change-password', protect, changePassword)
 router.post('/change-email', protect, changeEmail)
 router.delete('/me/data', protect, deleteMyData)
 router.get('/me/export', protect, exportMyData)
+
+// [MONETIZE-2026-08-04] added: current usage quota
+router.get('/me/quota', protect, async (req, res) => {
+    try {
+        const quota = await checkQuota(req.user._id || req.user.id)
+        res.json({
+            status: 'success',
+            data: {
+                generationsUsed: quota.used,
+                generationsLimit: quota.limit,
+                remaining: quota.remaining,
+                plan: quota.plan,
+                cycleEndsAt: quota.cycleEndsAt,
+            }
+        })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
 
 router.get('/profile', (req, res) => {
     res.json({ status: 'success', message: 'User profile' })

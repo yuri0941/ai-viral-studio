@@ -14,10 +14,11 @@ import {
 } from 'lucide-react'
 
 // [P24] fixed: backend-shape fallback built from unified PLANS config
+// [MONETIZE-2026-08-04] fixed: pass plan id, not object
 const DEMO_PLANS = PLANS.filter(p => p.id !== 'free').map(p => ({
     id: p.id,
     name: p.name,
-    price: getPrice(p, 'RUB'),
+    price: getPrice(p.id, 'RUB'),
     period: 'month',
     currency: 'RUB',
     features: p.features,

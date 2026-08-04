@@ -17,7 +17,9 @@ import {
     News,
     AIAgent,
     ApiKey,
+    User,
 } from '../models/index.js'
+import bcrypt from 'bcryptjs'
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ai_viral_studio'
 
@@ -143,6 +145,32 @@ async function seed() {
         console.log(`Seeded ${agents.length} agents`)
 
         await upsertApiKeys()
+
+        // [MONETIZE-2026-08-04] added test accounts
+        const testAccounts = [
+            { email: 'admin@aiviral.ru', password: 'Admin123!', role: 'admin', name: 'Админ Тест' },
+            { email: 'staff@aiviral.ru', password: 'Staff123!', role: 'staff', name: 'Сотрудник Тест' },
+            { email: 'creator@aiviral.ru', password: 'Creator123!', role: 'creator', name: 'Креатор Тест' },
+            { email: 'advertiser@aiviral.ru', password: 'Advert123!', role: 'advertiser', name: 'Рекламодатель Тест' },
+            { email: 'owner@aiviral.ru', password: 'Owner123!', role: 'owner', name: 'Владелец Тест' },
+        ]
+
+        for (const acc of testAccounts) {
+            const exists = await User.findOne({ email: acc.email })
+            if (!exists) {
+                await User.create({
+                    ...acc,
+                    isVerified: true,
+                    acceptedTerms: true,
+                    acceptedPrivacy: true,
+                    acceptedConsent: true,
+                    isAdult: true,
+                    acceptedAt: new Date(),
+                    preferences: { timezone: 'Europe/Moscow', language: 'ru', currency: 'RUB' }
+                })
+                console.log(`[SEED] Created ${acc.role}: ${acc.email} / ${acc.password}`)
+            }
+        }
 
         console.log('\n✅ Seed completed successfully')
     } catch (err) {

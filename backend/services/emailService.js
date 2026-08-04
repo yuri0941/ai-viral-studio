@@ -69,60 +69,66 @@ function getLang(lang) {
 }
 
 export async function sendVerificationEmail(to, name, token, lang = 'ru') {
-    if (!resend) {
-        console.warn('[emailService] RESEND_API_KEY not configured, skipping verification email')
-        return { skipped: true }
-    }
     const l = T[getLang(lang)]
-    return resend.emails.send({
-        from: FROM,
-        to,
-        subject: l.verifySubject,
-        html: `
+    const subject = l.verifySubject
+    const html = `
             <h1>${format(l.verifyTitle, { name: name || 'user' })}</h1>
             <p>${l.verifyText}</p>
             <p><a href="${FRONTEND_URL}/verify?token=${token}" style="padding:10px 16px;background:#00ff41;color:#0a0a0f;text-decoration:none;border-radius:8px;font-weight:bold;">${l.verifyButton}</a></p>
             <p>${l.verifyCopy} ${FRONTEND_URL}/verify?token=${token}</p>
-        `,
+        `
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
+        return { mocked: true }
+    }
+    return resend.emails.send({
+        from: FROM,
+        to,
+        subject,
+        html,
     })
 }
 
 export async function sendPasswordReset(to, name, token, lang = 'ru') {
-    if (!resend) {
-        console.warn('[emailService] RESEND_API_KEY not configured, skipping password reset email')
-        return { skipped: true }
-    }
     const l = T[getLang(lang)]
-    return resend.emails.send({
-        from: FROM,
-        to,
-        subject: l.resetSubject,
-        html: `
+    const subject = l.resetSubject
+    const html = `
             <h1>${format(l.resetTitle, { name: name || 'user' })}</h1>
             <p>${l.resetText}</p>
             <p><a href="${FRONTEND_URL}/reset-password?token=${token}" style="padding:10px 16px;background:#00ff41;color:#0a0a0f;text-decoration:none;border-radius:8px;font-weight:bold;">${l.resetButton}</a></p>
             <p>${l.resetCopy} ${FRONTEND_URL}/reset-password?token=${token}</p>
             <p>${l.resetIgnore}</p>
-        `,
+        `
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
+        return { mocked: true }
+    }
+    return resend.emails.send({
+        from: FROM,
+        to,
+        subject,
+        html,
     })
 }
 
 export async function sendPaymentSuccessEmail(to, name, plan, amount, lang = 'ru') {
-    if (!resend) {
-        console.warn('[emailService] RESEND_API_KEY not configured, skipping payment success email')
-        return { skipped: true }
-    }
     const l = T[getLang(lang)]
-    return resend.emails.send({
-        from: FROM,
-        to,
-        subject: l.paymentSubject,
-        html: `
+    const subject = l.paymentSubject
+    const html = `
             <h1>${format(l.paymentTitle, { name: name || 'user' })}</h1>
             <p>${format(l.paymentText, { plan: plan || '—', amount: amount || '—' })}</p>
             <p>${l.paymentActive}</p>
             <p><a href="${FRONTEND_URL}/dashboard" style="padding:10px 16px;background:#00ff41;color:#0a0a0f;text-decoration:none;border-radius:8px;font-weight:bold;">${l.paymentButton}</a></p>
-        `,
+        `
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
+        return { mocked: true }
+    }
+    return resend.emails.send({
+        from: FROM,
+        to,
+        subject,
+        html,
     })
 }
 
@@ -130,8 +136,8 @@ export async function getEmailStatus() { return { provider: 'resend', status: 'a
 
 export async function sendEmail({ to, subject, text, html }) {
     if (!resend) {
-        console.warn('[emailService] RESEND_API_KEY not configured, skipping email')
-        return { skipped: true }
+        console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${(html || text || '').slice(0, 100)}...`)
+        return { mocked: true }
     }
     return resend.emails.send({ from: FROM, to, subject, text, html })
 }
@@ -141,48 +147,72 @@ export async function sendPaymentSuccess(to, name, plan, amount, lang = 'ru') {
 }
 
 export async function sendTrialEnding(user, subscription = {}, lang = 'ru') {
-    if (!resend || !user?.email) return { skipped: true }
+    if (!user?.email) return { skipped: true }
     const l = T[getLang(lang)]
     const date = subscription.trialEndsAt ? new Date(subscription.trialEndsAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'ru-RU') : 'soon'
+    const subject = l.trialSubject
+    const html = `<p>${format(l.trialText, { date })}</p>`
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${user.email}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
+        return { mocked: true }
+    }
     return resend.emails.send({
         from: FROM,
         to: user.email,
-        subject: l.trialSubject,
-        html: `<p>${format(l.trialText, { date })}</p>`,
+        subject,
+        html,
     })
 }
 
 export async function sendSubscriptionCanceled(user, subscription = {}, lang = 'ru') {
-    if (!resend || !user?.email) return { skipped: true }
+    if (!user?.email) return { skipped: true }
     const l = T[getLang(lang)]
     const date = subscription.endDate ? new Date(subscription.endDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'ru-RU') : '—'
+    const subject = l.canceledSubject
+    const html = `<p>${format(l.canceledText, { date })}</p>`
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${user.email}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
+        return { mocked: true }
+    }
     return resend.emails.send({
         from: FROM,
         to: user.email,
-        subject: l.canceledSubject,
-        html: `<p>${format(l.canceledText, { date })}</p>`,
+        subject,
+        html,
     })
 }
 
 export async function sendRefundRequest(user, reason, lang = 'ru') {
-    if (!resend || !user?.email) return { skipped: true }
+    if (!user?.email) return { skipped: true }
     const l = T[getLang(lang)]
+    const subject = l.refundSubject
+    const html = `<p>${format(l.refundText, { reason: reason || '—' })}</p>`
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${user.email}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
+        return { mocked: true }
+    }
     return resend.emails.send({
         from: FROM,
         to: user.email,
-        subject: l.refundSubject,
-        html: `<p>${format(l.refundText, { reason: reason || '—' })}</p>`,
+        subject,
+        html,
     })
 }
 
 export async function sendNewTicket(user, ticket, lang = 'ru') {
-    if (!resend || !user?.email) return { skipped: true }
+    if (!user?.email) return { skipped: true }
     const l = T[getLang(lang)]
+    const subject = l.ticketSubject
+    const html = `<p>${format(l.ticketText, { subject: ticket?.subject || '—' })}</p>`
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${user.email}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
+        return { mocked: true }
+    }
     return resend.emails.send({
         from: FROM,
         to: user.email,
-        subject: l.ticketSubject,
-        html: `<p>${format(l.ticketText, { subject: ticket?.subject || '—' })}</p>`,
+        subject,
+        html,
     })
 }
 

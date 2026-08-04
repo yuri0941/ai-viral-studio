@@ -53,6 +53,8 @@ export function useOmegaChat(options = {}) {
     const [input, setInput] = useState('')
     const [isTyping, setIsTyping] = useState(false)
     const [demoMode, setDemoMode] = useState(false)
+    // [MONETIZE-2026-08-04] added: quota exceeded state
+    const [quotaError, setQuotaError] = useState(null)
 
     useEffect(() => {
         saveHistory(messages)
@@ -83,15 +85,29 @@ export function useOmegaChat(options = {}) {
             }
             setMessages(prev => [...prev, reply])
         } catch (err) {
-            setDemoMode(true)
-            setMessages(prev => [...prev, {
-                id: generateId(),
-                role: 'omega',
-                text: getDemoResponse(userMsg.text),
-                demo: true,
-                error: err.message,
-                timestamp: new Date().toISOString(),
-            }])
+            // [MONETIZE-2026-08-04] added: handle quota exceeded (402)
+            const isQuota = /402|QUOTA_EXCEEDED|Генерации исчерпаны|Лимит/i.test(err.message || '')
+            if (isQuota) {
+                setQuotaError({ used: 0, limit: 0 })
+                setMessages(prev => [...prev, {
+                    id: generateId(),
+                    role: 'omega',
+                    text: '⚡ Лимит генераций исчерпан. Чтобы продолжить, перейдите на платный тариф.',
+                    demo: true,
+                    quota: true,
+                    timestamp: new Date().toISOString(),
+                }])
+            } else {
+                setDemoMode(true)
+                setMessages(prev => [...prev, {
+                    id: generateId(),
+                    role: 'omega',
+                    text: getDemoResponse(userMsg.text),
+                    demo: true,
+                    error: err.message,
+                    timestamp: new Date().toISOString(),
+                }])
+            }
         } finally {
             setIsTyping(false)
         }
@@ -125,6 +141,7 @@ export function useOmegaChat(options = {}) {
         setInput,
         isTyping,
         demoMode,
+        quotaError,
         sendMessage,
         clearHistory,
         removeMessage,

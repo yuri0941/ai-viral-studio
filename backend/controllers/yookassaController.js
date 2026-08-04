@@ -1,8 +1,9 @@
 import { createPayment, checkPayment, handleWebhook, createInvoicePayment } from '../services/yookassaService.js';
 import { Subscription, Invoice, User } from '../models/index.js';
 import { sendPaymentSuccessEmail } from '../services/emailService.js';
+import { PLANS } from '../config/plans.js';
 
-const RETURN_URL = process.env.YOOKASSA_RETURN_URL || 'http://localhost:3000/dashboard/finance';
+const RETURN_URL = process.env.FRONTEND_URL || process.env.YOOKASSA_RETURN_URL || 'http://localhost:3000';
 
 export const createSubscriptionPayment = async (req, res) => {
   try {
@@ -13,17 +14,9 @@ export const createSubscriptionPayment = async (req, res) => {
     const planId = plan || 'creator';
     const isYearly = interval === 'year';
 
-    // Plan prices in RUB
-    const prices = {
-      free: 0,
-      starter: 790,
-      creator: 990,
-      pro: 4290,
-      agency: 14290,
-      enterprise: 47500,
-    };
-
-    const basePrice = prices[planId] || prices.creator;
+    // [MONETIZE-2026-08-04] updated: use unified plans config
+    const planConfig = PLANS[planId] || PLANS.creator;
+    const basePrice = currency?.toUpperCase() === 'USD' ? planConfig.priceUSD : planConfig.priceRUB;
     let amount = basePrice;
     if (isYearly) {
       amount = Math.round(basePrice * 12 * 0.8); // -20% discount
@@ -86,7 +79,7 @@ export const createSubscriptionPayment = async (req, res) => {
       amount,
       currency,
       description: `Подписка ${planId}`,
-      returnUrl: `${RETURN_URL}?subscription=${subscription._id}`,
+      returnUrl: `${RETURN_URL}/payment-success?plan=${planId}&subscription=${subscription._id}`,
       metadata: {
         userId: userId.toString(),
         subscriptionId: subscription._id.toString(),

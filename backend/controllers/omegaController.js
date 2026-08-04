@@ -78,20 +78,39 @@ export async function chat(req, res) {
 
         const userId = req.user?._id || req.user?.id
 
+        // [MONETIZE-2026-08-04] added: consume quota before AI call
         if (userId) {
-            const quota = await checkQuota(userId)
-            if (quota.blocked) {
-                return res.status(402).json({
-                    status: 'error',
-                    code: 'QUOTA_EXCEEDED',
-                    message: 'Генерации исчерпаны. Докупите пакет, чтобы продолжить.',
-                    data: {
-                        used: quota.used,
-                        limit: quota.limit,
-                        topUpPackSize: quota.topUpPackSize,
-                        topUpPackPrice: quota.topUpPackPrice,
-                    },
-                })
+            try {
+                const quota = await consumeGeneration(userId)
+                if (quota.blocked) {
+                    return res.status(402).json({
+                        status: 'error',
+                        code: 'QUOTA_EXCEEDED',
+                        message: 'Генерации исчерпаны. Докупите пакет, чтобы продолжить.',
+                        data: {
+                            used: quota.used,
+                            limit: quota.limit,
+                            topUpPackSize: quota.topUpPackSize,
+                            topUpPackPrice: quota.topUpPackPrice,
+                        },
+                    })
+                }
+            } catch (err) {
+                if (err.message === 'QUOTA_EXCEEDED') {
+                    const quota = await checkQuota(userId)
+                    return res.status(402).json({
+                        status: 'error',
+                        code: 'QUOTA_EXCEEDED',
+                        message: 'Генерации исчерпаны. Докупите пакет, чтобы продолжить.',
+                        data: {
+                            used: quota.used,
+                            limit: quota.limit,
+                            topUpPackSize: quota.topUpPackSize,
+                            topUpPackPrice: quota.topUpPackPrice,
+                        },
+                    })
+                }
+                console.warn('[omegaController:chat] quota check failed:', err.message)
             }
         }
 
@@ -155,14 +174,6 @@ export async function chat(req, res) {
                 lang,
                 { userId, ownerId: userId, userRole, extraSystem: roleContext, chatUserId }
             )
-
-        if (userId) {
-            try {
-                await consumeGeneration(userId)
-            } catch (err) {
-                console.warn('[omegaController:chat] consumeGeneration failed:', err.message)
-            }
-        }
 
         let reasoning = ''
         try {
