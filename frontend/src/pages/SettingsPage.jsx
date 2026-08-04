@@ -109,14 +109,7 @@ function SettingsPage() {
         }
     }, [user?.preferences?.timezone])
 
-    // [P16-FIX] added: load socials from user object
-    useEffect(() => {
-        if (user?.socials) {
-            setSocials(prev => ({ ...prev, ...Object.fromEntries(
-                Object.entries(user.socials).map(([k, v]) => [k, typeof v === 'string' ? { username: v, link: '', published: false } : { ...v, published: v.published ?? false }])
-            )}))
-        }
-    }, [user?.socials])
+    // [FIX-2026-08-05] removed old socials loader (tab deleted)
 
     // [P20] added: load watermark settings and eligibility
     useEffect(() => {
@@ -166,8 +159,25 @@ function SettingsPage() {
     const [subscriptionCurrency, setSubscriptionCurrency] = useState(user?.preferences?.currency || 'RUB');
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('yookassa');
+    // [PLANS-SYNC] added: load plans from backend API
+    const [plans, setPlans] = useState([]);
 
-    const plans = Object.values(PLANS).map(p => ({ ...p, color: PLAN_COLORS[p.id] || 'from-gray-600 to-gray-700', popular: p.id === 'pro' }));
+    useEffect(() => {
+        fetch(`${API_BASE_URL}/plans?currency=${subscriptionCurrency}`)
+            .then(r => r.json())
+            .then(data => {
+                const loaded = (data.plans || []).map(p => ({
+                    ...p,
+                    color: PLAN_COLORS[p.id] || 'from-gray-600 to-gray-700',
+                    popular: p.id === 'pro',
+                }));
+                setPlans(loaded);
+            })
+            .catch(err => {
+                console.warn('[SettingsPage] failed to load plans:', err.message);
+                setPlans(Object.values(PLANS).map(p => ({ ...p, color: PLAN_COLORS[p.id] || 'from-gray-600 to-gray-700', popular: p.id === 'pro' })));
+            });
+    }, [subscriptionCurrency]);
 
     const getYearlyPrice = (monthlyPrice) => monthlyPrice * 10;
 
@@ -225,14 +235,15 @@ function SettingsPage() {
         try {
             let res;
             if (selectedPaymentMethod === 'yookassa') {
-                res = await fetch(`${API_BASE_URL}/payments/create`, {
+                // [PLANS-SYNC] added: use dedicated YooKassa subscription endpoint
+                res = await fetch(`${API_BASE_URL}/yookassa/pay/subscription`, {
                     method: 'POST',
                     signal: controller.signal,
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ planId: plan.id, amount, currency: subscriptionCurrency, description: `Подписка ${plan.name}` })
+                    body: JSON.stringify({ planId: plan.id, userId: user?._id || user?.id })
                 }).then(r => r.json());
-                if (res.success && res.confirmationUrl) {
-                    window.location.href = res.confirmationUrl;
+                if (res.paymentUrl) {
+                    window.location.href = res.paymentUrl;
                     return;
                 }
             } else if (selectedPaymentMethod === 'stripe') {

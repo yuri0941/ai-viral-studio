@@ -47,6 +47,7 @@ import paypalRoutes from './routes/paypal.js'  // ← PayPal
 import launchRoutes from './routes/launch.js'  // ← Product Hunt waitlist
 import demoRoutes from './routes/demo.js'  // ← Pre-launch viral demo hooks
 import integrationsRoutes from './routes/integrations.js'  // ← External integrations
+import plansRoutes from './routes/plans.js'  // [PLANS-SYNC] added
 import qrRoutes from './routes/qr.js'  // ← P11: QR codes
 import printRoutes from './routes/print.js'  // ← P11: Print orders
 import bookingRoutes from './routes/booking.js'  // ← P11: Studio booking
@@ -280,6 +281,7 @@ app.use('/api/paypal', paypalRoutes)
 app.use('/api/launch', launchRoutes)
 app.use('/api/demo', demoRoutes)
 app.use('/api/integrations', integrationsRoutes)
+app.use('/api/plans', plansRoutes)  // [PLANS-SYNC] added
 app.use('/api/qr', qrRoutes)
 app.use('/api/print', printRoutes)
 app.use('/api/booking', bookingRoutes)

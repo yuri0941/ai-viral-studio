@@ -104,8 +104,9 @@ export function SubscriptionsTab({ data }) {
     // [P18] added: dynamic pricing badge
     const [dynamicBadge, setDynamicBadge] = useState(null)
 
+    // [PLANS-SYNC] added: load plans from unified /api/plans endpoint
     const plansUrl = useMemo(() => {
-        return `${API_BASE_URL}/subscriptions/plans${currency ? `?currency=${currency}` : ''}`
+        return `${API_BASE_URL}/plans${currency ? `?currency=${currency}` : ''}`
     }, [currency])
 
     const { data: plans, isDemo } = useSmartData(plansUrl, DEMO_PLANS, token)
@@ -224,18 +225,19 @@ export function SubscriptionsTab({ data }) {
         setSavingPlanId(planId)
         try {
             const token = localStorage.getItem('token')
-            const res = await fetch(`${API_BASE_URL}/owner/subscription-plans/${planId}`, {
+            // [PLANS-SYNC] added: update in-memory unified plans config
+            const res = await fetch(`${API_BASE_URL}/plans/${planId}`, {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ price, currency }),
+                body: JSON.stringify(currency === 'USD' ? { priceUSD: price } : { priceRUB: price }),
             })
             const json = await res.json()
-            if (json.status === 'success' || json.success) {
+            if (json.success) {
                 setPlanOverrides(prev => ({ ...prev, [planId]: price }))
                 setEditingPlanId(null)
                 pushToast('success', t('subscriptions.priceUpdated'))
             } else {
-                pushToast('error', json.message || 'Ошибка сохранения')
+                pushToast('error', json.error || json.message || 'Ошибка сохранения')
             }
         } catch (err) {
             setPlanOverrides(prev => ({ ...prev, [planId]: price }))
@@ -277,14 +279,15 @@ export function SubscriptionsTab({ data }) {
 
             let res
             if (paymentMethod === 'yookassa') {
-                res = await fetch(`${API_BASE_URL}/payments/create`, {
+                // [PLANS-SYNC] added: use dedicated YooKassa subscription endpoint
+                res = await fetch(`${API_BASE_URL}/yookassa/pay/subscription`, {
                     method: 'POST',
                     signal: controller.signal,
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body,
+                    body: JSON.stringify({ planId, userId: user?._id || user?.id }),
                 }).then(r => r.json())
-                if (res.success && res.confirmationUrl) {
-                    window.location.href = res.confirmationUrl
+                if (res.paymentUrl) {
+                    window.location.href = res.paymentUrl
                     return
                 }
             } else if (paymentMethod === 'stripe') {
