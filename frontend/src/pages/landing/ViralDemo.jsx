@@ -1,16 +1,7 @@
 import { useState, useEffect } from 'react'
 import { demoApi, launchApi } from '../../services/api.js'
 
-const NICHES = [
-    { value: 'coffee', label: 'Кофейня' },
-    { value: 'beauty', label: 'Бьюти' },
-    { value: 'it', label: 'IT' },
-    { value: 'auto', label: 'Авто' },
-    { value: 'clothing', label: 'Одежда' },
-    { value: 'food', label: 'Еда' },
-    { value: 'other', label: 'Другое' },
-]
-
+// [VALUE-2026-08-04] removed NICHES dropdown; using free-text niche input instead
 const DEMO_STORAGE_KEY = 'omega_demo_count'
 const DEMO_LIMIT = 3
 
@@ -82,17 +73,15 @@ function ViralDemo() {
                 <div className="max-w-2xl mx-auto">
                     <form onSubmit={handleGenerate} className="glass-card p-6 rounded-2xl border border-white/10">
                         <div className="flex flex-col md:flex-row gap-4">
-                            <select
+                            {/* [VALUE-2026-08-04] added: free-text niche input with specified placeholder */}
+                            <input
+                                type="text"
                                 required
                                 value={niche}
                                 onChange={e => setNiche(e.target.value)}
-                                className="flex-1 px-5 py-4 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00ff41]/50"
-                            >
-                                <option value="" className="bg-[#0a0a0f]">Ваша ниша</option>
-                                {NICHES.map(n => (
-                                    <option key={n.value} value={n.value} className="bg-[#0a0a0f]">{n.label}</option>
-                                ))}
-                            </select>
+                                placeholder="кофейня, бьюти, IT..."
+                                className="flex-1 px-5 py-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#00ff41]/50"
+                            />
                             <button
                                 type="submit"
                                 disabled={loading || !niche}

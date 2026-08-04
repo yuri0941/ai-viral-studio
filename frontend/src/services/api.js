@@ -141,6 +141,11 @@ export const omegaApi = {
         method: 'POST',
         body: JSON.stringify(data),
     }),
+    // [VALUE-2026-08-04] added: structured video analysis endpoint
+    analyzeVideo: (url, niche = 'контент', language = 'ru') => request('/omega/analyze-video', {
+        method: 'POST',
+        body: JSON.stringify({ url, niche, language }),
+    }),
     interpret: (csvText, niche = '') => request('/omega/interpret', {
         method: 'POST',
         body: JSON.stringify({ csvText, niche }),

@@ -426,6 +426,88 @@ ${base.text}
 
 import { getJSON, setJSON, cacheKey } from '../config/redis.js'
 
+// [VALUE-2026-08-04] added: structured video analysis with AI + Smart Demo fallback
+export async function analyzeVideo(req, res) {
+    try {
+        const { url, niche = 'контент', language = 'ru' } = req.body
+        if (!url) {
+            return res.status(400).json({ status: 'error', message: 'url is required' })
+        }
+
+        const platform =
+            /youtube\.com\/shorts|youtu\.be/.test(url) ? 'youtube-shorts' :
+            /youtube\.com/.test(url) ? 'youtube' :
+            /tiktok\.com/.test(url) ? 'tiktok' :
+            /instagram\.com/.test(url) ? 'instagram' :
+            /x\.com|twitter\.com/.test(url) ? 'twitter' : 'unknown'
+
+        const prompt = `Проанализируй видео по ссылке ${url}. Выдай: 1) Хук (первые 3 сек) 2) CTA 3) Вирусные моменты с таймкодами 4) Что улучшить. Ниша: ${niche}. На ${language === 'ru' ? 'русском' : 'английском'}.`
+
+        let aiText = ''
+        let provider = 'demo'
+        try {
+            const userId = req.user?._id || req.user?.id
+            const aiResult = await chatWithAI(prompt, [], language, { ownerId: userId, userRole: req.user?.role || req.body?.userRole || 'guest' })
+            aiText = aiResult?.reply || ''
+            provider = aiResult?.provider || 'demo'
+        } catch (err) {
+            console.warn('[omegaController:analyzeVideo] AI failed:', err.message)
+        }
+
+        // Try to parse structured fields from AI response
+        const hook = aiText.match(/(?:1[).]|Хук[:\s]).*/i)?.[0]?.replace(/^.*?(?:1[).]|Хук[:\s])/i, '').trim() ||
+            aiText.split('\n').find(l => /хук|первые 3/i.test(l))?.replace(/^[^а-яёa-z]*/i, '').trim() || ''
+        const cta = aiText.match(/(?:2[).]|CTA[:\s]|Призыв[:\s]).*/i)?.[0]?.replace(/^.*?(?:2[).]|CTA[:\s]|Призыв[:\s])/i, '').trim() ||
+            aiText.split('\n').find(l => /cta|призыв/i.test(l))?.replace(/^[^а-яёa-z]*/i, '').trim() || ''
+        const improvements = []
+        const viralMoments = []
+        aiText.split('\n').forEach(line => {
+            const vm = line.match(/(?:\d+[:\.]\d+|\d{1,2}:\d{2})\s*[\-–:]\s*(.+)/i)
+            if (vm && viralMoments.length < 5) {
+                viralMoments.push({ time: vm[1].trim(), label: vm[2].trim() })
+            }
+            if (/улучш|рекомендац|сделай|добавь|убери/i.test(line) && !line.match(/^\d+[:\.]\d+/)) {
+                improvements.push(line.replace(/^[^а-яёa-z]*/i, '').trim())
+            }
+        })
+
+        // Smart Demo fallback if AI empty or demo
+        const isDemo = !aiText || provider === 'demo' || provider === 'smart-demo'
+        const smartDemo = {
+            hook: hook || 'Хук: конкретный результат в первые 3 секунды («Я получил X за Y дней»)',
+            cta: cta || 'CTA: подпишись и сохрани, если узнал что-то новое',
+            viralMoments: viralMoments.length ? viralMoments : [
+                { time: '00:00-00:03', label: 'Хук — обещание результата' },
+                { time: '00:10-00:15', label: 'Доказательство / кейс' },
+                { time: '00:25-00:30', label: 'CTA и подписка' }
+            ],
+            improvements: improvements.length ? improvements.slice(0, 5) : [
+                'Добавьте субтитры — +30% досмотров',
+                'Усильте хук цифрами в первые 3 секунды',
+                'Используйте 3–5 релевантных хештегов',
+                'Сделайте обложку с крупным текстом',
+                'Публикуйте в 19:00–21:00 по аудитории'
+            ],
+            platform,
+            duration: '45 сек'
+        }
+
+        res.json({
+            status: 'success',
+            data: {
+                ...smartDemo,
+                aiText,
+                provider,
+                demo: isDemo,
+                url,
+                niche
+            }
+        })
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
 export async function listTemplateLibrary(req, res) {
     try {
         const key = cacheKey('omega:templates', 'global')

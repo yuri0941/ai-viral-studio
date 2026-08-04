@@ -85,6 +85,73 @@ try {
 }
 
 // [P16-HOTFIX-v2] built-in demo templates ensure OMEGA always replies usefully even without API keys
+// [VALUE-2026-08-04] added: niche-specific hook templates so demo mode still returns real hooks
+const NICHE_TEMPLATES = {
+    coffee: [
+        '«Этот кофе изменил моё утро — и вот почему»',
+        '«3 ошибки при заказе кофе, которые делают все»',
+        '«Бариста показал секретный рецепт латте»'
+    ],
+    beauty: [
+        '«Я убрала этот продукт из ухода — и кожа преобразилась»',
+        '«3 минуты утром = макияж, который держится весь день»',
+        '«Что косметологи молчат о домашнем пилинге»'
+    ],
+    food: [
+        '«Этот рецепт занял 10 минут, а семья просит добавки»',
+        '«Ошибка при жарке мяса, которую совершают 90%»',
+        '«3 ингредиента, которые превращают обед в ресторанный»'
+    ],
+    it: [
+        '«3 инструмента, которые экономят мне 2 часа в день»',
+        '«Почему ваш сайт не продаёт (и как починить за 1 час)»',
+        '«Я потратил $0 на рекламу и получил 1000 заявок»'
+    ],
+    fitness: [
+        '«5 упражнений для пресса, которые реально работают»',
+        '«Почему cardio не помогает похудеть»',
+        '«Что есть до и после тренировки»'
+    ],
+    travel: [
+        '«Город, где отдых стоит в 3 раза дешевле Турции»',
+        '«5 вещей, которые я никогда не беру в самолёт»',
+        '«Секретные места [города], о которых не пишут путеводители»'
+    ],
+    auto: [
+        '«3 вещи, которые убивают аккумулятор зимой»',
+        '«Как снизить расход топлива на 15% без вложений»',
+        '«Обман на СТО: чек-лист, который сэкономит 20 000₽»'
+    ],
+    realestate: [
+        '«3 ошибки при покупке квартиры, которые стоят миллионы»',
+        '«Как сдать квартиру в 2 раза быстрее рынка»',
+        '«Районы, где цены ещё не взлетели»'
+    ],
+    education: [
+        '«Как выучить язык за 3 месяца вместо 3 лет»',
+        '«5 бесплатных курсов, которые меняют карьеру»',
+        '«Ошибка в обучении детей, которую допускают родители»'
+    ],
+    fashion: [
+        '«3 вещи, которые дешево выглядят дорого»',
+        '«Как собрать капсульный гардероб за выходные»',
+        '«Тренд, который носят все инфлюенсеры этой осенью»'
+    ]
+}
+
+const NICHE_KEYWORDS = {
+    coffee: ['кофейн', 'кофе', 'латте', 'капучино', 'эспрессо', 'бариста'],
+    beauty: ['бьюти', 'космет', 'кожа', 'макияж', 'уход', 'салон'],
+    food: ['ресторан', 'еда', 'рецепт', 'кухня', 'кулинар', 'блюдо'],
+    it: ['it', 'айти', 'сайт', 'приложение', 'программ', 'digital'],
+    fitness: ['фитнес', 'тренировк', 'спорт', 'похуд', 'пресс', 'зал'],
+    travel: ['путешеств', 'тур', 'отдых', 'отпуск', 'город', 'отель'],
+    auto: ['авто', 'машин', 'сервис', 'сто', 'шин', 'двигатель'],
+    realestate: ['недвижимост', 'квартир', 'аренд', 'жильё', 'дом'],
+    education: ['обучен', 'курс', 'школ', 'язык', 'репетитор', 'образован'],
+    fashion: ['одежд', 'стиль', 'мода', 'гардероб', 'бренд', 'луки']
+}
+
 const DEMO_TEMPLATES = [
     {
         id: 'greeting',
@@ -161,8 +228,22 @@ function smartDemoReply(message, lang = 'ru', userRole = 'guest') {
     if (scored.length) {
         return { text: scored[0].response, provider: 'smart-demo', source: 'template' }
     }
-    const generic = allTemplates.find(t => t.id === 'generic')
-    return { text: generic?.response || 'Я готова помочь с контент-стратегией, скриптами, хуками и аналитикой. Опиши задачу подробнее.', provider: 'smart-demo', source: 'template' }
+
+    // [VALUE-2026-08-04] added: niche hook generator — returns real hooks by niche
+    const nicheKey = Object.keys(NICHE_KEYWORDS).find(key =>
+        NICHE_KEYWORDS[key].some(kw => lower.includes(kw))
+    )
+    if (nicheKey && NICHE_TEMPLATES[nicheKey]) {
+        const hooks = NICHE_TEMPLATES[nicheKey]
+        const random = hooks[Math.floor(Math.random() * hooks.length)]
+        return {
+            text: `Вот 3 хука для вашей ниши:\n\n1. ${hooks[0]}\n2. ${hooks[1]}\n3. ${hooks[2]}\n\nХотите — соберу полноценный пост или сценарий Reels под любой из них.`,
+            provider: 'smart-demo',
+            source: 'niche-template'
+        }
+    }
+
+    return { text: 'Опишите свою нишу подробнее, и я подготовлю идеи!', provider: 'smart-demo', source: 'template' }
 }
 
 const getKey = async (provider, ownerId = null) => {
@@ -491,7 +572,8 @@ async function chatWithOpenRouter(prompt, ownerId = null) {
 
 async function chatWithPollinationsText(prompt) {
     console.log('🚀 Calling Pollinations text...')
-    const url = `https://text.pollinations.ai/${encodeURIComponent(prompt.substring(0, 1500))}?seed=${Math.floor(Math.random() * 100000)}&json=false`
+    // [VALUE-2026-08-04] added: real anonymous text generation, no auth, no key
+    const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?seed=${Math.random()}&json=false&anonymous=true`
     const res = await axios.get(url, { timeout: 15000 })
     return res.data
 }
@@ -513,7 +595,11 @@ async function chatWithGitHubModels(prompt, ownerId = null) {
 
 // ============ PROVIDER CHAIN ============
 // [P16-FINAL] added: 10+ providers, priority by speed/reliability, Pollinations no-key fallback last
+// [VALUE-2026-08-04] added: Pollinations first (no key, real generation), then GitHub, OpenRouter, Groq
 const PROVIDER_CHAIN = [
+    { id: 'pollinations', name: 'Pollinations', handler: chatWithPollinationsText, model: 'anonymous' },
+    { id: 'github', name: 'GitHub Models', handler: chatWithGitHubModels, model: process.env.GITHUB_MODEL || 'meta-llama-3.1-8b-instruct' },
+    { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: 'meta-llama/llama-3.3-70b-instruct' },
     { id: 'groq', name: 'Groq', handler: chatWithGroq, model: 'llama-3.3-70b-versatile' },
     { id: 'mistral', name: 'Mistral', handler: chatWithMistral, model: 'mistral-large-latest' },
     { id: 'cohere', name: 'Cohere', handler: chatWithCohere, model: 'command-r-plus' },
@@ -522,9 +608,6 @@ const PROVIDER_CHAIN = [
     { id: 'fireworks', name: 'Fireworks', handler: chatWithFireworks, model: 'accounts/fireworks/models/llama-v3p3-70b-instruct' },
     { id: 'cerebras', name: 'Cerebras', handler: chatWithCerebras, model: 'llama-3.3-70b' },
     { id: 'cloudflare', name: 'Cloudflare', handler: chatWithCloudflare, model: process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast' },
-    { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: 'meta-llama/llama-3.3-70b-instruct' },
-    { id: 'github', name: 'GitHub Models', handler: chatWithGitHubModels, model: process.env.GITHUB_MODEL || 'meta-llama-3.1-8b-instruct' },
-    { id: 'pollinations', name: 'Pollinations', handler: chatWithPollinationsText, model: 'anonymous' },
 ]
 
 const SKIP_STATUSES = [401, 403, 404]

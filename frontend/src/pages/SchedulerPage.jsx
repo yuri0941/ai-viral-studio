@@ -19,10 +19,11 @@ import { EmptyState } from '../components/common/EmptyState.jsx';
 import PredictionCard from '../components/omega/PredictionCard.jsx';
 import { OneClickPublish } from '../components/scheduler/OneClickPublish';
 
+// [VALUE-2026-08-04] updated: platform colors per spec
 const PLATFORM_COLORS = {
     youtube: '#FF0000',
-    tiktok: '#00f2ea',
-    instagram: '#E4405F',
+    tiktok: '#000000',
+    instagram: '#E1306C',
     twitter: '#1DA1F2',
     telegram: '#0088cc',
     vk: '#4C75A3',
@@ -414,10 +415,22 @@ function SchedulerPage() {
         }
     };
 
-    const handlePostMove = (postId, dateStr) => {
+    // [VALUE-2026-08-04] added: persist drag-drop date change to backend
+    const handlePostMove = async (postId, dateStr) => {
         if (!postId) return;
-        setPosts(prev => prev.map(p => p.id === Number(postId) ? { ...p, date: dateStr } : p));
+        const prevPosts = posts;
+        setPosts(prev => prev.map(p => (p.id === postId || p.id === Number(postId) || p._id === postId) ? { ...p, date: dateStr } : p));
         setDraggedPostId(null);
+        try {
+            await fetch(`${API_BASE_URL}/scheduler/posts/${postId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: dateStr }),
+            });
+        } catch (err) {
+            console.warn('[Scheduler] failed to update post date:', err.message);
+            setPosts(prevPosts);
+        }
     };
 
     const handleFileSelect = (e) => {
@@ -478,24 +491,27 @@ function SchedulerPage() {
         else if (type === 'title') setFormData(prev => ({ ...prev, title: titles[Math.floor(Math.random() * titles.length)] + ' ' + MONTH_NAMES[new Date().getMonth()] }));
     };
 
+    // [VALUE-2026-08-04] updated: use dedicated best-time endpoint with fallback
     const recommendBestTime = useCallback(async () => {
         if (!formData.platforms.length) return;
         setAiTimeLoading(true);
         try {
-            const prompt = `Какое лучшее время для публикации контента "${formData.title || 'новый пост'}" на ${formData.platforms.join(', ')}? Ответь одним предложением с точным временем.`;
-            const res = await omegaApi.chat(prompt, []);
-            const text = res?.data?.response || 'Рекомендуемое время: 19:00 — пик активности целевой аудитории.';
-            // Try extract HH:MM
-            const match = text.match(/(\d{1,2}):(\d{2})/);
-            if (match) {
-                setFormData(prev => ({ ...prev, time: `${match[1].padStart(2, '0')}:${match[2]}` }));
+            const res = await omegaApi.bestTime({
+                platform: formData.platforms[0],
+                audienceTimezone: userTimezone,
+                niche: formData.niche || ''
+            });
+            const data = res?.data || {};
+            const bestTime = data.bestTime || data.time;
+            if (bestTime) {
+                setFormData(prev => ({ ...prev, time: bestTime }));
             }
         } catch {
             setFormData(prev => ({ ...prev, time: '19:00' }));
         } finally {
             setAiTimeLoading(false);
         }
-    }, [formData.platforms, formData.title]);
+    }, [formData.platforms, formData.niche, userTimezone]);
 
     function formatSize(bytes) {
         if (!bytes || bytes === 0) return '';

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
+import { API_URL } from '../config'
 import {
     LayoutDashboard, Video, Eye, Users, Heart, DollarSign,
     Plus, Calendar, BarChart as BarChartIcon, Bot, TrendingUp, Clock,
@@ -173,32 +174,35 @@ function CreatorDashboardPage() {
     const { t } = useTranslation()
     const { user } = useAuth()
     const [period, setPeriod] = useState('week')
-    const [stats, setStats] = useState({
-        posts: 24,
-        views: 154200,
-        followers: 12800,
-        engagement: 6.4,
-        income: 1240
-    })
+    // [VALUE-2026-08-04] added: real stats from API, no hardcode
+    const [stats, setStats] = useState({ posts: 0, views: 0, subscribers: 0, engagement: 0, income: 0 })
+    const [statsLoading, setStatsLoading] = useState(true)
 
     useEffect(() => {
-        // TODO: load real creator stats from /api/creator/overview
-        setStats({
-            posts: 24,
-            views: 154200,
-            followers: 12800,
-            engagement: 6.4,
-            income: 1240
-        })
+        fetch(`${API_URL}/analytics/overview`)
+            .then(r => r.json())
+            .then(data => {
+                const payload = data?.data || data || {}
+                setStats({
+                    posts: payload.posts || 0,
+                    views: payload.views || 0,
+                    subscribers: payload.subscribers || 0,
+                    engagement: payload.engagement || 0,
+                    income: payload.income || 0,
+                })
+            })
+            .catch(() => setStats({ posts: 0, views: 0, subscribers: 0, engagement: 0, income: 0 }))
+            .finally(() => setStatsLoading(false))
     }, [])
 
     const chartData = useMemo(() => period === 'week' ? VIRALITY_WEEK : VIRALITY_MONTH, [period])
 
+    // [VALUE-2026-08-04] added: guard income calculations
     const incomeSources = [
-        { label: t('creator.sourceAds', 'AdSense / Creator Fund'), value: stats.income * 0.45, color: 'bg-[var(--success)]' },
-        { label: t('creator.sourceSponsors', 'Спонсорские интеграции'), value: stats.income * 0.35, color: 'bg-[var(--accent)]' },
-        { label: t('creator.sourceProducts', 'Свои продукты'), value: stats.income * 0.15, color: 'bg-[var(--primary)]' },
-        { label: t('creator.sourceDonations', 'Донаты / Подписки'), value: stats.income * 0.05, color: 'bg-[var(--accent-warm)]' },
+        { label: t('creator.sourceAds', 'AdSense / Creator Fund'), value: (stats?.income || 0) * 0.45, color: 'bg-[var(--success)]' },
+        { label: t('creator.sourceSponsors', 'Спонсорские интеграции'), value: (stats?.income || 0) * 0.35, color: 'bg-[var(--accent)]' },
+        { label: t('creator.sourceProducts', 'Свои продукты'), value: (stats?.income || 0) * 0.15, color: 'bg-[var(--primary)]' },
+        { label: t('creator.sourceDonations', 'Донаты / Подписки'), value: (stats?.income || 0) * 0.05, color: 'bg-[var(--accent-warm)]' },
     ]
 
     return (
@@ -218,6 +222,27 @@ function CreatorDashboardPage() {
                     <span>{t('creator.lastUpdated', { time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) })}</span>
                 </div>
             </div>
+
+            {/* [VALUE-2026-08-04] added: empty state for new creators */}
+            {!statsLoading && (stats?.posts || 0) === 0 && (
+                <div className="glass p-8 rounded-2xl text-center border border-[var(--border-strong)]">
+                    <div className="w-16 h-16 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center mx-auto mb-4">
+                        <Plus size={28} className="text-[var(--primary)]" />
+                    </div>
+                    <h2 className="text-xl font-bold text-[var(--text)] mb-2">У вас пока нет постов</h2>
+                    <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto mb-6">Создайте первый — и метрики появятся здесь!</p>
+                    <button
+                        onClick={() => window.location.href = '/scheduler'}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity"
+                    >
+                        <Plus size={18} /> Создать пост
+                    </button>
+                </div>
+            )}
+
+            {/* [VALUE-2026-08-04] added: hide hardcoded demo content until user has posts */}
+            {(statsLoading || (stats?.posts || 0) > 0) && (
+                <>
 
             {/* [P16-FIX] added: content-first hero — next post preview with glass card */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -262,11 +287,11 @@ function CreatorDashboardPage() {
 
             {/* [P16-FIX] added: bento stats grid with glass cards and gradient icons */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <StatCard label={t('creator.posts')} value={stats.posts} sub={t('creator.subPosts', '+3 за неделю')} icon={Video} gradient="from-emerald-500 to-teal-600" />
-                <StatCard label={t('creator.views')} value={formatNumber(stats.views)} sub="+18%" icon={Eye} gradient="from-sky-500 to-blue-600" />
-                <StatCard label={t('creator.followers')} value={formatNumber(stats.followers)} sub="+156" icon={Users} gradient="from-violet-500 to-fuchsia-600" />
-                <StatCard label={t('creator.engagement')} value={`${stats.engagement}%`} sub="+0.8%" icon={Heart} gradient="from-amber-500 to-orange-600" />
-                <StatCard label={t('creator.income')} value={`$${stats.income}`} sub={t('creator.perDay', { amount: '$42' })} icon={DollarSign} gradient="from-emerald-500 to-green-600" />
+                <StatCard label={t('creator.posts')} value={stats?.posts || 0} sub={t('creator.subPosts', '+3 за неделю')} icon={Video} gradient="from-emerald-500 to-teal-600" />
+                <StatCard label={t('creator.views')} value={formatNumber(stats?.views || 0)} sub="+18%" icon={Eye} gradient="from-sky-500 to-blue-600" />
+                <StatCard label={t('creator.subscribers')} value={formatNumber(stats?.subscribers || 0)} sub="+156" icon={Users} gradient="from-violet-500 to-fuchsia-600" />
+                <StatCard label={t('creator.engagement')} value={`${stats?.engagement || 0}%`} sub="+0.8%" icon={Heart} gradient="from-amber-500 to-orange-600" />
+                <StatCard label={t('creator.income')} value={`$${stats?.income || 0}`} sub={t('creator.perDay', { amount: '$42' })} icon={DollarSign} gradient="from-emerald-500 to-green-600" />
             </div>
 
             {/* [P16-FIX] added: content pipeline horizontal scroll with glass cards */}
@@ -521,7 +546,7 @@ function CreatorDashboardPage() {
                         {t('creator.monetization')}
                     </h2>
                     <div className="mb-5">
-                        <p className="text-3xl font-bold text-[var(--text)]">${stats.income}</p>
+                        <p className="text-3xl font-bold text-[var(--text)]">${stats?.income || 0}</p>
                         <p className="text-sm text-[var(--text-muted)]">{t('creator.income30Days')}</p>
                     </div>
                     <div className="space-y-4">
@@ -579,6 +604,9 @@ function CreatorDashboardPage() {
                     </div>
                 </div>
             </div>
+
+                </>
+            )}
         </div>
     )
 }

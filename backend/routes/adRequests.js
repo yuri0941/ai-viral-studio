@@ -1,10 +1,15 @@
 import express from 'express'
 import { AdRequest } from '../models/index.js'
+import { protect } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// GET /api/ad-requests — list (optionally filter by status)
-router.get('/', async (req, res) => {
+// GET /api/ad-requests — list for owner/admin only
+router.get('/', protect, async (req, res) => {
+    // [VALUE-2026-08-04] added: restrict to owner/admin
+    if (!['owner', 'admin'].includes(req.user?.role)) {
+        return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    }
     try {
         const { status, clientId, assignedTo } = req.query
         const filter = {}
@@ -20,8 +25,12 @@ router.get('/', async (req, res) => {
     }
 })
 
-// GET /api/ad-requests/:id — single request
-router.get('/:id', async (req, res) => {
+// GET /api/ad-requests/:id — single request for owner/admin only
+router.get('/:id', protect, async (req, res) => {
+    // [VALUE-2026-08-04] added: restrict to owner/admin
+    if (!['owner', 'admin'].includes(req.user?.role)) {
+        return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    }
     try {
         const request = await AdRequest.findById(req.params.id)
         if (!request) return res.status(404).json({ status: 'error', message: 'Not found' })

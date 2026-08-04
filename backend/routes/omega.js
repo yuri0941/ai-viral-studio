@@ -28,6 +28,7 @@ import {
     createAutopilotPost,
     getSelfHealingStatus,
     analyzeYouTube,
+    analyzeVideo,
     generateShorts,
     generateSubtitles,
     recommendPublishTime,
@@ -80,6 +81,8 @@ router.post('/generate-name', (req, res) => {
 })
 router.get('/self-healing', getSelfHealingStatus)
 router.get('/self-reflection', (req, res) => res.json({ status: 'success', data: getReflectionStatus() }))
+// [VALUE-2026-08-04] added: structured video analysis (hook, CTA, viral moments, recommendations)
+router.post('/analyze-video', analyzeVideo)
 router.get('/youtube/analyze', analyzeYouTube)
 router.post('/youtube/shorts', generateShorts)
 router.post('/youtube/subtitles', generateSubtitles)

@@ -57,6 +57,20 @@ function StepFirstPost({ niche, style, onComplete }) {
         setTimeout(() => setCopied(null), 1500)
     }
 
+    // [VALUE-2026-08-04] added: schedule + edit actions
+    const schedule = (idx) => {
+        const p = posts[idx]
+        const text = `${p.hook}\n\n${p.body}\n\n${p.cta}`
+        localStorage.setItem('draft_post', JSON.stringify({ title: p.hook, description: text, platforms: ['instagram'] }))
+        window.location.href = '/scheduler'
+    }
+
+    const edit = (idx) => {
+        const p = posts[idx]
+        const text = `${p.hook}\n\n${p.body}\n\n${p.cta}`
+        window.location.href = `/scheduler?prefill=${encodeURIComponent(text)}`
+    }
+
     return (
         <div className="space-y-6">
             <div className="text-center">
@@ -90,7 +104,7 @@ function StepFirstPost({ niche, style, onComplete }) {
                     <p className="text-gray-300 text-sm leading-relaxed">{posts[active].body}</p>
                     <div className="text-[#8B5CF6] text-sm font-medium">{posts[active].cta}</div>
                 </div>
-                <div className="flex gap-2 mt-6">
+                <div className="flex flex-wrap gap-2 mt-6">
                     <button
                         type="button"
                         onClick={() => copy(active)}
@@ -98,6 +112,21 @@ function StepFirstPost({ niche, style, onComplete }) {
                     >
                         {copied === active ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                         {copied === active ? 'Скопировано' : 'Копировать'}
+                    </button>
+                    {/* [VALUE-2026-08-04] added: schedule and edit actions */}
+                    <button
+                        type="button"
+                        onClick={() => schedule(active)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-sm"
+                    >
+                        Запланировать
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => edit(active)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm text-white"
+                    >
+                        Отредактировать
                     </button>
                     <button
                         type="button"

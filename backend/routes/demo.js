@@ -1,10 +1,8 @@
 import express from 'express'
 import rateLimit from 'express-rate-limit'
-import axios from 'axios'
+import { chatWithAI } from '../services/aiService.js'
 
 const router = express.Router()
-
-const API_URL = process.env.BACKEND_URL || 'http://localhost:10000'
 
 // In-memory cache по ниши (TTL 1 час)
 const cache = new Map()
@@ -60,13 +58,9 @@ router.post('/generate', demoLimiter, async (req, res) => {
   ]
 }`
 
-        const response = await axios.post(`${API_URL}/api/omega/chat`, {
-            message: prompt,
-            history: [],
-            lang: 'ru',
-        })
-
-        let result = response.data?.data?.response || response.data?.reply || response.data?.response
+        // [VALUE-2026-08-04] added: direct AI call instead of HTTP self-request for reliability
+        const aiResult = await chatWithAI(prompt, [], 'ru', { userRole: 'guest' })
+        let result = aiResult?.reply
         if (!result) {
             return res.status(502).json({ success: false, message: 'AI не вернул ответ' })
         }

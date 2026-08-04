@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, ChevronLeft, Award, Sparkles } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Award } from 'lucide-react'
 import StepNiche from './StepNiche'
 import StepSocials from './StepSocials'
 import StepStyle from './StepStyle'
@@ -10,8 +10,8 @@ import StepFirstPost from './StepFirstPost'
 const STORAGE_KEY = 'omega_onboarding_progress'
 const COMPLETED_KEY = 'omega_onboarding_completed'
 
+// [VALUE-2026-08-04] updated: exactly 5 actionable steps
 const STEP_TITLES = [
-    'Добро пожаловать',
     'Ваша ниша',
     'Соцсети',
     'Стиль',
@@ -72,18 +72,6 @@ function Confetti() {
     return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-50" />
 }
 
-function WelcomeSlide({ title, desc, icon }) {
-    return (
-        <div className="text-center space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-[#8B5CF6]/20 flex items-center justify-center mx-auto">
-                {icon}
-            </div>
-            <h3 className="text-xl font-bold text-white">{title}</h3>
-            <p className="text-gray-400 max-w-xs mx-auto">{desc}</p>
-        </div>
-    )
-}
-
 function OnboardingWizard() {
     const navigate = useNavigate()
     const [step, setStep] = useState(() => {
@@ -116,6 +104,7 @@ function OnboardingWizard() {
     const complete = () => {
         localStorage.setItem(COMPLETED_KEY, 'true')
         localStorage.setItem('omega_bonus_generations', '50')
+        localStorage.setItem('omega_first_post_badge', 'true') // [VALUE-2026-08-04] added
         setShowConfetti(true)
         setFinished(true)
         setTimeout(() => navigate('/dashboard'), 3000)
@@ -150,39 +139,19 @@ function OnboardingWizard() {
                         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#00ff41] flex items-center justify-center mx-auto">
                             <Award className="w-12 h-12 text-white" />
                         </div>
-                        <h2 className="text-3xl font-black text-white">First Step unlocked!</h2>
-                        <p className="text-gray-400 text-lg">Вы получили бейдж <span className="text-[#8B5CF6] font-bold">First Step</span> и <span className="text-[#00ff41] font-bold">+50 бонусных генераций</span>.</p>
+                        <h2 className="text-3xl font-black text-white">First Post unlocked!</h2>
+                        <p className="text-gray-400 text-lg">Вы получили бейдж <span className="text-[#8B5CF6] font-bold">First Post!</span> и <span className="text-[#00ff41] font-bold">+50 бонусных генераций</span>.</p>
                         <p className="text-sm text-gray-500">Перенаправляем в дашборд...</p>
                     </div>
                 ) : (
                     <>
                         <div className="min-h-[360px] flex items-center justify-center">
-                            {step === 0 && (
-                                <div className="space-y-8 w-full">
-                                    <WelcomeSlide
-                                        title="Создавай"
-                                        desc="AI генерирует посты, хуки, скрипты и описания за секунды."
-                                        icon={<Sparkles className="w-8 h-8 text-[#8B5CF6]" />}
-                                    />
-                                    <div className="grid md:grid-cols-3 gap-4">
-                                        <WelcomeSlide
-                                            title="Анализируй"
-                                            desc="Отслеживай тренды, конкурентов и лучшее время публикаций."
-                                            icon={<svg className="w-8 h-8 text-[#00ff41]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" /></svg>}
-                                        />
-                                        <WelcomeSlide
-                                            title="Публикуй"
-                                            desc="Один клик — и контент в 8+ соцсетей по расписанию."
-                                            icon={<svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                            {step === 1 && <StepNiche value={data.niche} onChange={v => update('niche', v)} />}
-                            {step === 2 && <StepSocials value={data.socials} onChange={v => update('socials', v)} />}
-                            {step === 3 && <StepStyle value={data.style} onChange={v => update('style', v)} />}
-                            {step === 4 && <StepConnect value={data.connected} onChange={v => update('connected', v)} onSkip={next} />}
-                            {step === 5 && <StepFirstPost niche={data.niche || 'ваша ниша'} style={data.style} onComplete={complete} />}
+                            {/* [VALUE-2026-08-04] updated: 5-step end-to-end flow */}
+                            {step === 0 && <StepNiche value={data.niche} onChange={v => update('niche', v)} />}
+                            {step === 1 && <StepSocials value={data.socials} onChange={v => update('socials', v)} />}
+                            {step === 2 && <StepStyle value={data.style} onChange={v => update('style', v)} />}
+                            {step === 3 && <StepConnect value={data.connected} onChange={v => update('connected', v)} onSkip={next} />}
+                            {step === 4 && <StepFirstPost niche={data.niche || 'ваша ниша'} style={data.style} onComplete={complete} />}
                         </div>
 
                         <div className="flex justify-between mt-10">

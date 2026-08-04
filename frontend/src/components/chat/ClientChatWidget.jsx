@@ -163,8 +163,7 @@ export function ClientChatWidget() {
             if (res.ok) {
                 setStatus('manager_assigned')
                 addBotMessage(
-                    '✅ Заявка создана! Номер: #' + generateId().slice(0, 6).toUpperCase() + '\n\n' +
-                    'Наш менеджер получил все детали и скоро свяжется с вами через выбранный канал.\n\n' +
+                    '✅ Заявка отправлена! Мы свяжемся в течение часа. 🚀\n\n' +
                     'Оцените, насколько удобно прошло общение:', { isReview: true }
                 )
             } else {
@@ -173,7 +172,7 @@ export function ClientChatWidget() {
         } catch {
             setStatus('submitted')
             addBotMessage(
-                '✅ Ваша заявка сохранена локально. Мы получили: бюджет, площадку, аудиторию, сроки и материалы. Менеджер свяжется с вами.', { isReview: true }
+                '✅ Заявка отправлена! Мы свяжемся в течение часа. 🚀', { isReview: true }
             )
         }
     }, [addBotMessage, form, messages])
@@ -331,12 +330,34 @@ export function ClientChatWidget() {
                             </div>
                         ))}
 
+                        {/* [VALUE-2026-08-04] added: budget quick reply buttons */}
+                        {currentStep === 'budget' && !typing && (
+                            <div className="flex flex-wrap gap-2 ml-11">
+                                {['до 10 000₽', '10-50 000₽', '50 000₽+'].map(b => (
+                                    <button key={b} onClick={() => sendMessage(b)} className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/30 text-xs text-gray-300 transition-colors">
+                                        {b}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
                         {/* Platform quick reply */}
                         {currentStep === 'platform' && !typing && (
                             <div className="flex flex-wrap gap-2 ml-11">
                                 {PLATFORMS.map(p => (
                                     <button key={p} onClick={() => handlePlatformSelect(p)} className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/30 text-xs text-gray-300 transition-colors">
                                         {p}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* [VALUE-2026-08-04] added: deadline quick reply buttons */}
+                        {currentStep === 'deadline' && !typing && (
+                            <div className="flex flex-wrap gap-2 ml-11">
+                                {['Неделя', 'Месяц', '3 месяца'].map(d => (
+                                    <button key={d} onClick={() => sendMessage(d)} className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/30 text-xs text-gray-300 transition-colors">
+                                        {d}
                                     </button>
                                 ))}
                             </div>
@@ -382,16 +403,17 @@ export function ClientChatWidget() {
                     </div>
 
                     {/* Input */}
+                    {/* [VALUE-2026-08-04] updated: material action labels per spec */}
                     <div className="p-3 border-t border-white/5 bg-[#0a0a0f]/50">
                         {currentStep === 'files' && !form.filesProvided ? (
                             <div className="flex items-center gap-2">
                                 <label className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm cursor-pointer hover:bg-emerald-500/20 transition-colors">
                                     <Paperclip size={16} />
-                                    Прикрепить файл
+                                    Да, загружу
                                     <input type="file" multiple className="hidden" onChange={handleFileSelect} />
                                 </label>
-                                <button onClick={() => sendMessage('Нет материалов')} className="px-4 py-2.5 rounded-xl bg-white/5 text-gray-300 text-sm hover:bg-white/10 transition-colors">
-                                    Нет
+                                <button onClick={() => sendMessage('Нет, нужна помощь')} className="px-4 py-2.5 rounded-xl bg-white/5 text-gray-300 text-sm hover:bg-white/10 transition-colors">
+                                    Нет, нужна помощь
                                 </button>
                             </div>
                         ) : (

@@ -114,12 +114,20 @@ function AnalysisCard({ title, icon: Icon, items, type = 'neutral', initiallyOpe
             </button>
             {open && (
                 <div className="space-y-2">
-                    {items.map((item, i) => (
-                        <div key={i} className="flex items-start gap-2.5 p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+                    {/* [VALUE-2026-08-04] added: show dash for empty fields */}
+                    {(!items || items.length === 0 || items.every(i => !i || i === '—')) ? (
+                        <div className="flex items-start gap-2.5 p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
                             <ItemIcon className={`w-4 h-4 ${iconColor} shrink-0 mt-0.5`} />
-                            <p className="text-sm text-gray-300">{item}</p>
+                            <p className="text-sm text-gray-500">—</p>
                         </div>
-                    ))}
+                    ) : (
+                        items.filter(Boolean).map((item, i) => (
+                            <div key={i} className="flex items-start gap-2.5 p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+                                <ItemIcon className={`w-4 h-4 ${iconColor} shrink-0 mt-0.5`} />
+                                <p className="text-sm text-gray-300">{item}</p>
+                            </div>
+                        ))
+                    )}
                 </div>
             )}
         </div>
@@ -222,6 +230,54 @@ function ContentAnalyzerPage() {
         }
     }, [])
 
+    const buildAnalysisFromApi = useCallback((apiData, videoUrl) => {
+        // [VALUE-2026-08-04] added: build analysis result from AI video breakdown
+        const info = extractVideoId(videoUrl) || { platform: apiData.platform || 'unknown', id: 'unknown' }
+        const thumb = info.platform === 'youtube'
+            ? `https://img.youtube.com/vi/${info.id}/0.jpg`
+            : 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=600&fit=crop'
+        return {
+            url: videoUrl,
+            platform: apiData.platform || info.platform,
+            title: `Анализ видео ${info.id || ''}`,
+            author: '@creator',
+            thumbnail: thumb,
+            duration: apiData.duration || '—',
+            stats: {
+                views: 0,
+                likes: 0,
+                comments: 0,
+                shares: 0,
+                saves: 0,
+                engagementRate: 0,
+                viralityScore: 0,
+                watchTime: '—',
+            },
+            audience: {
+                age: { '18-24': 0, '25-34': 0, '35-44': 0, '45+': 0 },
+                gender: { male: 0, female: 0, other: 0 },
+                topCountries: [],
+            },
+            hooks: apiData.hook ? [apiData.hook] : ['—'],
+            editing: ['—'],
+            cta: {
+                text: apiData.cta || '—',
+                placement: '—',
+                strength: '—'
+            },
+            viralMoments: apiData.viralMoments?.length ? apiData.viralMoments : [],
+            analysis: {
+                strengths: ['—'],
+                weaknesses: ['—'],
+                recommendations: apiData.improvements?.length ? apiData.improvements : ['—'],
+                similarVideos: [],
+            },
+            aiScore: 0,
+            aiSummary: apiData.aiText || 'AI-разбор видео',
+            aiBreakdown: apiData,
+        }
+    }, [])
+
     const handleAnalyze = async () => {
         if (!url.trim()) {
             setError('Введите ссылку на видео')
@@ -231,30 +287,26 @@ function ContentAnalyzerPage() {
             setError('Поддерживаются ссылки: TikTok, Instagram, YouTube, YouTube Shorts, Twitter/X, youtu.be')
             return
         }
-        if (compareUrl && !isValidUrl(compareUrl)) {
-            setError('Некорректная ссылка для сравнения')
-            return
-        }
 
         setError('')
         setLoading(true)
         setResult(null)
 
-        const info1 = extractVideoId(url) || { platform: 'unknown', id: 'unknown' }
-        const info2 = compareUrl ? extractVideoId(compareUrl) : null
-
-        setTimeout(() => {
-            const main = buildMockAnalysis(url, info1.platform, info1.id)
-            const compare = info2 ? buildMockAnalysis(compareUrl, info2.platform, info2.id, true) : null
-            const final = { ...main, compare, niche, language }
+        try {
+            const res = await omegaApi.analyzeVideo(url, niche, language)
+            const apiData = res?.data || {}
+            const final = buildAnalysisFromApi(apiData, url)
             setResult(final)
             setHistory(prev => [final, ...prev].slice(0, 10))
-            setLoading(false)
             // pre-generate SEO block
             generateSEO(final, language)
             // OMEGA predictive forecast
             fetchPrediction(`${final.title}\n${final.aiSummary}`)
-        }, 2000)
+        } catch (err) {
+            setError(err.message || 'Не удалось проанализировать видео')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handlePaste = async () => {
@@ -641,15 +693,20 @@ function ContentAnalyzerPage() {
                         <div className="bg-[#1a1a24] rounded-2xl border border-white/[0.06] p-5">
                             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-orange-400" /> Вирусные моменты</h3>
                             <div className="space-y-2">
-                                {result.viralMoments.map((m, i) => (
-                                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-                                        <div className="flex items-center gap-3">
-                                            <span className="px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 text-xs font-mono">{m.time}</span>
-                                            <span className="text-sm text-gray-300">{m.label}</span>
+                                {/* [VALUE-2026-08-04] added: empty state guard */}
+                                {(!result.viralMoments || result.viralMoments.length === 0) ? (
+                                    <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-sm text-gray-500">—</div>
+                                ) : (
+                                    result.viralMoments.map((m, i) => (
+                                        <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+                                            <div className="flex items-center gap-3">
+                                                <span className="px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 text-xs font-mono">{m.time || '—'}</span>
+                                                <span className="text-sm text-gray-300">{m.label || '—'}</span>
+                                            </div>
+                                            <Play size={14} className="text-gray-500" />
                                         </div>
-                                        <Play size={14} className="text-gray-500" />
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
