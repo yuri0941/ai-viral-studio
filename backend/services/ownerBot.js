@@ -205,6 +205,9 @@ export const sendOwnerAlert = async (message, type = 'info') => {
   try { await bot.sendMessage(OWNER_CHAT_ID, text, { parse_mode: 'HTML' }) } catch (e) {}
 }
 
+// [MASTER-v5.6-FINAL] Alias for paymentController compatibility
+export const alertOwner = sendOwnerAlert
+
 export const alertNewUser = (email, plan) => sendOwnerAlert(`👤 Новый: ${email}\n💎 ${plan}`, 'newuser')
 export const alertPayment = (email, plan, amount) => sendOwnerAlert(`💳 Оплата: ${email}\n💎 ${plan}\n💰 ${amount}₽`, 'payment')
 export const alertError = (service, error) => sendOwnerAlert(`🚨 ${service}\n❌ ${error}`, 'error')
