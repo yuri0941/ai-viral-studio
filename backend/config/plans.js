@@ -52,4 +52,7 @@ export const getPrice = (planId, currency = 'RUB') => {
   return currency === 'USD' ? plan.priceUSD : plan.priceRUB;
 };
 
+// [MASTER-v5.0] added: alias used by subscriptionController
+export const getPlanPrice = getPrice;
+
 export default PLANS;

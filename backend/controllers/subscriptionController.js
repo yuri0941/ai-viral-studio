@@ -1,23 +1,17 @@
 import { Subscription } from '../models/index.js';
 import { chatWithAI } from '../services/aiService.js';
 import { adjustPrice } from '../services/dynamicPricing.js';
-import { PLANS, getPlanPrice as getUnifiedPlanPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
+import { PLANS, getPlanPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
 
 // [P16] In-memory price overrides applied by owner via AI Pricing Engine
 const planPriceOverrides = { RUB: {}, USD: {}, EUR: {} };
 
 export const isStripeEnabled = false;
 
-function getPlanPrice(planId, currency = 'RUB') {
-  const plan = PLANS.find((p) => p.id === planId);
-  if (!plan) return 0;
-  return getUnifiedPlanPrice(plan, currency);
-}
-
 export const getPlans = async (req, res) => {
   try {
     const currency = req.query.currency || 'RUB';
-    const plans = PLANS.map((p) => {
+    const plans = Object.values(PLANS).map((p) => {
       const base = currency === 'USD' ? p.priceUSD : currency === 'EUR' ? p.priceEUR : p.priceRUB;
       const override = planPriceOverrides[currency]?.[p.id];
       return {
@@ -90,7 +84,7 @@ export const createSubscription = async (req, res) => {
     if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
     const { plan, interval, currency, paymentMethod, provider, autoRenew, isTrial } = req.body || {};
-    const planId = PLANS.find((p) => p.id === plan)?.id || 'free';
+    const planId = PLANS[plan]?.id || 'free';
     const curr = ['USD', 'EUR'].includes(currency) ? currency : 'RUB';
     const basePrice = getPlanPrice(planId, curr);
     // [P18] added: dynamic pricing AI adjustment
@@ -245,7 +239,7 @@ export const updatePlanPrice = async (req, res) => {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
     const { planId, currency = 'RUB', price } = req.body || {};
-    if (!PLANS.some((p) => p.id === planId)) {
+    if (!Object.values(PLANS).some((p) => p.id === planId)) {
       return res.status(400).json({ success: false, error: 'Invalid plan' });
     }
     if (typeof price !== 'number' || price < 0) {
