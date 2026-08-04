@@ -198,7 +198,7 @@ function SettingsPage() {
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('yookassa');
 
-    const plans = PLANS.map(p => ({ ...p, color: PLAN_COLORS[p.id] || 'from-gray-600 to-gray-700', popular: p.id === 'pro' }));
+    const plans = Object.values(PLANS).map(p => ({ ...p, color: PLAN_COLORS[p.id] || 'from-gray-600 to-gray-700', popular: p.id === 'pro' }));
 
     const getYearlyPrice = (monthlyPrice) => monthlyPrice * 10;
 

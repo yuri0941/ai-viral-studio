@@ -15,7 +15,7 @@ import {
 
 // [P24] fixed: backend-shape fallback built from unified PLANS config
 // [MONETIZE-2026-08-04] fixed: pass plan id, not object
-const DEMO_PLANS = PLANS.filter(p => p.id !== 'free').map(p => ({
+const DEMO_PLANS = Object.values(PLANS).filter(p => p.id !== 'free').map(p => ({
     id: p.id,
     name: p.name,
     price: getPrice(p.id, 'RUB'),
