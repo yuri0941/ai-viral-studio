@@ -1,156 +1,29 @@
-// Stripe integration is prepared but DISABLED by default.
-// Set STRIPE_ENABLED=true and STRIPE_SECRET_KEY=sk_... in backend/.env to enable.
-// When you open an entity abroad (LLC/Inc.), just flip the flag — no code changes needed.
+import Stripe from 'stripe'
 
-export const isStripeEnabled = () => {
-  return process.env.STRIPE_ENABLED === 'true' && !!process.env.STRIPE_SECRET_KEY;
-};
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null
 
-export function getStripeStatus() {
-  return {
-    enabled: isStripeEnabled(),
-    reason: isStripeEnabled()
-      ? 'Stripe активен'
-      : 'Международная оплата Stripe временно отключена. Свяжитесь для ручного счёта или включите в .env.',
-  };
-}
+export const createStripeSession = async ({ planId, userId, email, currency = 'usd' }) => {
+    if (!stripe) throw new Error('Stripe not configured')
 
-export async function createCheckoutSession({ customerEmail, priceId, successUrl, cancelUrl, metadata = {} }) {
-  if (!isStripeEnabled()) {
-    return { success: false, disabled: true, message: getStripeStatus().reason };
-  }
-
-  try {
-    const stripeModule = await import('stripe');
-    const Stripe = stripeModule.default || stripeModule;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
-
-    let customer = customerEmail ? await stripe.customers.create({ email: customerEmail, metadata }) : undefined;
+    const prices = { creator: 2900, pro: 7900, agency: 19900 }
 
     const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      customer: customer?.id,
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata,
-      subscription_data: { metadata },
-    });
+        payment_method_types: ['card'],
+        line_items: [{
+            price_data: {
+                currency,
+                product_data: { name: `AI Viral Studio — ${planId}` },
+                unit_amount: prices[planId]
+            },
+            quantity: 1
+        }],
+        mode: 'subscription',
+        success_url: `${process.env.FRONTEND_URL}/payment-success?plan=${planId}&provider=stripe`,
+        cancel_url: `${process.env.FRONTEND_URL}/settings?tab=subscriptions`,
+        metadata: { userId, planId }
+    })
 
-    return { success: true, url: session.url, sessionId: session.id };
-  } catch (err) {
-    console.error('[stripeService:createCheckoutSession]', err.message);
-    return { success: false, error: err.message };
-  }
+    return { url: session.url, sessionId: session.id, provider: 'stripe' }
 }
 
-export async function createPaymentIntent({ amount, currency = 'usd', metadata = {}, description }) {
-  if (!isStripeEnabled()) {
-    return {
-      success: false,
-      disabled: true,
-      message: getStripeStatus().reason,
-    };
-  }
-
-  try {
-    const stripeModule = await import('stripe');
-    const Stripe = stripeModule.default || stripeModule;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(Number(amount) * 100), // cents
-      currency: currency.toLowerCase(),
-      automatic_payment_methods: { enabled: true },
-      metadata,
-      description,
-    });
-
-    return {
-      success: true,
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
-      status: paymentIntent.status,
-    };
-  } catch (err) {
-    console.error('[stripeService:createPaymentIntent]', err.message);
-    return { success: false, error: err.message };
-  }
-}
-
-export async function createStripeSubscription({ customerEmail, priceId, metadata = {} }) {
-  if (!isStripeEnabled()) {
-    return {
-      success: false,
-      disabled: true,
-      message: getStripeStatus().reason,
-    };
-  }
-
-  try {
-    const stripeModule = await import('stripe');
-    const Stripe = stripeModule.default || stripeModule;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
-
-    const customer = await stripe.customers.create({
-      email: customerEmail,
-      metadata,
-    });
-
-    const subscription = await stripe.subscriptions.create({
-      customer: customer.id,
-      items: [{ price: priceId }],
-      metadata,
-      payment_behavior: 'default_incomplete',
-      expand: ['latest_invoice.payment_intent'],
-    });
-
-    const invoice = subscription.latest_invoice;
-    const paymentIntent = invoice?.payment_intent;
-
-    return {
-      success: true,
-      subscriptionId: subscription.id,
-      clientSecret: paymentIntent?.client_secret,
-      status: subscription.status,
-    };
-  } catch (err) {
-    console.error('[stripeService:createStripeSubscription]', err.message);
-    return { success: false, error: err.message };
-  }
-}
-
-export async function constructWebhookEvent(payload, signature, secret) {
-  if (!isStripeEnabled()) {
-    return { success: false, disabled: true, message: getStripeStatus().reason };
-  }
-
-  try {
-    const stripeModule = await import('stripe');
-    const Stripe = stripeModule.default || stripeModule;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
-    return stripe.webhooks.constructEvent(payload, signature, secret);
-  } catch (err) {
-    console.error('[stripeService:constructWebhookEvent]', err.message);
-    throw err;
-  }
-}
-
-export async function handleStripeWebhook(event) {
-  if (!isStripeEnabled()) {
-    return { success: false, disabled: true };
-  }
-
-  switch (event.type) {
-    case 'payment_intent.succeeded':
-      return { success: true, action: 'mark_paid', object: event.data.object };
-    case 'payment_intent.payment_failed':
-      return { success: true, action: 'mark_failed', object: event.data.object };
-    case 'invoice.payment_succeeded':
-      return { success: true, action: 'subscription_paid', object: event.data.object };
-    case 'customer.subscription.deleted':
-      return { success: true, action: 'subscription_canceled', object: event.data.object };
-    default:
-      return { success: true, action: 'ignore', type: event.type };
-  }
-}
+// [PAYMENT-v5.2] added

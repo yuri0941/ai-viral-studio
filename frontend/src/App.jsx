@@ -32,6 +32,7 @@ import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
 import OwnerAppPage from './pages/owner-app/index'
 import PaymentSuccess from './pages/PaymentSuccess'
 import StripeCheckoutPage from './pages/StripeCheckoutPage'
+import CheckoutPage from './pages/CheckoutPage'
 import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/legal/LegalPage'
 import { CookieConsent } from './components/CookieConsent'
 import GDPRPage from './pages/GDPRPage'
@@ -270,6 +271,7 @@ function App() {
 
                 <Route path="/payment/success" element={<PaymentSuccess />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/stripe-checkout" element={
                     <ProtectedRoute>
                         <StripeCheckoutPage />

@@ -188,6 +188,10 @@ export const yookassaWebhook = async (req, res) => {
         await Subscription.findByIdAndUpdate(metadata.subscriptionId, {
           $set: { status: 'active', providerPaymentId: paymentId },
         });
+        const sub = await Subscription.findById(metadata.subscriptionId).lean();
+        if (sub?.userId && sub?.plan) {
+          await User.findByIdAndUpdate(sub.userId, { $set: { plan: sub.plan } }); // [PAYMENT-v5.2] added
+        }
       } else if (metadata?.invoiceId) {
         const invoice = await Invoice.findById(metadata.invoiceId).lean();
         if (invoice?.subscriptionId) {

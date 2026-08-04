@@ -66,6 +66,14 @@ const subscriptionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     default: {},
   },
+  reminderSent: {
+    type: Boolean,
+    default: false,
+  },
+  urgentReminderSent: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });

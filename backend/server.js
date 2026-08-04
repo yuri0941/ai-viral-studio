@@ -36,6 +36,7 @@ import invoiceRoutes from './routes/invoices.js'  // ← P10: Счета
 import ownerRequisitesRoutes from './routes/ownerRequisites.js'  // ← P10: Реквизиты
 import ownerLegalInfoRoutes from './routes/ownerLegalInfo.js'  // ← Legal Shield: Owner legal info
 import { getPublicLegalInfo } from './controllers/ownerLegalInfoController.js'  // ← Public legal info
+import { detectCurrency } from './controllers/geoController.js'  // [PAYMENT-v5.2] added
 import yookassaRoutes from './routes/yookassa.js'  // ← P10: ЮKassa
 import stripeRoutes from './routes/stripe.js'  // ← P10: Stripe (выключено по умолчанию)
 import emailRoutes from './routes/email.js'  // ← P10: Email
@@ -48,6 +49,7 @@ import launchRoutes from './routes/launch.js'  // ← Product Hunt waitlist
 import demoRoutes from './routes/demo.js'  // ← Pre-launch viral demo hooks
 import integrationsRoutes from './routes/integrations.js'  // ← External integrations
 import plansRoutes from './routes/plans.js'  // [PLANS-SYNC] added
+import checkoutRoutes from './routes/checkout.js'  // [PAYMENT-v5.2] added
 import qrRoutes from './routes/qr.js'  // ← P11: QR codes
 import printRoutes from './routes/print.js'  // ← P11: Print orders
 import bookingRoutes from './routes/booking.js'  // ← P11: Studio booking
@@ -255,6 +257,9 @@ app.get('/health', (req, res) => {
 // Public legal info endpoint (for privacy policy, terms, footer)
 app.get('/api/public/legal-info', getPublicLegalInfo)
 
+// [PAYMENT-v5.2] added: geo-currency detection
+app.get('/api/geo/currency', detectCurrency)
+
 // API Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/ai', aiRoutes)
@@ -282,6 +287,7 @@ app.use('/api/launch', launchRoutes)
 app.use('/api/demo', demoRoutes)
 app.use('/api/integrations', integrationsRoutes)
 app.use('/api/plans', plansRoutes)  // [PLANS-SYNC] added
+app.use('/api/checkout', checkoutRoutes)  // [PAYMENT-v5.2] added
 app.use('/api/qr', qrRoutes)
 app.use('/api/print', printRoutes)
 app.use('/api/booking', bookingRoutes)

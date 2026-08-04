@@ -31,24 +31,47 @@ export function startSubscriptionCron() {
                 }
             }
 
-            // Trial ending in 3 days
-            const trialEnding = await Subscription.find({
-                status: 'trialing',
-                trialEndsAt: { $gte: inThreeDays, $lt: new Date(inThreeDays.getTime() + 24 * 60 * 60 * 1000) },
+            // Active subscriptions ending in 3 days
+            const activeEndingSoon = await Subscription.find({
+                status: { $in: ['active', 'trialing'] },
+                endDate: { $gte: inThreeDays, $lt: new Date(inThreeDays.getTime() + 24 * 60 * 60 * 1000) },
+                reminderSent: { $ne: true },
             }).lean()
 
-            for (const sub of trialEnding) {
+            for (const sub of activeEndingSoon) {
                 const user = await User.findById(sub.userId)
                 if (user?.email) {
                     try {
                         await sendTrialEndingEmail(user.email, user.name, 3)
                     } catch (e) {
-                        console.warn('[subscriptionCron] trial ending email failed:', e.message)
+                        console.warn('[subscriptionCron] 3-day reminder email failed:', e.message)
                     }
                 }
+                await Subscription.findByIdAndUpdate(sub._id, { $set: { reminderSent: true } }) // [PAYMENT-v5.2] added
             }
 
-            console.log(`[subscriptionCron] expired: ${expired.length}, trialEnding: ${trialEnding.length}`)
+            // Active subscriptions ending in 1 day
+            const inOneDay = new Date(now)
+            inOneDay.setDate(inOneDay.getDate() + 1)
+            const activeEndingUrgent = await Subscription.find({
+                status: { $in: ['active', 'trialing'] },
+                endDate: { $gte: inOneDay, $lt: new Date(inOneDay.getTime() + 24 * 60 * 60 * 1000) },
+                urgentReminderSent: { $ne: true },
+            }).lean()
+
+            for (const sub of activeEndingUrgent) {
+                const user = await User.findById(sub.userId)
+                if (user?.email) {
+                    try {
+                        await sendSubscriptionExpiredEmail(user.email, user.name)
+                    } catch (e) {
+                        console.warn('[subscriptionCron] 1-day reminder email failed:', e.message)
+                    }
+                }
+                await Subscription.findByIdAndUpdate(sub._id, { $set: { urgentReminderSent: true } }) // [PAYMENT-v5.2] added
+            }
+
+            console.log(`[subscriptionCron] expired: ${expired.length}, ending3d: ${activeEndingSoon.length}, ending1d: ${activeEndingUrgent.length}`)
         } catch (err) {
             console.error('[subscriptionCron] error:', err.message)
         }

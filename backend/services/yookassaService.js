@@ -147,3 +147,7 @@ export async function createInvoicePayment({ invoiceId, amount, description, ret
     metadata: { ...metadata, invoiceId },
   });
 }
+
+// [PAYMENT-v5.2] added: aliases used by unified checkout
+export const createYooKassaPayment = createPayment
+export const checkYooKassaPayment = checkPayment
