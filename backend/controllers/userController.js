@@ -21,6 +21,8 @@ export const getMe = async (req, res) => {
         timezone: user.preferences?.timezone,
         phone: user.phone,
         telegram: user.telegram,
+        telegramBotToken: user.telegramBotToken,
+        telegramChatId: user.telegramChatId,
         acceptedTerms: user.acceptedTerms,
         acceptedPrivacy: user.acceptedPrivacy,
         acceptedConsent: user.acceptedConsent,
@@ -39,13 +41,15 @@ export const getMe = async (req, res) => {
 export const updateMe = async (req, res) => {
   try {
     const userId = req.user.id
-    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram, role, watermarkSettings } = req.body || {}
+    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram, telegramBotToken, telegramChatId, role, watermarkSettings } = req.body || {}
 
     const updates = {}
     if (name !== undefined) updates.name = name.trim()
     if (avatar !== undefined) updates.avatar = avatar.trim()
     if (phone !== undefined) updates.phone = phone.trim()
     if (telegram !== undefined) updates.telegram = telegram.trim()
+    if (telegramBotToken !== undefined) updates.telegramBotToken = telegramBotToken.trim()
+    if (telegramChatId !== undefined) updates.telegramChatId = String(telegramChatId).trim()
     if (defaultAddAiLabel !== undefined) updates.defaultAddAiLabel = !!defaultAddAiLabel
 
     // [P20] added: watermark settings
@@ -104,6 +108,8 @@ export const updateMe = async (req, res) => {
         timezone: user.preferences?.timezone,
         phone: user.phone,
         telegram: user.telegram,
+        telegramBotToken: user.telegramBotToken,
+        telegramChatId: user.telegramChatId,
         acceptedTerms: user.acceptedTerms,
         acceptedPrivacy: user.acceptedPrivacy,
         acceptedConsent: user.acceptedConsent,

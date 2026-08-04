@@ -1,6 +1,7 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
+import { API_BASE_URL } from '../config.js'
 import {
     Headphones, TicketCheck, Clock, Star, Shield, BookOpen, Zap,
     Search, Send, Check, X, AlertCircle, MessageSquare, User,
@@ -52,62 +53,28 @@ function StaffDashboardPage() {
     const [fabOpen, setFabOpen] = useState(false)
 
     // --- TICKETS STATE ---
-    const [tickets, setTickets] = useState([
-        {
-            id: 1,
-            user: 'user1@mail.com',
-            subject: 'Не работает AI Chat',
-            status: 'open',
-            priority: 'high',
-            time: '10 мин назад',
-            messages: [
-                { from: 'user', text: 'Привет! AI Chat перестал отвечать. Пишу запрос, а в ответ тишина. Помогите!', time: '10 мин назад' },
-                { from: 'staff', text: 'Здравствуйте! Проверяю подключение к API. Какой провайдер выбран у вас?', time: '8 мин назад' },
-                { from: 'user', text: 'Авто (рекомендуется)', time: '7 мин назад' },
-            ],
-            assignedTo: null
-        },
-        {
-            id: 2,
-            user: 'creator99@mail.com',
-            subject: 'Ошибка оплаты',
-            status: 'open',
-            priority: 'medium',
-            time: '1 час назад',
-            messages: [
-                { from: 'user', text: 'Пытаюсь оплатить тариф Pro, но выдаёт ошибку "Payment failed". Карта рабочая.', time: '1 час назад' },
-            ],
-            assignedTo: null
-        },
-        {
-            id: 3,
-            user: 'biz@company.com',
-            subject: 'Как подключить YouTube?',
-            status: 'in_progress',
-            priority: 'low',
-            time: '3 часа назад',
-            messages: [
-                { from: 'user', text: 'Не понимаю как подключить YouTube канал к планировщику. Где найти API ключ?', time: '3 часа назад' },
-                { from: 'staff', text: 'Добрый день! Перейдите в Настройки → Соцсети → YouTube. Там будет кнопка "Подключить".', time: '2 часа назад' },
-                { from: 'user', text: 'Спасибо! Нашёл. А где взять API ключ?', time: '1 час назад' },
-            ],
-            assignedTo: 'staff@ai-viral.com'
-        },
-        {
-            id: 4,
-            user: 'test@mail.com',
-            subject: 'Проблема с входом',
-            status: 'closed',
-            priority: 'high',
-            time: 'Вчера',
-            messages: [
-                { from: 'user', text: 'Не могу войти в аккаунт. Пишет "Неверный пароль", хотя я уверен что пароль правильный.', time: 'Вчера' },
-                { from: 'staff', text: 'Попробуйте сбросить пароль через кнопку "Забыли пароль?" на странице входа.', time: 'Вчера' },
-                { from: 'user', text: 'Помогло! Спасибо большое!', time: 'Вчера' },
-            ],
-            assignedTo: 'staff@ai-viral.com'
+    const [tickets, setTickets] = useState([])
+
+    useEffect(() => {
+        const fetchTickets = async () => {
+            const token = localStorage.getItem('token')
+            try {
+                const res = await fetch(`${API_BASE_URL}/tickets`, {
+                    headers: {
+                        ...(token ? { Authorization: `Bearer ${token}` } : {})
+                    }
+                })
+                if (!res.ok) return
+                const json = await res.json()
+                const list = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : [])
+                setTickets(list)
+            } catch (err) {
+                // eslint-disable-next-line no-console
+                console.error('Failed to fetch tickets:', err)
+            }
         }
-    ])
+        fetchTickets()
+    }, [])
 
     const [replyText, setReplyText] = useState('')
 
@@ -176,8 +143,8 @@ function StaffDashboardPage() {
 
     // --- FILTERS ---
     const filteredTickets = tickets.filter(t => {
-        const matchesSearch = t.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            t.subject.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesSearch = (t?.user || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (t?.subject || t?.topic || '').toLowerCase().includes(searchQuery.toLowerCase())
         const matchesFilter = activeFilter === 'all' ? true :
             activeFilter === 'open' ? t.status === 'open' :
                 activeFilter === 'in_progress' ? t.status === 'in_progress' :
@@ -558,8 +525,8 @@ function StaffDashboardPage() {
                                                     className={`w-full text-left luxury-card border-l-4 ${getPriorityBorder(ticket.priority)} p-3 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-1 relative group`}
                                                 >
                                                     <div className="pl-2">
-                                                        <p className="text-sm font-medium text-[var(--text)] mb-1">{ticket.subject}</p>
-                                                        <p className="text-xs text-[var(--text-muted)] mb-2">{ticket.user}</p>
+                                                        <p className="text-sm font-medium text-[var(--text)] mb-1">{ticket?.topic || ticket?.title || ticket?.subject || '—'}</p>
+                                                        <p className="text-xs text-[var(--text-muted)] mb-2">{ticket?.user || '—'}</p>
                                                         <div className="flex items-center gap-2 flex-wrap">
                                                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full glass text-[10px] text-[var(--text)]">
                                                                 <span className={`w-1.5 h-1.5 rounded-full ${priorityColor}`} />

@@ -21,6 +21,7 @@ import { generateVideoScript, generateVideoPlaceholder, startReplicateVideo } fr
 import User from '../models/User.js'
 import axios from 'axios'
 import { checkQuota, consumeGeneration } from '../services/usageQuotaService.js'
+import { scrapeVideo } from '../services/youtubeScraper.js'
 
 let omegaCore = null
 
@@ -452,7 +453,13 @@ export async function analyzeVideo(req, res) {
             /instagram\.com/.test(url) ? 'instagram' :
             /x\.com|twitter\.com/.test(url) ? 'twitter' : 'unknown'
 
-        const prompt = `Проанализируй видео по ссылке ${url}. Выдай: 1) Хук (первые 3 сек) 2) CTA 3) Вирусные моменты с таймкодами 4) Что улучшить. Ниша: ${niche}. На ${language === 'ru' ? 'русском' : 'английском'}.`
+        // [MASTER-v5.0] added: real scraping metadata
+        const metadata = await scrapeVideo(url)
+        if (metadata.error && !metadata.title) {
+            return res.status(400).json({ status: 'error', message: metadata.error || 'Проверьте ссылку или попробуйте позже' })
+        }
+
+        const prompt = `Проанализируй видео "${metadata.title || ''}" автора "${metadata.author || ''}" по ссылке ${url}. Выдай: 1) Хук (первые 3 сек) 2) CTA 3) Вирусные моменты с таймкодами 4) Что улучшить. Ниша: ${niche}. На ${language === 'ru' ? 'русском' : 'английском'}.`
 
         let aiText = ''
         let provider = 'demo'
@@ -511,7 +518,10 @@ export async function analyzeVideo(req, res) {
                 provider,
                 demo: isDemo,
                 url,
-                niche
+                niche,
+                title: metadata.title || '',
+                author: metadata.author || '',
+                thumbnail: metadata.thumbnail || '',
             }
         })
     } catch (err) {

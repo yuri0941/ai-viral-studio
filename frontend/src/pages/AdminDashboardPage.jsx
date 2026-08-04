@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
+import { API_BASE_URL } from '../config.js'
 import {
     Shield, Users, Activity, Star, AlertTriangle, FileText,
     Settings, DollarSign, Search, Plus, Pencil, Lock, Unlock,
@@ -54,13 +55,26 @@ function AdminDashboardPage() {
     const [searchQuery, setSearchQuery] = useState('')
 
     // --- USERS STATE ---
-    const [users, setUsers] = useState([
-        { id: 1, name: 'Иван Петров', email: 'ivan@mail.com', role: 'creator', status: 'active', posts: 45, joined: '2026-06-15' },
-        { id: 2, name: 'Мария Сидорова', email: 'maria@mail.com', role: 'business', status: 'active', posts: 128, joined: '2026-05-20' },
-        { id: 3, name: 'ООО Реклама', email: 'ads@company.ru', role: 'advertiser', status: 'banned', posts: 12, joined: '2026-07-01' },
-        { id: 4, name: 'Алексей К.', email: 'alex@mail.com', role: 'creator', status: 'active', posts: 8, joined: '2026-07-10' },
-        { id: 5, name: 'Test User', email: 'test@test.com', role: 'creator', status: 'pending', posts: 0, joined: '2026-07-20' }
-    ])
+    const [users, setUsers] = useState([])
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const token = localStorage.getItem('token')
+                const res = await fetch(`${API_BASE_URL}/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                if (!res.ok) throw new Error('Failed to fetch users')
+                const json = await res.json()
+                const list = Array.isArray(json) ? json : (json.data || [])
+                setUsers(list)
+            } catch (error) {
+                console.error('Error fetching admin users:', error)
+                setUsers([])
+            }
+        }
+        fetchUsers()
+    }, [])
 
     // --- MODALS ---
     const [showAddModal, setShowAddModal] = useState(false)
@@ -97,7 +111,7 @@ function AdminDashboardPage() {
         activeToday: Math.round(users.length * 0.12),
         newToday: Math.round(users.length * 0.03),
         reportsPending: reports.filter(r => r.status === 'pending').length,
-        totalPosts: users.reduce((s, u) => s + u.posts, 0),
+        totalPosts: users.reduce((s, u) => s + (u?.posts || 0), 0),
         revenue: FINANCE_DATA.totalRevenue
     }
 
@@ -234,7 +248,12 @@ function AdminDashboardPage() {
 
     const openEditModal = (user) => {
         setSelectedUser(user)
-        setEditForm({ name: user.name, email: user.email, role: user.role, status: user.status })
+        setEditForm({
+            name: user?.name || '',
+            email: user?.email || '',
+            role: user?.role || 'creator',
+            status: user?.status || 'active'
+        })
         setShowEditModal(true)
     }
 
@@ -368,7 +387,7 @@ function AdminDashboardPage() {
     const handleDeleteUser = () => {
         setUsers(users.filter(u => u.id !== selectedUser.id))
         setShowDeleteModal(false)
-        showToast(t('admin.userDeleted', { name: selectedUser.name }))
+        showToast(t('admin.userDeleted', { name: selectedUser?.name || '—' }))
         setSelectedUser(null)
     }
 
@@ -677,7 +696,7 @@ function AdminDashboardPage() {
                                 <Trash2 size={24} className="text-[var(--danger)]" />
                             </div>
                             <h2 className="text-xl font-bold mb-2">{t('admin.deleteTitle')}</h2>
-                            <p className="text-[var(--text-muted)] text-sm mb-6">{t('admin.deleteConfirm', { name: selectedUser.name, email: selectedUser.email })}</p>
+                            <p className="text-[var(--text-muted)] text-sm mb-6">{t('admin.deleteConfirm', { name: selectedUser?.name || '—', email: selectedUser?.email || '—' })}</p>
                             <div className="flex gap-3">
                                 <button onClick={() => setShowDeleteModal(false)} className="flex-1 px-4 py-2 bg-[var(--surface)] rounded-lg hover:bg-[var(--card-hover)] transition-colors">{t('admin.cancel')}</button>
                                 <button onClick={handleDeleteUser} className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-rose-600 text-white font-medium rounded-lg transition-all">{t('admin.delete')}</button>

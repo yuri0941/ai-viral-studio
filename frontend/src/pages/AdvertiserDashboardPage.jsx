@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { API_BASE_URL } from '../config.js'
@@ -72,59 +72,27 @@ function AdvertiserDashboardPage() {
         loadRevenueShare()
     }, [])
 
-    const [campaigns, setCampaigns] = useState([
-        {
-            id: 1,
-            name: 'Летняя распродажа',
-            status: 'active',
-            budget: 5000,
-            spent: 3200,
-            ctr: 3.2,
-            impressions: 45000,
-            clicks: 1440,
-            conversions: 89,
-            roi: 156,
-            startDate: '2026-07-01',
-            endDate: '2026-07-31',
-            format: 'banner',
-            client: 'SportLife',
-            approved: true
-        },
-        {
-            id: 2,
-            name: 'Запуск нового продукта',
-            status: 'paused',
-            budget: 10000,
-            spent: 1500,
-            ctr: 2.8,
-            impressions: 12000,
-            clicks: 336,
-            conversions: 12,
-            roi: 45,
-            startDate: '2026-08-01',
-            endDate: '2026-08-15',
-            format: 'video',
-            client: 'TechCorp',
-            approved: false
-        },
-        {
-            id: 3,
-            name: 'Брендовая кампания',
-            status: 'ended',
-            budget: 3000,
-            spent: 3000,
-            ctr: 4.1,
-            impressions: 28000,
-            clicks: 1148,
-            conversions: 67,
-            roi: 210,
-            startDate: '2026-06-01',
-            endDate: '2026-06-30',
-            format: 'native',
-            client: 'FashionBrand',
-            approved: true
+    const [campaigns, setCampaigns] = useState([])
+
+    useEffect(() => {
+        async function loadCampaigns() {
+            try {
+                const token = localStorage.getItem('token')
+                const res = await fetch(`${API_BASE_URL}/campaigns`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                const json = await res.json()
+                if (json && Array.isArray(json.data)) {
+                    setCampaigns(json.data)
+                } else if (Array.isArray(json)) {
+                    setCampaigns(json)
+                }
+            } catch (err) {
+                console.warn('[AdvertiserDashboard] campaigns load failed:', err.message)
+            }
         }
-    ])
+        loadCampaigns()
+    }, [])
 
     const [newCampaign, setNewCampaign] = useState({
         name: '',
@@ -136,6 +104,26 @@ function AdvertiserDashboardPage() {
         format: 'banner',
         client: ''
     })
+
+    const normalizeCampaign = (c) => ({
+        id: c.id ?? 0,
+        name: c.name || '',
+        client: c.client || '',
+        status: c.status || 'draft',
+        format: c.format || 'banner',
+        budget: c.budget ?? 0,
+        spent: c.spent ?? 0,
+        ctr: c.ctr ?? 0,
+        roi: c.roi ?? 0,
+        impressions: c.impressions ?? 0,
+        clicks: c.clicks ?? 0,
+        conversions: c.conversions ?? 0,
+        startDate: c.startDate || '',
+        endDate: c.endDate || '',
+        approved: !!c.approved,
+    })
+
+    const campaignsList = useMemo(() => campaigns.map(normalizeCampaign), [campaigns])
 
     const [tariffs] = useState([
         { name: 'CPM', price: 5, desc: t('advertiser.cpmDesc', 'За 1000 показов'), icon: Eye },
@@ -162,13 +150,13 @@ function AdvertiserDashboardPage() {
     ]
 
     const totalStats = {
-        totalBudget: campaigns.reduce((s, c) => s + c.budget, 0),
-        totalSpent: campaigns.reduce((s, c) => s + c.spent, 0),
-        totalImpressions: campaigns.reduce((s, c) => s + c.impressions, 0),
-        totalClicks: campaigns.reduce((s, c) => s + c.clicks, 0),
-        totalConversions: campaigns.reduce((s, c) => s + c.conversions, 0),
-        avgCtr: (campaigns.reduce((s, c) => s + c.ctr, 0) / campaigns.length).toFixed(1),
-        avgRoi: (campaigns.reduce((s, c) => s + c.roi, 0) / campaigns.length).toFixed(0),
+        totalBudget: campaignsList.reduce((s, c) => s + c.budget, 0),
+        totalSpent: campaignsList.reduce((s, c) => s + c.spent, 0),
+        totalImpressions: campaignsList.reduce((s, c) => s + c.impressions, 0),
+        totalClicks: campaignsList.reduce((s, c) => s + c.clicks, 0),
+        totalConversions: campaignsList.reduce((s, c) => s + c.conversions, 0),
+        avgCtr: campaignsList.length ? (campaignsList.reduce((s, c) => s + c.ctr, 0) / campaignsList.length).toFixed(1) : '0.0',
+        avgRoi: campaignsList.length ? (campaignsList.reduce((s, c) => s + c.roi, 0) / campaignsList.length).toFixed(0) : '0',
     }
 
     const profit = totalStats.totalBudget - totalStats.totalSpent
@@ -200,7 +188,7 @@ function AdvertiserDashboardPage() {
         }
     }
 
-    const filteredCampaigns = campaigns.filter(c => {
+    const filteredCampaigns = campaignsList.filter(c => {
         const q = searchQuery.toLowerCase()
         const matchesSearch = c.name.toLowerCase().includes(q) || c.client.toLowerCase().includes(q)
         const matchesStatus = filterStatus === 'all' || c.status === filterStatus
@@ -223,7 +211,7 @@ function AdvertiserDashboardPage() {
     const handleCreateCampaign = (e) => {
         e.preventDefault()
         const campaign = {
-            id: campaigns.length + 1,
+            id: Date.now(),
             name: newCampaign.name,
             status: 'active',
             budget: parseInt(newCampaign.budget) || 1000,
@@ -239,7 +227,7 @@ function AdvertiserDashboardPage() {
             client: newCampaign.client,
             approved: false
         }
-        setCampaigns([...campaigns, campaign])
+        setCampaigns(prev => [...prev, campaign])
         setShowModal(false)
         setNewCampaign({ name: '', budget: '', target: '', description: '', startDate: '', endDate: '', format: 'banner', client: '' })
     }
@@ -280,7 +268,7 @@ function AdvertiserDashboardPage() {
     }
 
     const handleExport = (format) => {
-        const data = campaigns.map(c => ({
+        const data = campaignsList.map(c => ({
             [t('advertiser.campaignName')]: c.name,
             [t('advertiser.client')]: c.client,
             [t('common.status')]: getStatusLabel(c.status),
@@ -327,7 +315,7 @@ function AdvertiserDashboardPage() {
 
 С уважением,
 AI Viral Studio`, {
-            count: campaigns.length,
+            count: campaignsList.length,
             budget: totalStats.totalBudget.toLocaleString(),
             spent: totalStats.totalSpent.toLocaleString(),
             profit: profit.toLocaleString(),
@@ -393,8 +381,8 @@ AI Viral Studio`, {
                     { label: t('advertiser.clicks'), value: totalStats.totalClicks.toLocaleString(), icon: MousePointer },
                     { label: t('advertiser.ctr'), value: `${totalStats.avgCtr}%`, icon: Percent },
                     { label: t('advertiser.conversions'), value: totalStats.totalConversions, icon: CheckCircle },
-                    { label: t('advertiser.campaigns'), value: campaigns.length, icon: Target },
-                    { label: t('advertiser.clients'), value: [...new Set(campaigns.map(c => c.client))].length, icon: Users },
+                    { label: t('advertiser.campaigns'), value: campaignsList.length, icon: Target },
+                    { label: t('advertiser.clients'), value: [...new Set(campaignsList.map(c => c.client))].length, icon: Users },
                 ].map((stat, i) => (
                     <div key={i} className="glass p-3 text-center">
                         <stat.icon className="w-4 h-4 text-[var(--text-muted)] mx-auto mb-1.5" />
@@ -519,78 +507,96 @@ AI Viral Studio`, {
                                 ))}
                             </div>
                         </div>
-                        {/* [P16-FIX] added: masonry campaigns grid with glass cards + preview + status chip */}
-                        <div className="p-4 columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
-                            {filteredCampaigns.map((camp) => {
-                                const progress = Math.min(100, (camp.spent / camp.budget) * 100)
-                                return (
-                                    <div
-                                        key={camp.id}
-                                        className="break-inside-avoid group relative luxury-card overflow-hidden hover:border-[var(--primary)]/30 transition-all duration-300"
-                                    >
-                                        {/* Cover image 16:9 preview */}
-                                        <div className="relative aspect-video bg-gradient-to-br from-[var(--surface)] to-[var(--bg-secondary)]">
-                                            <div className="absolute inset-0 flex items-center justify-center text-[var(--text-muted)]">
-                                                {getFormatIcon(camp.format)}
-                                            </div>
-                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2">
-                                                <button onClick={() => openAnalytics(camp)} className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors">
-                                                    <BarChartIcon size={18} />
-                                                </button>
-                                                <button onClick={() => toggleCampaignStatus(camp.id)} className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors">
-                                                    {camp.status === 'active' ? <Pause size={18} /> : camp.status === 'paused' ? <Play size={18} /> : <CheckCircle size={18} />}
-                                                </button>
-                                                <button onClick={() => { setSelectedCampaign(camp); setShowModal(true) }} className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors">
-                                                    <FileText size={18} />
-                                                </button>
-                                            </div>
-                                            <div className="absolute top-3 left-3">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border ${getStatusColor(camp.status)}`}>
-                                                    {camp.status === 'active' && <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />}
-                                                    {getStatusLabel(camp.status)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="p-4">
-                                            <div className="flex items-start justify-between gap-2 mb-2">
-                                                <div>
-                                                    <h3 className="text-sm font-semibold text-[var(--text)]">{camp.name}</h3>
-                                                    <p className="text-xs text-[var(--text-muted)]">{camp.client}</p>
+                        {campaignsList.length === 0 ? (
+                            <div className="p-12 flex flex-col items-center justify-center text-center">
+                                <div className="w-16 h-16 rounded-full bg-[var(--surface)] flex items-center justify-center mb-4">
+                                    <Target className="w-8 h-8 text-[var(--text-muted)]" />
+                                </div>
+                                <p className="text-[var(--text)] font-semibold mb-2">Создайте первую кампанию</p>
+                                <button
+                                    onClick={() => setShowModal(true)}
+                                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--success)] to-emerald-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Новая кампания
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                {/* [P16-FIX] added: masonry campaigns grid with glass cards + preview + status chip */}
+                                <div className="p-4 columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+                                    {filteredCampaigns.map((camp) => {
+                                        const progress = Math.min(100, (camp.spent / camp.budget) * 100)
+                                        return (
+                                            <div
+                                                key={camp.id}
+                                                className="break-inside-avoid group relative luxury-card overflow-hidden hover:border-[var(--primary)]/30 transition-all duration-300"
+                                            >
+                                                {/* Cover image 16:9 preview */}
+                                                <div className="relative aspect-video bg-gradient-to-br from-[var(--surface)] to-[var(--bg-secondary)]">
+                                                    <div className="absolute inset-0 flex items-center justify-center text-[var(--text-muted)]">
+                                                        {getFormatIcon(camp.format)}
+                                                    </div>
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2">
+                                                        <button onClick={() => openAnalytics(camp)} className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors">
+                                                            <BarChartIcon size={18} />
+                                                        </button>
+                                                        <button onClick={() => toggleCampaignStatus(camp.id)} className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors">
+                                                            {camp.status === 'active' ? <Pause size={18} /> : camp.status === 'paused' ? <Play size={18} /> : <CheckCircle size={18} />}
+                                                        </button>
+                                                        <button onClick={() => { setSelectedCampaign(camp); setShowModal(true) }} className="p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors">
+                                                            <FileText size={18} />
+                                                        </button>
+                                                    </div>
+                                                    <div className="absolute top-3 left-3">
+                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border ${getStatusColor(camp.status)}`}>
+                                                            {camp.status === 'active' && <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />}
+                                                            {getStatusLabel(camp.status)}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                {camp.approved ? (
-                                                    <CheckCircle size={16} className="text-[var(--success)]" />
-                                                ) : (
-                                                    <Clock size={16} className="text-[var(--accent-warm)]" />
-                                                )}
+                                                <div className="p-4">
+                                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                                        <div>
+                                                            <h3 className="text-sm font-semibold text-[var(--text)]">{camp.name}</h3>
+                                                            <p className="text-xs text-[var(--text-muted)]">{camp.client}</p>
+                                                        </div>
+                                                        {camp.approved ? (
+                                                            <CheckCircle size={16} className="text-[var(--success)]" />
+                                                        ) : (
+                                                            <Clock size={16} className="text-[var(--accent-warm)]" />
+                                                        )}
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                                        <div className="text-center p-2 rounded-xl bg-[var(--surface)]">
+                                                            <p className="text-xs text-[var(--text-muted)]">{t('advertiser.ctr')}</p>
+                                                            <p className="text-sm font-semibold text-[var(--text)]">{camp.ctr}%</p>
+                                                        </div>
+                                                        <div className="text-center p-2 rounded-xl bg-[var(--surface)]">
+                                                            <p className="text-xs text-[var(--text-muted)]">{t('advertiser.avgRoi')}</p>
+                                                            <p className={`text-sm font-semibold ${camp.roi >= 100 ? 'text-[var(--success)]' : 'text-[var(--accent-warm)]'}`}>{camp.roi}%</p>
+                                                        </div>
+                                                        <div className="text-center p-2 rounded-xl bg-[var(--surface)]">
+                                                            <p className="text-xs text-[var(--text-muted)]">{t('advertiser.clicks')}</p>
+                                                            <p className="text-sm font-semibold text-[var(--text)]">{camp.clicks.toLocaleString()}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center justify-between text-xs">
+                                                            <span className="text-[var(--text-muted)]">{t('advertiser.budget')}</span>
+                                                            <span className="text-[var(--text)]">${camp.spent.toLocaleString()} / ${camp.budget.toLocaleString()}</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full bg-[var(--surface)] rounded-full overflow-hidden">
+                                                            <div className="h-full bg-gradient-to-r from-[var(--success)] to-[var(--accent)] rounded-full" style={{ width: `${progress}%` }} />
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="grid grid-cols-3 gap-2 mb-3">
-                                                <div className="text-center p-2 rounded-xl bg-[var(--surface)]">
-                                                    <p className="text-xs text-[var(--text-muted)]">{t('advertiser.ctr')}</p>
-                                                    <p className="text-sm font-semibold text-[var(--text)]">{camp.ctr}%</p>
-                                                </div>
-                                                <div className="text-center p-2 rounded-xl bg-[var(--surface)]">
-                                                    <p className="text-xs text-[var(--text-muted)]">{t('advertiser.avgRoi')}</p>
-                                                    <p className={`text-sm font-semibold ${camp.roi >= 100 ? 'text-[var(--success)]' : 'text-[var(--accent-warm)]'}`}>{camp.roi}%</p>
-                                                </div>
-                                                <div className="text-center p-2 rounded-xl bg-[var(--surface)]">
-                                                    <p className="text-xs text-[var(--text-muted)]">{t('advertiser.clicks')}</p>
-                                                    <p className="text-sm font-semibold text-[var(--text)]">{camp.clicks.toLocaleString()}</p>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="flex items-center justify-between text-xs">
-                                                    <span className="text-[var(--text-muted)]">{t('advertiser.budget')}</span>
-                                                    <span className="text-[var(--text)]">${camp.spent.toLocaleString()} / ${camp.budget.toLocaleString()}</span>
-                                                </div>
-                                                <div className="h-1.5 w-full bg-[var(--surface)] rounded-full overflow-hidden">
-                                                    <div className="h-full bg-gradient-to-r from-[var(--success)] to-[var(--accent)] rounded-full" style={{ width: `${progress}%` }} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
+                                        )
+                                    })}
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Analytics row charts + stats */}
@@ -663,7 +669,7 @@ AI Viral Studio`, {
                         {t('advertiser.calendarTitle')}
                     </h2>
                     <div className="space-y-3">
-                        {campaigns.map(camp => (
+                        {campaignsList.map(camp => (
                             <div key={camp.id} className="flex items-center gap-4 p-4 rounded-xl glass hover:bg-[var(--surface)] transition-colors">
                                 <div className={`w-3 h-3 rounded-full ${camp.status === 'active' ? 'bg-[var(--success)]' : camp.status === 'paused' ? 'bg-amber-400' : 'bg-[var(--text-muted)]'}`} />
                                 <div className="flex-1 min-w-0">
@@ -696,7 +702,7 @@ AI Viral Studio`, {
                             </h3>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                            {[...new Set(campaigns.map(c => c.client))].map(client => {
+                            {[...new Set(campaignsList.map(c => c.client))].map(client => {
                                 const lastMsg = chatMessages.filter(m => m.client === client).slice(-1)[0]
                                 const unread = chatMessages.filter(m => m.client === client && !m.read && m.from !== 'advertiser').length
                                 return (

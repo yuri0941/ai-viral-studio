@@ -96,6 +96,14 @@ function SettingsPage() {
     const [savingSocials, setSavingSocials] = useState(false);
     const [socialsSaved, setSocialsSaved] = useState(false);
 
+    // [MASTER-v5.0] added: Telegram integration state
+    const [telegramBotToken, setTelegramBotToken] = useState('');
+    const [telegramChatId, setTelegramChatId] = useState('');
+    const [savingTelegram, setSavingTelegram] = useState(false);
+    const [telegramSaved, setTelegramSaved] = useState(false);
+    const [testingTelegram, setTestingTelegram] = useState(false);
+    const [showTelegramToken, setShowTelegramToken] = useState(false);
+
     // [P20] added: watermark settings state
     const [watermark, setWatermark] = useState({
         enabled: true,
@@ -169,6 +177,20 @@ function SettingsPage() {
             })
             .catch(() => setQuota({ used: 0, limit: PLANS.free.generations }))
             .finally(() => setQuotaLoading(false));
+    }, []);
+
+    // [MASTER-v5.0] added: load Telegram credentials from /users/me
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        fetch(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : null)
+            .then(d => {
+                const u = d?.user || d?.data?.user || {};
+                if (u.telegramBotToken !== undefined) setTelegramBotToken(u.telegramBotToken);
+                if (u.telegramChatId !== undefined) setTelegramChatId(u.telegramChatId);
+            })
+            .catch(err => console.warn('[SettingsPage] load telegram failed:', err.message));
     }, []);
 
     const [subscriptionCurrency, setSubscriptionCurrency] = useState(user?.preferences?.currency || 'RUB');
@@ -396,6 +418,60 @@ function SettingsPage() {
             setTimeout(() => setSocialsSaved(false), 2000);
         } finally {
             setSavingSocials(false);
+        }
+    };
+
+    // [MASTER-v5.0] added: save Telegram credentials
+    const handleSaveTelegram = async () => {
+        setSavingTelegram(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/users/me`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ telegramBotToken, telegramChatId }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setTelegramSaved(true);
+                setTimeout(() => setTelegramSaved(false), 2000);
+                showToast(t('settings.telegramSaved'), 'success');
+            } else {
+                throw new Error(data.message || 'Save failed');
+            }
+        } catch (err) {
+            console.warn('[SettingsPage] save telegram failed:', err.message);
+            showToast(t('settings.telegramSaveError') + ': ' + err.message, 'error');
+        } finally {
+            setSavingTelegram(false);
+        }
+    };
+
+    // [MASTER-v5.0] added: send a test Telegram message
+    const handleTestTelegram = async () => {
+        if (!telegramBotToken || !telegramChatId) {
+            showToast(t('settings.telegramMissing'), 'error');
+            return;
+        }
+        setTestingTelegram(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/scheduled-posts/telegram-test`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ botToken: telegramBotToken, chatId: telegramChatId }),
+            });
+            const data = await res.json();
+            if (data.status === 'success' || data.success) {
+                showToast(t('settings.telegramTestSuccess'), 'success');
+            } else {
+                throw new Error(data.error || data.message || 'Test failed');
+            }
+        } catch (err) {
+            console.warn('[SettingsPage] telegram test failed:', err.message);
+            showToast(t('settings.telegramTestError') + ': ' + err.message, 'error');
+        } finally {
+            setTestingTelegram(false);
         }
     };
 
@@ -835,6 +911,61 @@ function SettingsPage() {
                 >
                     {savingSocials ? <Loader2 size={18} className="animate-spin" /> : socialsSaved ? <><Check size={18} /> {t('settings.saved')}</> : <><Save size={18} /> {t('settings.saveChanges')}</>}
                 </button>
+            </div>
+
+            {/* [MASTER-v5.0] added: Telegram integration card */}
+            <div className="luxury-card glass p-6 mb-4">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[var(--text)]">
+                    <Send size={18} className="text-[var(--success)]" /> Telegram
+                </h3>
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">Bot Token (от @BotFather)</label>
+                        <div className="relative">
+                            <input
+                                type={showTelegramToken ? 'text' : 'password'}
+                                value={telegramBotToken}
+                                onChange={e => setTelegramBotToken(e.target.value)}
+                                placeholder="123456:ABC-DEF..."
+                                className="w-full px-3 py-2 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors pr-12"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowTelegramToken(v => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                                aria-label={showTelegramToken ? 'Скрыть' : 'Показать'}
+                            >
+                                {showTelegramToken ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-xs text-[var(--text-muted)] mb-1 block">Chat ID (от @userinfobot)</label>
+                        <input
+                            type="text"
+                            value={telegramChatId}
+                            onChange={e => setTelegramChatId(e.target.value)}
+                            placeholder="123456789"
+                            className="w-full px-3 py-2 glass rounded-lg border border-[var(--border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] outline-none transition-colors"
+                        />
+                    </div>
+                </div>
+                <div className="flex gap-3 mt-4">
+                    <button
+                        onClick={handleSaveTelegram}
+                        disabled={savingTelegram}
+                        className="flex-1 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {savingTelegram ? <Loader2 size={18} className="animate-spin" /> : telegramSaved ? <><Check size={18} /> {t('settings.saved')}</> : <><Save size={18} /> {t('settings.saveChanges')}</>}
+                    </button>
+                    <button
+                        onClick={handleTestTelegram}
+                        disabled={testingTelegram}
+                        className="flex-1 py-3 bg-[var(--surface)] text-[var(--text)] font-semibold rounded-xl hover:bg-[var(--primary-soft)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {testingTelegram ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> Тест</>}
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -72,11 +72,7 @@ function SchedulerPage() {
     const { user } = useAuth();
     const userTimezone = user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [posts, setPosts] = useState([
-        { id: 1, title: 'Обзор iPhone 16', platforms: ['youtube'], date: formatDateInput(new Date()), time: '15:00', types: ['video'], status: 'scheduled', description: '', tags: '', autoDelete: false, autoDeleteTime: '24', fileName: null },
-        { id: 2, title: 'Тренды TikTok', platforms: ['tiktok'], date: formatDateInput(new Date(Date.now() + 86400000)), time: '12:00', types: ['short'], status: 'draft', description: '', tags: '', autoDelete: false, autoDeleteTime: '24', fileName: null },
-        { id: 3, title: 'Reels о путешествиях', platforms: ['instagram'], date: formatDateInput(new Date(Date.now() + 2 * 86400000)), time: '18:00', types: ['reels'], status: 'scheduled', description: '', tags: '', autoDelete: false, autoDeleteTime: '24', fileName: null },
-    ]);
+    const [posts, setPosts] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [editingPost, setEditingPost] = useState(null);
     const [formData, setFormData] = useState({
@@ -106,6 +102,56 @@ function SchedulerPage() {
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const fileInputRef = useRef(null);
     const mediaFileInputRef = useRef(null);
+
+    function getAuthHeaders() {
+        const token = localStorage.getItem('token');
+        return {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        };
+    }
+
+    function mapBackendPost(post) {
+        const scheduledAt = post.scheduledAt ? new Date(post.scheduledAt) : new Date();
+        const date = scheduledAt.toISOString().split('T')[0];
+        const time = scheduledAt.toTimeString().slice(0, 5);
+        return {
+            id: post._id,
+            _id: post._id,
+            title: post.title || '',
+            platforms: post.platforms || [],
+            types: post.types || [],
+            status: post.status || 'scheduled',
+            mediaUrl: post.mediaUrl || null,
+            description: post.content || '',
+            tags: post.hashtags || '',
+            content: post.content || '',
+            hashtags: post.hashtags || '',
+            date,
+            time,
+            autoDelete: false,
+            autoDeleteTime: '24',
+            fileName: post.mediaUrl || null,
+        };
+    }
+
+    const loadPosts = useCallback(async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/scheduled-posts`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            });
+            const json = await res.json();
+            if (json.status === 'success' && Array.isArray(json.data)) {
+                setPosts(json.data.map(mapBackendPost));
+            }
+        } catch (err) {
+            console.error('Failed to load scheduled posts:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadPosts();
+    }, [loadPosts]);
 
     // Media queue derived from posts + standalone uploads
     const [mediaQueue, setMediaQueue] = useState([
@@ -281,52 +327,38 @@ function SchedulerPage() {
         if (formData.platforms.length === 0) return;
         if (formData.types.length === 0) return;
 
-        const scheduledAt = new Date(`${formData.date}T${formData.time}`)
+        const scheduledAt = new Date(`${formData.date}T${formData.time}`);
         const backendPayload = {
             title: formData.title,
             content: formData.description,
             platforms: formData.platforms,
             types: formData.types,
-            tags: formData.tags,
+            hashtags: formData.tags,
             scheduledAt: isNaN(scheduledAt) ? new Date() : scheduledAt,
-            mediaUrl: uploadedFile ? uploadedFile.name : (editingPost?.fileName || null),
+            mediaUrl: uploadedFile ? uploadedFile.name : (editingPost?.mediaUrl || editingPost?.fileName || null),
             status: 'scheduled',
-        }
-
-        let savedBackendPost = null
-        try {
-            if (editingPost?._id) {
-                const res = await fetch(`/api/scheduler/posts/${editingPost._id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(backendPayload),
-                })
-                const json = await res.json()
-                savedBackendPost = json?.data
-            } else {
-                const res = await fetch('/api/scheduler/posts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(backendPayload),
-                })
-                const json = await res.json()
-                savedBackendPost = json?.data
-            }
-        } catch (err) {
-            console.error('Backend save failed:', err)
-        }
-
-        const postData = {
-            ...formData,
-            fileName: uploadedFile ? uploadedFile.name : (editingPost?.fileName || null),
-            _id: savedBackendPost?._id || editingPost?._id,
         };
 
-        if (editingPost) {
-            setPosts(posts.map(p => p.id === editingPost.id ? { ...p, ...postData } : p));
-        } else {
-            setPosts([...posts, { ...postData, id: Date.now(), status: 'scheduled' }]);
+        try {
+            if (editingPost?._id || editingPost?.id) {
+                const id = editingPost._id || editingPost.id;
+                await fetch(`${API_BASE_URL}/scheduled-posts/${id}`, {
+                    method: 'PATCH',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(backendPayload),
+                });
+            } else {
+                await fetch(`${API_BASE_URL}/scheduled-posts`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(backendPayload),
+                });
+            }
+            await loadPosts();
+        } catch (err) {
+            console.error('Backend save failed:', err);
         }
+
         if (uploadedFile) {
             const duration = await getVideoDuration(uploadedFile);
             setMediaQueue(prev => [...prev, {
@@ -342,9 +374,39 @@ function SchedulerPage() {
         setUploadedFile(null);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (window.confirm('Удалить пост?')) {
-            setPosts(posts.filter(p => p.id !== id));
+            try {
+                await fetch(`${API_BASE_URL}/scheduled-posts/${id}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                });
+                await loadPosts();
+            } catch (err) {
+                console.error('Failed to delete post:', err);
+            }
+        }
+    };
+
+    const handleCopyPost = (post) => {
+        navigator.clipboard.writeText(post.content + '\n\n' + post.hashtags);
+    };
+
+    const handlePublishTelegram = async (post) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/scheduled-posts/${post._id || post.id}/publish-telegram`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(json.message || json.error || `Ошибка ${res.status}`);
+            }
+            alert('Опубликовано!');
+            await loadPosts();
+        } catch (err) {
+            alert(err.message || 'Ошибка публикации в Telegram');
+            console.error('Failed to publish Telegram post:', err);
         }
     };
 
@@ -415,22 +477,23 @@ function SchedulerPage() {
         }
     };
 
-    // [VALUE-2026-08-04] added: persist drag-drop date change to backend
+    // Drag-and-drop between days: persist new scheduledAt to backend
     const handlePostMove = async (postId, dateStr) => {
         if (!postId) return;
-        const prevPosts = posts;
-        setPosts(prev => prev.map(p => (p.id === postId || p.id === Number(postId) || p._id === postId) ? { ...p, date: dateStr } : p));
-        setDraggedPostId(null);
+        const post = posts.find(p => String(p.id) === String(postId) || String(p._id) === String(postId));
+        if (!post) return;
+        const scheduledAt = new Date(`${dateStr}T${post.time}`);
         try {
-            await fetch(`${API_BASE_URL}/scheduler/posts/${postId}`, {
+            await fetch(`${API_BASE_URL}/scheduled-posts/${post._id || post.id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date: dateStr }),
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ scheduledAt }),
             });
+            await loadPosts();
         } catch (err) {
-            console.warn('[Scheduler] failed to update post date:', err.message);
-            setPosts(prevPosts);
+            console.error('Failed to move post:', err);
         }
+        setDraggedPostId(null);
     };
 
     const handleFileSelect = (e) => {
@@ -573,7 +636,7 @@ function SchedulerPage() {
                 <div className="mb-6">
                     <EmptyState
                         icon={Calendar}
-                        title="Запланируйте первый пост"
+                        title="Календарь пуст. Запланируйте первый пост!"
                         description="Создайте публикацию, и OMEGA поможет выбрать лучшее время и форматы."
                         actionLabel="Создать пост"
                         onAction={() => openModal(null)}
@@ -649,6 +712,8 @@ function SchedulerPage() {
                     onDateClick={(dateStr) => openModal(null, dateStr)}
                     onPostClick={openModal}
                     onPostMove={handlePostMove}
+                    onCopyPost={handleCopyPost}
+                    onPublishTelegram={handlePublishTelegram}
                     platformColors={PLATFORM_COLORS}
                     platformIcons={PLATFORMS.reduce((acc, p) => { acc[p.id] = p.icon; return acc; }, {})}
                 />

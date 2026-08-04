@@ -14,6 +14,9 @@ import { errorHandler } from './middleware/errorHandler.js'
 import { protect } from './middleware/auth.js' // [HOTFIX-2026-08-04] added — protect for fallback routes
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import bot from './services/ownerBot.js'
+import { Campaign } from './models/Campaign.js'
+import { Ticket } from './models/Ticket.js'
+import User from './models/User.js'
 
 import { detectWhiteLabel, whiteLabelHeaders, getWhiteLabelConfig } from './middleware/whiteLabel.js'
 
@@ -61,6 +64,7 @@ import selfImprovementRoutes from './routes/selfImprovement.js'  // ← P15: Sel
 import neuroSalesRoutes from './routes/neuroSales.js'  // [P18] added: Neuro-Sales psychotypes
 import challengeRoutes from './routes/challenges.js'  // [P20] added: OMEGA Challenge
 import uploadRoutes from './routes/upload.js'  // [P21] added: image upload optimization
+import scheduledPostsRoutes from './routes/scheduledPosts.js'  // [MASTER-v5.0] added
 
 const app = express()
 app.set('trust proxy', 1)
@@ -75,10 +79,21 @@ import { startReflectionCron as startNeuralReflectionCron } from './ai/omega/sel
 import { runEvolutionCron } from './services/templateEvolution.js'
 import { resolveABTests } from './services/abAutoLearning.js'
 import { createOmegaBackend } from './ai/omega/index.js'
+import { startSubscriptionCron } from './services/subscriptionCron.js'
 
 // Connect to database before starting server
 await connectDB()
 await connectRedis() // [P24] fixed: connect Redis with in-memory fallback
+
+// [MASTER-v5.0] added: auto-audit after DB connect
+if (isConnected) {
+    try {
+        const { autoAuditSystem } = await import('./services/autoAudit.js')
+        await autoAuditSystem()
+    } catch (err) {
+        console.warn('[server] auto-audit failed:', err.message)
+    }
+}
 
 if (!isConnected) {
     console.error('❌ Cannot start server without MongoDB connection')
@@ -118,6 +133,9 @@ if (isConnected) {
 
     console.log('🧠 Self-improvement crons scheduled')
 }
+
+// [MASTER-v5.0] added: subscription lifecycle cron
+startSubscriptionCron()
 
 // Seed default OMEGA agents after DB connection
 if (isConnected) {
@@ -274,10 +292,43 @@ app.use('/api/upload', uploadRoutes)  // [P21] added: image upload optimization
 app.use('/api/roadmap', roadmapRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/self-improvement', selfImprovementRoutes)
+app.use('/api/scheduled-posts', scheduledPostsRoutes)
 
 // [HOTFIX-2026-08-04] added — finance transactions fallback
 app.get('/api/finance/transactions', protect, (req, res) => {
     res.json({ transactions: [], total: 0, currency: 'RUB' })
+})
+
+// [MASTER-v5.0] added: real data routes for dashboards
+app.get('/api/admin/users', protect, async (req, res) => {
+    try {
+        const users = await User.find().select('name email role status posts createdAt').lean()
+        res.json({ status: 'success', data: users })
+    } catch (err) {
+        console.error('[admin:users]', err.message)
+        res.status(500).json({ status: 'error', error: err.message })
+    }
+})
+
+app.get('/api/campaigns', protect, async (req, res) => {
+    try {
+        const userId = req.user?._id || req.user?.id
+        const campaigns = await Campaign.find({ $or: [{ ownerId: userId }, { clientId: userId }] }).lean()
+        res.json({ status: 'success', data: campaigns })
+    } catch (err) {
+        console.error('[campaigns]', err.message)
+        res.status(500).json({ status: 'error', error: err.message })
+    }
+})
+
+app.get('/api/tickets', protect, async (req, res) => {
+    try {
+        const tickets = await Ticket.find().sort({ createdAt: -1 }).lean()
+        res.json({ status: 'success', data: tickets })
+    } catch (err) {
+        console.error('[tickets]', err.message)
+        res.status(500).json({ status: 'error', error: err.message })
+    }
 })
 
 // Public QR short-link redirect (must be outside /api rate limiting)

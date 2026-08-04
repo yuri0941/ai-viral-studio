@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { API_URL } from '../config'
 import {
@@ -39,70 +40,11 @@ const PLATFORM_DATA = [
     { name: 'Telegram', value: 5 },
 ]
 
-const PORTFOLIO_WORKS = [
-    {
-        id: 1,
-        title: '5 ошибок в монтаже Shorts',
-        platform: 'youtube',
-        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/0.jpg',
-        views: 45200,
-        likes: 3200,
-        comments: 180,
-        engagement: 8.4,
-        status: 'viral',
-        publishedAt: '2026-07-27'
-    },
-    {
-        id: 2,
-        title: 'POV: твой первый вирусный ролик',
-        platform: 'tiktok',
-        thumbnail: null,
-        views: 28900,
-        likes: 4100,
-        comments: 220,
-        engagement: 7.1,
-        status: 'trending',
-        publishedAt: '2026-07-25'
-    },
-    {
-        id: 3,
-        title: 'Как я набрал 10K за месяц',
-        platform: 'instagram',
-        thumbnail: null,
-        views: 15600,
-        likes: 1900,
-        comments: 95,
-        engagement: 5.8,
-        status: 'stable',
-        publishedAt: '2026-07-22'
-    },
-    {
-        id: 4,
-        title: '3 хука, которые всегда работают',
-        platform: 'telegram',
-        thumbnail: null,
-        views: 8700,
-        likes: 640,
-        comments: 42,
-        engagement: 4.9,
-        status: 'stable',
-        publishedAt: '2026-07-20'
-    },
-]
+const PORTFOLIO_WORKS = []
 
-const RECENT_ACTIVITY = [
-    { type: 'post', text: 'Опубликован пост "5 ошибок в монтаже Shorts"', time: '2 часа назад', icon: Video },
-    { type: 'ai', text: 'AI сгенерировал 3 идеи для следующей недели', time: '5 часов назад', icon: Sparkles },
-    { type: 'view', text: '+12,400 просмотров за сегодня', time: 'Сегодня', icon: Eye },
-    { type: 'follower', text: '+156 новых подписчиков', time: 'Вчера', icon: Users },
-]
+const RECENT_ACTIVITY = []
 
-const AI_TIPS = [
-    'Создай shorts на тему трендового хэштега #viral2026',
-    'Лучшее время для публикации: сегодня 19:00',
-    'Твоя аудитория активна в TikTok больше, чем в Instagram на 34%',
-    'Попробуй формат "3 мифа о [твоей нише]" — он даёт +22% удержание'
-]
+const AI_TIPS = []
 
 function formatNumber(n) {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
@@ -172,6 +114,7 @@ function QuickAction({ icon: Icon, label, color, onClick }) {
 
 function CreatorDashboardPage() {
     const { t } = useTranslation()
+    const navigate = useNavigate()
     const { user } = useAuth()
     const [period, setPeriod] = useState('week')
     // [VALUE-2026-08-04] added: real stats from API, no hardcode
@@ -179,7 +122,7 @@ function CreatorDashboardPage() {
     const [statsLoading, setStatsLoading] = useState(true)
 
     useEffect(() => {
-        fetch(`${API_URL}/analytics/overview`)
+        fetch(`${API_URL}/api/analytics/overview`)
             .then(r => r.json())
             .then(data => {
                 const payload = data?.data || data || {}
@@ -229,14 +172,21 @@ function CreatorDashboardPage() {
                     <div className="w-16 h-16 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center mx-auto mb-4">
                         <Plus size={28} className="text-[var(--primary)]" />
                     </div>
-                    <h2 className="text-xl font-bold text-[var(--text)] mb-2">У вас пока нет постов</h2>
-                    <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto mb-6">Создайте первый — и метрики появятся здесь!</p>
-                    <button
-                        onClick={() => window.location.href = '/scheduler'}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity"
-                    >
-                        <Plus size={18} /> Создать пост
-                    </button>
+                    <h2 className="text-xl font-bold text-[var(--text)] mb-2">У вас пока нет постов. Создайте первый!</h2>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                        <button
+                            onClick={() => navigate('/scheduler')}
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity"
+                        >
+                            <Plus size={18} /> Создать пост
+                        </button>
+                        <button
+                            onClick={() => navigate('/ai-chat')}
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl glass text-[var(--text)] font-medium hover:bg-[var(--surface)] transition-colors"
+                        >
+                            <Bot size={18} /> Спросить OMEGA
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -253,9 +203,9 @@ function CreatorDashboardPage() {
                             <span className="px-2.5 py-1 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] text-[10px] font-medium">{t('creator.nextPost')}</span>
                             <span className="text-[10px] text-[var(--text-muted)]">{t('creator.recommendedTime', { time: '18:00' })}</span>
                         </div>
-                        <h2 className="text-2xl md:text-3xl font-serif font-semibold text-[var(--text)] mb-3">3 мифа о вашей нише, которые убивают рост</h2>
+                        <h2 className="text-2xl md:text-3xl font-serif font-semibold text-[var(--text)] mb-3">{t('creator.nextPostTitle', 'Следующий пост')}</h2>
                         <p className="text-sm text-[var(--text-muted)] max-w-xl mb-6">
-                            OMEGA подготовила черновик с хуком, структурой и CTA. Проверьте, отредактируйте и опубликуйте в один клик.
+                            {t('creator.nextPostHint', 'Создайте пост, и OMEGA подготовит черновик с хуком, структурой и CTA.')}
                         </p>
                         <div className="flex flex-wrap items-center gap-3">
                             <button onClick={() => alert('Публикация...')} className="magnetic-btn inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity">
@@ -277,7 +227,7 @@ function CreatorDashboardPage() {
                             </div>
                             <span className="text-sm font-medium text-[var(--text)]">{t('creator.omegaTip')}</span>
                         </div>
-                        <p className="text-sm text-[var(--text-muted)] mb-4">{t('creator.omegaTipText', 'Опубликуйте в 18:00 — активность аудитории на 24% выше.')}</p>
+                        <p className="text-sm text-[var(--text-muted)] mb-4">{t('creator.omegaTipText', 'Опубликуйте пост в оптимальное время, чтобы повысить охват.')}</p>
                     </div>
                     <button onClick={() => alert('Время применено')} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity">
                         {t('creator.apply')}
@@ -287,11 +237,11 @@ function CreatorDashboardPage() {
 
             {/* [P16-FIX] added: bento stats grid with glass cards and gradient icons */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <StatCard label={t('creator.posts')} value={stats?.posts || 0} sub={t('creator.subPosts', '+3 за неделю')} icon={Video} gradient="from-emerald-500 to-teal-600" />
-                <StatCard label={t('creator.views')} value={formatNumber(stats?.views || 0)} sub="+18%" icon={Eye} gradient="from-sky-500 to-blue-600" />
-                <StatCard label={t('creator.subscribers')} value={formatNumber(stats?.subscribers || 0)} sub="+156" icon={Users} gradient="from-violet-500 to-fuchsia-600" />
-                <StatCard label={t('creator.engagement')} value={`${stats?.engagement || 0}%`} sub="+0.8%" icon={Heart} gradient="from-amber-500 to-orange-600" />
-                <StatCard label={t('creator.income')} value={`$${stats?.income || 0}`} sub={t('creator.perDay', { amount: '$42' })} icon={DollarSign} gradient="from-emerald-500 to-green-600" />
+                <StatCard label={t('creator.posts')} value={stats?.posts || 0} icon={Video} gradient="from-emerald-500 to-teal-600" />
+                <StatCard label={t('creator.views')} value={formatNumber(stats?.views || 0)} icon={Eye} gradient="from-sky-500 to-blue-600" />
+                <StatCard label={t('creator.subscribers')} value={formatNumber(stats?.subscribers || 0)} icon={Users} gradient="from-violet-500 to-fuchsia-600" />
+                <StatCard label={t('creator.engagement')} value={`${stats?.engagement || 0}%`} icon={Heart} gradient="from-amber-500 to-orange-600" />
+                <StatCard label={t('creator.income')} value={`$${stats?.income || 0}`} icon={DollarSign} gradient="from-emerald-500 to-green-600" />
             </div>
 
             {/* [P16-FIX] added: content pipeline horizontal scroll with glass cards */}

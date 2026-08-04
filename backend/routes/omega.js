@@ -99,8 +99,8 @@ router.post('/voice/stt', protect, upload.single('audio'), async (req, res) => {
     }
 })
 router.post('/voice/speak', protect, (req, res) => {
-    // [HOTFIX-2026-08-04] added — voice synthesis mock for free tier
-    res.json({ audioUrl: null, message: 'Voice synthesis disabled in free tier', status: 'mock' })
+    // [MASTER-v5.0] added: voice synthesis disabled
+    res.json({ audioUrl: null, message: 'Voice disabled', status: 'disabled' })
 })
 // [P19] added: AI video generation
 router.post('/generate-video', protect, generateVideo)

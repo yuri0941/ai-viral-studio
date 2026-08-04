@@ -150,6 +150,7 @@ function ContentAnalyzerPage() {
     const [coverOpen, setCoverOpen] = useState(false)
     const [prediction, setPrediction] = useState(null)
     const [predictionLoading, setPredictionLoading] = useState(false)
+    const [videoInfo, setVideoInfo] = useState(null)
     const inputRef = useRef(null)
 
     const fetchPrediction = useCallback(async (content) => {
@@ -291,10 +292,24 @@ function ContentAnalyzerPage() {
         setError('')
         setLoading(true)
         setResult(null)
+        setVideoInfo(null)
 
         try {
             const res = await omegaApi.analyzeVideo(url, niche, language)
             const apiData = res?.data || {}
+
+            if (apiData.status === 'error') {
+                setError('Проверьте ссылку или попробуйте позже')
+                setLoading(false)
+                return
+            }
+
+            setVideoInfo({
+                title: apiData.title,
+                author: apiData.author,
+                thumbnail: apiData.thumbnail,
+            })
+
             const final = buildAnalysisFromApi(apiData, url)
             setResult(final)
             setHistory(prev => [final, ...prev].slice(0, 10))
@@ -524,6 +539,26 @@ function ContentAnalyzerPage() {
             {/* Results */}
             {result && !loading && (
                 <div className="space-y-6">
+                    {videoInfo && (
+                        <div className="bg-[#1a1a24] rounded-2xl border border-white/[0.06] p-5 flex items-start gap-4">
+                            {videoInfo.thumbnail && (
+                                <img
+                                    src={videoInfo.thumbnail}
+                                    alt={videoInfo.title || 'Video thumbnail'}
+                                    className="w-32 h-auto rounded-lg object-cover border border-white/10"
+                                />
+                            )}
+                            <div className="space-y-1">
+                                <p className="text-sm text-gray-300">
+                                    <span className="text-gray-500">Название:</span> {videoInfo.title}
+                                </p>
+                                <p className="text-sm text-gray-300">
+                                    <span className="text-gray-500">Канал:</span> {videoInfo.author}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* OMEGA Predictive Forecast */}
                     <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-white/[0.06] rounded-2xl p-5">
                         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">

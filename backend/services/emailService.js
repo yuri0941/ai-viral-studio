@@ -216,4 +216,26 @@ export async function sendNewTicket(user, ticket, lang = 'ru') {
     })
 }
 
-export default { sendVerificationEmail, sendPaymentSuccessEmail, getEmailStatus, sendEmail, sendPaymentSuccess, sendTrialEnding, sendSubscriptionCanceled, sendRefundRequest, sendNewTicket, sendPasswordReset }
+export async function sendTrialEndingEmail(to, name, daysLeft = 3, lang = 'ru') {
+    const l = T[getLang(lang)]
+    const subject = l.trialSubject
+    const html = `<h1>${format(l.trialTitle || 'Привет, {name}!', { name: name || 'пользователь' })}</h1><p>${format(l.trialText || 'Ваш пробный период заканчивается через {days} дня.', { days: daysLeft })}</p><p>Чтобы не потерять доступ, продлите подписку в настройках.</p>`
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
+        return { mocked: true }
+    }
+    return resend.emails.send({ from: FROM, to, subject, html })
+}
+
+export async function sendSubscriptionExpiredEmail(to, name, lang = 'ru') {
+    const l = T[getLang(lang)]
+    const subject = l.canceledSubject
+    const html = `<h1>${format(l.canceledTitle || 'Привет, {name}!', { name: name || 'пользователь' })}</h1><p>${l.canceledText || 'Ваша подписка истекла. Вы переведены на бесплатный тариф.'}</p><p>Продлите подписку в настройках, чтобы вернуть полный доступ.</p>`
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
+        return { mocked: true }
+    }
+    return resend.emails.send({ from: FROM, to, subject, html })
+}
+
+export default { sendVerificationEmail, sendPaymentSuccessEmail, getEmailStatus, sendEmail, sendPaymentSuccess, sendTrialEnding, sendTrialEndingEmail, sendSubscriptionExpiredEmail, sendSubscriptionCanceled, sendRefundRequest, sendNewTicket, sendPasswordReset }

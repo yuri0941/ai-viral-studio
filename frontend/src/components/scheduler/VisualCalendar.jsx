@@ -22,7 +22,7 @@ function formatDateInput(date) {
     return `${year}-${month}-${day}`;
 }
 
-export default function VisualCalendar({ posts = [], weekDates = [], onDateClick, onPostClick, onPostMove, platformColors = {}, platformIcons = {} }) {
+export default function VisualCalendar({ posts = [], weekDates = [], onDateClick, onPostClick, onPostMove, onCopyPost, onPublishTelegram, platformColors = {}, platformIcons = {} }) {
     const [dragOverIndex, setDragOverIndex] = useState(null);
 
     const getPostsForDate = (date) => {
@@ -127,12 +127,27 @@ export default function VisualCalendar({ posts = [], weekDates = [], onDateClick
                                     </div>
 
                                     {/* Hover actions */}
-                                    <div className="absolute inset-0 z-20 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    <div className="absolute inset-0 z-20 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onPostClick?.(post); }}
                                             className="px-2 py-1 rounded bg-white/10 text-[10px] text-white hover:bg-white/20"
                                         >
                                             Редактировать
+                                        </button>
+                                        {post.platforms?.includes('telegram') && onPublishTelegram && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onPublishTelegram(post); }}
+                                                className="px-2 py-1 rounded bg-sky-500/20 text-[10px] text-sky-300 hover:bg-sky-500/30 border border-sky-500/30"
+                                                title="Опубликовать в Telegram"
+                                            >
+                                                🚀 Опубликовать в Telegram
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onCopyPost?.(post); }}
+                                            className="px-2 py-1 rounded bg-white/10 text-[10px] text-white hover:bg-white/20"
+                                        >
+                                            Скопировать для публикации
                                         </button>
                                     </div>
                                 </div>

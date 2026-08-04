@@ -12,38 +12,21 @@ const STORAGE_KEY = 'omega_chat_history'
 const DEMO_RESPONSES = [
     {
         keywords: ['привет', 'здравствуй', 'hello', 'hi'],
-        response: 'Привет! Я OMEGA — твой AI-ассистент. Чем помочь?'
+        response: 'Привет! Я OMEGA. Чем помочь?'
     },
     {
         keywords: ['что ты умеешь', 'what can you do', 'возможности', 'help'],
         response: 'Вот чем я могу помочь: идеи и посты, сценарии Shorts/Reels, аналитика и метрики, тренды и хуки, время публикаций, brand voice, автопилот контента. Спроси по любому пункту.'
-    },
-    {
-        keywords: ['доход', 'revenue', 'финанс', 'finance', 'деньги', 'money'],
-        response: 'В демо-режиме: за последние 30 дней доход ~$42,500. Основные источники: подписки (65%), реклама (25%), партнёрки (10%). Для точных цифр подключите AI-провайдера или проверьте FinanceTab.'
-    },
-    {
-        keywords: ['задач', 'task', 'todo', 'работа'],
-        response: 'В демо-режиме: у вас 12 активных задач, 4 просрочены. Рекомендация — эскалировать просроченные задачи владельцу или назначить ответственных.'
-    },
-    {
-        keywords: ['аналитик', 'analytics', 'статистика', 'метрики'],
-        response: 'В демо-режиме: DAU 8,420 (+12%), конверсия в подписку 3.4%, средний чек $47. Для полного анализа подключите API-ключ.'
-    },
-    {
-        keywords: ['сервер', 'server', 'нагрузка', 'uptime'],
-        response: 'В демо-режиме: 3 сервера онлайн, uptime 99.7%, средняя загрузка CPU 34%. Сервер Frankfurt-1 показывает повышенную задержку.'
-    },
-    {
-        keywords: ['кампан', 'campaign', 'реклам'],
-        response: 'В демо-режиме: активно 4 кампании, CTR 2.1%, расход $3,200. Рекомендация — увеличить бюджет на кампанию с CTR >3%.'
     }
 ]
 
-function getDemoResponse(text) {
+function getDemoResponse(text, userRole = 'guest') {
     const lower = text.toLowerCase()
+    if (/\b(mrr|arr|revenue|доход|прибыль|деньги|finance|финанс|количество пользователей|users count|стек|stack)\b/i.test(lower) && userRole === 'client') {
+        return 'Нет доступа к финансовым данным и чужим проектам. Обратитесь к менеджеру.'
+    }
     const match = DEMO_RESPONSES.find(item => item.keywords.some(k => lower.includes(k)))
-    return match?.response || 'Я работаю в демо-режиме, потому что все AI-провайдеры сейчас недоступны. Попробуйте вопросы по доходам, задачам, аналитике, серверам или кампаниям.'
+    return match?.response || 'Не удалось получить ответ от AI. Проверьте подключение или попробуйте позже.'
 }
 
 export function useOmegaChat(options = {}) {
@@ -102,7 +85,7 @@ export function useOmegaChat(options = {}) {
                 setMessages(prev => [...prev, {
                     id: generateId(),
                     role: 'omega',
-                    text: getDemoResponse(userMsg.text),
+                    text: getDemoResponse(userMsg.text, user?.role || 'guest'),
                     demo: true,
                     error: err.message,
                     timestamp: new Date().toISOString(),

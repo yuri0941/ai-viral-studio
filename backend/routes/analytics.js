@@ -11,8 +11,8 @@ import { getReferralData } from '../services/referralService.js';
 
 const router = express.Router();
 
-// [P16-FIX] added
-router.get('/overview', (req, res) => res.json({ views: 0, engagement: 0, followers: 0, revenue: 0 }));
+// [MASTER-v5.0] added: real-shaped overview for CreatorDashboard
+router.get('/overview', protect, (req, res) => res.json({ posts: 0, views: 0, subscribers: 0, engagement: 0, income: 0 }));
 // [P16-FIX] added
 router.get('/channels', (req, res) => res.json({ channels: [] }));
 

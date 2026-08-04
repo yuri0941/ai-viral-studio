@@ -87,6 +87,8 @@ const userSchema = new mongoose.Schema(
         },
         phone: { type: String, default: '' },
         telegram: { type: String, default: '' },
+        telegramBotToken: { type: String, default: '' },
+        telegramChatId: { type: String, default: '' },
         apiKeys: [{
             name: String,
             key: String,
