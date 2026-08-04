@@ -23,7 +23,7 @@ if (isRedisEnabled()) {
     redis = null
   }
 } else {
-  console.info('[Cache] Redis not configured — using in-memory fallback. OK for free tier. Data resets on server restart.')
+  console.info('[Cache] Redis not configured — using in-memory fallback. This is OK for free tier. Data resets on server restart.')
 }
 
 function memoryKey(key) {

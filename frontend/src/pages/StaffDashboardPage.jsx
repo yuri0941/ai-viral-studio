@@ -249,7 +249,7 @@ function StaffDashboardPage() {
     const ticketColumns = useMemo(() => [
         { key: 'id', header: t('staff.id'), width: '70px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">#{ticket?.id || '—'}</span> },
         { key: 'user', header: t('staff.user'), width: '1.5fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket?.user || '—'}</span> },
-        { key: 'subject', header: t('staff.subject'), width: '2fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket?.subject || '—'}</span> },
+        { key: 'subject', header: t('staff.subject'), width: '2fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket?.topic || ticket?.title || ticket?.subject || '—'}</span> },
         {
             key: 'priority',
             header: t('staff.priority'),
@@ -283,8 +283,8 @@ function StaffDashboardPage() {
                 </select>
             ),
         },
-        { key: 'assignedTo', header: t('staff.assigned'), width: '110px', cell: (ticket) => <span className="text-[var(--text)] text-xs">{ticket?.assignedTo ? ticket.assignedTo.split('@')[0] : t('staff.unassigned')}</span> },
-        { key: 'time', header: t('staff.time'), width: '100px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">{ticket?.time || '—'}</span> },
+        { key: 'assignedTo', header: t('staff.assigned'), width: '110px', cell: (ticket) => <span className="text-[var(--text)] text-xs">{ticket?.assignedTo?.name || (typeof ticket?.assignedTo === 'string' ? ticket.assignedTo.split('@')[0] : 'Не назначен')}</span> },
+        { key: 'time', header: t('staff.time'), width: '100px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">{ticket?.createdAt ? new Date(ticket.createdAt).toLocaleDateString('ru-RU') : ticket?.time || '—'}</span> },
         {
             key: 'actions',
             header: t('staff.action'),

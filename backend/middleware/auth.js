@@ -3,17 +3,13 @@ import User from '../models/User.js'
 
 export const protect = async (req, res, next) => {
     try {
-        let token
-
-        // Check for token in header
-        if (req.headers.authorization?.startsWith('Bearer')) {
-            token = req.headers.authorization.split(' ')[1]
-        }
+        // [HOTFIX-2026-08-04] added — extract token from any Authorization header
+        const token = req.headers.authorization?.split(' ')[1]
 
         if (!token) {
             return res.status(401).json({
                 status: 'error',
-                message: 'Not authorized, no token'
+                message: 'No token provided'
             })
         }
 
@@ -53,7 +49,7 @@ export const protect = async (req, res, next) => {
         } catch (error) {
             return res.status(401).json({
                 status: 'error',
-                message: 'Not authorized, token failed'
+                message: 'Invalid or expired token'
             })
         }
     } catch (error) {

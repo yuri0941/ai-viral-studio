@@ -54,7 +54,7 @@ router.get('/settings', protect, async (req, res) => {
         if (req.user?.role === 'owner' || req.user?.role === 'admin') {
             return getOwnerSettings(req, res)
         }
-        res.json({ settings: { theme: 'dark', language: 'ru', notifications: true } })
+        res.json({ settings: { theme: 'dark', language: 'ru', notifications: true, sidebarExpanded: true } })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

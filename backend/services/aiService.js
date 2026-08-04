@@ -128,13 +128,23 @@ function smartDemoReply(message, lang = 'ru', userRole = 'guest') {
 
     // [HOTFIX-2026-08-04] added — short greeting, no monologue
     if (lower.includes('привет') || lower.includes('здравствуй') || lower.includes('hello') || lower.includes('hi')) {
-        return userRole === 'owner'
-            ? 'Привет, босс! OMEGA на связи. Чем займёмся?'
-            : 'Привет! Я OMEGA, твой AI-ассистент. Чем помочь сегодня?'
+        return {
+            text: userRole === 'owner'
+                ? 'Привет, босс! OMEGA на связи. Чем займёмся?'
+                : userRole === 'creator'
+                    ? 'Привет! Готов помочь с контентом. Какая ниша сегодня?'
+                    : 'Привет! Я OMEGA, твой AI-ассистент. Чем помочь?',
+            provider: 'smart-demo',
+            source: 'template'
+        }
     }
     // [HOTFIX-2026-08-04] added — capabilities list only on explicit request
     if (lower.includes('что ты умеешь') || lower.includes('what can you do') || lower.includes('возможности')) {
-        return 'Вот чем я могу помочь: идеи и посты, сценарии Shorts/Reels, аналитика и метрики, тренды и хуки, время публикаций, brand voice, автопилот контента. Спроси по любому пункту.'
+        return {
+            text: 'Вот чем я могу помочь: идеи и посты, сценарии Shorts/Reels, аналитика и метрики, тренды и хуки, время публикаций, brand voice, автопилот контента. Спроси по любому пункту.',
+            provider: 'smart-demo',
+            source: 'template'
+        }
     }
 
     const allTemplates = [...DEMO_TEMPLATES, ...TEMPLATES]
@@ -149,10 +159,10 @@ function smartDemoReply(message, lang = 'ru', userRole = 'guest') {
         .sort((a, b) => b.matches - a.matches)
 
     if (scored.length) {
-        return scored[0].response
+        return { text: scored[0].response, provider: 'smart-demo', source: 'template' }
     }
     const generic = allTemplates.find(t => t.id === 'generic')
-    return generic?.response || 'Я готова помочь с контент-стратегией, скриптами, хуками и аналитикой. Опиши задачу подробнее.'
+    return { text: generic?.response || 'Я готова помочь с контент-стратегией, скриптами, хуками и аналитикой. Опиши задачу подробнее.', provider: 'smart-demo', source: 'template' }
 }
 
 const getKey = async (provider, ownerId = null) => {
@@ -556,7 +566,7 @@ const tryProviders = async (messages, ownerId = null) => {
     const lastUserMessage = messages[messages.length - 1]?.content || ''
     const demoReply = smartDemoReply(lastUserMessage, 'ru')
     console.log('🧠 All providers failed — falling back to Smart Demo Mode')
-    return { reply: demoReply, provider: 'demo', demo: true, errors }
+    return { reply: demoReply.text, provider: 'demo', demo: true, errors }
 }
 
 // ============ EXPORTS ============
@@ -637,7 +647,7 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
         return {
             success: true,
             demo: true,
-            reply,
+            reply: reply.text,
             provider: 'demo',
             error: error.message
         }

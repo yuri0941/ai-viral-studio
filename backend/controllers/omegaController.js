@@ -50,12 +50,12 @@ export async function chat(req, res) {
         const lang = req.body.lang || 'ru'
         // [HOTFIX-2026-08-04] added role context
         const roleContext = {
-            owner: 'Вы владелец платформы. Полный доступ.',
-            admin: 'Вы администратор. Доступ: пользователи, модерация.',
-            staff: 'Вы сотрудник поддержки. Доступ: тикеты, база знаний.',
+            owner: 'Вы владелец платформы. Полный доступ ко всем данным.',
+            admin: 'Вы администратор. Доступ: пользователи, модерация, контент.',
+            staff: 'Вы сотрудник поддержки. Доступ: тикеты, база знаний, чат.',
             creator: 'Вы клиент (creator). Доступ: свой проект, аналитика, контент.',
-            advertiser: 'Вы рекламодатель. Доступ: кампании, бюджет.',
-            guest: 'Вы гость. Доступ: демо-режим.'
+            advertiser: 'Вы рекламодатель. Доступ: кампании, бюджет, отчёты.',
+            guest: 'Вы гость. Доступ: демо-режим, ограниченные функции.'
         }[userRole] || 'Вы пользователь.'
 
         const guard = checkOmegaGuard(message, lang, userRole)
@@ -476,7 +476,9 @@ export async function getBrandVoice(req, res) {
         const userId = req.user?._id || req.user?.id
         if (!userId) return res.status(401).json({ status: 'error', message: 'Unauthorized' })
         const user = await User.findById(userId).select('brandVoice').lean()
-        res.json({ status: 'success', data: user?.brandVoice || null })
+        // [HOTFIX-2026-08-04] added — return brand voice with explicit enabled flag
+        const brandVoice = user?.brandVoice || {}
+        res.json({ status: 'success', data: { ...brandVoice, enabled: brandVoice.enabled || false } })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }
