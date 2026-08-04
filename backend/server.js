@@ -15,7 +15,7 @@ import { protect } from './middleware/auth.js' // [HOTFIX-2026-08-04] added — 
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import bot from './services/ownerBot.js'
 import { Campaign } from './models/Campaign.js'
-import { Ticket } from './models/Ticket.js'
+import Ticket from './models/Ticket.js'
 import User from './models/User.js'
 
 import { detectWhiteLabel, whiteLabelHeaders, getWhiteLabelConfig } from './middleware/whiteLabel.js'
