@@ -2810,3 +2810,16 @@
 - **Git:** ✅ Запушено в main
 - **Render:** ✅ Clear Build Cache & Deploy, сервер стартует без ошибок
 - **Статус:** 🚀 Готово к первым клиентам
+
+
+---
+
+### [2026-08-05] — HOTFIX PayPal + Service Exports Audit ✅
+- **Ошибка:** `paypalService.js` не экспортировал `capturePayPalOrder` → Render crash
+- **Фикс:** Добавлены экспорты `createPayPalOrder`, `capturePayPalOrder`, `getPayPalStatus` в `backend/services/paypalService.js`
+- **Аудит:** Проверены все сервисные файлы на отсутствующие экспорты, добавлены заглушки где нужно
+- **node --check:** Все backend/services и controllers прошли проверку
+- **Git push:** Выполнен
+- **Deploy:** Render Clear Build Cache & Deploy — сервер стартовал
+- **Git commit:** `fix: paypal exports + service audit`
+- **Статус:** ✅ Исправлено
