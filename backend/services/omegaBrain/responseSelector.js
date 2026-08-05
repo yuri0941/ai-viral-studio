@@ -98,20 +98,37 @@ export async function selectResponse({ userId, userContext = {}, userRole, messa
     }
 
     // 4) External AI chain with enriched prompt
+    const urlRegex = /(https?:\/\/)?(www\.)?(youtube\.com\/shorts\/|youtu\.be\/|tiktok\.com\/|instagram\.com\/reel\/|vm\.tiktok\.com\/)[\w\-]+/i
+    const hasVideoUrl = urlRegex.test(message)
+    const intent = hasVideoUrl ? 'video_analysis' : 'general'
+
     const rolePrompts = {
-        owner: `Ты OMEGA, AI-ассистент AI Viral Studio. Пользователь — ВЛАДЕЛЕЦ платформы. Обращайся на "вы", уважительно, предлагай управленческие инсайты. НЕ называй владельца "гостем". НЕ предлагай регистрацию.`,
-        admin: `Ты OMEGA. Пользователь — АДМИНИСТРАТОР. Помогай с модерацией и пользователями.`,
-        staff: `Ты OMEGA. Пользователь — СОТРУДНИК. Помогай с тикетами и базой знаний.`,
-        client: `Ты OMEGA. Пользователь — КЛИЕНТ. Обращайся дружелюбно, на "ты". Помогай с вирусным контентом.`,
-        advertiser: `Ты OMEGA. Пользователь — РЕКЛАМОДАТЕЛЬ. Помогай с рекламными кампаниями.`,
-        guest: `Ты OMEGA. Пользователь — ГОСТЬ. Представь возможности платформы и предложи зарегистрироваться.`
+        owner: `Ты OMEGA, AI-ассистент AI Viral Studio. Пользователь — ВЛАДЕЛЕЦ платформы. Обращайся на "вы", уважительно. НЕ называй владельца "гостем". НЕ предлагай регистрацию.`,
+        admin: `Ты OMEGA. Пользователь — АДМИНИСТРАТОР. Помогай с модерацией.`,
+        staff: `Ты OMEGA. Пользователь — СОТРУДНИК. Помогай с тикетами.`,
+        client: `Ты OMEGA. Пользователь — КЛИЕНТ. Обращайся дружелюбно, на "ты". Помогай с контентом.`,
+        creator: `Ты OMEGA. Пользователь — КРЕАТОР. Обращайся на "ты", как опытный продюсер. НЕ называй гостем. Помогай с хуками, обложками, планами.`,
+        advertiser: `Ты OMEGA. Пользователь — РЕКЛАМОДАТЕЛЬ. Помогай с кампаниями.`,
+        guest: `Ты OMEGA. Пользователь — ГОСТЬ. Кратко представь возможности. Предложи зарегистрироваться.`
     }
+
+    let baseSystemPrompt = extraSystem || ''
+
+    if (history && history.length > 0) {
+        baseSystemPrompt = baseSystemPrompt.replace(/Я OMEGA, ваш AI-ассистент\.?.*?Могу помочь.*?\n?/gi, '')
+        baseSystemPrompt = baseSystemPrompt.replace(/Добро пожаловать в AI Viral Studio!?\*?\*?/gi, '')
+    }
+
+    if (intent === 'video_analysis') {
+        baseSystemPrompt += `\n\nПользователь прислал ссылку на видео. НЕ начинай с "Я OMEGA". НЕ предлагай регистрацию. СРАЗУ проанализируй видео по структуре:\n### Хуки\n### Удержание внимания (Retention)\n### CTA (Призыв к действию)\n### Аудитория и ЦА\n### Вирусные моменты\n### Ошибки и что исправить\nДавай конкретные рекомендации, не общие фразы.`
+    }
+
     const systemPrompt = `${rolePrompts[userRole] || rolePrompts.guest}
 
 Текущая роль: ${userRole || 'guest'}.
 Язык: ${language || 'ru'}.
 
-${extraSystem || ''}`
+${baseSystemPrompt}`
     let aiResponse = null
     let aiError = null
     try {

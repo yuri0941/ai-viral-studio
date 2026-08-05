@@ -50,6 +50,24 @@ const users = [
         subscription: 'business',
         isActive: true,
         isVerified: true
+    },
+    {
+        name: 'Creator',
+        email: 'creator@ai-viral.com',
+        password: 'creator123',
+        role: 'creator',
+        subscription: 'pro',
+        isActive: true,
+        isVerified: true
+    },
+    {
+        name: 'Client',
+        email: 'client@ai-viral.com',
+        password: 'client123',
+        role: 'client',
+        subscription: 'starter',
+        isActive: true,
+        isVerified: true
     }
 ]
 

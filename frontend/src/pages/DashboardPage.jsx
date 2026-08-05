@@ -209,7 +209,7 @@ function DashboardPage() {
                                 <button
                                     key={i}
                                     onClick={action.action}
-                                    className={`bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 text-left ${action.borderColor} hover:scale-[1.02] transition-all duration-300 group`}
+                                    className="px-4 py-2 rounded-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 border border-white/10 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all group"
                                 >
                                     <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mb-4 ${action.textColor}`}>
                                         {action.icon}

@@ -36,9 +36,19 @@ try {
     console.warn('[Rollbar] init failed:', err) // [P16-FIX] guard Rollbar init
 }
 
-// [v6.4] Force the service worker to check for updates immediately on load
+// [v6.4] Force the service worker to check for updates immediately on load and reload on update
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then((reg) => reg.update())
+    navigator.serviceWorker.ready.then((reg) => {
+        reg.update()
+        reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing
+            newWorker?.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    window.location.reload()
+                }
+            })
+        })
+    })
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

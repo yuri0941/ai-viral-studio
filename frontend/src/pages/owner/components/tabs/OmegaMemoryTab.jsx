@@ -31,8 +31,9 @@ export function OmegaMemoryTab() {
         try {
             const res = await analyticsApi.vectorStoreStatus()
             setVectorStatus(res?.data || null)
-        } catch (err) {
-            console.error('[OmegaMemoryTab] vector store status error:', err)
+        } catch (e) {
+            console.warn('[OmegaMemoryTab] Load failed:', e.message)
+            setVectorStatus(null)
         }
     }
 

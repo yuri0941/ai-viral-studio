@@ -1,3 +1,25 @@
+## 2026-08-06 — v6.4 Final (Утверждённый релиз)
+- [x] Fix: OMEGA живой — intent routing для видео-ссылок, strip дублирующих приветствий
+- [x] Fix: OMEGA role-aware — creator не "гость", owner не "гость"
+- [x] UI: LuxuryMessageCard — glassmorphism карточки для анализа (🪝📊🎯👥🔥)
+- [x] UI: Action buttons под OMEGA-ответами (хук, сценарий, обложка, план)
+- [x] UI: Sidebar — Creative Hub для всех ролей (owner тоже видит)
+- [x] UI: OmegaChat — убраны дубли (только одна шапка вверху)
+- [x] UI: Header dropdown fixed z-[9999]
+- [x] UI: Luxury dashboards glassmorphism (все роли)
+- [x] UI: Ad widget glassmorphism
+- [x] Mobile: FAB 56px, bottom sheet 85vh, drag handle, safe-area
+- [x] Fix: PWA cache bust (v6.4-force-2, skipWaiting, auto-reload)
+- [x] Fix: Icons Zap/KeyRound import
+- [x] Fix: Stripe silent fail (no popup)
+- [x] Fix: VK Authorization Bearer token
+- [x] Fix: Telegram deleteWebhook camelCase + 409 guard
+- [x] Fix: OMEGA Self-Healing (таймаут 10с + кнопка перезапуска)
+- [x] Fix: Graceful degradation (OmegaMemoryTab, FinanceTab, SubscriptionsTab, UsageQuotaWidget, TemplatesTab)
+- [x] Chore: Seed тестовых пользователей (все роли)
+- [x] Chore: run.sh, run.bat, .vscode/tasks.json
+- [x] Chore: Единый компонент OmegaChat везде
+
 ## 2026-08-05 — v6.4 Resume (продолжение с остановки)
 - [x] Fix: ownerBot.js — доделан /menu handler + все команды (status, stats, omega, exec, feature, help, stop)
 - [x] Fix: Telegram deleteWebhook camelCase (ownerBot + omegaBot)

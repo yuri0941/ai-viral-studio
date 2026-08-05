@@ -17,7 +17,7 @@ function BentoCard({ title, value, subtext, icon: Icon, color, onClick, children
     return (
         <div
             onClick={onClick}
-            className={`luxury-card glass p-5 cursor-pointer ${className}`}
+            className={`bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 cursor-pointer ${className}`}
         >
             <div className="flex items-start justify-between mb-3">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
@@ -205,7 +205,7 @@ export function OverviewTab({ data }) {
                 />
 
                 {/* [P20] added: data intelligence reports card */}
-                <div className="luxury-card glass p-5 sm:col-span-2 lg:col-span-1">
+                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 sm:col-span-2 lg:col-span-1">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
                             <BarChart2 className="w-5 h-5 text-[var(--primary)]" />
@@ -308,7 +308,7 @@ export function OverviewTab({ data }) {
                     { label: 'Подписок', value: subscriptions.length, icon: CreditCard, color: 'text-purple-400' },
                     { label: 'Выполнено задач', value: tasks.filter(t => t.status === 'done').length, icon: CheckSquare, color: 'text-orange-400' },
                 ].map((s, i) => (
-                    <div key={i} className="luxury-card glass p-3">
+                    <div key={i} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="flex items-center gap-2 mb-1">
                             <s.icon className={`w-3.5 h-3.5 ${s.color}`} />
                             <span className="text-[10px] text-[var(--text-muted)]">{s.label}</span>
@@ -318,7 +318,7 @@ export function OverviewTab({ data }) {
                 ))}
             </div>
 
-            <div className="luxury-card glass p-5">
+            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">

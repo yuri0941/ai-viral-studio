@@ -7,6 +7,6 @@ cd frontend && call npm run build && cd ..
 echo ✅ Frontend OK
 echo 🚀 Deploy...
 git add .
-git commit -m "v6.4-resume: ownerBot fix + telegram + ui + mobile + pwa %date%-%time%" || echo No changes
+git commit -m "v6.4-final: omega live + video analysis + luxury ui + roles + mobile + pwa %date%-%time%" || echo No changes
 git push origin main
 echo 🎉 Done! && pause

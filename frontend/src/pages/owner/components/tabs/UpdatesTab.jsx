@@ -14,15 +14,15 @@ export function UpdatesTab({ data }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
+                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="text-xs text-gray-500 mb-1">Текущая версия</div>
                     <div className="text-xl font-bold text-emerald-400">v{version}</div>
                 </div>
-                <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
+                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="text-xs text-gray-500 mb-1">Rollout</div>
                     <div className="text-xl font-bold text-blue-400">{rolloutPercent}%</div>
                 </div>
-                <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
+                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="text-xs text-gray-500 mb-1">Статус</div>
                     <div className="text-xl font-bold text-emerald-400">Стабильно</div>
                 </div>

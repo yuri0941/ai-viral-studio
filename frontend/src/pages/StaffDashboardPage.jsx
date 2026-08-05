@@ -610,7 +610,7 @@ function StaffDashboardPage() {
                         <button
                             key={i}
                             onClick={action.onClick}
-                            className={`group relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br ${action.color} border ${action.border} hover:border-[var(--border-strong)] transition-all hover:scale-[1.02] text-left`}
+                            className="px-4 py-2 rounded-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 border border-white/10 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all"
                         >
                             <Icon size={28} className="mb-3 text-[var(--text)]/80" />
                             <h3 className="text-[var(--text)] font-semibold mb-1">{action.label}</h3>

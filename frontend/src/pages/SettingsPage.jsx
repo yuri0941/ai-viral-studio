@@ -1341,8 +1341,8 @@ function SettingsPage() {
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all rounded-xl mb-1 ${
                                         isActive
-                                            ? 'bg-gradient-to-r from-violet-500/10 to-transparent text-violet-300 border-l-[3px] border-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.15)]'
-                                            : 'text-[var(--text-muted)] border-l-[3px] border-transparent hover:bg-white/5'
+                                            ? 'bg-violet-500/10 text-violet-300 border-r-2 border-violet-500'
+                                            : 'text-[var(--text-muted)] border-r-2 border-transparent hover:bg-white/5'
                                     }`}
                                 >
                                     <Icon size={18} className={isActive ? 'text-violet-400' : ''} />

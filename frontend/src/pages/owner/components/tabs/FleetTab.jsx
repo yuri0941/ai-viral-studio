@@ -145,7 +145,7 @@ export function FleetTab() {
                             <button
                                 key={p.id}
                                 onClick={() => navigate(`/owner?project=${p.id}`)}
-                                className="text-left bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--border)] rounded-2xl p-5 transition-all hover:scale-[1.01]"
+                                className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-left"
                                 style={{ borderLeftWidth: '4px', borderLeftColor: p.color || '#00ff41' }}
                             >
                                 <div className="flex items-start justify-between mb-3">

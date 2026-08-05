@@ -50,7 +50,7 @@ export function KPICard({ title, value, prefix = '', suffix = '', change = 0, sp
         <div
             ref={ref}
             onClick={onClick}
-            className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br ${colorMap[color] || colorMap.emerald} p-5 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-${color}-500/10 group`}
+            className={`bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 cursor-pointer group`}
         >
             <div className="flex items-start justify-between mb-3">
                 <div className="p-2.5 rounded-xl bg-white/5 backdrop-blur-sm">

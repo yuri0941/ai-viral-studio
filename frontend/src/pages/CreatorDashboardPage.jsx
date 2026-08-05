@@ -99,7 +99,7 @@ function QuickAction({ icon: Icon, label, color, onClick }) {
     return (
         <button
             onClick={onClick}
-            className="group relative overflow-hidden bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 text-left hover:border-white/10 transition-all hover:-translate-y-0.5"
+            className="px-4 py-2 rounded-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 border border-white/10 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all"
         >
             <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-10 group-hover:opacity-15 transition-opacity`} />
             <div className="relative">

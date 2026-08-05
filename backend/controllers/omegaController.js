@@ -217,11 +217,6 @@ export async function chat(req, res) {
             responseText = responseText
                 .replace(/\b(MRR|ARR|revenue|доход|прибыль|количество пользователей|user count|стек|stack|users? count)\b[^.\n]*/gi, '[скрыто]')
         }
-        const projectName = req.user?.name || req.user?.preferences?.projectName || 'AI Viral Studio'
-        if (!responseText.startsWith('Я OMEGA')) {
-            responseText = `Я OMEGA, ваш AI-ассистент. Могу помочь с вашим проектом ${projectName}.\n\n${responseText}`
-        }
-
         // Privacy Firewall scan перед отправкой ответа
         try {
             const scanResult = await privacyScan(responseText, userRole, req.user)

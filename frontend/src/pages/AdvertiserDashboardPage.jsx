@@ -393,7 +393,7 @@ AI Viral Studio`, {
             </div>
 
             {/* [P20] added: Revenue Share card */}
-            <div className="glass rounded-2xl p-5">
+            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
                         <Wallet className="w-5 h-5 text-white" />

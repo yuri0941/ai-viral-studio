@@ -205,41 +205,21 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
                             onTouchStartCapture={handleHeaderSwipeDown}
                         >
                             <div className="md:hidden w-10 h-1 rounded-full bg-white/20 mx-auto mb-2" />
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="relative flex-shrink-0">
-                                        <img
-                                            src="/logo.svg"
-                                            alt="AI Viral Studio"
-                                            className="w-10 h-10 rounded-xl object-contain"
-                                            onError={(e) => { e.target.src = '/favicon.svg'; e.target.className = 'w-10 h-10 rounded-xl object-contain bg-violet-600 p-1.5'; }}
-                                        />
-                                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-[2.5px] border-[#0a0a0f]"></span>
-                                    </div>
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="text-sm font-semibold text-white truncate">AI Viral Studio</span>
-                                        <span className="text-[11px] text-emerald-400 flex items-center gap-1.5">
-                                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                                            OMEGA онлайн
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <button
-                                        onClick={toggleMinimize}
-                                        className="p-2 rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
-                                        aria-label={isMinimized ? 'Развернуть' : 'Свернуть'}
-                                    >
-                                        {isMinimized ? <MessageSquare size={16} /> : <Minimize2 size={16} />}
-                                    </button>
-                                    <button
-                                        onClick={handleClose}
-                                        className="p-2 rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
-                                        aria-label="Закрыть"
-                                    >
-                                        <X size={16} />
-                                    </button>
-                                </div>
+                            <div className="flex items-center justify-end gap-1">
+                                <button
+                                    onClick={toggleMinimize}
+                                    className="p-2 rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
+                                    aria-label={isMinimized ? 'Развернуть' : 'Свернуть'}
+                                >
+                                    {isMinimized ? <MessageSquare size={16} /> : <Minimize2 size={16} />}
+                                </button>
+                                <button
+                                    onClick={handleClose}
+                                    className="p-2 rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
+                                    aria-label="Закрыть"
+                                >
+                                    <X size={16} />
+                                </button>
                             </div>
                         </div>
                         {!isMinimized && (
@@ -255,7 +235,7 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
                 isMobile ? (
                     <button
                         onClick={toggleOpen}
-                        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30 flex items-center justify-center text-white text-xl z-50"
+                        className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30 flex items-center justify-center text-white text-xl z-50"
                         aria-label="Открыть чат OMEGA"
                     >
                         💬

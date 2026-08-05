@@ -244,15 +244,15 @@ export function QRPrintTab() {
                 <Modal title={`Аналитика QR — ${analyticsQr.shortCode}`} onClose={() => setAnalytics(null)}>
                     <div className="space-y-6">
                         <div className="grid grid-cols-3 gap-4">
-                            <div className="p-4 bg-white/5 rounded-xl text-center">
+                            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                                 <p className="text-2xl font-bold text-[#00ff41]">{analytics.totalScans}</p>
                                 <p className="text-xs text-gray-400">Всего сканов</p>
                             </div>
-                            <div className="p-4 bg-white/5 rounded-xl text-center">
+                            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                                 <p className="text-2xl font-bold text-blue-400">{analytics.qrCount}</p>
                                 <p className="text-xs text-gray-400">QR-кодов</p>
                             </div>
-                            <div className="p-4 bg-white/5 rounded-xl text-center">
+                            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                                 <p className="text-2xl font-bold text-[#f0883e]">{analytics.topCities?.[0]?.name || '—'}</p>
                                 <p className="text-xs text-gray-400">Топ город</p>
                             </div>

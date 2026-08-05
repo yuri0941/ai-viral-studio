@@ -1,4 +1,6 @@
-self.addEventListener('install', () => {
+const CACHE_VERSION = 'v6.4-force-2'
+
+self.addEventListener('install', (event) => {
     self.skipWaiting()
 })
 

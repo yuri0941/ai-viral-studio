@@ -114,8 +114,8 @@ export function FinanceTab({ data }) {
         try {
             const res = await invoicesApi.list({ limit: 50 })
             setInvoices(res.invoices || [])
-        } catch (err) {
-            console.error('[FinanceTab:loadInvoices]', err)
+        } catch (e) {
+            console.warn('[FinanceTab] Load failed:', e.message)
             setInvoices([]) // [v6.0] added: degrade gracefully to empty invoices
             pushToast('error', t('finance.loadError', 'Не удалось загрузить счета'))
         } finally {
@@ -209,7 +209,7 @@ export function FinanceTab({ data }) {
                 {metricMeta.map((m) => {
                     const Icon = m.icon
                     return (
-                        <div key={m.key} className={`relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-br ${m.gradient} p-5`}>
+                        <div key={m.key} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                             <div className="relative glass rounded-xl p-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-sm text-[var(--text-muted)]">{m.label}</span>

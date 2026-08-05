@@ -194,7 +194,7 @@ function MetricCard({ label, value, suffix = '', icon: Icon, delay = 0 }) {
         : count.toFixed(1)
     return (
         <div
-            className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.06] rounded-2xl p-4 hover:scale-[1.02] transition-transform"
+            className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10"
             style={{ animationDelay: `${delay}ms` }}
         >
             <div className="flex items-start justify-between mb-2">
@@ -218,9 +218,9 @@ function QuickAction({ icon: Icon, label, onClick }) {
     return (
         <button
             onClick={onClick}
-            className="group flex items-center rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 p-[1px] transition-all hover:shadow-[0_0_20px_rgba(139,92,246,0.4)]"
+            className="px-4 py-2 rounded-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 border border-white/10 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all"
         >
-            <div className="flex items-center gap-2 rounded-full bg-[#0a0a0f] px-4 py-2">
+            <div className="flex items-center gap-2">
                 <Icon className="w-4 h-4 text-violet-400" />
                 <span className="text-sm font-medium text-white">{label}</span>
             </div>

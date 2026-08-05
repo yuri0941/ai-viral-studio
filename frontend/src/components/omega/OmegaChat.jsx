@@ -7,6 +7,7 @@ import { Send, Trash2, ThumbsUp, ThumbsDown, Mic, Globe, Volume2, ChevronDown, C
 import { useOmegaChat } from '../../hooks/useOmegaChat.js'
 import { VectorStoreStatus } from './VectorStoreStatus.jsx'
 import { UsageQuotaWidget } from './UsageQuotaWidget.jsx'
+import { LuxuryMessageCard } from './LuxuryMessageCard.jsx'
 import { playSound } from '../../hooks/useSound.js'
 import { useAuth } from '../../context/AuthContext'
 
@@ -350,28 +351,13 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
             <div className={`flex ${previewMode ? 'flex-row' : 'flex-col'} flex-1 overflow-hidden`}>
                 {/* Messages */}
                 <div className={`${previewMode ? 'w-[60%]' : 'flex-1'} overflow-y-auto p-4 space-y-3 min-h-[300px]`}>
-                    {messages.length === 0 && !hasActiveKey && (
+                    {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center text-center gap-3 py-8 px-4">
                             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                                 <Globe size={22} className="text-emerald-400" />
                             </div>
-                            <div className="text-sm text-[var(--text)] font-medium">OMEGA онлайн</div>
-                            <div className="text-xs text-[var(--text-muted)]">
-                                Работаем через серверных провайдеров. Если все провайдеры недоступны — включится демо-режим.
-                            </div>
-                            <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                                Серверные провайдеры активны
-                            </span>
-                        </div>
-                    )}
-                    {messages.length === 0 && hasActiveKey && (
-                        <div className="text-center text-[var(--text-muted)] text-sm py-8 space-y-2">
-                            <div>Напишите OMEGA — например, «анализ цен» или «прогноз доходов».</div>
-                            <div className="inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-full bg-[var(--accent-warm)]/10 border border-[var(--accent-warm)]/20 text-[var(--accent-warm)]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-warm)]" />
-                                Память пуста — OMEGA запомнит этот разговор
-                            </div>
+                            <div className="text-sm text-[var(--text)] font-medium">OMEGA готова к работе</div>
+                            <div className="text-xs text-[var(--text-muted)]">Напишите ссылку на видео или вопрос — и получите анализ</div>
                         </div>
                     )}
                     {localMessages.length > 0 && (
@@ -383,110 +369,82 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                     )}
                     {localMessages.map(msg => {
                         const isUser = msg.role === 'user'
-                        const isBrain = msg.provider === 'brain'
-                        const isTemplate = msg.provider === 'template'
-                        const isWeb = msg.provider === 'web' || (msg.provider && /duckduckgo|web|search/i.test(msg.provider))
-                        const sourceLabel = isBrain ? '🧠 Brain' : isWeb ? '🌐 Web' : isTemplate ? '📋 Шаблон' : msg.provider ? `🤖 ${msg.provider}` : ''
-                        const isEditing = editingId === msg.id
+                        const isAnalysis = !isUser && msg.text && msg.text.includes('###')
                         return isUser ? (
                             <div key={msg.id} className="flex justify-end w-full">
                                 <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[85%]">
-                                    {isEditing ? (
-                                        <div className="flex flex-col gap-2">
-                                            <textarea
-                                                value={editText}
-                                                onChange={e => setEditText(e.target.value)}
-                                                className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg p-2 text-sm text-[var(--text)] outline-none min-h-[80px] resize-none"
-                                            />
-                                            <div className="flex justify-end gap-2">
-                                                <button type="button" onClick={cancelEdit} className="px-2 py-1 rounded-md text-[10px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]">Отмена</button>
-                                                <button type="button" onClick={saveEdit} className="px-2 py-1 rounded-md text-[10px] bg-[var(--primary)] text-[var(--text-inverse)] hover:opacity-90">Сохранить</button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-white">{msg.text}</p>
-                                    )}
+                                    <p className="text-sm text-white">{msg.text}</p>
                                     <p className="text-[10px] text-gray-500 text-right mt-1">{formatTime(msg.createdAt)}</p>
                                 </div>
                             </div>
                         ) : (
-                            <div key={msg.id} className="group flex flex-col items-start max-w-[90%]">
-                                <div className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm transition-all hover:shadow-lg hover:shadow-violet-500/5">
-                                    {isEditing ? (
-                                        <div className="flex flex-col gap-2">
-                                            <textarea
-                                                value={editText}
-                                                onChange={e => setEditText(e.target.value)}
-                                                className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg p-2 text-sm text-[var(--text)] outline-none min-h-[80px] resize-none"
-                                            />
-                                            <div className="flex justify-end gap-2">
-                                                <button type="button" onClick={cancelEdit} className="px-2 py-1 rounded-md text-[10px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]">Отмена</button>
-                                                <button type="button" onClick={saveEdit} className="px-2 py-1 rounded-md text-[10px] bg-[var(--primary)] text-[var(--text-inverse)] hover:opacity-90">Сохранить</button>
+                            <div key={msg.id} className="flex flex-col items-start max-w-[95%]">
+                                {isAnalysis ? (
+                                    <div className="w-full">
+                                        {msg.text.split(/###\s*/).filter(Boolean).map((section, idx) => {
+                                            const lines = section.split('\n').filter(l => l.trim())
+                                            const title = lines[0] || 'Деталь'
+                                            const body = lines.slice(1).join('\n') || section
+                                            const t = title.toLowerCase()
+                                            const icon = t.includes('хук') || t.includes('hook') ? '🪝'
+                                                : t.includes('удержание') || t.includes('retention') || t.includes('аналитик') ? '📊'
+                                                : t.includes('cta') || t.includes('призыв') || t.includes('действие') ? '🎯'
+                                                : t.includes('аудитория') || t.includes('целевая') || t.includes('ца') ? '👥'
+                                                : t.includes('вирусные') || t.includes('тренды') || t.includes('моменты') ? '🔥'
+                                                : t.includes('ошибки') || t.includes('проблемы') || t.includes('исправить') ? '⚠️'
+                                                : 'ℹ️'
+                                            const color = t.includes('хук') || t.includes('hook') ? 'violet'
+                                                : t.includes('удержание') || t.includes('retention') || t.includes('аналитик') ? 'blue'
+                                                : t.includes('cta') || t.includes('призыв') || t.includes('действие') ? 'emerald'
+                                                : t.includes('аудитория') || t.includes('целевая') || t.includes('ца') ? 'fuchsia'
+                                                : t.includes('вирусные') || t.includes('тренды') || t.includes('моменты') ? 'orange'
+                                                : t.includes('ошибки') || t.includes('проблемы') || t.includes('исправить') ? 'rose'
+                                                : 'gray'
+                                            return (
+                                                <LuxuryMessageCard key={idx} title={title} icon={icon} color={color}>
+                                                    <div className="whitespace-pre-wrap">{body}</div>
+                                                </LuxuryMessageCard>
+                                            )
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="group flex flex-col items-start max-w-[90%]">
+                                        <div className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm transition-all hover:shadow-lg hover:shadow-violet-500/5">
+                                            <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                                            <div className="flex items-center gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-[10px] text-gray-500">{formatTime(msg.createdAt)}</span>
+                                                <button type="button" onClick={() => handleCopy(msg.text)} className="text-gray-500 hover:text-violet-400 text-xs" title="Копировать" aria-label="Копировать">📋</button>
+                                                <button type="button" onClick={() => sendMessage(msg.text)} className="text-gray-500 hover:text-violet-400 text-xs" title="Перегенерировать" aria-label="Перегенерировать">🔄</button>
                                             </div>
                                         </div>
-                                    ) : (
-                                        <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap" onDoubleClick={() => handleEdit(msg)}>{msg.text}</p>
-                                    )}
-                                    {!isEditing && <ReasoningBlock reasoning={msg.reasoning} />}
-                                    {sourceLabel && (
-                                        <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--border-strong)] text-[var(--text-muted)] border border-[var(--border)]">
-                                                {sourceLabel}
-                                            </span>
-                                            {msg.cached && (
-                                                <span className="text-[10px] text-[var(--text-muted)]">cached</span>
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={speakLastOmegaReply}
-                                                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                                                title="Озвучить"
-                                                aria-label="Озвучить"
-                                            >
-                                                <Volume2 size={12} />
-                                            </button>
-                                        </div>
-                                    )}
-                                    {msg.demo && (
-                                        <div className="mt-1 text-[10px] text-[var(--accent-warm)]/70 flex items-center gap-1">
-                                            <span className="w-1 h-1 rounded-full bg-[var(--accent-warm)]" />
-                                            Demo Mode
-                                        </div>
-                                    )}
-                                    {msg.error && !msg.demo && (
-                                        <div className="mt-1 text-[10px] text-[var(--danger)]">Error: {msg.error}</div>
-                                    )}
-                                    {msg.memoryId && !msg.demo && (
-                                        <div className="mt-2 flex items-center gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => rateMessage?.(msg.id, 1)}
-                                                className={`min-w-[44px] min-h-[44px] flex items-center justify-center p-1.5 rounded-lg transition-colors ${msg.userRating === 1 ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'text-[var(--text-muted)] hover:text-[var(--success)] hover:bg-[var(--surface)]'}`}
-                                                title="Полезно"
-                                                aria-label="Полезно"
-                                            >
-                                                <ThumbsUp size={14} />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => rateMessage?.(msg.id, -1)}
-                                                className={`min-w-[44px] min-h-[44px] flex items-center justify-center p-1.5 rounded-lg transition-colors ${msg.userRating === -1 ? 'bg-[var(--danger)]/20 text-[var(--danger)]' : 'text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--surface)]'}`}
-                                                title="Не полезно"
-                                                aria-label="Не полезно"
-                                            >
-                                                <ThumbsDown size={14} />
-                                            </button>
-                                        </div>
-                                    )}
-                                    {!isEditing && (
-                                        <div className="flex items-center gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                            <span className="text-[10px] text-gray-500">{formatTime(msg.createdAt)}</span>
-                                            <button type="button" onClick={() => handleCopy(msg.text)} className="text-gray-500 hover:text-violet-400 text-xs" title="Копировать" aria-label="Копировать">📋</button>
-                                            <button type="button" onClick={() => sendMessage(msg.text)} className="text-gray-500 hover:text-violet-400 text-xs" title="Перегенерировать" aria-label="Перегенерировать">🔄</button>
-                                            <button type="button" onClick={() => setPreviewMode(msg)} className="text-gray-500 hover:text-violet-400 text-xs" title="Превью" aria-label="Превью">👁</button>
-                                        </div>
-                                    )}
+                                    </div>
+                                )}
+
+                                {/* Action buttons */}
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                    {[
+                                        { id: 'hook', label: 'Сделать хук', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для этого видео' },
+                                        { id: 'script', label: 'Сценарий', icon: '📝', prompt: 'Напиши сценарий Reels/Shorts на основе этого анализа' },
+                                        { id: 'cover', label: 'Обложка', icon: '🎨', prompt: 'Сгенерируй описание для AI-обложки к этому видео' },
+                                        { id: 'plan', label: 'План', icon: '📅', prompt: 'Составь план публикации на неделю на основе этого анализа' }
+                                    ].map(action => (
+                                        <button key={action.id} onClick={() => sendMessage(action.prompt)}
+                                            className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-violet-500/20 hover:text-violet-300 transition-all">
+                                            {action.icon} {action.label}
+                                        </button>
+                                    ))}
                                 </div>
+
+                                {msg.reasoning && <ReasoningBlock reasoning={msg.reasoning} />}
+                                {msg.demo && (
+                                    <div className="mt-1 text-[10px] text-[var(--accent-warm)]/70 flex items-center gap-1">
+                                        <span className="w-1 h-1 rounded-full bg-[var(--accent-warm)]" />
+                                        Demo Mode
+                                    </div>
+                                )}
+                                {msg.error && !msg.demo && (
+                                    <div className="mt-1 text-[10px] text-[var(--danger)]">Error: {msg.error}</div>
+                                )}
                             </div>
                         )
                     })}

@@ -132,8 +132,11 @@ export function SubscriptionsTab({ data }) {
                 setPaymentMethod(prev => configRes.paymentMethods?.find(m => m.id === prev) ? prev : configRes.paymentMethods?.[0]?.id || 'yookassa')
             }
             if (rateRes.success) setRate(rateRes.rate || 1)
-        } catch (err) {
-            console.error('[SubscriptionsTab:loadPaymentConfig]', err)
+        } catch (e) {
+            console.warn('[SubscriptionsTab] Load failed:', e.message)
+            setPaymentMethods([])
+            setPaymentMethod('yookassa')
+            setRate(1)
         }
     }
 
@@ -146,8 +149,8 @@ export function SubscriptionsTab({ data }) {
             ])
             setCurrent(currentRes.subscription || null)
             setHistory(historyRes.history || [])
-        } catch (err) {
-            console.error('[SubscriptionsTab:loadData]', err)
+        } catch (e) {
+            console.warn('[SubscriptionsTab] Load failed:', e.message)
             setCurrent(null) // [v6.0] added
             setHistory([]) // [v6.0] added
             pushToast('error', 'Не удалось загрузить данные подписок')
@@ -442,7 +445,7 @@ export function SubscriptionsTab({ data }) {
             </div>
 
             {current && (
-                <div className={`luxury-card glass p-6 ${current.status === 'active' ? 'border-[var(--success)] ring-1 ring-[var(--success)]/20' : ''}`}>
+                <div className={`bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 ${current.status === 'active' ? 'border-[var(--success)] ring-1 ring-[var(--success)]/20' : ''}`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-start gap-4">
                             <div

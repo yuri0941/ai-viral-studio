@@ -392,7 +392,7 @@ export function OMEGACoreTab({ data }) {
                     { title: 'Средний CPU', value: avgCpu, suffix: '%', delta: avgCpu > 80 ? '▲ Высокая нагрузка' : '▲ Стабильно', deltaColor: avgCpu > 80 ? 'var(--danger)' : 'var(--success)', spark: [40,45,50,48,55,60,avgCpu] },
                     { title: 'Серверов оффлайн', value: offlineServers, delta: offlineServers > 0 ? '▲ Тревога' : '▲ Все онлайн', deltaColor: offlineServers > 0 ? 'var(--danger)' : 'var(--success)', spark: [2,1,1,0,0,0,offlineServers*2] },
                 ].map((metric, i) => (
-                    <div key={i} className="luxury-card glass p-5">
+                    <div key={i} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">{metric.title}</div>
                         <div className="text-5xl font-serif font-medium text-[var(--text)] mb-1">{metric.value}{metric.suffix}</div>
                         <div className="text-xs mb-3" style={{ color: metric.deltaColor }}>{metric.delta}</div>
@@ -406,7 +406,7 @@ export function OMEGACoreTab({ data }) {
                         </svg>
                     </div>
                 ))}
-                <div className="luxury-card glass p-5 relative overflow-hidden bg-gradient-to-br from-[var(--primary)]/20 to-[var(--accent)]/10 text-[var(--primary)] border-[var(--primary)]/20">
+                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="flex items-start justify-between mb-3">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
                             <Moon size={20} />
@@ -422,7 +422,7 @@ export function OMEGACoreTab({ data }) {
                         <span>OMEGA работает ночью</span>
                     </div>
                 </div>
-                <div className="luxury-card glass p-5 relative overflow-hidden bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20">
+                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="flex items-start justify-between mb-3">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
                             <Sparkles size={20} className="text-emerald-400" />
@@ -545,7 +545,7 @@ export function OMEGACoreTab({ data }) {
                     )}
                 </div>
 
-                <div className="luxury-card glass p-5">
+                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Wifi size={16} className="text-[var(--accent)]" /> AI Провайдеры
                     </h3>
@@ -556,7 +556,7 @@ export function OMEGACoreTab({ data }) {
                             { id: 'openrouter', name: 'OpenRouter', pct: 60, color: '#3b82f6' },
                             { id: 'deepseek', name: 'DeepSeek', pct: 0, color: '#6b7280', test: true },
                         ].map(provider => (
-                            <div key={provider.id} className="flex flex-col items-center text-center p-2 rounded-xl glass">
+                            <div key={provider.id} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 flex flex-col items-center text-center">
                                 <div className="relative w-16 h-16 mb-2">
                                     <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                                         <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-strong)" strokeWidth="8" />
@@ -609,7 +609,7 @@ export function OMEGACoreTab({ data }) {
                 </div>
             </div>
 
-            <div className="luxury-card glass p-5">
+            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                 <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                     <Server size={16} className="text-[var(--accent)]" /> Загрузка серверов
                 </h3>
@@ -767,7 +767,7 @@ export function OMEGACoreTab({ data }) {
                                             { label: 'Avg response', value: `${m.avgResponse}ms` },
                                             { label: 'Статус', value: selectedAgent.status },
                                         ].map(s => (
-                                            <div key={s.label} className="p-3 rounded-xl glass text-center">
+                                            <div key={s.label} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                                                 <div className="text-xs text-[var(--text-muted)]">{s.label}</div>
                                                 <div className="text-sm font-bold text-[var(--text)]">{s.value}</div>
                                             </div>

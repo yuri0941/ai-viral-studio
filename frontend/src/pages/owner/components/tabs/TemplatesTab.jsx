@@ -33,25 +33,31 @@ export function TemplatesTab() {
     const [expandedWhy, setExpandedWhy] = useState(null)
 
     useEffect(() => {
-        Promise.all([
-            omegaApi.templates(),
-            selfImprovementApi.templateStats().catch(() => null),
-        ]).then(([templatesRes, statsRes]) => {
-            const loaded = templatesRes?.data || []
-            // Merge badge/status from evolution stats if available
-            const byId = statsRes?.data?.byId || {}
-            setTemplates(loaded.map(t => ({
-                ...t,
-                badge: byId[t.id]?.badge || t.badge,
-                metrics: byId[t.id]?.metrics || t.metrics,
-            })))
-            setStats(statsRes?.data || null)
-        }).catch(err => {
-            // [v6.0] added: degrade gracefully to empty templates
-            setTemplates([])
-            setStats(null)
-            setError(null)
-        }).finally(() => setLoading(false))
+        async function loadData() {
+            try {
+                const [templatesRes, statsRes] = await Promise.all([
+                    omegaApi.templates(),
+                    selfImprovementApi.templateStats().catch(() => null),
+                ])
+                const loaded = templatesRes?.data || []
+                // Merge badge/status from evolution stats if available
+                const byId = statsRes?.data?.byId || {}
+                setTemplates(loaded.map(t => ({
+                    ...t,
+                    badge: byId[t.id]?.badge || t.badge,
+                    metrics: byId[t.id]?.metrics || t.metrics,
+                })))
+                setStats(statsRes?.data || null)
+            } catch (e) {
+                console.warn('[TemplatesTab] Load failed:', e.message)
+                setTemplates([])
+                setStats(null)
+                setError(null)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadData()
     }, [])
 
     const selectTemplate = (t) => {
@@ -262,19 +268,19 @@ export function TemplatesTab() {
 
             {stats && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="rounded-xl bg-white/5 border border-[var(--border)] p-3">
+                    <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-xs text-gray-500">Всего</div>
                         <div className="text-lg font-semibold text-[var(--text)]">{stats.total}</div>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-[var(--border)] p-3">
+                    <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-xs text-emerald-400 flex items-center gap-1"><Flame size={10} /> Proven</div>
                         <div className="text-lg font-semibold text-[var(--text)]">{stats.proven}</div>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-[var(--border)] p-3">
+                    <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-xs text-yellow-400">New</div>
                         <div className="text-lg font-semibold text-[var(--text)]">{stats.new}</div>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-[var(--border)] p-3">
+                    <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-xs text-gray-400 flex items-center gap-1"><Archive size={10} /> Archived</div>
                         <div className="text-lg font-semibold text-[var(--text)]">{stats.archived}</div>
                     </div>

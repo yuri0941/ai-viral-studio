@@ -290,19 +290,19 @@ export function SelfHealingCrisisTab() {
                 </div>
                 {report ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        <div className="p-3 bg-white/5 rounded-xl text-center">
+                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                             <p className="text-xl font-bold text-red-400">{report.totalErrors}</p>
                             <p className="text-xs text-gray-400">Ошибок</p>
                         </div>
-                        <div className="p-3 bg-white/5 rounded-xl text-center">
+                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                             <p className="text-xl font-bold text-blue-400">{report.apiErrors}</p>
                             <p className="text-xs text-gray-400">AI/API</p>
                         </div>
-                        <div className="p-3 bg-white/5 rounded-xl text-center">
+                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                             <p className="text-xl font-bold text-yellow-400">{report.dbErrors}</p>
                             <p className="text-xs text-gray-400">БД</p>
                         </div>
-                        <div className="p-3 bg-white/5 rounded-xl text-center">
+                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                             <p className="text-xl font-bold text-purple-400">{report.recommendations?.length || 0}</p>
                             <p className="text-xs text-gray-400">Рекомендаций</p>
                         </div>
@@ -364,7 +364,7 @@ export function SelfHealingCrisisTab() {
 
 function StatusCard({ icon: Icon, title, value, color, bg }) {
     return (
-        <div className={`p-4 rounded-2xl border border-[var(--border)] ${bg}`}>
+        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
             <div className="flex items-center gap-2 mb-2">
                 <Icon className={`w-5 h-5 ${color}`} />
                 <span className="text-sm text-[var(--text)]/80">{title}</span>
