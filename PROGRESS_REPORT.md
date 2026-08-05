@@ -1,3 +1,16 @@
+## 2026-08-05 — v6.4 Resume (продолжение с остановки)
+- [x] Fix: ownerBot.js — доделан /menu handler + все команды (status, stats, omega, exec, feature, help, stop)
+- [x] Fix: Telegram deleteWebhook camelCase (ownerBot + omegaBot)
+- [x] Fix: Telegram 409 conflict guard (silent ignore)
+- [x] Fix: VK Authorization header в frontend API (axios interceptor)
+- [x] Fix: PWA cache reset (sw.js activate + main.jsx reg.update)
+- [x] UI: Creative Hub (1 sidebar item, убраны 3 дубля)
+- [x] UI: OMEGA chat luxury (no duplicates, gradient bubbles, hover actions)
+- [x] UI: Header dropdown fixed z-[9999] (не обрезается)
+- [x] Mobile: FAB 56px, bottom sheet 85vh, drag handle, safe-area-inset
+- [x] Fix: Frontend icons Zap/KeyRound import
+- [x] Chore: run.sh, run.bat, .vscode/tasks.json
+
 ## 2026-08-05 — v6.4 Final Fix
 - [x] Fix: VK Authorization header в frontend API
 - [x] Fix: Telegram webhook (409 conflict уходит навсегда)

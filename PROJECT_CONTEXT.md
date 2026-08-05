@@ -627,16 +627,17 @@ NODE_ENV=production
 - [ ] Git push: выполнен
 
 
-## Current Architecture (v6.4)
+## Current State (v6.4)
 
 - Backend: Node.js + Express, MongoDB, все роуты созданы
 - Rate Limiter: 500/15min auth, 300/15min omega/analytics/subscriptions, 50/15min guest
 - Auth: protect + requireRole (401/403 разделение)
 - Integrations: VK, IG, TikTok, LinkedIn, YouTube, Pinterest, FB, Twitter, Discord — все с try-catch graceful fallback
-- VK: frontend отправляет Bearer token через axios interceptor
+- VK: frontend axios interceptor с Bearer token
 - Payments: Stripe silent guard + lazy init, YooKassa 503 graceful error
-- Telegram: webhook mode (polling удалён), ownerBot + omegaBot через `setWebHook`, 409 conflict уходит
-- Frontend: React + Tailwind, Creative Hub (единый Chat/Analyzer/Planner), glassmorphism UI
+- Telegram: webhook mode (polling удалён), ownerBot.js полностью реализован (8 команд, Owner Mode, inline keyboards)
+- Telegram: deleteWebhook camelCase, 409 conflict guard
+- Frontend: React + Tailwind, Creative Hub unified (1 sidebar item), glassmorphism UI
 - Chat: единый компонент везде (Hub + Widget + Profile), логотип в шапке, нет дублей, gradient bubbles
 - Roles: owner, admin, staff, client, creator, advertiser — OMEGA адаптирует приветствие
 - Header: dropdown fixed z-[9999], не обрезается
