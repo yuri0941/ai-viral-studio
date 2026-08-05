@@ -220,29 +220,6 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
         { label: 'План', icon: '📅', prompt: 'Контент-план на неделю' },
     ]
 
-    // [v5.9-FINAL] added: smart suggestions per message
-    const getSuggestions = () => {
-        const base = [
-            'Сгенерировать обложку к этому посту',
-            'Составить план публикации',
-            'Переписать в другом стиле',
-            'Сделать короче',
-            'Добавить CTA',
-            'Создать хук для Reels',
-        ]
-        if (role === 'owner') base.push('Показать метрики', 'Запустить AutoPilot')
-        if (role === 'advertiser') base.push('Оптимизировать кампанию', 'Показать CTR')
-        if (role === 'creator') base.push('Сгенерировать хэштеги', 'Лучшее время публикации')
-        return base
-    }
-
-    const suggestions = getSuggestions()
-
-    const handleSuggestion = (prompt) => {
-        setInput(prompt)
-        sendMessage(prompt)
-    }
-
     const handleCopy = (text) => {
         navigator.clipboard?.writeText(text)
     }
@@ -481,20 +458,6 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                                             >
                                                 <ThumbsDown size={14} />
                                             </button>
-                                        </div>
-                                    )}
-                                    {!isEditing && !isTyping && (
-                                        <div className="mt-2 flex flex-wrap gap-1.5">
-                                            {suggestions.map((s, i) => (
-                                                <button
-                                                    key={i}
-                                                    type="button"
-                                                    onClick={() => handleSuggestion(s)}
-                                                    className="px-2 py-1 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[10px] text-[var(--text-muted)] hover:text-[var(--primary)] hover:border-[var(--primary)]/30 transition-colors"
-                                                >
-                                                    {s}
-                                                </button>
-                                            ))}
                                         </div>
                                     )}
                                     {!isEditing && (
