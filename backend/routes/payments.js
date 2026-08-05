@@ -92,7 +92,9 @@ router.post('/create-checkout-session', async (req, res) => {
             })
         } catch (err) {
             lastError = err
-            console.error(`Stripe error (attempt ${attempts}):`, err.message)
+            if (attempts >= maxAttempts) {
+                console.error(`[Stripe] final error after ${attempts} attempts:`, err.message)
+            }
             if (attempts < maxAttempts) await new Promise(r => setTimeout(r, 500))
         }
     }

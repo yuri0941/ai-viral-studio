@@ -1,14 +1,13 @@
-import Stripe from 'stripe'
-
 let stripe = null
-
-if (process.env.STRIPE_ENABLED !== 'true') {
-  console.log('💳 Stripe disabled')
-} else if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-  console.log('💳 Stripe initialized')
-} else {
-  console.warn('⚠️ Stripe enabled but no valid key found')
+try {
+  if (process.env.STRIPE_ENABLED === 'true' && process.env.STRIPE_SECRET_KEY) {
+    const Stripe = (await import('stripe')).default
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+  } else {
+    console.log('💳 Stripe disabled')
+  }
+} catch (e) {
+  console.log('💳 Stripe init skipped')
 }
 
 export default stripe

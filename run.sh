@@ -8,6 +8,6 @@ cd frontend && npm run build && cd ..
 echo "✅ Frontend OK"
 echo "🚀 Deploy..."
 git add .
-git commit -m "v6.2: omega chat luxury ui — logo + no duplicates + role-aware + mobile adaptive $(date +%Y-%m-%d-%H:%M)" || true
+git commit -m "v6.0-fix-2: telegram webhook + frontend icons Zap/KeyRound + stripe silent $(date +%Y-%m-%d-%H:%M)" || true
 git push origin main
 echo "🎉 Done!"

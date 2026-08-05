@@ -7,7 +7,7 @@ import { API_BASE_URL } from '../../../../config.js'
 import {
     DollarSign, Users, Brain, Calendar, BarChart, Bell, Zap,
     ArrowUpRight, Server, CreditCard, CheckSquare, AlertTriangle, UserX,
-    FileText, BarChart2,
+    FileText, BarChart2, KeyRound,
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 import '../../../../styles/animations.css'

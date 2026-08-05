@@ -147,18 +147,32 @@ export const initOwnerBot = () => {
   })
 
   // Start polling safely
+  const startPollingSafe = () => {
+    try {
+      if (bot._polling && bot._polling.abortController) {
+        console.log('[OWNER-BOT] Already polling, skipping')
+      } else {
+        bot.startPolling()
+      }
+    } catch (e) {
+      if (e.response?.statusCode === 409 || e.message?.includes('409')) {
+        console.log('[OWNER-BOT] 409 conflict, ignoring')
+      } else {
+        console.error('[OWNER-BOT] Polling error:', e.message)
+      }
+    }
+  }
+
   ;(async () => {
     try {
       await bot.deleteWebhook({ drop_pending_updates: true })
       await new Promise(r => setTimeout(r, 1000))
       console.log('[OWNER-BOT] webhook deleted, starting polling')
-      if (bot.isPolling && !bot.isPolling()) bot.startPolling();
-      else if (!bot.isPolling) bot.startPolling(); // [HOTFIX] defensive 409 conflict guard
+      startPollingSafe()
     } catch (err) {
       console.warn('[OWNER-BOT] deleteWebhook failed:', err.message, '- starting polling anyway')
       await new Promise(r => setTimeout(r, 1000))
-      if (bot.isPolling && !bot.isPolling()) bot.startPolling();
-      else if (!bot.isPolling) bot.startPolling(); // [HOTFIX] defensive 409 conflict guard
+      startPollingSafe()
     }
   })()
 }
