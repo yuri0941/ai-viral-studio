@@ -416,3 +416,16 @@ button:active, .btn:active {
 }
 
 button, a, [role="button"], input, select, textarea { min-height: 44px; }
+
+/* [v5.7-COMPACT] Responsive Guard */
+html, body { overflow-x: hidden; }
+body { min-width: 320px; }
+* { word-wrap: break-word; overflow-wrap: break-word; }
+@media (hover: none) {
+  .luxury-card:hover { transform: none !important; box-shadow: none !important; }
+  .luxury-btn-primary:hover { transform: none !important; box-shadow: none !important; }
+}
+@media (max-width: 374px) {
+  .luxury-card { padding: 16px !important; border-radius: 12px !important; }
+  .luxury-btn { padding: 8px 16px !important; font-size: 12px !important; }
+}

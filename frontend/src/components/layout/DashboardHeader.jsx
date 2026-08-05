@@ -91,18 +91,21 @@ export function DashboardHeader({
             let sub = await reg.pushManager.getSubscription()
             if (!sub) {
                 const publicKey = await fetch('/api/push/vapid-public-key').then(r => r.json()).then(j => j.publicKey).catch(() => null)
-                if (publicKey) {
-                    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) })
-                    await fetch('/api/push/subscribe', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-                        body: JSON.stringify(sub),
-                    })
-                    setPushSubscribed(true)
+                // [v5.7-COMPACT] added: guard invalid/missing VAPID key
+                if (!publicKey || publicKey.length < 20) {
+                    console.warn('[Push] VAPID key not configured or invalid');
+                    return;
                 }
+                sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) })
+                await fetch('/api/push/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify(sub),
+                })
+                setPushSubscribed(true)
             }
         } catch (e) {
-            console.error('Push subscribe failed:', e)
+            console.warn('[Push] Subscribe failed:', e.message)
         }
         onNotificationsClick?.()
     }

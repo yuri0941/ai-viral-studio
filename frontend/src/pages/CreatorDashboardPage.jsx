@@ -122,7 +122,7 @@ function CreatorDashboardPage() {
     const [statsLoading, setStatsLoading] = useState(true)
 
     useEffect(() => {
-        fetch(`${API_URL}/api/analytics/overview`)
+        fetch(`${API_URL}/analytics/overview`)
             .then(r => r.json())
             .then(data => {
                 const payload = data?.data || data || {}

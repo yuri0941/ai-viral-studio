@@ -6,6 +6,7 @@ import Rollbar from 'rollbar'
 import { AuthProvider } from './context/AuthContext'
 import { AdProvider } from './context/AdContext'
 import App from './App'
+import ErrorBoundary from './components/shared/ErrorBoundary'
 import './i18n'
 import './index.css'
 import './styles/globals.css'
@@ -41,7 +42,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <AuthProvider>
                     <AdProvider>
-                        <App />
+                        <ErrorBoundary>
+                            <App />
+                        </ErrorBoundary>
                     </AdProvider>
                 </AuthProvider>
             </BrowserRouter>

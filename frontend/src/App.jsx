@@ -39,6 +39,7 @@ import GDPRPage from './pages/GDPRPage'
 import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
+import SuperChat from './components/superchat/SuperChat'
 
 const PAGE_TITLES = {
     '/owner': 'Owner Dashboard',
@@ -306,6 +307,7 @@ function App() {
 
             <CookieConsent />
         <CommandPalette />
+        <SuperChat />
     </>
 )
 }
