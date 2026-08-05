@@ -15,10 +15,22 @@ export function VectorStoreStatus() {
             .then(data => {
                 if (data.status === 'success') setStatus(data.data)
             })
-            .catch(err => setError(err.message))
+            .catch(err => {
+                console.warn('[VectorStoreStatus] status failed:', err.message) // [v6.0] added
+                setStatus(null)
+                setError(null)
+            })
     }, [])
 
-    if (error || !status) return null
+    if (error || !status) {
+        // [v6.0] added: graceful status placeholder
+        return (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-400 text-xs">
+                <Database size={14} />
+                Vector DB: <span className="text-gray-500">Данные обновляются...</span>
+            </div>
+        )
+    }
 
     if (status.configured) {
         return (

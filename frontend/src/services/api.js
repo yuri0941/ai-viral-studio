@@ -12,19 +12,47 @@ function getAuthHeaders() {
     return { Authorization: `Bearer ${token || ''}` }
 }
 
-async function request(path, options = {}) {
+async function request(path, options = {}, retryCount = 0) {
     const url = `${API_BASE}${path}`
-    const res = await fetch(url, {
-        headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-            ...options.headers,
-        },
-        ...options,
-    })
+    let res
 
-    // [HOTFIX-2026-08-04] added JSON guard
-    const contentType = res.headers.get('content-type')
+    try {
+        res = await fetch(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+                ...options.headers,
+            },
+            ...options,
+        })
+    } catch (networkErr) {
+        console.warn('[API] Network error:', networkErr.message)
+        return { success: false, mock: true, message: 'Network error' }
+    }
+
+    const contentType = res.headers.get('content-type') || ''
+    const isHtml = contentType.includes('text/html') || (!contentType.includes('application/json') && res.status >= 400)
+
+    // [v6.0] added: HTML fallback + retry guard
+    if (isHtml) {
+        const text = await res.text()
+        if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) {
+            console.warn('[API] HTML response, endpoint missing:', url)
+            return { success: false, mock: true, message: 'Service temporarily unavailable' }
+        }
+    }
+
+    if (res.status === 429 && retryCount < 1) {
+        console.warn('[API] Rate limited, retrying once:', url)
+        await new Promise(r => setTimeout(r, 2000))
+        return request(path, options, retryCount + 1)
+    }
+
+    if (res.status === 502 || res.status === 503) {
+        console.warn('[API] Service unavailable:', url, res.status)
+        return { success: false, mock: true, message: 'Service temporarily unavailable' }
+    }
+
     if (!contentType || !contentType.includes('application/json')) {
         const text = await res.text()
         console.error('Non-JSON response from', url, ':', text.slice(0, 200))

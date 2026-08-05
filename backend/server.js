@@ -69,7 +69,7 @@ import selfImprovementRoutes from './routes/selfImprovement.js'  // ← P15: Sel
 import neuroSalesRoutes from './routes/neuroSales.js'  // [P18] added: Neuro-Sales psychotypes
 import challengeRoutes from './routes/challenges.js'  // [P20] added: OMEGA Challenge
 import uploadRoutes from './routes/upload.js'  // [P21] added: image upload optimization
-import scheduledPostsRoutes from './routes/scheduledPosts.js'  // [MASTER-v5.0] added
+import fallbackRoutes from './routes/fallbackRoutes.js'  // [v6.0] added: structured fallback routes
 
 const app = express()
 app.set('trust proxy', 1)
@@ -313,10 +313,8 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/self-improvement', selfImprovementRoutes)
 app.use('/api/scheduled-posts', scheduledPostsRoutes)
 
-// [HOTFIX-2026-08-04] added — finance transactions fallback
-app.get('/api/finance/transactions', protect, (req, res) => {
-    res.json({ transactions: [], total: 0, currency: 'RUB' })
-})
+// [v6.0] added: structured fallback routes for expected frontend endpoints
+app.use('/api', fallbackRoutes)
 
 // [MASTER-v5.0] added: real data routes for dashboards
 app.get('/api/admin/users', protect, async (req, res) => {

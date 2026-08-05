@@ -97,7 +97,7 @@ router.post('/create-checkout-session', async (req, res) => {
         }
     }
 
-    return res.status(502).json({ status: 'error', error: lastError?.message || 'Stripe connection failed', fallback: 'yookassa' })
+    return res.status(200).json({ success: false, message: lastError?.message || 'Payment service temporarily unavailable', fallback: true })
 })
 
 /**

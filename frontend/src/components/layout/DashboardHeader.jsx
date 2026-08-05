@@ -96,7 +96,12 @@ export function DashboardHeader({
                     console.warn('[Push] VAPID key not configured or invalid');
                     return;
                 }
-                sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) })
+                const applicationServerKey = urlBase64ToUint8Array(publicKey)
+                if (!applicationServerKey) {
+                    console.warn('[Push] applicationServerKey conversion failed; skipping subscription') // [v6.0] added
+                    return
+                }
+                sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey }) // [v6.0] added
                 await fetch('/api/push/subscribe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -111,10 +116,15 @@ export function DashboardHeader({
     }
 
     function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-        const rawData = window.atob(base64)
-        return Uint8Array.from(rawData.split('').map(c => c.charCodeAt(0)))
+        try {
+            const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+            const rawData = window.atob(base64)
+            return Uint8Array.from(rawData.split('').map(c => c.charCodeAt(0)))
+        } catch (e) {
+            console.warn('[Push] applicationServerKey decode failed:', e.message) // [v6.0] added
+            return null
+        }
     }
 
     const availableRoles = getAvailableRoles(user?.role)

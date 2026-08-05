@@ -3,13 +3,18 @@ import User from '../models/User.js'
 
 export const protect = async (req, res, next) => {
     try {
+        // [v6.0] added: strict authorization header check
+        if (!req.headers.authorization) {
+            return res.status(401).json({ status: 'error', error: 'Unauthorized' })
+        }
+
         // [HOTFIX-2026-08-04] added — extract token from any Authorization header
         const token = req.headers.authorization?.split(' ')[1]
 
         if (!token) {
             return res.status(401).json({
                 status: 'error',
-                message: 'No token provided'
+                error: 'Invalid token'
             })
         }
 
@@ -22,14 +27,14 @@ export const protect = async (req, res, next) => {
             if (!user) {
                 return res.status(401).json({
                     status: 'error',
-                    message: 'User not found'
+                    error: 'Invalid token'
                 })
             }
 
             if (!user.isActive) {
                 return res.status(401).json({
                     status: 'error',
-                    message: 'Account is deactivated'
+                    error: 'Account is deactivated'
                 })
             }
 
@@ -45,11 +50,16 @@ export const protect = async (req, res, next) => {
                 isAdult: user.isAdult,
             }
 
-            next()
+            // [v6.0] added: ensure user has a role before proceeding
+            if (req.user && req.user.role) {
+                return next()
+            }
+
+            return res.status(401).json({ status: 'error', error: 'Invalid token' })
         } catch (error) {
             return res.status(401).json({
                 status: 'error',
-                message: 'Invalid or expired token'
+                error: 'Invalid token'
             })
         }
     } catch (error) {
@@ -60,7 +70,18 @@ export const protect = async (req, res, next) => {
     }
 }
 
-// Role-based access control
+// Owner-only access control
+export const requireOwner = (req, res, next) => {
+    if (req.user?.role !== 'owner') {
+        return res.status(403).json({
+            status: 'error',
+            error: 'Access denied',
+            required: 'owner',
+            current: req.user?.role
+        })
+    }
+    next()
+}
 export const authorize = (...roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.role)) {

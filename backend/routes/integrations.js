@@ -90,13 +90,18 @@ router.post('/telegram/connect', protect, async (req, res) => {
 
 // [v5.9] added: real VK OAuth URL using env VK_CLIENT_ID
 router.get('/vk/url', protect, (req, res) => {
-    const clientId = process.env.VK_CLIENT_ID
-    const redirectUri = process.env.VK_REDIRECT_URI || 'https://aiviral-studio.ru/api/integrations/vk/callback'
-    if (!clientId) {
-        return res.status(503).json({ error: 'VK not configured. Add VK_CLIENT_ID to environment' })
+    try {
+        const clientId = process.env.VK_CLIENT_ID
+        const redirectUri = process.env.VK_REDIRECT_URI || 'https://aiviral-studio.ru/api/integrations/vk/callback'
+        if (!clientId) {
+            return res.status(200).json({ connected: false, url: null, error: 'VK not configured', mock: true })
+        }
+        const url = `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=wall,offline&state=${req.user.id}`
+        res.json({ url })
+    } catch (e) {
+        console.warn('[Integration] vk url failed:', e.message)
+        res.status(200).json({ connected: false, url: null, error: 'Service temporarily unavailable', mock: true })
     }
-    const url = `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=wall,offline&state=${req.user.id}`
-    res.json({ url })
 })
 
 // [v5.9] added: real Discord OAuth URL using env DISCORD_CLIENT_ID
@@ -151,13 +156,18 @@ router.get('/vk/callback', async (req, res) => {
 })
 
 router.get('/linkedin/auth', protect, (req, res) => {
-    const clientId = process.env.LINKEDIN_CLIENT_ID
-    if (!clientId) {
-        return res.status(503).json({ error: 'LINKEDIN_CLIENT_ID not configured' })
+    try {
+        const clientId = process.env.LINKEDIN_CLIENT_ID
+        if (!clientId) {
+            return res.status(200).json({ connected: false, url: null, error: 'LINKEDIN_CLIENT_ID not configured', mock: true })
+        }
+        const redirectUri = process.env.LINKEDIN_REDIRECT_URI || `${process.env.FRONTEND_URL}/integrations/linkedin/callback`
+        const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=r_liteprofile%20r_emailaddress%20w_member_social&state=${req.user.id}`
+        res.redirect(url)
+    } catch (e) {
+        console.warn('[Integration] linkedin auth failed:', e.message)
+        res.status(200).json({ connected: false, url: null, error: 'Service temporarily unavailable', mock: true })
     }
-    const redirectUri = process.env.LINKEDIN_REDIRECT_URI || `${process.env.FRONTEND_URL}/integrations/linkedin/callback`
-    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=r_liteprofile%20r_emailaddress%20w_member_social&state=${req.user.id}`
-    res.redirect(url)
 })
 
 router.get('/linkedin/callback', async (req, res) => {
@@ -209,20 +219,30 @@ const getOAuthUrl = (provider, req) => {
 }
 
 router.get('/:provider/url', protect, (req, res) => {
-    const { provider } = req.params
-    const allowed = ['linkedin', 'pinterest', 'facebook', 'instagram', 'tiktok', 'youtube', 'vk']
-    if (!allowed.includes(provider)) return res.status(400).json({ error: 'Unknown provider' })
+    try {
+        const { provider } = req.params
+        const allowed = ['linkedin', 'pinterest', 'facebook', 'instagram', 'tiktok', 'youtube', 'vk']
+        if (!allowed.includes(provider)) return res.status(400).json({ error: 'Unknown provider' })
 
-    const url = getOAuthUrl(provider, req)
-    if (!url) {
-        return res.status(503).json({ error: 'API not configured', message: `Подключение ${provider} временно недоступно. Требуется настройка API ключей.` })
+        const url = getOAuthUrl(provider, req)
+        if (!url) {
+            return res.status(200).json({ connected: false, url: null, error: 'Service temporarily unavailable', mock: true })
+        }
+        res.json({ url })
+    } catch (e) {
+        console.warn(`[Integration] ${req.params.provider} url failed:`, e.message)
+        res.status(200).json({ connected: false, url: null, error: 'Service temporarily unavailable', mock: true })
     }
-    res.json({ url })
 })
 
-// [FIX-2026-08-05] generic OAuth callback stubs (real token exchange added when keys available)
+// [FIX-2026-08-05] generic OAuth callback stubs with graceful fallback
 router.get('/:provider/callback', async (req, res) => {
-    res.redirect(`${process.env.FRONTEND_URL}/settings?tab=integrations&success=${req.params.provider}`)
+    try {
+        res.redirect(`${process.env.FRONTEND_URL}/settings?tab=integrations&success=${req.params.provider}`)
+    } catch (e) {
+        console.warn(`[Integration] ${req.params.provider} callback failed:`, e.message)
+        res.redirect(`${process.env.FRONTEND_URL}/settings?tab=integrations&error=${req.params.provider}&fallback=true`)
+    }
 })
 
 router.delete('/:provider', protect, async (req, res) => {

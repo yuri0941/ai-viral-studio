@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Copy, Sparkles, LayoutTemplate, Calendar, Check, Loader2, Search, TrendingUp, Archive, Flame } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { EmptyState } from '../../../../components/common/EmptyState.jsx' // [v6.0] added
 import { omegaApi, selfImprovementApi } from '../../../../services/api'
 
 const CATEGORIES = {
@@ -46,7 +47,10 @@ export function TemplatesTab() {
             })))
             setStats(statsRes?.data || null)
         }).catch(err => {
-            setError(err.message || 'Не удалось загрузить шаблоны')
+            // [v6.0] added: degrade gracefully to empty templates
+            setTemplates([])
+            setStats(null)
+            setError(null)
         }).finally(() => setLoading(false))
     }, [])
 
@@ -344,6 +348,15 @@ export function TemplatesTab() {
                             )}
                         </button>
                     ))}
+                    {filtered.length === 0 && !loading && (
+                        // [v6.0] added: graceful empty-state placeholder
+                        <EmptyState
+                            icon={LayoutTemplate}
+                            title="Данные обновляются..."
+                            description="Шаблоны недоступны. Попробуйте обновить позже."
+                            compact
+                        />
+                    )}
                 </div>
 
                 <div className="lg:col-span-2 space-y-4">

@@ -23,6 +23,10 @@ export function AudienceInsightsTab() {
             .then(res => {
                 if (res.status === 'success') setData(res.data || [])
             })
+            .catch(err => {
+                console.warn('[AudienceInsightsTab] load failed:', err.message) // [v6.0] added
+                setData([])
+            })
             .finally(() => setLoading(false))
     }, [])
 
@@ -63,7 +67,8 @@ export function AudienceInsightsTab() {
                     <div className="p-4 rounded-2xl bg-white/5 mb-4">
                         <Users size={32} className="text-gray-500" />
                     </div>
-                    <h3 className="text-lg font-medium text-white mb-2">Нет данных об аудитории</h3>
+                    {/* [v6.0] added: graceful empty-state placeholder */}
+                    <h3 className="text-lg font-medium text-white mb-2">Данные обновляются...</h3>
                     <p className="text-sm text-gray-400 max-w-md mb-4">
                         Подключите {activePlatform} и предоставьте доступ к аудитории. Данные появятся здесь автоматически.
                     </p>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DataTable } from '../common/DataTable'
+import { EmptyState } from '../../../../components/common/EmptyState.jsx' // [v6.0] added
 import { formatCurrency, formatDate, getSparklineData } from '../../utils/helpers'
 import { invoicesApi, yookassaApi } from '../../../../services/api.js'
 import { useSmartData } from '../../../../hooks/useSmartData'
@@ -115,6 +116,7 @@ export function FinanceTab({ data }) {
             setInvoices(res.invoices || [])
         } catch (err) {
             console.error('[FinanceTab:loadInvoices]', err)
+            setInvoices([]) // [v6.0] added: degrade gracefully to empty invoices
             pushToast('error', t('finance.loadError', 'Не удалось загрузить счета'))
         } finally {
             setInvoiceLoading(false)
@@ -305,17 +307,14 @@ export function FinanceTab({ data }) {
                         {[1, 2, 3].map((i) => <ShimmerCard key={i} />)}
                     </div>
                 ) : safeFilteredInvoices.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
-                        <Receipt size={48} className="mb-4 opacity-30" />
-                        <h3 className="text-[var(--text)] font-medium mb-1">{t('finance.noInvoicesTitle', 'Нет счетов')}</h3>
-                        <p className="text-sm mb-4">{t('finance.noInvoices', 'Нет счетов. Создайте первый счёт или оформите подписку.')}</p>
-                        <button
-                            onClick={() => setShowNewInvoice(true)}
-                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-[var(--text-on-primary)] text-sm font-medium hover:opacity-90 transition-opacity"
-                        >
-                            {t('finance.newInvoice', 'Новый счёт')}
-                        </button>
-                    </div>
+                    // [v6.0] added: graceful empty-state placeholder
+                    <EmptyState
+                        icon={Receipt}
+                        title="Данные обновляются..."
+                        description={t('finance.noInvoices', 'Нет счетов. Создайте первый счёт или оформите подписку.')}
+                        actionLabel={t('finance.newInvoice', 'Новый счёт')}
+                        onAction={() => setShowNewInvoice(true)}
+                    />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {safeFilteredInvoices.map((inv) => {

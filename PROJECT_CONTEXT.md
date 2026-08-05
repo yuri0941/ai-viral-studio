@@ -77,6 +77,8 @@
       /shared — Modal, ToastContainer, EmptyState, LoadingSkeleton, VirtualTable, ErrorBoundary
       /omega — OmegaChat, OmegaChatWidget, OmegaPanel, OmegaStatusBar, CodeInterpreter, VisionUploader
       /chat — ClientChatWidget
+      /creative-hub — CreativeHub
+      /documents — LuxuryDocumentViewer
       /analytics — ChannelAnalyticsTab, AudienceInsightsTab, CaseStudyGenerator, ReportGenerator
       /scheduler — VisualCalendar, PostPreview, BestTimePicker, ABTestModal
       /pwa — PWAInstallButton
@@ -97,7 +99,8 @@
       /auth — LoginForm, RegisterForm, AuthModal
       CreatorDashboardPage, AdvertiserDashboardPage, AdminDashboardPage,
       StaffDashboardPage, ContentAnalyzerPage, SchedulerPage, AIvsHumanPage,
-      LaunchPage, OnboardingWizard
+      LaunchPage, OnboardingWizard,
+      CreativeHubPage, DocumentPage
     /hooks — useOmega, useOmegaChat, useOmegaMemory, useTheme, useSocket, useCapacitor, useDashboardData
     /services — api.js (ownerApi, omegaApi, subscriptionsApi, invoicesApi, yookassaApi, stripeApi, paypalApi, emailApi, selfImprovementApi, monitoringApi, workspaceApi, whiteLabelApi, developerApi, referralApi, gamificationApi, caseStudyApi, reportApi, predictionApi, abTestApi, channelAnalyticsApi, audienceApi, vectorStoreApi, usageQuotaApi, webhookApi, integrationApi, pushApi)
     /ai/omega — omegaCore.js, omegaMemory.js, omegaSkills.js, omegaTools.js, omegaAutonomy.js, omegaLearning.js, omegaCommunication.js
@@ -141,7 +144,7 @@
     email.js, push.js, payments.js, adRequests.js, launch.js, roadmap.js, demo.js,
     gamification.js, selfImprovement.js, monitoring.js, analytics.js, projectWorkspace.js,
     whiteLabel.js, /api/v1/omegaAPI.js, aiProviders.js, webhooks.js, integrations.js,
-    bookings.js, qr.js, print.js, franchise.js, fleet.js, delivery.js, admin.js
+    bookings.js, qr.js, print.js, franchise.js, fleet.js, delivery.js, admin.js, fallbackRoutes.js
   /scripts — seed.js
   /services — aiService.js (ГЛАВНЫЙ AI-шлюз), emailService.js, yookassaService.js,
     stripeService.js, paypalService.js, vectorizeService.js, vectorStore.js,

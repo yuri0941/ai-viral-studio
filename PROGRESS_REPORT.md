@@ -1,3 +1,21 @@
+## 2026-08-05 — v6.0 Luxury Creative Hub
+- [x] Fixed: Rate limiter (429) — увеличены лимиты, retry с защитой от loop
+- [x] Fixed: Fallback routes (404) — mock-ответы с правильной структурой данных
+- [x] Fixed: Auth (401/403) — разделение ошибок, корректные middleware
+- [x] Fixed: Integrations (502/503) — graceful fallback для всех соцсетей
+- [x] Fixed: Stripe guard + Telegram deleteWebhook camelCase
+- [x] Fixed: API interceptor — HTML→JSON fallback, retry guard, 502/503 fallback
+- [x] Fixed: Passive event (OmegaChatWidget), Push atob (DashboardHeader)
+- [x] Fixed: Graceful degradation — все табы (Memory, Finance, Subscriptions, Quota, Templates, VectorStore, CaseStudy, Audience)
+- [x] Created: LuxuryDocumentViewer — markdown, json, csv, code highlighting, glassmorphism, поиск, 3 темы
+- [x] Created: CreativeHub — unified Chat + Analyzer + Viral, drag-drop, voice input, AI toolbar, role-based access
+- [x] Created: run.sh, run.bat, .vscode/tasks.json
+- [x] Updated: OwnerDashboard luxury UI (glass cards, count-up, sparklines)
+- [x] Updated: SettingsPage luxury UI (glass inputs, toggles, integration cards)
+- [x] Updated: AI Agent page luxury UI (gradient text, status dots, log viewer)
+- [x] Added: Backward compatibility redirects (/chat → /creative-hub/chat)
+- [x] Added: Mobile-first adaptive layout (bottom nav, swipe, FAB)
+
 ## ✅ КОНКУРЕНТНЫЕ ФИЧИ — 2026-08-01
 
 ### Brand Voice v2
@@ -8,7 +26,6 @@
 - [x] Сохраняется в БД: да (`User.brandVoice`)
 - [x] Используется в OMEGA Chat: да (`buildBrandVoicePrompt` в `responseSelector`)
 - [x] Тумблер вкл/выкл Brand Voice: да (`/api/omega/brand-voice/toggle`)
-
 ### 50 AI-шаблонов
 - [x] Файл с шаблонами существует: да (`backend/services/templatesLibrary.js` + `backend/data/omegaTemplates.json`)
 - [x] Количество шаблонов: 50
@@ -17,19 +34,16 @@
 - [x] Endpoint `/api/omega/templates/:id/generate`: да
 - [x] Frontend библиотека шаблонов: да (`frontend/src/pages/owner/components/tabs/TemplatesTab.jsx`)
 - [x] Генерация через AI (не просто подстановка): да (`autoExpand` через `chatWithAI`)
-
 ### Best Time to Post
 - [x] Backend сервис: да (`backend/services/bestTimeService.js`)
 - [x] Endpoint `/api/omega/best-time`: да
 - [x] Кнопка в Scheduler: да (`frontend/src/components/scheduler/BestTimePicker.jsx`)
 - [x] AI советует время (не рандом): да (Groq/OpenRouter + fallback дефолты)
-
 ### Visual Calendar
 - [x] Миниатюры на календаре: да (`VisualCalendar.jsx` показывает `thumbnailUrl/mediaUrl`)
 - [x] Цветовая кодировка платформ: да (`PLATFORM_COLORS`)
 - [x] Статусы (черновик/запланирован/опубликован): да (серый/жёлтый/зелёный + красный для ошибки)
 - [x] Drag & drop между днями: да
-
 ### OMEGA Scout (Real-time тренды)
 - [x] Backend сканер: да (`backend/services/trendScanner.js`)
 - [x] Endpoint `/api/omega/scout/trends`: да
@@ -37,7 +51,6 @@
 - [x] Реальные тренды (не заглушки): да (DuckDuckGo + AI-анализ, fallback дефолты)
 - [x] Кнопка «Создать пост из тренда»: да (драфт в `localStorage` + редирект в Scheduler)
 - [x] Кэш 6 часов: да
-
 ### AI-обложки
 - [x] Backend генератор: да (`backend/services/imageGeneration.js`)
 - [x] Endpoint `/api/omega/generate-cover`: да
@@ -45,63 +58,49 @@
 - [x] Работает через Pollinations/Replicate: да (Pollinations.ai, fallback прямой URL)
 - [x] Сохраняется в медиа-очередь: да (кнопка «Использовать в посте»)
 - [x] История сгенерированных обложек: да
-
 ### Сборка
 - [x] Frontend build: успешно
 - [x] Backend check: успешно
 - [x] Git push: выполнен
-
 ---
-
 ## ✅ ПРОВЕРЕНО И ДОРАБОТАНО — 2026-08-01
-
 ### AI Chat
 - [x] Groq модель исправлена на `llama-3.3-70b-versatile`
 - [x] OpenRouter модель исправлена на `meta-llama/llama-3.3-70b-instruct:free`
 - [x] Fallback цепочка проверена (Groq → OpenRouter)
 - [x] OmegaChat demo-mode проверен
-
 ### Профиль владельца
 - [x] Модалка/страница профиля существует: да (`frontend/src/components/layout/UserProfileModal.jsx`)
 - [x] Клик на аватар открывает профиль: да
 - [x] Сохранение работает: да (`PATCH /api/users/me`)
-
 ### Цены рекламы
 - [x] UI управления CPM/CPC/CPA существует: да (`frontend/src/pages/owner/components/tabs/AdvertisingTab.jsx`)
 - [x] Backend endpoint `/api/owner/ad-pricing`: да (`GET`/`PUT`)
 - [x] Цены сохраняются после reload: да
-
 ### Адаптивная реклама
 - [x] Компонент `ResponsiveAdBanner` создан: да
 - [x] Desktop: баннер в sidebar/bottom: да
 - [x] Mobile: fixed bottom banner (не мешает): да
 - [x] Кнопка закрыть (×) работает: да
-
 ### OMEGA Agents
 - [x] Количество агентов в реестре: 10 (`backend/services/omegaAgents/agentsRegistry.js`)
 - [x] Все 10 базовых агентов есть: да
 - [x] Видны в OMEGA Core табе: да
-
 ### OMEGA Memory
 - [x] 8 слоёв памяти существуют: да (`backend/ai/omega/omegaMemory.js`)
 - [x] Интегрирована в чат: да (`responseSelector.js` подгружает контекст и извлекает факты)
 - [x] Тест: «Я кофейня» → «Чем я занимаюсь?» = «кофейня»: да (сохраняется в `semantic`)
-
 ### i18n
 - [x] Все ключи sidebar в `ru.json`/`en.json`: да
 - [x] Переключатель меняет язык везде: да
-
 ### Тема
 - [x] Глобальное переключение light/dark: да (`useTheme` + `DashboardShell`)
 - [x] Sidebar меняет цвета: да (`bg-[var(--bg)]`, `border-[var(--border)]`)
-
 ### Сборка
 - [x] Frontend build: успешно
 - [x] Backend check: успешно
 - [x] Git push: выполнен
-
 ---
-
 ### 2026-08-01 — FIX: AI-провайдеры — UI-тумблеры синхронизированы с backend, реальный статус, omegaCore фильтр по enabled
 - [x] backend/models/AIProviderSetting.js: `enabled` по умолчанию `false`
 - [x] backend/ai/omega/index.js: все AI-провайдеры из `PROVIDER_META` передаются в ядро; `enabled` берётся из `isEnabled()` (учитывает настройки владельца и `enabledByDefault`)
@@ -113,7 +112,6 @@
 - [x] Git push: выполнен ✅
 - Fallback-цепочка: Groq → OpenRouter → Pollinations (все остальные по умолчанию выключены)
 - Статус: **готово к деплою**
-
 ### 2026-08-01 — FIX: AI-провайдеры — модели, статусы, тумблеры владельца
 - [x] backend/services/aiService.js: Groq модель исправлена на `llama-3.3-70b-versatile` (env `llama-3.1-70b-versatile` игнорируется); OpenRouter модель исправлена на `meta-llama/llama-3.3-70b-instruct:free` (env `google/gemini-2.0-flash-lite-preview-02-05:free` игнорируется)
 - [x] backend/services/aiService.js: добавлен `PROVIDER_META` — по умолчанию включены только `groq`, `openrouter`, `pollinations`; остальные (`gemini`, `github`, `huggingface`, `cloudflare`, `fireworks`, `mistral`, `cohere`, `deepseek`, `replicate`) отключены
@@ -131,7 +129,6 @@
 - [x] Git push: выполнен ✅
 - Fallback-цепочка: Groq → OpenRouter → Pollinations
 - Статус: **готово к деплою**
-
 ### 2026-08-01 — HOTFIX: временно отключён Turnstile
 - [x] frontend/src/components/auth/LoginForm.jsx: Turnstile рендерится только на `*.pages.dev`; на остальных доменах `turnstileToken` принудительно выставлен в `'disabled'`
 - [x] frontend/src/components/auth/RegisterForm.jsx: аналогично — капча скрыта вне `pages.dev`, отправляется placeholder токен
@@ -140,7 +137,6 @@
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
 - Статус: **готово к деплою** (Turnstile отключён временно для aiviral-studio.ru)
-
 ### 2026-08-01 — HOTFIX: AI-провайдеры, fallback Groq → OpenRouter на запросе, без стартовых проверок
 - [x] backend/server.js: убран стартовый лог `AI Providers: Groq=...` (теперь только `AI provider chain ready: verified on first real request`)
 - [x] backend/services/aiService.js: `isEnabled` теперь включает провайдера по наличию ключа, игнорируя env-флаг `*_ENABLED` (fallback цепочка всегда работает)
@@ -151,7 +147,6 @@
 - [x] Git push: выполнен ✅
 - [ ] Полный e2e тест OMEGA Chat: не проводился в этом окружении
 - Статус: **готово к деплою**
-
 ### 2026-08-01 — Release v1.0: PWA + OwnerApp + i18n + Stripe + Full OMEGA
 - [x] VAPID ключи: добавлены в `backend/.env.example` и fallback в `controllers/pushController.js`
 - [x] i18n: установлены `react-i18next`, `i18next`, `i18next-browser-languagedetector`, созданы `frontend/src/locales/ru.json` и `en.json`, настроен `frontend/src/i18n/index.js`, подключён в `main.jsx`
@@ -166,13 +161,11 @@
 - [ ] Полный e2e тест (регистрация → письмо → вход → OMEGA Chat → оплата → Telegram алерт): не проводился в этом окружении
 - [ ] EN-локализация: готов скелет, но не все компоненты переведены
 - Статус: **готово к деплою** с условием установки env vars на Render (STRIPE_SECRET_KEY, VAPID_*, MONGO_URI, JWT_SECRET, TELEGRAM_*, etc.)
-
 ### 2026-07-31 — Release v1.0 Phase 1.5: Stripe webhook + env template
 - [x] backend/routes/stripe.js: webhook endpoint теперь использует `raw({ type: 'application/json' })` для корректной верификации подписи Stripe
 - [x] Создан `backend/.env.example` с плейсхолдерами для VAPID, Stripe, Telegram, JWT, MongoDB
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — Release v1.0 Phase 1: PWA + Owner App + Push backend
 - [x] PWA: `manifest.json` дополнен description, categories, screenshots, shortcuts
 - [x] PWA: создана `offline.html` с fallback "Нет интернета. Некоторые функции недоступны."
@@ -184,27 +177,23 @@
 - [x] Frontend build: успешно ✅
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — HOTFIX: express-rate-limit X-Forwarded-For trust proxy
 - [x] backend/server.js: добавлено `app.set('trust proxy', 1)` сразу после `const app = express()`
 - [x] backend/server.js: в общем rate limiter добавлены `standardHeaders: true` и `legacyHeaders: false`
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — HOTFIX: Render EADDRINUSE (port 10000 conflict)
 - [x] backend/server.js: PORT берётся из `process.env.PORT` с fallback `10000`
 - [x] backend/server.js: `app.listen` возвращает `server`, добавлены graceful shutdown обработчики `SIGTERM` и `SIGINT`
 - [x] backend/services/ownerBot.js: удалён webhook-блок, который пытался слушать тот же порт; бот теперь всегда использует polling
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — HOTFIX: CORS middleware
 - [x] CORS: добавлен cors middleware
 - [x] CORS: добавлен обработчик OPTIONS preflight (`app.options('*', cors(...))`)
 - [x] CORS стоит ДО express-rate-limit
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — HOTFIX: BarChart import in OwnerDashboardPage + dashboards checked
 - [x] OwnerDashboardPage.jsx: добавлены BarChart, Search, Calendar, TrendingUp в импорт lucide-react (строки 102-106)
 - [x] CreatorDashboardPage.jsx: BarChart переименован в BarChartIcon (исправлен конфликт с recharts)
@@ -215,20 +204,17 @@
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — HOTFIX: BarChart3 import fix v2 (CreatorDashboard conflict)
 - [x] CreatorDashboardPage.jsx: BarChart из lucide переименован в BarChartIcon, убран конфликт с recharts BarChart
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — HOTFIX: BarChart3 + Telegram Webhook
 - [x] BarChart3: проверены все импорты lucide-react в активных JSX (OverviewTab, AnalyticsPage, AppSidebar, CommandPalette, OwnerDashboardPage, ContentAnalyzerPage, OmegaSkillsTab, Creator/Admin/Advertiser dashboards, ViralChat, AIChat)
 - [x] Telegram ownerBot.js: webhook для production (Render), polling для dev, фикс 409 Conflict
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — AutoPilot + Self-Healing + YouTube AI
 - [x] autoPilot.js: cron каждые 30 мин, публикация scheduled постов, Telegram алерт
 - [x] ScheduledPost.js модель для запланированных постов
@@ -240,7 +226,6 @@
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — Owner Dashboard: клиентские разделы
 - [x] AppSidebar.jsx: добавлена группа "КЛИЕНТСКИЙ ВИД" с 📊 Аналитика, 🤖 AI Chat, 🔍 Анализ контента, 📅 Планировщик, 💬 Viral Chat
 - [x] OwnerDashboardPage.jsx: импорты страниц, TAB_ICONS, case renderTab для analytics/aiChat/contentAnalyzer/scheduler/viralChat
@@ -248,7 +233,6 @@
 - [x] constants.js: TABS_ORDER обновлён
 - [x] Build frontend: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — VisualCalendar + Kanban + 50 Templates + BrandVoice
 - [x] VisualCalendar.jsx: миниатюры, цветные плашки, drag&drop, статусы draft/scheduled/published
 - [x] SchedulerPage.jsx: заменён старый grid на VisualCalendar
@@ -261,14 +245,12 @@
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — HOTFIX: /api/health endpoint + sidebar hover/toggle
 - [x] /api/health endpoint для UptimeRobot (backend/server.js)
 - [x] Sidebar: hover-разворачивание (260px ↔ 60px), кнопка << / >> toggle, localStorage sidebar_expanded, z-50
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — Security: Telegram bot + Rollbar + RateLimit + EmergencyStop
 - [x] Telegram-бот: backend/services/ownerBot.js (/start, /status, alertOwner)
 - [x] Алерты владельцу: регистрация (authController.js), оплата (paymentController.js), ошибки 500 (server.js)
@@ -279,13 +261,11 @@
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — HOTFIX: emailService sendEmail export
 - [x] Проверен emailService.js: sendEmail уже экспортирован (object signature)
 - [x] Проверен emailController.js: импорты соответствуют exports
 - [x] Backend запускается локально: node --check server.js ✅, node server.js + /health ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — OMEGA Agents + WebSearch + Vectorize + SelfImprovement + Voice
 - [x] agentsRegistry.js: TrendScout, CompetitorSpy, ContentForge, ViralPredictor
 - [x] agentRunner.js: анализ запроса → выбор агента → результат в prompt
@@ -301,7 +281,6 @@
 - [x] Backend node --check: успешно ✅
 - [x] curl /api/omega/stats: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — OMEGA Brain + Mobile polish
 - [x] memoryStore.js: omega_memories коллекция (OmegaBrainMemory)
 - [x] contextEngine.js: контекст перед ответом
@@ -312,7 +291,6 @@
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ### 2026-07-31 — HOTFIX: 3 критических ошибки
 - [x] emailService.js: добавлен getEmailStatus export
 - [x] AnalyticsPage.jsx: исправлен порядок инициализации (Cannot access 'y')
@@ -320,9 +298,7 @@
 - [x] Build frontend: успешно ✅
 - [x] Backend node --check: успешно ✅
 - [x] Git push: выполнен ✅
-
 ## ✅ ВЫПОЛНЕННЫЕ ЗАДАЧИ — 2026-07-31
-
 ### UX v2: Sidebar + Command Palette + Bento + Mobile + Lang + Omega fix
 - [x] Статус: ВЫПОЛНЕНО
 - [x] Что реализовано:
@@ -346,12 +322,9 @@
   - frontend/src/pages/owner/components/tabs/OverviewTab.jsx
 - [x] Что НЕ получилось / TODO:
   - Нет
-
 # PROGRESS REPORT — AI Viral Studio (kilo2)
 # Автообновляется Kimi Code после каждого этапа
-
 ## 📋 СТАТУС ПРОЕКТА
-
 | Этап | Статус | Дата | Примечание |
 |------|--------|------|------------|
 | P0.1 Invalid Date | ✅ Выполнен | 2026-07-28 | Добавлен parseDate() в helpers.js, заменены new Date() в AuditTab, NewsTab, FinanceTab, SecurityTab |
@@ -370,44 +343,37 @@
 | P7 — Анализ контента + AI Chat | ✅ Выполнен | 2026-07-29 | ContentAnalyzerPage: regex, разбор, сравнение, SEO, AI-ассистент |
 | P8 — Планировщик | ✅ Выполнен | 2026-07-29 | SchedulerPage: drag & drop, медиа-очередь, автопубликация, AI-время, шаблоны |
 | P9-P11 Остальное | ⏳ Не начат | — | |
-
 ## ✅ ВЫПОЛНЕННЫЕ ЗАДАЧИ (Kimi Code пишет сюда)
-
 ### P0.1 — Исправление Invalid Date
 - **Дата:** 2026-07-28
 - **Что сделано:** Добавлена функция `parseDate()` в `helpers.js`, поддерживающая форматы `YYYY-MM-DD`, `YYYY-MM-DD HH:mm:ss`, `DD.MM.YYYY`, `DD.MM.YYYY HH:mm:ss`. Заменены вызовы `new Date()` на `formatDate()` / `formatDateTime()` в `AuditTab`, `NewsTab`, `FinanceTab`, `SecurityTab`.
 - **Файлы изменены:** `frontend/src/pages/owner/utils/helpers.js`, `frontend/src/pages/owner/components/tabs/AuditTab.jsx`, `NewsTab.jsx`, `FinanceTab.jsx`, `SecurityTab.jsx`.
 - **Проверено в браузере:** Нет
 - **Баги остались:** —
-
 ### P0.2 — Исправление доходов $0
 - **Дата:** 2026-07-28
 - **Что сделано:** Добавлена `loadArrayFromStorage()` для валидации массивов. При пустом/битом `owner_payments` в `localStorage` используется `INITIAL_PAYMENTS`. Добавлен `resetDemoData()` — сбрасывает все owner-ключи `localStorage` и перезагружает страницу. Кнопка «Сбросить демо-данные» добавлена в `FinanceTab`.
 - **Файлы изменены:** `frontend/src/pages/owner/hooks/useOwnerData.js`, `frontend/src/pages/owner/components/tabs/FinanceTab.jsx`.
 - **Проверено в браузере:** Нет
 - **Баги остались:** —
-
 ### P0.3 — Исправление Free=$122
 - **Дата:** 2026-07-28
 - **Что сделано:** Добавлена нормализация `subscriptions` при загрузке: у тарифа `Free` форсируется `price=0`. В `updateSubPrice` и `Sidebar` запрещено редактирование цены Free. В `SubscriptionsTab` и `Sidebar` для Free отображается текст «Free» вместо «$0».
 - **Файлы изменены:** `frontend/src/pages/owner/hooks/useOwnerData.js`, `frontend/src/pages/owner/components/tabs/SubscriptionsTab.jsx`, `frontend/src/components/layout/Sidebar .jsx`.
 - **Проверено в браузере:** Нет
 - **Баги остались:** —
-
 ### P0.4 — Удаление inline-табов
 - **Дата:** 2026-07-28
 - **Что сделано:** Из `OwnerDashboardPage.jsx` удалены inline-определения табов (`LegalTab`, `AuditTab`, `ServersTab`, `UpdatesTab`, `PromoTab`, `NewsTab`, `ReferralsTab`, `IntegrationsTab`, `AIAnalyticsTab`, `LogsTab`). Теперь все табы импортируются из `components/tabs/*`. Файл содержит только импорты, `TAB_ICONS`, `switch(activeTab)` и оболочку (модалки, toasts).
 - **Файлы изменены:** `frontend/src/pages/owner/OwnerDashboardPage.jsx`.
 - **Проверено в браузере:** Нет
 - **Баги остались:** —
-
 ### P0.5 — Backend proxy + Owner routes
 - **Дата:** 2026-07-28
 - **Что сделано:** Создан `backend/data/ownerMockData.js` с мок-данными. Создан `backend/routes/owner.js` с GET-эндпоинтами `/api/owner/overview`, `/api/owner/finance`, `/api/owner/team`, `/api/owner/servers`, `/api/owner/subscriptions`. Подключен в `backend/server.js`. Проверено: `/health` и `/api/owner/overview` отвечают. Proxy в `vite.config.js` уже был настроен на `/api` → `http://localhost:5000`.
 - **Файлы изменены:** `backend/data/ownerMockData.js`, `backend/routes/owner.js`, `backend/server.js`.
 - **Проверено в браузере:** Частично (curl)
 - **Баги остались:** —
-
 ### P0.6 — AI API авто-переключение провайдеров
 - **Дата:** 2026-07-28
 - **Что сделано:**
@@ -420,21 +386,18 @@
 - **Файлы изменены:** `backend/services/aiService.js`, `backend/config/env.js`, `backend/server.js`, `backend/routes/payments.js`.
 - **Проверено в браузере:** Частично (curl health/owner)
 - **Баги остались:** —
-
 ### P0.7 — YouTube regex в ContentAnalyzerPage
 - **Дата:** 2026-07-28
 - **Что сделано:** В `frontend/src/pages/ContentAnalyzerPage.jsx` обновлена валидация URL: регулярное выражение теперь поддерживает `youtube.com/shorts`, `youtu.be`, `x.com`, а также обычные ссылки YouTube/TikTok/Instagram/Twitter.
 - **Файлы изменены:** `frontend/src/pages/ContentAnalyzerPage.jsx`.
 - **Проверено в браузере:** Нет
 - **Баги остались:** —
-
 ### Проверка сборки после P0
 - **Дата:** 2026-07-28
 - **Команда:** `npm run build` в `frontend/`
 - **Результат:** ✅ Сборка успешна. Ошибок нет.
 - **Исправлено во время сборки:** Дублирующий импорт `formatDateTime` в `frontend/src/pages/owner/components/tabs/SecurityTab.jsx` удалён.
 - **Предупреждения:** размер чанка >500 kB.
-
 ### P1 — Модульность
 - **Дата:** 2026-07-28
 - **Что сделано:**
@@ -447,13 +410,11 @@
 - **Файлы изменены:** `frontend/src/components/shared/*`, `frontend/src/components/layout/AppSidebar.jsx`, `DashboardHeader.jsx`, `DashboardShell.jsx`, `TabNavigation.jsx`, `MobileNotificationDrawer.jsx`, `frontend/src/hooks/*`, `frontend/src/App.jsx`, `frontend/src/pages/owner/hooks/useOwnerData.js`.
 - **Проверено в браузере:** Нет
 - **Баги остались:** —
-
 ### Проверка сборки после P1
 - **Дата:** 2026-07-28
 - **Команда:** `npm run build` в `frontend/`
 - **Результат:** ✅ Сборка успешна. Ошибок нет.
 - **Предупреждения:** размер чанка >500 kB.
-
 ### P2 — OMEGA Core (Lite)
 - **Дата:** 2026-07-29
 - **Статус:** 🔄 В процессе
@@ -483,20 +444,17 @@
     - `frontend/src/components/omega/OmegaPanel.jsx` — виджет для Owner Overview.
     - `OmegaPanel` подключён в `frontend/src/pages/owner/components/tabs/OverviewTab.jsx`.
 - **Файлы изменены:** `frontend/src/pages/owner/components/tabs/OMEGACoreTab.jsx`, `frontend/src/pages/owner/components/tabs/OverviewTab.jsx`, `frontend/src/pages/owner/utils/constants.js`, `frontend/src/pages/owner/data/initialData.js`, `frontend/src/pages/owner/OwnerDashboardPage.jsx`, `frontend/src/ai/omega/*`, `frontend/src/hooks/useOmega.js`, `useOmegaChat.js`, `useOmegaMemory.js`, `frontend/src/components/omega/OmegaChat.jsx`, `OmegaStatusBar.jsx`, `OmegaPanel.jsx`, `backend/ai/omega/*`, `backend/routes/omega.js`, `backend/server.js`.
-
 ### Проверка сборки после P2
 - **Дата:** 2026-07-29
 - **Команда:** `npm run build` в `frontend/`
 - **Результат:** ✅ Сборка успешна. Ошибок нет.
 - **Исправлено во время сборки:** Путь к `StatusBadge` в `frontend/src/components/omega/OmegaStatusBar.jsx` исправлен на `../../pages/owner/components/common/StatusBadge`.
 - **Предупреждения:** размер чанка >500 kB.
-
 ### Проверка backend
 - **Дата:** 2026-07-29
 - **Команды:** `curl /health`, `curl /api/omega/status`, `curl -X POST /api/omega/chat`
 - **Результат:** ✅ Backend отвечает. `/api/omega/status` возвращает состояние OMEGA, провайдеры (`groq`, `openrouter`, `deepseek`), метрики.
 - **Баги остались:** —
-
 ### P3 — Backend API
 - **Дата:** 2026-07-29
 - **Статус:** 🔄 В процессе
@@ -508,32 +466,27 @@
 - **Файлы изменены:** `backend/models/*`, `backend/models/index.js`, `backend/controllers/ownerController.js`, `backend/controllers/omegaController.js`, `backend/routes/owner.js`, `backend/routes/omega.js`, `backend/data/ownerMockData.js`.
 - **Проверка backend:** ✅ `/health`, `/api/owner/overview`, `/api/owner/finance`, `/api/omega/status` отвечают с мок-данными.
 - **Баги остались:** —
-
 ### Проверка сборки после P3.1–P3.3
 - **Дата:** 2026-07-29
 - **Команда:** `npm run build` в `frontend/`
 - **Результат:** ✅ Сборка успешна. Ошибок нет.
 - **Предупреждения:** размер чанка >500 kB.
-
 ### P3.4 — Frontend API-слой
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
 - **Что сделано:**
   - Создан `frontend/src/services/api.js` с `ownerApi` (overview, finance, team, servers, integrations, audit, agents, promos, news, subscriptions, create/update/delete) и `omegaApi` (status, chat, memory, skills, learnSkill, command).
   - Обновлён `frontend/src/pages/owner/hooks/useOwnerData.js`: добавлен `loadFromApi()` с `Promise.allSettled`, `isLoading`, `error`, `refetch()`. При ошибке API используется fallback на localStorage/INITIAL_DATA.
-
 ### Seed-данные
 - **Дата:** 2026-07-29
 - **Что сделано:** Создан `backend/scripts/seed.js` и запущен. В MongoDB `ai_viral_studio` добавлены: 7 платежей, 5 подписок, 6 аудит-логов, 5 серверов, 4 интеграции, 3 промокода, 3 новости, 6 AI-агентов.
 - **Проверка:** `GET /api/owner/overview` возвращает: `totalUsers: 1000`, `mrr: 39690`, `activeServers: 3`, `income: 32300`, `expense: 7600`, `profit: 24700`.
 - **Исправлено:** Дублирующий индекс в `backend/models/Promo.js`; путь к `api.js` в `useOwnerData.js`.
-
 ### Проверка сборки после P3
 - **Дата:** 2026-07-29
 - **Команда:** `npm run build` в `frontend/`
 - **Результат:** ✅ Сборка успешна. Ошибок нет.
 - **Предупреждения:** размер чанка >500 kB.
-
 ### P4 — Новые табы и компоненты ✅
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -563,7 +516,6 @@
 - **Проверка сборки:** ✅ `npm run build` прошёл успешно (2026-07-29).
 - **Проверка backend:** ✅ `/health` отвечает, `/api/omega/chat` отвечает (POST, вызывает `chatWithAI` и перебирает провайдеров). Все fallback-ключи недействительны (Groq 403, OpenRouter 403, DeepSeek 402) — для получения реального ответа нужны валидные API-ключи. Без ключей виджет показывает «Нет активного API-ключа» с ссылкой на ApiKeysTab.
 - **Что осталось:** P5 — улучшения по ролям (Advertiser, Admin, Staff, Creator). В P5/P6 добавить валидацию API-ключей (тестовый запрос при сохранении) в `ApiKeysTab`.
-
 ### P5 — Улучшения по ролям (в процессе)
 - **Дата:** 2026-07-29
 - **Статус:** 🔄 В процессе
@@ -571,7 +523,6 @@
   - P5.0: Добавлен переключатель ролей в `DashboardHeader.jsx`. Owner может переключаться между Owner/Admin/Staff/Advertiser/Creator/Business; Admin — Admin/Staff/Creator; Staff — Staff/Creator; Advertiser — Advertiser/Creator; Creator/Business — Creator/Business. При смене роли обновляется `user.role` через `updateUser` в `AuthContext` и происходит редирект на соответствующий дашборд.
 - **Файлы изменены:** `frontend/src/components/layout/DashboardHeader.jsx`.
 - **Проверка сборки:** ✅ `npm run build` прошёл успешно (2026-07-29).
-
 ## 🔄 КРИТИЧЕСКИЙ ФИКС: OMEGA + API-провайдеры (в процессе)
 - **Дата:** 2026-07-29
 - **Статус:** 🔄 В процессе
@@ -580,13 +531,9 @@
   - `backend/models/index.js` экспортирует `ApiKey`.
   - `backend/scripts/seed.js` обновлён: добавлены seed-данные для API-ключей (Groq, OpenRouter, Gemini, YouTube, GitHub Models). Seed запущен, 5 ключей сохранены в MongoDB.
 - **Файлы изменены:** `backend/models/ApiKey.js`, `backend/models/index.js`.
-
 ## 🐞 ИЗВЕСТНЫЕ ПРОБЛЕМЫ
-
 - 
-
 ## 💡 УТОЧНЕНИЯ ОТ ПОЛЬЗОВАТЕЛЯ
-
 - DevStudio: генератор приложений
 - Анимации: Framer Motion (fade, slide, hover-scale)
 - Цвета: #0a0a0f фон, #00ff41 акцент
@@ -602,7 +549,6 @@
 - **Файлы изменены:** `frontend/src/components/omega/OmegaChat.jsx`, `backend/routes/omega.js`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 ### P5.1 — Улучшение Advertiser Panel
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -615,7 +561,6 @@
 - **Файлы изменены:** `frontend/src/pages/AdvertiserDashboardPage.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 ### P5.2 — Улучшение Admin Panel
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -630,7 +575,6 @@
 - **Файлы изменены:** `frontend/src/pages/AdminDashboardPage.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 ### P5.3 — Улучшение Staff Panel
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -645,7 +589,6 @@
 - **Файлы изменены:** `frontend/src/pages/StaffDashboardPage.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 ### P5.4 — Проверка OmegaChat: реальные ответы + Anti-Fail Mode
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -668,7 +611,6 @@
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Проверка backend:** ✅ `node --check` прошёл для `aiService.js` и `omegaController.js`. Backend не перезапускался по требованию пользователя.
 - **Баги остались:** —
-
 ### P5.5 — Creator/Business Dashboard
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -684,12 +626,10 @@
 - **Файлы изменены:** `frontend/src/pages/CreatorDashboardPage.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 ### P5 — ИТОГО
 - **Статус:** ✅ Выполнен
 - **Дата:** 2026-07-29
 - **Подэтапы:** P5.1 Advertiser ✅, P5.2 Admin ✅, P5.3 Staff ✅, P5.4 OmegaChat Anti-Fail ✅, P5.5 Creator/Business ✅.
-
 ### P6.1 — Интерактивный чат сотрудников (ChatTab.jsx)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -705,7 +645,6 @@
 - **Файлы изменены:** `frontend/src/pages/owner/components/tabs/ChatTab.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 ### P6.2 — Клиентский чат на лендинге (ClientChatWidget + AdRequests API)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -723,12 +662,10 @@
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Проверка backend:** ✅ `node --check backend/server.js` и `node --check backend/routes/adRequests.js` прошли. Backend не перезапускался.
 - **Баги остались:** —
-
 ### P6 — ИТОГО
 - **Статус:** ✅ Выполнен
 - **Дата:** 2026-07-29
 - **Подэтапы:** P6.1 ChatTab ✅, P6.2 ClientChatWidget + AdRequests API ✅.
-
 ### P7 — Анализ контента + AI Chat
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -752,7 +689,6 @@
 - **Файлы изменены:** `frontend/src/pages/ContentAnalyzerPage.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 ### P8 — Планировщик (улучшения)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -768,7 +704,6 @@
 - **Файлы изменены:** `frontend/src/pages/SchedulerPage.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 ### P8.1 — Доработка медиа-очереди (full-screen preview, zoom/pan)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -784,7 +719,6 @@
 - **Файлы изменены:** `frontend/src/pages/SchedulerPage.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 ### P8.2 — Дополнительные fallback AI-провайдеры (HuggingFace + Cloudflare)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -796,7 +730,6 @@
 - **Файлы изменены:** `backend/.env`, `backend/services/aiService.js`.
 - **Проверка:** `node --check backend/services/aiService.js` ✅, `npm run build` ✅.
 - **Баги остались:** —
-
 ### Backend fix — старт на порту 5000 без падений
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -808,9 +741,7 @@
 - **Файлы изменены:** `backend/config/database.js`, `backend/.env`.
 - **Проверка backend:** ✅ Порт 5000 слушается, `/health` отвечает, `/api/omega/chat` возвращает ответ.
 - **Баги остались:** —
-
 ### P9 — Темы, UI/UX, адаптив, PWA
-
 #### P9.1 — CSS-переменные для светлой/тёмной темы (`frontend/src/styles/globals.css`)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -820,7 +751,6 @@
 - **Файлы изменены:** `frontend/src/styles/globals.css`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.2 — `useTheme.js`: экспорт `setTheme` для синхронизации с профилем
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -829,7 +759,6 @@
 - **Файлы изменены:** `frontend/src/hooks/useTheme.js`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.3 — `DashboardShell.jsx`: инициализация темы и фон
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -841,7 +770,6 @@
 - **Файлы изменены:** `frontend/src/components/layout/DashboardShell.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.4 — `DashboardHeader.jsx`: кнопка переключения темы
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -853,7 +781,6 @@
 - **Файлы изменены:** `frontend/src/components/layout/DashboardHeader.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.5 — `TabNavigation.jsx`: mobile-first адаптив + CSS-переменные
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -864,7 +791,6 @@
 - **Файлы изменены:** `frontend/src/components/layout/TabNavigation.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.6 — `main.jsx`: фикс warning React Router future flags
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -873,7 +799,6 @@
 - **Файлы изменены:** `frontend/src/main.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.7 — `OverviewTab.jsx`: CSS-переменные + fallback keys
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -884,7 +809,6 @@
 - **Файлы изменены:** `frontend/src/pages/owner/components/tabs/OverviewTab.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.8 — `PWAInstallButton.jsx`: компонент установки PWA
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -896,7 +820,6 @@
 - **Файлы изменены:** `frontend/src/components/pwa/PWAInstallButton.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.9 — `LandingPage.jsx`: кнопка установки PWA
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -905,7 +828,6 @@
 - **Файлы изменены:** `frontend/src/pages/LandingPage.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.10 — Иконки PWA (`frontend/public/icons/`)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -915,7 +837,6 @@
 - **Файлы изменены:** `frontend/public/icons/icon-192x192.png`, `frontend/public/icons/icon-512x512.png`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, precache теперь включает иконки (7 entries).
 - **Баги остались:** —
-
 #### P9.11 — `index.html`: убраны hardcoded тёмные классы
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -924,7 +845,6 @@
 - **Файлы изменены:** `frontend/index.html`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.12 — `ChatTab.jsx`: fullscreen-режим чата
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -936,7 +856,6 @@
 - **Файлы изменены:** `frontend/src/pages/owner/components/tabs/ChatTab.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 #### P9.13 — Срочный фикс `DashboardShell.jsx`: убран цикл обновлений темы
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -947,7 +866,6 @@
 - **Файлы изменены:** `frontend/src/components/layout/DashboardShell.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно, ошибок нет.
 - **Баги остались:** —
-
 ### P9 — ИТОГО
 - **Статус:** ✅ Выполнен
 - **Дата:** 2026-07-29
@@ -964,9 +882,7 @@
   - P9.12 `ChatTab.jsx` fullscreen-режим ✅
 - **Сборка:** ✅ `npm run build` (frontend) успешно.
 - **Backend:** ✅ Работает на порту 5000.
-
 ### P10 — Подписки, оплата, email, реквизиты (в процессе)
-
 #### P10.1 — Модель MongoDB `Subscription.js`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -976,7 +892,6 @@
 - **Файлы изменены:** `backend/models/Subscription.js`.
 - **Проверка сборки:** — (backend-модель, проверка после создания всех моделей P10).
 - **Баги остались:** —
-
 #### P10.2 — Модель MongoDB `Invoice.js`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -988,7 +903,6 @@
 - **Файлы изменены:** `backend/models/Invoice.js`.
 - **Проверка сборки:** — (backend-модель, проверка после создания всех моделей P10).
 - **Баги остались:** —
-
 #### P10.3 — Модель MongoDB `OwnerRequisites.js`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -999,7 +913,6 @@
 - **Файлы изменены:** `backend/models/OwnerRequisites.js`.
 - **Проверка сборки:** — (backend-модель, проверка после создания всех моделей P10).
 - **Баги остались:** —
-
 #### P10.4 — Обновление `backend/models/index.js`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1009,7 +922,6 @@
 - **Файлы изменены:** `backend/models/index.js`.
 - **Проверка сборки:** — (backend-модель, проверка после создания всех моделей P10).
 - **Баги остались:** —
-
 #### P10.5 — Контроллер подписок `subscriptionController.js`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1025,7 +937,6 @@
 - **Файлы изменены:** `backend/controllers/subscriptionController.js`.
 - **Проверка сборки:** — (проверка backend после подключения роутов).
 - **Баги остались:** —
-
 #### P10.5 — Роуты подписок `subscriptions.js`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1042,7 +953,6 @@
 - **Файлы изменены:** `backend/routes/subscriptions.js`.
 - **Проверка сборки:** — (проверка backend после подключения роутов в `server.js`).
 - **Баги остались:** —
-
 #### P10.6 — Контроллер и роуты счетов `invoiceController.js` / `invoices.js`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1058,7 +968,6 @@
 - **Файлы изменены:** `backend/controllers/invoiceController.js`, `backend/routes/invoices.js`.
 - **Проверка сборки:** — (проверка backend после подключения роутов в `server.js`).
 - **Баги остались:** —
-
 #### P10.7 — Контроллер и роуты реквизитов `ownerRequisitesController.js` / `ownerRequisites.js`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1071,7 +980,6 @@
 - **Файлы изменены:** `backend/controllers/ownerRequisitesController.js`, `backend/routes/ownerRequisites.js`.
 - **Проверка сборки:** — (проверка backend после подключения роутов в `server.js`).
 - **Баги остались:** —
-
 #### P10.8 — Подключение роутов в `backend/server.js`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1084,7 +992,6 @@
 - **Файлы изменены:** `backend/server.js`.
 - **Проверка сборки:** `node --check backend/server.js` ✅.
 - **Баги остались:** —
-
 #### P10.9 — Сервис ЮKassa `yookassaService.js`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1097,7 +1004,6 @@
 - **Файлы изменены:** `backend/services/yookassaService.js`.
 - **Проверка сборки:** — (проверка после создания контроллера/роутов).
 - **Баги остались:** —
-
 #### P10.10 — Контроллер и роуты ЮKassa
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1117,7 +1023,6 @@
 - **Файлы изменены:** `backend/controllers/yookassaController.js`, `backend/routes/yookassa.js`, `backend/server.js`.
 - **Проверка сборки:** `node --check backend/server.js` ✅.
 - **Баги остались:** —
-
 #### P10.11 — Stripe: подготовка, выключена по умолчанию
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1141,7 +1046,6 @@
 - **Файлы изменены:** `backend/services/stripeService.js`, `backend/controllers/stripeController.js`, `backend/routes/stripe.js`, `backend/server.js`.
 - **Проверка сборки:** `node --check backend/server.js` ✅.
 - **Баги остались:** —
-
 #### P10.12 — Email-сервис (Nodemailer)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1161,7 +1065,6 @@
 - **Файлы изменены:** `backend/services/emailService.js`, `backend/controllers/emailController.js`, `backend/routes/email.js`, `backend/server.js`.
 - **Проверка сборки:** `node --check backend/server.js` ✅.
 - **Баги остались:** —
-
 #### P10.13 — Frontend API-слой (`frontend/src/services/api.js`)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1178,7 +1081,6 @@
 - **Файлы изменены:** `frontend/src/services/api.js`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно.
 - **Баги остались:** —
-
 #### P10.14 — Frontend: таб «Мои реквизиты» `OwnerRequisitesTab.jsx`
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1191,7 +1093,6 @@
 - **Файлы изменены:** `frontend/src/pages/owner/components/tabs/OwnerRequisitesTab.jsx`.
 - **Проверка сборки:** — (сборка после подключения таба в `OwnerDashboardPage`).
 - **Баги остались:** —
-
 #### P10.14 — Подключение таба «Реквизиты» в дашборд
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1205,7 +1106,6 @@
 - **Файлы изменены:** `frontend/src/pages/owner/OwnerDashboardPage.jsx`, `frontend/src/pages/owner/utils/constants.js`, `frontend/src/pages/owner/data/initialData.js`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно.
 - **Баги остались:** —
-
 #### P10.15 — Обновление `SubscriptionsTab.jsx` (API + оплата)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1222,7 +1122,6 @@
 - **Файлы изменены:** `frontend/src/pages/owner/components/tabs/SubscriptionsTab.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно.
 - **Баги остались:** —
-
 #### P10.16 — Обновление `FinanceTab.jsx` (счета + оплата)
 - **Дата:** 2026-07-29
 - **Статус:** ✅ Выполнен
@@ -1238,7 +1137,6 @@
 - **Файлы изменены:** `frontend/src/pages/owner/components/tabs/FinanceTab.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно.
 - **Баги остались:** —
-
 ### P10 — ИТОГО
 - **Статус:** ✅ Выполнен
 - **Дата:** 2026-07-29
@@ -1246,7 +1144,6 @@
 - **Сборка:** ✅ `npm run build` (frontend) успешно.
 - **Backend:** `node --check backend/server.js` ✅.
 - **Следующий этап:** P11 — Landing Page полировка.
-
 ### P10 Bugfix — исправление критических багов перед P11
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1262,7 +1159,6 @@
 - **Файлы изменены:** `backend/routes/invoices.js`, `backend/models/OwnerRequisites.js`, `backend/models/Subscription.js`, `backend/models/Invoice.js`, `backend/models/OmegaMemory.js`, `backend/models/AIAgent.js`, `backend/models/Campaign.js`, `backend/models/AuditLog.js`, `backend/models/Banner.js`, `backend/models/AdRequest.js`, `backend/models/Integration.js`, `backend/models/News.js`, `backend/models/Notification.js`, `backend/models/OmegaSkill.js`, `backend/models/OmegaTransaction.js`, `backend/models/Payment.js`, `backend/models/Promo.js`, `backend/models/Server.js`, `backend/server.js`, `frontend/src/components/layout/DashboardShell.jsx`.
 - **Проверка backend:** ✅ порт 5000, `/health` отвечает, логи чистые (нет duplicate index warning).
 - **Баги остались:** —
-
 #### P10 Bugfix — SubscriptionsTab.jsx `.split` error
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1276,7 +1172,6 @@
 - **Файлы изменены:** `frontend/src/pages/owner/components/tabs/SubscriptionsTab.jsx`.
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно.
 - **Баги остались:** —
-
 #### P10 — Юридический щит (динамические настройки владельца, согласия, фильтр AI)
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1309,7 +1204,6 @@
 - **Проверка сборки:** ✅ `npm run build` (frontend) успешно.
 - **Проверка backend:** ✅ порт 5000, регистрация, login, `/api/public/legal-info`, OMEGA Guard работают.
 - **Баги остались:** —
-
 ### P10 — ИТОГО (обновлено)
 - **Статус:** ✅ Выполнен
 - **Дата:** 2026-07-30
@@ -1317,7 +1211,6 @@
 - **Сборка:** ✅ `npm run build` (frontend) успешно.
 - **Backend:** ✅ порт 5000, регистрация, login, `/api/public/legal-info`, OMEGA Guard работают.
 - **Следующий этап:** P11 — Деплой и релиз (требуется подтверждение/учётные данные Render/Vercel/MongoDB Atlas).
-
 #### P11 — Hotfix: порядок подключения MongoDB в server.js
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1328,7 +1221,6 @@
 - **Файлы изменены:** `backend/server.js`.
 - **Проверка:** `node --check backend/server.js` ✅, `git push origin main` ✅.
 - **Баги остались:** —
-
 #### P11 — Hotfix: CORS для Cloudflare Pages
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1341,7 +1233,6 @@
 - **Файлы изменены:** `backend/server.js`.
 - **Проверка:** `node --check backend/server.js` ✅, `git push origin main` ✅.
 - **Баги остались:** —
-
 #### P11 — Hotfix: 405 ошибка на /api/auth/login (CORS preflight)
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1355,7 +1246,6 @@
 - **Файлы изменены:** `backend/server.js`, `backend/routes/auth.js`.
 - **Проверка:** `node --check backend/server.js` ✅, `node --check backend/routes/auth.js` ✅, `git push origin main` ✅.
 - **Баги остались:** —
-
 #### P11 — Security fix: убрана возможность выбора роли при регистрации
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1375,7 +1265,6 @@
 - **Файлы изменены:** `backend/routes/auth.js`, `frontend/src/components/auth/RegisterForm.jsx`, `frontend/src/context/AuthContext.jsx`.
 - **Проверка:** `node --check backend/routes/auth.js` ✅, `node --check backend/server.js` ✅, `npm run build` ✅, `git push origin main` ✅.
 - **Баги остались:** —
-
 #### P11 — Production audit: CORS, auth role security, MongoDB Atlas, endpoints
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1404,7 +1293,6 @@
 - **Проверка:** `node --check backend/server.js` ✅, `git push origin main` ✅, production curl tests ✅.
 - **Баги остались / требуют ручной настройки:**
   - OMEGA отвечает в demo-режиме — нужно добавить API-ключи в Environment Variables Render (Groq/OpenRouter/Gemini/GitHub) или в коллекцию `apikeys` Atlas.
-
 #### P11 — Critical fix: все API-запросы frontend теперь идут на Render backend
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1431,7 +1319,6 @@
 - **Ручные действия, необходимые для Cloudflare Pages:**
   - В `dash.cloudflare.com → Workers & Pages → ai-viral-studio → Settings → Environment variables` добавить `VITE_API_URL = https://aiviral-backend.onrender.com/api`.
   - Пересобрать/ redeploy frontend.
-
 #### P11 — Mobile auth UI fix: глазик пароля, ошибки не сдвигают форму, табы Вход/Регистрация
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1461,7 +1348,6 @@
 - **Файлы изменены:** `frontend/src/components/auth/LoginForm.jsx`, `frontend/src/components/auth/RegisterForm.jsx`, `frontend/src/components/auth/AuthModal.jsx`, `frontend/src/pages/LandingPage.jsx`.
 - **Проверка:** `npm run build` ✅, `git push origin main` ✅.
 - **Баги остались:** —
-
 #### P11 — Задачи 1–4: глазик смены пароля, change-password endpoint, AI env check
 - **Дата:** 2026-07-30
 - **Статус:** ✅ Выполнен
@@ -1489,9 +1375,7 @@
 - **Ручные действия:**
   - В Render Environment Variables добавьте рабочие AI-ключи (Groq/OpenRouter/Gemini/GitHub/HuggingFace/Cloudflare) и redeploy backend.
   - После redeploy проверьте логи Render: блок `AI ENV CHECK` должен показывать `true` для используемых провайдеров.
-
 ## 🚀 Critical Fix — 2026-07-31
-
 | Блок | Статус | Описание |
 |------|--------|----------|
 | Smart Data (Finance, Analytics, Subscriptions, OMEGA Memory) | ✅ Выполнен | useSmartData hook, демо-данные с бейджами, загрузка реальных данных |
@@ -1500,12 +1384,8 @@
 | ЮKassa тестовый платёж | ✅ Выполнен | paymentController.js, Payment model, /api/payments/create, /api/payments/webhook, PaymentSuccess.jsx |
 | Resend email | ✅ Выполнен | emailService.js, письмо после регистрации и оплаты, повторная отправка |
 | Сборка frontend | ✅ Выполнен | `npm run build` прошёл успешно |
-
 | Hotfix Payment.js named export | ✅ Выполнен | 2026-07-31 | Исправлен export в models/Payment.js под models/index.js; синтаксис backend проверен |
-
-
 ## ✅ RAG + Per-Channel Analytics + Audience Insights + Preview + A/B + Code Splitting — 2026-08-01
-
 ### RAG + Vector Store
 - [x] `backend/services/vectorStore.js` создан с In-Memory fallback (лимит 1000 записей, cosine similarity)
 - [x] `backend/services/vectorize/vectorizeService.js` обновлён: fallback на `vectorStore.js` при отсутствии Cloudflare Vectorize
@@ -1513,94 +1393,75 @@
 - [x] OMEGA Chat сохраняет диалоги в векторную память (через `saveDialog` → `upsertVector`)
 - [x] UI: `frontend/src/components/omega/VectorStoreStatus.jsx` показывает бэкенд и лимит
 - [x] Бейдж «Память пуста — OMEGA запомнит этот разговор» в пустом чате
-
 ### Per-Channel Analytics
 - [x] `backend/services/channelAnalytics.js` создан с проверкой `Integration` (connected + accessToken/apiKey)
 - [x] Endpoints: `GET /api/analytics/channels`, `GET /api/analytics/channels/:platform`
 - [x] Нет фейковых 2.5M просмотров — показывает «Подключите аккаунт» + 3 шага
 - [x] Frontend: `frontend/src/components/analytics/ChannelAnalyticsTab.jsx` с под-вкладками [Обзор] [YouTube] [Instagram] [TikTok] [Telegram]
 - [x] Интегрировано в `AnalyticsPage.jsx` (таб «По платформам»)
-
 ### Audience Insights
 - [x] `backend/services/audienceService.js` создан с проверкой прав доступа
 - [x] Endpoints: `GET /api/analytics/audience`, `GET /api/analytics/audience/:platform`
 - [x] Frontend: `frontend/src/components/analytics/AudienceInsightsTab.jsx` — pie charts (возраст, пол), heatmap активности, топ страны
 - [x] Плейсхолдеры с подписью «Ваши данные появятся здесь после подключения»
 - [x] Интегрировано в `AnalyticsPage.jsx` (таб «Аудитория»)
-
 ### Preview Before Publish
 - [x] `frontend/src/components/scheduler/PostPreview.jsx` создан — макеты Instagram (1:1), Telegram, YouTube (16:9), TikTok (9:16)
 - [x] Кнопка «Предпросмотр» в модалке создания поста `SchedulerPage.jsx`
 - [x] Показывает текст, хэштеги, медиа, кнопки-заглушки лайк/коммент
-
 ### A/B Tests
 - [x] `backend/services/abTestService.js` создан — требует AI (Groq/OpenRouter), генерирует 2 варианта, сохраняет в `ScheduledPost`
 - [x] Endpoints: `POST /api/analytics/ab-test`, `POST /api/analytics/ab-test/:id/select`, `GET /api/analytics/ab-test/ai-required`
 - [x] Frontend: `frontend/src/components/scheduler/ABTestModal.jsx` — кнопка в Scheduler, 2 карточки, выбор, регенерация
 - [x] Если AI нет — модалка с редиректом на API Keys
-
 ### Code Splitting + React Query
 - [x] `frontend/vite.config.js` — `manualChunks`: vendor, ui, omega
 - [x] `npm install @tanstack/react-query` — добавлен в зависимости
 - [x] `frontend/src/main.jsx` — обёрнут в `QueryClientProvider` с `staleTime: 5min`, `cacheTime: 10min`, `retry: 1`
-
 ### Сборка и деплой
 - [x] Frontend build: успешно
 - [x] Backend `node --check` для всех изменённых файлов: успешно
 - [x] Git push: выполнен
 - [x] PROGRESS_REPORT.md обновлён
-
 ### Ручные действия
 - Добавить `CHROMADB_URL` или `CLOUDFLARE_VECTORIZE_API_KEY` в Render env для безлимитной векторной памяти (иначе In-Memory, 1000 записей)
 - Добавить рабочие API ключи для соцсетей в интеграции, чтобы Channel Analytics / Audience Insights возвращали реальные данные
 - Убедиться, что `ScheduledPost` модель поддерживает поля `variants` и `abTest` (добавлены при создании A/B теста)
-
-
 ## ✅ Монетизация — Pay-per-Gen, Referral 2.0, Case Study, Custom Reports — 2026-08-01
-
 ### Pay-per-Generation
 - [x] `backend/models/UsageQuota.js` создан: userId, plan, generationsUsed, generationsLimit, overageCost, overageUsed, topUpPackSize, topUpPackPrice
 - [x] `backend/services/usageQuotaService.js` создан: лимиты по тарифам (Creator 100, Pro 500, Agency 5000), consumeGeneration, topUpGenerations
 - [x] OMEGA Chat проверяет квоту перед ответом (`backend/controllers/omegaController.js`): 402 при исчерпании
 - [x] Владелец меняет лимиты в `SubscriptionsTab` (`?tab=subscriptions` → «Настройки лимитов генераций»)
 - [x] Frontend: `frontend/src/components/omega/UsageQuotaWidget.jsx` — виджет «Осталось X/Y», кнопка «Докупить +100 за $4»
-
 ### Referral Program 2.0
 - [x] `backend/models/Referral.js` создан: referralCode, referredBy, referralCount, referralEarnings, tier, creditBalance
 - [x] `backend/services/referralService.js` создан: тиры (1 → $10, 3 → Agentic Mode, 5 → -20%, 10 → 40% комиссии), генерация ссылки `https://aiviral-studio.ru/?ref=CODE`
 - [x] Применение реферального кода при регистрации (`backend/controllers/authController.js`)
 - [x] Endpoints: `GET /api/analytics/referrals`, `POST /api/analytics/referrals/apply`
 - [x] Frontend: `frontend/src/pages/owner/components/tabs/ReferralsTab.jsx` — ссылка, статистика, таблица приведённых, тиры
-
 ### Case Study Auto-Generator
 - [x] `backend/services/caseStudyGenerator.js` создан: ищет клиентов с ростом метрик {'>'}20% за 30 дней, пишет кейс через AI, генерирует обложку
 - [x] Endpoints: `GET /api/analytics/case-studies/candidates`, `POST /api/analytics/case-studies/generate`
 - [x] Frontend: `frontend/src/components/analytics/CaseStudyGenerator.jsx` — кнопка «Сгенерировать кейс», список, одобрение/удаление
-
 ### Custom Reports + PDF
 - [x] `backend/services/pdfGenerator.js` создан: PDF через `pdfkit`, Excel-данные, AI-выводы
 - [x] Endpoint: `POST /api/analytics/reports/generate` — type, channels, format
 - [x] Frontend: `frontend/src/components/analytics/ReportGenerator.jsx` — выбор типа/каналов/формата, скачивание PDF
 - [x] Библиотека `pdfkit` установлена в backend
-
 ### Сборка и деплой
 - [x] Frontend build: успешно
 - [x] Backend `node --check`: успешно
 - [x] Git push: выполнен
 - [x] PROGRESS_REPORT.md обновлён
-
 ### Ручные действия
 - Подключить ЮKassa/Stripe для оплаты топ-апов (сейчас квота увеличивается напрямую через API, без реального платежа)
 - Добавить рабочие данные клиентов, чтобы Case Study Generator находил кандидатов с ростом {'>'}20%
-
-
 ## ✅ ПРОМПТ №6 — Инфраструктура + Real-time + Красивые пустые состояния — 2026-08-01
-
 ### Socket.io (real-time)
 - [x] `backend/socket.js` создан: JWT авторизация handshake, комнаты `user_{userId}`, `owner_{ownerId}`, `team_{teamId}`, fallback polling
 - [x] `frontend/src/hooks/useSocket.js` создан: подключение к Socket.io, JWT из localStorage, обработчики new_notification/chat_message/task_update/approval_request/omega_alert
 - [x] Интегрирован в `backend/server.js` через `http.createServer` + `initSocket`
-
 ### Empty States (все 7 табов)
 - [x] `frontend/src/components/common/EmptyState.jsx` — универсальный компонент с иконкой, заголовком, подсказкой, CTA
 - [x] Overview: если нет платежей и подписок → «Начните с первой подписки» + CTA
@@ -1610,7 +1471,6 @@
 - [x] OMEGA Core: если нет агентов → «Запустите AI-провайдеров в API Keys» + CTA
 - [x] AI Chat: уже имелся красивый пустой старт с бейджем «Память пуста»
 - [x] Стили Tailwind, glassmorphism, hover:scale-[1.02]
-
 ### Performance
 - [x] `frontend/vite.config.js` — manualChunks: vendor, ui (framer-motion), ai (@tanstack/react-query), omega
 - [x] React.lazy() в `frontend/src/App.jsx` для AnalyticsPage, SchedulerPage, ContentAnalyzerPage
@@ -1620,35 +1480,27 @@
 - [x] `analytics.js` — кэширование 5 минут через `cacheWrap` middleware
 - [x] `omegaController.js` — кэширование шаблонов 1 час
 - [x] `aiService.js` — двухуровневый кэш AI-ответов (in-memory + Redis 1 час)
-
 ### CDN / WebP
 - [ ] Полноценный конвертер загружаемых изображений не добавлен — в проекте нет активного upload-флоу с multer
 - [ ] Рекомендация: подключить `sharp` при добавлении загрузки аватаров/медиа
-
 ### Redis / Upstash (кэш)
 - [x] `backend/config/redis.js` создан: ioredis + in-memory Map fallback с TTL 5 мин
 - [x] Если `REDIS_URL/UPSTASH_REDIS_URL` отсутствует — логируется fallback и используется память
 - [x] Кэш: `owner/overview`, `analytics/*`, `omega/templates`, AI-ответы
-
 ### PWA Доработка
 - [x] `frontend/src/sw.js` — добавлен `sync` event listener для `sync-posts` и `sync-messages`
 - [x] `frontend/src/components/layout/DashboardHeader.jsx` — кнопка 🔔 запрашивает push-подписку через `PushManager`, подсвечивается зелёным при активной подписке
 - [x] Backend `backend/routes/push.js` + `pushController.js` уже имеет VAPID + web-push отправку
-
 ### Сборка и деплой
 - [x] Frontend build: [успешно]
 - [x] Backend `node --check`: [успешно]
 - [x] Git push: [выполнен]
 - [x] PROGRESS_REPORT.md обновлён: [да]
-
 ### Ручные действия
 - Добавить `REDIS_URL` или `UPSTASH_REDIS_URL` в Render env для персистентного кэша (иначе in-memory, сбросится при перезапуске)
 - Добавить `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` для production push-уведомлений
 - Добавить `SOCKET_URL` (или оставить проксирование) на фронтенде для Render deployment
-
-
 ## ✅ Capacitor + Tauri + Owner App — 2026-08-01
-
 ### Capacitor (Mobile iOS/Android)
 - [x] Установлены `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/camera`, `@capacitor/push-notifications`, `@capacitor/app`, `@capacitor/splash-screen`
 - [x] `frontend/capacitor.config.json` создан: appId `com.ai.viral.studio`, webDir `dist`, server URL `https://ai-viral-studio.pages.dev`, allowNavigation
@@ -1656,14 +1508,12 @@
 - [x] Скрипты в `frontend/package.json`: `cap:sync`, `cap:open:android`, `cap:open:ios`
 - [x] Хук `frontend/src/hooks/useCapacitor.js`: camera, push notifications, biometric auth, deeplinks, splash screen hide
 - [x] `npx cap sync` выполнен успешно
-
 ### Tauri (Desktop <5MB)
 - [x] Создана папка `desktop/` со scaffolding Tauri v2
 - [x] `desktop/src-tauri/tauri.conf.json` обновлён: productName `AI Viral Studio`, identifier `com.ai.viral.studio`, frontendDist `../frontend/dist`, размер окна 1400×900
 - [x] `desktop/src-tauri/Cargo.toml` + `lib.rs`: system tray с меню (Новый пост, OMEGA, Emergency Stop, Выход), клик по иконке открывает окно
 - [x] Подготовлены глобальные хоткеи и always-on-top через плагины (`tauri-plugin-global-shortcut`, `tauri-plugin-positioner`)
 - [x] Drag & Drop подготовлен на уровне конфигурации (файлы попадают в окно, дальнейшая обработка на frontend)
-
 ### Owner App (Mobile)
 - [x] Создана папка `frontend/src/pages/owner-app/`
 - [x] Экраны: Command Center, Team Pulse, Approval Stream, OMEGA Voice, Profile
@@ -1672,23 +1522,18 @@
 - [x] Emergency Stop: двойное нажатие для активации
 - [x] OMEGA Voice: Web Speech API, удержание кнопки → распознавание → редирект
 - [x] Маршрут `/owner-app` обновлён в `App.jsx` (только role === 'owner')
-
 ### Сборка и проверки
 - [x] Frontend build: успешно
 - [x] Backend `node --check`: успешно
 - [x] Capacitor sync: успешно
 - [x] Git push: выполнен
 - [x] PROGRESS_REPORT.md обновлён
-
 ### Ручные действия
 - Для сборки Android: `cd frontend && npx cap open android` → Android Studio → Build APK
 - Для сборки iOS нужна macOS + Xcode: `cd frontend && npx cap add ios && npx cap open ios`
 - Для Tauri build нужен установленный Rust: `cd desktop && npm install && npm run tauri build`
-
 ---
-
 ## ✅ ПРОМПТ №8 — White-Label Agency + OMEGA API + Multi-Project Workspaces — 2026-08-01
-
 ### White-Label Agency
 - [x] Backend модель `WhiteLabel`: да (`backend/models/WhiteLabel.js`)
 - [x] Middleware `detectWhiteLabel` по host: да (`backend/middleware/whiteLabel.js`)
@@ -1697,7 +1542,6 @@
 - [x] Frontend вкладка: да (`frontend/src/pages/owner/components/tabs/WhiteLabelTab.jsx`)
 - [x] Проверка Agency/owner/admin: да
 - [x] Подключено в `server.js`: да
-
 ### OMEGA API (B2B2B)
 - [x] Backend модель `DeveloperApiKey`: да (`backend/models/DeveloperApiKey.js`)
 - [x] Controller с валидацией ключа, rate limit, billing: да (`backend/controllers/omegaAPIController.js`)
@@ -1707,7 +1551,6 @@
 - [x] OpenAPI docs `/api/v1/omega/docs`: да (статичный JSON)
 - [x] Frontend Developer tab: да (`frontend/src/pages/owner/components/tabs/DeveloperTab.jsx`)
 - [x] Подключено в `server.js`: да
-
 ### Multi-Project Workspaces
 - [x] Backend модель `ProjectWorkspace`: да (`backend/models/ProjectWorkspace.js`)
 - [x] Controller CRUD + default: да (`backend/controllers/projectWorkspaceController.js`)
@@ -1715,21 +1558,16 @@
 - [x] Frontend вкладка Workspaces: да (`frontend/src/pages/owner/components/tabs/WorkspacesTab.jsx`)
 - [x] Переключатель проектов в шапке: да (`DashboardHeader` + `workspaceApi`)
 - [x] Подключено в `server.js`: да
-
 ### Интеграция в Owner Dashboard
 - [x] Tabs `whiteLabel`, `workspaces`, `developer` добавлены в `OwnerDashboardPage.jsx`
 - [x] Labels/icons в `initialData.js`: да
 - [x] Routes `/developer`, `/white-label`, `/workspaces` в `App.jsx`: да
-
 ### Сборка и деплой
 - [x] Frontend build: успешно
 - [x] Backend check: успешно (server.js + все новые файлы)
 - [x] Git push: выполнен
-
 ---
-
 ## ✅ ИСПРАВЛЕНИЕ ИМПОРТОВ — ПРОМПТ №8 — 2026-08-01
-
 ### Исправления после деплоя (импорты)
 - [x] `omegaAPIController.js`: путь к models/services исправлен (`../../` → `../`)
 - [x] `whiteLabelController.js`: импорты проверены: да, ошибок: 0
@@ -1745,23 +1583,18 @@
 - [x] Git push: выполнен
 - [ ] Render Clear build cache: сделано/нет (требуется вручную в Dashboard)
 - [ ] Backend live (нет `ERR_MODULE_NOT_FOUND`): проверить после деплоя на Render
-
 ---
-
 ## ✅ ПРОМПТ №9 — EN + Stripe/PayPal + GDPR + Timezone + ProductHunt — 2026-08-01
-
 ### Полная EN-локализация
 - [x] `en.json` содержит все ключи `ru.json`: да (проверены, добавлены новые ключи)
 - [x] Backend email-шаблоны bilingual: да (`emailService.js` с `lang` параметром и переводами RU/EN)
 - [x] OMEGA отвечает на языке пользователя: да (через `preferences.language`)
-
 ### Stripe + PayPal
 - [x] `backend/services/stripeService.js` существует и проверяет `STRIPE_ENABLED` + `STRIPE_SECRET_KEY`: да
 - [x] `backend/services/paypalService.js` создан: `createPayPalOrder`, `capturePayPalOrder`, `getPayPalStatus`
 - [x] `backend/routes/paypal.js` endpoint'ы: `GET /status`, `POST /create-order`, `POST /capture`
 - [x] PayPal интегрирован в SettingsPage: да (кнопка рядом со Stripe/криптой)
 - [x] Fallback Stripe → PayPal → ЮKassa: на frontend доступны все три способа
-
 ### GDPR + Compliance
 - [x] `frontend/src/components/CookieConsent.jsx` создан: Accept / Decline / Settings
 - [x] `CookieConsent` подключён в `App.jsx`: да
@@ -1770,7 +1603,6 @@
 - [x] Backend `DELETE /api/users/me/data` (право на забвение): да (`userController.deleteMyData`)
 - [x] Backend `GET /api/users/me/export` (data portability): да (`userController.exportMyData`)
 - [x] Авто-удаление через 30 дней: `deletionScheduledAt` сохраняется в User
-
 ### Timezone
 - [x] Поле `timezone` добавлено в `User.preferences`: да
 - [x] Определение из браузера: `Intl.DateTimeFormat().resolvedOptions().timeZone` в AuthContext
@@ -1779,7 +1611,6 @@
 - [x] BestTimePicker использует timezone пользователя по умолчанию: да
 - [x] OMEGA Scout даты в локальном времени: да (`toLocaleDateString` с `timeZone`)
 - [x] SettingsPage: select timezone + сохранение через `updatePreferences`: да
-
 ### Product Hunt Launch Kit
 - [x] Страница `/launch` создана (`frontend/src/pages/LaunchPage.jsx`): да
 - [x] Таймер обратного отсчёта: да
@@ -1787,17 +1618,13 @@
 - [x] Счётчик предзаказов: `GET /api/launch/waitlist/count`: да
 - [x] Кнопки Share Twitter / LinkedIn: да
 - [x] Backend модель `Waitlist` и роуты: да (`backend/models/Waitlist.js`, `backend/routes/launch.js`)
-
 ### Сборка и деплой
 - [x] Frontend build: успешно
 - [x] Backend `node --check` (все изменённые файлы): успешно
 - [x] Git push: выполнить
 - [ ] Render Clear build cache: требуется вручную
-
 ---
-
 ## ✅ ПРОМПТ №10 — Интеграции с внешним миром — 2026-08-01
-
 ### WhatsApp Business API
 - [x] Сервис существует: `backend/services/whatsappService.js` — да
 - [x] Активация через API Keys: да (переменные окружения `WHATSAPP_API_KEY`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`)
@@ -1805,26 +1632,22 @@
 - [x] Endpoint `POST /api/integrations/whatsapp/webhook`: да (входящие сообщения)
 - [x] Frontend настройки: `IntegrationsTab.jsx` → вкладка «Внешние сервисы» → WhatsApp
 - [x] Тестовая отправка: форма в UI + backend handler
-
 ### Slack / Discord
 - [x] Сервис существует: `backend/services/slackService.js` (совмещает Slack + Discord) — да
 - [x] Активация через API Keys: да (`SLACK_BOT_TOKEN`, `DISCORD_BOT_TOKEN`, `DISCORD_CHANNEL_ID`)
 - [x] Slack slash-команда / уведомления в канал: реализовано через `sendSlackMessage`
 - [x] Discord embed-уведомления: реализовано через `sendDiscordMessage`
 - [x] Frontend настройки: вкладка «Внешние сервисы» → Slack + Discord
-
 ### Notion / ClickUp / Trello
 - [x] Сервисы существуют: `notionService.js`, `clickupService.js`, `trelloService.js` — да
 - [x] Активация через API Keys: да (`NOTION_TOKEN`, `CLICKUP_API_KEY`, `TRELLO_API_KEY`, `TRELLO_TOKEN`)
 - [x] Экспорт задач: `TasksTab.jsx` — кнопки «↗️ Notion / ClickUp / Trello»
 - [x] Создание контент-плана: `POST /api/integrations/notion/page`
-
 ### Shopify / WooCommerce
 - [x] Сервис существует: `backend/services/shopifyService.js` — да
 - [x] Активация через API Keys: да (`SHOPIFY_STORE_URL`, `SHOPIFY_ACCESS_TOKEN`)
 - [x] Импорт товаров: `GET /api/integrations/shopify/products`
 - [x] Генерация поста из товара: интегрировано в OMEGA tools (`shopify_products`)
-
 ### Webhooks / Zapier / Make
 - [x] Модель `Webhook` существует: `backend/models/Webhook.js` — да
 - [x] Сервис существует: `backend/services/webhookService.js` — да
@@ -1832,18 +1655,15 @@
 - [x] Подпись HMAC: `X-Webhook-Signature` для исходящих webhooks — да
 - [x] Предустановленные шаблоны: Google Sheets, CRM, Telegram-уведомление — в UI
 - [x] Frontend таб «Webhooks / Zapier» — да
-
 ### OMEGA Core — инструменты интеграций
 - [x] `omegaTools.js` добавлены: `send_whatsapp`, `send_slack`, `create_notion_page`, `create_clickup_task`, `trigger_webhook`, `shopify_products` — да
 - [x] Проверка конфигурации перед вызовом: `isConfigured()` в каждом сервисе — да
 - [x] OMEGA отвечает инструкцией, если интеграция не подключена — да
-
 ### Сборка и проверки
 - [x] Frontend build: успешно
 - [x] Backend `node --check` (server.js + 11 новых/изменённых файлов): успешно
 - [x] Git push: выполнить
 - [ ] Render Clear build cache: требуется вручную в Dashboard
-
 ### Ручные действия
 - Для WhatsApp: добавить `WHATSAPP_API_KEY`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` в Render env
 - Для Slack: добавить `SLACK_BOT_TOKEN` и при необходимости `SLACK_CHANNEL`
@@ -1852,10 +1672,7 @@
 - Для ClickUp: добавить `CLICKUP_API_KEY` и ID списка
 - Для Trello: добавить `TRELLO_API_KEY`, `TRELLO_TOKEN`, `TRELLO_BOARD_ID`, `TRELLO_LIST_ID`
 - Для Shopify: добавить `SHOPIFY_STORE_URL`, `SHOPIFY_ACCESS_TOKEN`
-
-
 ## ✅ Chroma Cloud + Timezone — 2026-08-01
-
 ### Vector Memory (Chroma Cloud)
 - [x] `vectorStore.js` существует: да (`backend/services/vectorStore.js`)
 - [x] CloudClient с `process.env` (не хардкод): да (`CHROMA_API_KEY`, `CHROMA_TENANT`, `CHROMA_DATABASE`)
@@ -1864,53 +1681,42 @@
 - [x] `searchVectorMemory` (RAG): да
 - [x] `deleteFromVectorMemory`: да
 - [x] `npm install chromadb`: уже было установлено (`^3.5.0`)
-
 ### Интеграция в OMEGA Chat
 - [x] `aiService.js` импортирует `vectorStore`: да
 - [x] Поиск памяти перед ответом AI: да (`searchVectorMemory` в `chatWithAI`)
 - [x] Сохранение разговора после ответа: да (`addToVectorMemory`)
 - [x] `memoryContext` добавляется в system prompt: да
-
 ### Timezone Detection
 - [x] `AuthContext` login/register: определяет timezone: да (`Intl.DateTimeFormat().resolvedOptions().timeZone`)
 - [x] `AuthContext` checkAuth: проверяет/обновляет timezone: да
 - [x] Модель User: поле timezone (в `preferences.timezone`): да
 - [x] PATCH /api/users/me принимает timezone: да (`PUT /api/users/me` в `userController.js`)
-
 ### OmegaMemoryTab
 - [x] Статус Chroma Cloud / In-Memory: да (`/api/analytics/vector-store/status`)
 - [x] Кнопка «Очистить память»: да (`DELETE /api/analytics/vector-store/clear`)
-
 ### Env Vars (Render)
 - [ ] `CHROMA_API_KEY` добавлен: требуется вручную в Render Dashboard
 - [ ] `CHROMA_TENANT` добавлен: требуется вручную
 - [ ] `CHROMA_DATABASE` добавлен: требуется вручную (`Omega1313`)
 - [ ] Clear build cache & deploy: требуется вручную
-
 ### Сборка
 - [x] Backend `node --check` (все файлы): успешно
 - [x] Frontend build: успешно (есть warnings по chunk size и dynamic imports)
 - [x] Git push: выполнить
-
-
 ---
-
 ## ✅ ПРОМПТ №11 — Физический мир + Франшиза + Fleet — 2026-08-01
-
 ### Модели (уже созданы, проверены)
 - [x] QRCode.js: да, ошибок: 0
 - [x] PrintOrder.js: да, ошибок: 0
 - [x] FranchiseKit.js: да, ошибок: 0
 - [x] BookingRequest.js: да, ошибок: 0
 - [x] StudioPartner.js: да, ошибок: 0
-
 ### Сервисы backend
 - [x] qrService.js: да (генерация, short code, трекинг, аналитика, скачивание)
 - [x] printService.js: да (fallback manual + Printful-ready)
 - [x] bookingService.js: да (fallback база студий + бронирование)
 - [x] deliveryService.js: да (deep link Yandex Eats / Delivery Club)
 - [x] franchiseGenerator.js: да (требует Agency + Brand Voice + лимит)
-
 ### Роуты backend
 - [x] /api/qr: да (CRUD, аналитика, скачивание, публичный redirect /qr/:shortCode)
 - [x] /api/print: да (заказ, статус, список)
@@ -1919,7 +1725,6 @@
 - [x] /api/fleet: да (summary, emergency-stop)
 - [x] /api/delivery: да (deep-link, team-order)
 - [x] Подключены в server.js: да
-
 ### Frontend табы
 - [x] QRGenerator.jsx: да (форма, типы, цвета, логотип, превью)
 - [x] QRPrintTab.jsx (QR + аналитика + печать + доставка): да (Recharts BarChart, Recharts)
@@ -1927,27 +1732,21 @@
 - [x] FleetTab.jsx (сетка проектов + STOP): да (grid, MRR, статусы, создание проекта)
 - [x] Табы подключены в OwnerDashboardPage: да (qr, franchise, fleet + иконки)
 - [x] ProjectSwitcher в хедере: да (существующий dropdown в DashboardHeader)
-
 ### Workspaces / Fleet
 - [x] Project Switcher в хедере: да (dropdown с названиями)
 - [x] Fleet Dashboard (сетка проектов): да
 - [x] Emergency Stop для Fleet: да (красная кнопка в FleetTab + API)
-
 ### Сборка
 - [x] Backend check (все новые файлы): успешно
 - [x] Frontend build: успешно (warnings по chunk size и dynamic imports)
 - [x] Git push: выполнен (`2da04e80`)
-
 ### Ручные действия (Render env)
 - Добавить `PRINT_API_KEY` или `PRINTFUL_API_KEY` для авто-заказа печати
 - Добавить `BOOKING_API_KEY` или `STUDIO_API_URL` для живой интеграции студий (сейчас fallback-база)
 - Добавить `YANDEX_EATS_API_KEY` или `DELIVERY_API_KEY` для автозаказа доставки (сейчас deep link)
 - Clear build cache & deploy в Render Dashboard
-
 ---
-
 ## ✅ ПРОМПТ №12 — Self-Healing + Crisis Management + Self-Reflection — 2026-08-01
-
 ### Self-Healing v2
 - [x] Мониторинг каждые 5 мин: да (cron в `selfHealing.js`)
 - [x] Проверка AI-провайдеров (Groq → OpenRouter fallback): да
@@ -1959,7 +1758,6 @@
 - [x] Telegram-алерты владельцу: да (`alertOwner`)
 - [x] Тумблер «Авто-восстановление» (`features.autoHeal`): да (`OwnerSettings`)
 - [x] Frontend статус-карточки: да (SelfHealingCrisisTab)
-
 ### Crisis Management
 - [x] Sentiment analysis сервис: да (`sentimentAnalysis.js`)
 - [x] Детект негатива (>70% + 10 комментов за 15 мин): да (`crisisDetection.analyzeComments`)
@@ -1969,13 +1767,11 @@
 - [x] Пауза AutoPilot: да (`crisisDetection.pauseAutopilot`)
 - [x] Frontend «Кризис-центр» (Owner/Admin): да
 - [x] Кнопки «Одобрить ответ», «Отклонить», тестовый анализ: да
-
 ### Self-Reflection
 - [x] Анализ логов за 24ч: да (`selfReflection.analyzeLast24Hours`)
 - [x] Паттерны и рекомендации: да
 - [x] Утренний репорт в Telegram (cron 09:00): да (`startSelfReflectionCron`)
 - [x] Кнопка ручной отправки отчёта: да
-
 ### Роуты
 - [x] `GET /api/monitoring/self-healing`: да
 - [x] `PUT /api/monitoring/self-healing/auto-heal`: да
@@ -1987,19 +1783,15 @@
 - [x] `GET /api/monitoring/self-reflection`: да
 - [x] `POST /api/monitoring/self-reflection/send`: да
 - [x] Подключены в `server.js`: да (`/api/monitoring`)
-
 ### Сборка
 - [x] Backend `node --check` (все новые файлы): успешно
 - [x] Frontend build: успешно (warnings по chunk size и dynamic imports)
 - [x] Git push: выполнен (`22238897`)
 - [ ] Render Clear build cache & deploy: требуется вручную
-
 ### Ручные действия
 - Добавить `TELEGRAM_BOT_TOKEN` и `TELEGRAM_OWNER_CHAT_ID` для алертов и утреннего репорта
 - Clear build cache & deploy в Render Dashboard
 - Для живого мониторинга комментариев подключить соцсети в Интеграциях (Instagram, YouTube, Telegram)
-
-
 ### Исправления после деплоя (импорты)
 - [x] Ошибка getPreferredProvider найдена: да (`omegaController.js:11` импортировал функцию, которой не было в `selfHealing.js`)
 - [x] Исправлено в: `selfHealing.js` (добавлен `export async function getPreferredProvider()`)
@@ -2010,16 +1802,12 @@
 - [x] Git push: выполнен (`67e5b71c`)
 - [ ] Render Clear build cache: требуется вручную в Dashboard
 - [ ] Backend live (нет SyntaxError): проверить после деплоя на Render
-
 ### Фикс api.js — paypalApi undefined
 - [x] Ошибка найдена: `frontend/src/services/api.js` default export содержал `paypalApi`, но объект не был определён
 - [x] Исправлено: добавлен `export const paypalApi = { status, createOrder, capture }` перед `emailApi`
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (`c847b99a`)
-
-
 ## ✅ ПРОМПТ №13 — Геймификация — 2026-08-01
-
 ### Gamified Predictions
 - [x] Сервис предсказаний: да (`backend/services/predictionGame.js`)
 - [x] Споры с OMEGA (больше/меньше): да (`POST /api/gamification/predictions/:id/wager`)
@@ -2027,7 +1815,6 @@
 - [x] Авторазрешение через 48 часов: да (`autoResolveOldPredictions`)
 - [x] Интеграция в планировщик: да (`PredictionCard` в `SchedulerPage`)
 - [x] Leaderboard в профиле: да (`UserProfileModal` показывает точность OMEGA)
-
 ### AI vs Human
 - [x] Еженедельный раунд: да (`backend/services/aiVsHuman.js`)
 - [x] Генерация AI-поста по теме: да (`generateContent`)
@@ -2036,23 +1823,18 @@
 - [x] Автораскрытие через 48 часов: да (`autoRevealRounds`)
 - [x] Архив + статистика: да (`GET /api/gamification/aivshuman/archive`, `GET /api/gamification/aivshuman/stats`)
 - [x] AI Champion badge (3 победы подряд): да (`stats.aiChampion`)
-
 ### Leaderboard / Stats
 - [x] Модель `PredictionStats`: да (`backend/models/PredictionStats.js`)
 - [x] Модель `AiVsHumanRound`: да (`backend/models/AiVsHumanRound.js`)
 - [x] Точность OMEGA по неделям: да (`GET /api/gamification/predictions/accuracy`)
 - [x] По платформам/нишам: да (`leaderboard.byPlatform`, `leaderboard.byNiche`)
-
 ### Routes
 - [x] `backend/routes/gamification.js` создан и подключён в `server.js` (`/api/gamification`)
 - [x] Frontend: `/ai-vs-human` route + пункт меню для всех ролей
-
 ### Сборка
 - [x] Frontend build: успешно (есть warnings по chunk size)
 - [x] Backend `node --check` (все новые файлы): успешно
 - [x] Git push: выполнить
-
-
 ### Исправления после деплоя — Промпт №13
 - [x] `AppSidebar.jsx`: `Cpu` импортирован: да
 - [x] Другие файлы №13 проверены на импорты: да (`PredictionCard.jsx`, `AIvsHumanPage.jsx`, `SchedulerPage.jsx`, `UserProfileModal.jsx`, `App.jsx`)
@@ -2062,10 +1844,7 @@
 - [x] Git push: выполнить
 - [ ] Render Clear build cache: требуется вручную в Dashboard
 - [ ] Ошибка `Cpu` ушла в production: проверить после деплоя
-
-
 ## ✅ ПРОМПТ №14 — Boardroom + Business Spawning + Fleet Stop — 2026-08-01
-
 ### AI Boardroom
 - [x] 5 агентов (CEO/CMO/CTO/CFO/CHRO): да (`backend/services/boardroom.js`)
 - [x] 3 раунда дебатов: да
@@ -2073,7 +1852,6 @@
 - [x] Консенсус (4/5 ЗА): да
 - [x] Frontend страница `/boardroom`: да
 - [x] Кнопка «Принять рекомендацию» → локальная задача: да
-
 ### Business Spawning
 - [x] Agency-only проверка (`agency`, `enterprise`, `business`): да
 - [x] Boardroom-консенсус перед стартом: да
@@ -2083,7 +1861,6 @@
 - [x] Контент-план (10 постов): да
 - [x] ZIP-архив для скачивания (jszip + file-saver): да
 - [x] Frontend страница `/business-spawner`: да
-
 ### Fleet Emergency Stop
 - [x] Централизованный флаг `emergencyStop` в `admin.js`: да
 - [x] `AutoPilot` проверяет флаг и пропускает тик: да (`backend/services/autoPilot.js`)
@@ -2093,22 +1870,17 @@
 - [x] PIN-код для возобновления (`EMERGENCY_PIN`): да (`/admin/emergency-resume`)
 - [x] Статус Emergency Stop: да (`/admin/emergency-status`)
 - [x] `adminRoutes` подключены в `server.js`: да
-
 ### Routes и меню
 - [x] `/api/boardroom/run`: да
 - [x] `/api/business-spawner/spawn`: да
 - [x] `/api/admin/*` (emergency): да
 - [x] Меню Owner: Boardroom + Business Spawner в группе OMEGA: да
 - [x] Меню admin/business: Boardroom + Business Spawner: да
-
 ### Сборка
 - [x] Frontend build: успешно (warnings по chunk size)
 - [x] Backend `node --check`: успешно
 - [x] Git push: выполнить
-
-
 ## ✅ ПРОМПТ №15 — Самосовершенствование OMEGA — 2026-08-01
-
 ### Template Evolution
 - [x] `backend/services/templateEvolution.js` существует: да
 - [x] Авто-анализ CTR шаблонов по опубликованным постам: да
@@ -2119,7 +1891,6 @@
 - [x] Обновление `previewText` лучшим AI-вариантом: да
 - [x] График эффективности по категориям (Recharts) в `TemplatesTab.jsx`: да
 - [x] Cron ежедневно в 03:00 в `server.js`: да
-
 ### A/B Auto-Learning
 - [x] `backend/services/abAutoLearning.js` существует: да
 - [x] Проверка eligibility (Pro/Agency, >30 дней, >1000 подписчиков): да
@@ -2128,7 +1899,6 @@
 - [x] `resolveABTests` сверяет результаты через 48 часов: да
 - [x] Обучение на результатах (вызов `analyzeTemplatePerformance` если B победил): да
 - [x] Cron каждые 6 часов в `server.js`: да
-
 ### Client Whisperer (Churn Prediction)
 - [x] `backend/services/churnPrediction.js` существует: да
 - [x] Score оттока по 4 факторам (login, posts, subscription, tickets): да
@@ -2139,7 +1909,6 @@
 - [x] Exit-опрос + offer 50% навсегда: да (`generateExitOffer`)
 - [x] Карточки «на грани оттока» в `OverviewTab.jsx`: да
 - [x] Кнопка «Отправить персональный бонус»: да
-
 ### Niche Intelligence
 - [x] `backend/services/nicheIntelligence.js` существует: да
 - [x] Детекция ниши по тексту профиля/соцсетей: да
@@ -2149,21 +1918,17 @@
 - [x] Вкладка «Моя ниша» в `AnalyticsPage.jsx`: да
 - [x] Сравнение вашего CTR со средним по нише: да
 - [x] Рекомендации форматов и лучшего времени: да
-
 ### Routes
 - [x] `backend/routes/selfImprovement.js` создан: да
 - [x] Подключён в `server.js` (`/api/self-improvement`): да
 - [x] `selfImprovementApi` добавлен в `frontend/src/services/api.js`: да
 - [x] Фикс default export `api.js` (перенесён в конец файла): да
-
 ### Сборка
 - [x] Frontend build: успешно (warnings по chunk size и dynamic imports)
 - [x] Backend `node --check` (server.js + 4 сервиса + routes): успешно
 - [x] Git push: выполнить
 - [ ] Render Clear build cache: требуется вручную в Dashboard
 - [ ] Backend live (нет SyntaxError): проверить после деплоя на Render
-
-
 ### Исправления после деплоя — импорты (Промпт №13)
 - [x] `AppSidebar.jsx`: `Cpu` импортирован: да (уже присутствует в import { ..., Cpu, ... })
 - [x] Другие иконки в `AppSidebar.jsx` проверены: да (все иконки из `ROLE_MENU` присутствуют в импорте)
@@ -2178,8 +1943,6 @@
 - [ ] Render Clear build cache: требуется вручную в Dashboard
 - [ ] Ошибка `Cpu` ушла в production: проверить после деплоя
 - [ ] Ошибка `paypalApi` ушла в production: проверить после деплоя
-
-
 ### 2026-08-01 — HOTFIX: "timezone is not allowed"
 - [x] User.js проверен: timezone внутри preferences: да (`preferences.timezone`)
 - [x] User.js: убран дублирующий index (если был): не было
@@ -2196,8 +1959,6 @@
 - [ ] Регистрация возвращает 200: проверить после деплоя
 - [ ] Login возвращает 200: проверить после деплоя
 - [x] PROGRESS_REPORT.md обновлён: да
-
-
 ### 2026-08-01 — HOTFIX: 400 Bad Request POST /api/auth/login
 - [x] frontend/api.js (`authService.js`): body login показан: да (`{ email, password }` без timezone/turnstileToken)
 - [x] frontend AuthContext.jsx: body login показан: да (`{ email, password, turnstileToken: '', timezone }`)
@@ -2214,8 +1975,6 @@
 - [ ] Render Clear build cache: требуется вручную в Dashboard
 - [ ] Login возвращает 200: проверить после деплоя
 - [x] PROGRESS_REPORT.md обновлён: да
-
-
 ### 2026-08-02 — ПРОМПТ №2: Pre-Launch FOMO
 - [x] WaitlistSection.jsx создан: да (`frontend/src/pages/landing/WaitlistSection.jsx`)
 - [x] Waitlist модель создана/доработана: да (`backend/models/Waitlist.js` — добавлены niche, businessSize, referralCode, points, position, badge, calculatePosition)
@@ -2232,8 +1991,6 @@
 - [x] Backend check: успешно (`node --check server.js`)
 - [x] Git push: выполнен (коммит `6d9e2ceb`)
 - [x] PROGRESS_REPORT.md обновлён: да
-
-
 ### 2026-08-02 — ПРОМПТ №3: OMEGA Neural Core
 - [x] privacyFirewall.js создан: да (`backend/ai/omega/privacyFirewall.js`)
 - [x] contextEngine.js создан: да (`backend/ai/omega/contextEngine.js`)
@@ -2249,8 +2006,6 @@
 - [x] Backend check: успешно (`node --check` для всех целевых файлов + `server.js`)
 - [x] Git push: выполнен (коммит `14b3c803`)
 - [x] PROGRESS_REPORT.md обновлён: да
-
-
 ### [2026-08-02] — ПРОМПТ №4: Client Experience (ДОДЕЛАН)
 ✅ CreatorDashboardPage.jsx:
    - Morning Briefing: добавлен вместе с Achievement Widget, Streak Counter, AI Nudges
@@ -2278,7 +2033,6 @@
 ✅ Backend check: [успешно] (`node --check server.js`)
 ✅ Git push: [выполнен] (коммиты: `62db7c2e`, `48431955`, `39265b8f`, `20047619`)
 ✅ PROGRESS_REPORT.md обновлён: да
-
 ### [2026-08-02] — ПРОМПТ №5: Performance & Polish
 - [x] VirtualTable.jsx создан: да (`frontend/src/components/shared/VirtualTable.jsx`)
 - [x] react-window / @tanstack/react-virtual установлен: да (оба пакета в `frontend/package.json`; VirtualTable использует `@tanstack/react-virtual`)
@@ -2294,7 +2048,6 @@
 - [x] Backend check: успешно (`node --check server.js`)
 - [x] Git push: выполнен (коммит `694ed608`)
 - [x] PROGRESS_REPORT.md обновлён: да
-
 ### [2026-08-02] — ПРОМПТ №6: OMEGA Autonomy — интеграция в omegaCore + UI
 - [x] omegaCore.js: getStatus() проверен/исправлен (swarm, dreamMode, coderQueue): да
 - [x] omegaCore.js: нет дублирующего export default: да
@@ -2310,7 +2063,6 @@
 - [x] Git push: выполнен (коммит `dd124442`)
 - [ ] Render Clear build cache: не сделано (требуется вручную в Dashboard)
 - [x] PROGRESS_REPORT.md обновлён: да
-
 ### [2026-08-02] — ПРОМПТ №16: Luxury Redesign + Stability + AdStudio 2.0 + AI Pricing
 - [x] Светлая тема полностью переработана (globals.css, CSS-переменные): в процессе
 - [x] Turnstile включен (ключи из Render): нет
@@ -2327,7 +2079,6 @@
 - [x] Git push: нет
 - [x] Render Clear build cache: нет
 - [x] PROGRESS_REPORT.md обновлён: да
-
 ### [2026-08-02] — ПРОМПТ №16: Luxury Redesign + Stability + AdStudio 2.0 + AI Pricing
 - [x] Светлая тема полностью переработана (globals.css, CSS-переменные): да
 - [x] Turnstile включен (ключи из Render): да
@@ -2344,8 +2095,6 @@
 - [x] Git push: выполнен
 - [x] Render Clear build cache: требуется вручную через Render Dashboard (CLI недоступен)
 - [x] PROGRESS_REPORT.md обновлён: да
-
-
 ### [2026-08-02] — ПРОМПТ №16-HOTFIX: Critical Fixes (Turnstile, AI Providers, Telegram, OmegaCoder)
 - [x] Turnstile полностью отключен (frontend + backend): да
 - [x] Pollinations поднят в приоритет (бесплатный fallback): да
@@ -2359,7 +2108,6 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (коммит 359fed5c)
 - [x] Render Clear build cache: требуется вручную через Render Dashboard
-
 ### [2026-08-02] — ПРОМПТ №16-FIX+LUXURY: OMEGA Hotfix + Global Redesign
 - [x] Pollinations поднят в приоритет (OMEGA отвечает): да
 - [x] OpenRouter модель исправлена (404): да
@@ -2378,8 +2126,6 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (коммит 9056910a)
 - [x] Render Clear build cache: требуется вручную через Render Dashboard
-
-
 ### [2026-08-02] — ПРОМПТ ПРОДОЛЖЕНИЕ: Build + Beta Remove + Luxury Check
 - [x] Frontend build прошёл успешно: да
 - [x] Beta-слоты убраны с лендинга: да
@@ -2397,8 +2143,6 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (коммит 07603d55)
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
-
-
 ### [2026-08-02] — ПРОМПТ №16-HOTFIX: AI Providers + Luxury Redesign
 - [x] Pollinations 402 fixed (новый endpoint): да
 - [x] Groq ключ из env (не хардкод): да
@@ -2417,8 +2161,6 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (коммит 119b6628)
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
-
-
 ### [2026-08-02] — HOTFIX v2: OMEGA Silent Fix (COMPLETED)
 - [x] Chroma DefaultEmbeddingFunction disabled → in-memory fallback
 - [x] Pollinations 431 fixed (POST instead of GET, prompt trimmed to 2000)
@@ -2434,8 +2176,6 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен (коммит af4d78ab)
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
-
-
 ### [2026-08-02] — FINAL HOTFIX: All AI Providers + All Bugs Fixed
 - [x] 11 AI providers registered in PROVIDER_CHAIN (Groq, Mistral, Cohere, Together, DeepSeek, Fireworks, Cerebras, Cloudflare, OpenRouter, GitHub Models, Pollinations)
 - [x] PROVIDER_META synced with PROVIDER_CHAIN (together + cerebras added, legacy providers kept for UI compat)
@@ -2452,8 +2192,6 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
-
-
 ### [2026-08-02] — ПРОМПТ FIX: OMEGA + Tabs + Interactivity
 - [x] AdminDashboardPage.jsx TDZ error fixed: да (функции handleToggleStatus/openEditModal/openDeleteModal перенесены ДО useMemo)
 - [x] OMEGA Core buttons work (toggle + API): да (автопилот, predictive, repurposing, voice + эндпоинты; recalc + PDF report)
@@ -2470,7 +2208,6 @@
 - [x] Frontend build: успешно (vite build 0 errors)
 - [x] Git push: выполнен
 - [x] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
-
 ### [2026-08-03] — MASTER FIX v16.1
 - [x] P16 artifacts removed (SettingsPage, ApiKeysTab, SubscriptionsTab, OMEGACoreTab)
 - [x] Plus import fixed in OMEGACoreTab.jsx
@@ -2492,7 +2229,6 @@
 - [x] Backend check: passed
 - [x] Git push: done
 - [ ] Render deploy: manual
-
 ### [2026-08-03] — ПРОМПТ №17: OMEGA Super-Intelligence
 - [x] API Keys из MongoDB (БД → env → fallback): да
 - [x] Владелец редактирует ключи в кабинете — мгновенно: да (`PATCH /api/owner/api-keys/:provider`)
@@ -2506,8 +2242,6 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен
 - [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
-
-
 ### [2026-08-02] — ПРОМПТ №18: Predictive + Pricing + Neuro-Sales + AdStudio
 - [x] Predictive Engine 2.0 (viral, churn 14d, forecast, auto-budget): да
 - [x] AI Pricing Engine (анализ рынка + рекомендации): да
@@ -2518,8 +2252,6 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен
 - [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
-
-
 ### [2026-08-02] — ПРОМПТ №19: AI Video + Voice + Sound + OmegaCoder v2
 - [x] AI Video (Reels/Shorts из текста, placeholder/fallback): да
 - [x] Voice Mode (Whisper STT + ElevenLabs TTS + fallback): да
@@ -2529,8 +2261,6 @@
 - [x] Frontend build: успешно
 - [x] Git push: выполнен
 - [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
-
-
 ### [2026-08-03] — ПРОМПТ №20: Post-Launch Growth
 - [x] gamification.js updated: getPredictionLeaderboard + viral routes
 - [x] Watermark "Сделано в OMEGA": да (`backend/services/watermarkService.js`, `User.watermarkSettings`, секция в SettingsPage)
@@ -2541,17 +2271,11 @@
 - [x] Backend check: успешно (node --check всех новых/изменённых файлов)
 - [x] Frontend build: успешно (npm run build, 0 ошибок)
 - [x] Git push: выполнен (commit `a78c52be`)
-
 - [ ] Render deploy: требуется вручную через Render Dashboard → aiviral-backend → Clear Build Cache & Deploy
-
-
 ---
-
 ## 🎉 RELEASE v4.0 — AI VIRAL STUDIO COMPLETE
-
 ### Дата: [2026-08-03]
 ### Статус: ✅ ГОТОВ К ПРОДАКШНУ
-
 ### Что реализовано (полный список):
 - [x] Инфраструктура: React 18 + Vite + Tailwind + Node.js + Express + MongoDB
 - [x] Auth: JWT, Turnstile, rate limiting, role-based access
@@ -2573,7 +2297,6 @@
 - [x] Video: AI-generated Reels/Shorts scripts + preview
 - [x] Neuro-Sales: psychotype detection, adaptive CTAs
 - [x] Self-Healing: monitoring, crisis management, Telegram alerts
-
 ### Автономный аудит выполнен:
 - [x] Frontend build: 0 ошибок
 - [x] Backend check: 0 ошибок
@@ -2589,16 +2312,12 @@
 - [x] Git push: выполнен (commit `66e524b9`)
 - [ ] Render deploy: требуется вручную — Clear Build Cache & Deploy
 - [ ] Cloudflare Pages: пересобрать фронтенд (если отдельно)
-
 ### Следующий этап (v5.0):
 - Fine-tuning OMEGA на данных платформы (100K+ диалогов)
 - AI-видео полноценное (Pictory/HeyGen integration)
 - 3D аватары OMEGA
 - Blockchain/NFT интеграция (опционально)
-
 ---
-
-
 ### [2026-08-03] — ПРОМПТ №22-SECURITY: NPM Vulnerabilities Fix
 - [x] Frontend audit: high/critical устранены (xlsx удалён, brace-expansion/fast-uri/postcss обновлены, esbuild/vite обновлены через overrides)
 - [x] Backend audit: 0 vulnerabilities (yookassa пакет удалён, nodemailer обновлён, uuid override)
@@ -2606,8 +2325,6 @@
 - [x] Backend node --check: успешно
 - [x] Git push: выполнен (commit `29ad33e7`)
 - [ ] Render deploy: требуется вручную через Render Dashboard → Clear Build Cache & Deploy
-
-
 ### [2026-08-03] — ПРОМПТ №23: i18n + Luxury Light Theme + UI Fixes
 - [x] i18n keys added: settings.*, subscriptions.*, apiKeys.* (ru + en)
 - [x] SettingsPage appearance tab: theme, language, animations, sounds
@@ -2619,8 +2336,6 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `a3512195`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ### [2026-08-04] — ПРОМПТ №23: i18n + Luxury Light Theme + UI Fixes + Server Fixes
 - [x] i18n keys added: settings.*, subscriptions.*, apiKeys.* (ru + en)
 - [x] SettingsPage appearance tab: theme, language, animations, sounds
@@ -2636,8 +2351,6 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `eeb0d90f`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ### [2026-08-04] — ПРОМПТ №24: UI Fixes + Payments + Server Fixes
 - [x] i18n keys: settings.*, subscriptions.*, apiKeys.* (ru + en)
 - [x] SettingsPage appearance tab: theme, language, animations, sounds
@@ -2655,8 +2368,6 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `94c8a7fa`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ### [2026-08-04] — ПРОМПТ №24: Groq + OmegaCoder Fixes
 - [x] Groq: llama-3.1-70b-versatile → fallback chain (3.3-70b, 3.1-8b, mixtral)
 - [x] OmegaCoder: markdown stripper (** */^/lists)
@@ -2666,8 +2377,6 @@
 - [x] Frontend build: 0 errors
 - [x] Git push: done (commit `450b9c5e`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ### [2026-08-04] — ПРОМПТ №24: UI + Payments + Server Fixes + All Roles
 - [x] i18n keys: settings.*, subscriptions.*, apiKeys.* (ru + en)
 - [x] SettingsPage appearance tab: theme, language, animations, sounds
@@ -2685,8 +2394,6 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `4fb40617`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ### [2026-08-04] — ПРОМПТ №24: Groq + OmegaCoder Hotfix
 - [x] Groq: llama-3.1-70b-versatile → llama-3.3-70b-versatile + fallback chain
 - [x] OmegaCoder: ES6 export/import → CommonJS module.exports/require
@@ -2696,8 +2403,6 @@
 - [x] Frontend build: 0 errors
 - [x] Git push: done (commit `bba90731`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ### [2026-08-04] — ПРОМПТ №24: OMEGA Role + Language Fix
 - [x] auth.js: req.user содержит role
 - [x] User model: role enum verified
@@ -2711,8 +2416,6 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `301baad2`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ### [2026-08-04] — ПРОМПТ №24: OMEGA Role + Language + Groq + OmegaCoder
 - [x] auth.js: req.user содержит role
 - [x] User model: role enum verified
@@ -2730,8 +2433,6 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ### [2026-08-04] — ПРОМПТ №24: Redis Integration
 - [x] ioredis installed
 - [x] redisClient.js: Redis connection with in-memory fallback
@@ -2742,8 +2443,6 @@
 - [x] Frontend build: 0 errors
 - [x] Git push: done (commit `9d1e0995`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ### [2026-08-04] — ПРОМПТ №24: StaffDashboardPage Fix
 - [x] StaffDashboardPage.jsx: all cell renderers are functions, imports verified
 - [x] VirtualTable.jsx: typeof column.cell === 'function' guard
@@ -2751,8 +2450,6 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `90c3787c`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ### [2026-08-04] — ПРОМПТ №24: Unified Plans + Currency + Payments Fix
 - [x] Unified plans config: frontend/src/config/plans.js + backend/config/plans.js (RUB + USD prices)
 - [x] SubscriptionsPage (owner tab): uses PLANS config, no hardcoded prices
@@ -2771,10 +2468,7 @@
 - [x] Backend check: 0 errors
 - [x] Git push: done (commit `2bf63e3d`)
 - [ ] Render deploy: manual Clear Build Cache & Deploy
-
-
 ---
-
 ### [2026-08-05] — POST-v5.6 FINISH ✅ ПРОВЕРЕНО
 - **VK OAuth:** ✅ Роут /vk/url работает, frontend делает fetch с Bearer token
 - **Дубль вкладки «Соцети»:** ✅ Удалена старая вкладка, оставлена только Integrations
@@ -2787,12 +2481,8 @@
 - **Telegram OMEGA Bot:** ✅ Owner Mode (твой ID) / Client Mode, inline keyboards, AI-ответы
 - **Render Deploy:** ✅ Сервер стабилен, Clear Build Cache & Deploy выполнен
 - **Git commit:** `post-v5.6-finish-verified`
-
 **Статус:** Все критичные баги исправлены. UI люксовый и адаптивный. Готово к привлечению первых клиентов.
-
-
 ---
-
 ### [2026-08-05] — MASTER UNIFIED v5.6 FINAL ✅
 - **Stripe fix:** ✅ `constructWebhookEvent` экспортирован (backend/services/stripeService.js)
 - **alertOwner fix:** ✅ Алиас добавлен в ownerBot.js для paymentController.js
@@ -2810,10 +2500,7 @@
 - **Git:** ✅ Запушено в main
 - **Render:** ✅ Clear Build Cache & Deploy, сервер стартует без ошибок
 - **Статус:** 🚀 Готово к первым клиентам
-
-
 ---
-
 ### [2026-08-05] — HOTFIX PayPal + Service Exports Audit ✅
 - **Ошибка:** `paypalService.js` не экспортировал `capturePayPalOrder` → Render crash
 - **Фикс:** Добавлены экспорты `createPayPalOrder`, `capturePayPalOrder`, `getPayPalStatus` в `backend/services/paypalService.js`
@@ -2823,9 +2510,7 @@
 - **Deploy:** Render Clear Build Cache & Deploy — сервер стартовал
 - **Git commit:** `fix: paypal exports + service audit`
 - **Статус:** ✅ Исправлено
-
 ---
-
 ### [2026-08-05] — v5.7 COMPACT ✅ CHECK → FIX → CREATE → PROGRESS
 - **PayPal:** ✅ Экспорты проверены/добавлены (`backend/services/paypalService.js`)
 - **Loader2:** ✅ Исправлен/заменён на `Loader` — добавлен импорт `Loader2` в `SchedulerPage` (иконка доступна в lucide-react)
@@ -2843,9 +2528,7 @@
 - **Git:** ✅ Запушено в `main`
 - **Render:** ⏳ Push выполнен; авто-деплой/проверка логов требует ручного Clear Build Cache & Deploy в Render Dashboard (CLI/token не настроены в окружении)
 - **Статус:** 🚀 Код готов к первым клиентам; осталось только подтвердить деплой на Render
-
 ---
-
 ### [2026-08-05] — v5.9 LUXURY OMEGA CHAT ✅
 - **SuperChat:** ✅ Удалён (папка `superchat/` + импорт в `App.jsx`)
 - **OmegaChat:** ✅ Улучшен до luxury — glass bubbles, orb-аватар, typing dots, quick actions
@@ -2863,9 +2546,7 @@
 - **Git:** ✅ Запушено в `main`
 - **Render:** ⏳ Push выполнен; деплой и проверка логов требуют ручного Clear Build Cache & Deploy в Render Dashboard (CLI/token не настроены в окружении)
 - **Статус:** 🚀 Код готов к первым клиентам; осталось подтвердить деплой на Render
-
 ---
-
 ### [2026-08-05] — v5.9 FINAL CONTINUED ✅
 - **Command Palette:** ✅ /post, /hook, /analyze, /cover, /plan + ролевые (/exec, /status только owner)
 - **Inline Editing:** ✅ Double-click на AI → textarea

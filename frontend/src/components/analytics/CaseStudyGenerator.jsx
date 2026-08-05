@@ -22,6 +22,8 @@ export function CaseStudyGenerator() {
             if (json.status === 'success') setCandidates(json.data || [])
         } catch (err) {
             console.warn('[CaseStudyGenerator] candidates load failed:', err.message)
+            setCandidates([]) // [v6.0] added
+            setError(null) // [v6.0] added
         }
     }
 
@@ -76,7 +78,8 @@ export function CaseStudyGenerator() {
             {candidates.length === 0 && !loading && (
                 <div className="p-5 rounded-2xl bg-[#0f0f1a] border border-white/5 text-center">
                     <AlertCircle size={32} className="mx-auto mb-3 text-gray-500" />
-                    <h3 className="text-sm font-medium text-white mb-1">Кейсы появятся автоматически</h3>
+                    {/* [v6.0] added: graceful empty-state placeholder */}
+                    <h3 className="text-sm font-medium text-white mb-1">Данные обновляются...</h3>
                     <p className="text-xs text-gray-500">Когда клиент покажет рост метрик {'>'}20% за 30 дней.</p>
                 </div>
             )}

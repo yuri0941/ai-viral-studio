@@ -12,6 +12,7 @@ import {
     ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil, Check,
     Wallet, Bitcoin, Landmark
 } from 'lucide-react'
+import { EmptyState } from '../../../../components/common/EmptyState.jsx' // [v6.0] added
 
 // [P24] fixed: backend-shape fallback built from unified PLANS config
 // [MONETIZE-2026-08-04] fixed: pass plan id, not object
@@ -147,6 +148,8 @@ export function SubscriptionsTab({ data }) {
             setHistory(historyRes.history || [])
         } catch (err) {
             console.error('[SubscriptionsTab:loadData]', err)
+            setCurrent(null) // [v6.0] added
+            setHistory([]) // [v6.0] added
             pushToast('error', 'Не удалось загрузить данные подписок')
         } finally {
             setLoading(false)
@@ -603,6 +606,15 @@ export function SubscriptionsTab({ data }) {
                             </div>
                         )
                     })}
+                    {safePlans.length === 0 && (
+                        // [v6.0] added: graceful empty-state placeholder
+                        <EmptyState
+                            icon={CreditCard}
+                            title="Данные обновляются..."
+                            description="Тарифы недоступны. Попробуйте обновить позже."
+                            compact
+                        />
+                    )}
                 </div>
             </div>
 

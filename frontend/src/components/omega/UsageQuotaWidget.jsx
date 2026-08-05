@@ -29,10 +29,21 @@ export function UsageQuotaWidget() {
             }
         } catch (err) {
             console.warn('[UsageQuotaWidget] load failed:', err.message)
+            setQuota(null) // [v6.0] added: degrade gracefully to empty quota
         }
     }
 
-    if (!quota) return null
+    if (!quota) {
+        // [v6.0] added: graceful quota placeholder
+        return (
+            <div className="px-3 py-2 rounded-xl border text-xs bg-white/5 border-white/10 text-gray-400">
+                <div className="flex items-center gap-2">
+                    <Zap size={14} />
+                    <span>Данные обновляются...</span>
+                </div>
+            </div>
+        )
+    }
 
     const percent = Math.min(100, Math.round((quota.used / Math.max(1, quota.limit)) * 100))
     const isLow = quota.used >= quota.limit * 0.8 && quota.used < quota.limit

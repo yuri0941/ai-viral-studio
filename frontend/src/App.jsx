@@ -1,5 +1,5 @@
-import { useEffect, Suspense, lazy } from 'react'
-import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, Suspense, lazy, useState } from 'react'
+import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
 // Layout
@@ -39,6 +39,49 @@ import GDPRPage from './pages/GDPRPage'
 import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
+
+// [v6.0] added: Creative Hub + Luxury Document Viewer
+import CreativeHub from './components/creative-hub/CreativeHub.jsx'
+import LuxuryDocumentViewer from './components/documents/LuxuryDocumentViewer.jsx'
+
+// [v6.0] added: simple document viewer wrapper for /documents/:fileId route
+function DocumentPage() {
+    const { fileId } = useParams()
+    const navigate = useNavigate()
+    const [content, setContent] = useState('')
+    const [fileName, setFileName] = useState(fileId || 'document')
+    const [fileType, setFileType] = useState('txt')
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const ext = (fileName.split('.').pop() || 'txt').toLowerCase()
+        setFileType(ext)
+        fetch(`/api/documents/${fileId}`)
+            .then(async res => {
+                if (!res.ok) throw new Error('Document not found')
+                const text = await res.text()
+                setContent(text)
+            })
+            .catch(() => {
+                setContent('// Document preview is not available for this file.\n// [v6.0] added placeholder')
+            })
+            .finally(() => setLoading(false))
+    }, [fileId, fileName])
+
+    if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading document…</div>
+
+    return (
+        <div className="min-h-screen bg-[var(--bg)] p-4">
+            <LuxuryDocumentViewer
+                content={content}
+                fileName={fileName}
+                fileType={fileType}
+                onClose={() => navigate(-1)}
+                onDownload={() => alert('Download: ' + fileName)}
+            />
+        </div>
+    )
+}
 
 const PAGE_TITLES = {
     '/owner': 'Owner Dashboard',
@@ -159,6 +202,30 @@ function App() {
                 <Route path="/register" element={<LandingPage showRegister={true} />} />
                 <Route path="/redirect" element={<RoleRedirect />} />
 
+                {/* [v6.0] added: backward compatible redirects to Creative Hub */}
+                <Route path="/chat" element={<Navigate to="/creative-hub/chat" replace />} />
+                <Route path="/analyzer" element={<Navigate to="/creative-hub/analyzer" replace />} />
+                <Route path="/viral" element={<Navigate to="/creative-hub/viral" replace />} />
+                <Route path="/viral-chat" element={<Navigate to="/creative-hub/viral" replace />} />
+                <Route path="/omega-chat" element={<Navigate to="/creative-hub/chat" replace />} />
+                <Route path="/ai-chat" element={<Navigate to="/creative-hub/chat" replace />} />
+
+                <Route path="/creative-hub" element={
+                    <ProtectedRoute>
+                        <CreativeHub />
+                    </ProtectedRoute>
+                } />
+                <Route path="/creative-hub/:mode" element={
+                    <ProtectedRoute>
+                        <CreativeHub />
+                    </ProtectedRoute>
+                } />
+                <Route path="/documents/:fileId" element={
+                    <ProtectedRoute>
+                        <DocumentPage />
+                    </ProtectedRoute>
+                } />
+
                 <Route path="/owner" element={
                     <ProtectedRoute allowedRoles={['owner']}>
                         <OwnerDashboardPage />
@@ -204,11 +271,6 @@ function App() {
                         <SettingsPage />
                     </ProtectedRoute>
                 } />
-                <Route path="/analyzer" element={
-                    <ProtectedRoute>
-                        <ContentAnalyzerPage />
-                    </ProtectedRoute>
-                } />
                 <Route path="/ai-vs-human" element={
                     <ProtectedRoute>
                         <AIvsHumanPage />
@@ -222,11 +284,6 @@ function App() {
                 <Route path="/business-spawner" element={
                     <ProtectedRoute allowedRoles={['owner', 'admin', 'business']}>
                         <BusinessSpawnerPage />
-                    </ProtectedRoute>
-                } />
-                <Route path="/viral-chat" element={
-                    <ProtectedRoute>
-                        <ViralChatPage />
                     </ProtectedRoute>
                 } />
                 <Route path="/leaderboard" element={

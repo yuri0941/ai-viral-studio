@@ -15,12 +15,10 @@ import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
 const ROLE_MENU = {
     owner: [
+        { path: '/creative-hub', label: 'Creative Hub', icon: Rocket, badge: 'AI' },
         { path: '/owner', label: 'Owner Panel', icon: Crown },
         { path: '/analytics', label: 'Аналитика', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: Bot },
-        { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/ai-vs-human', label: 'AI vs Human', icon: Cpu },
-        { path: '/viral-chat', label: 'Viral Chat', icon: TrendingUp },
         { path: '/boardroom', label: 'Совет директоров', icon: Users },
         { path: '/business-spawner', label: 'Рождение бизнеса', icon: Rocket },
         { path: '/advertiser-requests', label: 'Заявки на рекламу', icon: Megaphone },
@@ -28,51 +26,42 @@ const ROLE_MENU = {
         { path: '/settings', label: 'Настройки', icon: Settings },
     ],
     admin: [
+        { path: '/creative-hub', label: 'Creative Hub', icon: Rocket, badge: 'AI' },
         { path: '/admin', label: 'Admin Panel', icon: Shield },
         { path: '/analytics', label: 'Аналитика', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: Bot },
-        { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/ai-vs-human', label: 'AI vs Human', icon: Cpu },
-        { path: '/viral-chat', label: 'Viral Chat', icon: TrendingUp },
         { path: '/boardroom', label: 'Совет директоров', icon: Users },
         { path: '/business-spawner', label: 'Рождение бизнеса', icon: Rocket },
         { path: '/scheduler', label: 'Планировщик', icon: Calendar },
         { path: '/settings', label: 'Настройки', icon: Settings },
     ],
     staff: [
+        { path: '/creative-hub', label: 'Creative Hub', icon: Rocket, badge: 'AI' },
         { path: '/staff', label: 'Staff Panel', icon: Briefcase },
-        { path: '/ai-chat', label: 'AI Chat', icon: Bot },
-        { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/ai-vs-human', label: 'AI vs Human', icon: Cpu },
         { path: '/scheduler', label: 'Планировщик', icon: Calendar },
         { path: '/settings', label: 'Настройки', icon: Settings },
     ],
     advertiser: [
+        { path: '/creative-hub', label: 'Creative Hub', icon: Rocket, badge: 'AI' },
         { path: '/advertiser', label: 'Advertiser Panel', icon: Megaphone },
         { path: '/analytics', label: 'Аналитика', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: Bot },
-        { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/ai-vs-human', label: 'AI vs Human', icon: Cpu },
-        { path: '/viral-chat', label: 'Viral Chat', icon: TrendingUp },
         { path: '/settings', label: 'Настройки', icon: Settings },
     ],
     creator: [
+        { path: '/creative-hub', label: 'Creative Hub', icon: Rocket, badge: 'AI' },
         { path: '/dashboard', label: 'Dashboard', icon: Home },
         { path: '/analytics', label: 'Аналитика', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: Bot },
-        { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/ai-vs-human', label: 'AI vs Human', icon: Cpu },
-        { path: '/viral-chat', label: 'Viral Chat', icon: TrendingUp },
         { path: '/scheduler', label: 'Планировщик', icon: Calendar },
         { path: '/settings', label: 'Настройки', icon: Settings },
     ],
     business: [
+        { path: '/creative-hub', label: 'Creative Hub', icon: Rocket, badge: 'AI' },
         { path: '/dashboard', label: 'Dashboard', icon: Home },
         { path: '/analytics', label: 'Аналитика', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: Bot },
-        { path: '/analyzer', label: 'Анализ контента', icon: Search },
         { path: '/ai-vs-human', label: 'AI vs Human', icon: Cpu },
-        { path: '/viral-chat', label: 'Viral Chat', icon: TrendingUp },
         { path: '/boardroom', label: 'Совет директоров', icon: Users },
         { path: '/business-spawner', label: 'Рождение бизнеса', icon: Rocket },
         { path: '/scheduler', label: 'Планировщик', icon: Calendar },
@@ -136,10 +125,9 @@ const OWNER_GROUPS = [
         title: 'КЛИЕНТСКИЙ ВИД',
         items: [
             { id: 'analytics', label: '📊 Аналитика', icon: BarChart },
-            { id: 'aiChat', label: '🤖 AI Chat', icon: Bot },
-            { id: 'contentAnalyzer', label: '🔍 Анализ контента', icon: Search },
+            { id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+            { id: 'documents', label: '📄 Documents', icon: FileText },
             { id: 'scheduler', label: '📅 Планировщик', icon: Calendar },
-            { id: 'viralChat', label: '💬 Viral Chat', icon: TrendingUp },
         ],
     },
     {
@@ -219,10 +207,10 @@ export function AppSidebar({
     }
 
     const handleItemClick = (item) => {
-        if (isOwner && item.id) {
-            navigate(`/owner?tab=${item.id}`, { replace: true })
-        } else if (item.path) {
+        if (item.path) {
             navigate(item.path)
+        } else if (isOwner && item.id) {
+            navigate(`/owner?tab=${item.id}`, { replace: true })
         }
         onClose?.()
     }
@@ -331,6 +319,11 @@ export function AppSidebar({
                                                 <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-violet-400' : ''}`} />
                                             </div>
                                             {isExpanded && <span className="font-medium text-sm truncate">{itemLabel(item)}</span>}
+                                            {item.badge && isExpanded && (
+                                                <span className="ml-auto px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-bold border border-violet-500/30">
+                                                    {item.badge}
+                                                </span>
+                                            )}
                                             {active && <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(139,92,246,0.8)]" />}
                                         </button>
                                     )

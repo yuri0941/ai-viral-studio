@@ -5,80 +5,13 @@ import { EmptyState } from '../../../../components/common/EmptyState.jsx'
 import { selfImprovementApi } from '../../../../services/api'
 import { API_BASE_URL } from '../../../../config.js'
 import {
-    DollarSign, Users, Brain, Calendar, BarChart, Bell, KeyRound, Zap,
-    ArrowUpRight, TrendingUp, Server, CreditCard, CheckSquare, MessageSquare,
-    Settings, Plus, Sparkles, Activity, Lock, Bot, AlertTriangle, UserX,
+    DollarSign, Users, Brain, Calendar, BarChart, Bell, Zap,
+    ArrowUpRight, Server, CreditCard, CheckSquare, AlertTriangle, UserX,
     FileText, BarChart2,
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 import '../../../../styles/animations.css'
 import { useTranslation } from 'react-i18next'
-
-// [MASTER-v5.6] Animated counter with reduced-motion respect
-const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
-    const [count, setCount] = useState(0);
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            setCount(value); return;
-        }
-        const duration = 1500, steps = 60, increment = value / steps;
-        let current = 0;
-        const timer = setInterval(() => {
-            current += increment;
-            if (current >= value) { setCount(value); clearInterval(timer); }
-            else setCount(Math.floor(current));
-        }, duration / steps);
-        return () => clearInterval(timer);
-    }, [value]);
-    const display = typeof value === 'number' && value % 1 !== 0 ? count.toFixed(1) : count.toLocaleString('ru-RU');
-    return <span>{prefix}{display}{suffix}</span>;
-};
-
-// [MASTER-v5.6] 3D tilt metric card
-const MetricCard = ({ icon: Icon, label, value, trend, color, delay = 0, onClick }) => {
-    const cardRef = useRef(null);
-    const [tilt, setTilt] = useState({ x: 0, y: 0 });
-    const isTouch = typeof window !== 'undefined' && 'ontouchstart' in window;
-
-    const handleMouseMove = (e) => {
-        if (isTouch || !cardRef.current) return;
-        const rect = cardRef.current.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width - 0.5;
-        const y = (e.clientY - rect.top) / rect.height - 0.5;
-        setTilt({ x: y * -8, y: x * 8 });
-    };
-
-    const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.]/g, '')) || 0 : value;
-    const suffix = typeof value === 'string' && value.includes('%') ? '%' : '';
-
-    return (
-        <div
-            ref={cardRef}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => setTilt({ x: 0, y: 0 })}
-            onClick={onClick}
-            className="luxury-card shimmer-slow cursor-pointer"
-            style={{
-                transform: isTouch ? 'none' : `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-                transition: 'transform 0.1s ease-out, border-color 0.3s, box-shadow 0.3s',
-                animationDelay: `${delay}ms`
-            }}
-        >
-            <div className={`absolute top-3 right-3 w-10 h-10 rounded-xl bg-${color}-500/10 flex items-center justify-center`}>
-                <Icon className={`w-5 h-5 text-${color}-400`} />
-            </div>
-            <p className="text-gray-400 text-xs font-medium mb-1">{label}</p>
-            <p className="text-2xl sm:text-3xl font-bold text-white font-variant-numeric tabular-nums">
-                <AnimatedCounter value={numericValue} suffix={suffix} />
-            </p>
-            {trend && (
-                <div className="flex items-center gap-1 mt-2 text-xs text-emerald-400">
-                    <TrendingUp className="w-3 h-3" /><span>{trend}</span>
-                </div>
-            )}
-        </div>
-    );
-};
 
 function BentoCard({ title, value, subtext, icon: Icon, color, onClick, children, className = '' }) {
     return (
@@ -181,9 +114,6 @@ export function OverviewTab({ data }) {
         }
     }
 
-    const hour = new Date().getHours()
-    const greeting = hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер'
-
     return (
         <div className="space-y-6">
             {payments.length === 0 && subscriptions.length === 0 && (
@@ -196,29 +126,6 @@ export function OverviewTab({ data }) {
                 />
             )}
 
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-xl font-semibold text-[var(--text)]">
-                        {greeting}, {user?.name || 'Владелец'}
-                    </h1>
-                    <p className="text-sm text-[var(--text-muted)] mt-1">Сводка состояния AI Viral Studio</p>
-                </div>
-                <div className="hidden sm:flex items-center gap-2">
-                    <span className="text-xs text-[var(--text-muted)]">Health</span>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full glass">
-                        <Activity className="w-3.5 h-3.5 text-[var(--primary)]" />
-                        <span className="text-sm font-semibold text-[var(--text)]">{businessHealth}</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* [MASTER-v5.6] Bento metrics with 3D tilt */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <MetricCard icon={DollarSign} label="MRR" value={mrr} trend="+12%" color="violet" delay={0} onClick={() => go('/owner?tab=finance')} />
-                <MetricCard icon={Users} label="Пользователи" value={1247} trend="+5%" color="cyan" delay={100} />
-                <MetricCard icon={Zap} label="AI-генераций" value={8543} trend="+23%" color="amber" delay={200} />
-                <MetricCard icon={Brain} label="Uptime" value={99.9} suffix="%" trend="Stable" color="emerald" delay={300} />
-            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <BentoCard
@@ -344,40 +251,6 @@ export function OverviewTab({ data }) {
                     )}
                 </div>
 
-                <div className="luxury-card glass p-5 sm:col-span-2 lg:col-span-1">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
-                            <Zap className="w-5 h-5 text-[var(--primary)]" />
-                        </div>
-                        <div className="text-sm font-medium text-[var(--text)]">Быстрые действия</div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button
-                            onClick={() => data.setModal?.({ type: 'addTask' })}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--primary-soft)] transition-colors text-left"
-                        >
-                            <Plus className="w-3.5 h-3.5" /> Задача
-                        </button>
-                        <button
-                            onClick={() => go('/owner?tab=apiKeys')}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--primary-soft)] transition-colors text-left"
-                        >
-                            <KeyRound className="w-3.5 h-3.5" /> Ключ
-                        </button>
-                        <button
-                            onClick={() => go('/settings')}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--primary-soft)] transition-colors text-left"
-                        >
-                            <Settings className="w-3.5 h-3.5" /> Настройки
-                        </button>
-                        <button
-                            onClick={() => go('/ai-chat')}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--primary-soft)] transition-colors text-left"
-                        >
-                            <Bot className="w-3.5 h-3.5" /> OMEGA
-                        </button>
-                    </div>
-                </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

@@ -428,7 +428,7 @@ function SettingsPage() {
         } catch {}
     };
 
-    const inputClass = "w-full px-4 py-3 glass rounded-xl text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:ring-2 focus:ring-[var(--primary)]/50 bg-transparent transition-all";
+    const inputClass = "w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/20 transition-all"; // [v6.0] updated
 
     const renderProfile = () => (
         <div className="space-y-6">
@@ -663,7 +663,7 @@ function SettingsPage() {
                     const isLoading = paymentLoading[loadingKey];
 
                     return (
-                        <div key={plan.id} className={`luxury-card glass p-5 ${subscribed ? 'border-[var(--success)]' : plan.popular ? 'border-[var(--primary)]' : ''}`}>
+                        <div key={plan.id} className={`luxury-card glass p-5 ${subscribed ? 'ring-2 ring-violet-500 shadow-[0_0_20px_rgba(139,92,246,0.15)]' : plan.popular ? 'border-[var(--primary)]' : ''}`}>
                             {plan.popular && !subscribed && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-full">
                                     {t('settings.popular')}
@@ -776,7 +776,7 @@ function SettingsPage() {
                         </div>
                         <button
                             onClick={() => setNotifications({ ...notifications, [item.id]: !notifications[item.id] })}
-                            className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${notifications[item.id] ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                            className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${notifications[item.id] ? 'bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.4)]' : 'bg-white/10'}`}
                             aria-label={notifications[item.id] ? 'Выключить' : 'Включить'}
                         >
                             <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${notifications[item.id] ? 'translate-x-6' : ''}`} />
@@ -1001,7 +1001,7 @@ function SettingsPage() {
                     </div>
                     <button
                         onClick={() => setTwoFA(!twoFA)}
-                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${twoFA ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${twoFA ? 'bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.4)]' : 'bg-white/10'}`}
                         aria-label={twoFA ? t('settings.disable2FA') : t('settings.enable2FA')}
                     >
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${twoFA ? 'translate-x-6' : ''}`} />
@@ -1089,7 +1089,7 @@ function SettingsPage() {
                     <button
                         onClick={() => handleWatermarkChange('enabled', !watermark.enabled)}
                         disabled={!watermark.enabled && !watermarkEligibility.canDisable}
-                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${watermark.enabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'} disabled:opacity-50`}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${watermark.enabled ? 'bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.4)]' : 'bg-white/10'} disabled:opacity-50`}
                         aria-label={watermark.enabled ? t('settings.disable') : t('settings.enable')}
                     >
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${watermark.enabled ? 'translate-x-6' : ''}`} />
@@ -1229,7 +1229,7 @@ function SettingsPage() {
                     </div>
                     <button
                         onClick={handleSoundToggle}
-                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${soundEnabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${soundEnabled ? 'bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.4)]' : 'bg-white/10'}`}
                         aria-label={soundEnabled ? t('settings.disableSounds') : t('settings.enableSounds')}
                     >
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${soundEnabled ? 'translate-x-6' : ''}`} />
@@ -1245,7 +1245,7 @@ function SettingsPage() {
                     </div>
                     <button
                         onClick={handleAnimationsToggle}
-                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${animationsEnabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${animationsEnabled ? 'bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.4)]' : 'bg-white/10'}`}
                         aria-label={animationsEnabled ? t('settings.disableAnimations') : t('settings.enableAnimations')}
                     >
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--text-inverse)] shadow-md transition-all duration-300 ${animationsEnabled ? 'translate-x-6' : ''}`} />
@@ -1284,22 +1284,28 @@ function SettingsPage() {
 
             <div className="flex flex-col lg:flex-row gap-6">
                 <div className="lg:w-64 flex-shrink-0">
-                    <div className="glass rounded-2xl p-2">
+                    {/* [v6.0] added: glass sidebar */}
+                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-2">
                         {tabs.map(tab => {
                             const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
                             return (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all rounded-xl mb-1 ${activeTab === tab.id ? 'bg-[var(--primary-soft)] text-[var(--primary)] border-l-[3px] border-[var(--primary)]' : 'text-[var(--text-muted)] border-l-[3px] border-transparent hover:bg-[var(--surface)]'}`}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all rounded-xl mb-1 ${
+                                        isActive
+                                            ? 'bg-gradient-to-r from-violet-500/10 to-transparent text-violet-300 border-l-[3px] border-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.15)]'
+                                            : 'text-[var(--text-muted)] border-l-[3px] border-transparent hover:bg-white/5'
+                                    }`}
                                 >
-                                    <Icon size={18} />
-                                    <span className="font-medium">{tab.label}</span>
-                                    {activeTab === tab.id && <ChevronRight size={14} className="ml-auto" />}
+                                    <Icon size={18} className={isActive ? 'text-violet-400' : ''} />
+                                    <span className={`font-medium ${isActive ? 'bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent' : ''}`}>{tab.label}</span>
+                                    {isActive && <ChevronRight size={14} className="ml-auto text-violet-400" />}
                                 </button>
                             );
                         })}
-                        <div className="border-t border-[var(--border)] mt-2 pt-2">
+                        <div className="border-t border-white/10 mt-2 pt-2">
                             <button
                                 onClick={logout}
                                 className="w-full flex items-center gap-3 px-4 py-3 text-left text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-all rounded-xl"
@@ -1311,7 +1317,10 @@ function SettingsPage() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    {renderContent()}
+                    {/* [v6.0] added: glass content wrapper */}
+                    <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6">
+                        {renderContent()}
+                    </div>
                 </div>
             </div>
         </div>

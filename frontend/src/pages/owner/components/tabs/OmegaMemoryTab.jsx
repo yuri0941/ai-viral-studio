@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Database, Search, Layers, Trash2, ChevronRight, MessageSquare, Cloud, Server } from 'lucide-react'
+import { EmptyState } from '../../../../components/common/EmptyState.jsx' // [v6.0] added
 import { useOmegaMemory } from '../../../../hooks/useOmegaMemory'
 import { omegaApi, analyticsApi } from '../../../../services/api.js'
 
@@ -88,7 +89,12 @@ export function OmegaMemoryTab() {
                 }
             } catch (err) {
                 console.error('[OmegaMemoryTab] getMemory error:', err)
-                if (!cancelled) setApiEmpty(true)
+                if (!cancelled) {
+                    setApiEmpty(true)
+                    // [v6.0] added: degrade gracefully to empty memory levels
+                    LEVELS.forEach(level => memory.clear(level))
+                    memory.refresh()
+                }
             } finally {
                 if (!cancelled) setApiLoading(false)
             }
@@ -233,20 +239,20 @@ export function OmegaMemoryTab() {
                 {/* Timeline */}
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
                     {safeEntries.length === 0 && (
-                        <div className="text-center text-gray-500 text-sm py-8 space-y-3">
-                            <p>История диалогов появится здесь</p>
-                            <button
-                                onClick={() => {
-                                    const text = window.prompt('Напишите сообщение OMEGA:')
-                                    if (text?.trim()) {
-                                        memory.store('short_term', { content: text.trim(), tags: ['manual', 'short_term'], weight: 1 })
-                                    }
-                                }}
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-500/10 text-purple-400 text-xs hover:bg-purple-500/20 transition-colors"
-                            >
-                                <MessageSquare size={14} /> Написать OMEGA
-                            </button>
-                        </div>
+                        // [v6.0] added: graceful empty-state placeholder
+                        <EmptyState
+                            icon={Database}
+                            title="Данные обновляются..."
+                            description="История памяти OMEGA недоступна. Попробуйте обновить позже."
+                            actionLabel="Написать OMEGA"
+                            onAction={() => {
+                                const text = window.prompt('Напишите сообщение OMEGA:')
+                                if (text?.trim()) {
+                                    memory.store('short_term', { content: text.trim(), tags: ['manual', 'short_term'], weight: 1 })
+                                }
+                            }}
+                            compact
+                        />
                     )}
                     {safeEntries.slice().reverse().map(entry => (
                         <div key={entry.id} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-[var(--border)]">
