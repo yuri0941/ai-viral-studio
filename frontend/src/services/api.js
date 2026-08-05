@@ -27,7 +27,7 @@ async function request(path, options = {}, retryCount = 0) {
         })
     } catch (networkErr) {
         console.warn('[API] Network error:', networkErr.message)
-        return { success: false, mock: true, message: 'Network error' }
+        return { success: false, message: 'Network error' }
     }
 
     const contentType = res.headers.get('content-type') || ''
@@ -38,7 +38,7 @@ async function request(path, options = {}, retryCount = 0) {
         const text = await res.text()
         if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) {
             console.warn('[API] HTML response, endpoint missing:', url)
-            return { success: false, mock: true, message: 'Service temporarily unavailable' }
+            return { success: false, message: 'Service temporarily unavailable' }
         }
     }
 
@@ -50,7 +50,7 @@ async function request(path, options = {}, retryCount = 0) {
 
     if (res.status === 502 || res.status === 503) {
         console.warn('[API] Service unavailable:', url, res.status)
-        return { success: false, mock: true, message: 'Service temporarily unavailable' }
+        return { success: false, message: 'Service temporarily unavailable' }
     }
 
     if (!contentType || !contentType.includes('application/json')) {

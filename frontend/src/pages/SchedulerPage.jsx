@@ -104,6 +104,19 @@ function SchedulerPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const fileInputRef = useRef(null);
+    const zoomContainerRef = useRef(null); // [v6.0-fix] added: for passive wheel listener
+
+    // [v6.0-fix] added: passive wheel listener for image zoom
+    useEffect(() => {
+        const el = zoomContainerRef.current;
+        if (!el) return;
+        const handler = (e) => {
+            e.preventDefault();
+            setImageZoom(prev => Math.min(5, Math.max(1, prev + (e.deltaY > 0 ? -0.2 : 0.2))));
+        };
+        el.addEventListener('wheel', handler, { passive: false });
+        return () => el.removeEventListener('wheel', handler);
+    }, [setImageZoom]);
     const mediaFileInputRef = useRef(null);
 
     function getAuthHeaders() {
@@ -1066,11 +1079,8 @@ function SchedulerPage() {
                             />
                         ) : (
                             <div
+                                ref={zoomContainerRef}
                                 className="overflow-hidden rounded-xl cursor-grab active:cursor-grabbing"
-                                onWheel={(e) => {
-                                    e.preventDefault();
-                                    setImageZoom(prev => Math.min(5, Math.max(1, prev + (e.deltaY > 0 ? -0.2 : 0.2))));
-                                }}
                                 onMouseDown={(e) => {
                                     setIsDragging(true);
                                     setDragStart({ x: e.clientX - imagePan.x, y: e.clientY - imagePan.y });

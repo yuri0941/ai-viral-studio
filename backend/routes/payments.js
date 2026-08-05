@@ -50,7 +50,7 @@ router.post('/create-checkout-session', async (req, res) => {
         attempts++
         try {
             if (!stripe) {
-                return res.status(503).json({ status: 'error', error: 'Stripe not configured', fallback: 'yookassa' })
+                return res.status(503).json({ success: false, error: 'Stripe not configured' })
             }
 
             const { planId, price, isYearly, currency = 'USD', userId } = req.body
@@ -97,7 +97,7 @@ router.post('/create-checkout-session', async (req, res) => {
         }
     }
 
-    return res.status(200).json({ success: false, message: lastError?.message || 'Payment service temporarily unavailable', fallback: true })
+    return res.status(503).json({ success: false, error: lastError?.message || 'Payment service temporarily unavailable. Please try later.' })
 })
 
 /**

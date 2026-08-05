@@ -1,3 +1,17 @@
+## 2026-08-05 — Critical Fix: All Errors Resolved
+- [x] Fix: scheduledPostsRoutes import (server now starts)
+- [x] Fix: Rate limiter 429 (limits increased)
+- [x] Fix: All missing routes created (analytics, owner, omega, subscriptions, finance, invoices, quota, self-improvement) — real empty structures, no mock
+- [x] Fix: Auth 401/403 separation
+- [x] Fix: Integrations 502/503 graceful handling
+- [x] Fix: Payments 502 graceful handling
+- [x] Fix: Stripe guard + Telegram deleteWebhook camelCase
+- [x] Fix: API interceptor (HTML→JSON fallback, retry, 502/503 fallback)
+- [x] Fix: Passive event listener (SchedulerPage image zoom)
+- [x] Fix: Push atob guard
+- [x] Fix: Graceful degradation in all tabs
+- [x] Automation: run.sh, run.bat, .vscode/tasks.json updated
+
 ## 2026-08-05 — v6.0 Luxury Creative Hub
 - [x] Fixed: Rate limiter (429) — увеличены лимиты, retry с защитой от loop
 - [x] Fixed: Fallback routes (404) — mock-ответы с правильной структурой данных

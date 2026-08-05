@@ -69,7 +69,18 @@ import selfImprovementRoutes from './routes/selfImprovement.js'  // ← P15: Sel
 import neuroSalesRoutes from './routes/neuroSales.js'  // [P18] added: Neuro-Sales psychotypes
 import challengeRoutes from './routes/challenges.js'  // [P20] added: OMEGA Challenge
 import uploadRoutes from './routes/upload.js'  // [P21] added: image upload optimization
+import scheduledPostsRoutes from './routes/scheduledPosts.js'  // [v6.0-fix] added: missing import
 import fallbackRoutes from './routes/fallbackRoutes.js'  // [v6.0] added: structured fallback routes
+
+// [v6.0-fix] added: fallback routers for expected frontend endpoints without mock data
+import analyticsFallbackRoutes from './routes/analyticsRoutes.js'
+import ownerFallbackRoutes from './routes/ownerRoutes.js'
+import omegaFallbackRoutes from './routes/omegaRoutes.js'
+import subscriptionFallbackRoutes from './routes/subscriptionRoutes.js'
+import financeFallbackRoutes from './routes/financeRoutes.js'
+import invoiceFallbackRoutes from './routes/invoiceRoutes.js'
+import quotaFallbackRoutes from './routes/quotaRoutes.js'
+import selfImprovementFallbackRoutes from './routes/selfImprovementRoutes.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -312,6 +323,16 @@ app.use('/api/roadmap', roadmapRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/self-improvement', selfImprovementRoutes)
 app.use('/api/scheduled-posts', scheduledPostsRoutes)
+
+// [v6.0-fix] added: fallback routers for expected frontend endpoints (real empty structures, no mock)
+app.use('/api/analytics', analyticsFallbackRoutes)
+app.use('/api/owner', ownerFallbackRoutes)
+app.use('/api/omega', omegaFallbackRoutes)
+app.use('/api/subscriptions', subscriptionFallbackRoutes)
+app.use('/api/finance', financeFallbackRoutes)
+app.use('/api/invoices', invoiceFallbackRoutes)
+app.use('/api/users', quotaFallbackRoutes)
+app.use('/api/self-improvement', selfImprovementFallbackRoutes)
 
 // [v6.0] added: structured fallback routes for expected frontend endpoints
 app.use('/api', fallbackRoutes)
