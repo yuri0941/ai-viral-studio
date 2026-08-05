@@ -1,3 +1,18 @@
+## 2026-08-05 — v6.0 Critical Fix (No Mocks)
+- [x] Fix: scheduledPostsRoutes import + создание файла
+- [x] Fix: Rate limiter (500/15min auth, 300/15min omega/analytics/subscriptions, 50/15min guest)
+- [x] Fix: Созданы все недостающие роуты (analytics, owner, omega, subscriptions, finance, invoices, quota, self-improvement) — real empty structures, no mock
+- [x] Fix: Auth 401/403 разделение + requireRole helper
+- [x] Fix: Integrations 502/503 try-catch
+- [x] Fix: Payments 503 graceful error
+- [x] Fix: Stripe guard по env
+- [x] Fix: Telegram deleteWebhook camelCase + 409 conflict guard
+- [x] Fix: API interceptor (HTML→JSON, retry 429, 502/503 fallback)
+- [x] Fix: Passive event listener
+- [x] Fix: Push atob guard
+- [x] Fix: Graceful degradation во всех табах
+- [x] Chore: run.sh, run.bat, .vscode/tasks.json
+
 ## 2026-08-05 — Critical Fix: All Errors Resolved
 - [x] Fix: scheduledPostsRoutes import (server now starts)
 - [x] Fix: Rate limiter 429 (limits increased)

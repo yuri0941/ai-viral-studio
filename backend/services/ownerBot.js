@@ -152,11 +152,11 @@ export const initOwnerBot = () => {
       await bot.deleteWebhook({ drop_pending_updates: true })
       await new Promise(r => setTimeout(r, 1000))
       console.log('[OWNER-BOT] webhook deleted, starting polling')
-      bot.startPolling()
+      if (!bot.isPolling()) bot.startPolling() // [v6.0-fix] added: 409 conflict guard
     } catch (err) {
       console.warn('[OWNER-BOT] deleteWebhook failed:', err.message, '- starting polling anyway')
       await new Promise(r => setTimeout(r, 1000))
-      bot.startPolling()
+      if (!bot.isPolling()) bot.startPolling() // [v6.0-fix] added: 409 conflict guard
     }
   })()
 }
