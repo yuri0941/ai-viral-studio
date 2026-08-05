@@ -77,7 +77,7 @@ import {
     CreditCard, Server, RefreshCw, Gift, Newspaper, Share2, Settings,
     Megaphone, Lock, Plug, Brain, FileText, Bot, MessageSquare,
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
-    BrainCircuit, Database, Scale, BarChart, BarChart3, Search, Calendar, TrendingUp,
+    BrainCircuit, Database, Scale, BarChart, BarChart3, Search, Calendar, TrendingUp, Zap,
     X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, QrCode, Store, Shield, Terminal
 } from 'lucide-react'
 
