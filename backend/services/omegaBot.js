@@ -170,11 +170,13 @@ export const initOmegaBot = () => {
       await bot.deleteWebhook({ drop_pending_updates: true })
       await new Promise(r => setTimeout(r, 1000))
       console.log('[OMEGA-BOT] webhook deleted, starting polling')
-      if (!bot.isPolling()) bot.startPolling() // [v6.0-fix] added: 409 conflict guard
+      if (bot.isPolling && !bot.isPolling()) bot.startPolling();
+      else if (!bot.isPolling) bot.startPolling(); // [HOTFIX] defensive 409 conflict guard
     } catch (err) {
       console.warn('[OMEGA-BOT] deleteWebhook failed:', err.message, '- starting polling anyway')
       await new Promise(r => setTimeout(r, 1000))
-      if (!bot.isPolling()) bot.startPolling() // [v6.0-fix] added: 409 conflict guard
+      if (bot.isPolling && !bot.isPolling()) bot.startPolling();
+      else if (!bot.isPolling) bot.startPolling(); // [HOTFIX] defensive 409 conflict guard
     }
   })()
 }
