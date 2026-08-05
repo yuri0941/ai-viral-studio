@@ -90,12 +90,12 @@
     "saveQuota": "Save quotas"
   },
   "omega": {
-    "title": "OMEGA Core",
-    "autopilot": "AutoPilot",
-    "predictive": "Predictive",
-    "repurposing": "Repurposing",
-    "voice": "Voice",
-    "recalcForecast": "Recalculate forecast",
+    "title": "OMEGA AI",
+    "autopilot": "Autopilot",
+    "predictive": "Predictive Analytics",
+    "repurposing": "Content Repurposing",
+    "voice": "Voice Assistant",
+    "recalcForecast": "Recalculate Forecast",
     "forecastUpdated": "Forecast updated",
     "forecastUpdating": "Updating forecast...",
     "forecastError": "Forecast update error",

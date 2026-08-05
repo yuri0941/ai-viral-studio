@@ -117,6 +117,15 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
 
     const hasActiveKey = apiKeys.some(k => k.value && (k.status === 'active' || k.status === 'ok'))
 
+    // [v5.9] added: quick action prompts
+    const quickActions = [
+        { label: 'Создать пост', icon: '✍️', prompt: 'Создай пост про кофейню' },
+        { label: 'Хук', icon: '🔥', prompt: 'Хук для Reels про путешествия' },
+        { label: 'Анализ', icon: '🔍', prompt: 'Проанализируй конкурента' },
+        { label: 'Обложка', icon: '🎨', prompt: 'Сгенерируй обложку' },
+        { label: 'План', icon: '📅', prompt: 'Контент-план на неделю' },
+    ]
+
     return (
         <div className="flex flex-col h-full rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] overflow-hidden">
             {/* Header */}
@@ -300,6 +309,19 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
 
             {/* Input */}
             <form onSubmit={handleSubmit} className="p-3 border-t border-[var(--border)]">
+                {/* [v5.9] added: quick action chips */}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {quickActions.map((a, i) => (
+                        <button
+                            key={i}
+                            type="button"
+                            onClick={() => setInput(a.prompt)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 hover:border-violet-500/30 transition-all whitespace-nowrap flex-shrink-0"
+                        >
+                            <span>{a.icon}</span>{a.label}
+                        </button>
+                    ))}
+                </div>
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--surface)] border border-white/5 focus-within:border-[var(--primary)]/30 transition-colors">
                     <VoiceInterface
                         compact

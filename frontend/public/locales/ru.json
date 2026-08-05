@@ -90,12 +90,12 @@
     "saveQuota": "Сохранить лимиты"
   },
   "omega": {
-    "title": "OMEGA Core",
-    "autopilot": "AutoPilot",
-    "predictive": "Predictive",
-    "repurposing": "Repurposing",
-    "voice": "Voice",
-    "recalcForecast": "Пересчитать прогноз",
+    "title": "OMEGA AI",
+    "autopilot": "Автопилот",
+    "predictive": "Предиктивная аналитика",
+    "repurposing": "Репурпозинг контента",
+    "voice": "Голосовой помощник",
+    "recalcForecast": "Пересчёт прогноза",
     "forecastUpdated": "Прогноз обновлён",
     "forecastUpdating": "Прогноз обновляется...",
     "forecastError": "Ошибка пересчёта прогноза",

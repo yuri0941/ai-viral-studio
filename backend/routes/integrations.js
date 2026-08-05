@@ -53,6 +53,15 @@ router.get('/my', protect, async (req, res) => {
     }
 })
 
+// [v5.9] added: real Telegram bot deep-link for OAuth-style connect
+router.get('/telegram/url', protect, (req, res) => {
+    const botLink = process.env.TELEGRAM_BOT_LINK || process.env.TELEGRAM_OMEGA_BOT_LINK
+    if (!botLink) {
+        return res.status(503).json({ error: 'TELEGRAM_BOT_LINK not configured' })
+    }
+    res.json({ url: `${botLink}?start=connect_${req.user.id}`, botLink })
+})
+
 router.post('/telegram/connect', protect, async (req, res) => {
     try {
         const { botToken, chatId } = req.body
@@ -79,12 +88,25 @@ router.post('/telegram/connect', protect, async (req, res) => {
     }
 })
 
-// [FIX-2026-08-05] VK OAuth URL via API (avoids direct redirect without token)
+// [v5.9] added: real VK OAuth URL using env VK_CLIENT_ID
 router.get('/vk/url', protect, (req, res) => {
-    if (!process.env.VK_APP_ID || !process.env.VK_APP_SECRET) {
-        return res.status(503).json({ error: 'API not configured', message: 'Требуется настройка VK App ID и Secret администратором' })
+    const clientId = process.env.VK_CLIENT_ID
+    const redirectUri = process.env.VK_REDIRECT_URI || 'https://aiviral-studio.ru/api/integrations/vk/callback'
+    if (!clientId) {
+        return res.status(503).json({ error: 'VK not configured. Add VK_CLIENT_ID to environment' })
     }
-    const url = `https://oauth.vk.com/authorize?client_id=${process.env.VK_APP_ID}&redirect_uri=${process.env.FRONTEND_URL}/integrations/vk/callback&scope=wall,photos&response_type=code&state=${req.user.id}`
+    const url = `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=wall,offline&state=${req.user.id}`
+    res.json({ url })
+})
+
+// [v5.9] added: real Discord OAuth URL using env DISCORD_CLIENT_ID
+router.get('/discord/url', protect, (req, res) => {
+    const clientId = process.env.DISCORD_CLIENT_ID
+    const redirectUri = process.env.DISCORD_REDIRECT_URI || 'https://aiviral-studio.ru/api/integrations/discord/callback'
+    if (!clientId) {
+        return res.status(503).json({ error: 'DISCORD_CLIENT_ID not configured' })
+    }
+    const url = `https://discord.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify%20guilds&state=${req.user.id}`
     res.json({ url })
 })
 
@@ -109,7 +131,11 @@ router.post('/discord/connect', protect, async (req, res) => {
 router.get('/vk/callback', async (req, res) => {
     try {
         const { code, state: userId } = req.query
-        const tokenRes = await fetch(`https://oauth.vk.com/access_token?client_id=${process.env.VK_APP_ID}&client_secret=${process.env.VK_APP_SECRET}&redirect_uri=${process.env.FRONTEND_URL}/integrations/vk/callback&code=${code}`)
+        const clientId = process.env.VK_CLIENT_ID || process.env.VK_APP_ID
+        const clientSecret = process.env.VK_CLIENT_SECRET || process.env.VK_APP_SECRET
+        const redirectUri = process.env.VK_REDIRECT_URI || 'https://aiviral-studio.ru/api/integrations/vk/callback'
+        if (!clientId || !clientSecret) throw new Error('VK credentials not configured')
+        const tokenRes = await fetch(`https://oauth.vk.com/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`)
         const data = await tokenRes.json()
         if (data.error) throw new Error(data.error_description || data.error)
 
@@ -125,7 +151,12 @@ router.get('/vk/callback', async (req, res) => {
 })
 
 router.get('/linkedin/auth', protect, (req, res) => {
-    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${process.env.FRONTEND_URL}/integrations/linkedin/callback&scope=r_liteprofile%20r_emailaddress%20w_member_social&state=${req.user.id}`
+    const clientId = process.env.LINKEDIN_CLIENT_ID
+    if (!clientId) {
+        return res.status(503).json({ error: 'LINKEDIN_CLIENT_ID not configured' })
+    }
+    const redirectUri = process.env.LINKEDIN_REDIRECT_URI || `${process.env.FRONTEND_URL}/integrations/linkedin/callback`
+    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=r_liteprofile%20r_emailaddress%20w_member_social&state=${req.user.id}`
     res.redirect(url)
 })
 
