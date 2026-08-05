@@ -2,9 +2,22 @@
 // API Service — обёртки для backend эндпоинтов
 // ============================================
 
+import axios from 'axios'
 import { API_URL } from '../config.js'
 
 const API_BASE = API_URL
+
+// [v6.4] added: axios instance with Authorization interceptor
+const api = axios.create({
+    baseURL: API_BASE,
+    headers: { 'Content-Type': 'application/json' }
+})
+
+api.interceptors.request.use((config) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    if (token) config.headers.Authorization = `Bearer ${token}`
+    return config
+})
 
 function getAuthHeaders() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
@@ -440,6 +453,7 @@ export const monitoringApi = {
 // Default export (kept for compatibility)
 // ============================================
 export default {
+    api,
     ownerApi,
     omegaApi,
     launchApi,

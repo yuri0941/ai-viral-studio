@@ -627,20 +627,23 @@ NODE_ENV=production
 - [ ] Git push: выполнен
 
 
-## Current Architecture (v6.2)
+## Current Architecture (v6.4)
 
 - Backend: Node.js + Express, MongoDB, все роуты созданы
 - Rate Limiter: 500/15min auth, 300/15min omega/analytics/subscriptions, 50/15min guest
 - Auth: protect + requireRole (401/403 разделение)
 - Integrations: VK, IG, TikTok, LinkedIn, YouTube, Pinterest, FB, Twitter, Discord — все с try-catch graceful fallback
-- Payments: Stripe silent guard, YooKassa 503 graceful error
-- Telegram: ownerBot + omegaBot, deleteWebhook camelCase, 409 conflict guard
+- VK: frontend отправляет Bearer token через axios interceptor
+- Payments: Stripe silent guard + lazy init, YooKassa 503 graceful error
+- Telegram: webhook mode (polling удалён), ownerBot + omegaBot через `setWebHook`, 409 conflict уходит
 - Frontend: React + Tailwind, Creative Hub (единый Chat/Analyzer/Planner), glassmorphism UI
 - Chat: единый компонент везде (Hub + Widget + Profile), логотип в шапке, нет дублей, gradient bubbles
 - Roles: owner, admin, staff, client, creator, advertiser — OMEGA адаптирует приветствие
 - Header: dropdown fixed z-[9999], не обрезается
 - Components: LuxuryDocumentViewer, CreativeHub, unified OmegaChat
-- API Interceptor: HTML→JSON fallback, retry 429, 502/503 fallback
+- API Interceptor: HTML→JSON fallback, retry 429, 502/503 fallback, Bearer Authorization
+- PWA: `sw.js` очищает все кеши при `activate`, `main.jsx` вызывает `reg.update()` при старте
+- Mobile: OmegaChat FAB 56px, bottom sheet 85vh, drag handle, safe-area-inset
 - Automation: run.sh, run.bat, .vscode/tasks.json
 
 ## Known Issues (resolved)

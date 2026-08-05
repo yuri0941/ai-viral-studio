@@ -1,3 +1,13 @@
+## 2026-08-05 — v6.4 Final Fix
+- [x] Fix: VK Authorization header в frontend API
+- [x] Fix: Telegram webhook (409 conflict уходит навсегда)
+- [x] Fix: PWA cache reset (force update у всех клиентов)
+- [x] UI: Creative Hub (1 sidebar item)
+- [x] UI: OMEGA chat luxury (no duplicates, gradient bubbles)
+- [x] UI: Header dropdown fixed z-[9999]
+- [x] Mobile: FAB, bottom sheet 85vh, drag handle, safe-area
+- [x] Build: 0 errors frontend + backend
+
 ## 2026-08-05 — v6.3: Payments + Team + Social + Self-Healing
 - [x] Fix: Stripe ленивая инициализация (нет спама при старте)
 - [x] Fix: Telegram zero warnings (startPollingSafe функция с именем бота и guard ETELEGRAM+conflict)

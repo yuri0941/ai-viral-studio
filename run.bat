@@ -7,6 +7,6 @@ cd frontend && call npm run build && cd ..
 echo ✅ Frontend OK
 echo 🚀 Deploy...
 git add .
-git commit -m "v6.3: stripe lazy init + seed users + team activity + social UI + payments UI + self-healing + z-index fix %date%-%time%" || echo No changes
+git commit -m "v6.4: vk auth + telegram webhook + pwa reset + luxury ui + mobile adaptive %date%-%time%" || echo No changes
 git push origin main
 echo 🎉 Done! && pause

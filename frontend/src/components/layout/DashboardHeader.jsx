@@ -198,7 +198,7 @@ export function DashboardHeader({
                             <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${langOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {langOpen && (
-                            <div className="fixed right-4 top-16 w-32 rounded-xl bg-black/70 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden z-[9999]">
+                            <div className="fixed right-4 top-16 w-32 rounded-xl bg-black/80 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden z-[9999]">
                                 {['ru', 'en'].map(lang => (
                                     <button
                                         key={lang}
@@ -235,7 +235,7 @@ export function DashboardHeader({
                             <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${roleOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {roleOpen && (
-                            <div className="fixed right-4 top-16 w-40 rounded-xl bg-black/70 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden z-[9999]">
+                            <div className="fixed right-4 top-16 w-40 rounded-xl bg-black/80 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden z-[9999]">
                                 {availableRoles.map(role => {
                                     const config = ROLE_CONFIG[role]
                                     const Icon = config.icon
@@ -268,7 +268,7 @@ export function DashboardHeader({
                                 <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${wsOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {wsOpen && (
-                                <div className="fixed right-4 top-16 w-48 rounded-xl bg-black/70 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden z-[9999]">
+                                <div className="fixed right-4 top-16 w-48 rounded-xl bg-black/80 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden z-[9999]">
                                     {workspaces.map(ws => (
                                         <button
                                             key={ws._id}

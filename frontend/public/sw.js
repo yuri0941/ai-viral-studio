@@ -3,7 +3,12 @@ self.addEventListener('install', () => {
 })
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(self.clients.claim())
+    // [v6.4] Clear all caches on activate to force clients to fetch the latest app
+    event.waitUntil(
+        caches.keys().then((names) =>
+            Promise.all(names.map((name) => caches.delete(name)))
+        ).then(() => self.clients.claim())
+    )
 })
 
 self.addEventListener('fetch', (event) => {

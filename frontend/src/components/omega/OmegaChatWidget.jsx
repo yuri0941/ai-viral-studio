@@ -8,7 +8,7 @@ import { X, MessageSquare, Minimize2 } from 'lucide-react'
 import { OmegaChatContainer } from './OmegaChat.jsx'
 import { playSound } from '../../hooks/useSound.js'
 
-const WIDGET_WIDTH = 380
+const WIDGET_WIDTH = 400
 const WIDGET_HEIGHT = 600
 const ORB_SIZE = 64 // [P16-HOTFIX] 64px touch target
 

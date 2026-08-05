@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+.omega-chat-mobile {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px));
+}
+
 @layer base {
     :root {
         --bg: #f8f7f4;

@@ -36,6 +36,11 @@ try {
     console.warn('[Rollbar] init failed:', err) // [P16-FIX] guard Rollbar init
 }
 
+// [v6.4] Force the service worker to check for updates immediately on load
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then((reg) => reg.update())
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <QueryClientProvider client={queryClient}>
