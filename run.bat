@@ -7,6 +7,6 @@ cd frontend && call npm run build && cd ..
 echo ✅ Frontend OK
 echo 🚀 Deploy...
 git add .
-git commit -m "fix: all errors resolved %date%-%time%" || echo No changes
+git commit -m "v6.2: omega chat luxury ui — logo + no duplicates + role-aware + mobile adaptive %date%-%time%" || echo No changes
 git push origin main
 echo 🎉 Done! && pause

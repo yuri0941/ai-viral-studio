@@ -3,7 +3,7 @@
 // ============================================
 
 import { useRef, useEffect, useState, useMemo } from 'react'
-import { Bot, User, Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown, Mic, Globe, Volume2, ChevronDown, ChevronUp, Paperclip, X } from 'lucide-react'
+import { Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown, Mic, Globe, Volume2, ChevronDown, ChevronUp, Paperclip, X } from 'lucide-react'
 import { useOmegaChat } from '../../hooks/useOmegaChat.js'
 import { VectorStoreStatus } from './VectorStoreStatus.jsx'
 import { UsageQuotaWidget } from './UsageQuotaWidget.jsx'
@@ -45,55 +45,6 @@ const COMMANDS = {
     business: []
 }
 
-// [v5.9-FINAL] added: role badge metadata
-function getRoleMeta(role) {
-    switch (role) {
-        case 'owner': return { emoji: '👑', label: 'Owner', color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' }
-        case 'admin': return { emoji: '🛡', label: 'Admin', color: 'text-red-400 bg-red-400/10 border-red-400/20' }
-        case 'staff': return { emoji: '🎧', label: 'Staff', color: 'text-blue-400 bg-blue-400/10 border-blue-400/20' }
-        case 'advertiser': return { emoji: '📢', label: 'Advertiser', color: 'text-purple-400 bg-purple-400/10 border-purple-400/20' }
-        case 'creator': return { emoji: '🎨', label: 'Creator', color: 'text-violet-400 bg-violet-400/10 border-violet-400/20' }
-        case 'business': return { emoji: '🏢', label: 'Business', color: 'text-orange-400 bg-orange-400/10 border-orange-400/20' }
-        default: return { emoji: '👤', label: 'Client', color: 'text-gray-400 bg-gray-400/10 border-gray-400/20' }
-    }
-}
-
-// [v5.9-FINAL] added: inline publish modal
-function PublishModal({ text, apiKeys, onClose }) {
-    const platforms = ['Instagram', 'Telegram', 'TikTok', 'YouTube', 'VK']
-    const isConnected = (platform) => apiKeys.some(k => k.provider?.toLowerCase() === platform.toLowerCase() && k.value)
-    const [selected, setSelected] = useState(null)
-    return (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-            <div className="w-full max-w-sm rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
-                <div className="flex items-center justify-between mb-3">
-                    <div className="text-sm font-medium text-[var(--text)]">🚀 Публикация</div>
-                    <button type="button" onClick={onClose} className="p-1 text-[var(--text-muted)] hover:text-[var(--text)]"><X size={16} /></button>
-                </div>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                    {platforms.map(p => (
-                        <button
-                            key={p}
-                            type="button"
-                            onClick={() => setSelected(p)}
-                            className={`px-3 py-2 rounded-lg text-xs border transition-colors ${selected === p ? 'bg-[var(--primary)]/20 border-[var(--primary)] text-[var(--primary)]' : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'}`}
-                        >
-                            {p}
-                        </button>
-                    ))}
-                </div>
-                {selected && !isConnected(selected) && (
-                    <div className="text-xs text-[var(--accent-warm)] mb-3">Подключите {selected} в Настройках → Интеграции</div>
-                )}
-                {selected && isConnected(selected) && (
-                    <div className="text-xs text-[var(--success)] mb-3">{selected} подключен. Публикация в очереди.</div>
-                )}
-                <button type="button" onClick={onClose} className="w-full py-2 rounded-lg bg-[var(--primary)] text-[var(--text-inverse)] text-xs hover:opacity-90 transition-opacity">Закрыть</button>
-            </div>
-        </div>
-    )
-}
-
 // [v5.9-FINAL] added: platform preview split-screen panel component
 function PreviewPanel({ message, onClose }) {
     const tabs = [
@@ -133,38 +84,9 @@ function PreviewPanel({ message, onClose }) {
     )
 }
 
-// [MASTER-v5.6] Cinematic message bubble with orb avatar
-const MessageBubble = ({ message, isUser, isTyping }) => {
-    return (
-        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
-            {!isUser && (
-                <div className="w-8 h-8 rounded-full mr-3 relative flex-shrink-0 hidden sm:block">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-violet-500 via-fuchsia-500 to-cyan-500 animate-spin-slow" style={{ animationDuration: '8s' }} />
-                    <div className="absolute inset-[2px] rounded-full bg-[#0a0a1f] flex items-center justify-center"><span className="text-xs">Ω</span></div>
-                    {isTyping && <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />}
-                </div>
-            )}
-            <div className={`
-                max-w-[85%] sm:max-w-[75%] px-4 py-3 rounded-2xl relative
-                ${isUser ? 'bg-gradient-to-br from-violet-600/40 to-fuchsia-600/30 border border-violet-500/20 rounded-br-sm' : 'luxury-card rounded-bl-sm'}
-                transition-all duration-300
-            `}>
-                {isTyping ? (
-                    <div className="flex items-center gap-1.5 h-6 px-2">
-                        <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                ) : (
-                    <p className="text-sm text-gray-100 leading-relaxed">{message.text}</p>
-                )}
-                <span className="text-[10px] text-gray-500 mt-1.5 block text-right">
-                    {new Date(message.time || Date.now()).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-            </div>
-        </div>
-    );
-};
+function formatTime(ts) {
+    return new Date(ts || Date.now()).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+}
 
 function ReasoningBlock({ reasoning }) {
     const [open, setOpen] = useState(false)
@@ -197,7 +119,6 @@ export function OmegaChatContainer(props) {
 export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendMessage, clearHistory, apiKeys = [], onOpenApiKeys, rateMessage, quotaError }) {
     const { user } = useAuth()
     const role = user?.role || 'client'
-    const roleMeta = getRoleMeta(role)
 
     const endRef = useRef(null)
     const [isListening, setIsListening] = useState(false)
@@ -212,9 +133,6 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
     // [v5.9-FINAL] added: inline editing state
     const [editingId, setEditingId] = useState(null)
     const [editText, setEditText] = useState('')
-
-    // [v5.9-FINAL] added: publish modal state
-    const [publishMessage, setPublishMessage] = useState(null)
 
     // [v5.9-FINAL] added: split-screen preview state
     const [previewMode, setPreviewMode] = useState(null)
@@ -329,11 +247,6 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
         navigator.clipboard?.writeText(text)
     }
 
-    const handleSchedule = (text) => {
-        localStorage.setItem('omega_draft_post', text)
-        window.location.href = '/scheduler?draft=true'
-    }
-
     const handleEdit = (msg) => {
         setEditingId(msg.id)
         setEditText(msg.text || '')
@@ -348,10 +261,6 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
     const cancelEdit = () => {
         setEditingId(null)
         setEditText('')
-    }
-
-    const handleDelete = (id) => {
-        setLocalMessages(prev => prev.filter(m => m.id !== id))
     }
 
     const handleFile = (file) => {
@@ -403,37 +312,40 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
         <div className="flex flex-col h-full rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+                <div className="flex items-center gap-3">
+                    <div className="relative flex-shrink-0">
+                        <img
+                            src="/logo.svg"
+                            alt="AI Viral Studio"
+                            className="w-10 h-10 rounded-xl object-contain"
+                            onError={(e) => { e.target.src = '/favicon.svg'; e.target.className = 'w-10 h-10 rounded-xl object-contain bg-violet-600 p-1.5'; }}
+                        />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-[2.5px] border-[#0a0a0f]"></span>
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold text-white truncate">AI Viral Studio</span>
+                        <span className="text-[11px] text-emerald-400 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                            OMEGA онлайн
+                        </span>
+                    </div>
+                </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center">
-                        <Bot size={16} className="text-[var(--text)]" />
+                    <div className="hidden sm:flex items-center gap-2">
+                        <VectorStoreStatus />
+                        <UsageQuotaWidget />
                     </div>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <div className="text-sm font-medium text-[var(--text)]">OMEGA</div>
-                            {/* [v5.9-FINAL] added: role badge */}
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${roleMeta.color}`}>
-                                {roleMeta.emoji} {roleMeta.label}
-                            </span>
-                        </div>
-                        <div className="text-[10px] text-[var(--success)] flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />
-                            {demoMode ? 'DEMO MODE' : 'ONLINE'}
-                        </div>
-                    </div>
+                    {/* [P23] fixed: 44×44 header action touch target */}
+                    <button
+                        type="button"
+                        onClick={clearHistory}
+                        className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--surface)] transition-colors"
+                        title="Очистить историю"
+                        aria-label="Очистить историю"
+                    >
+                        <Trash2 size={14} />
+                    </button>
                 </div>
-                <div className="hidden sm:flex items-center gap-2">
-                    <VectorStoreStatus />
-                    <UsageQuotaWidget />
-                </div>
-                {/* [P23] fixed: 44×44 header action touch target */}
-                <button
-                    type="button"
-                    onClick={clearHistory}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--surface)] transition-colors"
-                    title="Очистить историю"
-                >
-                    <Trash2 size={14} />
-                </button>
             </div>
 
             <div className={`flex ${previewMode ? 'flex-row' : 'flex-col'} flex-1 overflow-hidden`}>
@@ -467,6 +379,13 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                             </div>
                         </div>
                     )}
+                    {localMessages.length > 0 && (
+                        <div className="flex items-center gap-3 my-3">
+                            <div className="h-px flex-1 bg-white/5"></div>
+                            <span className="text-[10px] text-gray-500 uppercase tracking-wider">Сегодня</span>
+                            <div className="h-px flex-1 bg-white/5"></div>
+                        </div>
+                    )}
                     {localMessages.map(msg => {
                         const isUser = msg.role === 'user'
                         const isBrain = msg.provider === 'brain'
@@ -474,41 +393,11 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                         const isWeb = msg.provider === 'web' || (msg.provider && /duckduckgo|web|search/i.test(msg.provider))
                         const sourceLabel = isBrain ? '🧠 Brain' : isWeb ? '🌐 Web' : isTemplate ? '📋 Шаблон' : msg.provider ? `🤖 ${msg.provider}` : ''
                         const isEditing = editingId === msg.id
-                        return (
-                            <div
-                                key={msg.id}
-                                className={`group flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
-                            >
-                                {/* [MASTER-v5.6] orb avatar for OMEGA */}
-                                {!isUser ? (
-                                    <div className="w-8 h-8 rounded-full mr-3 relative flex-shrink-0 hidden sm:block">
-                                        <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-violet-500 via-fuchsia-500 to-cyan-500 animate-spin-slow" style={{ animationDuration: '8s' }} />
-                                        <div className="absolute inset-[2px] rounded-full bg-[#0a0a1f] flex items-center justify-center"><span className="text-xs">Ω</span></div>
-                                    </div>
-                                ) : (
-                                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-[var(--success)]/20">
-                                        <User size={14} className="text-[var(--success)]" />
-                                    </div>
-                                )}
-                                <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm relative ${
-                                    isUser
-                                        ? 'bg-gradient-to-br from-violet-600/40 to-fuchsia-600/30 text-white border border-violet-500/20 rounded-br-sm'
-                                        : msg.error || msg.demo
-                                            ? 'bg-[var(--accent-warm)]/10 text-[var(--text)] border border-[var(--accent-warm)]/20'
-                                            : 'luxury-card rounded-bl-sm'
-                                }`}>
-                                    {!isUser && (
-                                        <div className="absolute -top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-2 py-1 shadow-lg z-10">
-                                            <button type="button" onClick={() => handleCopy(msg.text)} className="text-[10px] hover:text-[var(--primary)]" title="Копировать">📋</button>
-                                            <button type="button" onClick={() => handleSchedule(msg.text)} className="text-[10px] hover:text-[var(--primary)]" title="Расписание">📅</button>
-                                            <button type="button" onClick={() => setPublishMessage(msg)} className="text-[10px] hover:text-[var(--primary)]" title="Опубликовать">🚀</button>
-                                            <button type="button" onClick={() => handleEdit(msg)} className="text-[10px] hover:text-[var(--primary)]" title="Редактировать">✏️</button>
-                                            <button type="button" onClick={() => handleDelete(msg.id)} className="text-[10px] hover:text-[var(--danger)]" title="Удалить">🗑</button>
-                                        </div>
-                                    )}
+                        return isUser ? (
+                            <div key={msg.id} className="flex justify-end w-full">
+                                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[85%]">
                                     {isEditing ? (
                                         <div className="flex flex-col gap-2">
-                                            {/* [v5.9-FINAL] added: inline editing textarea */}
                                             <textarea
                                                 value={editText}
                                                 onChange={e => setEditText(e.target.value)}
@@ -520,12 +409,31 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                                             </div>
                                         </div>
                                     ) : (
-                                        <div onDoubleClick={() => !isUser && handleEdit(msg)}>
-                                            {msg.text}
-                                        </div>
+                                        <p className="text-sm text-white">{msg.text}</p>
                                     )}
-                                    {!isUser && <ReasoningBlock reasoning={msg.reasoning} />}
-                                    {!isUser && sourceLabel && (
+                                    <p className="text-[10px] text-gray-500 text-right mt-1">{formatTime(msg.createdAt)}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div key={msg.id} className="group flex flex-col items-start max-w-[90%]">
+                                <div className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/5">
+                                    {isEditing ? (
+                                        <div className="flex flex-col gap-2">
+                                            <textarea
+                                                value={editText}
+                                                onChange={e => setEditText(e.target.value)}
+                                                className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg p-2 text-sm text-[var(--text)] outline-none min-h-[80px] resize-none"
+                                            />
+                                            <div className="flex justify-end gap-2">
+                                                <button type="button" onClick={cancelEdit} className="px-2 py-1 rounded-md text-[10px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]">Отмена</button>
+                                                <button type="button" onClick={saveEdit} className="px-2 py-1 rounded-md text-[10px] bg-[var(--primary)] text-[var(--text-inverse)] hover:opacity-90">Сохранить</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap" onDoubleClick={() => handleEdit(msg)}>{msg.text}</p>
+                                    )}
+                                    {!isEditing && <ReasoningBlock reasoning={msg.reasoning} />}
+                                    {sourceLabel && (
                                         <div className="mt-2 flex items-center gap-2 flex-wrap">
                                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--border-strong)] text-[var(--text-muted)] border border-[var(--border)]">
                                                 {sourceLabel}
@@ -533,7 +441,6 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                                             {msg.cached && (
                                                 <span className="text-[10px] text-[var(--text-muted)]">cached</span>
                                             )}
-                                            {/* [P23] fixed: speak button touch target */}
                                             <button
                                                 type="button"
                                                 onClick={speakLastOmegaReply}
@@ -554,9 +461,8 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                                     {msg.error && !msg.demo && (
                                         <div className="mt-1 text-[10px] text-[var(--danger)]">Error: {msg.error}</div>
                                     )}
-                                    {!isUser && msg.memoryId && !msg.demo && (
+                                    {msg.memoryId && !msg.demo && (
                                         <div className="mt-2 flex items-center gap-1">
-                                            {/* [P23] fixed: rating buttons touch targets */}
                                             <button
                                                 type="button"
                                                 onClick={() => rateMessage?.(msg.id, 1)}
@@ -577,18 +483,7 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                                             </button>
                                         </div>
                                     )}
-                                    {/* [v5.9-FINAL] added: preview button for long AI messages */}
-                                    {!isUser && !isEditing && (msg.text?.length > 50) && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setPreviewMode(msg)}
-                                            className="mt-2 text-[10px] text-[var(--primary)] hover:underline"
-                                        >
-                                            👁 Превью
-                                        </button>
-                                    )}
-                                    {/* [v5.9-FINAL] added: smart suggestions chips below completed AI messages */}
-                                    {!isUser && !isEditing && !isTyping && (
+                                    {!isEditing && !isTyping && (
                                         <div className="mt-2 flex flex-wrap gap-1.5">
                                             {suggestions.map((s, i) => (
                                                 <button
@@ -602,18 +497,21 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                                             ))}
                                         </div>
                                     )}
+                                    {!isEditing && (
+                                        <div className="flex items-center gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                            <span className="text-[10px] text-gray-500">{formatTime(msg.createdAt)}</span>
+                                            <button type="button" onClick={() => handleCopy(msg.text)} className="text-gray-500 hover:text-violet-400 text-xs" title="Копировать" aria-label="Копировать">📋</button>
+                                            <button type="button" onClick={() => sendMessage(msg.text)} className="text-gray-500 hover:text-violet-400 text-xs" title="Перегенерировать" aria-label="Перегенерировать">🔄</button>
+                                            <button type="button" onClick={() => setPreviewMode(msg)} className="text-gray-500 hover:text-violet-400 text-xs" title="Превью" aria-label="Превью">👁</button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )
                     })}
                     {isTyping && (
-                        <div className="flex gap-3 mb-4">
-                            <div className="w-8 h-8 rounded-full mr-3 relative flex-shrink-0 hidden sm:block">
-                                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-violet-500 via-fuchsia-500 to-cyan-500 animate-spin-slow" style={{ animationDuration: '8s' }} />
-                                <div className="absolute inset-[2px] rounded-full bg-[#0a0a1f] flex items-center justify-center"><span className="text-xs">Ω</span></div>
-                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
-                            </div>
-                            <div className="luxury-card rounded-bl-sm px-4 py-3 flex items-center gap-2">
+                        <div className="group flex flex-col items-start max-w-[90%]">
+                            <div className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm flex items-center gap-2">
                                 <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                                 <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                 <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -747,10 +645,6 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                 </div>
             </form>
 
-            {/* [v5.9-FINAL] added: publish modal */}
-            {publishMessage && (
-                <PublishModal text={publishMessage.text} apiKeys={apiKeys} onClose={() => setPublishMessage(null)} />
-            )}
         </div>
     )
 }

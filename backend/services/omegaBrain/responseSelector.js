@@ -13,15 +13,15 @@ const BRAIN_MIN_RATING = 2
 function buildEnhancedPrompt(userContext, question, extra = {}) {
     const { name = 'пользователь', niche = 'контент', language = 'ru', brandVoice = '' } = userContext
     const parts = []
-    parts.push(`Ты — AI Viral Studio OMEGA. Язык: ${language}.`)
-    if (extra.systemContext) parts.push(extra.systemContext)
-    parts.push(`Контекст: пользователь ${name}, ниша ${niche}.`)
-    if (brandVoice) parts.push(`Стиль бренда: ${brandVoice}`)
+    const systemContext = extra.systemContext || `Ты — AI Viral Studio OMEGA. Язык: ${language}.`
+    parts.push(systemContext)
     if (extra.memoryContext) parts.push(extra.memoryContext)
     if (extra.context) parts.push(extra.context)
     if (extra.vectorResults) parts.push(extra.vectorResults)
     if (extra.webResults) parts.push(extra.webResults)
     if (extra.agentResults) parts.push(extra.agentResults)
+    parts.push(`Контекст: пользователь ${name}, ниша ${niche}.`)
+    if (brandVoice) parts.push(`Стиль бренда: ${brandVoice}`)
     parts.push(`Вопрос: ${question}`)
     return parts.join('\n\n')
 }
@@ -98,11 +98,25 @@ export async function selectResponse({ userId, userContext = {}, userRole, messa
     }
 
     // 4) External AI chain with enriched prompt
+    const rolePrompts = {
+        owner: `Ты OMEGA, AI-ассистент AI Viral Studio. Пользователь — ВЛАДЕЛЕЦ платформы. Обращайся на "вы", уважительно, предлагай управленческие инсайты. НЕ называй владельца "гостем". НЕ предлагай регистрацию.`,
+        admin: `Ты OMEGA. Пользователь — АДМИНИСТРАТОР. Помогай с модерацией и пользователями.`,
+        staff: `Ты OMEGA. Пользователь — СОТРУДНИК. Помогай с тикетами и базой знаний.`,
+        client: `Ты OMEGA. Пользователь — КЛИЕНТ. Обращайся дружелюбно, на "ты". Помогай с вирусным контентом.`,
+        advertiser: `Ты OMEGA. Пользователь — РЕКЛАМОДАТЕЛЬ. Помогай с рекламными кампаниями.`,
+        guest: `Ты OMEGA. Пользователь — ГОСТЬ. Представь возможности платформы и предложи зарегистрироваться.`
+    }
+    const systemPrompt = `${rolePrompts[userRole] || rolePrompts.guest}
+
+Текущая роль: ${userRole || 'guest'}.
+Язык: ${language || 'ru'}.
+
+${extraSystem || ''}`
     let aiResponse = null
     let aiError = null
     try {
         const context = await buildContext(userId, { question: message }).catch(() => '')
-        const prompt = buildEnhancedPrompt(userContext, message, { context, vectorResults, webResults, agentResults, memoryContext, graphContext, systemContext: extraSystem })
+        const prompt = buildEnhancedPrompt(userContext, message, { context, vectorResults, webResults, agentResults, memoryContext, graphContext, systemContext: systemPrompt })
         aiResponse = await aiService.chatWithAI(prompt, [], language)
     } catch (err) {
         aiError = err

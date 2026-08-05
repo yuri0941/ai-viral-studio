@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Bot, X, MessageSquare, Minimize2 } from 'lucide-react'
+import { X, MessageSquare, Minimize2 } from 'lucide-react'
 import { OmegaChatContainer } from './OmegaChat.jsx'
 import { playSound } from '../../hooks/useSound.js'
 
@@ -55,6 +55,15 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
     const [isDragging, setIsDragging] = useState(false)
     const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0, moved: false })
     const apiKeys = useLocalApiKeys()
+
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 640)
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
 
     useEffect(() => {
         try {
@@ -181,49 +190,56 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
         window.addEventListener('touchend', onTouchEnd)
     }, [])
 
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
-
     return (
         <>
             {isOpen && (
                 <div
-                    className={`fixed z-[100] ${isMobile ? 'inset-0' : ''}`}
-                    style={isMobile ? {} : { left: position.x, top: position.y, width: WIDGET_WIDTH, height: WIDGET_HEIGHT }}
+                    className={`fixed z-[100] ${isMobile ? 'omega-chat-mobile inset-x-0 bottom-0 rounded-t-3xl overflow-hidden bg-[var(--bg-secondary)] border-t border-[var(--border)] shadow-2xl' : ''}`}
+                    style={isMobile ? { height: '85vh' } : { left: position.x, top: position.y, width: WIDGET_WIDTH, height: WIDGET_HEIGHT }}
                 >
                     <div className={`h-full flex flex-col ${isMobile ? '' : 'glass-card overflow-hidden'} ${isMinimized ? 'h-auto' : ''}`}>
                         <div
-                            className="omega-chat-no-drag flex items-center justify-between px-4 py-3 border-b border-[var(--border)] cursor-grab active:cursor-grabbing"
+                            className="omega-chat-no-drag flex flex-col px-4 py-3 border-b border-[var(--border)] cursor-grab active:cursor-grabbing"
                             onMouseDown={handlePointerDown}
                             onTouchStart={handlePointerDown}
                             onTouchStartCapture={handleHeaderSwipeDown}
                         >
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center">
-                                    <Bot size={16} className="text-[var(--text-inverse)]" />
-                                </div>
-                                <div>
-                                    <div className="text-sm font-semibold text-[var(--text)]">OMEGA</div>
-                                    <div className="text-[10px] text-[var(--success)] flex items-center gap-1">
-                                        <span className="pulse-dot" />
-                                        ONLINE
+                            <div className="md:hidden w-10 h-1 rounded-full bg-white/20 mx-auto mb-2" />
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="relative flex-shrink-0">
+                                        <img
+                                            src="/logo.svg"
+                                            alt="AI Viral Studio"
+                                            className="w-10 h-10 rounded-xl object-contain"
+                                            onError={(e) => { e.target.src = '/favicon.svg'; e.target.className = 'w-10 h-10 rounded-xl object-contain bg-violet-600 p-1.5'; }}
+                                        />
+                                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-[2.5px] border-[#0a0a0f]"></span>
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-sm font-semibold text-white truncate">AI Viral Studio</span>
+                                        <span className="text-[11px] text-emerald-400 flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                                            OMEGA онлайн
+                                        </span>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={toggleMinimize}
-                                    className="p-2 rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
-                                    aria-label={isMinimized ? 'Развернуть' : 'Свернуть'}
-                                >
-                                    {isMinimized ? <MessageSquare size={16} /> : <Minimize2 size={16} />}
-                                </button>
-                                <button
-                                    onClick={handleClose}
-                                    className="p-2 rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
-                                    aria-label="Закрыть"
-                                >
-                                    <X size={16} />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={toggleMinimize}
+                                        className="p-2 rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
+                                        aria-label={isMinimized ? 'Развернуть' : 'Свернуть'}
+                                    >
+                                        {isMinimized ? <MessageSquare size={16} /> : <Minimize2 size={16} />}
+                                    </button>
+                                    <button
+                                        onClick={handleClose}
+                                        className="p-2 rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
+                                        aria-label="Закрыть"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         {!isMinimized && (
@@ -236,21 +252,36 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
             )}
 
             {!isOpen && (
-                <button
-                    onClick={toggleOpen}
-                    onMouseDown={handlePointerDown}
-                    onTouchStart={handlePointerDown}
-                    className="fixed z-[100] companion-orb transition-transform hover:scale-105 active:scale-95"
-                    style={{ left: position.x, top: position.y }}
-                    aria-label="Открыть чат OMEGA"
-                >
-                    <MessageSquare size={24} className="text-white" />
-                    {hasUnread && (
-                        <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[var(--danger)] border-2 border-[var(--bg)] text-[10px] font-bold flex items-center justify-center text-white">
-                            !
-                        </span>
-                    )}
-                </button>
+                isMobile ? (
+                    <button
+                        onClick={toggleOpen}
+                        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30 flex items-center justify-center text-white text-xl z-50"
+                        aria-label="Открыть чат OMEGA"
+                    >
+                        💬
+                        {hasUnread && (
+                            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[var(--danger)] border-2 border-[var(--bg)] text-[10px] font-bold flex items-center justify-center text-white">
+                                !
+                            </span>
+                        )}
+                    </button>
+                ) : (
+                    <button
+                        onClick={toggleOpen}
+                        onMouseDown={handlePointerDown}
+                        onTouchStart={handlePointerDown}
+                        className="fixed z-[100] companion-orb transition-transform hover:scale-105 active:scale-95"
+                        style={{ left: position.x, top: position.y }}
+                        aria-label="Открыть чат OMEGA"
+                    >
+                        <MessageSquare size={24} className="text-white" />
+                        {hasUnread && (
+                            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[var(--danger)] border-2 border-[var(--bg)] text-[10px] font-bold flex items-center justify-center text-white">
+                                !
+                            </span>
+                        )}
+                    </button>
+                )
             )}
         </>
     )

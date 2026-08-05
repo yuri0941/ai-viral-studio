@@ -380,3 +380,9 @@
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
+
+/* [v6.2] Omega chat mobile adaptive bottom sheet */
+.omega-chat-mobile {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px));
+}

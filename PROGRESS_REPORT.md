@@ -1,3 +1,11 @@
+## 2026-08-05 — v6.2 Omega Chat Luxury Fix
+- [x] Fix: Убрано дублирование OMEGA внутри сообщений (аватар + имя + badge)
+- [x] Fix: Иконка OMEGA заменена на логотип сайта в шапке виджета и чата
+- [x] Fix: OMEGA знает роль пользователя (owner/admin/staff/client/advertiser/guest)
+- [x] Fix: Приветствие адаптируется под роль (owner не видит "гость")
+- [x] Update: Люксовый UI сообщений (glassmorphism, gradients, hover actions)
+- [x] Update: Мобильная адаптивность чата (FAB, bottom sheet 85vh, drag handle, safe-area)
+
 ## 2026-08-05 — v6.0 Critical Fix (No Mocks)
 - [x] Fix: scheduledPostsRoutes import + создание файла
 - [x] Fix: Rate limiter (500/15min auth, 300/15min omega/analytics/subscriptions, 50/15min guest)
