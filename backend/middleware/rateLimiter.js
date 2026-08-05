@@ -8,7 +8,7 @@ const globalLimiter = rateLimit({
   skip: (req) => req.path === '/health' || req.path === '/api/health',
   handler: (req, res) => {
     console.warn([RateLimit] Blocked:   );
-    res.status(429).json({ success: false, error: 'Too many requests, please slow down' });
+    res.status(429).json({ success: false, error: 'Too many requests' });
   }
 });
 
