@@ -2843,3 +2843,23 @@
 - **Git:** ✅ Запушено в `main`
 - **Render:** ⏳ Push выполнен; авто-деплой/проверка логов требует ручного Clear Build Cache & Deploy в Render Dashboard (CLI/token не настроены в окружении)
 - **Статус:** 🚀 Код готов к первым клиентам; осталось только подтвердить деплой на Render
+
+---
+
+### [2026-08-05] — v5.9 LUXURY OMEGA CHAT ✅
+- **SuperChat:** ✅ Удалён (папка `superchat/` + импорт в `App.jsx`)
+- **OmegaChat:** ✅ Улучшен до luxury — glass bubbles, orb-аватар, typing dots, quick actions
+- **i18n omega keys:** ✅ `omega.title` → "OMEGA AI", `omega.autopilot` → "Автопилот", и т.д. (ru + en)
+- **VK OAuth:** ✅ Реальный URL с `VK_CLIENT_ID` из env (не mock)
+- **Telegram:** ✅ Реальный бот-линк с `TELEGRAM_BOT_LINK` из env (не mock)
+- **Discord:** ✅ Реальный OAuth URL с `DISCORD_CLIENT_ID` из env (не mock)
+- **Остальные интеграции:** ✅ Реальные OAuth URL с env-ключами, 503 если не настроено (не mock)
+- **PayPal:** ✅ Реальное создание ордера через PayPal REST API (падение с 500 если env не задан)
+- **Оплата:** ✅ Реальный `paymentUrl` от ЮKassa/Stripe, `handleSubscribe`/`handlePayment` с `finally`
+- **deleteWebhook:** ✅ `deleteWebhook` (camelCase), deprecation убран
+- **409 Conflict:** ✅ Singleton guard `started` + `global.ownerBotStarted`/`global.omegaBotStarted`, 409 игнорируется
+- **Backend audit:** ✅ Все `services/controllers/routes` + `server.js` — `node --check` пройден
+- **Build:** ✅ 0 ошибок
+- **Git:** ✅ Запушено в `main`
+- **Render:** ⏳ Push выполнен; деплой и проверка логов требуют ручного Clear Build Cache & Deploy в Render Dashboard (CLI/token не настроены в окружении)
+- **Статус:** 🚀 Код готов к первым клиентам; осталось подтвердить деплой на Render
