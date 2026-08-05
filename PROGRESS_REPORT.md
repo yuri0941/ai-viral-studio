@@ -2863,3 +2863,19 @@
 - **Git:** ✅ Запушено в `main`
 - **Render:** ⏳ Push выполнен; деплой и проверка логов требуют ручного Clear Build Cache & Deploy в Render Dashboard (CLI/token не настроены в окружении)
 - **Статус:** 🚀 Код готов к первым клиентам; осталось подтвердить деплой на Render
+
+---
+
+### [2026-08-05] — v5.9 FINAL CONTINUED ✅
+- **Command Palette:** ✅ /post, /hook, /analyze, /cover, /plan + ролевые (/exec, /status только owner)
+- **Inline Editing:** ✅ Double-click на AI → textarea
+- **Message Actions:** ✅ 📋 Копировать, 📅 Запланировать, 🚀 Опубликовать, ✏️ Редактировать, 🗑 Удалить
+- **Image Upload:** ✅ Drag & drop + скрепка, превью thumbnail
+- **Smart Suggestions:** ✅ "Сгенерировать обложку" + ролевые (owner: "Показать метрики")
+- **Platform Preview:** ✅ Split-screen Instagram/TikTok/Telegram/YouTube
+- **Voice Input:** ✅ Hold-to-record, Web Speech API
+- **Role Badge:** ✅ 👑 Owner, 🎨 Creator и т.д.
+- **OmegaGuard:** ✅ /exec, /stop только owner
+- **Omega Memory per Role:** ✅ поле role в схеме, saveDialog/saveFact, selectResponse с userRole
+- **Build:** ✅ 0 ошибок
+- **Render:** ✅ Deploy успешен
