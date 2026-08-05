@@ -1,3 +1,10 @@
+## 2026-08-05 — v6.0-fix-2
+- [x] Fix: ReferenceError Zap is not defined (OwnerDashboardPage.jsx)
+- [x] Fix: ReferenceError KeyRound is not defined (OverviewTab.jsx)
+- [x] Fix: Telegram deleteWebhook camelCase (ownerBot + omegaBot)
+- [x] Fix: Telegram 409 conflict guard with `_polling.abortController` check
+- [x] Fix: Stripe error spam (silent init, final error only after retries)
+
 ## 2026-08-05 — v6.2 Omega Chat Luxury Fix
 - [x] Fix: Убрано дублирование OMEGA внутри сообщений (аватар + имя + badge)
 - [x] Fix: Иконка OMEGA заменена на логотип сайта в шапке виджета и чата
