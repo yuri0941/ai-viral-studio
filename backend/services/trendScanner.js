@@ -122,7 +122,7 @@ export async function getTrends({ niche = '', userId = null, force = false } = {
     // Save to OmegaMemory as facts (optional, fire-and-forget)
     if (userId) {
         try {
-            await saveFact(userId, JSON.stringify({ type: 'trends', trends: trends.slice(0, 2) })).catch(() => {})
+            await saveFact({ userId, fact: JSON.stringify({ type: 'trends', trends: trends.slice(0, 2) }), source: 'trends' }).catch(() => {})
         } catch (err) {
             console.warn('[trendScanner] saveFact failed:', err.message)
         }

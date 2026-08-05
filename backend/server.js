@@ -159,12 +159,13 @@ if (isConnected) {
         console.warn('[server] seedAgents failed:', err.message)
     }
 
-    // Initialize OMEGA backend core + autonomous services
+    // Initialize OMEGA backend core (autonomy services are owner-requested only)
     try {
         const omegaCore = await createOmegaBackend()
-        omegaCore.startAutonomyServices()
+        // [v5.9-CONT] removed: do not auto-start autonomy services for non-owner
+        // omegaCore.startAutonomyServices()
         global.omegaCore = omegaCore
-        console.log('🧠 OMEGA autonomy services started')
+        console.log('🧠 OMEGA core initialized (autonomy services require owner start)')
     } catch (err) {
         console.warn('[server] OMEGA core init failed:', err.message)
     }

@@ -8,29 +8,32 @@ const OmegaMemorySchema = new mongoose.Schema({
     question: { type: String },
     answer: { type: String },
     provider: { type: String },
+    role: { type: String, index: true }, // [v5.9-CONT] added
     rating: { type: Number, default: 0, min: -1, max: 2 },
     createdAt: { type: Date, default: Date.now },
 })
 
 export const OmegaBrainMemory = mongoose.models.OmegaBrainMemory || mongoose.model('OmegaBrainMemory', OmegaMemorySchema, 'omega_memories')
 
-export async function saveFact(userId, content) {
-    const doc = await OmegaBrainMemory.create({ userId, type: 'fact', content })
-    await upsertVector(String(doc._id), content, { userId: String(userId), type: 'fact' }).catch(() => {})
+export async function saveFact({ userId, role, fact, source = 'omega' }) {
+    const doc = await OmegaBrainMemory.create({ userId, type: 'fact', content: fact, source, role })
+    await upsertVector(String(doc._id), fact, { userId: String(userId), type: 'fact', source, role }).catch(() => {})
     return doc
 }
 
-export async function saveDialog(userId, question, answer, provider) {
-    const text = `${question}\n---\n${answer}`
+export async function saveDialog({ userId, role, text, response, provider, timestamp = new Date() }) {
+    const content = `${text}\n---\n${response}`
     const doc = await OmegaBrainMemory.create({
         userId,
         type: 'dialog',
-        content: text,
-        question,
-        answer,
+        content,
+        question: text,
+        answer: response,
         provider,
+        role, // [v5.9-CONT] added
+        createdAt: timestamp,
     })
-    await upsertVector(String(doc._id), text, { userId: String(userId), type: 'dialog', provider }).catch(() => {})
+    await upsertVector(String(doc._id), content, { userId: String(userId), type: 'dialog', provider, role }).catch(() => {})
     return doc
 }
 

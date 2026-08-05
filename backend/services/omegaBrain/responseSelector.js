@@ -26,12 +26,13 @@ function buildEnhancedPrompt(userContext, question, extra = {}) {
     return parts.join('\n\n')
 }
 
-export async function selectResponse(userId, question, userContext = {}, extraSystem = '') {
+// [v5.9-CONT] added: object signature + userRole
+export async function selectResponse({ userId, userContext = {}, userRole, message, history = [], providers = [], language = 'ru', extraSystem = '' }) {
     const { name = 'пользователь', niche = 'контент' } = userContext
 
     // 1) Brain — похожий вопрос с высоким рейтингом
     try {
-        const similar = await findSimilarDialog(userId, question, 3)
+        const similar = await findSimilarDialog(userId, message, 3)
         const best = similar.find(m => m.rating >= BRAIN_MIN_RATING)
         if (best?.answer) {
             return {
@@ -48,7 +49,7 @@ export async function selectResponse(userId, question, userContext = {}, extraSy
     // 2) Vector memory search
     let vectorResults = ''
     try {
-        const matches = await searchVectorMemory(question, 3, userId)
+        const matches = await searchVectorMemory(message, 3, userId)
         if (matches?.length > 0) {
             vectorResults = 'Похожие воспоминания OMEGA:\n' + matches.map(m => `- ${m.text}`).join('\n')
         }
@@ -59,8 +60,8 @@ export async function selectResponse(userId, question, userContext = {}, extraSy
     // 3) OMEGA 8-layer memory: extract facts and load context
     let memoryContext = ''
     try {
-        await extractAndSaveFacts(userId, question)
-        memoryContext = await getMemoryContext(userId, { question, limit: 5 })
+        await extractAndSaveFacts(userId, message)
+        memoryContext = await getMemoryContext(userId, { question: message, limit: 5 })
     } catch (err) {
         console.warn('[responseSelector] memory context failed:', err.message)
     }
@@ -68,7 +69,7 @@ export async function selectResponse(userId, question, userContext = {}, extraSy
     // 3.5) Neural graph context (relevant memory nodes)
     let graphContext = ''
     try {
-        const graphNodes = neuralGraph.getContext(question, 3)
+        const graphNodes = neuralGraph.getContext(message, 3)
         if (graphNodes.length > 0) {
             graphContext = 'Релевантный контекст из нейро-графа:\n' + graphNodes.map(n => `- [${n.type}] ${n.label}`).join('\n')
         }
@@ -80,54 +81,67 @@ export async function selectResponse(userId, question, userContext = {}, extraSy
     let webResults = ''
     let agentResults = ''
     try {
-        const agents = await runAgentsForQuery(question)
+        const agents = await runAgentsForQuery(message)
         agentResults = formatAgentResults(agents)
     } catch (err) {
         console.warn('[responseSelector] agents failed:', err.message)
     }
 
     try {
-        if (isWebSearchQuery(question)) {
-            const web = await searchWeb(question, 3)
+        if (isWebSearchQuery(message)) {
+            const web = await searchWeb(message, 3)
             webResults = formatWebResults(web)
-            await saveFact(userId, webResults).catch(() => {})
+            await saveFact({ userId, role: userRole || userContext?.role || 'client', fact: webResults, source: 'web' }).catch(() => {})
         }
     } catch (err) {
         console.warn('[responseSelector] web search failed:', err.message)
     }
 
     // 4) External AI chain with enriched prompt
-    let aiResult = null
+    let aiResponse = null
     let aiError = null
     try {
-        const context = await buildContext(userId, { question }).catch(() => '')
-        const prompt = buildEnhancedPrompt(userContext, question, { context, vectorResults, webResults, agentResults, memoryContext, graphContext, systemContext: extraSystem })
-        aiResult = await aiService.chatWithAI(prompt, [], userContext.language || 'ru')
+        const context = await buildContext(userId, { question: message }).catch(() => '')
+        const prompt = buildEnhancedPrompt(userContext, message, { context, vectorResults, webResults, agentResults, memoryContext, graphContext, systemContext: extraSystem })
+        aiResponse = await aiService.chatWithAI(prompt, [], language)
     } catch (err) {
         aiError = err
         console.warn('[responseSelector] AI chain failed:', err.message)
     }
 
-    if (aiResult?.success && aiResult.reply && !aiResult.demo) {
+    const usedProvider = aiResponse?.provider || 'ai'
+    if (aiResponse?.success && aiResponse.reply && !aiResponse.demo) {
         try {
-            await saveDialog(userId, question, aiResult.reply, aiResult.provider)
+            await saveDialog({
+                userId,
+                role: userRole || userContext?.role || 'client', // [v5.9-CONT] added role
+                text: message,
+                response: aiResponse.reply,
+                provider: usedProvider,
+            })
         } catch (saveErr) {
             console.warn('[responseSelector] saveDialog failed:', saveErr.message)
         }
         return {
-            reply: aiResult.reply,
-            provider: aiResult.provider || 'ai',
-            cached: aiResult.cached || false,
+            reply: aiResponse.reply,
+            provider: usedProvider,
+            cached: aiResponse.cached || false,
         }
     }
 
     // 5) Smart template
-    const category = classifyQuestion(question)
+    const category = classifyQuestion(message)
     const templateCtx = { name, niche: niche || 'твоей нише' }
     const templateReply = pickTemplate(category, templateCtx)
     if (templateReply) {
         try {
-            await saveDialog(userId, question, templateReply, 'template')
+            await saveDialog({
+                userId,
+                role: userRole || userContext?.role || 'client', // [v5.9-CONT] added role
+                text: message,
+                response: templateReply,
+                provider: 'template',
+            })
         } catch (saveErr) {
             console.warn('[responseSelector] saveDialog template failed:', saveErr.message)
         }

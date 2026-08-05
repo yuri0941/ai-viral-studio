@@ -27,6 +27,43 @@ const FORBIDDEN_PATTERNS = {
 
 const BLOCKED_MESSAGE = 'Извините, я не могу помочь с этой темой. Попробуйте переформулировать запрос.'
 
+// [v5.9-FINAL] added: command role restrictions for OMEGA slash commands
+const COMMAND_ROLES = {
+    '/exec': ['owner'],
+    '/stop': ['owner'],
+    '/alert': ['owner'],
+    '/status': ['owner', 'admin', 'staff'],
+    '/stats': ['owner'],
+    '/feature': ['owner'],
+    '/users': ['owner', 'admin'],
+    '/moderate': ['owner', 'admin'],
+    '/ticket': ['owner', 'admin', 'staff'],
+    '/kb': ['owner', 'admin', 'staff'],
+    '/campaign': ['owner', 'admin', 'advertiser'],
+    '/creative': ['owner', 'admin', 'advertiser'],
+    '/post': ['owner', 'admin', 'staff', 'advertiser', 'creator', 'business', 'client'],
+    '/hook': ['owner', 'admin', 'staff', 'advertiser', 'creator', 'business', 'client'],
+    '/analyze': ['owner', 'admin', 'staff', 'advertiser', 'creator', 'business', 'client'],
+    '/cover': ['owner', 'admin', 'staff', 'advertiser', 'creator', 'business', 'client'],
+    '/plan': ['owner', 'admin', 'staff', 'advertiser', 'creator', 'business', 'client'],
+}
+
+export function checkCommandRole(message, userRole = 'guest') {
+    const text = String(message || '').trim()
+    if (!text.startsWith('/')) return { allowed: true }
+    const cmd = text.split(/\s+/)[0].toLowerCase()
+    const allowed = COMMAND_ROLES[cmd]
+    if (!allowed) return { allowed: true } // unknown command, let OMEGA handle
+    const role = String(userRole || 'guest').toLowerCase()
+    if (allowed.includes(role)) return { allowed: true, command: cmd }
+    return {
+        allowed: false,
+        command: cmd,
+        allowedRoles: allowed,
+        message: `⛔ Команда "${cmd}" доступна только для роли ${allowed.join(' / ')}. Ваша роль: ${role}.`
+    }
+}
+
 export function checkOmegaGuard(message, lang = 'ru', userRole = 'guest') {
   const text = String(message || '').toLowerCase()
   // [P24] fixed: role-based exceptions for MRR and infrastructure questions

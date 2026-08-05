@@ -70,6 +70,16 @@ router.get('/autopilot', getAutopilotStatus)
 router.post('/autopilot', setAutopilotStatus)
 router.post('/autopilot/toggle', setAutopilotStatus)
 router.post('/autopilot/post', createAutopilotPost)
+// [v5.9-CONT] added: owner-only autopilot status + autonomy start
+router.get('/autopilot/status', protect, (req, res) => {
+    if (req.user.role !== 'owner') return res.status(403).json({ error: 'Only owner' })
+    res.json({ active: true, lastRun: new Date() })
+})
+router.post('/autonomy/start', protect, (req, res) => {
+    if (req.user.role !== 'owner') return res.status(403).json({ error: 'Only owner' })
+    global.omegaCore?.startAutonomyServices()
+    res.json({ success: true, message: 'Autonomy services started' })
+})
 router.post('/predictions/recalculate', (req, res) => res.json({ status: 'success', message: 'Forecast recalculated' }))
 router.post('/repurposing/enable', (req, res) => res.json({ status: 'success', data: { enabled: !!req.body?.enabled } }))
 router.post('/voice/enable', (req, res) => res.json({ status: 'success', data: { enabled: !!req.body?.enabled } }))

@@ -4,7 +4,7 @@ import { scan as privacyScan } from '../ai/omega/privacyFirewall.js'
 import { getContext as getContextEngineContext } from '../ai/omega/contextEngine.js'
 import * as neuralGraph from '../ai/omega/neuralGraph.js'
 import { chatWithAI } from '../services/aiService.js'
-import { checkOmegaGuard, logOmegaGuardEvent } from '../ai/omega/omegaGuard.js'
+import { checkOmegaGuard, logOmegaGuardEvent, checkCommandRole } from '../ai/omega/omegaGuard.js'
 import { selectResponse } from '../services/omegaBrain/responseSelector.js'
 import { rateMemory, OmegaBrainMemory } from '../services/omegaBrain/memoryStore.js'
 import { getSkillLevels } from '../services/omegaAgents/skillsSystem.js'
@@ -74,6 +74,22 @@ export async function chat(req, res) {
             })
         }
 
+        // [v5.9-CONT] added: command role restriction
+        const cmdGuard = checkCommandRole(message, req.user?.role || userRole)
+        if (!cmdGuard.allowed) {
+            await logOmegaGuardEvent({
+                userId: req.user?.id || req.user?._id,
+                message,
+                matched: [cmdGuard.command],
+                lang
+            })
+            return res.status(403).json({
+                status: 'error',
+                message: cmdGuard.message,
+                data: { blocked: true, reason: 'role_forbidden_command' }
+            })
+        }
+
         const core = await getOmegaCore()
         const decision = await core.decide({ message, history })
 
@@ -132,6 +148,7 @@ export async function chat(req, res) {
             niche: req.user?.preferences?.niche || 'контент',
             language: lang,
             brandVoice: brandVoicePrompt,
+            role: req.user?.role || userRole || 'guest', // [v5.9-CONT] added
         }
 
         // Ролевой контекст и нейро-граф
@@ -168,7 +185,16 @@ export async function chat(req, res) {
         const extraSystemContext = [systemContext, graphContextString, searchContextString].filter(Boolean).join('\n\n')
 
         const result = userId
-            ? await selectResponse(userId, message, userContext, extraSystemContext)
+            ? await selectResponse({
+                userId,
+                userContext,
+                userRole: req.user?.role || userRole, // [v5.9-CONT] added
+                message,
+                history,
+                providers: [],
+                language: req.body.language || req.user?.preferences?.language || lang,
+                extraSystem: extraSystemContext,
+            })
             : await chatWithAI(
                 extraSystemContext ? `${extraSystemContext}\n\nВопрос: ${message}` : message,
                 history.map(h => ({ role: h.role, content: h.content || h.text })),
