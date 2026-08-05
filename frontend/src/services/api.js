@@ -85,6 +85,7 @@ export const ownerApi = {
     promos: () => request('/owner/promos'),
     news: () => request('/owner/news'),
     subscriptions: () => request('/owner/subscriptions'),
+    teamActivity: () => request('/owner/team-activity'),
     aiProviderStatus: () => request('/owner/ai-providers/status'),
     toggleAiProvider: (id, enabled) => request(`/owner/ai-providers/${id}/toggle`, {
         method: 'POST',

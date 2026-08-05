@@ -1,18 +1,14 @@
-import Stripe from 'stripe'
-
-let stripe = null
-if (process.env.STRIPE_SECRET_KEY) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' })
-}
+import { getStripe, isStripeEnabled as checkStripeEnabled } from '../config/stripe.js'
 
 // [MASTER-v5.6] added: status helpers
-export const isStripeEnabled = () => !!stripe
+export const isStripeEnabled = () => checkStripeEnabled()
 export const getStripeStatus = () => ({
-    enabled: !!stripe,
-    reason: stripe ? 'active' : 'STRIPE_SECRET_KEY not configured'
+    enabled: checkStripeEnabled(),
+    reason: getStripe() ? 'active' : 'STRIPE_SECRET_KEY not configured or STRIPE_ENABLED != true'
 })
 
 export const createPaymentIntent = async ({ amount, currency, description, metadata }) => {
+    const stripe = getStripe()
     if (!stripe) throw new Error('Stripe not configured')
     const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100),
@@ -24,6 +20,7 @@ export const createPaymentIntent = async ({ amount, currency, description, metad
 }
 
 export const createCheckoutSession = async ({ customerEmail, priceId, successUrl, cancelUrl, metadata }) => {
+    const stripe = getStripe()
     if (!stripe) throw new Error('Stripe not configured')
     const session = await stripe.checkout.sessions.create({
         customer_email: customerEmail,
@@ -37,6 +34,7 @@ export const createCheckoutSession = async ({ customerEmail, priceId, successUrl
 }
 
 export const createStripeSubscription = async ({ customerEmail, priceId, metadata }) => {
+    const stripe = getStripe()
     if (!stripe) throw new Error('Stripe not configured')
     const customer = await stripe.customers.create({ email: customerEmail })
     const subscription = await stripe.subscriptions.create({
@@ -61,6 +59,7 @@ export const handleStripeWebhook = async (event) => {
 }
 
 export const createStripeSession = async ({ planId, userId, email, currency = 'usd' }) => {
+    const stripe = getStripe()
     if (!stripe) throw new Error('Stripe not configured')
 
     const prices = { creator: 2900, pro: 7900, agency: 19900 }
@@ -92,6 +91,7 @@ export const constructWebhookEvent = (payload, signature, secret) => {
         return { type: 'checkout.session.completed', data: { object: {} } }
     }
     try {
+        const stripe = getStripe()
         if (stripe) return stripe.webhooks.constructEvent(payload, signature, secret)
         return { type: 'checkout.session.completed', data: { object: {} } }
     } catch (err) {

@@ -3,7 +3,7 @@
 // ============================================
 
 import { useRef, useEffect, useState, useMemo } from 'react'
-import { Send, Trash2, KeyRound, ArrowRight, ThumbsUp, ThumbsDown, Mic, Globe, Volume2, ChevronDown, ChevronUp, Paperclip, X } from 'lucide-react'
+import { Send, Trash2, ThumbsUp, ThumbsDown, Mic, Globe, Volume2, ChevronDown, ChevronUp, Paperclip, X } from 'lucide-react'
 import { useOmegaChat } from '../../hooks/useOmegaChat.js'
 import { VectorStoreStatus } from './VectorStoreStatus.jsx'
 import { UsageQuotaWidget } from './UsageQuotaWidget.jsx'
@@ -122,6 +122,28 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
 
     const endRef = useRef(null)
     const [isListening, setIsListening] = useState(false)
+
+    // [v6.3] added: self-healing timeout
+    const [showRestart, setShowRestart] = useState(false)
+    const timeoutRef = useRef(null)
+
+    useEffect(() => {
+        if (isTyping) {
+            timeoutRef.current = setTimeout(() => {
+                setShowRestart(true)
+            }, 10000)
+        } else {
+            setShowRestart(false)
+            clearTimeout(timeoutRef.current)
+        }
+        return () => clearTimeout(timeoutRef.current)
+    }, [isTyping])
+
+    const restartChat = () => {
+        clearHistory()
+        setShowRestart(false)
+        clearTimeout(timeoutRef.current)
+    }
 
     // [v5.9-FINAL] added: local editable copy of messages
     const [localMessages, setLocalMessages] = useState(messages)
@@ -330,21 +352,17 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                 <div className={`${previewMode ? 'w-[60%]' : 'flex-1'} overflow-y-auto p-4 space-y-3 min-h-[300px]`}>
                     {messages.length === 0 && !hasActiveKey && (
                         <div className="flex flex-col items-center justify-center text-center gap-3 py-8 px-4">
-                            <div className="w-12 h-12 rounded-xl bg-[var(--accent-warm)]/10 border border-[var(--accent-warm)]/20 flex items-center justify-center">
-                                <KeyRound size={22} className="text-[var(--accent-warm)]" />
+                            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                                <Globe size={22} className="text-emerald-400" />
                             </div>
-                            <div className="text-sm text-[var(--text)] font-medium">Нет локального API-ключа</div>
+                            <div className="text-sm text-[var(--text)] font-medium">OMEGA онлайн</div>
                             <div className="text-xs text-[var(--text-muted)]">
-                                OMEGA всё равно может отвечать через серверные провайдеры. Если все провайдеры недоступны, включится демо-режим.
+                                Работаем через серверных провайдеров. Если все провайдеры недоступны — включится демо-режим.
                             </div>
-                            {/* [P23] fixed: API-keys button touch target */}
-                            <button
-                                type="button"
-                                onClick={onOpenApiKeys}
-                                className="min-h-[44px] flex items-center gap-1.5 text-xs text-[var(--success)] hover:text-[var(--success)] font-medium p-2"
-                            >
-                                Перейти в API Keys <ArrowRight size={12} />
-                            </button>
+                            <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                                Серверные провайдеры активны
+                            </span>
                         </div>
                     )}
                     {messages.length === 0 && hasActiveKey && (
@@ -501,6 +519,14 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                     >
                         + Тариф
                     </button>
+                </div>
+            )}
+
+            {/* [v6.3] self-healing timeout */}
+            {showRestart && (
+                <div className="flex items-center justify-center gap-2 py-2 text-xs text-amber-400 bg-amber-500/10 border-t border-amber-500/20">
+                    <span>🤔 OMEGA думает дольше обычного...</span>
+                    <button type="button" onClick={restartChat} className="underline hover:text-amber-300">Перезапустить чат</button>
                 </div>
             )}
 

@@ -1,3 +1,16 @@
+## 2026-08-05 — v6.3: Payments + Team + Social + Self-Healing
+- [x] Fix: Stripe ленивая инициализация (нет спама при старте)
+- [x] Fix: Telegram zero warnings (startPollingSafe функция с именем бота и guard ETELEGRAM+conflict)
+- [x] Feature: Seed тестовых пользователей (owner/admin/staff/client/creator/advertiser с паролями)
+- [x] Feature: Owner Dashboard — Team Activity (синхронизация клиентов/сотрудников через /api/owner/team-activity)
+- [x] UI: Settings — Social Connect (9 платформ: VK, IG, TikTok, LinkedIn, YouTube, Pinterest, FB, Twitter, Discord)
+- [x] UI: Settings — Payment Methods (YooKassa + Stripe с индикаторами статуса)
+- [x] Feature: OMEGA Self-Healing (таймаут 10 сек + кнопка "Перезапустить чат")
+- [x] Fix: Скрыто "Нет локального API-ключа" (заменено на статус серверных провайдеров)
+- [x] Fix: Header/Sidebar z-index (dropdown z-[9999], sidebar z-50, header z-30)
+- [x] Chore: run.sh, run.bat commit message обновлён на v6.3
+- [x] Chore: Backward compatibility redirects (/chat → /creative-hub) уже в App.jsx
+
 ## 2026-08-05 — v6.2 Full Fix + Luxury UI + Unified Chat + Role System
 - [x] Fix: scheduledPostsRoutes import + file creation
 - [x] Fix: Rate limiter (500/15min auth, 300/15min omega/analytics/subscriptions, 50/15min guest)

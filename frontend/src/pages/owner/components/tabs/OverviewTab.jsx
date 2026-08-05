@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../../context/AuthContext'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
-import { selfImprovementApi } from '../../../../services/api'
+import { ownerApi, selfImprovementApi } from '../../../../services/api'
 import { API_BASE_URL } from '../../../../config.js'
 import {
     DollarSign, Users, Brain, Calendar, BarChart, Bell, Zap,
@@ -46,6 +46,15 @@ export function OverviewTab({ data }) {
     const [atRiskUsers, setAtRiskUsers] = useState([])
     const [loadingChurn, setLoadingChurn] = useState(false)
 
+    // [v6.3] added: team activity stats
+    const [teamStats, setTeamStats] = useState({
+        totalClients: 0,
+        totalCreators: 0,
+        totalStaff: 0,
+        newToday: 0,
+        recentActivity: []
+    })
+
     // [P20] added: data intelligence reports state
     const [reportNiche, setReportNiche] = useState('all')
     const [reportPeriod, setReportPeriod] = useState('month')
@@ -59,10 +68,14 @@ export function OverviewTab({ data }) {
         Promise.all([
             selfImprovementApi.churnStats().catch(() => null),
             selfImprovementApi.churnAtRisk(6).catch(() => null),
-        ]).then(([statsRes, usersRes]) => {
+            ownerApi.teamActivity().catch(() => null),
+        ]).then(([statsRes, usersRes, teamRes]) => {
             if (!mounted) return
             setChurnStats(statsRes?.data || null)
             setAtRiskUsers(usersRes?.data || [])
+            if (teamRes?.success && teamRes?.stats) {
+                setTeamStats(teamRes.stats)
+            }
         }).catch(() => {
             // non-critical
         }).finally(() => {
@@ -251,6 +264,41 @@ export function OverviewTab({ data }) {
                     )}
                 </div>
 
+            </div>
+
+            {/* [v6.3] Team and clients activity */}
+            <div className="col-span-1 sm:col-span-2 lg:col-span-3 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">👥 Команда и клиенты</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                    <div className="text-center">
+                        <div className="text-2xl font-bold text-violet-400">{teamStats.totalClients}</div>
+                        <div className="text-xs text-gray-400">Клиенты</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-2xl font-bold text-fuchsia-400">{teamStats.totalCreators}</div>
+                        <div className="text-xs text-gray-400">Креаторы</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-2xl font-bold text-emerald-400">{teamStats.totalStaff}</div>
+                        <div className="text-xs text-gray-400">Сотрудники</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-2xl font-bold text-amber-400">{teamStats.newToday}</div>
+                        <div className="text-xs text-gray-400">Новые сегодня</div>
+                    </div>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {(teamStats.recentActivity || []).map(u => (
+                        <div key={u._id} className="flex items-center justify-between p-2 rounded-lg bg-white/[0.03]">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-violet-500"></span>
+                                <span className="text-sm text-gray-200">{u.name}</span>
+                                <span className="text-[10px] text-gray-500 uppercase">{u.role}</span>
+                            </div>
+                            <span className="text-xs text-gray-500">{u.lastActive ? new Date(u.lastActive).toLocaleDateString('ru') : '—'}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

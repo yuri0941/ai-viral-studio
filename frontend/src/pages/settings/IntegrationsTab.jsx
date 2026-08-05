@@ -2,15 +2,15 @@ import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config.js';
 
 const PLATFORMS = [
-  { id: 'telegram', name: 'Telegram', icon: '✈️', desc: 'Бот + канал/группа' },
-  { id: 'vk', name: 'VK', icon: '🔵', desc: 'Стена, группы' },
-  { id: 'linkedin', name: 'LinkedIn', icon: '💼', desc: 'Профиль, компания' },
-  { id: 'pinterest', name: 'Pinterest', icon: '📌', desc: 'Пины, доски' },
-  { id: 'instagram', name: 'Instagram', icon: '📷', desc: 'Посты, Reels (через Facebook)' },
-  { id: 'facebook', name: 'Facebook', icon: '📘', desc: 'Страницы, группы' },
-  { id: 'tiktok', name: 'TikTok', icon: '🎵', desc: 'Видео' },
-  { id: 'youtube', name: 'YouTube', icon: '🔴', desc: 'Видео, Shorts' },
-  { id: 'discord', name: 'Discord', icon: '💬', desc: 'Webhook' }
+  { id: 'vk', name: 'VKontakte', icon: 'VK', color: 'bg-blue-600', desc: 'Стена, группы' },
+  { id: 'instagram', name: 'Instagram', icon: 'IG', color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600', desc: 'Посты, Reels' },
+  { id: 'tiktok', name: 'TikTok', icon: 'TT', color: 'bg-black border border-white/20', desc: 'Видео' },
+  { id: 'linkedin', name: 'LinkedIn', icon: 'in', color: 'bg-blue-700', desc: 'Профиль, компания' },
+  { id: 'youtube', name: 'YouTube', icon: 'YT', color: 'bg-red-600', desc: 'Видео, Shorts' },
+  { id: 'pinterest', name: 'Pinterest', icon: 'P', color: 'bg-red-700', desc: 'Пины, доски' },
+  { id: 'facebook', name: 'Facebook', icon: 'f', color: 'bg-blue-800', desc: 'Страницы, группы' },
+  { id: 'twitter', name: 'Twitter / X', icon: 'X', color: 'bg-black border border-white/20', desc: 'Посты, треды' },
+  { id: 'discord', name: 'Discord', icon: 'D', color: 'bg-indigo-500', desc: 'Webhook' }
 ];
 
 export default function IntegrationsTab() {
@@ -153,34 +153,29 @@ export default function IntegrationsTab() {
       <h3 className="text-xl font-bold text-[var(--text)]">🔗 Мои соцсети</h3>
       <p className="text-gray-400 text-sm">Подключите аккаунты для автопостинга</p>
 
-      {/* [v6.0] added: glass social platform cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* [v6.3] luxury social platform cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {PLATFORMS.map(p => {
           const connected = isConnected(p.id);
+          const status = integrations.find(i => i.provider === p.id);
           return (
-            <div key={p.id} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between hover:bg-white/[0.08] transition">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-2xl">
+            <div key={p.id} className="bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 hover:border-white/10 transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${p.color} flex items-center justify-center text-white font-bold text-sm`}>
                   {p.icon}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-semibold text-[var(--text)]">{p.name}</h4>
-                    <span className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-gray-500'}`} />
-                  </div>
-                  <p className="text-xs text-gray-400">{p.desc}</p>
-                  {connected && (
-                    <span className="text-xs text-emerald-400 mt-1 block">
-                      Подключено: {integrations.find(i => i.provider === p.id)?.accountName || '—'}
-                    </span>
-                  )}
-                </div>
+                <span className={`text-xs px-2 py-1 rounded-full ${connected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                  {connected ? 'Подключено' : 'Не подключено'}
+                </span>
               </div>
-              {connected ? (
-                <button onClick={() => disconnect(p.id)} className="px-3 py-1.5 rounded-lg text-red-400 text-sm hover:bg-red-500/10 transition">Отключить</button>
-              ) : (
-                <button onClick={() => handleConnect(p.id)} className="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300 text-sm hover:bg-violet-500/30 transition">Подключить</button>
-              )}
+              <h4 className="text-white font-medium mb-1">{p.name}</h4>
+              <p className="text-xs text-gray-500 mb-4">{connected ? `Аккаунт: ${status?.accountName || '—'}` : p.desc}</p>
+              <button
+                onClick={() => connected ? disconnect(p.id) : handleConnect(p.id)}
+                className={`w-full py-2 rounded-xl text-sm font-medium transition-all ${connected ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25'}`}
+              >
+                {connected ? 'Отключить' : 'Подключить'}
+              </button>
             </div>
           );
         })}

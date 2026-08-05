@@ -1,13 +1,22 @@
-let stripe = null
-try {
-  if (process.env.STRIPE_ENABLED === 'true' && process.env.STRIPE_SECRET_KEY) {
-    const Stripe = (await import('stripe')).default
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-  } else {
-    console.log('💳 Stripe disabled')
+import Stripe from 'stripe'
+
+let stripeInstance = null
+
+export const getStripe = () => {
+  if (stripeInstance) return stripeInstance
+  if (process.env.STRIPE_ENABLED !== 'true' || !process.env.STRIPE_SECRET_KEY) {
+    console.log('💳 Stripe disabled. Set STRIPE_ENABLED=true and STRIPE_SECRET_KEY')
+    return null
   }
-} catch (e) {
-  console.log('💳 Stripe init skipped')
+  try {
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' })
+    return stripeInstance
+  } catch (e) {
+    console.error('💳 Stripe init failed:', e.message)
+    return null
+  }
 }
 
-export default stripe
+export const isStripeEnabled = () => process.env.STRIPE_ENABLED === 'true' && !!process.env.STRIPE_SECRET_KEY
+
+export default { getStripe, isStripeEnabled }

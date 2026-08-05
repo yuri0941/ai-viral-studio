@@ -746,6 +746,52 @@ function SettingsPage() {
                     </div>
                 </div>
             )}
+
+            {/* [v6.3] Payment methods status */}
+            {(() => {
+                const yookassaEnabled = paymentMethods.some(m => m.id === 'yookassa');
+                const stripeEnabled = paymentMethods.some(m => m.id === 'stripe');
+                return (
+                    <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">💳 Способы оплаты</h3>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/5">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs">YK</div>
+                                    <div>
+                                        <div className="text-sm text-white font-medium">ЮKassa (ЮMoney)</div>
+                                        <div className="text-xs text-gray-500">Банковские карты, SBP, кошелёк</div>
+                                    </div>
+                                </div>
+                                {yookassaEnabled ? (
+                                    <span className="text-xs text-emerald-400 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> Активно</span>
+                                ) : (
+                                    <span className="text-xs text-gray-500">Не настроено администратором</span>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/5">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-purple-600 flex items-center justify-center text-white font-bold text-xs">ST</div>
+                                    <div>
+                                        <div className="text-sm text-white font-medium">Stripe</div>
+                                        <div className="text-xs text-gray-500">Международные карты, Apple Pay, Google Pay</div>
+                                    </div>
+                                </div>
+                                {stripeEnabled ? (
+                                    <span className="text-xs text-emerald-400 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> Активно</span>
+                                ) : (
+                                    <span className="text-xs text-gray-500">Не настроено администратором</span>
+                                )}
+                            </div>
+                        </div>
+                        {(!yookassaEnabled && !stripeEnabled) && (
+                            <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                                <p className="text-xs text-amber-400">💡 Платёжные системы не настроены. Обратитесь к владельцу платформы для активации оплаты.</p>
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
         </div>
     );
 

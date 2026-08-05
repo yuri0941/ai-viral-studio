@@ -147,18 +147,23 @@ export const initOwnerBot = () => {
   })
 
   // Start polling safely
-  const startPollingSafe = () => {
+  const startPollingSafe = (botInstance, name) => {
     try {
-      if (bot._polling && bot._polling.abortController) {
-        console.log('[OWNER-BOT] Already polling, skipping')
-      } else {
-        bot.startPolling()
+      if (botInstance._polling && botInstance._polling.abortController) {
+        console.log(`[${name}] Already polling, skipping`)
+        return
       }
+      botInstance.startPolling()
+      console.log(`[${name}] Polling started successfully`)
     } catch (e) {
-      if (e.response?.statusCode === 409 || e.message?.includes('409')) {
-        console.log('[OWNER-BOT] 409 conflict, ignoring')
+      if (
+        e.message?.includes('409') ||
+        e.response?.statusCode === 409 ||
+        (e.code === 'ETELEGRAM' && e.message?.includes('conflict'))
+      ) {
+        console.log(`[${name}] 409 conflict — another instance running, ignoring`)
       } else {
-        console.error('[OWNER-BOT] Polling error:', e.message)
+        console.error(`[${name}] Polling error:`, e.message)
       }
     }
   }
@@ -168,11 +173,11 @@ export const initOwnerBot = () => {
       await bot.deleteWebhook({ drop_pending_updates: true })
       await new Promise(r => setTimeout(r, 1000))
       console.log('[OWNER-BOT] webhook deleted, starting polling')
-      startPollingSafe()
+      startPollingSafe(bot, 'OWNER-BOT')
     } catch (err) {
       console.warn('[OWNER-BOT] deleteWebhook failed:', err.message, '- starting polling anyway')
       await new Promise(r => setTimeout(r, 1000))
-      startPollingSafe()
+      startPollingSafe(bot, 'OWNER-BOT')
     }
   })()
 }

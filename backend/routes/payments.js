@@ -1,18 +1,12 @@
 import express from 'express'
-import Stripe from 'stripe'
+import { getStripe } from '../config/stripe.js'
 import { protect } from '../middleware/auth.js'
 import { createYookassaPayment, yookassaWebhookHandler, getPaymentStatus } from '../controllers/paymentController.js'
 
 const router = express.Router()
 
-// ============ STRIPE ============
-let stripe = null
-if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-    console.log('💳 Stripe initialized')
-} else {
-    console.log('⚠️  Stripe not initialized — no valid key')
-}
+// ============ STRIPE (lazy init) ============
+// Stripe инициализируется лениво через getStripe() внутри каждого handler'а
 
 // ============ COINBASE COMMERCE ============
 const COINBASE_API_KEY = process.env.COINBASE_API_KEY || ''
@@ -49,6 +43,7 @@ router.post('/create-checkout-session', async (req, res) => {
     while (attempts < maxAttempts) {
         attempts++
         try {
+            const stripe = getStripe()
             if (!stripe) {
                 return res.status(503).json({ success: false, error: 'Stripe not configured' })
             }
@@ -159,6 +154,7 @@ router.post('/crypto-charge', async (req, res) => {
  */
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
+        const stripe = getStripe()
         if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
             return res.status(503).json({ error: 'Webhook not configured' })
         }
@@ -204,7 +200,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
  */
 router.get('/status', (req, res) => {
     res.json({
-        stripe: !!stripe,
+        stripe: !!getStripe(),
         coinbase: !!COINBASE_API_KEY,
         timestamp: new Date().toISOString()
     })
