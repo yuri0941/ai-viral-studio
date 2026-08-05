@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import {
-    Send, Sparkles, TrendingUp, Link2, MessageSquare, User, Bot,
+    Send, Sparkles, TrendingUp, Link2, MessageSquare, User,
     Copy, ThumbsUp, ThumbsDown, Bookmark, Share2, ExternalLink,
     Zap, Clock, Hash, Lightbulb, Target, BarChart, ChevronRight,
     Loader2, RefreshCw, Image as ImageIcon, Video, Mic, Paperclip,
@@ -167,12 +167,11 @@ function MessageBubble({ message, onCopy, onLike, onDislike }) {
 
     return (
         <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isUser
-                ? 'bg-gradient-to-br from-[#00ff41] to-[#00cc33]'
-                : 'bg-gradient-to-br from-blue-500 to-purple-600'
-                }`}>
-                {isUser ? <User className="w-4 h-4 text-black" /> : <Bot className="w-4 h-4 text-white" />}
-            </div>
+            {isUser && (
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-[#00ff41] to-[#00cc33]">
+                    <User className="w-4 h-4 text-black" />
+                </div>
+            )}
             <div className={`max-w-[85%] sm:max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
                 <div className={`rounded-2xl px-4 py-3 ${isUser
                     ? 'bg-[#00ff41]/10 border border-[#00ff41]/20 text-white'
@@ -346,9 +345,6 @@ function ViralChatPage() {
 
                 {loading && (
                     <div className="flex gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
-                            <Bot className="w-4 h-4 text-white" />
-                        </div>
                         <div className="bg-[#1a1a24] border border-white/[0.06] rounded-2xl px-4 py-3">
                             <div className="flex items-center gap-2">
                                 <Loader2 className="w-4 h-4 text-[#00ff41] animate-spin" />
