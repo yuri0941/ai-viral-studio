@@ -625,3 +625,33 @@ NODE_ENV=production
 - [ ] Mobile: drawer swipe, touch 44px, bottom nav
 - [ ] Console: 0 красных ошибок
 - [ ] Git push: выполнен
+
+
+## Current Architecture (v6.2)
+
+- Backend: Node.js + Express, MongoDB, all routes created (analytics, owner, omega, subscriptions, finance, invoices, quota, self-improvement, scheduledPosts)
+- Rate Limiter: 500/15min auth, 300/15min omega/analytics/subscriptions, 50/15min guest
+- Auth: protect + requireRole (401/403 separation)
+- Integrations: VK, IG, TikTok, LinkedIn, YouTube, Pinterest, FB — all with try-catch graceful fallback
+- Payments: Stripe guard, YooKassa 503 graceful error
+- Telegram: ownerBot + omegaBot, deleteWebhook camelCase, 409 conflict guard
+- Frontend: React + Tailwind, Creative Hub (unified Chat/Analyzer/Planner), glassmorphism UI
+- Components: LuxuryDocumentViewer, CreativeHub, OmegaChat (luxury bubble, no duplicates, logo header)
+- API Interceptor: HTML→JSON fallback, retry 429, 502/503 fallback
+- Automation: run.sh, run.bat, .vscode/tasks.json
+
+## Known Issues (resolved)
+
+- [x] 429 Too Many Requests
+- [x] 404 Missing endpoints
+- [x] 502/503 Integrations
+- [x] 401/403 Auth confusion
+- [x] HTML instead of JSON
+- [x] Passive event listener
+- [x] Push atob error
+- [x] Telegram deleteWebhook camelCase
+- [x] Telegram 409 conflict
+- [x] Stripe error spam
+- [x] Zap/KeyRound ReferenceError
+- [x] OMEGA duplicate in messages
+- [x] Header dropdown overflow

@@ -7,6 +7,6 @@ cd frontend && call npm run build && cd ..
 echo ✅ Frontend OK
 echo 🚀 Deploy...
 git add .
-git commit -m "v6.0-fix-2: telegram webhook + frontend icons Zap/KeyRound + stripe silent %date%-%time%" || echo No changes
+git commit -m "v6.0-6.2: full fix + luxury UI %date%-%time%" || echo No changes
 git push origin main
 echo 🎉 Done! && pause
