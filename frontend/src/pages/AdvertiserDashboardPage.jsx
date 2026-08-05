@@ -364,7 +364,7 @@ AI Viral Studio`, {
                     { label: t('advertiser.profit'), value: `$${profit.toLocaleString()}`, icon: DollarSign, gradient: profit >= 0 ? 'from-emerald-500 to-teal-600' : 'from-red-500 to-rose-600' },
                     { label: t('advertiser.avgRoi'), value: `${totalStats.avgRoi}%`, icon: Percent, gradient: 'from-violet-500 to-fuchsia-600' },
                 ].map((stat, i) => (
-                    <div key={i} className="glass p-4 hover:-translate-y-0.5 transition-transform">
+                    <div key={i} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center mb-3 shadow-lg`}>
                             <stat.icon className="w-4 h-4 text-white" />
                         </div>
@@ -384,7 +384,7 @@ AI Viral Studio`, {
                     { label: t('advertiser.campaigns'), value: campaignsList.length, icon: Target },
                     { label: t('advertiser.clients'), value: [...new Set(campaignsList.map(c => c.client))].length, icon: Users },
                 ].map((stat, i) => (
-                    <div key={i} className="glass p-3 text-center">
+                    <div key={i} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-3 text-center hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <stat.icon className="w-4 h-4 text-[var(--text-muted)] mx-auto mb-1.5" />
                         <p className="text-sm font-semibold text-[var(--text)]">{stat.value}</p>
                         <p className="text-[10px] text-[var(--text-muted)]">{stat.label}</p>

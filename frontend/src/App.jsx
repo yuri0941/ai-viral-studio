@@ -205,6 +205,7 @@ function App() {
                 {/* [v6.0] added: backward compatible redirects to Creative Hub */}
                 <Route path="/chat" element={<Navigate to="/creative-hub/chat" replace />} />
                 <Route path="/analyzer" element={<Navigate to="/creative-hub/analyzer" replace />} />
+                <Route path="/planner" element={<Navigate to="/creative-hub/planner" replace />} />
                 <Route path="/viral" element={<Navigate to="/creative-hub/viral" replace />} />
                 <Route path="/viral-chat" element={<Navigate to="/creative-hub/viral" replace />} />
                 <Route path="/omega-chat" element={<Navigate to="/creative-hub/chat" replace />} />

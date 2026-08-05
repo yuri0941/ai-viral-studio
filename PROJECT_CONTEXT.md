@@ -629,14 +629,17 @@ NODE_ENV=production
 
 ## Current Architecture (v6.2)
 
-- Backend: Node.js + Express, MongoDB, all routes created (analytics, owner, omega, subscriptions, finance, invoices, quota, self-improvement, scheduledPosts)
+- Backend: Node.js + Express, MongoDB, все роуты созданы
 - Rate Limiter: 500/15min auth, 300/15min omega/analytics/subscriptions, 50/15min guest
-- Auth: protect + requireRole (401/403 separation)
-- Integrations: VK, IG, TikTok, LinkedIn, YouTube, Pinterest, FB — all with try-catch graceful fallback
-- Payments: Stripe guard, YooKassa 503 graceful error
+- Auth: protect + requireRole (401/403 разделение)
+- Integrations: VK, IG, TikTok, LinkedIn, YouTube, Pinterest, FB, Twitter, Discord — все с try-catch graceful fallback
+- Payments: Stripe silent guard, YooKassa 503 graceful error
 - Telegram: ownerBot + omegaBot, deleteWebhook camelCase, 409 conflict guard
-- Frontend: React + Tailwind, Creative Hub (unified Chat/Analyzer/Planner), glassmorphism UI
-- Components: LuxuryDocumentViewer, CreativeHub, OmegaChat (luxury bubble, no duplicates, logo header)
+- Frontend: React + Tailwind, Creative Hub (единый Chat/Analyzer/Planner), glassmorphism UI
+- Chat: единый компонент везде (Hub + Widget + Profile), логотип в шапке, нет дублей, gradient bubbles
+- Roles: owner, admin, staff, client, creator, advertiser — OMEGA адаптирует приветствие
+- Header: dropdown fixed z-[9999], не обрезается
+- Components: LuxuryDocumentViewer, CreativeHub, unified OmegaChat
 - API Interceptor: HTML→JSON fallback, retry 429, 502/503 fallback
 - Automation: run.sh, run.bat, .vscode/tasks.json
 
@@ -651,7 +654,10 @@ NODE_ENV=production
 - [x] Push atob error
 - [x] Telegram deleteWebhook camelCase
 - [x] Telegram 409 conflict
-- [x] Stripe error spam
+- [x] Stripe error spam + popup
 - [x] Zap/KeyRound ReferenceError
 - [x] OMEGA duplicate in messages
 - [x] Header dropdown overflow
+- [x] 3 separate tabs → 1 Creative Hub
+- [x] 2 chat versions → unified chat
+- [x] Role-aware greeting

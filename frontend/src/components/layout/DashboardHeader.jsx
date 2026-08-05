@@ -198,7 +198,7 @@ export function DashboardHeader({
                             <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${langOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {langOpen && (
-                            <div className="absolute right-0 mt-2 w-32 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl overflow-hidden z-50">
+                            <div className="absolute right-0 mt-2 w-32 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl overflow-hidden z-[9999]">
                                 {['ru', 'en'].map(lang => (
                                     <button
                                         key={lang}
@@ -235,7 +235,7 @@ export function DashboardHeader({
                             <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${roleOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {roleOpen && (
-                            <div className="absolute right-0 mt-2 w-40 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl overflow-hidden z-50">
+                            <div className="absolute right-0 mt-2 w-40 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl overflow-hidden z-[9999]">
                                 {availableRoles.map(role => {
                                     const config = ROLE_CONFIG[role]
                                     const Icon = config.icon
@@ -268,7 +268,7 @@ export function DashboardHeader({
                                 <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${wsOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {wsOpen && (
-                                <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl overflow-hidden z-50">
+                                <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl overflow-hidden z-[9999]">
                                     {workspaces.map(ws => (
                                         <button
                                             key={ws._id}

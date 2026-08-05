@@ -1,11 +1,11 @@
-## 2026-08-05 — v6.0-6.2 Full Fix + Luxury UI
+## 2026-08-05 — v6.2 Full Fix + Luxury UI + Unified Chat + Role System
 - [x] Fix: scheduledPostsRoutes import + file creation
 - [x] Fix: Rate limiter (500/15min auth, 300/15min omega/analytics/subscriptions, 50/15min guest)
 - [x] Fix: All missing routes created (analytics, owner, omega, subscriptions, finance, invoices, quota, self-improvement)
 - [x] Fix: Auth 401/403 separation + requireRole helper
-- [x] Fix: Integrations 502/503 graceful fallback (all social platforms)
+- [x] Fix: Integrations 502/503 graceful fallback (all social platforms: VK, IG, TikTok, LinkedIn, YouTube, Pinterest, FB, Twitter, Discord)
 - [x] Fix: Payments 503 graceful error
-- [x] Fix: Stripe guard by env + silent fail
+- [x] Fix: Stripe guard by env + silent fail (no popup, no spam)
 - [x] Fix: Telegram deleteWebhook camelCase (ownerBot + omegaBot)
 - [x] Fix: Telegram 409 conflict guard (silent ignore)
 - [x] Fix: API interceptor (HTML→JSON, retry 429, 502/503 fallback)
@@ -13,12 +13,17 @@
 - [x] Fix: Push atob guard (DashboardHeader)
 - [x] Fix: Graceful degradation in all tabs (Memory, Finance, Subscriptions, Quota, Templates)
 - [x] Fix: Frontend icons Zap/KeyRound import
-- [x] UI: Creative Hub (unified Chat + Analyzer + Planner in sidebar)
-- [x] UI: Luxury Dashboard (glassmorphism cards, gradient, hover glow)
-- [x] UI: Luxury Settings (glass card, sidebar glow, pricing highlight, Stripe silent error)
-- [x] UI: Luxury Header (dropdown z-50, no overflow)
+- [x] Fix: Header dropdown overflow (fixed z-[9999])
+- [x] Fix: Stripe popup error in Settings (silent console only)
+- [x] UI: Creative Hub (unified Chat + Analyzer + Planner, 1 sidebar item instead of 3)
+- [x] UI: Unified OmegaChat (same component in Hub, Widget, Profile — no duplicates)
+- [x] UI: Luxury Dashboard (glassmorphism cards, gradient, hover glow) — all roles
+- [x] UI: Luxury Settings (glass card, sidebar glow, pricing highlight, silent Stripe)
+- [x] UI: Luxury Header (dropdown fixed, no overflow, mobile adaptive)
 - [x] UI: Luxury Ad Widget (glassmorphism, gradient CTA, mobile adaptive)
-- [x] UI: OMEGA Chat Luxury (logo header, no message duplicates, gradient bubbles, hover actions, mobile FAB)
+- [x] UI: OMEGA Chat Luxury (logo header, no message duplicates, gradient bubbles, hover actions)
+- [x] Feature: Role-aware OMEGA greeting (owner/admin/staff/client/creator/advertiser/guest)
+- [x] Feature: Mobile adaptive (FAB, bottom sheet, safe-area)
 - [x] Chore: run.sh, run.bat, .vscode/tasks.json
 - [x] Chore: PROJECT_CONTEXT.md + PROGRESS_REPORT.md updated
 

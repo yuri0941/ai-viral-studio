@@ -304,7 +304,7 @@ function SettingsPage() {
         if (window.showToast) {
             window.showToast(message, type);
         } else {
-            alert(message);
+            console.warn('[SettingsPage] Toast not available:', message);
         }
     };
 
@@ -663,7 +663,7 @@ function SettingsPage() {
                     const isLoading = paymentLoading[loadingKey];
 
                     return (
-                        <div key={plan.id} className={`luxury-card glass p-5 ${subscribed ? 'ring-2 ring-violet-500 shadow-[0_0_20px_rgba(139,92,246,0.15)]' : plan.popular ? 'border-[var(--primary)]' : ''}`}>
+                        <div key={plan.id} className={`luxury-card glass p-5 ${subscribed ? 'ring-2 ring-violet-500 shadow-lg shadow-violet-500/20' : plan.popular ? 'border-[var(--primary)]' : ''}`}>
                             {plan.popular && !subscribed && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-full">
                                     {t('settings.popular')}
@@ -1318,7 +1318,7 @@ function SettingsPage() {
 
                 <div className="flex-1 min-w-0">
                     {/* [v6.0] added: glass content wrapper */}
-                    <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6">
+                    <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-3xl p-8">
                         {renderContent()}
                     </div>
                 </div>
