@@ -220,7 +220,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(compression())
 
-// Telegram webhook handler
+// Telegram webhook handlers
 if (process.env.TELEGRAM_BOT_TOKEN && process.env.NODE_ENV === 'production') {
     app.post(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, express.json(), (req, res) => {
         if (global.ownerBot && typeof global.ownerBot.processUpdate === 'function') {
@@ -229,6 +229,20 @@ if (process.env.TELEGRAM_BOT_TOKEN && process.env.NODE_ENV === 'production') {
         res.sendStatus(200)
     })
 }
+
+app.post('/webhook/owner', express.json(), (req, res) => {
+    if (global.ownerBot && typeof global.ownerBot.processUpdate === 'function') {
+        global.ownerBot.processUpdate(req.body)
+    }
+    res.sendStatus(200)
+})
+
+app.post('/webhook/omega', express.json(), (req, res) => {
+    if (global.omegaBot && typeof global.omegaBot.processUpdate === 'function') {
+        global.omegaBot.processUpdate(req.body)
+    }
+    res.sendStatus(200)
+})
 
 // Rate limiting (relaxed in development)
 const limiter = rateLimit({

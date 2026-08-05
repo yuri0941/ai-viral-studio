@@ -16,6 +16,7 @@ function createStubBot() {
     startPolling: () => {},
     stopPolling: () => {},
     deleteWebhook: () => Promise.resolve(),
+    setWebHook: () => Promise.resolve(),
     setMyCommands: () => Promise.resolve(),
     answerCallbackQuery: () => Promise.resolve(),
   }
@@ -151,53 +152,14 @@ export const initOmegaBot = () => {
     }
   })
 
-  bot.on('polling_error', (err) => {
-    const msg = err && err.message ? err.message : String(err)
-    if (msg.includes('409') || msg.includes('conflict')) {
-      console.log('[OMEGA-BOT] Telegram 409/conflict — another instance running, ignoring')
-      return
-    }
-    console.error('[OMEGA-BOT]', msg)
-  })
-
   bot.on('webhook_error', (err) => {
     console.error('[OMEGA-BOT] webhook error:', err?.message || err)
   })
 
-  // Start polling safely
-  const startPollingSafe = (botInstance, name) => {
-    try {
-      if (botInstance._polling && botInstance._polling.abortController) {
-        console.log(`[${name}] Already polling, skipping`)
-        return
-      }
-      botInstance.startPolling()
-      console.log(`[${name}] Polling started successfully`)
-    } catch (e) {
-      if (
-        e.message?.includes('409') ||
-        e.response?.statusCode === 409 ||
-        (e.code === 'ETELEGRAM' && e.message?.includes('conflict'))
-      ) {
-        console.log(`[${name}] 409 conflict — another instance running, ignoring`)
-      } else {
-        console.error(`[${name}] Polling error:`, e.message)
-      }
-    }
-  }
-
-  ;(async () => {
-    try {
-      await bot.deleteWebhook({ drop_pending_updates: true })
-      await new Promise(r => setTimeout(r, 1000))
-      console.log('[OMEGA-BOT] webhook deleted, starting polling')
-      startPollingSafe(bot, 'OMEGA-BOT')
-    } catch (err) {
-      console.warn('[OMEGA-BOT] deleteWebhook failed:', err.message, '- starting polling anyway')
-      await new Promise(r => setTimeout(r, 1000))
-      startPollingSafe(bot, 'OMEGA-BOT')
-    }
-  })()
+  // [WEBHOOK-2026-08-05] set webhook instead of polling to avoid 409 conflicts
+  const WEBHOOK_URL = (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com') + '/webhook/omega'
+  bot.setWebHook(WEBHOOK_URL).catch(() => {})
+  console.log('[OMEGA-BOT] Webhook set to', WEBHOOK_URL)
 }
 
 const updateBotMenu = () => {

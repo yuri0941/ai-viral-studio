@@ -390,7 +390,7 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                         const isEditing = editingId === msg.id
                         return isUser ? (
                             <div key={msg.id} className="flex justify-end w-full">
-                                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[85%]">
+                                <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-2xl rounded-tr-none p-3.5 max-w-[85%]">
                                     {isEditing ? (
                                         <div className="flex flex-col gap-2">
                                             <textarea
@@ -411,7 +411,7 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                             </div>
                         ) : (
                             <div key={msg.id} className="group flex flex-col items-start max-w-[90%]">
-                                <div className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/5">
+                                <div className="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/5 border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/5">
                                     {isEditing ? (
                                         <div className="flex flex-col gap-2">
                                             <textarea
@@ -492,7 +492,7 @@ export function OmegaChat({ messages, input, setInput, isTyping, demoMode, sendM
                     })}
                     {isTyping && (
                         <div className="group flex flex-col items-start max-w-[90%]">
-                            <div className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm flex items-center gap-2">
+                            <div className="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/5 border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm flex items-center gap-2">
                                 <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                                 <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                 <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
