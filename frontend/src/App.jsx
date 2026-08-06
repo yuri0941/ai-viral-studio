@@ -172,6 +172,7 @@ function RoleRedirect() {
 // APP
 // ============================================
 function App() {
+  const BUILD_ID = '20260806180219'; console.log('[BUILD]', BUILD_ID);
       // v6.4-force-rebuild
   window.__APP_BUILD__ = 'v6.4-clean';
   console.log('[AI VIRAL STUDIO] Build:', window.__APP_BUILD__);
@@ -372,6 +373,7 @@ function App() {
 }
 
 export default App
+
 
 
 
