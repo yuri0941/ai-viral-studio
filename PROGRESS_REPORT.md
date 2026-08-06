@@ -1,3 +1,12 @@
+## 2026-08-06 — v6.4-FINAL: Деплой починен ✅
+- [x] Удалён frontend/dist из Git
+- [x] Удалён frontend/dist с диска
+- [x] App.jsx: реальный код window.__APP_BUILD__ (сборка прошла)
+- [x] Локальная сборка: main chunk index-CPWy6FBr.js (новый хэш)
+- [x] Cloudflare Pages: Uploaded 14 files (свежий билд залит)
+- [x] Backend Render: все ключи на месте, OMEGA жива
+- [x] Сборка: 0 ошибок
+
 ## 2026-08-06 — v6.4-REAL-FIX: Деплой + OMEGA Chat
 - [x] main.jsx: SW unregister + cache clean (уже актуален — показана цитата)
 - [x] index.html: no-cache meta tags (уже актуальны — показана цитата)
