@@ -1,3 +1,23 @@
+## 2026-08-06 — v6.5.5-FINAL LUXURY ADAPTIVE + UNIFIED UX
+- [x] Fix: Global CSS — overflow-x hidden, safe-area, z-index layers, touch-44, reduced-motion
+- [x] Fix: Header — fixed top-0, z-40, backdrop-blur, НЕ перекрывает контент (pt-20), dropdown z-45
+- [x] Fix: Header hover — убрано мигание (scale убран, только transition-colors)
+- [x] Fix: Push VAPID guard — не падает если ключ не настроен, открывает in-app уведомления
+- [x] Fix: runtime.lastError suppressed (Chrome extension conflict)
+- [x] Fix: Cache busting v2 — inline script + SW activate cleanup + vite hash v655f
+- [x] Fix: Mobile Bottom Nav — safe-area, 44px touch, label adaptive (SE vs Pro Max)
+- [x] Fix: Mobile Chat — fixed bottom, safe-area, 48px input, flex-wrap quick actions
+- [x] Fix: Mobile ApiKeysTab — поле ключа не обрезается, кнопки absolute right
+- [x] Fix: Mobile Drawer — 280px, backdrop z-59, swipe-to-close, все табы доступны
+- [x] Fix: Desktop Sidebar — width transition only (no scale/flicker), tooltip z-55
+- [x] Fix: Desktop ChatWidget — fixed position, no hover-transform (no jump)
+- [x] Fix: Modal — max-w-[95vw], mobile bottom-sheet, centered desktop
+- [x] Fix: Unified UX — mobile drawer содержит ВСЕ табы, same as desktop sidebar
+- [x] Fix: All buttons checked — onClick, disabled, type="button", form preventDefault
+- [x] Fix: Luxury glassmorphism — glass-luxury class, hover only on desktop
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+
 ## 2026-08-06 — v6.6-OMEGA NEURAL CORE + AUTONOMOUS BRAIN + CACHE FIX
 - [x] Fix: Cloudflare Pages cache-bust (inline script, _headers, vite hash, SW v6.6)
 - [x] Fix: Удалены demo-остатки (DEMO MODE, mock-фразы, fallback realistic)
