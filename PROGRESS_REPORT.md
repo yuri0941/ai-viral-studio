@@ -1,3 +1,20 @@
+## 2026-08-06 — v6.4 Hotfix 2: Деплой + OMEGA Chat Fix
+- [x] Диагностика: git ls-files frontend/dist (проверен)
+- [x] Удалён frontend/public/_worker.js (мешал Cloudflare Pages)
+- [x] Удалён frontend/dist из Git (уже был удалён)
+- [x] SW: force clean cache v6.4-kill-cache-2026 (уже актуален)
+- [x] main.jsx: unregister SW + clear caches (уже актуален)
+- [x] index.html: no-cache meta tags (уже актуальны)
+- [x] vite.config.js: base '/', outDir 'dist', emptyOutDir true (уже актуален)
+- [x] OmegaChat.jsx: export OmegaChatContainer + импорты проверены
+- [x] OmegaChatWidget.jsx + OmegaPanel.jsx + CreativeHub.jsx: импорты корректны
+- [x] Сборка frontend: 0 ошибок
+- [x] Backend check: node --check server.js + omegaController.js + omega.js — 0 ошибок
+- [x] Git push: выполнен (commit 5e84d73c)
+- [ ] Ручное: Clear Build Cache в Render Dashboard
+- [ ] Ручное: Purge Everything в Cloudflare Caching
+- [ ] Ручное: проверка в Incognito + очистка кэша на телефоне
+
 ## 2026-08-06 — v6.4 Hotfix (Telegram + VK + Stripe + Icons)
 - [x] Skip: Telegram bots — webhook mode + singleton guard уже реализованы, polling отключён
 - [x] Check: node --check backend/integrations/telegram/ownerBot.js + omegaBot.js passed
