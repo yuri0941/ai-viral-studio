@@ -1,4 +1,4 @@
-import { AgentLog } from '../models/AgentLog.js'
+import { AgentLog } from '../../models/AgentLog.js'
 
 const ROLES = ['researcher', 'coder', 'designer', 'tester', 'marketer', 'analyst']
 const ROLE_EMOJIS = {
