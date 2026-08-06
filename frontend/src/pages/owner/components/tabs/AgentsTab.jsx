@@ -18,7 +18,7 @@ export function AgentsTab({ data }) {
                     </h1>
                     <p className="text-sm text-gray-400 mt-1">{online} агентов онлайн</p>
                 </div>
-                <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-500/20 border border-violet-500/30 text-sm text-violet-300 font-medium hover:bg-violet-500/30 transition-colors">
+                <button type="button" onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-500/20 border border-violet-500/30 text-sm text-violet-300 font-medium hover:bg-violet-500/30 transition-colors">
                     <Plus size={16} /> Добавить агента
                 </button>
             </div>
@@ -32,8 +32,8 @@ export function AgentsTab({ data }) {
                         <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Описание" className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-[var(--text)] outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/20 transition-all" />
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => setShowAdd(false)} className="px-4 py-2 rounded-xl border border-white/10 text-xs text-gray-300 hover:bg-white/5 transition">Отмена</button>
-                        <button onClick={() => { addAgent(form); setShowAdd(false); setForm({ name: '', role: '', description: '' }) }} className="px-4 py-2 rounded-xl bg-violet-500/20 border border-violet-500/30 text-xs text-violet-300 hover:bg-violet-500/30 transition">Создать</button>
+                        <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 rounded-xl border border-white/10 text-xs text-gray-300 hover:bg-white/5 transition">Отмена</button>
+                        <button type="button" onClick={() => { addAgent(form); setShowAdd(false); setForm({ name: '', role: '', description: '' }) }} className="px-4 py-2 rounded-xl bg-violet-500/20 border border-violet-500/30 text-xs text-violet-300 hover:bg-violet-500/30 transition">Создать</button>
                     </div>
                 </div>
             )}
@@ -68,18 +68,18 @@ export function AgentsTab({ data }) {
                             </div>
                             <p className="text-xs text-gray-400 line-clamp-2 mb-4">{agent.description}</p>
                             <div className="flex items-center justify-between">
-                                <button onClick={() => toggleAgent(agent.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300 text-xs font-medium hover:bg-violet-500/30 transition">
+                                <button type="button" onClick={() => toggleAgent(agent.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-300 text-xs font-medium hover:bg-violet-500/30 transition">
                                     {isActive ? <Pause size={14} /> : <Play size={14} />}
                                     {isActive ? 'Остановить' : 'Запустить'}
                                 </button>
                                 <div className="flex items-center gap-1">
-                                    <button onClick={() => startChat('ai', agent.id, agent.name)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-blue-400 transition-colors" title="Чат">
+                                    <button type="button" onClick={() => startChat('ai', agent.id, agent.name)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-blue-400 transition-colors" title="Чат">
                                         <MessageSquare size={14} />
                                     </button>
-                                    <button onClick={() => toggleAgent(agent.id)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-emerald-400 transition-colors" title="Вкл/Выкл">
+                                    <button type="button" onClick={() => toggleAgent(agent.id)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-emerald-400 transition-colors" title="Вкл/Выкл">
                                         <Power size={14} />
                                     </button>
-                                    <button onClick={() => removeAgent(agent.id)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors" title="Удалить">
+                                    <button type="button" onClick={() => removeAgent(agent.id)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors" title="Удалить">
                                         <Trash2 size={14} />
                                     </button>
                                 </div>

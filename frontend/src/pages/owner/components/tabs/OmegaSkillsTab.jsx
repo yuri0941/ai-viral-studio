@@ -92,7 +92,7 @@ export function OmegaSkillsTab({ data }) {
             {/* Filters */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 {CATEGORIES.map(c => (
-                    <button
+                    <button type="button"
                         key={c.id}
                         onClick={() => setFilter(c.id)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
@@ -132,7 +132,7 @@ export function OmegaSkillsTab({ data }) {
                                 </div>
                             </div>
 
-                            <button
+                            <button type="button"
                                 onClick={() => train(skill.id)}
                                 disabled={training === skill.id || skill.level >= skill.maxLevel}
                                 className="w-full flex items-center justify-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 disabled:opacity-50 transition-colors"

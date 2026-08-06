@@ -75,7 +75,7 @@ export function BrandVoiceTab() {
                     <h2 className="text-xl font-semibold text-[var(--text)]">Brand Voice v2</h2>
                     <p className="text-sm text-gray-500 mt-1">AI проанализирует тон, словарь и паттерны ваших постов</p>
                 </div>
-                <button onClick={fillSamples} className="text-xs text-gray-400 hover:text-[var(--text)] underline">
+                <button type="button" onClick={fillSamples} className="text-xs text-gray-400 hover:text-[var(--text)] underline">
                     Заполнить примерами
                 </button>
             </div>
@@ -105,14 +105,14 @@ export function BrandVoiceTab() {
                                 className="flex-1 px-4 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-[#8B5CF6]/30 resize-none"
                             />
                             {texts.length > 3 && (
-                                <button onClick={() => removeField(i)} className="text-gray-500 hover:text-red-400 text-xs">✕</button>
+                                <button type="button" onClick={() => removeField(i)} className="text-gray-500 hover:text-red-400 text-xs">✕</button>
                             )}
                         </div>
                     ))}
-                    <button onClick={addField} className="text-xs text-[#8B5CF6] hover:underline">+ Добавить текст</button>
+                    <button type="button" onClick={addField} className="text-xs text-[#8B5CF6] hover:underline">+ Добавить текст</button>
                 </div>
 
-                <button
+                <button type="button"
                     onClick={analyze}
                     disabled={loading}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/30 transition-colors disabled:opacity-50"
@@ -126,7 +126,7 @@ export function BrandVoiceTab() {
                 <div className="bg-[#1a1a24] rounded-2xl border border-white/[0.06] p-5 space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm font-semibold text-[var(--text)]">Результат анализа</h3>
-                        <button
+                        <button type="button"
                             onClick={toggleEnabled}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                                 profile.enabled ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-500/20 text-gray-400'

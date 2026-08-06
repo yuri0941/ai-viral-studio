@@ -11,7 +11,7 @@ export function AuditTab({ data }) {
                     <ShieldCheck size={18} className="text-blue-400" />
                     <h2 className="text-lg font-semibold text-[var(--text)]">Аудит действий</h2>
                 </div>
-                <button onClick={() => exportToCSV(data.auditLogs, 'audit.csv')} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-[var(--border)] text-xs text-gray-300 hover:bg-white/10 transition-colors">
+                <button type="button" onClick={() => exportToCSV(data.auditLogs, 'audit.csv')} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-[var(--border)] text-xs text-gray-300 hover:bg-white/10 transition-colors">
                     <Download size={14} /> Экспорт CSV
                 </button>
             </div>

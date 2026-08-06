@@ -10,7 +10,7 @@ export function NewsTab({ data }) {
                     <Newspaper size={18} className="text-blue-400" />
                     <h2 className="text-lg font-semibold text-[var(--text)]">Новости</h2>
                 </div>
-                <button onClick={() => data.setModal({ type: 'createNews' })} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
+                <button type="button" onClick={() => data.setModal({ type: 'createNews' })} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
                     <Plus size={16} /> Новая новость
                 </button>
             </div>
@@ -26,7 +26,7 @@ export function NewsTab({ data }) {
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500">{item.views} просмотров</span>
                             {item.status === 'draft' && (
-                                <button onClick={() => data.publishNews(item.id)} className="text-xs text-emerald-400 hover:underline">Опубликовать</button>
+                                <button type="button" onClick={() => data.publishNews(item.id)} className="text-xs text-emerald-400 hover:underline">Опубликовать</button>
                             )}
                         </div>
                     </div>

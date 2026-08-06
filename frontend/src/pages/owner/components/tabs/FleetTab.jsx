@@ -13,7 +13,7 @@ function Modal({ title, onClose, children }) {
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-md w-full p-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
+                    <button type="button" onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
                 </div>
                 {children}
             </div>
@@ -76,8 +76,11 @@ export function FleetTab() {
         }
     }
 
+    const [creating, setCreating] = useState(false)
+
     const createProject = async (e) => {
         e.preventDefault()
+        setCreating(true)
         try {
             await workspaceApi.create({
                 name: form.name,
@@ -89,6 +92,8 @@ export function FleetTab() {
             loadFleet()
         } catch (err) {
             alert(err.message)
+        } finally {
+            setCreating(false)
         }
     }
 
@@ -106,13 +111,13 @@ export function FleetTab() {
                     Fleet / Проекты
                 </h2>
                 <div className="flex items-center gap-3">
-                    <button
+                    <button type="button"
                         onClick={() => setCreateOpen(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-[#00ff41] hover:bg-[#00d936] rounded-xl text-black font-medium text-sm transition-colors"
                     >
                         <Plus className="w-4 h-4" /> Создать проект
                     </button>
-                    <button
+                    <button type="button"
                         onClick={emergencyStopped ? emergencyResume : emergencyStop}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-colors ${
                             emergencyStopped
@@ -142,10 +147,10 @@ export function FleetTab() {
                         const badge = statusBadge(p.status)
                         const Icon = badge.icon
                         return (
-                            <button
+                            <button type="button"
                                 key={p.id}
                                 onClick={() => navigate(`/owner?project=${p.id}`)}
-                                className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-left"
+                                className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-left"
                                 style={{ borderLeftWidth: '4px', borderLeftColor: p.color || '#00ff41' }}
                             >
                                 <div className="flex items-start justify-between mb-3">
@@ -204,7 +209,8 @@ export function FleetTab() {
                         </div>
                         <button
                             type="submit"
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#00ff41] hover:bg-[#00d936] rounded-xl text-black font-medium text-sm transition-colors"
+                            disabled={creating}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#00ff41] hover:bg-[#00d936] rounded-xl text-black font-medium text-sm transition-colors disabled:opacity-50"
                         >
                             <Plus className="w-4 h-4" /> Создать
                         </button>

@@ -5,13 +5,15 @@
     <meta charset="UTF-8" />
     <script>
       (function(){
-        const BUILD='v6.6-2026-08-06';
+        const BUILD='v6.5.5-final-2026-08-06';
         const stored=localStorage.getItem('app_build');
         if(stored!==BUILD){
           localStorage.setItem('app_build',BUILD);
           if('caches' in window) caches.keys().then(n=>n.forEach(c=>caches.delete(c)));
-          if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister()));
-          if(stored) location.reload(true);
+          if('serviceWorker' in navigator){
+            navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister()));
+            setTimeout(()=>location.reload(true), 500);
+          }
         }
       })();
     </script>

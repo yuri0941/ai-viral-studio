@@ -135,7 +135,7 @@ function DashboardPage() {
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-gray-400 text-sm">AI запросы</span>
                                 <div className="w-8 h-8 rounded-lg bg-[#00ff41]/10 flex items-center justify-center">
@@ -150,7 +150,7 @@ function DashboardPage() {
                             </div>
                         </div>
 
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-gray-400 text-sm">Запланировано</span>
                                 <div className="w-8 h-8 rounded-lg bg-[#2563eb]/10 flex items-center justify-center">
@@ -163,7 +163,7 @@ function DashboardPage() {
                             <p className="text-xs text-gray-500 mt-1">постов на этой неделе</p>
                         </div>
 
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-gray-400 text-sm">Просмотры</span>
                                 <div className="w-8 h-8 rounded-lg bg-[#f0883e]/10 flex items-center justify-center">
@@ -182,7 +182,7 @@ function DashboardPage() {
                             </p>
                         </div>
 
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-gray-400 text-sm">Подписчики</span>
                                 <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
@@ -224,7 +224,7 @@ function DashboardPage() {
                     {/* Charts Row */}
                     <div className="grid lg:grid-cols-2 gap-6 mb-8">
                         {/* Views Chart */}
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="font-bold">Просмотры и подписчики</h3>
                                 <select className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-gray-400 focus:outline-none focus:border-[#00ff41]/30">
@@ -259,7 +259,7 @@ function DashboardPage() {
                         </div>
 
                         {/* Activity Chart */}
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="font-bold">Активность сегодня</h3>
                                 <span className="text-xs text-gray-500">Последние 24 часа</span>
@@ -293,7 +293,7 @@ function DashboardPage() {
                     {/* Recent Activity */}
                     <div className="grid lg:grid-cols-2 gap-6">
                         {/* Recent AI Chats */}
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="font-bold">Последние AI-чаты</h3>
                                 <button onClick={() => navigate('/ai-chat')} className="text-sm text-[#00ff41] hover:underline">
@@ -321,7 +321,7 @@ function DashboardPage() {
                         </div>
 
                         {/* Upcoming Posts */}
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="font-bold">Ближайшие публикации</h3>
                                 <button onClick={() => navigate('/scheduler')} className="text-sm text-[#00ff41] hover:underline">

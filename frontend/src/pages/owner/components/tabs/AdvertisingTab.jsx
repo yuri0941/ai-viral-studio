@@ -69,26 +69,26 @@ export function AdvertisingTab({ data }) {
             label: 'Действия',
             render: (row) => (
                 <div className="flex items-center gap-1">
-                    <button onClick={() => setActiveChat(row)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-blue-400 transition-colors" title="Переговоры">
+                    <button type="button" onClick={() => setActiveChat(row)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-blue-400 transition-colors" title="Переговоры">
                         <MessageSquare size={14} />
                     </button>
                     {row.status === 'pending_review' && (
                         <>
-                            <button onClick={() => updateCampaignStatus(row.id, 'active')} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-emerald-400 transition-colors" title="Утвердить">
+                            <button type="button" onClick={() => updateCampaignStatus(row.id, 'active')} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-emerald-400 transition-colors" title="Утвердить">
                                 <CheckCircle size={14} />
                             </button>
-                            <button onClick={() => updateCampaignStatus(row.id, 'cancelled')} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors" title="Отклонить">
+                            <button type="button" onClick={() => updateCampaignStatus(row.id, 'cancelled')} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-400 transition-colors" title="Отклонить">
                                 <XCircle size={14} />
                             </button>
                         </>
                     )}
                     {row.status === 'active' && (
-                        <button onClick={() => updateCampaignStatus(row.id, 'paused')} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-yellow-400 transition-colors" title="Пауза">
+                        <button type="button" onClick={() => updateCampaignStatus(row.id, 'paused')} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-yellow-400 transition-colors" title="Пауза">
                             <Pause size={14} />
                         </button>
                     )}
                     {row.status === 'paused' && (
-                        <button onClick={() => updateCampaignStatus(row.id, 'active')} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-emerald-400 transition-colors" title="Возобновить">
+                        <button type="button" onClick={() => updateCampaignStatus(row.id, 'active')} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-emerald-400 transition-colors" title="Возобновить">
                             <Play size={14} />
                         </button>
                     )}
@@ -104,7 +104,7 @@ export function AdvertisingTab({ data }) {
                     <Megaphone size={18} className="text-purple-400" />
                     <h2 className="text-lg font-semibold text-[var(--text)]">Рекламные кампании</h2>
                 </div>
-                <button onClick={() => setModal({ type: 'createCampaign' })} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/20 border border-purple-500/30 text-sm text-purple-400 font-medium hover:bg-purple-500/30 transition-colors">
+                <button type="button" onClick={() => setModal({ type: 'createCampaign' })} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/20 border border-purple-500/30 text-sm text-purple-400 font-medium hover:bg-purple-500/30 transition-colors">
                     <Plus size={16} /> Новая кампания
                 </button>
             </div>
@@ -133,7 +133,7 @@ export function AdvertisingTab({ data }) {
                     ))}
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
+                    <button type="button"
                         onClick={savePricing}
                         disabled={pricingLoading}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
@@ -154,7 +154,7 @@ export function AdvertisingTab({ data }) {
                             <div className="text-sm font-semibold text-[var(--text)]">{activeChat.name}</div>
                             <div className="text-xs text-gray-500">{activeChat.client}</div>
                         </div>
-                        <button onClick={() => setActiveChat(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400">
+                        <button type="button" onClick={() => setActiveChat(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400">
                             <XCircle size={18} />
                         </button>
                     </div>
@@ -180,7 +180,7 @@ export function AdvertisingTab({ data }) {
                                 placeholder="Сообщение..."
                                 className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-emerald-500/30"
                             />
-                            <button
+                            <button type="button"
                                 onClick={() => { if (chatText.trim()) { addNegotiation(activeChat.id, chatText); setChatText('') } }}
                                 className="px-3 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
                             >

@@ -12,10 +12,10 @@ export function LogsTab({ data }) {
                     <h2 className="text-lg font-semibold text-[var(--text)]">Логи системы</h2>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={() => data.clearOldLogs(7)} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-[var(--border)] text-xs text-gray-400 hover:bg-white/10 transition-colors">
+                    <button type="button" onClick={() => data.clearOldLogs(7)} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-[var(--border)] text-xs text-gray-400 hover:bg-white/10 transition-colors">
                         <Trash2 size={12} /> Очистить старше 7 дней
                     </button>
-                    <button onClick={() => exportToCSV(data.systemLogs, 'logs.csv')} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-[var(--border)] text-xs text-gray-400 hover:bg-white/10 transition-colors">
+                    <button type="button" onClick={() => exportToCSV(data.systemLogs, 'logs.csv')} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-[var(--border)] text-xs text-gray-400 hover:bg-white/10 transition-colors">
                         <Download size={12} /> Экспорт
                     </button>
                 </div>

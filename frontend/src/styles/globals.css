@@ -468,3 +468,70 @@ body { min-width: 320px; }
   .luxury-card { padding: 16px !important; border-radius: 12px !important; }
   .luxury-btn { padding: 8px 16px !important; font-size: 12px !important; }
 }
+
+/* === LUXURY GLASS v6.5.5-FINAL === */
+.glass-luxury {
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.glass-luxury-hover:hover {
+  box-shadow: 0 8px 32px 0 rgba(139,92,246,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+/* Mobile: убираем hover-эффекты (чтобы не "прилипали") */
+@media (hover: none) {
+  .glass-luxury-hover:hover {
+    transform: none;
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.36);
+  }
+}
+
+/* === GLOBAL ADAPTIVE FIXES v6.5.5-FINAL === */
+html, body {
+  overflow-x: hidden;
+  min-width: 320px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text zoom on iOS */
+input, textarea, select {
+  font-size: 16px; /* iOS не зумирует при фокусе */
+}
+
+/* Safe area для iPhone X+ */
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-left { padding-left: env(safe-area-inset-left); }
+.safe-right { padding-right: env(safe-area-inset-right); }
+
+/* Z-index layers (единая система) */
+.z-drawer { z-index: 60; }
+.z-modal { z-index: 50; }
+.z-header { z-index: 40; }
+.z-fab { z-index: 35; }
+.z-dropdown { z-index: 45; }
+.z-tooltip { z-index: 55; }
+.z-toast { z-index: 70; }
+
+/* Touch targets minimum 44px */
+.touch-44 { min-width: 44px; min-height: 44px; }
+
+/* Prevent hover-stick on mobile */
+@media (hover: none) {
+  .hover-lift:hover { transform: none !important; }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

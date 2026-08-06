@@ -77,10 +77,10 @@ export function NotificationsTab({ data }) {
                     )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={markAllRead} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:text-[var(--text)] hover:bg-white/10 transition-colors">
+                    <button type="button" onClick={markAllRead} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:text-[var(--text)] hover:bg-white/10 transition-colors">
                         <Check size={12} /> Прочитать все
                     </button>
-                    <button onClick={clearAll} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                    <button type="button" onClick={clearAll} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:text-red-400 hover:bg-red-500/10 transition-colors">
                         <Trash2 size={12} /> Очистить
                     </button>
                 </div>
@@ -90,7 +90,7 @@ export function NotificationsTab({ data }) {
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 <Filter size={14} className="text-gray-500 shrink-0" />
                 {TYPE_FILTERS.map(f => (
-                    <button
+                    <button type="button"
                         key={f.id}
                         onClick={() => setFilter(f.id)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
@@ -129,7 +129,7 @@ export function NotificationsTab({ data }) {
                         </div>
                         <div className="flex items-center gap-1">
                             {!n.read && (
-                                <button
+                                <button type="button"
                                     onClick={() => markRead(n.id)}
                                     className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
                                     title="Прочитать"
@@ -137,7 +137,7 @@ export function NotificationsTab({ data }) {
                                     <Check size={14} />
                                 </button>
                             )}
-                            <button
+                            <button type="button"
                                 onClick={() => remove(n.id)}
                                 className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                                 title="Удалить"

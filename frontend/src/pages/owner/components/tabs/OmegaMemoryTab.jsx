@@ -168,7 +168,7 @@ export function OmegaMemoryTab() {
                             </div>
                         </div>
                     </div>
-                    <button
+                    <button type="button"
                         onClick={clearVectorMemory}
                         disabled={vectorLoading || !vectorStatus}
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -185,7 +185,7 @@ export function OmegaMemoryTab() {
                     const meta = LEVEL_META[level]
                     const count = summary[level]?.count || 0
                     return (
-                        <button
+                        <button type="button"
                             key={level}
                             onClick={() => setActiveLevel(level)}
                             className={`p-3 rounded-xl border text-left transition-all ${
@@ -229,7 +229,7 @@ export function OmegaMemoryTab() {
                         placeholder="Добавить запись в этот уровень..."
                         className="flex-1 bg-white/5 border border-[var(--border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-purple-500/30"
                     />
-                    <button
+                    <button type="button"
                         onClick={addEntry}
                         className="px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs hover:bg-emerald-500/20 transition-colors"
                     >
@@ -267,7 +267,7 @@ export function OmegaMemoryTab() {
                                     <span className="text-[10px] text-gray-500">{new Date(entry.createdAt).toLocaleString('ru-RU')}</span>
                                 </div>
                             </div>
-                            <button
+                            <button type="button"
                                 onClick={() => memory.forget(activeLevel, entry.id)}
                                 className="p-1.5 rounded-lg bg-white/5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                             >

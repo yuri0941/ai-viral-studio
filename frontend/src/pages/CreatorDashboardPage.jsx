@@ -168,7 +168,7 @@ function CreatorDashboardPage() {
 
             {/* [VALUE-2026-08-04] added: empty state for new creators */}
             {!statsLoading && (stats?.posts || 0) === 0 && (
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-8 text-center">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-8 text-center">
                     <div className="w-16 h-16 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center mx-auto mb-4">
                         <Plus size={28} className="text-[var(--primary)]" />
                     </div>
@@ -196,7 +196,7 @@ function CreatorDashboardPage() {
 
             {/* [P16-FIX] added: content-first hero — next post preview with glass card */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 md:p-8 relative overflow-hidden group">
+                <div className="lg:col-span-2 glass-luxury glass-luxury-hover rounded-2xl p-6 md:p-8 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--primary)]/10 rounded-full blur-3xl group-hover:bg-[var(--accent)]/10 transition-colors" />
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-3">
@@ -219,7 +219,7 @@ function CreatorDashboardPage() {
                 </div>
 
                 {/* AI Nudge */}
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 flex flex-col justify-between">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-5 flex flex-col justify-between">
                     <div>
                         <div className="flex items-center gap-2 mb-3">
                             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
@@ -255,7 +255,7 @@ function CreatorDashboardPage() {
                 </div>
                 <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
                     {PORTFOLIO_WORKS.map((work) => (
-                        <div key={work.id} className="min-w-[220px] md:min-w-[260px] bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-3 hover:border-violet-500/30 transition-colors cursor-pointer group">
+                        <div key={work.id} className="min-w-[220px] md:min-w-[260px] glass-luxury glass-luxury-hover rounded-2xl p-3 hover:border-violet-500/30 transition-colors cursor-pointer group">
                             <div className="w-full h-32 rounded-xl bg-[var(--surface)] overflow-hidden mb-3 relative">
                                 {work.thumbnail ? (
                                     <img src={work.thumbnail} alt={work.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -285,7 +285,7 @@ function CreatorDashboardPage() {
             </div>
 
             {/* Achievement Widget */}
-            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+            <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4">
                     <Trophy className="w-5 h-5 text-[var(--accent-warm)]" />
                     <h3 className="font-semibold text-[var(--text)]">{t('creator.achievements')}</h3>
@@ -321,7 +321,7 @@ function CreatorDashboardPage() {
             </div>
 
             {/* Streak Counter */}
-            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+            <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Flame className="w-5 h-5 text-orange-400" />
@@ -358,7 +358,7 @@ function CreatorDashboardPage() {
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Virality chart */}
-                <div className="lg:col-span-2 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                <div className="lg:col-span-2 glass-luxury glass-luxury-hover rounded-2xl p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
                             <TrendingUp size={18} className="text-[var(--success)]" />
@@ -403,7 +403,7 @@ function CreatorDashboardPage() {
                 </div>
 
                 {/* Platform distribution */}
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                     <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <PieChart size={18} className="text-[var(--primary)]" />
                         {t('creator.platformDistribution')}
@@ -445,7 +445,7 @@ function CreatorDashboardPage() {
             {/* Portfolio + Monetization */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* [P16-FIX] added: masonry portfolio with hover-zoom */}
-                <div className="xl:col-span-2 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                <div className="xl:col-span-2 glass-luxury glass-luxury-hover rounded-2xl p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
                             <Award size={18} className="text-[var(--accent-warm)]" />
@@ -490,7 +490,7 @@ function CreatorDashboardPage() {
                 </div>
 
                 {/* Monetization */}
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                     <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <DollarSign size={18} className="text-[var(--success)]" />
                         {t('creator.monetization')}
@@ -523,7 +523,7 @@ function CreatorDashboardPage() {
 
             {/* Activity + AI Tips */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                     <h2 className="text-lg font-semibold text-[var(--text)] mb-4">{t('creator.recentActivity')}</h2>
                     <div className="space-y-4">
                         {RECENT_ACTIVITY.map((item, i) => (
@@ -540,7 +540,7 @@ function CreatorDashboardPage() {
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                     <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Sparkles size={18} className="text-[var(--accent-warm)]" />
                         {t('creator.aiTips')}

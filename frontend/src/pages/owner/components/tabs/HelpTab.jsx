@@ -83,7 +83,7 @@ export function HelpTab() {
                 )}
                 {filtered.map((faq, i) => (
                     <div key={i} className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] overflow-hidden">
-                        <button
+                        <button type="button"
                             onClick={() => toggle(i)}
                             className="w-full flex items-center justify-between p-4 text-left"
                         >

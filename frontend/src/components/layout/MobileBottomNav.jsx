@@ -106,8 +106,8 @@ export function MobileBottomNav({ userRole = 'creator', onHaptic }) {
                     )}
                 </div>
                 <span className={`text-[10px] mt-0.5 transition-opacity ${
-                    active ? 'opacity-100' : 'opacity-0'
-                } min-[430px]:opacity-100`}>
+                    active ? 'opacity-100' : 'opacity-0 min-[375px]:opacity-100'
+                }`}>
                     {tab.label}
                 </span>
             </button>
@@ -115,10 +115,10 @@ export function MobileBottomNav({ userRole = 'creator', onHaptic }) {
     }
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden h-[calc(56px+env(safe-area-inset-bottom,0px))]">
             <div
-                className="flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)] pt-2 border-t border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-xl"
-                style={{ minHeight: 64 }}
+                className="flex items-center justify-around h-full px-2 pb-[env(safe-area-inset-bottom,0px)] pt-2 border-t border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-xl"
+                style={{ minHeight: 56 }}
             >
                 {tabs.slice(0, 2).map((tab, idx) => renderTab(tab, idx))}
                 {fab ? (

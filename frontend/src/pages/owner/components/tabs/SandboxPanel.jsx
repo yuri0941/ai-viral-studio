@@ -109,7 +109,7 @@ export function SandboxPanel() {
                     </h2>
                     <p className="text-[var(--text-muted)] mt-1">Утверждение автоматических патчей OMEGA Coder</p>
                 </div>
-                <button onClick={fetchQueue} disabled={loading} className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-sm text-[var(--text)] hover:bg-[var(--surface)] disabled:opacity-50">
+                <button type="button" onClick={fetchQueue} disabled={loading} className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-sm text-[var(--text)] hover:bg-[var(--surface)] disabled:opacity-50">
                     <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Обновить
                 </button>
             </div>
@@ -123,7 +123,7 @@ export function SandboxPanel() {
                         </div>
                     )}
                     {items.map(item => (
-                        <button
+                        <button type="button"
                             key={item.patchId}
                             onClick={() => setSelected(item)}
                             className={`w-full text-left luxury-card p-4 transition-all ${selected?.patchId === item.patchId ? 'border-[var(--primary)] ring-1 ring-[var(--primary)]/20' : ''}`}
@@ -134,14 +134,14 @@ export function SandboxPanel() {
                             </div>
                             <p className="text-sm text-[var(--text)] line-clamp-2">{item.description}</p>
                             <div className="flex items-center gap-2 mt-3">
-                                <button
+                                <button type="button"
                                     onClick={(e) => { e.stopPropagation(); handleApprove(item.patchId) }}
                                     disabled={actionLoading === item.patchId}
                                     className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs hover:bg-emerald-500/20 disabled:opacity-50"
                                 >
                                     {actionLoading === item.patchId ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Принять
                                 </button>
-                                <button
+                                <button type="button"
                                     onClick={(e) => { e.stopPropagation(); handleReject(item.patchId) }}
                                     disabled={actionLoading === item.patchId}
                                     className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 disabled:opacity-50"
@@ -167,10 +167,10 @@ export function SandboxPanel() {
                                     <p className="text-xs text-[var(--text-muted)] font-mono">{selected.filePath}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => handleApprove(selected.patchId)} disabled={actionLoading === selected.patchId} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs hover:bg-emerald-500/20 disabled:opacity-50">
+                                    <button type="button" onClick={() => handleApprove(selected.patchId)} disabled={actionLoading === selected.patchId} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs hover:bg-emerald-500/20 disabled:opacity-50">
                                         {actionLoading === selected.patchId ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Принять
                                     </button>
-                                    <button onClick={() => handleReject(selected.patchId)} disabled={actionLoading === selected.patchId} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 disabled:opacity-50">
+                                    <button type="button" onClick={() => handleReject(selected.patchId)} disabled={actionLoading === selected.patchId} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 disabled:opacity-50">
                                         <X size={12} /> Отклонить
                                     </button>
                                 </div>

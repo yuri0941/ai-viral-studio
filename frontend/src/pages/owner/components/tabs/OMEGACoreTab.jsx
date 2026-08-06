@@ -279,7 +279,7 @@ export function OMEGACoreTab({ data }) {
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    <button
+                    <button type="button"
                         onClick={() => toggleFeature('autopilot', autopilotOn, setAutopilotOn)}
                         disabled={featuresLoading}
                         title="⚠️ OMEGA будет сама публиковать посты. Включайте только после проверки!"
@@ -288,7 +288,7 @@ export function OMEGACoreTab({ data }) {
                         {autopilotOn ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                         🤖 {t('omega.autopilot')}: {autopilotOn ? 'ON' : 'OFF'}
                     </button>
-                    <button
+                    <button type="button"
                         onClick={() => toggleFeature('predictive', predictiveOn, setPredictiveOn)}
                         disabled={featuresLoading}
                         className={`flex items-center gap-2 transition-colors ${toggleBtnClass(predictiveOn)}`}
@@ -296,7 +296,7 @@ export function OMEGACoreTab({ data }) {
                         {predictiveOn ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                         🔮 {t('omega.predictive')}
                     </button>
-                    <button
+                    <button type="button"
                         onClick={() => toggleFeature('repurposing', repurposingOn, setRepurposingOn)}
                         disabled={featuresLoading}
                         className={`flex items-center gap-2 transition-colors ${toggleBtnClass(repurposingOn)}`}
@@ -304,7 +304,7 @@ export function OMEGACoreTab({ data }) {
                         {repurposingOn ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                         ♻️ {t('omega.repurposing')}
                     </button>
-                    <button
+                    <button type="button"
                         onClick={() => toggleFeature('voice', voiceOn, setVoiceOn)}
                         disabled={featuresLoading}
                         className={`flex items-center gap-2 transition-colors ${toggleBtnClass(voiceOn)}`}
@@ -312,7 +312,7 @@ export function OMEGACoreTab({ data }) {
                         {voiceOn ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                         🎤 {t('omega.voice')}
                     </button>
-                    <button
+                    <button type="button"
                         onClick={handleRecalcForecast}
                         disabled={recalcLoading}
                         className="min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors disabled:opacity-50"
@@ -320,19 +320,19 @@ export function OMEGACoreTab({ data }) {
                         {/* [P23] fixed: recalc forecast loading + touch target */}
                         <RefreshCw size={14} className={recalcLoading ? 'animate-spin' : ''} /> {t('omega.recalcForecast')}
                     </button>
-                    <button
+                    <button type="button"
                         onClick={handleGenerateReport}
                         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors"
                     >
                         <FileText size={14} /> {t('omega.report')}
                     </button>
-                    <button
+                    <button type="button"
                         onClick={() => setShowCodeInterpreter(true)}
                         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors"
                     >
                         <Terminal size={14} /> Code Interpreter
                     </button>
-                    <button
+                    <button type="button"
                         onClick={() => setShowVision(true)}
                         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors"
                     >
@@ -392,7 +392,7 @@ export function OMEGACoreTab({ data }) {
                     { title: 'Средний CPU', value: avgCpu, suffix: '%', delta: avgCpu > 80 ? '▲ Высокая нагрузка' : '▲ Стабильно', deltaColor: avgCpu > 80 ? 'var(--danger)' : 'var(--success)', spark: [40,45,50,48,55,60,avgCpu] },
                     { title: 'Серверов оффлайн', value: offlineServers, delta: offlineServers > 0 ? '▲ Тревога' : '▲ Все онлайн', deltaColor: offlineServers > 0 ? 'var(--danger)' : 'var(--success)', spark: [2,1,1,0,0,0,offlineServers*2] },
                 ].map((metric, i) => (
-                    <div key={i} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                    <div key={i} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">{metric.title}</div>
                         <div className="text-5xl font-serif font-medium text-[var(--text)] mb-1">{metric.value}{metric.suffix}</div>
                         <div className="text-xs mb-3" style={{ color: metric.deltaColor }}>{metric.delta}</div>
@@ -406,7 +406,7 @@ export function OMEGACoreTab({ data }) {
                         </svg>
                     </div>
                 ))}
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="flex items-start justify-between mb-3">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
                             <Moon size={20} />
@@ -422,7 +422,7 @@ export function OMEGACoreTab({ data }) {
                         <span>OMEGA работает ночью</span>
                     </div>
                 </div>
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="flex items-start justify-between mb-3">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
                             <Sparkles size={20} className="text-emerald-400" />
@@ -434,7 +434,7 @@ export function OMEGACoreTab({ data }) {
                     </div>
                     <div className="text-2xl font-bold tracking-tight text-[var(--text)]">Self-Reflection</div>
                     <div className="text-xs text-[var(--text-muted)] mt-1">{reflection.lessonCount} lessons</div>
-                    <button
+                    <button type="button"
                         onClick={handleApplyReflection}
                         disabled={reflectionLoading}
                         className="mt-3 min-h-[44px] text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
@@ -451,7 +451,7 @@ export function OMEGACoreTab({ data }) {
                         <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
                             <Bot size={16} className="text-[var(--primary)]" /> {t('omega.agents')}
                         </h3>
-                        <button
+                        <button type="button"
                             onClick={() => showToast('Добавление агента: выберите шаблон в настройках OMEGA')}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-[var(--primary)] text-xs hover:bg-[var(--primary)]/20 transition-colors"
                         >
@@ -519,15 +519,15 @@ export function OMEGACoreTab({ data }) {
                                         <div className="flex items-center gap-2">
                                             {/* [P23] fixed: agent action buttons touch targets */}
                                             {isActive ? (
-                                                <button onClick={e => handlePauseAgent(agent.id, e)} className="min-h-[44px] flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 text-amber-400 text-[10px] hover:bg-amber-500/20 transition-colors">
+                                                <button type="button" onClick={e => handlePauseAgent(agent.id, e)} className="min-h-[44px] flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 text-amber-400 text-[10px] hover:bg-amber-500/20 transition-colors">
                                                     <Pause size={10} /> Пауза
                                                 </button>
                                             ) : (
-                                                <button onClick={e => handleStartAgent(agent.id, e)} className="min-h-[44px] flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] hover:bg-emerald-500/20 transition-colors">
+                                                <button type="button" onClick={e => handleStartAgent(agent.id, e)} className="min-h-[44px] flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] hover:bg-emerald-500/20 transition-colors">
                                                     <Play size={10} /> Запустить
                                                 </button>
                                             )}
-                                            <button onClick={e => { e.stopPropagation(); handleRestartAgent(agent.id, e); }} className="min-h-[44px] flex items-center gap-1 px-2 py-1 rounded-lg glass text-[var(--text-muted)] text-[10px] hover:bg-[var(--surface)] transition-colors">
+                                            <button type="button" onClick={e => { e.stopPropagation(); handleRestartAgent(agent.id, e); }} className="min-h-[44px] flex items-center gap-1 px-2 py-1 rounded-lg glass text-[var(--text-muted)] text-[10px] hover:bg-[var(--surface)] transition-colors">
                                                 <RotateCcw size={10} /> Рестарт
                                             </button>
                                             <button
@@ -545,7 +545,7 @@ export function OMEGACoreTab({ data }) {
                     )}
                 </div>
 
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Wifi size={16} className="text-[var(--accent)]" /> AI Провайдеры
                     </h3>
@@ -556,7 +556,7 @@ export function OMEGACoreTab({ data }) {
                             { id: 'openrouter', name: 'OpenRouter', pct: 60, color: '#3b82f6' },
                             { id: 'deepseek', name: 'DeepSeek', pct: 0, color: '#6b7280', test: true },
                         ].map(provider => (
-                            <div key={provider.id} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 flex flex-col items-center text-center">
+                            <div key={provider.id} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 flex flex-col items-center text-center">
                                 <div className="relative w-16 h-16 mb-2">
                                     <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                                         <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-strong)" strokeWidth="8" />
@@ -572,7 +572,7 @@ export function OMEGACoreTab({ data }) {
                                 </div>
                                 <span className="text-xs text-[var(--text)] mb-1.5">{provider.name}</span>
                                 {provider.test ? (
-                                    <button
+                                    <button type="button"
                                         onClick={() => handleTestProvider(provider.id)}
                                         disabled={testLoading === provider.id}
                                         className="min-h-[44px] min-w-[44px] text-[10px] px-2 py-1 rounded-full glass text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors disabled:opacity-50"
@@ -609,7 +609,7 @@ export function OMEGACoreTab({ data }) {
                 </div>
             </div>
 
-            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+            <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                 <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                     <Server size={16} className="text-[var(--accent)]" /> Загрузка серверов
                 </h3>
@@ -636,7 +636,7 @@ export function OMEGACoreTab({ data }) {
                     <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
                         <Terminal size={16} className="text-[var(--text-muted)]" /> {t('omega.logs')}
                     </h3>
-                    <button
+                    <button type="button"
                         onClick={handleClearLogs}
                         className="min-h-[44px] flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
                     >
@@ -676,7 +676,7 @@ export function OMEGACoreTab({ data }) {
                                 { id: 'financial', label: t('omega.reportFinancial') },
                                 { id: 'agents', label: t('omega.reportAgents') },
                             ].map(opt => (
-                                <button
+                                <button type="button"
                                     key={opt.id}
                                     onClick={() => setReportType(opt.id)}
                                     className={`w-full min-h-[44px] text-left px-4 py-3 rounded-xl border transition-colors ${
@@ -691,14 +691,14 @@ export function OMEGACoreTab({ data }) {
                             ))}
                         </div>
                         <div className="flex gap-3">
-                            <button
+                            <button type="button"
                                 onClick={() => setReportModalOpen(false)}
                                 className="flex-1 min-h-[44px] px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
                             >
                                 {/* [P23] fixed: report cancel touch target */}
                                 {t('common.cancel')}
                             </button>
-                            <button
+                            <button type="button"
                                 onClick={handleDownloadReport}
                                 className="flex-1 min-h-[44px] px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25 transition-all"
                             >
@@ -724,7 +724,7 @@ export function OMEGACoreTab({ data }) {
                                     <p className="text-xs text-[var(--text-muted)]">{selectedAgent.role}</p>
                                 </div>
                             </div>
-                            <button onClick={() => setSelectedAgent(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
+                            <button type="button" onClick={() => setSelectedAgent(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
                                 {/* [P23] fixed: agent modal close touch target */}
                                 <X size={20} />
                             </button>
@@ -740,7 +740,7 @@ export function OMEGACoreTab({ data }) {
                             ].map(t => {
                                 const Icon = t.icon
                                 return (
-                                    <button
+                                    <button type="button"
                                         key={t.id}
                                         onClick={() => setAgentTab(t.id)}
                                         className={`min-h-[44px] flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
@@ -767,7 +767,7 @@ export function OMEGACoreTab({ data }) {
                                             { label: 'Avg response', value: `${m.avgResponse}ms` },
                                             { label: 'Статус', value: selectedAgent.status },
                                         ].map(s => (
-                                            <div key={s.label} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
+                                            <div key={s.label} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                                                 <div className="text-xs text-[var(--text-muted)]">{s.label}</div>
                                                 <div className="text-sm font-bold text-[var(--text)]">{s.value}</div>
                                             </div>
@@ -853,7 +853,7 @@ export function OMEGACoreTab({ data }) {
                                         className="w-full px-3 py-2 rounded-xl glass text-[var(--text)] text-sm outline-none resize-none"
                                     />
                                 </div>
-                                <button onClick={() => showToast('Настройки агента сохранены')} className="min-h-[44px] px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all">
+                                <button type="button" onClick={() => showToast('Настройки агента сохранены')} className="min-h-[44px] px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all">
                                     {/* [P23] fixed: agent settings save touch target */}
                                     Сохранить
                                 </button>

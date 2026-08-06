@@ -134,7 +134,7 @@ export function DashboardShell({
             {/* Mobile sidebar overlay */}
             {sidebarOpen && viewport.isMobile && (
                 <div
-                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[59]"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
@@ -142,7 +142,7 @@ export function DashboardShell({
             {/* Mobile notifications overlay */}
             {mobileNotifOpen && viewport.isMobile && (
                 <div
-                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[59]"
                     onClick={() => setMobileNotifOpen(false)}
                 />
             )}
@@ -158,7 +158,7 @@ export function DashboardShell({
                     onTouchStart={handleSidebarTouchStart}
                     onTouchMove={handleSidebarTouchMove}
                     className={`
-                        fixed inset-y-0 left-0 z-50
+                        fixed top-0 left-0 h-full z-[60]
                         transform transition-transform duration-300 ease-out
                         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                     `}
@@ -188,7 +188,7 @@ export function DashboardShell({
             />
 
             {/* Main content */}
-            <main className={`flex-1 min-h-screen w-full overflow-x-hidden ${!viewport.isMobile ? 'lg:pl-[88px]' : ''}`}>
+            <main className={`flex-1 min-h-screen w-full overflow-x-hidden pt-20 ${!viewport.isMobile ? 'lg:pl-[72px]' : 'pt-16'}`}>
                 <DashboardHeader
                     title={title}
                     user={user}
@@ -201,7 +201,7 @@ export function DashboardShell({
                     onNotificationsClick={() => setMobileNotifOpen(true)}
                 />
 
-                <div className={`${viewport.isMobile ? 'px-3 py-4 pb-24' : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>
+                <div className={`${viewport.isMobile ? 'px-3 py-4 pb-20' : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>
                     {children}
                 </div>
             </main>

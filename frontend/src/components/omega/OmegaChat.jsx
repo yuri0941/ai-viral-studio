@@ -25,7 +25,7 @@ function renderAiContent(text) {
   if (!text || typeof text !== 'string') return null;
   if (!text.includes('###')) {
     return (
-      <div className="group flex flex-col items-start max-w-[90%]">
+      <div className="group flex flex-col items-start max-w-[95%] mx-auto">
         <div className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm">
           <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">{text}</p>
         </div>
@@ -145,15 +145,16 @@ export default function OmegaChat({
           <div key={msg.id || i} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
             {isAiMessage(msg) ? (
               <>
-                <div className="w-full max-w-[95%]">{renderAiContent(msg.text)}</div>
+                <div className="w-full max-w-[95%] mx-auto">{renderAiContent(msg.text)}</div>
                 {/* Action buttons under every AI message */}
-                <div className="flex flex-wrap gap-2 mt-3 max-w-[95%]">
+                <div className="flex flex-wrap gap-2 mt-3 max-w-[95%] mx-auto">
                   {ACTION_BUTTONS.map(action => (
                     <button
                       key={action.id}
                       onClick={() => send?.(action.prompt)}
+                      type="button"
                       disabled={loading}
-                      className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-violet-500/20 hover:text-violet-300 transition-all disabled:opacity-50"
+                      className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-300 hover:bg-violet-500/20 hover:text-violet-300 transition-all disabled:opacity-50"
                     >
                       {action.icon} {action.label}
                     </button>
@@ -161,7 +162,7 @@ export default function OmegaChat({
                 </div>
               </>
             ) : (
-              <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[95%]">
+              <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[95%] mx-auto">
                 <p className="text-sm text-white whitespace-pre-wrap">{msg.text}</p>
                 {msg.time && <p className="text-[10px] text-gray-500 text-right mt-1">{msg.time}</p>}
               </div>
@@ -172,7 +173,7 @@ export default function OmegaChat({
       </div>
 
       {/* Input */}
-      <div className="sticky bottom-0 left-0 right-0 z-10 p-3 border-t border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+      <div className="fixed bottom-0 left-0 right-0 z-30 p-3 border-t border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center gap-2 bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-2xl px-3 py-2">
           <input
             value={input}
@@ -180,14 +181,14 @@ export default function OmegaChat({
             onKeyDown={handleKeyDown}
             placeholder="Спросите OMEGA..."
             disabled={loading}
-            className="flex-1 bg-transparent text-sm outline-none text-white placeholder-gray-500 disabled:opacity-50"
+            className="flex-1 h-12 bg-transparent text-base outline-none text-white placeholder-gray-500 disabled:opacity-50"
           />
           <button
             onClick={startVoiceInput}
             type="button"
             disabled={loading}
             aria-label={isRecording ? 'Запись голоса' : 'Голосовой ввод'}
-            className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${
+            className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all ${
               isRecording
                 ? 'text-rose-500 animate-pulse'
                 : 'text-gray-400 hover:text-violet-300 hover:bg-white/[0.06]'
@@ -200,7 +201,7 @@ export default function OmegaChat({
             type="button"
             disabled={!input.trim() && !attachment || loading}
             aria-label="Отправить"
-            className="w-11 h-11 flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/20 hover:scale-105 active:scale-95 transition-transform disabled:opacity-30 disabled:scale-100"
+            className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/20 active:scale-95 transition-transform disabled:opacity-30 disabled:scale-100"
           >
             <Send className="w-5 h-5" />
           </button>

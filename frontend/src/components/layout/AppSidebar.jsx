@@ -55,15 +55,77 @@ const ROLE_MENU = {
 
 const OWNER_GROUPS = [
     {
-        id: 'main',
-        title: 'МЕНЮ',
+        id: 'overview',
+        title: 'ОБЗОР',
         items: [
             { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
-            { id: 'analytics', label: 'Analytics', icon: BarChart },
-            { id: 'approvalQueue', label: '✅ Approval Queue', icon: Shield },
-            { id: 'team', label: 'Team', icon: Users },
-            { id: 'settings', label: 'Settings', icon: Settings },
+            { id: 'analytics', label: '📊 Аналитика', icon: BarChart },
+        ],
+    },
+    {
+        id: 'omega',
+        title: 'OMEGA',
+        items: [
+            { id: 'omega', label: 'Ω OMEGA Core', icon: Brain },
+            { id: 'omegaFinance', label: '💰 OMEGA Finance', icon: Wallet },
+            { id: 'omegaSkills', label: '🧠 OMEGA Skills', icon: BrainCircuit },
+            { id: 'omegaMemory', label: '🗄️ OMEGA Memory', icon: Database },
+            { id: 'agents', label: '🤖 AI Агенты', icon: Bot },
+            { id: 'chat', label: '💬 Чаты', icon: MessageSquare },
+        ],
+    },
+    {
+        id: 'finance',
+        title: 'ФИНАНСЫ',
+        items: [
+            { id: 'finance', label: 'Финансы', icon: DollarSign },
+            { id: 'subscriptions', label: 'Подписки', icon: CreditCard },
+            { id: 'requisites', label: '🏢 Реквизиты', icon: Building2 },
+            { id: 'advertising', label: 'Реклама', icon: Megaphone },
+            { id: 'referrals', label: 'Рефералы', icon: Share2 },
+        ],
+    },
+    {
+        id: 'team',
+        title: 'КОМАНДА',
+        items: [
+            { id: 'team', label: 'Команда', icon: Users },
+            { id: 'cabinets', label: 'Кабинеты', icon: Monitor },
+            { id: 'tasks', label: '✅ Задачи', icon: CheckSquare },
+            { id: 'boardroom', label: 'Совет директоров', icon: Users },
+            { id: 'businessSpawner', label: '🚀 Рождение бизнеса', icon: Rocket },
+        ],
+    },
+    {
+        id: 'content',
+        title: 'КОНТЕНТ',
+        items: [
+            { id: 'news', label: 'Новости', icon: Newspaper },
+            { id: 'promo', label: 'Промо', icon: Gift },
+            { id: 'templates', label: '📋 Шаблоны', icon: LayoutTemplate },
+            { id: 'brandVoice', label: '🎨 Brand Voice', icon: Palette },
+            { id: 'scout', label: '🔥 Scout', icon: Flame },
+        ],
+    },
+    {
+        id: 'settings',
+        title: 'НАСТРОЙКИ',
+        items: [
+            { id: 'apiKeys', label: '🔑 API Keys', icon: KeyRound },
+            { id: 'security', label: 'Безопасность', icon: Lock },
+            { id: 'legal', label: 'Юр. лицо', icon: Scale },
+            { id: 'legalSettings', label: '⚖️ Юр. настройки', icon: Scale },
+            { id: 'audit', label: 'Аудит', icon: ShieldCheck },
+            { id: 'servers', label: 'Серверы', icon: Server },
+            { id: 'updates', label: 'Обновления', icon: RefreshCw },
+            { id: 'integrations', label: 'Интеграции', icon: Plug },
+            { id: 'aiAnalytics', label: 'AI Аналитика', icon: BarChart },
+            { id: 'logs', label: 'Логи системы', icon: FileText },
+            { id: 'notifications', label: 'Уведомления', icon: Bell },
+            { id: 'help', label: 'Помощь', icon: HelpCircle },
+            { id: 'feedback', label: 'Feedback', icon: Heart },
+            { id: 'devStudio', label: '🚀 DevStudio', icon: Rocket },
         ],
     },
 ]
@@ -239,25 +301,28 @@ export function AppSidebar({
                                             key={item.id || item.path}
                                             onClick={() => handleItemClick(item)}
                                             className={`
-                                                relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 w-full text-left min-h-[44px]
+                                                group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-200 w-full text-left min-h-[44px]
                                                 ${active
-                                                    ? 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/10 border-l-[3px] border-violet-500 text-white shadow-[0_0_20px_-5px_rgba(139,92,246,0.3)]'
-                                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                                    ? 'bg-[var(--primary-soft)] border-l-[3px] border-[var(--primary)] text-[var(--text)]'
+                                                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'
                                                 }
                                                 ${isExpanded ? '' : 'justify-center'}
                                             `}
                                             title={itemLabel(item)}
                                         >
-                                            <div className={`transition-transform duration-200 ${active ? 'scale-110' : ''}`}>
-                                                <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-violet-400' : ''}`} />
-                                            </div>
+                                            <Icon className="w-[18px] h-[18px] flex-shrink-0" />
                                             {isExpanded && <span className="font-medium text-sm truncate">{itemLabel(item)}</span>}
+                                            {!isExpanded && (
+                                                <span className="absolute left-full ml-2 px-2 py-1 rounded-lg glass z-tooltip text-xs text-[var(--text)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                                    {itemLabel(item)}
+                                                </span>
+                                            )}
                                             {item.badge && isExpanded && (
-                                                <span className="ml-auto px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-bold border border-violet-500/30">
+                                                <span className="ml-auto px-1.5 py-0.5 rounded-full bg-[var(--primary)]/20 text-[var(--primary)] text-[10px] font-bold border border-[var(--primary)]/30">
                                                     {item.badge}
                                                 </span>
                                             )}
-                                            {active && <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(139,92,246,0.8)]" />}
+                                            {active && <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />}
                                         </button>
                                     )
                                 })}

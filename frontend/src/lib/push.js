@@ -10,6 +10,11 @@ export async function requestPushSubscription() {
     const response = await fetch('/api/push/vapid-public-key')
     if (!response.ok) throw new Error('Failed to fetch VAPID key')
     const { publicKey } = await response.json()
+    // 🔴 GUARD: если VAPID не настроен — не падаем
+    if (!publicKey || publicKey.length < 20) {
+      console.warn('[Push] VAPID key not configured')
+      return null
+    }
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey),
@@ -35,4 +40,14 @@ function urlBase64ToUint8Array(base64String) {
     outputArray[i] = rawData.charCodeAt(i)
   }
   return outputArray
+}
+
+// Suppress Chrome extension runtime.lastError noise that can break push flows
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (e) => {
+    if (e.message && e.message.includes('runtime.lastError')) {
+      e.preventDefault()
+      console.warn('[Push] Chrome extension conflict suppressed')
+    }
+  })
 }

@@ -30,7 +30,7 @@ function Modal({ title, onClose, children }) {
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
+                    <button type="button" onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
                 </div>
                 {children}
             </div>
@@ -46,6 +46,11 @@ export function SelfHealingCrisisTab() {
     const [loading, setLoading] = useState(false)
     const [selectedCrisis, setSelectedCrisis] = useState(null)
     const [autoHeal, setAutoHeal] = useState(true)
+    const [togglingAutoHeal, setTogglingAutoHeal] = useState(false)
+    const [analyzing, setAnalyzing] = useState(false)
+    const [sendingReport, setSendingReport] = useState(false)
+    const [resolving, setResolving] = useState(false)
+    const [rejecting, setRejecting] = useState(false)
 
     useEffect(() => {
         loadAll()
@@ -72,11 +77,14 @@ export function SelfHealingCrisisTab() {
     }
 
     const toggleAutoHeal = async () => {
+        setTogglingAutoHeal(true)
         try {
             const res = await monitoringApi.toggleAutoHeal(!autoHeal)
             setAutoHeal(res.data?.autoHeal)
         } catch (err) {
             alert(err.message)
+        } finally {
+            setTogglingAutoHeal(false)
         }
     }
 
@@ -93,26 +101,33 @@ export function SelfHealingCrisisTab() {
     }
 
     const resolveCrisis = async (id, response) => {
+        setResolving(true)
         try {
             await monitoringApi.resolveCrisis(id, response, ['notify_owner'])
             setSelectedCrisis(null)
             loadAll()
         } catch (err) {
             alert(err.message)
+        } finally {
+            setResolving(false)
         }
     }
 
     const rejectCrisis = async (id) => {
+        setRejecting(true)
         try {
             await monitoringApi.rejectCrisis(id)
             setSelectedCrisis(null)
             loadAll()
         } catch (err) {
             alert(err.message)
+        } finally {
+            setRejecting(false)
         }
     }
 
     const analyzeDemo = async () => {
+        setAnalyzing(true)
         const demo = [
             'Это ужасно, ненавижу ваш сервис',
             'Полный развод, мошенники',
@@ -130,15 +145,20 @@ export function SelfHealingCrisisTab() {
             loadAll()
         } catch (err) {
             alert(err.message)
+        } finally {
+            setAnalyzing(false)
         }
     }
 
     const sendReport = async () => {
+        setSendingReport(true)
         try {
             await monitoringApi.sendSelfReflectionReport()
             alert('Отчёт отправлен в Telegram')
         } catch (err) {
             alert(err.message)
+        } finally {
+            setSendingReport(false)
         }
     }
 
@@ -149,7 +169,7 @@ export function SelfHealingCrisisTab() {
                     <Shield className="w-6 h-6 text-[#00ff41]" />
                     Self-Healing + Кризис-центр
                 </h2>
-                <button onClick={loadAll} disabled={loading} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-[var(--text)]">
+                <button type="button" onClick={loadAll} disabled={loading} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-[var(--text)]">
                     <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                 </button>
             </div>
@@ -192,15 +212,16 @@ export function SelfHealingCrisisTab() {
                         <RefreshCw className="w-5 h-5 text-[#00ff41]" /> Авто-восстановление
                     </h3>
                     <div className="flex items-center gap-3">
-                        <button
+                        <button type="button"
                             onClick={toggleAutoHeal}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                            disabled={togglingAutoHeal}
+                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
                                 autoHeal ? 'bg-[#00ff41] text-black' : 'bg-white/10 text-[var(--text)]'
                             }`}
                         >
                             {autoHeal ? '✅ Авто-восстановление ON' : '⛔ Авто-восстановление OFF'}
                         </button>
-                        <button
+                        <button type="button"
                             onClick={triggerHeal}
                             disabled={loading}
                             className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-[var(--text)] transition-colors"
@@ -241,7 +262,7 @@ export function SelfHealingCrisisTab() {
                         <AlertTriangle className="w-5 h-5 text-red-400" /> Кризис-центр
                     </h3>
                     <div className="flex items-center gap-2">
-                        <button onClick={analyzeDemo} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs text-[var(--text)]">Тестовый анализ</button>
+                        <button type="button" onClick={analyzeDemo} disabled={analyzing} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs text-[var(--text)] disabled:opacity-50">Тестовый анализ</button>
                         <div className="flex gap-2 text-xs">
                             <span className="px-2 py-1 rounded-lg bg-red-500/10 text-red-400">🔴 {crisisStats.active}</span>
                             <span className="px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-400">🟡 {crisisStats.attention}</span>
@@ -284,25 +305,25 @@ export function SelfHealingCrisisTab() {
                     <h3 className="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
                         <BrainCircuit className="w-5 h-5 text-[#f0883e]" /> Self-Reflection (24ч)
                     </h3>
-                    <button onClick={sendReport} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-[var(--text)] transition-colors">
+                    <button type="button" onClick={sendReport} disabled={sendingReport} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-[var(--text)] transition-colors disabled:opacity-50">
                         Отправить отчёт в Telegram
                     </button>
                 </div>
                 {report ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                             <p className="text-xl font-bold text-red-400">{report.totalErrors}</p>
                             <p className="text-xs text-gray-400">Ошибок</p>
                         </div>
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                             <p className="text-xl font-bold text-blue-400">{report.apiErrors}</p>
                             <p className="text-xs text-gray-400">AI/API</p>
                         </div>
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                             <p className="text-xl font-bold text-yellow-400">{report.dbErrors}</p>
                             <p className="text-xs text-gray-400">БД</p>
                         </div>
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                             <p className="text-xl font-bold text-purple-400">{report.recommendations?.length || 0}</p>
                             <p className="text-xs text-gray-400">Рекомендаций</p>
                         </div>
@@ -342,15 +363,17 @@ export function SelfHealingCrisisTab() {
                             placeholder="Ваш ответ или ответ OMEGA"
                         />
                         <div className="flex gap-3">
-                            <button
+                            <button type="button"
                                 onClick={() => resolveCrisis(selectedCrisis._id, document.getElementById('crisis-response').value)}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#00ff41] hover:bg-[#00d936] rounded-xl text-black font-medium text-sm transition-colors"
+                                disabled={resolving}
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#00ff41] hover:bg-[#00d936] rounded-xl text-black font-medium text-sm transition-colors disabled:opacity-50"
                             >
                                 <CheckCircle className="w-4 h-4" /> Одобрить ответ
                             </button>
-                            <button
+                            <button type="button"
                                 onClick={() => rejectCrisis(selectedCrisis._id)}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[var(--text)] text-sm transition-colors"
+                                disabled={rejecting}
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[var(--text)] text-sm transition-colors disabled:opacity-50"
                             >
                                 <XCircle className="w-4 h-4" /> Отклонить
                             </button>
@@ -364,7 +387,7 @@ export function SelfHealingCrisisTab() {
 
 function StatusCard({ icon: Icon, title, value, color, bg }) {
     return (
-        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
             <div className="flex items-center gap-2 mb-2">
                 <Icon className={`w-5 h-5 ${color}`} />
                 <span className="text-sm text-[var(--text)]/80">{title}</span>

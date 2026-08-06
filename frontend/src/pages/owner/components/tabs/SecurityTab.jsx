@@ -21,7 +21,7 @@ export function SecurityTab({ data }) {
             key: 'actions',
             label: '',
             render: (row) => !row.current && (
-                <button onClick={() => terminateSession(row.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors" title="Завершить">
+                <button type="button" onClick={() => terminateSession(row.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors" title="Завершить">
                     <LogOut size={14} />
                 </button>
             )
@@ -49,7 +49,7 @@ export function SecurityTab({ data }) {
                             <p className="text-xs text-gray-500">{security.twoFactorEnabled ? 'Включена' : 'Отключена'}</p>
                         </div>
                     </div>
-                    <button
+                    <button type="button"
                         onClick={toggle2FA}
                         className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${security.twoFactorEnabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-400 border border-[var(--border)]'}`}
                     >

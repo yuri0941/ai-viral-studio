@@ -149,7 +149,7 @@ export function DevStudioTab({ data }) {
                     <div className="lg:col-span-1 space-y-3">
                         <h3 className="text-sm font-semibold text-[var(--text)]">Проекты</h3>
                         {projects.map(p => (
-                            <button
+                            <button type="button"
                                 key={p.id}
                                 onClick={() => setActiveProject(p.id)}
                                 className={`w-full text-left p-4 rounded-xl border transition-all ${
@@ -192,7 +192,7 @@ export function DevStudioTab({ data }) {
                             <div className="text-[10px] text-gray-500">{PHASES[currentProject.phaseIndex].description}</div>
 
                             {currentProject.phaseIndex < PHASES.length - 1 && (
-                                <button
+                                <button type="button"
                                     onClick={() => advancePhase(currentProject.id)}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs hover:bg-emerald-500/20 transition-colors"
                                 >

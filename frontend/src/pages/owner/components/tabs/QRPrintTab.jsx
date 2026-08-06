@@ -15,7 +15,7 @@ function Modal({ title, onClose, children }) {
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
+                    <button type="button" onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
                 </div>
                 {children}
             </div>
@@ -151,13 +151,13 @@ export function QRPrintTab() {
                                         <td className="py-3 text-gray-400">{new Date(qr.createdAt).toLocaleDateString()}</td>
                                         <td className="py-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button onClick={() => openAnalytics(qr)} className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#00ff41]" title="Аналитика">
+                                                <button type="button" onClick={() => openAnalytics(qr)} className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#00ff41]" title="Аналитика">
                                                     <BarChart3 className="w-4 h-4" />
                                                 </button>
                                                 <a href={physicalApi.qr.download(qr._id, 'png')} download className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-blue-400" title="Скачать PNG">
                                                     <Download className="w-4 h-4" />
                                                 </a>
-                                                <button onClick={() => deleteQR(qr._id)} className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-red-400" title="Удалить">
+                                                <button type="button" onClick={() => deleteQR(qr._id)} className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-red-400" title="Удалить">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
@@ -184,7 +184,7 @@ export function QRPrintTab() {
                             placeholder="Город"
                             className="w-full bg-black/30 border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] text-sm"
                         />
-                        <button
+                        <button type="button"
                             onClick={searchStudios}
                             disabled={loading}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#f0883e] hover:bg-[#d96e2e] disabled:opacity-50 rounded-xl text-black font-medium text-sm transition-colors"
@@ -217,7 +217,7 @@ export function QRPrintTab() {
                             placeholder="Адрес съёмочной площадки"
                             className="w-full bg-black/30 border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] text-sm"
                         />
-                        <button
+                        <button type="button"
                             onClick={orderDelivery}
                             disabled={loading}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-xl text-[var(--text)] font-medium text-sm transition-colors"
@@ -244,15 +244,15 @@ export function QRPrintTab() {
                 <Modal title={`Аналитика QR — ${analyticsQr.shortCode}`} onClose={() => setAnalytics(null)}>
                     <div className="space-y-6">
                         <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
+                            <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                                 <p className="text-2xl font-bold text-[#00ff41]">{analytics.totalScans}</p>
                                 <p className="text-xs text-gray-400">Всего сканов</p>
                             </div>
-                            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
+                            <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                                 <p className="text-2xl font-bold text-blue-400">{analytics.qrCount}</p>
                                 <p className="text-xs text-gray-400">QR-кодов</p>
                             </div>
-                            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
+                            <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
                                 <p className="text-2xl font-bold text-[#f0883e]">{analytics.topCities?.[0]?.name || '—'}</p>
                                 <p className="text-xs text-gray-400">Топ город</p>
                             </div>

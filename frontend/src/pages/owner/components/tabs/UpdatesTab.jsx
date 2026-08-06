@@ -14,15 +14,15 @@ export function UpdatesTab({ data }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="text-xs text-gray-500 mb-1">Текущая версия</div>
                     <div className="text-xl font-bold text-emerald-400">v{version}</div>
                 </div>
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="text-xs text-gray-500 mb-1">Rollout</div>
                     <div className="text-xl font-bold text-blue-400">{rolloutPercent}%</div>
                 </div>
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="text-xs text-gray-500 mb-1">Статус</div>
                     <div className="text-xl font-bold text-emerald-400">Стабильно</div>
                 </div>
@@ -46,10 +46,10 @@ export function UpdatesTab({ data }) {
                         className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-emerald-500/30 resize-none" />
                 </div>
                 <div className="flex gap-3">
-                    <button onClick={() => data.showToast('Changelog сохранён')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
+                    <button type="button" onClick={() => data.showToast('Changelog сохранён')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
                         <Save size={14} /> Сохранить
                     </button>
-                    <button onClick={() => data.showToast('Откат выполнен')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400 hover:bg-red-500/20 transition-colors">
+                    <button type="button" onClick={() => data.showToast('Откат выполнен')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400 hover:bg-red-500/20 transition-colors">
                         <GitBranch size={14} /> Откатить
                     </button>
                 </div>

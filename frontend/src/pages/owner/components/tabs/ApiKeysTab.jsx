@@ -175,10 +175,10 @@ export function ApiKeysTab({ data }) {
                     <p className="text-xs text-[var(--text-muted)] mt-1">{t('apiKeys.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
+                    <button type="button"
                         onClick={fetchStatus}
                         disabled={loadingStatus}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-all disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 min-w-[44px] min-h-[44px] rounded-full glass text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-all disabled:opacity-50"
                     >
                         <RefreshCw size={12} className={loadingStatus ? 'animate-spin' : ''} />
                         {t('apiKeys.refreshStatus')}
@@ -225,7 +225,7 @@ export function ApiKeysTab({ data }) {
                             {!isSystem && (
                                 <div className="mb-4">
                                     <label className="text-[10px] text-[var(--text-muted)] mb-1.5 block">{t('apiKeys.keyValue')}</label>
-                                    <div className="flex items-center gap-2">
+                                    <div className="relative flex items-center">
                                         <input
                                             type={visible[provider.id] ? 'text' : 'password'}
                                             value={editing[provider.id] !== undefined ? editing[provider.id] : (provider.value || '')}
@@ -237,22 +237,26 @@ export function ApiKeysTab({ data }) {
                                                 }
                                             }}
                                             placeholder={PLACEHOLDER}
-                                            className="flex-1 glass rounded-lg px-3 py-2 text-sm font-mono text-[var(--text)] placeholder-[var(--text-muted)]/50 outline-none focus:border-[var(--primary)]/30 transition-colors"
+                                            className="w-full pr-24 glass rounded-lg px-3 py-2 text-sm font-mono text-[var(--text)] placeholder-[var(--text-muted)]/50 outline-none focus:border-[var(--primary)]/30 transition-colors"
                                         />
-                                        <button
-                                            onClick={() => setVisible(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
-                                            className="min-w-[44px] min-h-[44px] rounded-xl glass text-[var(--text-muted)] hover:text-[var(--text)] transition-colors flex items-center justify-center"
-                                            aria-label="Toggle visibility"
-                                        >
-                                            {visible[provider.id] ? <EyeOff size={16} /> : <Eye size={16} />}
-                                        </button>
-                                        <button
-                                            onClick={() => copyKey(provider.id)}
-                                            className="min-w-[44px] min-h-[44px] rounded-xl glass text-[var(--text-muted)] hover:text-[var(--text)] transition-colors flex items-center justify-center"
-                                            aria-label="Copy key"
-                                        >
-                                            {copied === provider.id ? <Check size={16} className="text-[var(--success)]" /> : <Copy size={16} />}
-                                        </button>
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                            <button
+                                                onClick={() => setVisible(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
+                                                className="min-w-[44px] min-h-[44px] rounded-xl glass text-[var(--text-muted)] hover:text-[var(--text)] transition-colors flex items-center justify-center"
+                                                aria-label="Toggle visibility"
+                                                type="button"
+                                            >
+                                                {visible[provider.id] ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            </button>
+                                            <button
+                                                onClick={() => copyKey(provider.id)}
+                                                className="min-w-[44px] min-h-[44px] rounded-xl glass text-[var(--text-muted)] hover:text-[var(--text)] transition-colors flex items-center justify-center"
+                                                aria-label="Copy key"
+                                                type="button"
+                                            >
+                                                {copied === provider.id ? <Check size={16} className="text-[var(--success)]" /> : <Copy size={16} />}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -261,7 +265,7 @@ export function ApiKeysTab({ data }) {
                                 <span className="flex items-center gap-1"><Shield size={12} /> {isSystem ? t('apiKeys.providerManaged') : (provider.value ? t('apiKeys.encrypted') : t('apiKeys.missing'))}</span>
                                 <div className="flex items-center gap-2">
                                     {!isSystem && (
-                                        <button
+                                        <button type="button"
                                             onClick={() => rotateKey(provider.id)}
                                             className="flex items-center gap-1 text-[var(--primary)] hover:text-[var(--primary-hover)] transition-colors px-2 py-1 rounded-lg hover:bg-[var(--surface)]"
                                         >
@@ -269,7 +273,7 @@ export function ApiKeysTab({ data }) {
                                         </button>
                                     )}
                                     {/* [P23] fixed: enlarged switch to 44×44 touch target */}
-                                    <button
+                                    <button type="button"
                                         onClick={() => toggleProvider(provider.id)}
                                         disabled={toggling[provider.id]}
                                         className={`relative w-12 min-h-[44px] rounded-full flex items-center justify-center transition-colors duration-300 disabled:opacity-50 ${provider.enabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}

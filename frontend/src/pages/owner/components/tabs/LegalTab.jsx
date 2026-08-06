@@ -126,7 +126,7 @@ export function LegalTab({ data }) {
                 {sections.map(s => {
                     const Icon = s.icon
                     return (
-                        <button key={s.id} onClick={() => setActiveSection(s.id)}
+                        <button type="button" key={s.id} onClick={() => setActiveSection(s.id)}
                             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeSection === s.id ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-gray-400 hover:text-[var(--text)] hover:bg-white/5 border border-transparent'}`}>
                             <Icon size={16} /> {s.label}
                         </button>
@@ -145,7 +145,7 @@ export function LegalTab({ data }) {
                             </div>
                         ))}
                     </div>
-                    <button onClick={handleSaveCompany} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
+                    <button type="button" onClick={handleSaveCompany} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
                         <Save size={14} /> Сохранить реквизиты
                     </button>
                 </div>
@@ -157,7 +157,7 @@ export function LegalTab({ data }) {
                         {withdrawSections.map(s => {
                             const Icon = s.icon
                             return (
-                                <button key={s.id} onClick={() => setWithdrawType(s.id)}
+                                <button type="button" key={s.id} onClick={() => setWithdrawType(s.id)}
                                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all ${withdrawType === s.id ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-gray-400 hover:text-[var(--text)] hover:bg-white/5 border border-transparent'}`}>
                                     <Icon size={14} /> {s.label}
                                 </button>
@@ -167,10 +167,10 @@ export function LegalTab({ data }) {
                     <div className="p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
                         {renderWithdrawForm()}
                         <div className="mt-4 pt-4 border-t border-[var(--border)] flex gap-3">
-                            <button onClick={handleSaveWithdraw} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
+                            <button type="button" onClick={handleSaveWithdraw} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
                                 <Save size={14} /> Сохранить реквизиты
                             </button>
-                            <button onClick={() => {
+                            <button type="button" onClick={() => {
                                 const blob = new Blob([JSON.stringify(reqs[withdrawType], null, 2)], { type: 'application/json' })
                                 const url = URL.createObjectURL(blob)
                                 const a = document.createElement('a')

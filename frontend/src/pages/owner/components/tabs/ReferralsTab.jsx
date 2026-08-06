@@ -198,13 +198,13 @@ export function ReferralsTab() {
                         className="flex-1 px-4 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] text-sm outline-none"
                     />
                     <div className="flex gap-2">
-                        <button
+                        <button type="button"
                             onClick={copyLink}
                             className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
                         >
                             {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? 'Скопировано' : 'Копировать'}
                         </button>
-                        <button
+                        <button type="button"
                             onClick={shareLink}
                             className="flex items-center gap-2 px-4 py-3 rounded-xl border border-[var(--border)] text-[var(--text)] text-sm hover:bg-[var(--surface)] transition-colors"
                         >
@@ -222,7 +222,7 @@ export function ReferralsTab() {
                     ].map((stat, i) => {
                         const Icon = stat.icon
                         return (
-                            <div key={i} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                            <div key={i} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Icon size={16} className="text-[var(--primary)]" />
                                     <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{stat.label}</span>
@@ -320,6 +320,7 @@ export function ReferralsTab() {
                 <div className="flex items-center justify-between mb-4">
                     <div className="text-sm font-semibold text-[var(--text)]">История выплат</div>
                     <button
+                        type="button"
                         onClick={withdraw}
                         disabled={withdrawing || (data.available || 0) < 50}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
@@ -359,18 +360,19 @@ export function ReferralsTab() {
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
                 <div className="text-sm font-semibold text-[var(--text)] mb-4">Маркетинговые материалы</div>
                 <div className="flex flex-wrap gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] text-xs hover:bg-[var(--surface)] transition-colors">
+                    <button onClick={() => alert('Скоро')} type="button" className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] text-xs hover:bg-[var(--surface)] transition-colors">
                         <Download size={14} /> Скачать баннеры
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] text-xs hover:bg-[var(--surface)] transition-colors">
+                    <button onClick={() => alert('Скоро')} type="button" className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] text-xs hover:bg-[var(--surface)] transition-colors">
                         <Mail size={14} /> Email-шаблон
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] text-xs hover:bg-[var(--surface)] transition-colors">
+                    <button onClick={() => alert('Скоро')} type="button" className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] text-xs hover:bg-[var(--surface)] transition-colors">
                         <FileText size={14} /> Пост для соцсетей
                     </button>
-                    <button
+                    <button type="button"
                         onClick={generateReferralPost}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-[var(--primary)] text-xs hover:bg-[var(--primary)]/20 transition-colors"
+                        disabled={generatingPost}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-[var(--primary)] text-xs hover:bg-[var(--primary)]/20 transition-colors disabled:opacity-50"
                     >
                         <Sparkles size={14} /> Сгенерировать реферальный пост
                     </button>
@@ -397,13 +399,13 @@ export function ReferralsTab() {
                                     className="w-full px-4 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] text-sm outline-none resize-none mb-4"
                                 />
                                 <div className="flex gap-3">
-                                    <button
+                                    <button type="button"
                                         onClick={() => setPostModalOpen(false)}
                                         className="flex-1 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
                                     >
                                         Закрыть
                                     </button>
-                                    <button
+                                    <button type="button"
                                         onClick={copyPost}
                                         className="flex-1 px-4 py-2 rounded-xl bg-[var(--primary)] text-white hover:opacity-90 transition-opacity"
                                     >

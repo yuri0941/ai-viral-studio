@@ -178,7 +178,7 @@ export function SidebarDock({ userRole = 'creator', user, onLogout }) {
         .toUpperCase()
 
     const renderTooltip = (label) => (
-        <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-[var(--glass)] backdrop-blur-xl border border-white/10 text-xs text-white whitespace-nowrap opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none z-[60] shadow-xl">
+        <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg glass backdrop-blur-xl border border-[var(--border)] text-xs text-[var(--text)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-tooltip shadow-xl">
             {label}
         </span>
     )
@@ -190,16 +190,13 @@ export function SidebarDock({ userRole = 'creator', user, onLogout }) {
             <button
                 key={item.id || item.path}
                 onClick={() => handleItemClick(item)}
-                className={`group relative flex items-center gap-3 w-full px-2 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
+                className={`group relative flex items-center gap-3 w-full px-2 py-2 rounded-xl transition-colors duration-200 min-h-[44px] ${
                     active
-                        ? 'bg-[var(--primary)]/10 text-[var(--primary)] shadow-[0_0_15px_rgba(139,92,246,0.35)]'
+                        ? 'bg-[var(--primary-soft)] border-l-[3px] border-[var(--primary)] text-[var(--primary)]'
                         : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-white/5'
                 }`}
             >
-                {active && (
-                    <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-[var(--primary)] shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
-                )}
-                <Icon className={`w-6 h-6 flex-shrink-0 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+                <Icon className="w-6 h-6 flex-shrink-0" />
                 {expanded ? (
                     <span className="text-sm font-medium truncate whitespace-nowrap">{item.label}</span>
                 ) : (
@@ -213,10 +210,9 @@ export function SidebarDock({ userRole = 'creator', user, onLogout }) {
         <div
             onMouseEnter={() => setExpanded(true)}
             onMouseLeave={() => setExpanded(false)}
-            className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 hidden lg:flex flex-col glass-card py-4 transition-[width] duration-300 ease-out ${
+            className={`fixed left-0 top-16 h-[calc(100vh-64px)] z-30 hidden lg:flex flex-col bg-[var(--bg)] border-r border-[var(--border)] transition-[width] duration-300 ease-out overflow-hidden ${
                 expanded ? 'w-[260px] px-3' : 'w-[72px] px-2'
             }`}
-            style={{ maxHeight: 'calc(100vh - 80px)', borderRadius: 24 }}
         >
             <div className={`flex items-center mb-4 ${expanded ? 'px-2 gap-3' : 'justify-center'}`}>
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center flex-shrink-0 shadow-lg shadow-violet-500/20">

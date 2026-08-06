@@ -57,7 +57,7 @@ export function ScoutTab() {
                         placeholder="Ниша (опционально)"
                         className="px-3 py-2 bg-[#1a1a24] border border-[var(--border)] rounded-lg text-sm text-[var(--text)] placeholder-gray-600 outline-none focus:border-[#8B5CF6]/30"
                     />
-                    <button
+                    <button type="button"
                         onClick={() => load(true)}
                         disabled={loading}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8B5CF6]/20 text-[#8B5CF6] hover:bg-[#8B5CF6]/30 transition-colors disabled:opacity-50 text-sm"
@@ -100,7 +100,7 @@ export function ScoutTab() {
 
                         <div className="flex items-center gap-2 pt-2">
                             {trend.ideas.map((idea, idx) => (
-                                <button
+                                <button type="button"
                                     key={idx}
                                     onClick={() => createPost(idea, trend.topic)}
                                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-xs transition-colors"
@@ -111,8 +111,8 @@ export function ScoutTab() {
                         </div>
 
                         <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <button className="flex items-center gap-1 hover:text-emerald-400"><ThumbsUp size={12} /> Больше</button>
-                            <button className="flex items-center gap-1 hover:text-red-400"><ThumbsDown size={12} /> Меньше</button>
+                            <button onClick={() => alert('Спасибо!')} type="button" className="flex items-center gap-1 hover:text-emerald-400"><ThumbsUp size={12} /> Больше</button>
+                            <button onClick={() => alert('Поняли!')} type="button" className="flex items-center gap-1 hover:text-red-400"><ThumbsDown size={12} /> Меньше</button>
                             <span className="ml-auto">{trend.source || source}</span>
                         </div>
                     </div>

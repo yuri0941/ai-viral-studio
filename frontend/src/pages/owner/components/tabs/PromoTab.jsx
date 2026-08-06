@@ -10,7 +10,7 @@ export function PromoTab({ data }) {
                     <Gift size={18} className="text-orange-400" />
                     <h2 className="text-lg font-semibold text-[var(--text)]">Промокоды</h2>
                 </div>
-                <button onClick={() => data.setModal({ type: 'createPromo' })} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
+                <button type="button" onClick={() => data.setModal({ type: 'createPromo' })} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors">
                     <Plus size={16} /> Новый промо
                 </button>
             </div>

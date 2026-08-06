@@ -56,10 +56,10 @@ export function WhiteLabelTab({ data }) {
                     <p className="text-sm text-gray-500 mt-1">Тариф Agency ($299/мес) — кастомный бренд, домен, цвета.</p>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={handlePreview} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--text)] text-sm">
+                    <button type="button" onClick={handlePreview} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--text)] text-sm">
                         <Eye className="w-4 h-4" /> Превью
                     </button>
-                    <button onClick={handleSave} disabled={loading} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#8b5cf6] hover:bg-[#7c3aed] text-[var(--text)] text-sm disabled:opacity-50">
+                    <button type="button" onClick={handleSave} disabled={loading} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#8b5cf6] hover:bg-[#7c3aed] text-[var(--text)] text-sm disabled:opacity-50">
                         <Save className="w-4 h-4" /> {loading ? 'Сохранение...' : 'Сохранить'}
                     </button>
                 </div>

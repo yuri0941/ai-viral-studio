@@ -21,7 +21,7 @@ function BentoCard({ title, value, subtext, icon: Icon, color, onClick, children
     return (
         <div
             onClick={onClick}
-            className={`bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 cursor-pointer ${className}`}
+            className={`glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 cursor-pointer ${className}`}
         >
             <div className="flex items-start justify-between mb-3">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
@@ -212,7 +212,7 @@ export function OverviewTab({ data }) {
                 />
 
                 {/* [P20] added: data intelligence reports card */}
-                <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 sm:col-span-2 lg:col-span-1">
+                <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 sm:col-span-2 lg:col-span-1">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
                             <BarChart2 className="w-5 h-5 text-[var(--primary)]" />
@@ -257,7 +257,7 @@ export function OverviewTab({ data }) {
                             </select>
                         </div>
                     </div>
-                    <button
+                    <button type="button"
                         onClick={handleBuyReport}
                         disabled={reportLoading}
                         className="w-full py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
@@ -274,7 +274,7 @@ export function OverviewTab({ data }) {
             </div>
 
             {/* [v6.3] Team and clients activity */}
-            <div className="col-span-1 sm:col-span-2 lg:col-span-3 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6">
+            <div className="col-span-1 sm:col-span-2 lg:col-span-3 glass-luxury glass-luxury-hover rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">👥 Команда и клиенты</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
                     <div className="text-center">
@@ -315,7 +315,7 @@ export function OverviewTab({ data }) {
                     { label: 'Подписок', value: subscriptions.length, icon: CreditCard, color: 'text-purple-400' },
                     { label: 'Выполнено задач', value: tasks.filter(t => t.status === 'done').length, icon: CheckSquare, color: 'text-orange-400' },
                 ].map((s, i) => (
-                    <div key={i} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                    <div key={i} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="flex items-center gap-2 mb-1">
                             <s.icon className={`w-3.5 h-3.5 ${s.color}`} />
                             <span className="text-[10px] text-[var(--text-muted)]">{s.label}</span>
@@ -325,7 +325,7 @@ export function OverviewTab({ data }) {
                 ))}
             </div>
 
-            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+            <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
@@ -389,7 +389,7 @@ export function OverviewTab({ data }) {
                                         Неактивен {u.factors?.daysInactive || 0} дн · Постов за 30 дн: {u.factors?.postsCount30d || 0}
                                     </div>
                                 </div>
-                                <button
+                                <button type="button"
                                     onClick={async () => {
                                         try {
                                             await selfImprovementApi.churnOffer(u.userId, 1)

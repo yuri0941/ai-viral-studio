@@ -150,7 +150,7 @@ export function TemplatesTab() {
                     <p className="text-sm text-gray-500 mt-1">Готовые структуры постов, email, Shorts и хуков</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button
+                    <button type="button"
                         onClick={() => setSmartOpen(!smartOpen)}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                             smartOpen ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'bg-white/5 text-gray-400 hover:text-[var(--text)]'
@@ -189,7 +189,7 @@ export function TemplatesTab() {
                             <option value="Пост" className="bg-[var(--bg)]">Пост</option>
                         </select>
                     </div>
-                    <button
+                    <button type="button"
                         onClick={runSmartSelection}
                         disabled={smartLoading || !smartGoal || !smartFormat}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8B5CF6] hover:bg-[#7c3aed] text-[var(--text)] text-sm font-medium disabled:opacity-50"
@@ -210,7 +210,7 @@ export function TemplatesTab() {
                                     <div key={idx} className="p-3 rounded-xl bg-white/5 border border-[var(--border)]">
                                         <div className="flex items-center justify-between mb-1">
                                             <div className="text-sm font-medium text-[var(--text)]">{rec.name || t?.name || rec.id}</div>
-                                            <button
+                                            <button type="button"
                                                 onClick={() => applySmartRecommendation(rec.id)}
                                                 className="text-xs px-2 py-1 rounded-lg bg-[#8B5CF6]/20 text-[#8B5CF6] hover:bg-[#8B5CF6]/30"
                                             >
@@ -218,7 +218,7 @@ export function TemplatesTab() {
                                             </button>
                                         </div>
                                         <p className="text-xs text-gray-400 mb-2">{rec.reason}</p>
-                                        <button
+                                        <button type="button"
                                             onClick={() => setExpandedWhy(expandedWhy === idx ? null : idx)}
                                             className="text-xs text-[#8B5CF6] hover:text-[#a78bfa]"
                                         >
@@ -240,14 +240,14 @@ export function TemplatesTab() {
             {error && <div className="p-3 rounded-xl bg-red-500/10 text-red-400 text-sm">{error}</div>}
 
             <div className="flex flex-wrap items-center gap-2">
-                <button
+                <button type="button"
                     onClick={() => setActiveCategory('all')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeCategory === 'all' ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'bg-white/5 text-gray-400 hover:text-[var(--text)]'}`}
                 >
                     Все
                 </button>
                 {Object.entries(CATEGORIES).map(([key, label]) => (
-                    <button
+                    <button type="button"
                         key={key}
                         onClick={() => setActiveCategory(key)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeCategory === key ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'bg-white/5 text-gray-400 hover:text-[var(--text)]'}`}
@@ -268,19 +268,19 @@ export function TemplatesTab() {
 
             {stats && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                    <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-xs text-gray-500">Всего</div>
                         <div className="text-lg font-semibold text-[var(--text)]">{stats.total}</div>
                     </div>
-                    <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                    <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-xs text-emerald-400 flex items-center gap-1"><Flame size={10} /> Proven</div>
                         <div className="text-lg font-semibold text-[var(--text)]">{stats.proven}</div>
                     </div>
-                    <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                    <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-xs text-yellow-400">New</div>
                         <div className="text-lg font-semibold text-[var(--text)]">{stats.new}</div>
                     </div>
-                    <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                    <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-xs text-gray-400 flex items-center gap-1"><Archive size={10} /> Archived</div>
                         <div className="text-lg font-semibold text-[var(--text)]">{stats.archived}</div>
                     </div>
@@ -306,7 +306,7 @@ export function TemplatesTab() {
             )}
 
             <div className="flex items-center gap-2">
-                <button
+                <button type="button"
                     onClick={() => setShowProvenOnly(!showProvenOnly)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${showProvenOnly ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-400 hover:text-[var(--text)]'}`}
                 >
@@ -317,7 +317,7 @@ export function TemplatesTab() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-1 space-y-2 max-h-[600px] overflow-y-auto pr-1">
                     {filtered.map(t => (
-                        <button
+                        <button type="button"
                             key={t.id}
                             onClick={() => selectTemplate(t)}
                             className={`w-full text-left p-3 rounded-xl border transition-all ${
@@ -389,7 +389,7 @@ export function TemplatesTab() {
                                 ))}
                             </div>
 
-                            <button
+                            <button type="button"
                                 onClick={generate}
                                 disabled={generating || selected.variables.some(v => !variables[v])}
                                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/30 transition-colors disabled:opacity-50"
@@ -405,11 +405,11 @@ export function TemplatesTab() {
                                         {result.aiText || result.text || 'Не удалось сгенерировать. Попробуйте ещё раз.'}
                                     </div>
                                     <div className="flex gap-2">
-                                        <button onClick={copy} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-[var(--text)] transition-colors">
+                                        <button type="button" onClick={copy} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-[var(--text)] transition-colors">
                                             {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                                             {copied ? 'Скопировано' : 'Копировать'}
                                         </button>
-                                        <button onClick={schedule} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-xs transition-colors">
+                                        <button type="button" onClick={schedule} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-xs transition-colors">
                                             <Calendar size={14} /> В планировщик
                                         </button>
                                     </div>

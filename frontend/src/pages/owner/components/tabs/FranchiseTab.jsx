@@ -14,7 +14,7 @@ function Modal({ title, onClose, children }) {
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
+                    <button type="button" onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
                 </div>
                 {children}
             </div>
@@ -233,7 +233,7 @@ export function FranchiseTab({ data }) {
                                     <a href={franchiseApi.download(kit._id)} download className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-blue-400" title="Скачать">
                                         <Download className="w-4 h-4" />
                                     </a>
-                                    <button onClick={() => setSelectedKit(kit)} className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#00ff41]" title="Разослать">
+                                    <button type="button" onClick={() => setSelectedKit(kit)} className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#00ff41]" title="Разослать">
                                         <Send className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -254,7 +254,7 @@ export function FranchiseTab({ data }) {
                             placeholder="partner1@mail.com, partner2@mail.com"
                             className="w-full bg-black/30 border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] text-sm"
                         />
-                        <button
+                        <button type="button"
                             onClick={sendKit}
                             disabled={loading}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#00ff41] hover:bg-[#00d936] disabled:opacity-50 rounded-xl text-black font-medium text-sm transition-colors"

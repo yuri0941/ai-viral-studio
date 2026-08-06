@@ -50,6 +50,7 @@ export function DashboardHeader({
         try { return JSON.parse(localStorage.getItem('active_workspace')) } catch { return null }
     })
     const [wsOpen, setWsOpen] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
 
     useEffect(() => {
         if (['owner', 'admin', 'business'].includes(user?.role)) {
@@ -94,11 +95,13 @@ export function DashboardHeader({
                 // [v5.7-COMPACT] added: guard invalid/missing VAPID key
                 if (!publicKey || publicKey.length < 20) {
                     console.warn('[Push] VAPID key not configured or invalid');
+                    onNotificationsClick?.();
                     return;
                 }
                 const applicationServerKey = urlBase64ToUint8Array(publicKey)
                 if (!applicationServerKey) {
-                    console.warn('[Push] applicationServerKey conversion failed; skipping subscription') // [v6.0] added
+                    console.warn('[Push] applicationServerKey conversion failed; opening in-app notifications') // [v6.0] added
+                    onNotificationsClick?.()
                     return
                 }
                 sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey }) // [v6.0] added
@@ -168,8 +171,8 @@ export function DashboardHeader({
 
     return (
         // [MASTER-v5.6] luxury header
-        <header className="sticky top-0 z-30 w-full luxury-card rounded-none border-x-0 border-t-0 border-b border-white/10 safe-top">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+        <header className="fixed top-0 left-0 right-0 h-16 safe-top z-header bg-[var(--bg)]/80 backdrop-blur-xl border-b border-[var(--border)] overflow-visible">
+            <div className="flex items-center justify-between h-full px-4 sm:px-6 py-3">
                 <div className="flex items-center gap-3">
                     {onMenuClick && (
                         <button onClick={onMenuClick} className="lg:hidden p-2 -ml-2 rounded-xl hover:bg-white/5 transition-colors">
@@ -183,7 +186,14 @@ export function DashboardHeader({
                     {showSearch && (
                         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
                             <Search className="w-4 h-4 text-gray-400" />
-                            <input type="text" placeholder="Поиск..." className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-32 lg:w-48" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); console.log('[Search]', searchQuery) }}}
+                                placeholder="Поиск..."
+                                className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-32 lg:w-48"
+                            />
                         </div>
                     )}
 
@@ -198,7 +208,7 @@ export function DashboardHeader({
                             <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${langOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {
-                            <div className={`fixed right-4 top-16 w-32 rounded-xl border border-white/10 shadow-2xl shadow-black/50 z-[9999] bg-[var(--glass)] backdrop-blur-xl transition-all duration-200 origin-top-right ${langOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                            <div className={`fixed right-4 top-16 w-32 rounded-xl border border-white/10 shadow-2xl shadow-black/50 z-dropdown bg-[var(--glass)] backdrop-blur-xl transition-all duration-200 origin-top-right ${langOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
                                 <div className="absolute -top-1.5 right-4 w-3 h-3 bg-[var(--glass)] border-l border-t border-white/10 rotate-45" />
                                 {['ru', 'en'].map(lang => (
                                     <button
@@ -236,7 +246,7 @@ export function DashboardHeader({
                             <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${roleOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {
-                            <div className={`fixed right-4 top-16 w-40 rounded-xl border border-white/10 shadow-2xl shadow-black/50 z-[9999] bg-[var(--glass)] backdrop-blur-xl transition-all duration-200 origin-top-right ${roleOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                            <div className={`fixed right-4 top-16 w-40 rounded-xl border border-white/10 shadow-2xl shadow-black/50 z-dropdown bg-[var(--glass)] backdrop-blur-xl transition-all duration-200 origin-top-right ${roleOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
                                 <div className="absolute -top-1.5 right-4 w-3 h-3 bg-[var(--glass)] border-l border-t border-white/10 rotate-45" />
                                 {availableRoles.map(role => {
                                     const config = ROLE_CONFIG[role]
@@ -270,7 +280,7 @@ export function DashboardHeader({
                                 <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${wsOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {
-                                <div className={`fixed right-4 top-16 w-48 rounded-xl border border-white/10 shadow-2xl shadow-black/50 z-[9999] bg-[var(--glass)] backdrop-blur-xl transition-all duration-200 origin-top-right ${wsOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                                <div className={`fixed right-4 top-16 w-48 rounded-xl border border-white/10 shadow-2xl shadow-black/50 z-dropdown bg-[var(--glass)] backdrop-blur-xl transition-all duration-200 origin-top-right ${wsOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
                                     <div className="absolute -top-1.5 right-4 w-3 h-3 bg-[var(--glass)] border-l border-t border-white/10 rotate-45" />
                                     {workspaces.map(ws => (
                                         <button
@@ -304,7 +314,7 @@ export function DashboardHeader({
                     {user?.role === 'owner' && (
                         <button
                             onClick={handleEmergencyToggle}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-semibold hover:bg-rose-500/30 transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 min-w-[44px] min-h-[44px] rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-semibold hover:bg-rose-500/30 transition-colors"
                         >
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />STOP
                         </button>

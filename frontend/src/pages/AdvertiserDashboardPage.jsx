@@ -384,7 +384,7 @@ AI Viral Studio`, {
                     { label: t('advertiser.campaigns'), value: campaignsList.length, icon: Target },
                     { label: t('advertiser.clients'), value: [...new Set(campaignsList.map(c => c.client))].length, icon: Users },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-3 text-center hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                    <div key={i} className="glass-luxury glass-luxury-hover rounded-2xl p-3 text-center hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <stat.icon className="w-4 h-4 text-[var(--text-muted)] mx-auto mb-1.5" />
                         <p className="text-sm font-semibold text-[var(--text)]">{stat.value}</p>
                         <p className="text-[10px] text-[var(--text-muted)]">{stat.label}</p>
@@ -393,7 +393,7 @@ AI Viral Studio`, {
             </div>
 
             {/* [P20] added: Revenue Share card */}
-            <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+            <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
                         <Wallet className="w-5 h-5 text-white" />

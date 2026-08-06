@@ -104,6 +104,7 @@ export function FinanceTab({ data }) {
     const [invoiceStatusFilter, setInvoiceStatusFilter] = useState('all')
     const [showNewInvoice, setShowNewInvoice] = useState(false)
     const [newInvoice, setNewInvoice] = useState({ description: '', amount: '', currency: 'RUB' })
+    const [creatingInvoice, setCreatingInvoice] = useState(false)
 
     useEffect(() => {
         loadInvoices()
@@ -136,6 +137,7 @@ export function FinanceTab({ data }) {
             pushToast('error', t('finance.invoiceValidation', 'Введите описание и сумму'))
             return
         }
+        setCreatingInvoice(true)
         try {
             await invoicesApi.create({
                 description: newInvoice.description,
@@ -150,6 +152,8 @@ export function FinanceTab({ data }) {
         } catch (err) {
             console.error('[FinanceTab:createInvoice]', err)
             pushToast('error', err.message || t('finance.invoiceCreateError', 'Ошибка создания счёта'))
+        } finally {
+            setCreatingInvoice(false)
         }
     }
 
@@ -209,7 +213,7 @@ export function FinanceTab({ data }) {
                 {metricMeta.map((m) => {
                     const Icon = m.icon
                     return (
-                        <div key={m.key} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                        <div key={m.key} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                             <div className="relative glass rounded-xl p-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-sm text-[var(--text-muted)]">{m.label}</span>
@@ -260,7 +264,7 @@ export function FinanceTab({ data }) {
                         >
                             {statusOptions.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                         </select>
-                        <button
+                        <button type="button"
                             onClick={() => setShowNewInvoice(!showNewInvoice)}
                             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-[var(--text-on-primary)] text-sm font-medium hover:opacity-90 transition-opacity"
                         >
@@ -295,7 +299,7 @@ export function FinanceTab({ data }) {
                             <option value="EUR">EUR</option>
                         </select>
                         <div className="md:col-span-4 flex justify-end">
-                            <button type="submit" className="px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-[var(--text-on-primary)] text-sm font-medium hover:opacity-90 transition-opacity">
+                            <button type="submit" disabled={creatingInvoice} className="px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-[var(--text-on-primary)] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
                                 {t('finance.createInvoice', 'Создать счёт')}
                             </button>
                         </div>
@@ -348,7 +352,7 @@ export function FinanceTab({ data }) {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {!isPaid && !isCanceled && (
-                                            <button
+                                            <button type="button"
                                                 onClick={() => handlePayInvoice(inv)}
                                                 disabled={invoicePaying === inv._id}
                                                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--primary-soft)] text-[var(--primary)] text-xs font-medium hover:bg-[var(--primary)]/20 transition-colors disabled:opacity-50"

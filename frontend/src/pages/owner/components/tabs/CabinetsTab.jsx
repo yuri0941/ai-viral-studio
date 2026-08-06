@@ -37,10 +37,10 @@ export function CabinetsTab({ data }) {
             label: 'Действия',
             render: (row) => (
                 <div className="flex items-center gap-1">
-                    <button onClick={() => impersonateCabinet(row.id)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-emerald-400 transition-colors" title="Войти">
+                    <button type="button" onClick={() => impersonateCabinet(row.id)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-emerald-400 transition-colors" title="Войти">
                         <LogIn size={14} />
                     </button>
-                    <button onClick={() => updateCabinetStatus(row.id, row.status === 'active' ? 'paused' : 'active')} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-yellow-400 transition-colors" title={row.status === 'active' ? 'Приостановить' : 'Активировать'}>
+                    <button type="button" onClick={() => updateCabinetStatus(row.id, row.status === 'active' ? 'paused' : 'active')} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-yellow-400 transition-colors" title={row.status === 'active' ? 'Приостановить' : 'Активировать'}>
                         {row.status === 'active' ? <Pause size={14} /> : <Play size={14} />}
                     </button>
                 </div>

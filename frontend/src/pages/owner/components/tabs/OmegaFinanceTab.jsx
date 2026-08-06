@@ -68,7 +68,7 @@ export function OmegaFinanceTab({ data }) {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                     {budget.map(c => (
-                        <div key={c.id} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                        <div key={c.id} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
                                 <span className="text-xs text-[var(--text)]">{c.label}</span>
@@ -99,15 +99,15 @@ export function OmegaFinanceTab({ data }) {
                         />
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                             <div className="text-xs text-[var(--text)]">USDT</div>
                             <div className="text-[10px] text-gray-500">{cryptoShare * 0.5}%</div>
                         </div>
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                             <div className="text-xs text-[var(--text)]">BTC</div>
                             <div className="text-[10px] text-gray-500">{cryptoShare * 0.3}%</div>
                         </div>
-                        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                        <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                             <div className="text-xs text-[var(--text)]">ETH</div>
                             <div className="text-[10px] text-gray-500">{cryptoShare * 0.2}%</div>
                         </div>
@@ -122,7 +122,7 @@ export function OmegaFinanceTab({ data }) {
                     </div>
                     <div className="space-y-3">
                         {PORTFOLIOS.map(p => (
-                            <div key={p.id} className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 flex items-center gap-3">
+                            <div key={p.id} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 flex items-center gap-3">
                                 <div className="flex-1">
                                     <div className="text-sm text-[var(--text)]">{p.name}</div>
                                     <div className="text-[10px] text-gray-500">Риск: {p.risk} • Доходность: {p.return}</div>

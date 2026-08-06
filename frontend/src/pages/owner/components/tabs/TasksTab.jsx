@@ -231,7 +231,7 @@ export function TasksTab({ data }) {
                     <CheckSquare size={48} className="mb-4 opacity-30" />
                     <h3 className="text-[var(--text)] font-medium mb-1">{t('tasks.noTasks', 'Нет задач')}</h3>
                     <p className="text-sm mb-4">{t('tasks.noTasksDesc', 'Создайте первую задачу, чтобы начать работу.')}</p>
-                    <button onClick={addTask} className="px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-[var(--text-on-primary)] text-sm hover:opacity-90 transition-opacity">
+                    <button type="button" onClick={addTask} className="px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-[var(--text-on-primary)] text-sm hover:opacity-90 transition-opacity">
                         {t('tasks.createTask', 'Создать задачу')}
                     </button>
                 </div>
@@ -256,7 +256,7 @@ export function TasksTab({ data }) {
                                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]">{colTasks.length}</span>
                                     </div>
                                     {/* [P23] fixed: 44×44 add-task touch target */}
-                                    <button onClick={addTask} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
+                                    <button type="button" onClick={addTask} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
                                         <Plus size={14} />
                                     </button>
                                 </div>
@@ -349,7 +349,7 @@ export function TasksTab({ data }) {
                                         <h3 className="text-lg font-semibold text-[var(--text)]">{selectedTask.title}</h3>
                                     </div>
                                     {/* [P23] fixed: 44×44 close button touch target */}
-                                    <button onClick={() => setSelectedTask(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
+                                    <button type="button" onClick={() => setSelectedTask(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)]">
                                         <X size={18} />
                                     </button>
                                 </div>
@@ -388,7 +388,7 @@ export function TasksTab({ data }) {
                                     <label className="text-xs text-[var(--text-muted)] uppercase tracking-wider">{t('tasks.checklist', 'Чеклист')}</label>
                                     <div className="mt-2 space-y-2">
                                         {(selectedTask.checklist || []).map((item, idx) => (
-                                            <button
+                                            <button type="button"
                                                 key={idx}
                                                 onClick={() => toggleChecklist(selectedTask.id, idx)}
                                                 className="w-full min-h-[44px] flex items-center gap-2 text-left text-sm text-[var(--text)] hover:bg-[var(--surface)] p-2 rounded-lg transition-colors"
@@ -465,7 +465,7 @@ export function TasksTab({ data }) {
                         </div>
                     )}
                 </AnimatePresence>
-                <button
+                <button type="button"
                     onClick={() => setFabOpen(o => !o)}
                     className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-white shadow-xl flex items-center justify-center transition-transform hover:scale-105"
                 >

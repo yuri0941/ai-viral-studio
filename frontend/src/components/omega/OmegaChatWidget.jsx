@@ -251,7 +251,7 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
                         onClick={toggleOpen}
                         onMouseDown={handlePointerDown}
                         onTouchStart={handlePointerDown}
-                        className="fixed z-[100] companion-orb transition-transform hover:scale-105 active:scale-95"
+                        className="fixed z-fab companion-orb transition-transform active:scale-95"
                         style={{ left: position.x, top: position.y }}
                         aria-label="Открыть чат OMEGA"
                     >

@@ -248,7 +248,7 @@ export function ChatTab({ data }) {
                     </div>
                     <div className="flex gap-1">
                         {[{ k: 'all', l: 'Все' }, { k: 'staff', l: 'Команда' }, { k: 'ai', l: 'AI' }, { k: 'client', l: 'Клиенты' }].map(f => (
-                            <button key={f.k} onClick={() => setFilter(f.k)} className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-colors ${filter === f.k ? 'bg-white/10 text-[var(--text)]' : 'text-gray-500 hover:text-gray-300'}`}>
+                            <button type="button" key={f.k} onClick={() => setFilter(f.k)} className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-colors ${filter === f.k ? 'bg-white/10 text-[var(--text)]' : 'text-gray-500 hover:text-gray-300'}`}>
                                 {f.l}
                             </button>
                         ))}
@@ -260,14 +260,14 @@ export function ChatTab({ data }) {
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Начать чат</div>
                         <div className="space-y-1 max-h-[160px] overflow-y-auto">
                             {staff.map(s => (
-                                <button key={s.id} onClick={() => startChat('staff', s.id, s.name)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 text-left">
+                                <button type="button" key={s.id} onClick={() => startChat('staff', s.id, s.name)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 text-left">
                                     <Users size={12} className="text-blue-400" />
                                     <span className="text-xs text-gray-300">{s.name}</span>
                                     <span className="ml-auto text-[10px] text-gray-600">staff</span>
                                 </button>
                             ))}
                             {agents.filter(a => a.status === 'active').map(a => (
-                                <button key={a.id} onClick={() => startChat('ai', a.id, a.name)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 text-left">
+                                <button type="button" key={a.id} onClick={() => startChat('ai', a.id, a.name)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 text-left">
                                     <Bot size={12} className="text-purple-400" />
                                     <span className="text-xs text-gray-300">{a.name}</span>
                                     <span className="ml-auto text-[10px] text-gray-600">ai</span>
@@ -280,7 +280,7 @@ export function ChatTab({ data }) {
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Активные</div>
                         {chatList.length === 0 && <div className="text-xs text-gray-600 py-2">Нет чатов</div>}
                         {chatList.map(c => (
-                            <button key={c.chatId} onClick={() => startChat(c.type, c.id, c.name)} className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-colors ${activeChat?.chatId === c.chatId ? 'bg-white/10' : 'hover:bg-white/5'}`}>
+                            <button type="button" key={c.chatId} onClick={() => startChat(c.type, c.id, c.name)} className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-colors ${activeChat?.chatId === c.chatId ? 'bg-white/10' : 'hover:bg-white/5'}`}>
                                 {c.type === 'ai' ? <Bot size={14} className="text-purple-400" /> : c.type === 'staff' ? <Users size={14} className="text-blue-400" /> : <User size={14} className="text-emerald-400" />}
                                 <div className="flex-1 min-w-0">
                                     <div className="text-xs text-gray-300 truncate">{c.name}</div>
@@ -317,7 +317,7 @@ export function ChatTab({ data }) {
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button
+                                <button type="button"
                                     onClick={() => setIsFullscreen(v => !v)}
                                     className="p-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 hover:text-[var(--text)] transition-colors"
                                     title={isFullscreen ? 'Свернуть' : 'На весь экран'}
@@ -325,7 +325,7 @@ export function ChatTab({ data }) {
                                     {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                                 </button>
                                 {pinnedMessages.length > 0 && (
-                                    <button onClick={() => setPinnedOpen(!pinnedOpen)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 text-xs text-gray-300 hover:bg-white/10">
+                                    <button type="button" onClick={() => setPinnedOpen(!pinnedOpen)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 text-xs text-gray-300 hover:bg-white/10">
                                         <Pin size={12} />
                                         {pinnedMessages.length}
                                     </button>
@@ -422,10 +422,10 @@ export function ChatTab({ data }) {
 
                                             {/* Message actions */}
                                             <div className={`absolute ${isOwn(msg) ? 'right-full mr-2' : 'left-full ml-2'} top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1`}>
-                                                <button onClick={() => setReactingMsgId(react => react === msg.id ? null : msg.id)} className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400">
+                                                <button type="button" onClick={() => setReactingMsgId(react => react === msg.id ? null : msg.id)} className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400">
                                                     <SmilePlus size={12} />
                                                 </button>
-                                                <button onClick={() => togglePin(msg.id)} className={`p-1 rounded-lg hover:bg-white/10 ${msg.pinned ? 'text-amber-400' : 'text-gray-400'}`}>
+                                                <button type="button" onClick={() => togglePin(msg.id)} className={`p-1 rounded-lg hover:bg-white/10 ${msg.pinned ? 'text-amber-400' : 'text-gray-400'}`}>
                                                     <Pin size={12} />
                                                 </button>
                                             </div>
@@ -434,11 +434,11 @@ export function ChatTab({ data }) {
                                             {reactingMsgId === msg.id && (
                                                 <div className={`absolute ${isOwn(msg) ? 'right-full mr-2' : 'left-full ml-2'} top-8 z-10 p-1.5 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex gap-1 shadow-lg`}>
                                                     {EMOJIS.map(emoji => (
-                                                        <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className="hover:scale-110 transition-transform text-sm">
+                                                        <button type="button" key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className="hover:scale-110 transition-transform text-sm">
                                                             {emoji}
                                                         </button>
                                                     ))}
-                                                    <button onClick={() => setReactingMsgId(null)} className="text-gray-500 hover:text-[var(--text)]"><X size={12} /></button>
+                                                    <button type="button" onClick={() => setReactingMsgId(null)} className="text-gray-500 hover:text-[var(--text)]"><X size={12} /></button>
                                                 </div>
                                             )}
                                         </div>
@@ -446,7 +446,7 @@ export function ChatTab({ data }) {
                                         {Object.keys(msg.reactions || {}).length > 0 && (
                                             <div className={`flex gap-1 mt-1 ${isOwn(msg) ? 'justify-end' : 'justify-start'}`}>
                                                 {Object.entries(msg.reactions).map(([emoji]) => (
-                                                    <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className="px-1.5 py-0.5 rounded-full bg-white/5 text-[10px] border border-[var(--border)] hover:bg-white/10">
+                                                    <button type="button" key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className="px-1.5 py-0.5 rounded-full bg-white/5 text-[10px] border border-[var(--border)] hover:bg-white/10">
                                                         {emoji}
                                                     </button>
                                                 ))}
@@ -487,7 +487,7 @@ export function ChatTab({ data }) {
                                     placeholder={impersonate ? `От имени ${impersonate.name}... Напишите @omega для AI` : 'Сообщение... Напишите @omega для AI'}
                                     className="flex-1 bg-transparent text-sm text-[var(--text)] placeholder-gray-600 outline-none"
                                 />
-                                <button
+                                <button type="button"
                                     onClick={handleSend}
                                     disabled={!chatInput.trim() || typing}
                                     className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50 transition-colors"

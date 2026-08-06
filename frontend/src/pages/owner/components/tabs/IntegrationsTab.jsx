@@ -22,6 +22,7 @@ export function IntegrationsTab({ data }) {
     const [result, setResult] = useState(null)
     const [webhooks, setWebhooks] = useState([])
     const [webhookForm, setWebhookForm] = useState({ name: '', url: '', events: ['*'], secret: '' })
+    const [creatingWebhook, setCreatingWebhook] = useState(false)
     const [tab, setTab] = useState('social')
 
     const load = async () => {
@@ -62,12 +63,15 @@ export function IntegrationsTab({ data }) {
 
     const createWebhook = async (e) => {
         e.preventDefault()
+        setCreatingWebhook(true)
         try {
             await integrationsApi.createWebhook({ ...webhookForm, events: webhookForm.events.split(',').map(s => s.trim()).filter(Boolean) })
             setWebhookForm({ name: '', url: '', events: '*', secret: '' })
             load()
         } catch (err) {
             alert(err.message)
+        } finally {
+            setCreatingWebhook(false)
         }
     }
 
@@ -97,12 +101,12 @@ export function IntegrationsTab({ data }) {
                     <Plug size={18} className="text-blue-400" />
                     <h2 className="text-lg font-semibold text-[var(--text)]">Интеграции</h2>
                 </div>
-                <button onClick={load} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400"><RefreshCw size={16} className={loading ? 'animate-spin' : ''} /></button>
+                <button type="button" onClick={load} disabled={loading === true} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 disabled:opacity-50"><RefreshCw size={16} className={loading === true ? 'animate-spin' : ''} /></button>
             </div>
 
             <div className="flex gap-2 border-b border-[var(--border)] pb-2">
                 {['social', 'external', 'webhooks'].map(t => (
-                    <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm rounded-t-lg ${tab === t ? 'text-[var(--text)] border-b-2 border-[#8b5cf6] bg-white/5' : 'text-gray-500 hover:text-gray-300'}`}>
+                    <button type="button" key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm rounded-t-lg ${tab === t ? 'text-[var(--text)] border-b-2 border-[#8b5cf6] bg-white/5' : 'text-gray-500 hover:text-gray-300'}`}>
                         {t === 'social' ? 'Соцсети' : t === 'external' ? 'Внешние сервисы' : 'Webhooks / Zapier'}
                     </button>
                 ))}
@@ -120,7 +124,7 @@ export function IntegrationsTab({ data }) {
                                         <StatusBadge status={integ.status} pulse={integ.status === 'active'} />
                                     </div>
                                 </div>
-                                <button onClick={() => data.toggleIntegration(integ.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${integ.connected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-400 border border-[var(--border)]'}`}>{integ.connected ? 'Подключено' : 'Подключить'}</button>
+                                <button type="button" onClick={() => data.toggleIntegration(integ.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${integ.connected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-400 border border-[var(--border)]'}`}>{integ.connected ? 'Подключено' : 'Подключить'}</button>
                             </div>
                             {integ.connected && (
                                 <div className="grid grid-cols-3 gap-2 pt-3 border-t border-[var(--border)]">
@@ -150,7 +154,7 @@ export function IntegrationsTab({ data }) {
                                             <div className={`text-xs ${configured ? 'text-emerald-400' : 'text-red-400'}`}>{configured ? 'Подключено' : 'Не подключено'}</div>
                                         </div>
                                     </div>
-                                    <button onClick={() => setActiveForm(activeForm === integ.id ? null : integ.id)} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-colors">{activeForm === integ.id ? 'Скрыть' : 'Настроить / Тест'}</button>
+                                    <button type="button" onClick={() => setActiveForm(activeForm === integ.id ? null : integ.id)} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-gray-400 hover:bg-white/10 transition-colors">{activeForm === integ.id ? 'Скрыть' : 'Настроить / Тест'}</button>
                                 </div>
                                 {!configured && (
                                     <div className="text-xs text-gray-500 mb-3">
@@ -186,7 +190,7 @@ export function IntegrationsTab({ data }) {
                                         {integ.id === 'shopify' && <>
                                             <input type="number" value={form.limit || 5} onChange={e => setForm(p => ({ ...p, limit: e.target.value }))} placeholder="Limit" className="w-full bg-white/5 border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none" />
                                         </>}
-                                        <button onClick={() => test(integ.id)} disabled={loading === integ.id} className="w-full py-2 rounded-lg bg-[#8b5cf6] hover:bg-[#7c3aed] text-[var(--text)] text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2">
+                                        <button type="button" onClick={() => test(integ.id)} disabled={loading === integ.id} className="w-full py-2 rounded-lg bg-[#8b5cf6] hover:bg-[#7c3aed] text-[var(--text)] text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2">
                                             <Send size={14} /> {loading === integ.id ? '...' : 'Отправить тест'}
                                         </button>
                                         {result?.id === integ.id && (
@@ -212,7 +216,7 @@ export function IntegrationsTab({ data }) {
                         </div>
                         <input value={webhookForm.events} onChange={e => setWebhookForm(p => ({ ...p, events: e.target.value }))} placeholder="События через запятую: new_post, payment, omega_alert (или *)" className="w-full bg-white/5 border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none" />
                         <input value={webhookForm.secret} onChange={e => setWebhookForm(p => ({ ...p, secret: e.target.value }))} placeholder="Секрет для подписи (опционально)" className="w-full bg-white/5 border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] outline-none" />
-                        <button type="submit" className="px-4 py-2 rounded-lg bg-[#8b5cf6] hover:bg-[#7c3aed] text-[var(--text)] text-sm font-medium flex items-center gap-2"><Plus size={16} /> Добавить</button>
+                        <button type="submit" disabled={creatingWebhook} className="px-4 py-2 rounded-lg bg-[#8b5cf6] hover:bg-[#7c3aed] text-[var(--text)] text-sm font-medium flex items-center gap-2 disabled:opacity-50"><Plus size={16} /> Добавить</button>
                     </form>
 
                     <div className="space-y-2">
@@ -224,9 +228,9 @@ export function IntegrationsTab({ data }) {
                                     <div className="text-xs text-gray-600 mt-1">events: {wh.events.join(', ')} · last: {wh.lastStatus || '—'} · {wh.isActive ? <span className="text-emerald-400">active</span> : <span className="text-red-400">paused</span>}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => toggleWebhook(wh)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400">{wh.isActive ? <X size={14} /> : <Check size={14} />}</button>
-                                    <button onClick={() => integrationsApi.triggerWebhooks('manual', { test: true }).then(() => alert('Triggered')).catch(e => alert(e.message))} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400"><Send size={14} /></button>
-                                    <button onClick={() => deleteWebhook(wh._id)} className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400"><Trash2 size={14} /></button>
+                                    <button type="button" onClick={() => toggleWebhook(wh)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400">{wh.isActive ? <X size={14} /> : <Check size={14} />}</button>
+                                    <button type="button" onClick={() => integrationsApi.triggerWebhooks('manual', { test: true }).then(() => alert('Triggered')).catch(e => alert(e.message))} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400"><Send size={14} /></button>
+                                    <button type="button" onClick={() => deleteWebhook(wh._id)} className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400"><Trash2 size={14} /></button>
                                 </div>
                             </div>
                         ))}
