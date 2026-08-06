@@ -1,3 +1,11 @@
+## 2026-08-06 — v6.4-FINAL: dist удалён из Git
+- [x] Диагностика: git ls-files frontend/dist (проверен — пусто)
+- [x] .gitignore: frontend/dist/ и dist/ присутствуют, дубли удалены
+- [x] Git commit + push: fix remove dist from git (commit d3f23831)
+- [x] Проверка: git ls-files frontend/dist — пусто
+- [x] Frontend build: 0 ошибок (built in 43.45s)
+- [x] Backend check: node --check backend/server.js — успешно
+
 ## 2026-08-06 — v6.4 Hotfix 2: Деплой + OMEGA Chat Fix
 - [x] Диагностика: git ls-files frontend/dist (проверен)
 - [x] Удалён frontend/public/_worker.js (мешал Cloudflare Pages)
