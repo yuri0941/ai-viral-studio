@@ -1,3 +1,18 @@
+## 2026-08-06 — v6.4-MASTER-FIX: UI/UX + OMEGA Chat
+- [x] api.js: Bearer token interceptor уже актуален (проверено)
+- [x] OmegaChat.jsx: luxury glassmorphism bubbles + action buttons (🪝📝🎨📅)
+- [x] OmegaChatWidget.jsx: mobile adaptive, без дублирующей шапки (проверено)
+- [x] AppSidebar.jsx: Creative Hub unified, добавлен Team для Owner
+- [x] DashboardHeader.jsx: dropdown z-index 9999 уже актуален (проверено)
+- [x] SettingsPage.jsx: phone input не найден — шаг пропущен
+- [x] OwnerDashboardPage.jsx: glassmorphism luxury cards уже актуальны (проверено)
+- [x] CreatorDashboardPage.jsx: glassmorphism + OMEGA quick action → /ai-chat (/creative-hub/chat)
+- [x] Graceful degradation: обработка 401/fallback уже есть в useOwnerData, CreatorDashboard, AdminDashboard
+- [x] LandingPage.jsx: Telegram https://t.me/aiviralstudio, добавлен Discord https://discord.gg/your_invite
+- [x] SubscriptionsTab.jsx: ошибки Stripe уже через toast/console.warn, без alert (пропущено)
+- [x] Build: 0 ошибок (built in ~30s)
+- [x] Push: выполнен (commit bd264aa2)
+
 ## 2026-08-06 — v6.4-FINAL: Деплой починен ✅
 - [x] Удалён frontend/dist из Git
 - [x] Удалён frontend/dist с диска
