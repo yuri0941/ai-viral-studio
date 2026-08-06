@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 export default defineConfig(({ mode }) => ({
+    base: '/',
     plugins: [
         react(),
         VitePWA({
@@ -91,6 +92,7 @@ export default defineConfig(({ mode }) => ({
     },
     build: {
         outDir: 'dist',
+        emptyOutDir: true,
         sourcemap: true,
         chunkSizeWarningLimit: 500,
         rollupOptions: {

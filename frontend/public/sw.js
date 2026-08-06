@@ -1,20 +1,9 @@
-const CACHE_VERSION = 'v6.4-final'
-
-self.addEventListener('install', (event) => {
-    self.skipWaiting()
-})
-
-self.addEventListener('activate', (event) => {
-    // [v6.4] Clear all caches on activate to force clients to fetch the latest app
-    event.waitUntil(
-        caches.keys().then((names) =>
-            Promise.all(names.map((name) => caches.delete(name)))
-        ).then(() => self.clients.claim())
-    )
-})
-
-self.addEventListener('fetch', (event) => {
-    // Basic pass-through service worker stub.
-    // Cache strategies can be added here later.
-    event.respondWith(fetch(event.request).catch(() => new Response('Offline', { status: 503 })))
-})
+const CACHE_NAME = 'v6.4-kill-cache-2026';
+self.addEventListener('install', e => self.skipWaiting());
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(names => Promise.all(names.map(n => caches.delete(n))))
+      .then(() => self.clients.claim())
+  );
+});
+self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));

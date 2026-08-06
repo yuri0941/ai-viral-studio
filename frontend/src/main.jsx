@@ -36,19 +36,10 @@ try {
     console.warn('[Rollbar] init failed:', err) // [P16-FIX] guard Rollbar init
 }
 
-// [v6.4] Force the service worker to check for updates immediately on load and reload on update
+// [v6.4-kill-cache] Aggressively unregister old service workers and wipe caches on startup
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then((reg) => {
-        reg.update()
-        reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing
-            newWorker?.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    window.location.reload()
-                }
-            })
-        })
-    })
+  navigator.serviceWorker.getRegistrations().then(r => r.forEach(x => x.unregister()));
+  if (window.caches) caches.keys().then(n => n.forEach(c => caches.delete(c)));
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
