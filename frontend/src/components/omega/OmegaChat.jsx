@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 export default function OmegaChat({ messages = [], onSend, isLoading }) {
   const [input, setInput] = useState("");
@@ -40,14 +40,23 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
                     <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                     <div className="flex items-center gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="text-[10px] text-gray-500">{msg.time}</span>
-                      <button className="text-gray-500 hover:text-violet-400 text-xs" onClick={() => navigator.clipboard?.writeText(msg.text)}>📋</button>
+                      <button className="text-gray-500 hover:text-violet-400 text-xs" onClick={() => navigator.clipboard?.writeText(msg.text)} title="Копировать">📋</button>
+                      <button className="text-gray-500 hover:text-violet-400 text-xs" onClick={() => onSend(msg.text)} title="Перегенерировать">🔄</button>
                     </div>
                   </div>
                 </div>
                 {/* КНОПКИ ДЕЙСТВИЙ */}
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {["🪝 Сделать хук","📝 Сценарий","🎨 Обложка","📅 План"].map((l) => (
-                    <button key={l} onClick={() => onSend(l)} className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-violet-500/20 hover:text-violet-300 transition-all">{l}</button>
+                  {[
+                    { id: 'hook', label: 'Сделать хук', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для этого видео' },
+                    { id: 'script', label: 'Сценарий', icon: '📝', prompt: 'Напиши сценарий Reels/Shorts на основе этого анализа' },
+                    { id: 'cover', label: 'Обложка', icon: '🎨', prompt: 'Сгенерируй описание для AI-обложки к этому видео' },
+                    { id: 'plan', label: 'План', icon: '📅', prompt: 'Составь план публикации на неделю на основе этого анализа' }
+                  ].map(action => (
+                    <button key={action.id} onClick={() => onSend(action.prompt)}
+                      className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-violet-500/20 hover:text-violet-300 transition-all">
+                      {action.icon} {action.label}
+                    </button>
                   ))}
                 </div>
               </>

@@ -95,18 +95,15 @@ function StatCard({ label, value, sub, icon: Icon, gradient = 'from-[var(--prima
 }
 
 // [P16-FIX] added: gradient quick action button
-function QuickAction({ icon: Icon, label, color, onClick }) {
+function QuickAction({ icon: Icon, label, onClick }) {
     return (
         <button
             onClick={onClick}
             className="px-4 py-2 rounded-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 border border-white/10 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all"
         >
-            <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-10 group-hover:opacity-15 transition-opacity`} />
-            <div className="relative">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${color} mb-3 shadow-lg`}>
-                    <Icon size={20} className="text-white" />
-                </div>
-                <p className="text-[var(--text)] font-medium text-sm">{label}</p>
+            <div className="flex items-center gap-2">
+                <Icon className="w-4 h-4 text-white/90" />
+                <span>{label}</span>
             </div>
         </button>
     )
@@ -347,7 +344,7 @@ function CreatorDashboardPage() {
                     <QuickAction icon={Plus} label={t('creator.createPost')} color="from-emerald-500 to-emerald-700" onClick={() => {}} />
                     <QuickAction icon={Calendar} label={t('creator.schedule')} color="from-blue-500 to-blue-700" onClick={() => {}} />
                     <QuickAction icon={BarChartIcon} label={t('creator.competitorAnalysis')} color="from-purple-500 to-pink-600" onClick={() => {}} />
-                    <QuickAction icon={Bot} label={t('creator.aiChat')} color="from-amber-500 to-orange-600" onClick={() => {}} />
+                    <QuickAction icon={Bot} label={t('creator.aiChat')} color="from-amber-500 to-orange-600" onClick={() => navigate('/ai-chat')} />
                     {/* [P20] added: leaderboard quick action */}
                     <QuickAction icon={Trophy} label="Leaderboard" color="from-yellow-500 to-orange-600" onClick={() => window.location.href = '/leaderboard'} />
                     {/* [P20] added: challenge quick action */}
