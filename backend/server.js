@@ -70,6 +70,8 @@ import neuroSalesRoutes from './routes/neuroSales.js'  // [P18] added: Neuro-Sal
 import challengeRoutes from './routes/challenges.js'  // [P20] added: OMEGA Challenge
 import uploadRoutes from './routes/upload.js'  // [P21] added: image upload optimization
 import scheduledPostsRoutes from './routes/scheduledPosts.js'  // [v6.0-fix] added: missing import
+import approvalRoutes from './routes/approval.js'  // [v6.5] added: OMEGA approval queue
+import repurposingRoutes from './routes/repurposing.js'  // [v6.5] added: content repurposing engine
 import fallbackRoutes from './routes/fallbackRoutes.js'  // [v6.0] added: structured fallback routes
 
 // [v6.0-fix] added: fallback routers for expected frontend endpoints without mock data
@@ -337,6 +339,8 @@ app.use('/api/roadmap', roadmapRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/self-improvement', selfImprovementRoutes)
 app.use('/api/scheduled-posts', scheduledPostsRoutes)
+app.use('/api/approvals', approvalRoutes)  // [v6.5] added: OMEGA approval queue
+app.use('/api/repurposing', repurposingRoutes)  // [v6.5] added: content repurposing engine
 
 // [v6.0-fix] added: fallback routers for expected frontend endpoints (real empty structures, no mock)
 app.use('/api/analytics', analyticsFallbackRoutes)

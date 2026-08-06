@@ -36,6 +36,7 @@ import { DevStudioTab } from './components/tabs/DevStudioTab'
 import { OmegaFinanceTab } from './components/tabs/OmegaFinanceTab'
 import { OmegaSkillsTab } from './components/tabs/OmegaSkillsTab'
 import { OmegaMemoryTab } from './components/tabs/OmegaMemoryTab'
+import { OmegaApprovalQueue } from '../../components/omega/OmegaApprovalQueue.jsx'
 import { OwnerRequisitesTab } from './components/tabs/OwnerRequisitesTab'
 import { LegalSettingsTab } from './components/tabs/LegalSettingsTab'
 import { BrandVoiceTab } from './components/tabs/BrandVoiceTab'
@@ -128,6 +129,7 @@ const TAB_ICONS = {
     fleet: Rocket,
     selfHealing: Shield,
     sandbox: Terminal,
+    approvalQueue: Shield,
 }
 
 // [v6.0] added: count-up hook with requestAnimationFrame
@@ -323,6 +325,7 @@ export default function OwnerDashboardPage() {
             case 'fleet': return <FleetTab data={ownerData} />
             case 'selfHealing': return <SelfHealingCrisisTab data={ownerData} />
             case 'sandbox': return <SandboxPanel data={ownerData} />
+            case 'approvalQueue': return <OmegaApprovalQueue />
             case 'analytics': return <AnalyticsPage />
             case 'aiChat': return <AIChatPage />
             case 'contentAnalyzer': return <ContentAnalyzerPage />

@@ -337,14 +337,13 @@ export function SubscriptionsTab({ data }) {
             if (res?.fallback && res?.status === 'error') {
                 fallbackToYookassa()
             }
-            pushToast('error', res?.error || res?.message || t('subscriptions.paymentError'))
+            console.warn('[SubscriptionsTab] payment error:', res?.error || res?.message || t('subscriptions.paymentError'))
         } catch (err) {
             if (err.name === 'AbortError') {
-                pushToast('error', t('subscriptions.gatewayTimeout'))
+                console.warn('[SubscriptionsTab] gateway timeout')
                 fallbackToYookassa()
             } else {
-                console.error('[SubscriptionsTab:handleSubscribe]', err)
-                pushToast('error', err.message || t('subscriptions.paymentError'))
+                console.warn('[SubscriptionsTab:handleSubscribe]', err)
             }
         } finally {
             clearTimeout(timeoutId)

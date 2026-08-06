@@ -2,11 +2,15 @@ import cron from 'node-cron'
 import { OwnerSettings } from '../models/OwnerSettings.js'
 import { Integration } from '../models/Integration.js'
 import ScheduledPost from '../models/ScheduledPost.js'
+import User from '../models/User.js'
+import OmegaMemory from '../models/OmegaMemory.js'
 import { alertOwner } from './ownerBot.js'
 import { google } from 'googleapis'
 import { emergencyStop } from '../routes/admin.js'
+import { chatWithAI } from './aiService.js'
 
 let autopilotJob = null
+let ideaGenerationJob = null
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY
 const youtube = YOUTUBE_API_KEY ? google.youtube({ version: 'v3', auth: YOUTUBE_API_KEY }) : null
@@ -154,16 +158,48 @@ async function runAutopilotTick() {
   }
 }
 
+async function generateIdeasForClients() {
+  console.log('[AUTO-PILOT] Generating content ideas...')
+  try {
+    const activeClients = await User.find({ role: { $in: ['client', 'creator'] }, isActive: true }).lean()
+    for (const client of activeClients) {
+      try {
+        const niche = client.niche || client.brandVoice?.niche || 'бизнес'
+        const style = client.style || client.brandVoice?.style || 'friendly'
+        const prompt = `Сгенерируй 3 идеи постов для ниши "${niche}", стиль: ${style}. Коротко, с хуками.`
+        const ideas = await chatWithAI(prompt, [], { userRole: client.role || 'client', userId: client._id })
+        await OmegaMemory.findOneAndUpdate(
+          { ownerId: client._id },
+          { $push: { entries: { level: 'short_term', content: { type: 'ideas', text: ideas.text || ideas, createdAt: new Date() }, tags: ['autopilot', 'ideas'] } } },
+          { upsert: true }
+        )
+      } catch (e) {
+        console.error('[AUTO-PILOT]', e.message)
+      }
+    }
+  } catch (err) {
+    console.error('[AUTO-PILOT] generateIdeasForClients failed:', err.message)
+  }
+}
+
 export function startAutopilot() {
   if (autopilotJob) return
   autopilotJob = cron.schedule('*/30 * * * *', runAutopilotTick)
   console.log('[autoPilot] cron started (every 30 min)')
+  if (!ideaGenerationJob) {
+    ideaGenerationJob = cron.schedule('0 */6 * * *', generateIdeasForClients)
+    console.log('[AUTO-PILOT] idea generation cron started (every 6 hours)')
+  }
 }
 
 export function stopAutopilot() {
   if (autopilotJob) {
     autopilotJob.stop()
     autopilotJob = null
+  }
+  if (ideaGenerationJob) {
+    ideaGenerationJob.stop()
+    ideaGenerationJob = null
   }
 }
 

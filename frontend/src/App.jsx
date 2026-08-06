@@ -1,10 +1,11 @@
-﻿import { useEffect, Suspense, lazy, useState } from 'react'
+import { useEffect, Suspense, lazy, useState } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
 // Layout
 import { DashboardShell } from './components/layout/DashboardShell'
 import { CommandPalette } from './components/layout/CommandPalette'
+import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
 
 // Hooks
 import { useNotifications } from './hooks/useNotifications'
@@ -200,6 +201,7 @@ function App() {
                     <div className="animate-spin w-8 h-8 border-2 border-[#00ff41] border-t-transparent rounded-full" />
                 </div>
             }>
+                <ErrorBoundary>
                 <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LandingPage showLogin={true} />} />
@@ -355,6 +357,7 @@ function App() {
                 <Route path="/launch" element={<LaunchPage />} />
                 <Route path="/roadmap" element={<PublicRoadmap />} />
                 <Route path="/onboarding" element={<OnboardingWizard />} />
+                <Route path="/welcome" element={<Navigate to="/onboarding" replace />} />
 
                 <Route path="/business" element={
                     <ProtectedRoute allowedRoles={['business', 'owner', 'admin']}>
@@ -364,6 +367,7 @@ function App() {
 
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+                </ErrorBoundary>
             </Suspense>
 
             <CookieConsent />

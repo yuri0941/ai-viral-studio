@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'v6.4-force-3';
+const CACHE_NAME = 'v6.5-kill-cache-2026';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => {
   e.waitUntil(

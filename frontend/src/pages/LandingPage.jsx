@@ -593,7 +593,15 @@ function LandingPage() {
                 isOpen={authModalOpen}
                 onClose={() => setAuthModalOpen(false)}
                 defaultMode={authModalMode}
-                onSuccess={() => { setAuthModalOpen(false); navigate('/dashboard') }}
+                onSuccess={() => {
+                    setAuthModalOpen(false)
+                    const role = user?.role
+                    if (role === 'client' || role === 'creator') {
+                        navigate('/onboarding')
+                    } else {
+                        navigate('/dashboard')
+                    }
+                }}
             />
 
             {/* Client chat widget */}

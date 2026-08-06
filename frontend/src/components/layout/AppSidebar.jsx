@@ -61,6 +61,7 @@ const OWNER_GROUPS = [
             { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
             { id: 'analytics', label: 'Analytics', icon: BarChart },
+            { id: 'approvalQueue', label: '✅ Approval Queue', icon: Shield },
             { id: 'team', label: 'Team', icon: Users },
             { id: 'settings', label: 'Settings', icon: Settings },
         ],

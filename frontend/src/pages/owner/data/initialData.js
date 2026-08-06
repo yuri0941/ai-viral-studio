@@ -203,4 +203,5 @@ export const TAB_LABELS = {
     fleet: '🚀 Fleet',
     selfHealing: '🔧 Self-Healing',
     sandbox: '⏳ Sandbox',
+    approvalQueue: '✅ Approval Queue',
 }
