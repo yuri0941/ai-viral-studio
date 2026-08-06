@@ -1,3 +1,8 @@
+## 2026-08-06 — v6.4 Hotfix (Rate Limiter)
+- [x] Fix: rateLimiter.js — исправлен синтаксис handler, max: 10000 req/15min
+- [x] Check: node --check backend/middleware/rateLimiter.js passed
+- [x] Push: commit 9d4f72a4 pushed to origin main
+
 ## 2026-08-06 — v6.4 Final (Утверждённый релиз)
 - [x] Fix: OMEGA живой — intent routing для видео-ссылок, strip дублирующих приветствий
 - [x] Fix: OMEGA role-aware — creator не "гость", owner не "гость"
