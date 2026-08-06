@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import { ApiKey, AIProviderSetting } from '../models/index.js'
 import { emergencyStop } from '../routes/admin.js'
 import { searchVectorMemory, addToVectorMemory } from './vectorStore.js'
+import LocalBrain from '../ai/omega/localBrain.js'
 
 // ============ HELPERS ============
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -71,7 +72,7 @@ function setCached(message, lang, value) {
     responseCache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS })
 }
 
-// ============ SMART DEMO TEMPLATES ============
+// ============ SMART FALLBACK TEMPLATES ============
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 let TEMPLATES = []
@@ -84,8 +85,8 @@ try {
     TEMPLATES = []
 }
 
-// [P16-HOTFIX-v2] built-in demo templates ensure OMEGA always replies usefully even without API keys
-// [VALUE-2026-08-04] added: niche-specific hook templates so demo mode still returns real hooks
+// [P16-HOTFIX-v2] built-in fallback templates ensure OMEGA always replies usefully even without API keys
+// [VALUE-2026-08-04] added: niche-specific hook templates so fallback mode still returns real hooks
 const NICHE_TEMPLATES = {
     coffee: [
         '«Этот кофе изменил моё утро — и вот почему»',
@@ -182,7 +183,7 @@ const NICHE_KEYWORDS = {
     art: ['рисован', 'художн', 'картин', 'творчеств', 'скетч', 'иллюстрац']
 }
 
-const DEMO_TEMPLATES = [
+const FALLBACK_TEMPLATES = [
     {
         id: 'greeting',
         tags: ['привет', 'здравствуй', 'hello', 'hi', 'ку', 'start'],
@@ -220,14 +221,14 @@ const DEMO_TEMPLATES = [
     }
 ]
 
-function smartDemoReply(message, lang = 'ru', userRole = 'guest') {
+function smartFallbackReply(message, lang = 'ru', userRole = 'guest') {
     const lower = message.toLowerCase()
 
     // [HOTFIX-2026-08-04] added — short greeting, no monologue
     if (lower.includes('привет') || lower.includes('здравствуй') || lower.includes('hello') || lower.includes('hi')) {
         return {
             text: 'Привет! Я OMEGA. Чем помочь?',
-            provider: 'smart-demo',
+            provider: 'smart-fallback',
             source: 'template'
         }
     }
@@ -235,12 +236,12 @@ function smartDemoReply(message, lang = 'ru', userRole = 'guest') {
     if (lower.includes('что ты умеешь') || lower.includes('what can you do') || lower.includes('возможности')) {
         return {
             text: 'Вот чем я могу помочь: идеи и посты, сценарии Shorts/Reels, аналитика и метрики, тренды и хуки, время публикаций, brand voice, автопилот контента. Спроси по любому пункту.',
-            provider: 'smart-demo',
+            provider: 'smart-fallback',
             source: 'template'
         }
     }
 
-    const allTemplates = [...DEMO_TEMPLATES, ...TEMPLATES]
+    const allTemplates = [...FALLBACK_TEMPLATES, ...TEMPLATES]
     // Match by tags; prefer templates with more matching tags
     const scored = allTemplates
         .filter(t => Array.isArray(t.tags) && t.tags.length)
@@ -252,7 +253,7 @@ function smartDemoReply(message, lang = 'ru', userRole = 'guest') {
         .sort((a, b) => b.matches - a.matches)
 
     if (scored.length) {
-        return { text: scored[0].response, provider: 'smart-demo', source: 'template' }
+        return { text: scored[0].response, provider: 'smart-fallback', source: 'template' }
     }
 
     // [VALUE-2026-08-04] added: niche hook generator — returns real hooks by niche
@@ -264,12 +265,12 @@ function smartDemoReply(message, lang = 'ru', userRole = 'guest') {
         const random = hooks[Math.floor(Math.random() * hooks.length)]
         return {
             text: `Вот 3 хука для вашей ниши:\n\n1. ${hooks[0]}\n2. ${hooks[1]}\n3. ${hooks[2]}\n\nХотите — соберу полноценный пост или сценарий Reels под любой из них.`,
-            provider: 'smart-demo',
+            provider: 'smart-fallback',
             source: 'niche-template'
         }
     }
 
-    return { text: 'Опишите свою нишу подробнее, и я подготовлю идеи!', provider: 'smart-demo', source: 'template' }
+    return { text: 'Опишите свою нишу подробнее, и я подготовлю идеи!', provider: 'smart-fallback', source: 'template' }
 }
 
 const getKey = async (provider, ownerId = null) => {
@@ -662,11 +663,23 @@ const tryProviders = async (messages, ownerId = null) => {
         }
     }
 
-    // [P16-FINAL] All providers failed — return Smart Demo Mode response so OMEGA always replies
+    // [P16-FINAL] All providers failed — try Local Brain, then Smart Fallback
     const lastUserMessage = messages[messages.length - 1]?.content || ''
-    const demoReply = smartDemoReply(lastUserMessage, 'ru')
-    console.log('🧠 All providers failed — falling back to Smart Demo Mode')
-    return { reply: demoReply.text, provider: 'demo', demo: true, errors }
+    try {
+        const localBrain = new LocalBrain()
+        await localBrain.loadModel()
+        const local = await localBrain.generate(lastUserMessage, 256, 0.7)
+        if (local && typeof local.text === 'string' && local.text.length > 10) {
+            console.log(`[LOCAL_BRAIN] used for query: "${lastUserMessage.substring(0, 50)}..."`)
+            return { reply: local.text, provider: 'local_brain', source: local.source || local.model, errors }
+        }
+    } catch (err) {
+        console.warn('[LOCAL_BRAIN] fallback failed:', err.message)
+    }
+
+    const demoReply = smartFallbackReply(lastUserMessage, 'ru')
+    console.log('🧠 All providers failed — falling back to Smart Fallback')
+    return { reply: demoReply.text, provider: 'fallback', fallback: true, errors }
 }
 
 // ============ EXPORTS ============
@@ -742,13 +755,13 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
         return { success: true, ...value }
     } catch (error) {
         console.error('AI Service Error:', error.message)
-        // [HOTFIX-2026-08-04] added — pass role to demo reply
-        const reply = smartDemoReply(message, lang, options.userRole)
+        // [HOTFIX-2026-08-04] added — pass role to fallback reply
+        const reply = smartFallbackReply(message, lang, options.userRole)
         return {
             success: true,
-            demo: true,
+            fallback: true,
             reply: reply.text,
-            provider: 'demo',
+            provider: 'fallback',
             error: error.message
         }
     }

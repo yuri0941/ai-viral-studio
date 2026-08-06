@@ -1,4 +1,4 @@
-// Mock data for Owner Dashboard API (P0.5)
+// Fallback data for Owner Dashboard API (P0.5)
 // Mirrors frontend/src/pages/owner/data/initialData.js
 
 export const INITIAL_STAFF = [

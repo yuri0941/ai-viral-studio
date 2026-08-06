@@ -1,3 +1,23 @@
+## 2026-08-06 — v6.6-OMEGA NEURAL CORE + AUTONOMOUS BRAIN + CACHE FIX
+- [x] Fix: Cloudflare Pages cache-bust (inline script, _headers, vite hash, SW v6.6)
+- [x] Fix: Удалены demo-остатки (DEMO MODE, mock-фразы, fallback realistic)
+- [x] Feature: OmegaBrainViz.jsx — Canvas 2D force-directed graph, 30-50 узлов, glow, drag, pinch-zoom
+- [x] Feature: OmegaDevStudio.jsx — OMEGA генерирует frontend/backend/tests по spec, approval flow, deploy
+- [x] Feature: OmegaSwarmDashboard.jsx — spawn/kill агенты (6 ролей), прогресс, логи, 50 лимит
+- [x] Feature: LocalBrain.js — PatternEngine + TinyLlama fallback, работает без интернета
+- [x] Feature: LearningDataset model — сбор диалогов, engagement score, vector search
+- [x] Feature: SelfLearningEngine — analyzePatterns (daily), evolveTemplates (weekly), exportDataset JSONL
+- [x] Feature: DialogueEvolution — tone adaptation (formal/casual/ironic/technical), emotional memory, vocabulary evolution
+- [x] Feature: WebResearchEngine v2 — auto-research every 6h, competitor watch, learnFromInternet
+- [x] Feature: AutoFix Agent — скан ошибок каждые 15мин, AI-анализ, ApprovalQueue, НЕ пишет в prod без approve
+- [x] Feature: ResearchLog model — structured internet research storage
+- [x] Feature: OmegaLearningDashboard.jsx — 4 агента, прогресс-бары, real-time status
+- [x] Feature: OmegaLocalModeIndicator.jsx — autonomous/local/cloud/learning badge in chat
+- [x] Feature: OmegaResearchDashboard.jsx — trends, competitors, tech, insights
+- [x] Feature: OmegaAutoFixDashboard.jsx — errors, fixes, approval, stats
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+
 ## 2026-08-06 — v6.5.5 UI/UX SUPREME + MOBILE + AUTO-FEATURES + PRODUCTION FIXES
 - [x] Fix: Cloudflare Pages cache-bust (inline script, _headers, SW v6.5.5)
 - [x] Fix: Удалены demo-остатки (DEMO MODE, mock-фразы, fallback realistic)

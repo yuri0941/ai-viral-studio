@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v6.5.5-kill-cache-2026';
+const CACHE_NAME = 'v6.6-kill-cache-2026';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(n => Promise.all(n.map(c => caches.delete(c)))).then(() => self.clients.claim()));

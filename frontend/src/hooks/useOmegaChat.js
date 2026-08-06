@@ -56,7 +56,6 @@ export function useOmegaChat(options = {}) {
                     id: generateId(),
                     role: 'omega',
                     text: '⚡ Лимит генераций исчерпан. Чтобы продолжить, перейдите на платный тариф.',
-                    demo: true,
                     quota: true,
                     timestamp: new Date().toISOString(),
                 }])

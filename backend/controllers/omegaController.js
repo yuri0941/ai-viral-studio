@@ -22,6 +22,7 @@ import User from '../models/User.js'
 import axios from 'axios'
 import { checkQuota, consumeGeneration } from '../services/usageQuotaService.js'
 import { scrapeVideo } from '../services/youtubeScraper.js'
+import dialogueEvolution from '../ai/omega/dialogueEvolution.js'
 
 let omegaCore = null
 
@@ -56,7 +57,7 @@ export async function chat(req, res) {
             staff: 'Вы сотрудник поддержки. Доступ: тикеты, база знаний, чат.',
             creator: 'Вы клиент (creator). Доступ: свой проект, аналитика, контент.',
             advertiser: 'Вы рекламодатель. Доступ: кампании, бюджет, отчёты.',
-            guest: 'Вы гость. Доступ: демо-режим, ограниченные функции.'
+            guest: 'Вы гость. Доступ: ограниченные функции.'
         }[userRole] || 'Вы пользователь.'
 
         const guard = checkOmegaGuard(message, lang, userRole)
@@ -225,6 +226,20 @@ export async function chat(req, res) {
             }
         } catch (err) {
             console.warn('[omegaController:chat] privacy scan failed:', err.message)
+        }
+
+        // [v6.6] Dialogue evolution: tone adaptation + emotional memory
+        try {
+            const userId = req.user?._id || req.user?.id
+            if (userId) {
+                await dialogueEvolution.trackTone(userId, message)
+                if (/раздраж|frustrated|angry|annoyed|wtf|бесит|долго|не помогает/i.test(message)) {
+                    await dialogueEvolution.emotionalMemory(userId, 'frustration', 0.8)
+                }
+                responseText = await dialogueEvolution.adaptResponse(userId, responseText)
+            }
+        } catch (err) {
+            console.warn('[omegaController:chat] dialogue evolution failed:', err.message)
         }
 
         res.json({

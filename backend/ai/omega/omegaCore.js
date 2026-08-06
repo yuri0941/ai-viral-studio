@@ -7,6 +7,7 @@ import * as neuralGraph from './neuralGraph.js'
 import { getDirector } from './swarm/director.js'
 import dreamMode from './dreamMode.js'
 import { scheduleDailyAnalysis, getApprovalQueue } from './omegaCoder.js'
+import LocalBrain from './localBrain.js'
 
 export const OMEGA_STATES = {
     IDLE: 'idle',
@@ -60,6 +61,9 @@ export class OmegaCore {
         this.director = config.director || getDirector()
         this.dreamMode = config.dreamMode || dreamMode
         this.coderScheduled = false
+        this.localBrain = new LocalBrain()
+        this.localBrainEnabled = true
+        this.localBrain.loadModel().catch(() => {})
     }
 
     getGraphContext(query, depth = 3) {

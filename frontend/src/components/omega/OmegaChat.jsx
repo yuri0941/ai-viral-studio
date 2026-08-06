@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, Send } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
+import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 
 const ACTION_BUTTONS = [
   { id: 'hook', label: 'Сделать хук', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для этого видео' },
@@ -121,18 +122,21 @@ export default function OmegaChat({
   return (
     <div className="flex flex-col h-full bg-[#0a0a0f] text-white">
       {/* Header — single, above messages */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
-        <div className="relative">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-lg font-bold">AI</div>
-          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0a0a0f]"></span>
-        </div>
-        <div>
-          <div className="text-sm font-semibold">AI Viral Studio</div>
-          <div className="text-[11px] text-emerald-400 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-            OMEGA онлайн
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-lg font-bold">AI</div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0a0a0f]"></span>
+          </div>
+          <div>
+            <div className="text-sm font-semibold">AI Viral Studio</div>
+            <div className="text-[11px] text-emerald-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+              OMEGA онлайн
+            </div>
           </div>
         </div>
+        <OmegaLocalModeIndicator />
       </div>
 
       {/* Messages */}

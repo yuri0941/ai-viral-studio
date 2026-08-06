@@ -72,6 +72,10 @@ import uploadRoutes from './routes/upload.js'  // [P21] added: image upload opti
 import scheduledPostsRoutes from './routes/scheduledPosts.js'  // [v6.0-fix] added: missing import
 import approvalRoutes from './routes/approval.js'  // [v6.5] added: OMEGA approval queue
 import repurposingRoutes from './routes/repurposing.js'  // [v6.5] added: content repurposing engine
+import devStudioRoutes from './routes/devStudio.js'  // [v6.6] added: OMEGA DevStudio
+import swarmRoutes from './routes/swarm.js'  // [v6.6] added: OMEGA Swarm
+import autoFixRoutes from './routes/autoFix.js'  // [v6.6] added: AutoFix Agent
+import researchRoutes from './routes/research.js'  // [v6.6] added: Web Research Engine
 import versionRoutes from './routes/version.js'  // [v6.5.5] added: version API
 import fallbackRoutes from './routes/fallbackRoutes.js'  // [v6.0] added: structured fallback routes
 
@@ -97,6 +101,8 @@ import { startFailoverCron } from './services/failoverService.js'
 import { startSelfHealing } from './services/selfHealing.js'
 import { startSelfReflectionCron } from './services/selfReflection.js'
 import { startReflectionCron as startNeuralReflectionCron } from './ai/omega/selfReflection.js'
+import { startSelfLearningCrons } from './ai/omega/selfLearningEngine.js'
+import { startWebResearchCrons } from './ai/omega/webResearchEngine.js'
 import { runEvolutionCron } from './services/templateEvolution.js'
 import { resolveABTests } from './services/abAutoLearning.js'
 import { createOmegaBackend } from './ai/omega/index.js'
@@ -126,7 +132,7 @@ if (!isConnected) {
     if (process.env.NODE_ENV === 'production') {
         process.exit(1)
     }
-    console.warn('⚠️  Continuing in fallback/demo mode (development only)')
+    console.warn('⚠️  Continuing in fallback mode (development only)')
 }
 
 // Start OMEGA AutoPilot cron (it checks enabled owners internally)
@@ -136,6 +142,8 @@ startFailoverCron()
 startSelfHealing()
 startSelfReflectionCron()
 startNeuralReflectionCron()
+startSelfLearningCrons()
+startWebResearchCrons()
 
 // P15: Self-improvement crons
 if (isConnected) {
@@ -309,6 +317,10 @@ app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
 app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API
 app.use('/api/omega', omegaRoutes)  // ← НОВОЕ: OMEGA Core API
+app.use('/api/omega', devStudioRoutes)  // [v6.6] added: OMEGA DevStudio
+app.use('/api/omega', swarmRoutes)  // [v6.6] added: OMEGA Swarm
+app.use('/api/omega', autoFixRoutes)  // [v6.6] added: AutoFix Agent
+app.use('/api/omega', researchRoutes)  // [v6.6] added: Web Research Engine
 app.use('/api/ad-requests', adRequestRoutes)  // ← НОВОЕ: AdRequests / Client chat
 app.use('/api/subscriptions', subscriptionRoutes)  // ← P10: Подписки
 app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета

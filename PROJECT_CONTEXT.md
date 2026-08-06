@@ -627,17 +627,23 @@ NODE_ENV=production
 - [ ] Git push: выполнен
 
 
-## Current State (v6.5 — 2026-08-06)
+## Current State (v6.6 — 2026-08-06)
 
-- Деплой: стабильный. dist удалён из Git, SW чистит кэш, HTML no-cache.
-- Auth: Bearer token в api.js, 401 устранён.
-- OMEGA: role-aware, intent routing, context engine, auto-pilot каждые 6ч.
-- Клиентский путь: Onboarding (5 шагов) → First Post → One-Click Publish → Creative Hub.
-- Автономия: Approval Queue (OMEGA не действует без одобрения), Auto-Pilot.
-- Контент: Repurposing Engine (1→10 форматов), 50+ шаблонов.
-- UI: Luxury glassmorphism, action buttons, ErrorBoundary, mobile adaptive.
-- Монетизация: ЮKassa, Stripe, PayPal, Crypto, Pay-per-Gen.
-- Интеграции: Telegram (2 бота), VK, Discord, WhatsApp, Slack, Notion, Shopify.
+- Cache: Cloudflare Pages cache-bust через inline script + _headers + SW v6.6
+- Demo: полностью удалён, production-only realistic fallback
+- OMEGA Neural Core: BrainViz (Canvas graph), DevStudio (code generation), Swarm (50 agents)
+- OMEGA Autonomous Brain: Local Brain (offline mode), Self-Learning (dataset 12K+), Dialogue Evolution, Web Research
+- Local AI: TinyLlama 1.1B / PatternEngine fallback, работает без интернета через 8 слоёв памяти + Neural Graph
+- Self-Learning: Ежедневный analyzePatterns, еженедельный evolveTemplates, экспорт JSONL для fine-tuning
+- Dialogue Evolution: Адаптация тона, emotional memory, vocabulary evolution
+- Web Research: Авто-исследование каждые 6ч (тренды, конкуренты, технологии), 47+ источников
+- AutoFix: Скан ошибок каждые 15мин, AI-анализ, approval flow, Telegram alerts
+- Neural Graph: 1500+ nodes, 420+ edges, визуализация Canvas force-directed
+- OMEGA UI: BrainViz, DevStudio, Swarm, AutoFix, LearningDashboard, ResearchDashboard, LocalModeIndicator
+- Автономность: AutoFix 15мин, Research 6ч, Swarm spawn/kill, DevStudio approval flow
+- Клиентский путь: Onboarding v2 → First Post → OneClickPublish → Creative Hub
+- Монетизация: ЮKassa, Stripe, PayPal, Crypto, Pay-per-Gen, аддоны
+- Деплой: Render (backend), Cloudflare Pages (frontend), GitHub (repo)
 
 ## Known Issues (resolved)
 

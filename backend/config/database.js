@@ -11,7 +11,7 @@ const connectDB = async () => {
     } catch (error) {
         isConnected = false
         console.error(`❌ MongoDB Error: ${error.message}`)
-        console.warn('⚠️  Running in MOCK/DEMO mode. Database queries will return fallback data.')
+        console.warn('⚠️  Running in fallback mode. Database queries will return fallback data.')
         try {
             mongoose.set('bufferCommands', false)
         } catch {

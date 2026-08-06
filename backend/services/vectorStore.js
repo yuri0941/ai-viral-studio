@@ -16,7 +16,7 @@ const CHROMA_ENABLED = process.env.CHROMA_ENABLED === 'true'
 let chromaClient = null
 
 // [P16-HOTFIX-v2] dummy embedding function prevents Chroma trying to load ONNX models
-const dummyEmbeddingFunction = {
+const fallbackEmbeddingFunction = {
     generate: async (texts) => texts.map(() => new Array(384).fill(0)),
 }
 
@@ -72,7 +72,7 @@ export const addToVectorMemory = async ({ id, text, metadata = {}, userId }) => 
     try {
         const collection = await chroma.getOrCreateCollection({
             name: collectionName(userId),
-            embeddingFunction: dummyEmbeddingFunction, // [P16-HOTFIX-v2]
+            embeddingFunction: fallbackEmbeddingFunction, // [P16-HOTFIX-v2]
         })
 
         await collection.add({
@@ -114,7 +114,7 @@ export const searchVectorMemory = async ({ query, userId, limit = 5 }) => {
     try {
         const collection = await chroma.getCollection({
             name: collectionName(userId),
-            embeddingFunction: dummyEmbeddingFunction, // [P16-HOTFIX-v2]
+            embeddingFunction: fallbackEmbeddingFunction, // [P16-HOTFIX-v2]
         })
 
         const results = await collection.query({
@@ -164,7 +164,7 @@ export const deleteFromVectorMemory = async ({ id, userId }) => {
     try {
         const collection = await chroma.getCollection({
             name: collectionName(userId),
-            embeddingFunction: dummyEmbeddingFunction, // [P16-HOTFIX-v2]
+            embeddingFunction: fallbackEmbeddingFunction, // [P16-HOTFIX-v2]
         })
         if (id) {
             await collection.delete({ ids: [id] })

@@ -11,7 +11,7 @@ function hashId(type, data) {
     return crypto.createHash('sha256').update(`${type}:${payload}`).digest('hex').slice(0, 16)
 }
 
-function simpleEmbedding(text) {
+export function simpleEmbedding(text) {
     // Упрощённый fake-embedding: частотный вектор букв (для in-memory similarity)
     const vector = new Array(128).fill(0)
     const normalized = String(text).toLowerCase()

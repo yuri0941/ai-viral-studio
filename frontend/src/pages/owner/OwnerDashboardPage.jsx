@@ -37,6 +37,12 @@ import { OmegaFinanceTab } from './components/tabs/OmegaFinanceTab'
 import { OmegaSkillsTab } from './components/tabs/OmegaSkillsTab'
 import { OmegaMemoryTab } from './components/tabs/OmegaMemoryTab'
 import { OmegaApprovalQueue } from '../../components/omega/OmegaApprovalQueue.jsx'
+import OmegaBrainViz from '../../components/omega/OmegaBrainViz.jsx'
+import OmegaDevStudio from '../../components/omega/OmegaDevStudio.jsx'
+import OmegaSwarmDashboard from '../../components/omega/OmegaSwarmDashboard.jsx'
+import OmegaAutoFixDashboard from '../../components/omega/OmegaAutoFixDashboard.jsx'
+import OmegaLearningDashboard from '../../components/omega/OmegaLearningDashboard.jsx'
+import OmegaResearchDashboard from '../../components/omega/OmegaResearchDashboard.jsx'
 import { OwnerRequisitesTab } from './components/tabs/OwnerRequisitesTab'
 import { LegalSettingsTab } from './components/tabs/LegalSettingsTab'
 import { BrandVoiceTab } from './components/tabs/BrandVoiceTab'
@@ -79,7 +85,8 @@ import {
     Megaphone, Lock, Plug, Brain, FileText, Bot, MessageSquare,
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
     BrainCircuit, Database, Scale, BarChart, BarChart3, Search, Calendar, TrendingUp, Zap,
-    X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, QrCode, Store, Shield, Terminal
+    X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, Code2, QrCode, Store, Shield, Terminal, Network,
+    Wrench, GraduationCap, Microscope
 } from 'lucide-react'
 
 const TAB_ICONS = {
@@ -109,6 +116,7 @@ const TAB_ICONS = {
     help: HelpCircle,
     feedback: Heart,
     devStudio: Rocket,
+    devstudio: Code2,
     omegaFinance: Wallet,
     omegaSkills: BrainCircuit,
     omegaMemory: Database,
@@ -130,6 +138,11 @@ const TAB_ICONS = {
     selfHealing: Shield,
     sandbox: Terminal,
     approvalQueue: Shield,
+    neural: Network,
+    swarm: Bot,
+    autofix: Wrench,
+    learning: GraduationCap,
+    research: Microscope,
 }
 
 // [v6.0] added: count-up hook with requestAnimationFrame
@@ -303,12 +316,18 @@ export default function OwnerDashboardPage() {
             case 'agents': return <AgentsTab data={ownerData} />
             case 'chat': return <ChatTab data={ownerData} />
             case 'omega': return <OMEGACoreTab data={ownerData} />
+            case 'neural': return <OmegaBrainViz data={ownerData} />
             case 'tasks': return <TasksTab data={ownerData} />
             case 'apiKeys': return <ApiKeysTab data={ownerData} />
             case 'notifications': return <NotificationsTab data={ownerData} />
             case 'help': return <HelpTab data={ownerData} />
             case 'feedback': return <FeedbackTab data={ownerData} />
             case 'devStudio': return <DevStudioTab data={ownerData} />
+            case 'devstudio': return <OmegaDevStudio />
+            case 'swarm': return <OmegaSwarmDashboard />
+            case 'autofix': return <OmegaAutoFixDashboard />
+            case 'learning': return <OmegaLearningDashboard />
+            case 'research': return <OmegaResearchDashboard />
             case 'omegaFinance': return <OmegaFinanceTab data={ownerData} />
             case 'omegaSkills': return <OmegaSkillsTab data={ownerData} />
             case 'omegaMemory': return <OmegaMemoryTab data={ownerData} />

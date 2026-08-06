@@ -8,7 +8,7 @@ function generateEmptyHeatmap() {
     return DEMO_HOURS.map(hour => ({ hour, activity: 0, label: `${hour}:00` }))
 }
 
-function generateDemoAudience() {
+function generateFallbackAudience() {
     return {
         ageGroups: [
             { label: '13-17', value: 0 },
@@ -35,8 +35,8 @@ export async function fetchAudienceInsights({ platform, userId, accessToken }) {
             platform,
             message: 'Подключите соцсеть и предоставьте доступ к аудитории',
             action: 'settings',
-            demo: true,
-            data: generateDemoAudience(),
+            fallback: true,
+            data: generateFallbackAudience(),
         }
     }
 
@@ -47,7 +47,7 @@ export async function fetchAudienceInsights({ platform, userId, accessToken }) {
                 status: 'success',
                 platform,
                 note: 'YouTube Analytics требует OAuth2 доступа к каналу. Данные из реального API при подключении.',
-                data: generateDemoAudience(),
+                data: generateFallbackAudience(),
             }
         }
 
@@ -82,7 +82,7 @@ export async function fetchAudienceInsights({ platform, userId, accessToken }) {
             status: 'unsupported',
             platform,
             message: 'Аудитория для этой платформы пока не реализована',
-            data: generateDemoAudience(),
+            data: generateFallbackAudience(),
         }
     } catch (err) {
         console.error(`[audienceService] ${platform} audience failed:`, err.message)
@@ -90,7 +90,7 @@ export async function fetchAudienceInsights({ platform, userId, accessToken }) {
             status: 'error',
             platform,
             message: `Ошибка аудитории: ${err.message}`,
-            data: generateDemoAudience(),
+            data: generateFallbackAudience(),
         }
     }
 }
@@ -103,7 +103,7 @@ export async function getAllAudienceInsights(userId) {
                 const integration = await Integration.findOne({ userId, provider: platform }).select('+accessToken').lean()
                 return await fetchAudienceInsights({ platform, userId, accessToken: integration?.accessToken })
             } catch (err) {
-                return { status: 'error', platform, message: err.message, data: generateDemoAudience() }
+                return { status: 'error', platform, message: err.message, data: generateFallbackAudience() }
             }
         })
     )

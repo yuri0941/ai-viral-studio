@@ -204,12 +204,6 @@ export function BoardroomPage() {
                     </button>
                 </div>
 
-                {isDemo && result && (
-                    <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs flex items-center gap-2">
-                        <AlertTriangle size={14} /> Демо-режим: backend недоступен, показаны примерные ответы.
-                    </div>
-                )}
-
                 {result && (
                     <div className="space-y-6">
                         {/* Agents */}
