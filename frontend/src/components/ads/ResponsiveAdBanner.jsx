@@ -20,25 +20,24 @@ export function ResponsiveAdBanner({ variant = 'auto', className = '' }) {
     if (closed) return null
 
     return (
-        <div className={`relative ${className}`}>
-            {/* Desktop floating card */}
-            <div className="hidden sm:flex flex-col fixed bottom-4 right-4 w-72 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 z-40">
-                <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-400">Реклама</span>
-                    <button onClick={handleClose} className="text-gray-500 hover:text-white text-xs" aria-label="Закрыть">✕</button>
-                </div>
-                <p className="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">Ваша реклама здесь</p>
-                <Link to="/advertiser" className="mt-3 w-full py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all text-center">Разместить рекламу</Link>
+        <div className={`fixed bottom-4 right-4 z-40 w-[300px] max-w-[calc(100vw-2rem)] glass-card rounded-xl p-4 shadow-2xl shadow-black/40 transition-opacity duration-300 ${className}`}>
+            <button
+                onClick={handleClose}
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs hover:scale-110 transition-transform z-50"
+                aria-label="Закрыть"
+            >
+                <X size={14} />
+            </button>
+            <div className="flex justify-between items-center mb-2">
+                <span className="text-xs text-gray-400">Реклама</span>
             </div>
-            {/* Mobile bottom sheet */}
-            <div className="sm:hidden fixed bottom-0 left-0 right-0 w-full bg-black/40 backdrop-blur-xl border-t border-white/10 rounded-t-2xl p-4 z-40">
-                <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-400">Реклама</span>
-                    <button onClick={handleClose} className="text-gray-500 hover:text-white text-xs" aria-label="Закрыть">✕</button>
-                </div>
-                <p className="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">Ваша реклама здесь</p>
-                <Link to="/advertiser" className="mt-3 w-full py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all text-center">Разместить рекламу</Link>
-            </div>
+            <p className="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">Ваша реклама здесь</p>
+            <Link
+                to="/advertiser"
+                className="mt-3 block w-full py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all text-center"
+            >
+                Разместить рекламу
+            </Link>
         </div>
     )
 }

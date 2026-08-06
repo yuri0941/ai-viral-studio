@@ -82,7 +82,8 @@ export default function OmegaChat({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSendMessage = (e) => {
+    if (e) e.preventDefault();
     if (!input.trim() || loading) return;
     send?.(input);
     setInput("");
@@ -115,7 +116,7 @@ export default function OmegaChat({
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      handleSendMessage();
     }
   };
 
@@ -173,7 +174,7 @@ export default function OmegaChat({
       </div>
 
       {/* Input */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 p-3 border-t border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+      <form onSubmit={handleSendMessage} className="fixed bottom-0 left-0 right-0 z-30 p-3 border-t border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center gap-2 bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-2xl px-3 py-2">
           <input
             value={input}
@@ -197,8 +198,7 @@ export default function OmegaChat({
             <Mic className="w-5 h-5" />
           </button>
           <button
-            onClick={handleSend}
-            type="button"
+            type="submit"
             disabled={!input.trim() && !attachment || loading}
             aria-label="Отправить"
             className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/20 active:scale-95 transition-transform disabled:opacity-30 disabled:scale-100"
@@ -212,7 +212,7 @@ export default function OmegaChat({
           </p>
         )}
         <p className="text-[10px] text-gray-500 text-center mt-1.5">Работаем через серверных провайдеров — ваши данные защищены</p>
-      </div>
+      </form>
     </div>
   );
 }

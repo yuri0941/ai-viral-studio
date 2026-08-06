@@ -88,7 +88,8 @@ export function useOmegaChat(options = {}) {
                     setMessages(prev => [...prev.filter(m => m.id !== retryId), {
                         id: generateId(),
                         role: 'omega',
-                        text: 'Соединение с основным сервером восстанавливается. Повторите запрос через 10 секунд.',
+                        text: '⚠️ Сервер временно недоступен. OMEGA переключает резервный канал... Повторите запрос через 10 сек.',
+                        isError: true,
                         error: retryErr.message,
                         timestamp: new Date().toISOString(),
                     }])

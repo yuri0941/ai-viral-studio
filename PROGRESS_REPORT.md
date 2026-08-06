@@ -1,3 +1,16 @@
+## 2026-08-07 — v6.5.5-H5 EMERGENCY FIX
+- [x] Fix: Созданы 6 моделей (ResearchLog, AgentLog, AutoFixLog, LearningDataset, DialogueProfile, GeneratedModule)
+- [x] Fix: Импорты в backend/routes/ — `../../models/` → `../models/`
+- [x] Fix: Импорты в backend/ai/omega/ — `../models/` → `../../models/`
+- [x] Fix: api.js — глобальная защита от HTML-ответа (content-type check)
+- [x] Fix: AutoReportWidget — не падает при HTML-ответе, placeholder fallback
+- [x] Fix: OmegaChat — optimistic UI (сообщение появляется сразу), e.preventDefault(), Enter/Shift+Enter
+- [x] Fix: OmegaChat — сообщение об ошибке при 503 (не молчит)
+- [x] Fix: AdBanner — fixed bottom-4 right-4, z-40, убран hover-transform на контейнере
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+- [x] Render: Clear Build Cache & Deploy
+
 ## 2026-08-06 — v6.5.5-FINAL LUXURY ADAPTIVE + UNIFIED UX
 - [x] Fix: Global CSS — overflow-x hidden, safe-area, z-index layers, touch-44, reduced-motion
 - [x] Fix: Header — fixed top-0, z-40, backdrop-blur, НЕ перекрывает контент (pt-20), dropdown z-45

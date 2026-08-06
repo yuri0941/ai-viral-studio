@@ -27,60 +27,32 @@ function getAuthHeaders() {
     return { Authorization: `Bearer ${token || ''}` }
 }
 
-async function request(path, options = {}, retryCount = 0) {
+async function request(path, options = {}) {
     const url = `${API_BASE}${path}`
-    let res
 
-    try {
-        res = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-                ...options.headers,
-            },
-            ...options,
-        })
-    } catch (networkErr) {
-        console.warn('[API] Network error:', networkErr.message)
-        return { success: false, message: 'Network error' }
-    }
+    const res = await fetch(url, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+            ...options.headers,
+        },
+    })
 
-    const contentType = res.headers.get('content-type') || ''
-    const isHtml = contentType.includes('text/html') || (!contentType.includes('application/json') && res.status >= 400)
-
-    // [v6.0] added: HTML fallback + retry guard
-    if (isHtml) {
-        const text = await res.text()
-        if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) {
-            console.warn('[API] HTML response, endpoint missing:', url)
-            return { success: false, message: 'Service temporarily unavailable' }
-        }
-    }
-
-    if (res.status === 429 && retryCount < 1) {
-        console.warn('[API] Rate limited, retrying once:', url)
-        await new Promise(r => setTimeout(r, 2000))
-        return request(path, options, retryCount + 1)
-    }
-
-    if (res.status === 502 || res.status === 503) {
-        console.warn('[API] Service unavailable:', url, res.status)
-        return { success: false, message: 'Service temporarily unavailable' }
-    }
-
+    // 🔴 ЗАЩИТА: если сервер отдал HTML (404/502/503), не пытаемся парсить как JSON
+    const contentType = res.headers.get('content-type')
     if (!contentType || !contentType.includes('application/json')) {
         const text = await res.text()
-        console.error('Non-JSON response from', url, ':', text.slice(0, 200))
-        throw new Error('Сервер вернул HTML вместо JSON. Возможно, endpoint не найден.')
+        console.error(`[API] Non-JSON from ${path}:`, text.slice(0, 150))
+        throw new Error(`Сервер вернул HTML (${res.status}). Возможно, endpoint не существует или backend недоступен.`)
     }
-
-    const data = await res.json()
 
     if (!res.ok) {
-        throw new Error(data?.message || data?.error || `HTTP ${res.status}`)
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(err.error || `HTTP ${res.status}`)
     }
 
-    return data
+    return res.json()
 }
 
 // ============================================
