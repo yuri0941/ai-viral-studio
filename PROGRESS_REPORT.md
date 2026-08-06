@@ -2715,3 +2715,14 @@
 - **Omega Memory per Role:** ✅ поле role в схеме, saveDialog/saveFact, selectResponse с userRole
 - **Build:** ✅ 0 ошибок
 - **Render:** ✅ Deploy успешен
+
+## 2026-08-06 — HOTFIX: Деплой и кэш
+- [x] Удален frontend/dist из Git
+- [x] Service Worker: force clean all caches
+- [x] main.jsx: unregister SW + clear caches
+- [x] index.html: no-cache meta tags
+- [x] vite.config.js: base и outDir проверены
+- [x] OmegaChat.jsx: export проверен
+- [x] Сборка frontend: 0 ошибок
+- [x] Backend check: 0 ошибок
+- [x] Git push: выполнен
