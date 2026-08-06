@@ -91,14 +91,7 @@ export default defineConfig(({ mode }) => ({
         }
     },
     build: {
-    rollupOptions: {
-      output: {
-        entryFileNames: 'assets/[name]-[hash]-v20260806202703.js',
-        chunkFileNames: 'assets/[name]-[hash]-v20260806202703.js',
-        assetFileNames: 'assets/[name]-[hash]-v20260806202703.[ext]'
-      }
-    },
-        outDir: 'dist',
+    outDir: 'dist',
         emptyOutDir: true,
         sourcemap: true,
         chunkSizeWarningLimit: 500,
@@ -109,7 +102,8 @@ export default defineConfig(({ mode }) => ({
                     ui: ['lucide-react', 'recharts', 'framer-motion'],
                     ai: ['@tanstack/react-query'],
                     omega: ['./src/ai/omega'],
-                },
+                output: { entryFileNames: 'assets/[name]-[hash]-v20260806203003.js', chunkFileNames: 'assets/[name]-[hash]-v20260806203003.js', assetFileNames: 'assets/[name]-[hash]-v20260806203003.[ext]' },
+    },
             },
         },
     },
