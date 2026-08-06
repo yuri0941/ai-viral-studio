@@ -78,3 +78,7 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
     </div>
   );
 }
+
+
+export const OmegaChatContainer = OmegaChat;
+
