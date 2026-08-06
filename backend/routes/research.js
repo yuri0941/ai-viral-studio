@@ -1,6 +1,6 @@
 import express from 'express'
 import { protect } from '../middleware/auth.js'
-import { ResearchLog } from '../../models/ResearchLog.js'
+import ResearchLog from '../models/ResearchLog.js'
 import webResearchEngine from '../ai/omega/webResearchEngine.js'
 
 const router = express.Router()
