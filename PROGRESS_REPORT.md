@@ -1,3 +1,14 @@
+## 2026-08-06 — v6.4-REAL-FIX: Деплой + OMEGA Chat
+- [x] main.jsx: SW unregister + cache clean (уже актуален — показана цитата)
+- [x] index.html: no-cache meta tags (уже актуальны — показана цитата)
+- [x] sw.js: force clean cache v6.4-kill-cache-2026 (уже актуален — показана цитата)
+- [x] OmegaChat.jsx: export OmegaChatContainer (уже актуален — показана цитата)
+- [x] App.jsx: импортов OmegaChat нет, опечаток нет (проверено)
+- [x] api.js: Bearer token interceptor (уже актуален — показана цитата)
+- [x] Сборка frontend: 0 ошибок (built in 1m 3s)
+- [x] Backend check: node --check backend/server.js — успешно
+- [x] Git push: выполнен (коммит документации)
+
 ## 2026-08-06 — v6.4-FINAL: dist удалён из Git
 - [x] Диагностика: git ls-files frontend/dist (проверен — пусто)
 - [x] .gitignore: frontend/dist/ и dist/ присутствуют, дубли удалены
