@@ -285,11 +285,17 @@ function SettingsPage() {
             }
 
             if (res?.fallback && res?.status === 'error') fallbackToYookassa();
-            showToast(res?.error || res?.message || t('subscriptions.paymentError'), 'error');
+            if (selectedPaymentMethod === 'stripe') {
+                console.warn('[SettingsPage:handlePayment] Stripe error:', res?.error || res?.message);
+            } else {
+                showToast(res?.error || res?.message || t('subscriptions.paymentError'), 'error');
+            }
         } catch (err) {
             if (err.name === 'AbortError') {
                 showToast(t('subscriptions.gatewayTimeout'), 'error');
                 fallbackToYookassa();
+            } else if (selectedPaymentMethod === 'stripe') {
+                console.warn('[SettingsPage:handlePayment] Stripe error:', err.message);
             } else {
                 console.error('[SettingsPage:handlePayment]', err);
                 showToast(err.message || t('subscriptions.paymentError'), 'error');
