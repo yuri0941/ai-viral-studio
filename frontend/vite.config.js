@@ -91,6 +91,13 @@ export default defineConfig(({ mode }) => ({
         }
     },
     build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/[name]-[hash]-v20260806202703.js',
+        chunkFileNames: 'assets/[name]-[hash]-v20260806202703.js',
+        assetFileNames: 'assets/[name]-[hash]-v20260806202703.[ext]'
+      }
+    },
         outDir: 'dist',
         emptyOutDir: true,
         sourcemap: true,
