@@ -1,3 +1,14 @@
+## 2026-08-06 — v6.4 Hotfix (Telegram + VK + Stripe + Icons)
+- [x] Skip: Telegram bots — webhook mode + singleton guard уже реализованы, polling отключён
+- [x] Check: node --check backend/integrations/telegram/ownerBot.js + omegaBot.js passed
+- [x] Skip: api.js — axios Bearer interceptor уже есть
+- [x] Fix: SettingsPage.jsx — ошибки Stripe теперь только console.warn, без toast
+- [x] Skip: OwnerDashboardPage.jsx — Zap уже в import
+- [x] Skip: OverviewTab.jsx — KeyRound уже в import
+- [x] Build: npm run build passed
+- [x] Push: commit bd4830d2 pushed to origin main
+- [ ] Render: Clear Build Cache & Deploy — нужно выполнить вручную
+
 ## 2026-08-06 — v6.4 Hotfix (Sidebar + PWA + Mobile)
 - [x] Fix: sw.js — CACHE_VERSION обновлён до 'v6.4-final'
 - [x] Fix: OmegaChatWidget — добавлен pb-[env(safe-area-inset-bottom)] для mobile expanded
