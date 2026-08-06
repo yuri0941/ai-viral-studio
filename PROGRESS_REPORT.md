@@ -1,3 +1,11 @@
+## 2026-08-06 — v6.4 Hotfix (Sidebar + PWA + Mobile)
+- [x] Fix: sw.js — CACHE_VERSION обновлён до 'v6.4-final'
+- [x] Fix: OmegaChatWidget — добавлен pb-[env(safe-area-inset-bottom)] для mobile expanded
+- [x] Skip: AppSidebar — Creative Hub у owner уже есть, отдельные вкладки удалены
+- [x] Skip: main.jsx — reg.update() + reload уже реализован
+- [x] Build: npm run build passed
+- [x] Push: commit 72620ed4 pushed to origin main
+
 ## 2026-08-06 — v6.4 Hotfix (Rate Limiter)
 - [x] Fix: rateLimiter.js — исправлен синтаксис handler, max: 10000 req/15min
 - [x] Check: node --check backend/middleware/rateLimiter.js passed
