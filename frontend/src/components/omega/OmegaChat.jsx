@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+﻿import React, { useState, useRef, useEffect } from "react";
 
 export default function OmegaChat({ messages = [], onSend, isLoading }) {
   const [input, setInput] = useState("");
@@ -14,7 +14,7 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0f] text-white">
-      {/* ШАПКА — ТОЛЬКО ЗДЕСЬ */}
+      {/* РЁРђРџРљРђ вЂ” РўРћР›Р¬РљРћ Р—Р”Р•РЎР¬ */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
         <div className="relative">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-lg font-bold">AI</div>
@@ -24,12 +24,12 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
           <div className="text-sm font-semibold">AI Viral Studio</div>
           <div className="text-[11px] text-emerald-400 flex items-center gap-1">
             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-            OMEGA онлайн
+            OMEGA РѕРЅР»Р°Р№РЅ
           </div>
         </div>
       </div>
 
-      {/* СООБЩЕНИЯ — БЕЗ ДУБЛЕЙ */}
+      {/* РЎРћРћР‘Р©Р•РќРРЇ вЂ” Р‘Р•Р— Р”РЈР‘Р›Р•Р™ */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, i) => (
           <div key={i} className={msg.sender === "user" ? "flex justify-end" : "flex flex-col items-start"}>
@@ -40,18 +40,18 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
                     <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                     <div className="flex items-center gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="text-[10px] text-gray-500">{msg.time}</span>
-                      <button className="text-gray-500 hover:text-violet-400 text-xs" onClick={() => navigator.clipboard?.writeText(msg.text)} title="Копировать">📋</button>
-                      <button className="text-gray-500 hover:text-violet-400 text-xs" onClick={() => onSend(msg.text)} title="Перегенерировать">🔄</button>
+                      <button className="text-gray-500 hover:text-violet-400 text-xs" onClick={() => navigator.clipboard?.writeText(msg.text)} title="РљРѕРїРёСЂРѕРІР°С‚СЊ">рџ“‹</button>
+                      <button className="text-gray-500 hover:text-violet-400 text-xs" onClick={() => onSend(msg.text)} title="РџРµСЂРµРіРµРЅРµСЂРёСЂРѕРІР°С‚СЊ">рџ”„</button>
                     </div>
                   </div>
                 </div>
-                {/* КНОПКИ ДЕЙСТВИЙ */}
+                {/* РљРќРћРџРљР Р”Р•Р™РЎРўР’РР™ */}
                 <div className="flex flex-wrap gap-2 mt-3">
                   {[
-                    { id: 'hook', label: 'Сделать хук', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для этого видео' },
-                    { id: 'script', label: 'Сценарий', icon: '📝', prompt: 'Напиши сценарий Reels/Shorts на основе этого анализа' },
-                    { id: 'cover', label: 'Обложка', icon: '🎨', prompt: 'Сгенерируй описание для AI-обложки к этому видео' },
-                    { id: 'plan', label: 'План', icon: '📅', prompt: 'Составь план публикации на неделю на основе этого анализа' }
+                    { id: 'hook', label: 'РЎРґРµР»Р°С‚СЊ С…СѓРє', icon: 'рџЄќ', prompt: 'РЎРіРµРЅРµСЂРёСЂСѓР№ 5 С†РµРїР»СЏСЋС‰РёС… С…СѓРєРѕРІ РґР»СЏ СЌС‚РѕРіРѕ РІРёРґРµРѕ' },
+                    { id: 'script', label: 'РЎС†РµРЅР°СЂРёР№', icon: 'рџ“ќ', prompt: 'РќР°РїРёС€Рё СЃС†РµРЅР°СЂРёР№ Reels/Shorts РЅР° РѕСЃРЅРѕРІРµ СЌС‚РѕРіРѕ Р°РЅР°Р»РёР·Р°' },
+                    { id: 'cover', label: 'РћР±Р»РѕР¶РєР°', icon: 'рџЋЁ', prompt: 'РЎРіРµРЅРµСЂРёСЂСѓР№ РѕРїРёСЃР°РЅРёРµ РґР»СЏ AI-РѕР±Р»РѕР¶РєРё Рє СЌС‚РѕРјСѓ РІРёРґРµРѕ' },
+                    { id: 'plan', label: 'РџР»Р°РЅ', icon: 'рџ“…', prompt: 'РЎРѕСЃС‚Р°РІСЊ РїР»Р°РЅ РїСѓР±Р»РёРєР°С†РёРё РЅР° РЅРµРґРµР»СЋ РЅР° РѕСЃРЅРѕРІРµ СЌС‚РѕРіРѕ Р°РЅР°Р»РёР·Р°' }
                   ].map(action => (
                     <button key={action.id} onClick={() => onSend(action.prompt)}
                       className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-violet-500/20 hover:text-violet-300 transition-all">
@@ -78,10 +78,10 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
             value={input} 
             onChange={(e) => setInput(e.target.value)} 
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Сообщение OMEGA..." 
+            placeholder="РЎРѕРѕР±С‰РµРЅРёРµ OMEGA..." 
             className="flex-1 bg-transparent text-sm outline-none text-white placeholder-gray-500"
           />
-          <button onClick={handleSend} disabled={isLoading} className="text-violet-400 hover:text-violet-300 disabled:opacity-30">➤</button>
+          <button onClick={handleSend} disabled={isLoading} className="text-violet-400 hover:text-violet-300 disabled:opacity-30">вћ¤</button>
         </div>
       </div>
     </div>
@@ -90,4 +90,5 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
 
 
 export const OmegaChatContainer = OmegaChat;
+
 
