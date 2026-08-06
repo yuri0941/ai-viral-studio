@@ -21,6 +21,21 @@ const ownerSettingsSchema = new mongoose.Schema({
         elevenLabsApiKey: { type: String, default: '', select: false },
         elevenLabsVoiceId: { type: String, default: '' },
     },
+    autoReport: {
+        enabled: { type: Boolean, default: true },
+        time: { type: String, default: '08:00' },
+        frequency: { type: String, enum: ['daily', 'weekly'], default: 'daily' },
+        channels: [{ type: String, enum: ['in-app', 'telegram', 'email'], default: 'in-app' }],
+    },
+    lastReport: {
+        date: Date,
+        mrr: Number,
+        newUsers: Number,
+        errors: Number,
+        topTrends: [String],
+        recommendations: [String],
+        generatedBy: { type: String, default: 'OMEGA' },
+    },
 }, {
     timestamps: true,
 })

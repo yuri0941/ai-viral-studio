@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { Mic, Send } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 
 const ACTION_BUTTONS = [
@@ -12,7 +13,7 @@ function getSectionMeta(title) {
   const lower = (title || '').toLowerCase();
   if (lower.includes('хук')) return { icon: '🪝', color: 'violet' };
   if (lower.includes('удерж') || lower.includes('retention')) return { icon: '📊', color: 'cyan' };
-  if (lower.includes('cta') || lower.includes('призыв') || lower.includes('призыв')) return { icon: '🎯', color: 'amber' };
+  if (lower.includes('cta') || lower.includes('призыв')) return { icon: '🎯', color: 'amber' };
   if (lower.includes('аудитор') || lower.includes('целевая') || lower.includes('ца')) return { icon: '👥', color: 'emerald' };
   if (lower.includes('вирус') || lower.includes('тренд')) return { icon: '🔥', color: 'rose' };
   if (lower.includes('ошибк') || lower.includes('исправ')) return { icon: '⚠️', color: 'orange' };
@@ -49,8 +50,31 @@ function renderAiContent(text) {
   );
 }
 
-export default function OmegaChat({ messages = [], onSend, isLoading }) {
-  const [input, setInput] = useState("");
+function isUserMessage(msg) {
+  return msg.role === 'user' || msg.sender === 'user';
+}
+
+function isAiMessage(msg) {
+  return msg.role === 'omega' || msg.role === 'ai' || msg.sender === 'ai' || msg.sender === 'omega';
+}
+
+export default function OmegaChat({
+  messages = [],
+  onSend,
+  sendMessage,
+  isLoading,
+  isTyping,
+  input: externalInput,
+  setInput: externalSetInput,
+  quotaError,
+}) {
+  const [internalInput, setInternalInput] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [attachment, setAttachment] = useState(null);
+  const input = externalInput !== undefined ? externalInput : internalInput;
+  const setInput = externalSetInput || setInternalInput;
+  const loading = isLoading || isTyping;
+  const send = onSend || sendMessage;
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -58,9 +82,40 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
   }, [messages]);
 
   const handleSend = () => {
-    if (!input.trim() || isLoading) return;
-    onSend(input);
+    if (!input.trim() || loading) return;
+    send?.(input);
     setInput("");
+    setAttachment(null);
+  };
+
+  const startVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      console.warn('Voice input not supported in this browser');
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'ru-RU';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
+      setInput(transcript);
+    };
+    recognition.onerror = (event) => {
+      console.error('Voice error:', event.error);
+      setIsRecording(false);
+    };
+    recognition.onend = () => setIsRecording(false);
+    recognition.start();
+    setIsRecording(true);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
@@ -83,17 +138,18 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, i) => (
-          <div key={msg.id || i} className={msg.sender === "user" ? "flex justify-end" : "flex flex-col items-start"}>
-            {msg.sender === "ai" ? (
+          <div key={msg.id || i} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
+            {isAiMessage(msg) ? (
               <>
-                {renderAiContent(msg.text)}
+                <div className="w-full max-w-[95%]">{renderAiContent(msg.text)}</div>
                 {/* Action buttons under every AI message */}
                 <div className="flex flex-wrap gap-2 mt-3 max-w-[95%]">
                   {ACTION_BUTTONS.map(action => (
                     <button
                       key={action.id}
-                      onClick={() => onSend(action.prompt)}
-                      className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-violet-500/20 hover:text-violet-300 transition-all"
+                      onClick={() => send?.(action.prompt)}
+                      disabled={loading}
+                      className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-violet-500/20 hover:text-violet-300 transition-all disabled:opacity-50"
                     >
                       {action.icon} {action.label}
                     </button>
@@ -101,7 +157,7 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
                 </div>
               </>
             ) : (
-              <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[85%]">
+              <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[95%]">
                 <p className="text-sm text-white whitespace-pre-wrap">{msg.text}</p>
                 {msg.time && <p className="text-[10px] text-gray-500 text-right mt-1">{msg.time}</p>}
               </div>
@@ -112,17 +168,44 @@ export default function OmegaChat({ messages = [], onSend, isLoading }) {
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t border-white/[0.06] shrink-0">
-        <div className="flex items-center gap-2 bg-white/[0.04] rounded-xl px-3 py-2">
+      <div className="sticky bottom-0 left-0 right-0 z-10 p-3 border-t border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+        <div className="flex items-center gap-2 bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-2xl px-3 py-2">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Сообщение OMEGA..."
-            className="flex-1 bg-transparent text-sm outline-none text-white placeholder-gray-500"
+            onKeyDown={handleKeyDown}
+            placeholder="Спросите OMEGA..."
+            disabled={loading}
+            className="flex-1 bg-transparent text-sm outline-none text-white placeholder-gray-500 disabled:opacity-50"
           />
-          <button onClick={handleSend} disabled={isLoading} className="text-violet-400 hover:text-violet-300 disabled:opacity-30">➤</button>
+          <button
+            onClick={startVoiceInput}
+            type="button"
+            disabled={loading}
+            aria-label={isRecording ? 'Запись голоса' : 'Голосовой ввод'}
+            className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${
+              isRecording
+                ? 'text-rose-500 animate-pulse'
+                : 'text-gray-400 hover:text-violet-300 hover:bg-white/[0.06]'
+            }`}
+          >
+            <Mic className="w-5 h-5" />
+          </button>
+          <button
+            onClick={handleSend}
+            type="button"
+            disabled={!input.trim() && !attachment || loading}
+            aria-label="Отправить"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/20 hover:scale-105 active:scale-95 transition-transform disabled:opacity-30 disabled:scale-100"
+          >
+            <Send className="w-5 h-5" />
+          </button>
         </div>
+        {quotaError && (
+          <p className="text-[10px] text-amber-400 text-center mt-1.5">
+            ⚡ Лимит генераций исчерпан. Чтобы продолжить, перейдите на платный тариф.
+          </p>
+        )}
         <p className="text-[10px] text-gray-500 text-center mt-1.5">Работаем через серверных провайдеров — ваши данные защищены</p>
       </div>
     </div>

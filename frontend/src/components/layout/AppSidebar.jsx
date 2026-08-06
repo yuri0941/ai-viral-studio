@@ -156,7 +156,7 @@ export function AppSidebar({
             onMouseEnter={() => !isMobile && setHovered(true)}
             onMouseLeave={() => !isMobile && setHovered(false)}
             className={`flex flex-col h-full bg-[var(--bg)] border-r border-[var(--border)] transition-[width] duration-300 z-50 relative ${
-                isExpanded ? 'w-[260px]' : 'w-[60px]'
+                isExpanded ? 'w-[280px]' : 'w-[72px]'
             }`}
         >
             {/* Header */}
@@ -192,6 +192,23 @@ export function AppSidebar({
                     )}
                 </div>
             </div>
+
+            {/* Mobile user avatar */}
+            {isMobile && isExpanded && (
+                <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--primary)] to-fuchsia-500 flex items-center justify-center text-sm font-bold text-white flex-shrink-0 overflow-hidden">
+                        {user?.avatar ? (
+                            <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                        ) : (
+                            initials || <Globe className="w-5 h-5" />
+                        )}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-[var(--text)] text-sm font-medium truncate">{user?.name || userRole}</p>
+                        <p className="text-[var(--text-muted)] text-[10px] truncate">{user?.email || `${userRole}@ai-viral.com`}</p>
+                    </div>
+                </div>
+            )}
 
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto p-3 space-y-4">
@@ -285,6 +302,9 @@ export function AppSidebar({
                     <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
                     {isExpanded && <span>{t('common.logout', 'Выйти')}</span>}
                 </button>
+                {isExpanded && (
+                    <p className="mt-3 text-center text-[10px] text-[var(--text-muted)]">AI Viral Studio v6.5.5</p>
+                )}
             </div>
         </div>
     )

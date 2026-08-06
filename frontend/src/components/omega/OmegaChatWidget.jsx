@@ -235,7 +235,8 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
                 isMobile ? (
                     <button
                         onClick={toggleOpen}
-                        className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30 flex items-center justify-center text-white text-xl z-50"
+                        className="fixed right-4 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30 flex items-center justify-center text-white text-xl z-50"
+                        style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
                         aria-label="Открыть чат OMEGA"
                     >
                         💬

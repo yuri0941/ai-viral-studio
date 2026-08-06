@@ -67,6 +67,28 @@ router.patch('/me/avatar', protect, async (req, res) => {
     }
 })
 
+// [v6.5.5] onboarding progress sync
+router.patch('/me/onboarding', protect, async (req, res) => {
+    try {
+        const { step, data, completed } = req.body || {}
+        const user = await User.findById(req.user._id || req.user.id)
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' })
+        const preferences = user.preferences || {}
+        preferences.onboarding = {
+            step: typeof step === 'number' ? step : (preferences.onboarding?.step ?? 0),
+            data: data || preferences.onboarding?.data || {},
+            completed: typeof completed === 'boolean' ? completed : (preferences.onboarding?.completed ?? false),
+            updatedAt: new Date(),
+        }
+        user.preferences = preferences
+        await user.save()
+        res.json({ success: true, preferences: user.preferences })
+    } catch (err) {
+        console.error('[users/me/onboarding]', err.message)
+        res.status(500).json({ success: false, message: err.message })
+    }
+})
+
 router.post('/change-password', protect, changePassword)
 router.post('/change-email', protect, changeEmail)
 router.delete('/me/data', protect, deleteMyData)

@@ -9,7 +9,7 @@ import {
     INITIAL_PROMOS,
     INITIAL_NEWS,
     INITIAL_AI_ANALYTICS,
-} from '../data/ownerMockData.js'
+} from '../data/ownerFallbackData.js'
 
 import {
     Payment,

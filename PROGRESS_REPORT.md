@@ -1,3 +1,22 @@
+## 2026-08-06 — v6.5.5 UI/UX SUPREME + MOBILE + AUTO-FEATURES + PRODUCTION FIXES
+- [x] Fix: Cloudflare Pages cache-bust (inline script, _headers, SW v6.5.5)
+- [x] Fix: Удалены demo-остатки (DEMO MODE, mock-фразы, fallback realistic)
+- [x] Fix: Dropdown z-index 9999 + createPortal + glassmorphism + стрелочка
+- [x] Fix: OMEGA Chat — голосовой ввод (Mic, Web Speech API, ru-RU), кнопка отправки (44px, gradient), Enter/Shift+Enter
+- [x] Fix: OmegaChatWidget — mobile FAB, bottom sheet, voice, send
+- [x] Feature: Luxury Sidebar v2 — macOS Dock style, glow active, tooltip, mobile drawer swipe-to-close, backdrop blur
+- [x] Feature: Glassmorphism v2 — glass-card, glow-border, luxury-gradient-text, hover effects
+- [x] Feature: Mobile Bottom Nav — ролевые 5 табов (Owner/Admin/Staff/Creator/Advertiser/Client), FAB, safe-area
+- [x] Feature: Mobile Responsive — таблицы → карточки, chat fixed bottom, safe-area
+- [x] Feature: Auto-Onboarding — auto-detect niche, auto-connect, skip with AI, progress sync, first post auto-create
+- [x] Feature: Auto-Report Widget — daily 08:00 briefing (MRR, clients, errors, trends), Telegram/email/push
+- [x] Feature: Auto-Ticket Helper — AI suggests 3 replies, auto-routing for staff
+- [x] Feature: Upgrade Nudge — smart suggestions based on behavior (generations, inactivity, tier)
+- [x] Feature: Competitor Radar — 6-axis radar chart vs ChatGPT/Claude/Kimi/Pippit/Descript, 8 unique features
+- [x] Feature: Production Versioning — version API, UpdateModal, offline queue, failover service, graceful degradation
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+
 ## 2026-08-06 — v6.5 ФИКС + ВОССТАНОВЛЕНИЕ + НОВЫЕ ФИЧИ
 - [x] Fix: api.js — Bearer token interceptor (401 устранён)
 - [x] Fix: SW — force clean cache v6.5-kill-cache-2026

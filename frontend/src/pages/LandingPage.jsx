@@ -10,6 +10,7 @@ import { API_URL } from '../config.js'
 import { PLANS, getPrice } from '../config/plans.js'
 import WaitlistSection from './landing/WaitlistSection'
 import ViralDemo from './landing/ViralDemo'
+import { OmegaCompetitorRadar } from '../components/omega/OmegaCompetitorRadar.jsx'
 // [P16-FINAL] added: launch pill replacing beta counter
 function LaunchPill() {
     return (
@@ -448,6 +449,13 @@ function LandingPage() {
                             )
                         })}
                     </div>
+                </div>
+            </section>
+
+            {/* Competitor Radar Section */}
+            <section id="why-us" className="py-24 relative">
+                <div className="max-w-5xl mx-auto px-6 lg:px-8">
+                    <OmegaCompetitorRadar />
                 </div>
             </section>
 

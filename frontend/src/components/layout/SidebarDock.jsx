@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
     LayoutDashboard, Brain, Wallet, BrainCircuit, Database,
@@ -10,7 +10,7 @@ import {
     Palette, LayoutTemplate, Flame, Cpu,
 } from 'lucide-react'
 
-// [P16-FIX] added: floating glass dock for desktop dashboards
+// [v6.5.5] macOS-Dock-style luxury glass sidebar for desktop dashboards
 
 const OWNER_GROUPS = [
     {
@@ -177,6 +177,12 @@ export function SidebarDock({ userRole = 'creator', user, onLogout }) {
         .slice(0, 2)
         .toUpperCase()
 
+    const renderTooltip = (label) => (
+        <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-[var(--glass)] backdrop-blur-xl border border-white/10 text-xs text-white whitespace-nowrap opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none z-[60] shadow-xl">
+            {label}
+        </span>
+    )
+
     const renderItems = (items) => items.map(item => {
         const Icon = item.icon
         const active = isItemActive(item)
@@ -184,16 +190,20 @@ export function SidebarDock({ userRole = 'creator', user, onLogout }) {
             <button
                 key={item.id || item.path}
                 onClick={() => handleItemClick(item)}
-                className={`group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-r-xl transition-all min-h-[44px] border-l-[3px] ${
+                className={`group relative flex items-center gap-3 w-full px-2 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
                     active
-                        ? 'border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]'
-                        : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'
+                        ? 'bg-[var(--primary)]/10 text-[var(--primary)] shadow-[0_0_15px_rgba(139,92,246,0.35)]'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-white/5'
                 }`}
-                title={item.label}
             >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-[var(--primary)]' : ''}`} />
-                {expanded && (
+                {active && (
+                    <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-[var(--primary)] shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
+                )}
+                <Icon className={`w-6 h-6 flex-shrink-0 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+                {expanded ? (
                     <span className="text-sm font-medium truncate whitespace-nowrap">{item.label}</span>
+                ) : (
+                    renderTooltip(item.label)
                 )}
             </button>
         )
@@ -203,15 +213,21 @@ export function SidebarDock({ userRole = 'creator', user, onLogout }) {
         <div
             onMouseEnter={() => setExpanded(true)}
             onMouseLeave={() => setExpanded(false)}
-            className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 hidden lg:flex flex-col glass-card-strong py-4 transition-[width] duration-300 ease-out ${
-                expanded ? 'w-[200px] px-3' : 'w-[64px] px-2'
+            className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 hidden lg:flex flex-col glass-card py-4 transition-[width] duration-300 ease-out ${
+                expanded ? 'w-[260px] px-3' : 'w-[72px] px-2'
             }`}
-            style={{ maxHeight: 'calc(100vh - 80px)' }}
+            style={{ maxHeight: 'calc(100vh - 80px)', borderRadius: 24 }}
         >
-            <div className="flex items-center justify-center mb-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center flex-shrink-0">
+            <div className={`flex items-center mb-4 ${expanded ? 'px-2 gap-3' : 'justify-center'}`}>
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center flex-shrink-0 shadow-lg shadow-violet-500/20">
                     <Crown className="w-5 h-5 text-[var(--text-inverse)]" />
                 </div>
+                {expanded && (
+                    <div className="min-w-0">
+                        <h1 className="text-[var(--text)] font-bold text-sm leading-tight truncate">AI Viral</h1>
+                        <p className="text-[var(--text-muted)] text-[10px]">Studio</p>
+                    </div>
+                )}
             </div>
 
             <nav className="flex-1 overflow-y-auto space-y-1 scrollbar-hide">
@@ -233,19 +249,25 @@ export function SidebarDock({ userRole = 'creator', user, onLogout }) {
             <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-1">
                 <button
                     onClick={() => navigate('/settings')}
-                    className="group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-all min-h-[44px]"
-                    title="Настройки"
+                    className="group relative flex items-center gap-3 w-full px-2 py-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-white/5 transition-all min-h-[44px]"
                 >
-                    <Settings className="w-5 h-5 flex-shrink-0" />
-                    {expanded && <span className="text-sm font-medium truncate">Настройки</span>}
+                    <Settings className="w-6 h-6 flex-shrink-0" />
+                    {expanded ? (
+                        <span className="text-sm font-medium truncate">Настройки</span>
+                    ) : (
+                        renderTooltip('Настройки')
+                    )}
                 </button>
                 <button
                     onClick={onLogout}
-                    className="group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-all min-h-[44px]"
-                    title="Выйти"
+                    className="group relative flex items-center gap-3 w-full px-2 py-2 rounded-xl text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-all min-h-[44px]"
                 >
-                    <LogOut className="w-5 h-5 flex-shrink-0" />
-                    {expanded && <span className="text-sm font-medium truncate">{initials} · Выйти</span>}
+                    <LogOut className="w-6 h-6 flex-shrink-0" />
+                    {expanded ? (
+                        <span className="text-sm font-medium truncate">{initials} · Выйти</span>
+                    ) : (
+                        renderTooltip('Выйти')
+                    )}
                 </button>
             </div>
         </div>

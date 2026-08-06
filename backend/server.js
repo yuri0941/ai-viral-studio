@@ -72,6 +72,7 @@ import uploadRoutes from './routes/upload.js'  // [P21] added: image upload opti
 import scheduledPostsRoutes from './routes/scheduledPosts.js'  // [v6.0-fix] added: missing import
 import approvalRoutes from './routes/approval.js'  // [v6.5] added: OMEGA approval queue
 import repurposingRoutes from './routes/repurposing.js'  // [v6.5] added: content repurposing engine
+import versionRoutes from './routes/version.js'  // [v6.5.5] added: version API
 import fallbackRoutes from './routes/fallbackRoutes.js'  // [v6.0] added: structured fallback routes
 
 // [v6.0-fix] added: fallback routers for expected frontend endpoints without mock data
@@ -91,6 +92,8 @@ import http from 'http'
 import cron from 'node-cron'
 import { initSocket } from './socket.js'
 import { startAutopilot } from './services/autoPilot.js'
+import { startAutoReportCron } from './services/autoReportService.js'
+import { startFailoverCron } from './services/failoverService.js'
 import { startSelfHealing } from './services/selfHealing.js'
 import { startSelfReflectionCron } from './services/selfReflection.js'
 import { startReflectionCron as startNeuralReflectionCron } from './ai/omega/selfReflection.js'
@@ -128,6 +131,8 @@ if (!isConnected) {
 
 // Start OMEGA AutoPilot cron (it checks enabled owners internally)
 startAutopilot()
+startAutoReportCron()
+startFailoverCron()
 startSelfHealing()
 startSelfReflectionCron()
 startNeuralReflectionCron()
@@ -341,6 +346,7 @@ app.use('/api/self-improvement', selfImprovementRoutes)
 app.use('/api/scheduled-posts', scheduledPostsRoutes)
 app.use('/api/approvals', approvalRoutes)  // [v6.5] added: OMEGA approval queue
 app.use('/api/repurposing', repurposingRoutes)  // [v6.5] added: content repurposing engine
+app.use('/api/version', versionRoutes)  // [v6.5.5] added: version API
 
 // [v6.0-fix] added: fallback routers for expected frontend endpoints (real empty structures, no mock)
 app.use('/api/analytics', analyticsFallbackRoutes)

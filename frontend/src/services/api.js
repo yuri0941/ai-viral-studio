@@ -451,6 +451,14 @@ export const monitoringApi = {
     sendSelfReflectionReport: () => request('/monitoring/self-reflection/send', { method: 'POST' }),
 }
 
+// [v6.5.5] scheduled posts
+export const scheduledPostsApi = {
+    list: () => request('/scheduled-posts'),
+    create: (data) => request('/scheduled-posts', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => request(`/scheduled-posts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    remove: (id) => request(`/scheduled-posts/${id}`, { method: 'DELETE' }),
+}
+
 // ============================================
 // Default export (kept for compatibility)
 // ============================================
@@ -479,4 +487,5 @@ export default {
     fleetApi,
     selfImprovementApi,
     monitoringApi,
+    scheduledPostsApi,
 }

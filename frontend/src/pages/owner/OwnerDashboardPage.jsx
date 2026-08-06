@@ -196,7 +196,7 @@ function MetricCard({ label, value, suffix = '', icon: Icon, delay = 0 }) {
         : count.toFixed(1)
     return (
         <div
-            className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10"
+            className="glass-card glow-border rounded-2xl p-6 animate-fade-in-up hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10"
             style={{ animationDelay: `${delay}ms` }}
         >
             <div className="flex items-start justify-between mb-2">

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { UpgradeNudge } from '../components/shared/UpgradeNudge.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { API_URL } from '../config'
@@ -81,7 +82,7 @@ function StatusBadge({ status }) {
 // [P16-FIX] added: glass bento stat card with gradient icon
 function StatCard({ label, value, sub, icon: Icon, gradient = 'from-[var(--primary)] to-[var(--accent)]' }) {
     return (
-        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+        <div className="glass-card glow-border rounded-2xl p-6 animate-fade-in-up hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
             <div className="flex items-center justify-between mb-3">
                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}>
                     <Icon size={20} className="text-white" />
@@ -162,6 +163,8 @@ function CreatorDashboardPage() {
                     <span>{t('creator.lastUpdated', { time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) })}</span>
                 </div>
             </div>
+
+            <UpgradeNudge user={user} postsCount={stats?.posts || 0} />
 
             {/* [VALUE-2026-08-04] added: empty state for new creators */}
             {!statsLoading && (stats?.posts || 0) === 0 && (

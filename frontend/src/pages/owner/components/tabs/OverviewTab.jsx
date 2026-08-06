@@ -13,6 +13,10 @@ import { formatCurrency } from '../../utils/helpers'
 import '../../../../styles/animations.css'
 import { useTranslation } from 'react-i18next'
 
+import { AutoReportWidget } from '../../../../components/owner/AutoReportWidget.jsx'
+import { UpgradeNudge } from '../../../../components/shared/UpgradeNudge.jsx'
+import { OmegaCompetitorRadar } from '../../../../components/omega/OmegaCompetitorRadar.jsx'
+
 function BentoCard({ title, value, subtext, icon: Icon, color, onClick, children, className = '' }) {
     return (
         <div
@@ -139,6 +143,9 @@ export function OverviewTab({ data }) {
                 />
             )}
 
+            <AutoReportWidget />
+
+            <UpgradeNudge user={user} />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <BentoCard
@@ -400,6 +407,8 @@ export function OverviewTab({ data }) {
                     </div>
                 )}
             </div>
+
+            <OmegaCompetitorRadar compact />
         </div>
     )
 }

@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 
 const __BUILD_TIMESTAMP__ = '20260806182933';
 console.log('[BUILD]', __BUILD_TIMESTAMP__);
@@ -16,6 +16,9 @@ import './i18n'
 import './index.css'
 import './styles/globals.css'
 import './styles/luxury.css'
+import { initOfflineSync } from './services/offlineSync.js'
+
+initOfflineSync()
 
 const queryClient = new QueryClient({
     defaultOptions: {

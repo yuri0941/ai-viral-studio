@@ -197,8 +197,9 @@ export function DashboardHeader({
                             <span className="uppercase">{language}</span>
                             <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${langOpen ? 'rotate-180' : ''}`} />
                         </button>
-                        {langOpen && (
-                            <div className="fixed right-4 top-16 w-32 rounded-xl bg-black/80 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden z-[9999]">
+                        {
+                            <div className={`fixed right-4 top-16 w-32 rounded-xl border border-white/10 shadow-2xl shadow-black/50 z-[9999] bg-[var(--glass)] backdrop-blur-xl transition-all duration-200 origin-top-right ${langOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                                <div className="absolute -top-1.5 right-4 w-3 h-3 bg-[var(--glass)] border-l border-t border-white/10 rotate-45" />
                                 {['ru', 'en'].map(lang => (
                                     <button
                                         key={lang}
@@ -212,7 +213,7 @@ export function DashboardHeader({
                                     </button>
                                 ))}
                             </div>
-                        )}
+                        }
                     </div>
 
                     <button
@@ -234,8 +235,9 @@ export function DashboardHeader({
                             <span className="hidden sm:inline">{currentRole.label}</span>
                             <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${roleOpen ? 'rotate-180' : ''}`} />
                         </button>
-                        {roleOpen && (
-                            <div className="fixed right-4 top-16 w-40 rounded-xl bg-black/80 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden z-[9999]">
+                        {
+                            <div className={`fixed right-4 top-16 w-40 rounded-xl border border-white/10 shadow-2xl shadow-black/50 z-[9999] bg-[var(--glass)] backdrop-blur-xl transition-all duration-200 origin-top-right ${roleOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                                <div className="absolute -top-1.5 right-4 w-3 h-3 bg-[var(--glass)] border-l border-t border-white/10 rotate-45" />
                                 {availableRoles.map(role => {
                                     const config = ROLE_CONFIG[role]
                                     const Icon = config.icon
@@ -253,7 +255,7 @@ export function DashboardHeader({
                                     )
                                 })}
                             </div>
-                        )}
+                        }
                     </div>
 
                     {workspaces.length > 0 && (
@@ -267,8 +269,9 @@ export function DashboardHeader({
                                 <span className="hidden sm:inline truncate max-w-[120px]">{activeWorkspace?.name || 'Проект'}</span>
                                 <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${wsOpen ? 'rotate-180' : ''}`} />
                             </button>
-                            {wsOpen && (
-                                <div className="fixed right-4 top-16 w-48 rounded-xl bg-black/80 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden z-[9999]">
+                            {
+                                <div className={`fixed right-4 top-16 w-48 rounded-xl border border-white/10 shadow-2xl shadow-black/50 z-[9999] bg-[var(--glass)] backdrop-blur-xl transition-all duration-200 origin-top-right ${wsOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                                    <div className="absolute -top-1.5 right-4 w-3 h-3 bg-[var(--glass)] border-l border-t border-white/10 rotate-45" />
                                     {workspaces.map(ws => (
                                         <button
                                             key={ws._id}
@@ -282,7 +285,7 @@ export function DashboardHeader({
                                         </button>
                                     ))}
                                 </div>
-                            )}
+                            }
                         </div>
                     )}
 

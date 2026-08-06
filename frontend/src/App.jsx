@@ -40,6 +40,56 @@ import GDPRPage from './pages/GDPRPage'
 import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
+import { UpdateModal } from './components/shared/UpdateModal.jsx'
+import { APP_VERSION } from './config/version.js'
+
+// Version check: warn if backend requires newer frontend
+function VersionCheck() {
+    const [update, setUpdate] = useState(null)
+    const [changelog, setChangelog] = useState([])
+
+    useEffect(() => {
+        let cancelled = false
+        fetch('/api/version')
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (!data || cancelled) return
+                if (data.requiredFrontend && data.requiredFrontend !== APP_VERSION) {
+                    fetch('/api/version/changelog')
+                        .then(r => r.ok ? r.json() : { changelog: [] })
+                        .then(cl => {
+                            if (cancelled) return
+                            setChangelog(cl.changelog || [])
+                            setUpdate(data.requiredFrontend)
+                        })
+                        .catch(() => {
+                            if (cancelled) return
+                            setUpdate(data.requiredFrontend)
+                        })
+                }
+            })
+            .catch(() => {})
+        return () => { cancelled = true }
+    }, [])
+
+    if (!update) return null
+
+    const handleUpdate = () => {
+        const token = localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('jwt')
+        if (token) localStorage.setItem('pending_auth_token', token)
+        window.location.reload(true)
+    }
+
+    return (
+        <UpdateModal
+            version={update}
+            changelog={changelog}
+            onUpdate={handleUpdate}
+            onRemind={() => setUpdate(null)}
+            onSkip={() => setUpdate(null)}
+        />
+    )
+}
 
 // [v6.0] added: Creative Hub + Luxury Document Viewer
 import CreativeHub from './components/creative-hub/CreativeHub.jsx'
@@ -173,9 +223,9 @@ function RoleRedirect() {
 // APP
 // ============================================
 function App() {
-  const BUILD_ID = '20260806180219'; console.log('[BUILD]', BUILD_ID);
-      // v6.4-force-rebuild
-  window.__APP_BUILD__ = 'v6.4-clean';
+  const BUILD_ID = 'v6.5.5-2026-08-06'; console.log('[BUILD]', BUILD_ID);
+      // v6.5.5-force-rebuild
+  window.__APP_BUILD__ = 'v6.5.5';
   console.log('[AI VIRAL STUDIO] Build:', window.__APP_BUILD__);
   useEffect(() => {
         const meta = document.createElement('meta')
@@ -196,6 +246,7 @@ function App() {
 
     return (
         <>
+            <VersionCheck />
             <Suspense fallback={
                 <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
                     <div className="animate-spin w-8 h-8 border-2 border-[#00ff41] border-t-transparent rounded-full" />

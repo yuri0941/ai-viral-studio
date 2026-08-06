@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AutoTicketHelper } from '../components/staff/AutoTicketHelper.jsx'
 import { useAuth } from '../context/AuthContext'
 import { API_BASE_URL } from '../config.js'
 import {
@@ -417,7 +418,7 @@ function StaffDashboardPage() {
                 ].map((stat, i) => {
                     const Icon = stat.icon
                     return (
-                        <div key={i} className={`bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 ${stat.bg}`}>
+                        <div key={i} className={`glass-card glow-border rounded-2xl p-6 animate-fade-in-up hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 ${stat.bg}`}>
                             <Icon size={22} className={`mb-2 ${stat.color}`} />
                             <p className="text-2xl font-bold">{stat.value}</p>
                             <p className="text-xs text-[var(--text-muted)] mt-1">{stat.label}</p>
@@ -690,6 +691,11 @@ function StaffDashboardPage() {
                                     </div>
                                 </div>
                             ))}
+                            <AutoTicketHelper
+                                ticket={selectedTicket}
+                                onSendReply={text => setReplyText(text)}
+                                onAssign={id => setSelectedTicket({ ...selectedTicket, assignedTo: id })}
+                            />
                         </div>
                         {/* Reply */}
                         {selectedTicket.status !== 'closed' && (

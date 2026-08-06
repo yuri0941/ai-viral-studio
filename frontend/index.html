@@ -3,6 +3,18 @@
 
 <head>
     <meta charset="UTF-8" />
+    <script>
+      (function(){
+        const BUILD='v6.5.5-2026-08-06';
+        const stored=localStorage.getItem('app_build');
+        if(stored!==BUILD){
+          localStorage.setItem('app_build',BUILD);
+          if('caches' in window) caches.keys().then(n=>n.forEach(c=>caches.delete(c)));
+          if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister()));
+          if(stored) location.reload(true);
+        }
+      })();
+    </script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">

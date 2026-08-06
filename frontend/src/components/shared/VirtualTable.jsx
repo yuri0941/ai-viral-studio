@@ -1,7 +1,19 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 
 const DEFAULT_ROW_HEIGHT = 52
+
+function useIsMobile(breakpoint = 768) {
+    const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < breakpoint)
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        const handler = () => setIsMobile(window.innerWidth < breakpoint)
+        window.addEventListener('resize', handler)
+        handler()
+        return () => window.removeEventListener('resize', handler)
+    }, [breakpoint])
+    return isMobile
+}
 
 export function VirtualTable({
     data = [],
@@ -19,6 +31,7 @@ export function VirtualTable({
 }) {
     const parentRef = useRef(null)
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
+    const isMobile = useIsMobile()
 
     const sortedData = [...data].sort((a, b) => {
         if (!sortConfig.key) return 0
@@ -53,6 +66,35 @@ export function VirtualTable({
         return (
             <div className={`flex items-center justify-center h-48 text-sm text-gray-500 ${className}`}>
                 {emptyMessage}
+            </div>
+        )
+    }
+
+    // Mobile card view: each row becomes a glass-card with key/value pairs
+    if (isMobile) {
+        return (
+            <div className={`grid grid-cols-1 gap-3 max-h-[${maxHeight}px] overflow-y-auto ${className}`}>
+                {sortedData.map((item, index) => {
+                    const rowKey = keyExtractor(item, index)
+                    return (
+                        <div
+                            key={rowKey}
+                            onClick={() => onRowClick?.(item)}
+                            className={`glass-card rounded-2xl p-4 space-y-2 ${onRowClick ? 'cursor-pointer' : ''} ${rowClassName}`}
+                        >
+                            {columns.map(col => (
+                                <div key={String(col.key)} className="flex justify-between gap-3 py-1 border-b border-white/[0.06] last:border-0">
+                                    <span className="text-xs text-[var(--text-muted)] shrink-0">{col.header}</span>
+                                    <span className="text-sm text-[var(--text)] text-right break-words">
+                                        {typeof col.cell === 'function'
+                                            ? col.cell(item, index)
+                                            : item[col.key] ?? '—'}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )
+                })}
             </div>
         )
     }
@@ -110,7 +152,7 @@ export function VirtualTable({
                                     <div key={String(col.key)} className="px-4 py-3 flex items-center text-sm text-[var(--text)] overflow-hidden">
                                         {typeof col.cell === 'function'
                                             ? col.cell(item, virtualItem.index)
-                                            : item[col.key] ?? '—'} // [P24] fixed: guard against undefined cell
+                                            : item[col.key] ?? '—'}
                                     </div>
                                 ))}
                             </div>
