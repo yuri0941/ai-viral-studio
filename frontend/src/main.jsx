@@ -1,4 +1,8 @@
 ﻿import React from 'react'
+
+const __BUILD_TIMESTAMP__ = '20260806182933';
+console.log('[BUILD]', __BUILD_TIMESTAMP__);
+
 // BUILD_TIMESTAMP: 20260806154723
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
@@ -58,3 +62,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </QueryClientProvider>
     </React.StrictMode>
 )
+
