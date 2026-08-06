@@ -1,4 +1,4 @@
-import { useEffect, Suspense, lazy, useState } from 'react'
+﻿import { useEffect, Suspense, lazy, useState } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
@@ -68,7 +68,7 @@ function DocumentPage() {
             .finally(() => setLoading(false))
     }, [fileId, fileName])
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading document…</div>
+    if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading documentвЂ¦</div>
 
     return (
         <div className="min-h-screen bg-[var(--bg)] p-4">
@@ -98,7 +98,7 @@ const PAGE_TITLES = {
     '/ai-vs-human': 'AI vs Human',
     '/boardroom': 'AI Boardroom',
     '/business-spawner': 'Business Spawner',
-    '/advertiser-requests': 'Заявки на рекламу',
+    '/advertiser-requests': 'Р—Р°СЏРІРєРё РЅР° СЂРµРєР»Р°РјСѓ',
 }
 
 // ============================================
@@ -171,7 +171,9 @@ function RoleRedirect() {
 // ============================================
 // APP
 // ============================================
-function App() {
+function App()
+  window.__APP_BUILD__ = 'v6.4-clean-' + Date.now();
+  console.log('[AI VIRAL STUDIO] Build:', window.__APP_BUILD__); {
     useEffect(() => {
         const meta = document.createElement('meta')
         meta.name = 'viewport'
@@ -369,3 +371,4 @@ function App() {
 }
 
 export default App
+
