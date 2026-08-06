@@ -1,4 +1,5 @@
-import React from 'react'
+﻿import React from 'react'
+// BUILD_TIMESTAMP: 20260806154723
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
