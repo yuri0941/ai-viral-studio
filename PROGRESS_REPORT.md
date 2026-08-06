@@ -1,3 +1,27 @@
+## 2026-08-06 — v6.5 ФИКС + ВОССТАНОВЛЕНИЕ + НОВЫЕ ФИЧИ
+- [x] Fix: api.js — Bearer token interceptor (401 устранён)
+- [x] Fix: SW — force clean cache v6.5-kill-cache-2026
+- [x] Fix: main.jsx — unregister SW + clear caches
+- [x] Fix: index.html — no-cache meta tags
+- [x] Fix: OmegaChat.jsx — LuxuryMessageCard, action buttons (🪝📝🎨📅), glassmorphism bubbles, single header
+- [x] Fix: OmegaChatWidget.jsx — mobile adaptive, no duplicate header
+- [x] Fix: AppSidebar.jsx — Creative Hub unified, убраны дубли
+- [x] Fix: DashboardHeader.jsx — dropdown z-index 9999
+- [x] Fix: SettingsPage.jsx — phone input не найден, шаг пропущен
+- [x] Fix: OwnerDashboard — glassmorphism luxury cards
+- [x] Fix: CreatorDashboard — glassmorphism + OmegaChat
+- [x] Fix: Graceful degradation — 401 fallback data + ErrorBoundary
+- [x] Fix: Landing — Telegram/Discord links
+- [x] Fix: Subscriptions — Stripe silent fail (console.warn)
+- [x] Fix: Telegram — deleteWebhook camelCase, webhook mode, 409 guard
+- [x] Feature: Client Onboarding Wizard (5 шагов: ниша → соцсети → стиль → подключение → первый пост)
+- [x] Feature: One-Click Publish (4 платформы с адаптацией)
+- [x] Feature: OMEGA Auto-Pilot (генерация идей каждые 6ч для активных клиентов)
+- [x] Feature: OMEGA Approval Queue (pending/approved/rejected для owner/admin)
+- [x] Feature: Content Repurposing Engine (10 форматов: shorts, reels, tiktok, telegram, twitter, blog, carousel, email, push, story)
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+
 ## 2026-08-06 — v6.4-MASTER-FIX: UI/UX + OMEGA Chat
 - [x] api.js: Bearer token interceptor уже актуален (проверено)
 - [x] OmegaChat.jsx: luxury glassmorphism bubbles + action buttons (🪝📝🎨📅)

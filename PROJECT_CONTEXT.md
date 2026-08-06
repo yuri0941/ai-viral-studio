@@ -627,29 +627,17 @@ NODE_ENV=production
 - [ ] Git push: выполнен
 
 
-## Current State (v6.4 Final — 2026-08-06)
+## Current State (v6.5 — 2026-08-06)
 
-- Backend: Node.js + Express, MongoDB, все роуты созданы
-- Rate Limiter: 500/15min auth, 300/15min omega/analytics/subscriptions, 50/15min guest
-- Auth: protect + requireRole (401/403 разделение)
-- OMEGA: Intent routing (video analysis), role-aware prompts (owner/admin/staff/client/creator/advertiser/guest), strip duplicate greetings
-- Integrations: VK, IG, TikTok, LinkedIn, YouTube, Pinterest, FB, Twitter, Discord — все с try-catch graceful fallback
-- VK: frontend axios interceptor с Bearer token
-- Payments: Stripe silent guard + lazy init, YooKassa 503 graceful error
-- Telegram: webhook mode (polling удалён), ownerBot.js полностью реализован (8 команд, Owner Mode, inline keyboards)
-- Telegram: deleteWebhook camelCase, 409 conflict guard
-- Frontend: React + Tailwind, Creative Hub unified (1 sidebar item), glassmorphism UI
-- Chat: единый компонент везде (Hub + Widget + Profile), логотип в шапке, нет дублей, gradient bubbles
-- UI: LuxuryMessageCard для анализа видео, action buttons под ответами, glassmorphism dashboards всех ролей
-- Roles: owner, admin, staff, client, creator, advertiser — OMEGA адаптирует приветствие
-- Header: dropdown fixed z-[9999], не обрезается
-- Components: LuxuryDocumentViewer, CreativeHub, unified OmegaChat
-- API Interceptor: HTML→JSON fallback, retry 429, 502/503 fallback, Bearer Authorization
-- PWA: Cache bust `v6.4-force-2`, `skipWaiting`, auto-reload on update, `main.jsx` force update
-- Mobile: OmegaChat FAB bottom-20 56px, bottom sheet 85vh, drag handle, safe-area-inset
-- Graceful degradation: OmegaMemoryTab, FinanceTab, SubscriptionsTab, TemplatesTab, UsageQuotaWidget
-- Seed: backend/scripts/seedUsers.js — все роли
-- Automation: run.sh, run.bat, .vscode/tasks.json
+- Деплой: стабильный. dist удалён из Git, SW чистит кэш, HTML no-cache.
+- Auth: Bearer token в api.js, 401 устранён.
+- OMEGA: role-aware, intent routing, context engine, auto-pilot каждые 6ч.
+- Клиентский путь: Onboarding (5 шагов) → First Post → One-Click Publish → Creative Hub.
+- Автономия: Approval Queue (OMEGA не действует без одобрения), Auto-Pilot.
+- Контент: Repurposing Engine (1→10 форматов), 50+ шаблонов.
+- UI: Luxury glassmorphism, action buttons, ErrorBoundary, mobile adaptive.
+- Монетизация: ЮKassa, Stripe, PayPal, Crypto, Pay-per-Gen.
+- Интеграции: Telegram (2 бота), VK, Discord, WhatsApp, Slack, Notion, Shopify.
 
 ## Known Issues (resolved)
 
