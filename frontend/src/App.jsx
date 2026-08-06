@@ -171,10 +171,11 @@ function RoleRedirect() {
 // ============================================
 // APP
 // ============================================
-function App()
-  window.__APP_BUILD__ = 'v6.4-clean-' + Date.now();
-  console.log('[AI VIRAL STUDIO] Build:', window.__APP_BUILD__); {
-    useEffect(() => {
+function App() {
+      // v6.4-force-rebuild
+  window.__APP_BUILD__ = 'v6.4-clean';
+  console.log('[AI VIRAL STUDIO] Build:', window.__APP_BUILD__);
+  useEffect(() => {
         const meta = document.createElement('meta')
         meta.name = 'viewport'
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover'
@@ -371,4 +372,6 @@ function App()
 }
 
 export default App
+
+
 
