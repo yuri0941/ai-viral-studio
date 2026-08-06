@@ -15,7 +15,6 @@ const learningDatasetSchema = new mongoose.Schema({
     timestamps: true,
 })
 
-learningDatasetSchema.index({ userId: 1, createdAt: -1 })
 learningDatasetSchema.index({ intent: 1 })
 
 export const LearningDataset = mongoose.model('LearningDataset', learningDatasetSchema)

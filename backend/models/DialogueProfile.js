@@ -18,7 +18,5 @@ const dialogueProfileSchema = new mongoose.Schema({
     timestamps: true,
 })
 
-dialogueProfileSchema.index({ userId: 1 })
-
 export const DialogueProfile = mongoose.model('DialogueProfile', dialogueProfileSchema)
 export default DialogueProfile
