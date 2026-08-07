@@ -214,4 +214,5 @@ export const TAB_LABELS = {
     research: '🔬 Research',
     monitoring: '📈 Мониторинг',
     resources: '⚡ Ресурсы',
+    roadmap: '🗺️ Roadmap',
 }

@@ -131,7 +131,7 @@ export function AutoReportWidget() {
                         <button type="button" onClick={() => setSettingsOpen(true)} className="p-2 min-w-[44px] min-h-[44px] rounded-lg bg-white/5 hover:bg-white/10 text-[var(--text-muted)] transition-colors flex items-center justify-center">
                             <Settings className="w-4 h-4" />
                         </button>
-                        <button type="button" onClick={() => setOpen(true)} className="px-3 py-2 min-h-[44px] rounded-lg bg-[var(--primary)]/20 text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)]/30 transition-colors">
+                        <button type="button" onClick={() => setOpen(true)} className="px-3 py-2 min-w-[44px] min-h-[44px] rounded-lg bg-[var(--primary)]/20 text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)]/30 transition-colors">
                             Посмотреть
                         </button>
                     </div>
@@ -151,7 +151,7 @@ export function AutoReportWidget() {
                         {!report ? (
                             <div className="text-center py-12 text-gray-400">
                                 <p>Отчёт ещё не сгенерирован.</p>
-                                <button onClick={generateNow} disabled={loading} className="mt-4 px-4 py-2 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm transition-colors" type="button">
+                                <button onClick={generateNow} disabled={loading} className="mt-4 px-4 py-2 min-w-[44px] min-h-[44px] rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm transition-colors" type="button">
                                     {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Сгенерировать сейчас'}
                                 </button>
                             </div>
@@ -266,7 +266,7 @@ export function AutoReportWidget() {
                             <button
                                 onClick={saveSettings}
                                 disabled={saving}
-                                className="w-full py-2.5 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                                className="w-full py-2.5 min-h-[44px] rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-semibold transition-colors disabled:opacity-50"
                              type="button">
                                 {saving ? 'Сохранение...' : 'Сохранить'}
                             </button>

@@ -303,7 +303,7 @@ export default function OmegaChat({
                       onClick={() => runQuickAction(action)}
                       type="button"
                       disabled={loading}
-                      className="px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-300 hover:bg-violet-500/20 hover:text-violet-300 transition-all disabled:opacity-50"
+                      className="px-3 py-1.5 min-w-[44px] min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-300 hover:bg-violet-500/20 hover:text-violet-300 transition-all disabled:opacity-50"
                     >
                       {action.icon} {t(action.label)}
                     </button>
@@ -349,7 +349,7 @@ export default function OmegaChat({
             type="button"
             disabled={loading}
             aria-label={isRecording ? t('chat.recording') : t('chat.mic')}
-            className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all ${
+            className={`min-w-[44px] min-h-[44px] w-12 h-12 flex items-center justify-center rounded-xl transition-all ${
               isRecording
                 ? 'text-rose-500 animate-pulse'
                 : 'text-gray-400 hover:text-violet-300 hover:bg-white/[0.06]'
@@ -361,7 +361,7 @@ export default function OmegaChat({
             type="submit"
             disabled={!input.trim() && !attachment || loading}
             aria-label={t('chat.send')}
-            className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/20 active:scale-95 transition-transform disabled:opacity-30 disabled:scale-100"
+            className="min-w-[44px] min-h-[44px] w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/20 active:scale-95 transition-transform disabled:opacity-30 disabled:scale-100"
           >
             <Send className="w-5 h-5" />
           </button>

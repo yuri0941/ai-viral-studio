@@ -97,7 +97,7 @@ export default function OmegaResourceManager() {
                     <h2 className="text-2xl font-bold">⚡ OMEGA Resource Manager</h2>
                     <p className="text-sm text-[var(--text-muted)]">Мониторинг API-кредитов, хранилища, трафика и авто-докупка</p>
                 </div>
-                <button onClick={runCheck} disabled={loading} className="btn btn-secondary text-sm flex items-center gap-2">
+                <button type="button" onClick={runCheck} disabled={loading} className="btn btn-secondary text-sm flex items-center gap-2 min-w-[44px] min-h-[44px]">
                     <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Проверить сейчас
                 </button>
             </div>
@@ -115,19 +115,19 @@ export default function OmegaResourceManager() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <ResourceCard icon={Cpu} title="API Credits" value={`${credits.percent || 0}% used`} percent={credits.percent || 0} color="text-blue-400">
                     <div className="text-xs text-[var(--text-muted)]">Баланс: {credits.totalBalance || 0} · Использовано: {credits.totalUsage || 0}</div>
-                    <button onClick={() => alert('Открыть провайдеры API')} className="mt-2 text-xs btn btn-primary w-full">Докупить кредиты</button>
+                    <button type="button" onClick={() => alert('Открыть провайдеры API')} className="mt-2 text-xs btn btn-primary w-full min-h-[44px]">Докупить кредиты</button>
                 </ResourceCard>
                 <ResourceCard icon={Database} title="MongoDB Storage" value={db.sizeHuman || '—'} percent={db.percent || 0} color="text-purple-400">
                     <div className="text-xs text-[var(--text-muted)]">{Math.round(db.size / 1024 / 1024 || 0)} MB</div>
-                    <button onClick={() => alert('Апгрейд Atlas')} className="mt-2 text-xs btn btn-secondary w-full">Апгрейд БД</button>
+                    <button type="button" onClick={() => alert('Апгрейд Atlas')} className="mt-2 text-xs btn btn-secondary w-full min-h-[44px]">Апгрейд БД</button>
                 </ResourceCard>
                 <ResourceCard icon={Wifi} title="Bandwidth" value={`${bw.percent || 0}%`} percent={bw.percent || 0} color="text-teal-400">
                     <div className="text-xs text-[var(--text-muted)]">Uptime: {Math.floor((bw.uptimeMinutes || 0) / 60)}h</div>
-                    <button onClick={() => alert('Render dashboard')} className="mt-2 text-xs btn btn-secondary w-full">Проверить Render</button>
+                    <button type="button" onClick={() => alert('Render dashboard')} className="mt-2 text-xs btn btn-secondary w-full min-h-[44px]">Проверить Render</button>
                 </ResourceCard>
                 <ResourceCard icon={TrendingUp} title="429 Errors" value={status?.errors429 || 0} percent={Math.min(100, (status?.errors429 || 0) / 50 * 100)} color="text-red-400">
                     <div className="text-xs text-[var(--text-muted)]">за последний час</div>
-                    <button onClick={() => alert('Добавить провайдера')} className="mt-2 text-xs btn btn-secondary w-full flex items-center justify-center gap-1"><Plus className="w-3 h-3" /> Добавить провайдера</button>
+                    <button type="button" onClick={() => alert('Добавить провайдера')} className="mt-2 text-xs btn btn-secondary w-full min-h-[44px] flex items-center justify-center gap-1"><Plus className="w-3 h-3" /> Добавить провайдера</button>
                 </ResourceCard>
             </div>
 
@@ -135,8 +135,9 @@ export default function OmegaResourceManager() {
                 <h3 className="text-lg font-bold mb-3">Авто-докупка ресурсов</h3>
                 <div className="flex flex-col md:flex-row md:items-center gap-4">
                     <button
+                        type="button"
                         onClick={toggleAutoUpgrade}
-                        className={`relative w-14 h-8 rounded-full transition-colors ${autoUpgrade ? 'bg-[var(--primary)]' : 'bg-white/10'}`}
+                        className={`relative w-14 h-8 min-h-[44px] rounded-full transition-colors ${autoUpgrade ? 'bg-[var(--primary)]' : 'bg-white/10'}`}
                     >
                         <span className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-white transition-transform ${autoUpgrade ? 'translate-x-6' : ''}`} />
                     </button>
@@ -149,7 +150,7 @@ export default function OmegaResourceManager() {
                         onChange={e => setLimit(e.target.value)}
                         className="glass-luxury rounded-lg px-3 py-2 text-sm w-32 bg-transparent"
                     />
-                    <button onClick={toggleAutoUpgrade} className="btn btn-primary text-sm">Сохранить лимит</button>
+                    <button type="button" onClick={toggleAutoUpgrade} className="btn btn-primary text-sm min-w-[44px] min-h-[44px]">Сохранить лимит</button>
                 </div>
             </div>
 

@@ -207,15 +207,17 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
                             <div className="md:hidden w-10 h-1 rounded-full bg-white/20 mx-auto mb-2" />
                             <div className="flex items-center justify-end gap-1">
                                 <button
+                                    type="button"
                                     onClick={toggleMinimize}
-                                    className="p-2 rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
+                                    className="p-2 min-w-[44px] min-h-[44px] rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors flex items-center justify-center"
                                     aria-label={isMinimized ? 'Развернуть' : 'Свернуть'}
                                 >
                                     {isMinimized ? <MessageSquare size={16} /> : <Minimize2 size={16} />}
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleClose}
-                                    className="p-2 rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
+                                    className="p-2 min-w-[44px] min-h-[44px] rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors flex items-center justify-center"
                                     aria-label="Закрыть"
                                 >
                                     <X size={16} />
@@ -234,8 +236,9 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
             {!isOpen && (
                 isMobile ? (
                     <button
+                        type="button"
                         onClick={toggleOpen}
-                        className="fixed right-4 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30 flex items-center justify-center text-white text-xl z-50"
+                        className="fixed right-4 min-w-[44px] min-h-[44px] w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30 flex items-center justify-center text-white text-xl z-50"
                         style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
                         aria-label="Открыть чат OMEGA"
                     >
@@ -248,10 +251,11 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
                     </button>
                 ) : (
                     <button
+                        type="button"
                         onClick={toggleOpen}
                         onMouseDown={handlePointerDown}
                         onTouchStart={handlePointerDown}
-                        className="fixed z-fab companion-orb transition-transform active:scale-95"
+                        className="fixed z-fab companion-orb transition-transform active:scale-95 min-w-[44px] min-h-[44px]"
                         style={{ left: position.x, top: position.y }}
                         aria-label="Открыть чат OMEGA"
                     >

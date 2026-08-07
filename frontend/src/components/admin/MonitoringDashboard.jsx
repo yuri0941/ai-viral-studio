@@ -119,10 +119,10 @@ export default function MonitoringDashboard() {
                     <p className="text-sm text-[var(--text-muted)]">Реальное время · обновление каждые 30 сек</p>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={load} disabled={loading} className="btn btn-secondary text-sm flex items-center gap-2">
+                    <button type="button" onClick={load} disabled={loading} className="btn btn-secondary text-sm flex items-center gap-2 min-w-[44px] min-h-[44px]">
                         <Activity className="w-4 h-4" /> Обновить
                     </button>
-                    <button onClick={handleDownloadLogs} className="btn btn-primary text-sm flex items-center gap-2">
+                    <button type="button" onClick={handleDownloadLogs} className="btn btn-primary text-sm flex items-center gap-2 min-w-[44px] min-h-[44px]">
                         <Download className="w-4 h-4" /> Скачать логи
                     </button>
                 </div>
