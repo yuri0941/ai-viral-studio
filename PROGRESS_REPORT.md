@@ -1,3 +1,14 @@
+## 2026-08-07 — v6.5.5-H7 OMEGA ЧАТ FIX
+- [x] Fix: API_BASE_URL = https://aiviral-backend.onrender.com/api (полный URL, не относительный)
+- [x] Fix: Backend роут /api/omega/chat проверен и подключён в server.js
+- [x] Fix: CORS origin содержит ai-viral-studio.pages.dev
+- [x] Fix: api.js — глобальная защита от HTML-ответа + логи
+- [x] Fix: OmegaChat — optimistic UI (сообщение сразу), e.preventDefault(), error message вместо молчания
+- [x] Fix: AutoReportWidget — placeholder fallback при HTML-ответе
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+- [x] Render: Clear Build Cache & Deploy — требует ручного действия в Render Dashboard (авто-деплой от git push активен)
+
 ## 2026-08-07 — v6.5.5-H5 EMERGENCY FIX
 - [x] Fix: Созданы 6 моделей (ResearchLog, AgentLog, AutoFixLog, LearningDataset, DialogueProfile, GeneratedModule)
 - [x] Fix: Импорты в backend/routes/ — `../../models/` → `../models/`
