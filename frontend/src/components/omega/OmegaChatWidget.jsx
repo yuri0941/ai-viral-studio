@@ -194,12 +194,12 @@ export function OmegaChatWidget({ onOpenApiKeys }) {
         <>
             {isOpen && (
                 <div
-                    className={`fixed z-[100] ${isMobile ? 'omega-chat-mobile inset-x-0 bottom-0 rounded-t-3xl overflow-hidden bg-[var(--bg-secondary)] border-t border-[var(--border)] shadow-2xl pb-[env(safe-area-inset-bottom)]' : ''}`}
-                    style={isMobile ? { height: '85vh' } : { left: position.x, top: position.y, width: WIDGET_WIDTH, height: WIDGET_HEIGHT }}
+                    className={`fixed z-[100] ${isMobile ? 'omega-chat-mobile inset-x-0 bottom-0 rounded-t-3xl overflow-hidden bg-[var(--bg-secondary)] border-t border-[var(--border)] shadow-2xl pb-[env(safe-area-inset-bottom)] h-[80dvh] max-h-[80dvh]' : ''}`}
+                    style={isMobile ? {} : { left: position.x, top: position.y, width: WIDGET_WIDTH, height: WIDGET_HEIGHT }}
                 >
                     <div className={`h-full flex flex-col ${isMobile ? '' : 'glass-card overflow-hidden'} ${isMinimized ? 'h-auto' : ''}`}>
                         <div
-                            className="omega-chat-no-drag flex flex-col px-4 py-3 border-b border-[var(--border)] cursor-grab active:cursor-grabbing"
+                            className="omega-chat-no-drag flex flex-col px-4 py-3 border-b border-[var(--border)] cursor-grab active:cursor-grabbing touch-none"
                             onMouseDown={handlePointerDown}
                             onTouchStart={handlePointerDown}
                             onTouchStartCapture={handleHeaderSwipeDown}

@@ -396,8 +396,8 @@ export default function CreativeHub() {
                         </div>
                     </div>
 
-                    <div className="flex-1 min-h-0 rounded-2xl border border-white/10 overflow-hidden shadow-2xl shadow-violet-900/10">
-                        <OmegaChat {...chat} />
+                    <div className="flex-1 min-h-0 rounded-2xl border border-white/10 overflow-x-hidden shadow-2xl shadow-violet-900/10">
+                        <OmegaChat {...chat} variant="fullscreen" />
                     </div>
 
                     {/* [v6.0] added: AI Creative Toolbar */}
