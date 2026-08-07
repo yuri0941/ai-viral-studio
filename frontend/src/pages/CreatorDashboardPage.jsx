@@ -120,8 +120,16 @@ function CreatorDashboardPage() {
     const [statsLoading, setStatsLoading] = useState(true)
 
     useEffect(() => {
-        fetch(`${API_URL}/analytics/overview`)
-            .then(r => r.json())
+        const token = localStorage.getItem('token')
+        fetch(`${API_URL}/creator/analytics/overview`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+        })
+            .then(r => {
+                if (r.status === 401) {
+                    throw new Error('401 Unauthorized')
+                }
+                return r.json()
+            })
             .then(data => {
                 const payload = data?.data || data || {}
                 setStats({
@@ -172,19 +180,19 @@ function CreatorDashboardPage() {
                     <div className="w-16 h-16 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center mx-auto mb-4">
                         <Plus size={28} className="text-[var(--primary)]" />
                     </div>
-                    <h2 className="text-xl font-bold text-[var(--text)] mb-2">У вас пока нет постов. Создайте первый!</h2>
+                    <h2 className="text-xl font-bold text-[var(--text)] mb-2">{t('creator.noPosts')}</h2>
                     <div className="flex flex-wrap items-center justify-center gap-3">
                         <button
                             onClick={() => navigate('/scheduler')}
                             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity"
                         >
-                            <Plus size={18} /> Создать пост
+                            <Plus size={18} /> {t('creator.createFirstPost')}
                         </button>
                         <button
                             onClick={() => navigate('/ai-chat')}
                             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-xl text-[var(--text)] font-medium hover:bg-white/5 transition-colors"
                         >
-                            <Bot size={18} /> Спросить OMEGA
+                            <Bot size={18} /> {t('creator.askOmega')}
                         </button>
                     </div>
                 </div>
@@ -208,10 +216,10 @@ function CreatorDashboardPage() {
                             {t('creator.nextPostHint', 'Создайте пост, и OMEGA подготовит черновик с хуком, структурой и CTA.')}
                         </p>
                         <div className="flex flex-wrap items-center gap-3">
-                            <button onClick={() => alert('Публикация...')} className="magnetic-btn inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity">
+                            <button onClick={() => alert(t('creator.publishing'))} className="magnetic-btn inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity">
                                 {t('creator.publish')}
                             </button>
-                            <button onClick={() => alert('Редактирование...')} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-full text-[var(--text)] text-sm hover:bg-white/5 transition-colors">
+                            <button onClick={() => alert(t('creator.editing'))} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-full text-[var(--text)] text-sm hover:bg-white/5 transition-colors">
                                 {t('creator.edit')}
                             </button>
                         </div>
@@ -229,7 +237,7 @@ function CreatorDashboardPage() {
                         </div>
                         <p className="text-sm text-[var(--text-muted)] mb-4">{t('creator.omegaTipText', 'Опубликуйте пост в оптимальное время, чтобы повысить охват.')}</p>
                     </div>
-                    <button onClick={() => alert('Время применено')} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity">
+                    <button onClick={() => alert(t('creator.timeApplied'))} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity">
                         {t('creator.apply')}
                     </button>
                 </div>

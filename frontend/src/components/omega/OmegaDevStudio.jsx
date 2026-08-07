@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../../config.js'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { Code2, CheckCircle, XCircle, RefreshCw, Loader2 } from 'lucide-react'
+import { Code2, CheckCircle, XCircle, RefreshCw, Loader2, Copy, Check } from 'lucide-react'
 
 const FEATURES = ['Charts', 'Auth', 'Export', 'Mobile', 'PWA']
 const TECH_OPTIONS = ['React', 'Vite', 'Tailwind', 'Node.js', 'Express', 'MongoDB', 'Recharts', 'Framer Motion']
@@ -20,6 +20,7 @@ export default function OmegaDevStudio() {
     const [activeTab, setActiveTab] = useState('frontend')
     const [modules, setModules] = useState([])
     const [error, setError] = useState('')
+    const [copied, setCopied] = useState(false)
 
     const token = localStorage.getItem('token') || ''
 
@@ -198,6 +199,18 @@ export default function OmegaDevStudio() {
                         ))}
                     </div>
                     <div className="relative rounded-xl bg-[#0a0a1f] border border-white/10 p-4 overflow-auto max-h-[500px]">
+                        <button
+                            onClick={async () => {
+                                await navigator.clipboard.writeText(result[activeTab] || '')
+                                setCopied(true)
+                                setTimeout(() => setCopied(false), 2000)
+                            }}
+                            type="button"
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-70 hover:opacity-100 transition-opacity"
+                            aria-label="Copy"
+                        >
+                            {copied ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
                         <pre className="text-xs text-emerald-300 font-mono whitespace-pre-wrap">{result[activeTab] || '// empty'}</pre>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-4">

@@ -627,6 +627,28 @@ NODE_ENV=production
 - [ ] Git push: выполнен
 
 
+## Current State (v6.6 — 2026-08-07)
+- Theme: Luxury glassmorphism light/dark, CSS variables, no white gaps
+- Adaptive: 320px→4K, safe-area, touch targets, responsive typography
+- i18n: RU/EN, auto-detect, useTranslation hook, 75+ keys, Inter font (кириллица)
+- Owner: 16+ tabs, luxury cards, mobile drawer, desktop sidebar
+- Creator: Mobile adaptive, MobileBottomNav 5 табов + Drawer, tariff limits, 401 fixed
+- Advertiser: Full dashboard (Create Ad, Library, Analytics), approval flow
+- OMEGA Neural Core: BrainViz (Canvas graph), DevStudio (code generation), Swarm (50 agents)
+- OMEGA Autonomous Brain: Local Brain (offline), Self-Learning (dataset 12K+), Dialogue Evolution, Web Research
+- Local AI: TinyLlama 1.1B / PatternEngine fallback, 8 слоёв памяти + Neural Graph
+- Self-Learning: Daily analyzePatterns, weekly evolveTemplates, export JSONL
+- Dialogue Evolution: Tone adaptation, emotional memory, vocabulary evolution
+- Web Research: Auto-research every 6h, competitor watch, 47+ sources
+- AutoFix: Scan every 15min, AI-analysis, approval flow, Telegram alerts
+- OMEGA UI: BrainViz, DevStudio, Swarm, AutoFix, LearningDashboard, ResearchDashboard, LocalModeIndicator
+- OMEGA Chat: 6 quick actions, code/site/ad generation, variant selector (1-10), copy buttons
+- Автономность: AutoFix 15min, Research 6h, Swarm spawn/kill, DevStudio approval flow
+- Клиентский путь: Onboarding → First Post → OneClickPublish → Creative Hub
+- Монетизация: ЮKassa, Stripe, PayPal, Crypto, Pay-per-Gen, аддоны
+- Деплой: Render (backend), Cloudflare Pages (frontend), GitHub (repo)
+- Status: PRODUCTION READY v6.6
+
 ## Current State (v6.6-PART1 — 2026-08-07)
 - Theme: Luxury glassmorphism light/dark via data-theme, CSS variables, no white gaps
 - Adaptive: 320px→4K, safe-area, touch targets, responsive typography

@@ -1,6 +1,7 @@
 import { AuditLog } from '../../models/AuditLog.js'
 import { AutoFixLog } from '../../models/AutoFixLog.js'
 import { chatWithAI } from '../../services/aiService.js'
+import { alertOwner } from '../../services/ownerBot.js'
 
 const ERROR_PATTERNS = [
     { regex: /401|Unauthorized|unauthorized/, type: '401 Unauthorized', priority: 'high', module: 'auth' },
@@ -57,6 +58,11 @@ export async function scanForErrors() {
 
         if (isCritical) {
             console.warn(`[autoFixAgent] CRITICAL error detected: ${type}. Proposal id ${proposal._id}. Owner alert required.`)
+            try {
+                await alertOwner(`🚨 AutoFix: критическая ошибка ${type}\nМодуль: ${group.module}\nПредложение: ${proposal._id}\n\n${fix.explanation?.slice(0, 200) || ''}`, 'error')
+            } catch (e) {
+                console.warn('[autoFixAgent] telegram alert failed:', e.message)
+            }
         }
     }
 

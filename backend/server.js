@@ -77,6 +77,7 @@ import swarmRoutes from './routes/swarm.js'  // [v6.6] added: OMEGA Swarm
 import autoFixRoutes from './routes/autoFix.js'  // [v6.6] added: AutoFix Agent
 import researchRoutes from './routes/research.js'  // [v6.6] added: Web Research Engine
 import adRoutes from './routes/ads.js'  // [v6.6] Advertiser ads API
+import creatorRoutes from './routes/creator.js'  // [v6.6-PART2] Creator analytics
 import versionRoutes from './routes/version.js'  // [v6.5.5] added: version API
 import fallbackRoutes from './routes/fallbackRoutes.js'  // [v6.0] added: structured fallback routes
 
@@ -324,6 +325,7 @@ app.use('/api/omega', autoFixRoutes)  // [v6.6] added: AutoFix Agent
 app.use('/api/omega', researchRoutes)  // [v6.6] added: Web Research Engine
 app.use('/api/ad-requests', adRequestRoutes)  // ← НОВОЕ: AdRequests / Client chat
 app.use('/api/ads', protect, adRoutes)  // [v6.6] Advertiser campaigns + approval flow
+app.use('/api/creator', protect, creatorRoutes)  // [v6.6-PART2] Creator analytics (no 401 for valid token)
 app.use('/api/subscriptions', subscriptionRoutes)  // ← P10: Подписки
 app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета
 app.use('/api/owner-requisites', ownerRequisitesRoutes)  // ← P10: Реквизиты

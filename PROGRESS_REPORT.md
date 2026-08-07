@@ -1,3 +1,24 @@
+## 2026-08-07 — v6.6-PART2 FIX + NEURAL CORE + AUTONOMOUS BRAIN
+- [x] Fix: 401 Unauthorized — CORS origin aiviral-studio.ru, creator analytics endpoint, 401 redirect to login
+- [x] Fix: Mobile menu — MobileBottomNav 5 табов + MobileDrawer со ВСЕМИ табами (AI Chat, Planner, Viral Chat, AI vs Human)
+- [x] Fix: Анимации — убран бесконечный requestAnimationFrame луп, добавлен cleanup при unmount
+- [x] Fix: Кириллица — Inter font (поддерживает кириллицу), UTF-8 meta первым, i18n ru.json проверен
+- [x] Feature: OmegaBrainViz.jsx — Canvas 2D neural graph, 30-50 узлов, glow, drag, pinch-zoom
+- [x] Feature: OmegaDevStudio.jsx — OMEGA генерирует код, approval flow, deploy
+- [x] Feature: OmegaSwarmDashboard.jsx — 6 ролей агентов, spawn/kill, прогресс, логи
+- [x] Feature: LocalBrain.js — PatternEngine + TinyLlama fallback, offline mode
+- [x] Feature: SelfLearningEngine — analyzePatterns daily, evolveTemplates weekly, export JSONL
+- [x] Feature: DialogueEvolution — tone adaptation, emotional memory, vocabulary evolution
+- [x] Feature: WebResearchEngine — auto-research every 6h, competitor watch, learnFromInternet
+- [x] Feature: AutoFixAgent — scan every 15min, AI-analysis, ApprovalQueue, Telegram alerts
+- [x] Feature: OmegaLearningDashboard — 4 агента, прогресс, real-time
+- [x] Feature: OmegaResearchDashboard — trends, competitors, tech, insights
+- [x] Feature: OmegaAutoFixDashboard — errors, fixes, approval, stats
+- [x] Feature: OmegaLocalModeIndicator — autonomous/local/cloud/learning badge
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+- [x] Render: Clear Build Cache & Deploy
+
 ## 2026-08-07 — v6.6-PART1 LUXURY ADAPTIVE + MULTILANG + ROLE AUDIT (partial)
 - [x] Fix: Luxury CSS theme system (light/dark data-theme, glass-luxury, no white gaps)
 - [x] Fix: Global adaptive (320px→4K, safe-area, touch-44/48, z-index system, reduced-motion)

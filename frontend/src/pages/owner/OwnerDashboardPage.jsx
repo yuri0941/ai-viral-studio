@@ -146,20 +146,46 @@ const TAB_ICONS = {
 }
 
 // [v6.0] added: count-up hook with requestAnimationFrame
+// [v6.6-PART2] added: IntersectionObserver pause when component not visible
 function useCountUp(end, duration = 1500) {
     const [count, setCount] = useState(0)
+    const ref = useRef(null)
     useEffect(() => {
         let raf
-        const start = performance.now()
+        let start = null
+        let elapsed = 0
+        let observer
         const tick = (now) => {
-            const progress = Math.min((now - start) / duration, 1)
+            if (start === null) start = now - elapsed
+            elapsed = now - start
+            const progress = Math.min(elapsed / duration, 1)
             setCount(end * progress)
             if (progress < 1) raf = requestAnimationFrame(tick)
         }
-        raf = requestAnimationFrame(tick)
-        return () => cancelAnimationFrame(raf)
+        const startAnim = () => {
+            if (!raf) raf = requestAnimationFrame(tick)
+        }
+        const stopAnim = () => {
+            if (raf) {
+                cancelAnimationFrame(raf)
+                raf = null
+            }
+        }
+        if (ref.current && typeof IntersectionObserver !== 'undefined') {
+            observer = new IntersectionObserver(([entry]) => {
+                if (entry.isIntersecting) startAnim()
+                else stopAnim()
+            }, { threshold: 0.1 })
+            observer.observe(ref.current)
+        } else {
+            startAnim()
+        }
+        return () => {
+            stopAnim()
+            if (observer) observer.disconnect()
+        }
     }, [end, duration])
-    return count
+    return { count, ref }
 }
 
 // [v6.0] added: sparkline canvas for metric cards
@@ -203,12 +229,13 @@ function Sparkline({ value, height = 40 }) {
 
 // [v6.0] added: luxury glass metric card with count-up and sparkline
 function MetricCard({ label, value, suffix = '', icon: Icon, delay = 0 }) {
-    const count = useCountUp(value, 1500)
+    const { count, ref } = useCountUp(value, 1500)
     const display = Number.isInteger(value)
         ? Math.floor(count).toLocaleString('ru-RU')
         : count.toFixed(1)
     return (
         <div
+            ref={ref}
             className="glass-card glow-border rounded-2xl p-6 animate-fade-in-up hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10"
             style={{ animationDelay: `${delay}ms` }}
         >

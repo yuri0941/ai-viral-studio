@@ -54,7 +54,7 @@ function CodeBlock({ code }) {
   );
 }
 
-function AiMessageContent({ text }) {
+function AiMessageContent({ text, t }) {
   if (!text || typeof text !== 'string') return null;
 
   // Full HTML preview
@@ -88,7 +88,7 @@ function AiMessageContent({ text }) {
               <div key={i} className="w-full">
                 {sections.map((section, idx) => {
                   const lines = section.split('\n').filter(Boolean);
-                  const title = lines[0] || 'Раздел';
+                  const title = lines[0] || t('chat.section');
                   const body = lines.slice(1).join('\n') || section;
                   const meta = getSectionMeta(title);
                   return (
@@ -116,7 +116,7 @@ function AiMessageContent({ text }) {
       <div className="w-full max-w-[95%] mx-auto">
         {sections.map((section, idx) => {
           const lines = section.split('\n').filter(Boolean);
-          const title = lines[0] || 'Раздел';
+          const title = lines[0] || t('chat.section');
           const body = lines.slice(1).join('\n') || section;
           const meta = getSectionMeta(title);
           return (
@@ -227,7 +227,7 @@ export default function OmegaChat({
       console.error('[CHAT] Error:', err);
       setInternalMessages(prev => [...prev, {
         role: 'omega',
-        text: '⚠️ Сервер временно недоступен. OMEGA переключает резервный канал... Повторите через 10 сек.',
+        text: t('chat.serverUnavailable'),
         isError: true,
         timestamp: Date.now(),
         id: `err-${Date.now()}`,
@@ -291,7 +291,7 @@ export default function OmegaChat({
           <div key={msg.id || i} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
             {isAiMessage(msg) ? (
               <>
-                <AiMessageContent text={msg.text} />
+                <AiMessageContent text={msg.text} t={t} />
                 <div className="flex flex-wrap gap-2 mt-3 max-w-[95%] mx-auto">
                   {ACTION_BUTTONS.map(action => (
                     <button

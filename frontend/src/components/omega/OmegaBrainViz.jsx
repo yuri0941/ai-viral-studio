@@ -202,13 +202,38 @@ export default function OmegaBrainViz({ nodes: propNodes }) {
 
   useEffect(() => {
     let raf
+    let observer
+    let isVisible = true
     const loop = (time) => {
+      if (!isVisible) return
       timeRef.current = time
       draw()
       raf = requestAnimationFrame(loop)
     }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
+    const start = () => {
+      if (!raf) raf = requestAnimationFrame(loop)
+    }
+    const stop = () => {
+      if (raf) {
+        cancelAnimationFrame(raf)
+        raf = null
+      }
+    }
+    if (containerRef.current && typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(([entry]) => {
+        isVisible = entry.isIntersecting
+        if (isVisible) start()
+        else stop()
+      }, { threshold: 0.05 })
+      observer.observe(containerRef.current)
+      start()
+    } else {
+      start()
+    }
+    return () => {
+      stop()
+      if (observer) observer.disconnect()
+    }
   }, [draw])
 
   const getNodeAt = (clientX, clientY) => {

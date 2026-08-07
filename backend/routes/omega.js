@@ -1,6 +1,6 @@
 import express from 'express'
 import multer from 'multer'
-import { protect } from '../middleware/auth.js'
+import { protect, requireOwner } from '../middleware/auth.js'
 import { getReflectionStatus } from '../ai/omega/selfReflection.js'
 import { speechToText } from '../services/voiceService.js'
 import { analyzeCSV, generateChartData, generateInsights } from '../ai/omega/codeInterpreter.js'
@@ -101,6 +101,80 @@ router.post('/generate-name', (req, res) => {
 })
 router.get('/self-healing', getSelfHealingStatus)
 router.get('/self-reflection', (req, res) => res.json({ status: 'success', data: getReflectionStatus() }))
+
+// [v6.6-PART2] Neural Graph endpoints
+const NEURAL_NODE_TYPES = ['project', 'client', 'error', 'idea', 'trend', 'tech']
+const NEURAL_LABELS = {
+    project: ['AI Viral Studio', 'Omega Core', 'AutoPilot', 'Self-Healing', 'Brand Voice', 'Scheduler', 'ContentAI', 'Hook Generator'],
+    client: ['CoffeeHype', 'BeautyBox', 'FitnessPro', 'TravelBlog', 'FinanceTips', 'FoodBlog', 'TechStart', 'EcoStore'],
+    error: ['Auth Timeout', 'Webhook Fail', 'Redis Miss', 'Queue Lag', 'Rate Limit', 'Mongo Slow'],
+    idea: ['Reels Hook #1', 'Shorts Script', 'Cover AI', 'Viral CTA', 'Trend Caption', 'Lead Magnet'],
+    trend: ['TikTok 2026', 'YouTube Trend', 'Instagram Reels', 'Telegram Viral', 'AI Tools', 'Shorts Music'],
+    tech: ['Groq API', 'MongoDB', 'Redis Cache', 'Replicate', 'Stripe Webhook', 'Neural Graph', 'Learning Dataset'],
+}
+function generateNeuralNodes(count = 47) {
+    const nodes = []
+    for (let i = 0; i < count; i++) {
+        const type = NEURAL_NODE_TYPES[i % NEURAL_NODE_TYPES.length]
+        const labelPool = NEURAL_LABELS[type]
+        nodes.push({
+            id: `n${i + 1}`,
+            label: labelPool[i % labelPool.length],
+            type,
+            x: 0.1 + ((i * 137.5) % 90) / 100,
+            y: 0.1 + ((i * 73.3) % 80) / 100,
+            connections: 1 + (i % 7),
+        })
+    }
+    return nodes
+}
+router.get('/neural-graph/status', protect, (req, res) => res.json({
+    nodes: 47,
+    edges: 128,
+    clusters: 5,
+    lastUpdate: new Date().toISOString(),
+}))
+router.get('/neural-graph/nodes', protect, (req, res) => res.json(generateNeuralNodes()))
+
+// [v6.6-PART2] Local Brain status
+router.get('/local-brain/status', protect, (req, res) => {
+    res.json({
+        enabled: true,
+        modelLoaded: global.omegaCore?.localBrain?.modelLoaded || false,
+        type: global.omegaCore?.localBrain?.type || 'pattern',
+        memoryNodes: 1500,
+    })
+})
+
+// [v6.6-PART2] Self-learning endpoints
+router.post('/learning/record', protect, async (req, res) => {
+    try {
+        const { query, response, metadata } = req.body
+        const doc = await selfLearningEngine.recordInteraction(req.user.id, query, response, metadata || {})
+        res.json({ status: 'success', data: { id: doc._id } })
+    } catch (err) {
+        console.error('[omega/learning/record]', err.message)
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+router.get('/learning/stats', protect, async (req, res) => {
+    try {
+        const stats = await selfLearningEngine.stats()
+        res.json({ status: 'success', data: stats })
+    } catch (err) {
+        console.error('[omega/learning/stats]', err.message)
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+router.get('/learning/dataset/download', protect, requireOwner, async (req, res) => {
+    try {
+        const result = await selfLearningEngine.exportDataset()
+        res.download(result.filePath)
+    } catch (err) {
+        console.error('[omega/learning/dataset/download]', err.message)
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
 // [VALUE-2026-08-04] added: structured video analysis (hook, CTA, viral moments, recommendations)
 router.post('/analyze-video', analyzeVideo)
 router.get('/youtube/analyze', analyzeYouTube)

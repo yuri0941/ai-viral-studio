@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Menu, Bell, Search, User, Globe, Shield, Briefcase, Headphones, Megaphone, UserCircle, ChevronDown, Sun, Moon, OctagonAlert, Play, Folder, Check } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { UserProfileModal } from './UserProfileModal'
@@ -38,6 +39,7 @@ export function DashboardHeader({
     onNotificationsClick,
     showSearch = true,
 }) {
+    const { t } = useTranslation()
     const { updateUser } = useAuth()
     const navigate = useNavigate()
     const [roleOpen, setRoleOpen] = useState(false)
@@ -151,7 +153,7 @@ export function DashboardHeader({
     }
 
     const handleEmergencyToggle = async () => {
-        if (!confirm(emergencyStopped ? 'Снять Emergency Stop и возобновить OMEGA?' : 'Аварийно остановить OMEGA? Все AI-операции будут приостановлены.')) return
+        if (!confirm(emergencyStopped ? t('header.emergencyResume') : t('header.emergencyStop'))) return
         const token = localStorage.getItem('token')
         const endpoint = emergencyStopped ? '/api/admin/emergency-resume' : '/api/admin/emergency-stop'
         try {
@@ -162,10 +164,10 @@ export function DashboardHeader({
             if (res.ok) {
                 setEmergencyStopped(!emergencyStopped)
             } else {
-                alert('Ошибка переключения Emergency Stop')
+                alert(t('header.emergencyStopError'))
             }
         } catch (e) {
-            alert('Ошибка сети')
+            alert(t('header.networkError'))
         }
     }
 
@@ -191,7 +193,7 @@ export function DashboardHeader({
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); console.log('[Search]', searchQuery) }}}
-                                placeholder="Поиск..."
+                                placeholder={t('header.searchPlaceholder')}
                                 className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-32 lg:w-48"
                             />
                         </div>
