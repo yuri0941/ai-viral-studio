@@ -248,12 +248,21 @@ function SettingsPage() {
                     return;
                 }
             } else if (selectedPaymentMethod === 'stripe') {
-                res = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
+                const stripeRes = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
                     method: 'POST',
                     signal: controller.signal,
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({ planId: plan.name, price: amount, isYearly, currency: subscriptionCurrency, userId: user?.id || user?._id || 'anonymous' })
-                }).then(r => r.json());
+                });
+                // [HOTFIX-v6.5.5-H8] Stripe 503 guard
+                if (stripeRes.status === 503) {
+                    showToast(t('stripe.unavailable') || 'Оплата Stripe временно недоступна. Попробуйте позже или свяжитесь с поддержкой.', 'warning');
+                    fallbackToYookassa();
+                    clearTimeout(timeoutId);
+                    setLoading(loadingKey, false);
+                    return;
+                }
+                res = await stripeRes.json();
                 if (res.url) {
                     window.location.href = res.url;
                     return;
@@ -793,6 +802,17 @@ function SettingsPage() {
                         {(!yookassaEnabled && !stripeEnabled) && (
                             <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                                 <p className="text-xs text-amber-400">💡 Платёжные системы не настроены. Обратитесь к владельцу платформы для активации оплаты.</p>
+                            </div>
+                        )}
+                        {!stripeEnabled && (
+                            <div className="glass-luxury rounded-xl p-4 mt-4">
+                                <p className="text-[var(--text-muted)] text-sm">💳 {t('stripe.unavailable') || 'Оплата Stripe временно недоступна. Используйте бесплатный тариф или свяжитесь с поддержкой.'}</p>
+                                <button
+                                    className="mt-2 text-[var(--primary)] text-sm hover:underline"
+                                    onClick={() => showToast(t('settings.supportContact') || 'Telegram: @your_support', 'info')}
+                                >
+                                    {t('settings.writeSupport') || 'Написать в поддержку'}
+                                </button>
                             </div>
                         )}
                     </div>

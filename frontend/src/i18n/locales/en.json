@@ -123,7 +123,8 @@
     "paySubscription": "Pay subscription",
     "processing": "Processing...",
     "error": "Error creating payment",
-    "success": "Payment initiated. Subscription will be activated after confirmation."
+    "success": "Payment initiated. Subscription will be activated after confirmation.",
+    "unavailable": "Payment temporarily unavailable. Please try later or contact support."
   },
   "paypal": {
     "title": "Pay with PayPal",
