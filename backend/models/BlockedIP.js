@@ -4,7 +4,7 @@ const blockedIPSchema = new mongoose.Schema({
     ip: { type: String, required: true, index: true },
     reason: { type: String, default: '' },
     bannedAt: { type: Date, default: Date.now },
-    expiresAt: { type: Date, required: true, index: true },
+    expiresAt: { type: Date, required: true },
     count: { type: Number, default: 0 },
 }, {
     timestamps: true,
