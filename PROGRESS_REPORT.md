@@ -15,7 +15,7 @@
 - [x] Feature: `frontend/src/components/omega/OmegaResourceManager.jsx` — прогресс-бары, тоггл авто-апгрейда, история операций
 - [x] Feature: Вкладка `resources` в Owner Dashboard
 - [x] Build: 0 ошибок
-- [x] Git push: выполнен
+- [x] Git push: выполнен (commit 1d34db5c)
 - [x] Render: Manual Deploy → Clear Build Cache & Deploy (запланировано)
 
 ## 2026-08-07 — v7.0-PART1 Cleanup Demo + Failover + OTA + Download Center
