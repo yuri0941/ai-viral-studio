@@ -1,6 +1,8 @@
-const CACHE_NAME = 'v6.5.5-final-kill-2026';
+const CACHE_NAME = 'v6.6-omega-2026';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(n => Promise.all(n.map(c => caches.delete(c)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(names => Promise.all(
+    names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
+  )).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));

@@ -16,6 +16,7 @@ import {
     BarChart, Bar, Legend
 } from 'recharts'
 import { AdStudioTab } from './advertiser/AdStudioTab'
+import { CreateAdTab } from './advertiser/CreateAdTab'
 
 function AdvertiserDashboardPage() {
     const { t } = useTranslation()
@@ -327,8 +328,8 @@ AI Viral Studio`, {
     }
 
     const tabs = [
-        // [P18] added: AdStudio as first tab
         { id: 'adstudio', label: t('advertiser.adStudio'), icon: Wand2 },
+        { id: 'createad', label: t('advertiser.createAd'), icon: Plus },
         { id: 'campaigns', label: t('advertiser.campaigns'), icon: Target },
         { id: 'calendar', label: t('advertiser.calendar'), icon: Calendar },
         { id: 'chat', label: t('advertiser.chat'), icon: MessageSquare },
@@ -456,6 +457,9 @@ AI Viral Studio`, {
 
             {/* ADSTUDIO TAB */}
             {activeTab === 'adstudio' && <AdStudioTab />}
+
+            {/* CREATE AD TAB */}
+            {activeTab === 'createad' && <CreateAdTab />}
 
             {/* CAMPAIGNS TAB */}
             {activeTab === 'campaigns' && (
@@ -1157,7 +1161,7 @@ AI Viral Studio`, {
                                 onClick={handleAnalyzePsychotype}
                                 disabled={neuroLoading}
                                 className="w-full py-2 rounded-xl bg-[var(--primary)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
+                             type="button">
                                 {neuroLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
                                 {neuroLoading ? 'Анализ…' : 'Анализировать переписку'}
                             </button>
@@ -1230,7 +1234,7 @@ AI Viral Studio`, {
                                 <button
                                     onClick={handleSendEmail}
                                     className="w-full p-3 rounded-xl bg-[var(--success)]/10 text-[var(--success)] text-sm hover:bg-[var(--success)]/20 transition-colors flex items-center gap-3 border border-[var(--success)]/20"
-                                >
+                                 type="button">
                                     <Mail className="w-4 h-4" />
                                     {t('advertiser.sendReport')}
                                 </button>

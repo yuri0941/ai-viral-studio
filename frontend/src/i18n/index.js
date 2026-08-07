@@ -32,4 +32,24 @@ export function setLanguage(lang) {
   }
 }
 
+export function getTranslation(lang, key) {
+  const bundle = i18n.getResourceBundle(lang, 'translation') || {}
+  const parts = key.split('.')
+  let value = bundle
+  for (const part of parts) {
+    value = value?.[part]
+    if (value === undefined) return key
+  }
+  return typeof value === 'string' ? value : key
+}
+
+export function detectLanguage() {
+  if (typeof window === 'undefined') return 'ru'
+  const saved = localStorage.getItem('lang') || localStorage.getItem('i18n-lang')
+  if (saved && ['ru', 'en'].includes(saved)) return saved
+  const browser = navigator.language?.slice(0, 2)
+  if (browser && ['ru', 'en'].includes(browser)) return browser
+  return 'ru'
+}
+
 export default i18n

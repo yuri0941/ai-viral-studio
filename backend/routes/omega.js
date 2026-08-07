@@ -45,6 +45,7 @@ import {
     addToApprovalQueue,
 } from '../ai/omega/omegaCoder.js'
 import selfLearningEngine from '../ai/omega/selfLearningEngine.js'
+import { chatWithAI } from '../services/aiService.js'
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
@@ -324,6 +325,49 @@ router.get('/neural-graph/nodes', (req, res) => {
         { id: 'n30', label: 'Learning Dataset', type: 'tech', x: 0.5, y: 0.6, connections: 5 },
     ]
     res.json(nodes)
+})
+
+// === OMEGA Super Mode v6.6 — quick action endpoints ===
+const SYSTEM_PROMPT = 'Ты OMEGA для AI Viral Studio. Стек: React 18, Vite, Tailwind, Node.js, Express, MongoDB. Отвечай на русском или английском. Будь креативной, давай production-ready код, не используй mock.'
+
+async function omegaGenerate(req, res, prompt) {
+    try {
+        const { message = '', history = [], lang = 'ru' } = req.body
+        const fullPrompt = `${SYSTEM_PROMPT}\n\n${prompt}${message ? '\n\nКонтекст пользователя: ' + message : ''}`
+        const result = await chatWithAI(fullPrompt, history, lang, {
+            userRole: req.user?.role || 'guest',
+            userId: req.user?._id || req.user?.id,
+        })
+        res.json({ status: 'success', data: result })
+    } catch (err) {
+        console.error('[omega/generate]', err.message)
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+router.post('/generate-hook', protect, async (req, res) => {
+    await omegaGenerate(req, res, 'Сгенерируй 5 цепляющих хуков для вирусного контента.')
+})
+
+router.post('/generate-script', protect, async (req, res) => {
+    await omegaGenerate(req, res, 'Напиши сценарий Reels/Shorts для AI Viral Studio.')
+})
+
+router.post('/generate-code', protect, async (req, res) => {
+    await omegaGenerate(req, res, 'Сгенерируй production-ready React/Node.js код для AI Viral Studio. Стек: React 18, Vite, Tailwind, Node.js, Express, MongoDB. Не используй mock. Верни код в markdown-блоке.')
+})
+
+router.post('/generate-site', protect, async (req, res) => {
+    await omegaGenerate(req, res, 'Создай landing page для AI Viral Studio: HTML, CSS, структура, тексты, CTA. Верни полный HTML файл.')
+})
+
+router.post('/generate-ad-variants', protect, async (req, res) => {
+    const count = Math.min(10, Math.max(1, Number(req.body.count) || 3))
+    await omegaGenerate(req, res, `Сгенерируй ${count} варианта рекламного креатива для AI Viral Studio: заголовок, текст, CTA, целевая аудитория, прогноз CTR и engagement. Верни результат в виде markdown-таблицы.`)
+})
+
+router.post('/analyze-niche', protect, async (req, res) => {
+    await omegaGenerate(req, res, 'Проанализируй нишу AI-инструментов для вирусного контента: тренды, конкуренты, аудитория, возможности.')
 })
 
 export default router

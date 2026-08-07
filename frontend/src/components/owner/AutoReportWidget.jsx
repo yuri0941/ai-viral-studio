@@ -151,7 +151,7 @@ export function AutoReportWidget() {
                         {!report ? (
                             <div className="text-center py-12 text-gray-400">
                                 <p>Отчёт ещё не сгенерирован.</p>
-                                <button onClick={generateNow} disabled={loading} className="mt-4 px-4 py-2 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm transition-colors">
+                                <button onClick={generateNow} disabled={loading} className="mt-4 px-4 py-2 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm transition-colors" type="button">
                                     {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Сгенерировать сейчас'}
                                 </button>
                             </div>
@@ -267,7 +267,7 @@ export function AutoReportWidget() {
                                 onClick={saveSettings}
                                 disabled={saving}
                                 className="w-full py-2.5 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-semibold transition-colors disabled:opacity-50"
-                            >
+                             type="button">
                                 {saving ? 'Сохранение...' : 'Сохранить'}
                             </button>
                         </div>
