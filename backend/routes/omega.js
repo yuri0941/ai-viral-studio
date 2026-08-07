@@ -50,7 +50,15 @@ const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
 
 router.get('/status', getStatus)
-router.post('/chat', chat)
+router.post('/chat', protect, async (req, res, next) => {
+    try {
+        console.log('[BACKEND /api/omega/chat] body:', req.body)
+        await chat(req, res, next)
+    } catch (err) {
+        console.error('[BACKEND CHAT] Error:', err.message)
+        res.status(500).json({ status: 'error', error: 'AI service error', details: err.message })
+    }
+})
 router.get('/memory', getMemory)
 router.post('/memory', createMemory)
 router.get('/skills', getSkills)

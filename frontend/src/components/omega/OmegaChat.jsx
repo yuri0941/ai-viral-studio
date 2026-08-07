@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { Mic, Send } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { omegaApi } from "../../services/api.js";
 
 const ACTION_BUTTONS = [
   { id: 'hook', label: 'Сделать хук', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для этого видео' },
@@ -60,34 +62,88 @@ function isAiMessage(msg) {
 }
 
 export default function OmegaChat({
-  messages = [],
+  messages: externalMessages = [],
   onSend,
   sendMessage,
   isLoading,
-  isTyping,
+  isTyping: externalTyping,
   input: externalInput,
   setInput: externalSetInput,
-  quotaError,
+  quotaError: externalQuotaError,
+  userRole: externalUserRole,
 }) {
+  const { user } = useAuth();
   const [internalInput, setInternalInput] = useState("");
+  const [internalMessages, setInternalMessages] = useState([]);
+  const [internalIsTyping, setInternalIsTyping] = useState(false);
+  const [internalQuotaError, setInternalQuotaError] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [attachment, setAttachment] = useState(null);
+
   const input = externalInput !== undefined ? externalInput : internalInput;
   const setInput = externalSetInput || setInternalInput;
-  const loading = isLoading || isTyping;
   const send = onSend || sendMessage;
+  const isExternal = !!send;
+  const userRole = externalUserRole || user?.role || 'guest';
+  const messages = isExternal ? externalMessages : internalMessages;
+  const quotaError = externalQuotaError !== undefined ? externalQuotaError : internalQuotaError;
+  const loading = isLoading || externalTyping || internalIsTyping;
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
-    if (!input.trim() || loading) return;
-    send?.(input);
+
+    const text = input.trim();
+    if (!text && !attachment) return;
+
+    if (isExternal) {
+      send?.(text);
+      setInput("");
+      setAttachment(null);
+      return;
+    }
+
+    // Optimistic UI — сообщение пользователя СРАЗУ
+    const userMsg = {
+      role: 'user',
+      text,
+      timestamp: Date.now(),
+      id: `u-${Date.now()}`,
+    };
+    setInternalMessages(prev => [...prev, userMsg]);
     setInput("");
     setAttachment(null);
+    setInternalIsTyping(true);
+
+    try {
+      console.log('[CHAT] Sending:', text.substring(0, 50));
+      const res = await omegaApi.chat(text, messages.slice(-10), 'ru', userRole, user?._id || null);
+      console.log('[CHAT] Received:', res);
+
+      const aiMsg = {
+        role: 'omega',
+        text: res?.data?.response || res?.text || res?.message || '...',
+        provider: res?.provider || res?.data?.provider,
+        timestamp: Date.now(),
+        id: `a-${Date.now()}`,
+      };
+      setInternalMessages(prev => [...prev, aiMsg]);
+    } catch (err) {
+      console.error('[CHAT] Error:', err);
+      setInternalMessages(prev => [...prev, {
+        role: 'omega',
+        text: '⚠️ Сервер временно недоступен. OMEGA переключает резервный канал... Повторите через 10 сек.',
+        isError: true,
+        timestamp: Date.now(),
+        id: `err-${Date.now()}`,
+      }]);
+    } finally {
+      setInternalIsTyping(false);
+    }
   };
 
   const startVoiceInput = () => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config.js'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts'
 import { TrendingUp, X, Settings, Bell, Mail, Bot, Loader2 } from 'lucide-react'
 
@@ -16,11 +17,11 @@ export function AutoReportWidget() {
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
 
-    const fetchReport = async () => {
+    const loadReport = async () => {
         try {
             setLoading(true)
             const token = localStorage.getItem('token')
-            const res = await fetch('/api/owner/auto-report', {
+            const res = await fetch(`${API_BASE_URL}/owner/auto-report`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
 
@@ -40,15 +41,12 @@ export function AutoReportWidget() {
                 return
             }
 
-            if (!res.ok) {
-                setReport(null)
-                return
-            }
+            if (!res.ok) { setReport(null); return; }
 
-            const json = await res.json()
-            if (json.success) {
-                setReport(json.report)
-                setSettings(json.settings)
+            const data = await res.json()
+            if (data.success) {
+                setReport(data.report)
+                setSettings(data.settings)
             }
         } catch (err) {
             console.error('[AutoReportWidget]', err)
@@ -67,13 +65,17 @@ export function AutoReportWidget() {
     }
 
     useEffect(() => {
-        fetchReport()
+        loadReport()
     }, [])
 
     const generateNow = async () => {
         setLoading(true)
         try {
-            const res = await fetch('/api/owner/auto-report/generate', { method: 'POST' })
+            const token = localStorage.getItem('token')
+            const res = await fetch(`${API_BASE_URL}/owner/auto-report/generate`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            })
             const json = await res.json()
             if (json.success) setReport(json.report)
         } catch (e) {
@@ -86,9 +88,13 @@ export function AutoReportWidget() {
     const saveSettings = async () => {
         setSaving(true)
         try {
-            await fetch('/api/owner/auto-report/settings', {
+            const token = localStorage.getItem('token')
+            await fetch(`${API_BASE_URL}/owner/auto-report/settings`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
                 body: JSON.stringify(settings),
             })
         } catch (e) {

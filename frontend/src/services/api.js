@@ -29,12 +29,15 @@ function getAuthHeaders() {
 
 async function request(path, options = {}) {
     const url = `${API_BASE}${path}`
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+
+    console.log('[API] Request:', url, options.method || 'GET')
 
     const res = await fetch(url, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders(),
+            ...(token && { Authorization: `Bearer ${token}` }),
             ...options.headers,
         },
     })
@@ -44,8 +47,10 @@ async function request(path, options = {}) {
     if (!contentType || !contentType.includes('application/json')) {
         const text = await res.text()
         console.error(`[API] Non-JSON from ${path}:`, text.slice(0, 150))
-        throw new Error(`Сервер вернул HTML (${res.status}). Возможно, endpoint не существует или backend недоступен.`)
+        throw new Error(`Сервер вернул HTML (${res.status}). Endpoint не существует или backend недоступен.`)
     }
+
+    console.log('[API] Response status:', res.status)
 
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Unknown error' }))
