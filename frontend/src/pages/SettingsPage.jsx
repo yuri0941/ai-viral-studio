@@ -6,6 +6,7 @@ import i18n from '../i18n';
 import { PLANS, getPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
 import IntegrationsTab from './settings/IntegrationsTab.jsx'; // [SOCIAL-v5.1] added
 import PaymentMethodSelector from '../components/payments/PaymentMethodSelector.jsx'; // [v6.6-HOTFIX-PAYMENTS] multi-payment selector
+import AddonMarketplace from '../components/subscriptions/AddonMarketplace.jsx'; // [v7.0-PART2] addon marketplace
 import {
     User, Diamond, Link2, Bell, Shield, Palette, LogOut,
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
@@ -286,6 +287,7 @@ function SettingsPage() {
         { id: 'security', label: t('settings.security'), icon: Shield },
         { id: 'appearance', label: t('settings.appearance'), icon: Palette },
         { id: 'watermark', label: t('settings.watermark'), icon: Stamp },
+        { id: 'addons', label: 'Мои дополнения', icon: Sparkles },
     ];
 
     const handleSave = async () => {
@@ -1247,6 +1249,7 @@ function SettingsPage() {
             case 'integrations': return <IntegrationsTab />; // [FIX-2026-08-05] unified socials tab
             case 'notifications': return renderNotifications();
             case 'security': return renderSecurity();
+            case 'addons': return <AddonMarketplace />;
             case 'appearance': return renderAppearance();
             case 'watermark': return renderWatermark();
             default: return renderProfile();

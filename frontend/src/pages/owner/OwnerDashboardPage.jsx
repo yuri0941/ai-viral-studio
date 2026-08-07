@@ -45,6 +45,8 @@ import OmegaSwarmDashboard from '../../components/omega/OmegaSwarmDashboard.jsx'
 import OmegaAutoFixDashboard from '../../components/omega/OmegaAutoFixDashboard.jsx'
 import OmegaLearningDashboard from '../../components/omega/OmegaLearningDashboard.jsx'
 import OmegaResearchDashboard from '../../components/omega/OmegaResearchDashboard.jsx'
+import MonitoringDashboard from '../../components/admin/MonitoringDashboard.jsx'
+import OmegaResourceManager from '../../components/omega/OmegaResourceManager.jsx'
 import { OwnerRequisitesTab } from './components/tabs/OwnerRequisitesTab'
 import { LegalSettingsTab } from './components/tabs/LegalSettingsTab'
 import { BrandVoiceTab } from './components/tabs/BrandVoiceTab'
@@ -88,7 +90,7 @@ import {
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
     BrainCircuit, Database, Scale, BarChart, BarChart3, Search, Calendar, TrendingUp, Zap,
     X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, Code2, QrCode, Store, Shield, Terminal, Network,
-    Wrench, GraduationCap, Microscope
+    Wrench, GraduationCap, Microscope, Activity, Cpu
 } from 'lucide-react'
 
 const TAB_ICONS = {
@@ -147,6 +149,8 @@ const TAB_ICONS = {
     autofix: Wrench,
     learning: GraduationCap,
     research: Microscope,
+    monitoring: Activity,
+    resources: Cpu,
 }
 
 // [v6.0] added: count-up hook with requestAnimationFrame
@@ -361,6 +365,8 @@ export default function OwnerDashboardPage() {
             case 'autofix': return <OmegaAutoFixDashboard />
             case 'learning': return <OmegaLearningDashboard />
             case 'research': return <OmegaResearchDashboard />
+            case 'monitoring': return <MonitoringDashboard />
+            case 'resources': return <OmegaResourceManager />
             case 'omegaFinance': return <OmegaFinanceTab data={ownerData} />
             case 'omegaSkills': return <OmegaSkillsTab data={ownerData} />
             case 'omegaMemory': return <OmegaMemoryTab data={ownerData} />

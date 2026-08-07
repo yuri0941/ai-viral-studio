@@ -1,3 +1,23 @@
+## 2026-08-07 — v7.0-PART2 Disaster Recovery + Monitoring + Security + Addons + Resource Manager
+- [x] Feature: `backend/services/disasterRecovery.js` — ежедневный бэкап MongoDB в 03:00, хранение 30 дней, алерт при >24ч, restore по PIN, rollback plan
+- [x] Feature: `backend/routes/disaster.js` — `/api/admin/backup/trigger|status|list|restore` (owner only)
+- [x] Feature: `backend/services/monitoringService.js` — CPU/RAM/DB/Redis/latency/error rate, алерты >5% и >2сек
+- [x] Feature: `backend/routes/monitoring.js` — `/api/admin/metrics`, `/api/admin/logs`, `/api/admin/resources`
+- [x] Feature: `frontend/src/components/admin/MonitoringDashboard.jsx` — 6 карточек, Recharts график, алерты, скачать логи
+- [x] Feature: Вкладка `monitoring` в Owner Dashboard (TAB_ICONS + TAB_LABELS + case)
+- [x] Feature: `backend/middleware/rateLimiter.js` v2 — /api/* 1000 auth/100 guest, /api/omega/chat 50, auth limits, whitelist, DDoS autoban >1000/мин
+- [x] Feature: `backend/models/BlockedIP.js` — ip, reason, bannedAt, expiresAt, count
+- [x] Feature: `backend/models/Addon.js` + `backend/models/UserAddon.js` — маркетплейс аддонов
+- [x] Feature: `backend/routes/addons.js` — `/subscriptions/addons`, `/my-addons`, purchase, cancel/refund
+- [x] Feature: `frontend/src/components/subscriptions/AddonMarketplace.jsx` — 6 аддонов, фильтры, покупка/отключение
+- [x] Feature: Вкладка "Мои дополнения" в `SettingsPage.jsx`
+- [x] Feature: `backend/services/omegaResourceManager.js` — мониторинг API credits, DB, bandwidth, 429, авто-докупка
+- [x] Feature: `frontend/src/components/omega/OmegaResourceManager.jsx` — прогресс-бары, тоггл авто-апгрейда, история операций
+- [x] Feature: Вкладка `resources` в Owner Dashboard
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+- [x] Render: Manual Deploy → Clear Build Cache & Deploy (запланировано)
+
 ## 2026-08-07 — v7.0-PART1 Cleanup Demo + Failover + OTA + Download Center
 - [x] Cleanup: demo-режим и demo-фразы убраны из `aiService.js` (переменная `demoReply` → `fallbackReply`)
 - [x] Cleanup: `backend/data/ownerMockData.js` уже переименован в `ownerFallbackData.js`, realistic fallback

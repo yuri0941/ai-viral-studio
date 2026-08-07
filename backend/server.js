@@ -6,12 +6,12 @@ import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
-import rateLimit from 'express-rate-limit'
 import mongoose from 'mongoose'
 import { connectDB, isConnected } from './config/database.js'
 import { connectRedis } from './config/redisClient.js' // [P24] fixed: Redis import
 import { errorHandler } from './middleware/errorHandler.js'
 import { protect } from './middleware/auth.js' // [HOTFIX-2026-08-04] added — protect for fallback routes
+import { apiLimiter, omegaChatLimiter, authLoginLimiter, authRegisterLimiter, checkBlockedIP, autoBanMiddleware } from './middleware/rateLimiter.js'  // [v7.0-PART2] rate limiting v2
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import bot from './services/ownerBot.js'
 import { initOwnerBot } from './services/ownerBot.js'
@@ -36,6 +36,7 @@ import omegaRoutes from './routes/omega.js'  // ← НОВОЕ: OMEGA Core API
 import adRequestRoutes from './routes/adRequests.js'  // ← НОВОЕ: AdRequests / Client chat
 import subscriptionRoutes from './routes/subscriptions.js'  // ← P10: Подписки
 import invoiceRoutes from './routes/invoices.js'  // ← P10: Счета
+import addonsRoutes from './routes/addons.js'  // [v7.0-PART2] addon marketplace
 import ownerRequisitesRoutes from './routes/ownerRequisites.js'  // ← P10: Реквизиты
 import ownerLegalInfoRoutes from './routes/ownerLegalInfo.js'  // ← Legal Shield: Owner legal info
 import { getPublicLegalInfo } from './controllers/ownerLegalInfoController.js'  // ← Public legal info
@@ -81,7 +82,10 @@ import adRoutes from './routes/ads.js'  // [v6.6] Advertiser ads API
 import creatorRoutes from './routes/creator.js'  // [v6.6-PART2] Creator analytics
 import versionRoutes from './routes/version.js'  // [v6.5.5] added: version API
 import desktopUpdateRoutes from './routes/desktopUpdate.js'  // [v7.0] added: Tauri desktop updater
-import downloadsRoutes from './routes/downloads.js'  // [v7.0] added: download center
+import { startBackupCron } from './services/disasterRecovery.js'  // [v7.0-PART2] added: disaster recovery
+import disasterRoutes from './routes/disaster.js'  // [v7.0-PART2] added: disaster recovery API
+import { startMonitoringCron, monitoringMiddleware } from './services/monitoringService.js'  // [v7.0-PART2] added: monitoring
+import { startResourceManagerCron } from './services/omegaResourceManager.js'  // [v7.0-PART2] added: resource manager
 import fallbackRoutes from './routes/fallbackRoutes.js'  // [v6.0] added: structured fallback routes
 
 // [v6.0-fix] added: fallback routers for expected frontend endpoints without mock data
@@ -144,6 +148,9 @@ if (!isConnected) {
 startAutopilot()
 startAutoReportCron()
 startFailoverCron()
+startBackupCron()
+startMonitoringCron()
+startResourceManagerCron()
 startSelfHealing()
 startSelfReflectionCron()
 startNeuralReflectionCron()
@@ -239,6 +246,7 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(compression())
+app.use(monitoringMiddleware)  // [v7.0-PART2] track API latency and errors
 
 // Telegram webhook handlers
 if (process.env.TELEGRAM_BOT_TOKEN && process.env.NODE_ENV === 'production') {
@@ -264,39 +272,18 @@ app.post('/webhook/omega', express.json(), (req, res) => {
     res.sendStatus(200)
 })
 
-// Rate limiting (relaxed in development)
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: process.env.NODE_ENV === 'production' ? 100 : 10000,
-    message: 'Too many requests from this IP, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-})
-app.use('/api/', limiter)
+// Rate limiting v2 — DDoS autoban + whitelist + per-route limits
+app.use(autoBanMiddleware)
+app.use('/api/omega/chat', omegaChatLimiter)
+app.use('/api/auth/register', authRegisterLimiter)
+app.use('/api/auth/login', authLoginLimiter)
+app.use('/api/', checkBlockedIP, apiLimiter)
 
 app.use('/uploads', express.static('uploads'))
 
 // White-label detection — applies to all requests so custom branding can be detected
 app.use(detectWhiteLabel)
 app.use(whiteLabelHeaders)
-
-const registerLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 5,
-    message: 'Слишком много попыток регистрации. Попробуйте позже.',
-    standardHeaders: true,
-    legacyHeaders: false,
-})
-app.use('/api/auth/register', registerLimiter)
-
-const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
-    message: 'Слишком много попыток входа. Попробуйте позже.',
-    standardHeaders: true,
-    legacyHeaders: false,
-})
-app.use('/api/auth/login', loginLimiter)
 
 // Health check
 app.get('/health', (req, res) => {
@@ -333,6 +320,7 @@ app.use('/api/ad-requests', adRequestRoutes)  // ← НОВОЕ: AdRequests / Cl
 app.use('/api/ads', protect, adRoutes)  // [v6.6] Advertiser campaigns + approval flow
 app.use('/api/creator', protect, creatorRoutes)  // [v6.6-PART2] Creator analytics (no 401 for valid token)
 app.use('/api/subscriptions', subscriptionRoutes)  // ← P10: Подписки
+app.use('/api/subscriptions', addonsRoutes)  // [v7.0-PART2] addon marketplace
 app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета
 app.use('/api/owner-requisites', ownerRequisitesRoutes)  // ← P10: Реквизиты
 app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Owner legal info
@@ -371,6 +359,8 @@ app.use('/api/repurposing', repurposingRoutes)  // [v6.5] added: content repurpo
 app.use('/api/version', versionRoutes)  // [v6.5.5] added: version API
 app.use('/api/desktop', desktopUpdateRoutes)  // [v7.0] added: Tauri desktop updater
 app.use('/api/downloads', downloadsRoutes)  // [v7.0] added: download center
+app.use('/api/admin', disasterRoutes)  // [v7.0-PART2] added: disaster recovery
+app.use('/api/admin', monitoringRoutes)  // [v7.0-PART2] added: monitoring API
 
 // [v6.0-fix] added: fallback routers for expected frontend endpoints (real empty structures, no mock)
 app.use('/api/analytics', analyticsFallbackRoutes)

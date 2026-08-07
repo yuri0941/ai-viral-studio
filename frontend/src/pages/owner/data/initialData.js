@@ -212,4 +212,6 @@ export const TAB_LABELS = {
     autofix: '🔧 AutoFix',
     learning: '📚 Learning',
     research: '🔬 Research',
+    monitoring: '📈 Мониторинг',
+    resources: '⚡ Ресурсы',
 }
