@@ -1,3 +1,17 @@
+## 2026-08-07 — v6.6-HOTFIX-PAYMENTS Multi-Payment + Auto-Detect + Owner Config
+- [x] Feature: PaymentProvider model — хранит реквизиты ЮKassa/Stripe/PayPal/Crypto/SberPay/Tinkoff
+- [x] Feature: /api/payments/methods — автоопределение страны по IP (Cloudflare cf-ipcountry), сортировка рекомендуемых способов
+- [x] Feature: /api/payments/create-checkout-session — поддержка multiple providers (Stripe, ЮKassa, PayPal, Crypto)
+- [x] Feature: PaymentMethodSelector.jsx — красивое модальное окно выбора, glass-luxury, авто-рекомендация, адаптив
+- [x] Feature: Owner Dashboard → вкладка "Платёжные системы" — вставка реквизитов, активация одной кнопкой
+- [x] Feature: i18n ключи payment.selectMethod, payment.detectedCountry, payment.recommended, payment.pay, payment.secure, payment.noMethods
+- [x] Fix: SettingsPage.jsx — вместо прямого fetch теперь открывается PaymentMethodSelector
+- [x] Fix: autoFixAgent.js — guard от пустого массива в scanForErrors
+- [x] Fix: 503 ошибка больше не падает — если провайдер не настроен, показывается "Временно недоступно"
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен (commit 24758266)
+- [x] Render: auto-deploy from git push, /health returns OK
+
 ## 2026-08-07 — v6.6-PART2 FIX + NEURAL CORE + AUTONOMOUS BRAIN
 - [x] Fix: 401 Unauthorized — CORS origin aiviral-studio.ru, creator analytics endpoint, 401 redirect to login
 - [x] Fix: Mobile menu — MobileBottomNav 5 табов + MobileDrawer со ВСЕМИ табами (AI Chat, Planner, Viral Chat, AI vs Human)
