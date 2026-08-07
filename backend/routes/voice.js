@@ -80,4 +80,4 @@ router.patch('/users/me/voice-settings', protect, async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;
