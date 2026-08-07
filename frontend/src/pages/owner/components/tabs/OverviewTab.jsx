@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { AutoReportWidget } from '../../../../components/owner/AutoReportWidget.jsx'
 import { UpgradeNudge } from '../../../../components/shared/UpgradeNudge.jsx'
 import { OmegaCompetitorRadar } from '../../../../components/omega/OmegaCompetitorRadar.jsx'
+import OmegaPredictiveCard from '../../../../components/omega/OmegaPredictiveCard.jsx'
 
 function BentoCard({ title, value, subtext, icon: Icon, color, onClick, children, className = '' }) {
     return (
@@ -145,7 +146,14 @@ export function OverviewTab({ data }) {
 
             <AutoReportWidget />
 
-            <UpgradeNudge user={user} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-1">
+                    <OmegaPredictiveCard />
+                </div>
+                <div className="lg:col-span-2">
+                    <UpgradeNudge user={user} />
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <BentoCard

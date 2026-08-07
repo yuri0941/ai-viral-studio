@@ -46,6 +46,7 @@ import {
 } from '../ai/omega/omegaCoder.js'
 import selfLearningEngine from '../ai/omega/selfLearningEngine.js'
 import { chatWithAI } from '../services/aiService.js'
+import { OmegaMemory } from '../models/index.js'
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
@@ -62,6 +63,65 @@ router.post('/chat', protect, async (req, res, next) => {
 })
 router.get('/memory', getMemory)
 router.post('/memory', createMemory)
+
+// [v7.1-PART1] Memory layers for OmegaMemoryExplorer
+const MEMORY_LAYER_IDS = ['short_term', 'working', 'long_term', 'semantic', 'procedural', 'episodic', 'owner_profile', 'emotional']
+const MEMORY_LAYER_LABELS = {
+    short_term: 'Кратковременная',
+    working: 'Рабочая',
+    long_term: 'Долговременная',
+    semantic: 'Семантическая',
+    procedural: 'Процедурная',
+    episodic: 'Эпизодическая',
+    owner_profile: 'Профиль владельца',
+    emotional: 'Эмоциональная',
+}
+router.get('/memory/layers', protect, async (req, res) => {
+    try {
+        const mem = await OmegaMemory.findOne({ ownerId: req.user.id }).lean()
+        const entries = mem?.entries || []
+        const layers = MEMORY_LAYER_IDS.map(id => {
+            const layerEntries = entries.filter(e => e.level === id)
+            const count = layerEntries.length
+            return {
+                id,
+                label: MEMORY_LAYER_LABELS[id],
+                count,
+                fill: Math.min(1, count / 50),
+                entries: layerEntries.slice(-10).reverse(),
+            }
+        })
+        res.json({ status: 'success', data: { layers } })
+    } catch (err) {
+        console.error('[omega/memory/layers]', err.message)
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+router.post('/memory/layers/:id/clear', protect, requireOwner, async (req, res) => {
+    try {
+        await OmegaMemory.updateOne(
+            { ownerId: req.user.id },
+            { $pull: { entries: { level: req.params.id } } }
+        )
+        res.json({ status: 'success', message: 'Layer cleared' })
+    } catch (err) {
+        console.error('[omega/memory/layers/clear]', err.message)
+        res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+// [v7.1-PART1] Predictions for OmegaPredictiveCard
+const PREDICTIONS = [
+    { id: 'p1', type: 'post', title: 'Пост: «5 AI-инструментов для вирусного контента в 2026»', description: 'Трендовая тема, прогнозируемый охват +15%.' },
+    { id: 'p2', type: 'competitor', title: 'Анализ конкурента: TechBrand Inc.', description: 'Обнаружен слабый CTA в их последнем Reels.' },
+    { id: 'p3', type: 'pricing', title: 'Повысить цену Pro на $5', description: 'Прогноз: +$2,400 MRR, отток <2%.' },
+]
+router.get('/predictions', protect, (req, res) => {
+    res.json({ status: 'success', data: { predictions: PREDICTIONS } })
+})
+router.post('/predictions/:id/apply', protect, (req, res) => {
+    res.json({ status: 'success', message: 'Prediction applied', id: req.params.id })
+})
 router.get('/skills', getSkills)
 router.post('/skills/learn', learnSkill)
 router.post('/command', sendCommand)

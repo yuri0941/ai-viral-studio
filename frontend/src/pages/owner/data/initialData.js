@@ -215,4 +215,7 @@ export const TAB_LABELS = {
     monitoring: '📈 Мониторинг',
     resources: '⚡ Ресурсы',
     roadmap: '🗺️ Roadmap',
+    brainviz: '🧠 Нейросеть',
+    memory: '💾 Память',
+    boardroom: '🏛 Совет',
 }

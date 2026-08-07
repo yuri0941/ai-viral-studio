@@ -48,6 +48,8 @@ import OmegaResearchDashboard from '../../components/omega/OmegaResearchDashboar
 import MonitoringDashboard from '../../components/admin/MonitoringDashboard.jsx'
 import OmegaResourceManager from '../../components/omega/OmegaResourceManager.jsx'
 import OmegaRoadmap from '../../components/omega/OmegaRoadmap.jsx'
+import OmegaMemoryExplorer from '../../components/omega/OmegaMemoryExplorer.jsx'
+import OmegaBoardroom from '../../components/omega/OmegaBoardroom.jsx'
 import { OwnerRequisitesTab } from './components/tabs/OwnerRequisitesTab'
 import { LegalSettingsTab } from './components/tabs/LegalSettingsTab'
 import { BrandVoiceTab } from './components/tabs/BrandVoiceTab'
@@ -153,6 +155,9 @@ const TAB_ICONS = {
     monitoring: Activity,
     resources: Cpu,
     roadmap: Map,
+    brainviz: Brain,
+    memory: Database,
+    boardroom: Users,
 }
 
 // [v6.0] added: count-up hook with requestAnimationFrame
@@ -370,6 +375,9 @@ export default function OwnerDashboardPage() {
             case 'monitoring': return <MonitoringDashboard />
             case 'resources': return <OmegaResourceManager />
             case 'roadmap': return <OmegaRoadmap />
+            case 'brainviz': return <OmegaBrainViz />
+            case 'memory': return <OmegaMemoryExplorer />
+            case 'boardroom': return <OmegaBoardroom />
             case 'omegaFinance': return <OmegaFinanceTab data={ownerData} />
             case 'omegaSkills': return <OmegaSkillsTab data={ownerData} />
             case 'omegaMemory': return <OmegaMemoryTab data={ownerData} />

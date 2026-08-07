@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
     LayoutDashboard, Brain, Wallet, BrainCircuit, Database,
-    DollarSign, CreditCard, Building2, Megaphone, Share2,
+    DollarSign, CreditCard, Building2, Megaphone, Share2, Code2,
     Users, Monitor, CheckSquare, Bot, Newspaper, Gift, MessageSquare,
     KeyRound, Lock, Scale, ShieldCheck, Server, RefreshCw, Plug,
     BarChart, FileText, Bell, HelpCircle, Heart, Rocket,
@@ -97,6 +97,10 @@ const OWNER_GROUPS = [
         title: 'OMEGA',
         items: [
             { id: 'omega', label: 'Ω OMEGA Core', icon: Brain },
+            { id: 'brainviz', label: '🧠 Нейросеть', icon: Brain },
+            { id: 'memory', label: '💾 Память', icon: Database },
+            { id: 'devstudio', label: '💻 DevStudio', icon: Code2 },
+            { id: 'boardroom', label: '🏛 Совет', icon: Users },
             { id: 'aiChat', label: '💬 AI Chat', icon: MessageSquare },
             { id: 'viralChat', label: '⚡ Viral Chat', icon: Zap },
             { id: 'aiVsHuman', label: '🥊 AI vs Human', icon: Swords },
