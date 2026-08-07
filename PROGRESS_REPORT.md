@@ -1,3 +1,11 @@
+## 2026-08-08 — v8.0-PART1-HOTFIX: ES Module default export fix for neuroSales/video/voice routes
+- [x] `backend/routes/neuroSales.js`: `module.exports = router;` → `export default router;`
+- [x] `backend/routes/video.js`: `module.exports = router;` → `export default router;`
+- [x] `backend/routes/voice.js`: `module.exports = router;` → `export default router;`
+- [x] `node --check backend/server.js` OK
+- [x] Git push: выполнен
+- [x] Render health: `{"status":"ok"}`
+
 ## 2026-08-08 — v8.0-PART1: AI Video Creator, Full Voice Mode (TTS/STT), Neuro-Sales, Dynamic Pricing
 - [x] AI Video Creator: `frontend/src/components/video/AIVideoCreator.jsx` — 3 шага, генерация сценария, визуал, озвучка, mock job, preview
 - [x] Backend: `backend/routes/video.js` — `POST /api/video/create`, `GET /api/video/status/:jobId`, `GET /api/video/list`
