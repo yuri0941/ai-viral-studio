@@ -1,3 +1,12 @@
+## 2026-08-08 — v8.0-PART1-HOTFIX-2: Convert v8.0 routes/services to ES modules (require→import)
+- [x] `backend/routes/video.js`: `require` → `import`, `module.exports` → `export default`
+- [x] `backend/routes/voice.js`: `require` → `import`, `module.exports` → `export default`
+- [x] `backend/routes/neuroSales.js`: `require` → `import`, `module.exports` → `export default`
+- [x] `backend/services/dynamicPricingService.js`: `require` → `import`, `module.exports` → named `export`
+- [x] `node --check backend/server.js` OK
+- [x] Git push: выполнен
+- [x] Render health: `{"status":"ok"}`
+
 ## 2026-08-08 — v8.0-PART1-HOTFIX: ES Module default export fix for neuroSales/video/voice routes
 - [x] `backend/routes/neuroSales.js`: `module.exports = router;` → `export default router;`
 - [x] `backend/routes/video.js`: `module.exports = router;` → `export default router;`
