@@ -31,6 +31,7 @@ import userRoutes from './routes/users.js'
 import youtubeRoutes from './routes/youtube.js'  // ← НОВОЕ: YouTube API
 import paymentRoutes from './routes/payments.js'  // ← НОВОЕ: Платежи
 import ownerRoutes from './routes/owner.js'  // ← НОВОЕ: Owner Dashboard API
+import auditRoutes from './routes/audit.js'  // ← v6.6-HOTFIX-EXPORT: audit CSV export
 import omegaRoutes from './routes/omega.js'  // ← НОВОЕ: OMEGA Core API
 import adRequestRoutes from './routes/adRequests.js'  // ← НОВОЕ: AdRequests / Client chat
 import subscriptionRoutes from './routes/subscriptions.js'  // ← P10: Подписки
@@ -318,6 +319,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
 app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API
+app.use('/api/audit', auditRoutes)  // ← v6.6-HOTFIX-EXPORT: audit CSV export
 app.use('/api/omega', omegaRoutes)  // ← НОВОЕ: OMEGA Core API
 app.use('/api/omega', devStudioRoutes)  // [v6.6] added: OMEGA DevStudio
 app.use('/api/omega', swarmRoutes)  // [v6.6] added: OMEGA Swarm

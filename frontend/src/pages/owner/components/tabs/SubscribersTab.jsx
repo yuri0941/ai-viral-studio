@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RefreshCcw, RotateCcw, Search, Users, Mail, Megaphone } from 'lucide-react';
+import { RefreshCcw, RotateCcw, Search, Users, Mail, Megaphone, Download, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../../../../config.js';
 import BroadcastModal from '../../../../components/owner/BroadcastModal.jsx';
 
@@ -81,6 +81,29 @@ export function SubscribersTab() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE_URL}/payments/admin/subscriptions/export`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Отчёт_подписчики_${new Date().toLocaleDateString('ru-RU')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      if (window.showToast) window.showToast('Отчёт скачан', 'success');
+    } catch (err) {
+      console.error('[SubscribersTab:export]', err.message);
+      if (window.showToast) window.showToast('Не удалось скачать отчёт', 'error');
+    }
+  };
+
   const filtered = subs.filter(s => {
     const matchesFilter = filter === 'all' || s.status === filter;
     const user = s.userId || {};
@@ -104,6 +127,12 @@ export function SubscribersTab() {
             className="px-3 py-2 rounded-lg glass-luxury text-sm flex items-center gap-2 hover:bg-primary/20 transition-colors"
           >
             <Megaphone size={16} /> Массовая рассылка
+          </button>
+          <button
+            onClick={handleExport}
+            className="px-3 py-2 rounded-lg glass-luxury text-sm flex items-center gap-2 hover:bg-primary/20 transition-colors"
+          >
+            <Download size={16} /> 📥 Скачать отчёт
           </button>
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />

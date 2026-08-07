@@ -296,6 +296,28 @@ router.get('/admin/subscriptions', protect, requireOwner, async (req, res) => {
     }
 })
 
+router.get('/admin/subscriptions/export', protect, requireOwner, async (req, res) => {
+    try {
+        const subs = await Subscription.find()
+            .populate('userId', 'name email avatar')
+            .sort({ currentPeriodEnd: -1 })
+            .lean()
+        const csv = ExportService.toCSV(subs, {
+            customHeaders: {
+                'userId.name': 'Имя пользователя',
+                'userId.email': 'Email',
+                'currentPeriodEnd': 'Оплачено до',
+                'paymentHistory': 'История платежей',
+            },
+        })
+        const filename = `Отчёт_подписчики_${new Date().toLocaleDateString('ru-RU')}.csv`
+        ExportService.sendCSV(res, csv, filename)
+    } catch (err) {
+        console.error('[payments/admin/subscriptions/export]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
 // ============ ADMIN: REFUND / EXTEND / BROADCAST ============
 router.post('/admin/refund/:subscriptionId', protect, requireOwner, async (req, res) => {
     try {
