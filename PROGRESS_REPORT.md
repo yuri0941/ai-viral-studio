@@ -1,3 +1,13 @@
+## 2026-08-07 — v6.6-HOTFIX-FINAL Исправление ошибок
+- [x] Fix: Subscription.js — убран дублирующийся индекс providerSubscriptionId (оставлен index: true в поле)
+- [x] Fix: Omega routes — добавлены POST /generate-template/referral-post и /self-reflection (GET+POST) в backend/routes/omega.js
+- [x] Fix: ExportService — читаемые CSV с русскими заголовками, flatten metadata, BOM для Excel
+- [x] Fix: Кнопка "📥 Скачать отчёт" в AuditTab.jsx — корректное имя файла, UTF-8, fetch с bearer token
+- [x] Fix: Button audit — добавлен type="button", min-w-[44px]/min-h-[44px], disabled при loading в AutoReportWidget, PaymentProvidersTab, SubscribersTab, OmegaChat, ApiKeysTab, SubscriptionsTab
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен (commit 5df955e4)
+- [x] Render: auto-deploy from git push, /health returns OK
+
 ## 2026-08-07 — v6.6-HOTFIX-EXPORT Читаемые CSV/Excel отчёты + BOM + metadata flatten
 - [x] Feature: ExportService — flattenObject (metadata.userId, metadata.error...), русские заголовки, BOM, форматирование дат
 - [x] Feature: json2csv установлен в backend
