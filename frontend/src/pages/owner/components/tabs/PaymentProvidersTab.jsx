@@ -119,9 +119,10 @@ export function PaymentProvidersTab() {
           />
         </div>
         <button
+          type="button"
           onClick={handleSave}
           disabled={loading}
-          className="mt-4 px-6 py-2.5 rounded-xl bg-primary text-white flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50"
+          className="mt-4 px-6 py-2.5 min-h-[44px] rounded-xl bg-primary text-white flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50"
         >
           <Save size={16} />
           {saved ? <><Check size={16} /> Сохранено</> : (loading ? 'Сохранение...' : 'Сохранить и активировать')}

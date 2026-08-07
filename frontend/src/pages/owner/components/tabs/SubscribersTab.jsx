@@ -123,14 +123,16 @@ export function SubscribersTab() {
         </h2>
         <div className="flex flex-wrap gap-2">
           <button
+            type="button"
             onClick={() => setShowBroadcast(true)}
-            className="px-3 py-2 rounded-lg glass-luxury text-sm flex items-center gap-2 hover:bg-primary/20 transition-colors"
+            className="px-3 py-2 min-h-[44px] rounded-lg glass-luxury text-sm flex items-center gap-2 hover:bg-primary/20 transition-colors"
           >
             <Megaphone size={16} /> Массовая рассылка
           </button>
           <button
+            type="button"
             onClick={handleExport}
-            className="px-3 py-2 rounded-lg glass-luxury text-sm flex items-center gap-2 hover:bg-primary/20 transition-colors"
+            className="px-3 py-2 min-h-[44px] rounded-lg glass-luxury text-sm flex items-center gap-2 hover:bg-primary/20 transition-colors"
           >
             <Download size={16} /> 📥 Скачать отчёт
           </button>
@@ -188,16 +190,18 @@ export function SubscribersTab() {
                   <td className="p-3">
                     <div className="flex gap-2">
                       <button
+                        type="button"
                         onClick={() => handleExtend(s._id)}
                         title="Продлить"
-                        className="p-2 rounded-lg bg-white/5 hover:bg-primary/20 transition-colors"
+                        className="p-2 min-w-[44px] min-h-[44px] rounded-lg bg-white/5 hover:bg-primary/20 transition-colors flex items-center justify-center"
                       >
                         <RefreshCcw size={14} />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleRefund(s._id)}
                         title="Возврат"
-                        className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 transition-colors"
+                        className="p-2 min-w-[44px] min-h-[44px] rounded-lg bg-white/5 hover:bg-red-500/20 transition-colors flex items-center justify-center"
                       >
                         <RotateCcw size={14} />
                       </button>

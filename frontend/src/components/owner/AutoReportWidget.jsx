@@ -128,10 +128,10 @@ export function AutoReportWidget() {
                         </p>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => setSettingsOpen(true)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--text-muted)] transition-colors">
+                        <button type="button" onClick={() => setSettingsOpen(true)} className="p-2 min-w-[44px] min-h-[44px] rounded-lg bg-white/5 hover:bg-white/10 text-[var(--text-muted)] transition-colors flex items-center justify-center">
                             <Settings className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setOpen(true)} className="px-3 py-2 rounded-lg bg-[var(--primary)]/20 text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)]/30 transition-colors">
+                        <button type="button" onClick={() => setOpen(true)} className="px-3 py-2 min-h-[44px] rounded-lg bg-[var(--primary)]/20 text-[var(--primary)] text-xs font-semibold hover:bg-[var(--primary)]/30 transition-colors">
                             Посмотреть
                         </button>
                     </div>
@@ -143,7 +143,7 @@ export function AutoReportWidget() {
                     <div className="glass-card rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-xl font-bold text-white">Утренний отчёт OMEGA</h2>
-                            <button onClick={() => setOpen(false)} className="p-2 rounded-lg hover:bg-white/10 text-gray-400">
+                            <button type="button" onClick={() => setOpen(false)} className="p-2 min-w-[44px] min-h-[44px] rounded-lg hover:bg-white/10 text-gray-400 flex items-center justify-center">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -214,7 +214,7 @@ export function AutoReportWidget() {
                     <div className="glass-card rounded-2xl w-full max-w-md p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-bold text-white">Настройка отчёта</h3>
-                            <button onClick={() => setSettingsOpen(false)} className="p-2 rounded-lg hover:bg-white/10 text-gray-400">
+                            <button type="button" onClick={() => setSettingsOpen(false)} className="p-2 min-w-[44px] min-h-[44px] rounded-lg hover:bg-white/10 text-gray-400 flex items-center justify-center">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>

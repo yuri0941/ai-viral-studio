@@ -30,7 +30,6 @@ const SubscriptionSchema = new mongoose.Schema({
 });
 
 SubscriptionSchema.index({ status: 1, currentPeriodEnd: 1 });
-SubscriptionSchema.index({ providerSubscriptionId: 1 });
 
 SubscriptionSchema.pre('save', function (next) {
   this.updatedAt = new Date();

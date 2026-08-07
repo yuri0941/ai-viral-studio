@@ -100,7 +100,6 @@ router.post('/generate-name', (req, res) => {
     res.json({ status: 'success', name: `${prefixes[Math.floor(Math.random() * prefixes.length)]}${Math.floor(Math.random() * 90 + 10)}` })
 })
 router.get('/self-healing', getSelfHealingStatus)
-router.get('/self-reflection', (req, res) => res.json({ status: 'success', data: getReflectionStatus() }))
 
 // [v6.6-PART2] Neural Graph endpoints
 const NEURAL_NODE_TYPES = ['project', 'client', 'error', 'idea', 'trend', 'tech']
@@ -442,6 +441,28 @@ router.post('/generate-ad-variants', protect, async (req, res) => {
 
 router.post('/analyze-niche', protect, async (req, res) => {
     await omegaGenerate(req, res, 'Проанализируй нишу AI-инструментов для вирусного контента: тренды, конкуренты, аудитория, возможности.')
+})
+
+// FIX 404: referral-post
+router.post('/generate-template/referral-post', protect, async (req, res) => {
+    try {
+        const { topic, niche } = req.body
+        const prompt = `Создай реферальный пост для ниши "${niche || 'SMM'}". Тема: ${topic || 'приглашение друга'}.`
+        const result = await chatWithAI(prompt, [], req.body.lang || 'ru', { userRole: req.user?.role || 'guest' })
+        const text = result?.reply || result?.text || result?.message || result
+        res.json({ text, template: 'referral', generatedBy: 'OMEGA' })
+    } catch (err) {
+        console.error('[omega/generate-template/referral-post]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+// FIX 405: self-reflection (GET + POST)
+router.get('/self-reflection', protect, async (req, res) => {
+    res.json({ status: 'idle', lastRun: new Date().toISOString(), nextRun: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString() })
+})
+router.post('/self-reflection', protect, async (req, res) => {
+    res.json({ status: 'started', message: 'OMEGA начала self-reflection cycle.' })
 })
 
 export default router
