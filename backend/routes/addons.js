@@ -1,8 +1,9 @@
 import express from 'express'
 import Addon from '../models/Addon.js'
 import UserAddon from '../models/UserAddon.js'
-import { protect } from '../middleware/auth.js'
+import { protect, requireRole } from '../middleware/auth.js'
 import Stripe from 'stripe'
+import { analyzeAddonMarket, generatePricingReport } from '../services/aiPricingService.js'
 
 const router = express.Router()
 
@@ -91,6 +92,88 @@ router.delete('/my-addons/:id', protect, async (req, res) => {
         doc.status = 'canceled'
         await doc.save()
         res.json({ success: true, refundAmount, currency: doc.currency })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+// [v7.1-ADDON-PRICING] Owner/admin price management
+router.patch('/addons/:id/price', protect, requireRole('owner', 'admin'), async (req, res) => {
+    try {
+        await getOrSeedAddons()
+        const { price, currency, discountPercent, paymentMethods } = req.body
+        const addon = await Addon.findOneAndUpdate(
+            { id: req.params.id },
+            {
+                $set: {
+                    price: Number(price),
+                    currency: currency || 'RUB',
+                    'ownerPriceConfig.customPrice': Number(price),
+                    'ownerPriceConfig.customCurrency': currency || 'RUB',
+                    'ownerPriceConfig.discountPercent': Math.min(100, Math.max(0, Number(discountPercent) || 0)),
+                    ...(paymentMethods ? { paymentMethods } : {}),
+                },
+            },
+            { new: true }
+        )
+        if (!addon) return res.status(404).json({ success: false, error: 'Аддон не найден' })
+        res.json({ success: true, addon })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.get('/addons/pricing-config', protect, requireRole('owner', 'admin'), async (req, res) => {
+    try {
+        await getOrSeedAddons()
+        const addons = await Addon.find({ isActive: true }).lean()
+        res.json({ success: true, addons })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.post('/addons/:id/reset-price', protect, requireRole('owner', 'admin'), async (req, res) => {
+    try {
+        await getOrSeedAddons()
+        const addon = await Addon.findOne({ id: req.params.id })
+        if (!addon) return res.status(404).json({ success: false, error: 'Аддон не найден' })
+        addon.price = addon.basePrice || addon.price
+        addon.ownerPriceConfig.customPrice = null
+        addon.ownerPriceConfig.discountPercent = 0
+        await addon.save()
+        res.json({ success: true, addon })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.post('/addons/:id/analyze-price', protect, requireRole('owner', 'admin'), async (req, res) => {
+    try {
+        await getOrSeedAddons()
+        const addon = await Addon.findOne({ id: req.params.id }).lean()
+        if (!addon) return res.status(404).json({ success: false, error: 'Аддон не найден' })
+        const analysis = await analyzeAddonMarket(addon, req.user.role)
+        await Addon.findOneAndUpdate(
+            { id: req.params.id },
+            {
+                $set: {
+                    'ownerPriceConfig.aiRecommendedPrice': analysis.recommendedPrice,
+                    'ownerPriceConfig.aiRecommendationReason': analysis.reasoning,
+                    'ownerPriceConfig.lastAnalyzed': new Date(),
+                },
+            }
+        )
+        res.json({ success: true, analysis })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.get('/addons/pricing-report', protect, requireRole('owner', 'admin'), async (req, res) => {
+    try {
+        const report = await generatePricingReport()
+        res.json({ success: true, report })
     } catch (err) {
         res.status(500).json({ success: false, error: err.message })
     }

@@ -9,7 +9,7 @@ import {
     BarChart, FileText, Bell, HelpCircle, Heart, Rocket,
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
-    Palette, LayoutTemplate, Flame, Cpu, Swords, Zap,
+    Palette, LayoutTemplate, Flame, Cpu, Swords, Zap, Sparkles,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
@@ -148,6 +148,7 @@ const OWNER_GROUPS = [
         id: 'settings',
         title: 'НАСТРОЙКИ',
         items: [
+            { id: 'addons', label: '✨ Мои дополнения', icon: Sparkles },
             { id: 'apiKeys', label: '🔑 API Keys', icon: KeyRound },
             { id: 'security', label: 'Безопасность', icon: Lock },
             { id: 'legal', label: 'Юр. лицо', icon: Scale },

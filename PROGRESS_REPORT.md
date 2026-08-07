@@ -1,3 +1,14 @@
+## 2026-08-07 — v7.1-ADDON-PRICING: AI Pricing Engine + Owner Edit + Multi-Currency
+- [x] Backend: `backend/models/Addon.js` — price, basePrice, currencies, paymentMethods, ownerPriceConfig, isEditableByOwner
+- [x] Backend: `backend/routes/addons.js` — PATCH /price, GET /pricing-config, POST /reset-price, POST /analyze-price, GET /pricing-report (owner/admin)
+- [x] Backend: `backend/services/aiPricingService.js` — analyzeAddonMarket с fallback, generatePricingReport
+- [x] Frontend: `frontend/src/components/subscriptions/AddonMarketplace.jsx` — owner edit mode, multi-currency, AI analysis modal, payment methods, PaymentMethodSelector
+- [x] i18n: `ru.json` + `en.json` секция `addons`
+- [x] AppSidebar: пункт "✨ Мои дополнения" → SettingsPage addons tab
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+- [x] Render: Manual Deploy → Clear Build Cache & Deploy (запланировано)
+
 ## 2026-08-07 — HOTFIX v7.0-CHAT: 402 Owner Unlimited + i18n Chat Keys
 - [x] Fix: `backend/controllers/omegaController.js` — owner/admin/staff пропускают consumeGeneration (нет 402)
 - [x] Fix: `backend/services/usageQuotaService.js` — consumeGeneration возвращает unlimited для owner/admin/staff
