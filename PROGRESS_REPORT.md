@@ -1,3 +1,17 @@
+## 2026-08-07 — v6.6-PART1 LUXURY ADAPTIVE + MULTILANG + ROLE AUDIT (partial)
+- [x] Fix: Luxury CSS theme system (light/dark data-theme, glass-luxury, no white gaps)
+- [x] Fix: Global adaptive (320px→4K, safe-area, touch-44/48, z-index system, reduced-motion)
+- [x] Feature: i18n RU/EN — useTranslation hook, auto-detect, 75+ keys, i18n/locales copies
+- [x] Fix: api.js / AutoReportWidget use full API_BASE_URL, HTML guard preserved
+- [x] Feature: Advertiser Dashboard — CreateAdTab + backend /api/ads routes (create, variants, competitor, approve/launch)
+- [x] Feature: OMEGA Super Chat — 6 quick actions (hook, script, code, site, ad-variants, niche), code block copy, variant count
+- [x] Fix: Cache busting v6.6 (index.html BUILD, sw.js CACHE_NAME)
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен (commit 604a723b)
+- [ ] Fix: Owner Dashboard — all tabs work, no duplicates, glass-luxury cards, every button checked (deferred to PART2)
+- [ ] Fix: Creator Dashboard — mobile bottom nav, responsive cards, tariff limits (deferred to PART2)
+- [ ] Fix: Button audit — every <button has onClick/type/disabled (deferred to PART2)
+
 ## 2026-08-07 — v6.5.5-H7 OMEGA ЧАТ FIX
 - [x] Fix: API_BASE_URL = https://aiviral-backend.onrender.com/api (полный URL, не относительный)
 - [x] Fix: Backend роут /api/omega/chat проверен и подключён в server.js

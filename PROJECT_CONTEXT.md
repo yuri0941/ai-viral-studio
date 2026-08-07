@@ -627,6 +627,16 @@ NODE_ENV=production
 - [ ] Git push: выполнен
 
 
+## Current State (v6.6-PART1 — 2026-08-07)
+- Theme: Luxury glassmorphism light/dark via data-theme, CSS variables, no white gaps
+- Adaptive: 320px→4K, safe-area, touch targets, responsive typography
+- i18n: RU/EN, auto-detect, useTranslation hook, 75+ keys
+- Advertiser: CreateAdTab wired into dashboard, /api/ads backend routes + approval flow
+- OMEGA Chat: 6 quick actions, code/site/ad generation prompts, variant selector (1-10), code copy button
+- Backend: /api/ads/* routes, /api/omega/generate-* quick-action endpoints
+- Cache: v6.6 inline bust + SW cleanup
+- Next: PART2 — Owner/Creator dashboard audit + full button audit (safe AST-based)
+
 ## Current State (v6.6 — 2026-08-06)
 
 - Cache: Cloudflare Pages cache-bust через inline script + _headers + SW v6.6
