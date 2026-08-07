@@ -26,7 +26,7 @@ function getSectionMeta(title) {
   return { icon: 'ℹ️', color: 'gray' };
 }
 
-function CodeBlock({ code }) {
+function CodeBlock({ code, t }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     try {
@@ -45,7 +45,7 @@ function CodeBlock({ code }) {
       <button
         type="button"
         onClick={handleCopy}
-        aria-label={copied ? 'Скопировано' : 'Копировать'}
+        aria-label={copied ? t('chat.copied') : t('chat.copyCode')}
         className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-opacity"
       >
         {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -80,7 +80,7 @@ function AiMessageContent({ text, t }) {
         {parts.map((part, i) => {
           if (part.startsWith('```')) {
             const code = part.replace(/^```(\w+)?\n?/, '').replace(/```$/, '').trim();
-            return <CodeBlock key={i} code={code} />;
+            return <CodeBlock key={i} code={code} t={t} />;
           }
           if (part.includes('###')) {
             const sections = part.split(/###\s*/).filter(Boolean);

@@ -54,7 +54,10 @@ export async function checkQuota(userId) {
     }
 }
 
-export async function consumeGeneration(userId) {
+export async function consumeGeneration(userId, userRole = null) {
+    if (['owner', 'admin', 'staff'].includes(userRole)) {
+        return { allowed: true, remaining: Infinity, unlimited: true }
+    }
     const quota = await getOrCreateQuota(userId)
     if (quota.generationsUsed < quota.generationsLimit) {
         quota.generationsUsed += 1

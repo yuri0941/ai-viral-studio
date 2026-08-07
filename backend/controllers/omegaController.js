@@ -95,9 +95,13 @@ export async function chat(req, res) {
         const decision = await core.decide({ message, history })
 
         const userId = req.user?._id || req.user?.id
+        const effectiveRole = req.user?.role || userRole
+
+        // [HOTFIX-v7.0-CHAT] owner/admin/staff unlimited
+        const UNLIMITED_ROLES = ['owner', 'admin', 'staff']
 
         // [MONETIZE-2026-08-04] added: consume quota before AI call
-        if (userId) {
+        if (userId && !UNLIMITED_ROLES.includes(effectiveRole)) {
             try {
                 const quota = await consumeGeneration(userId)
                 if (quota.blocked) {

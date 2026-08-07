@@ -45,12 +45,17 @@ export const register = async (req, res) => {
             })
         }
 
+        // [HOTFIX-v7.0-CHAT] owner gets Agency unlimited
+        const effectiveRole = role || 'creator'
+        const isOwnerRole = effectiveRole === 'owner'
+
         // Create user
         const user = await User.create({
             email,
             password,
             name,
-            role: role || 'creator',
+            role: effectiveRole,
+            subscription: isOwnerRole ? 'agency' : undefined,
             acceptedTerms: true,
             acceptedPrivacy: true,
             acceptedConsent: true,
@@ -151,6 +156,10 @@ export const login = async (req, res) => {
         user.lastLogin = new Date()
         if (timezone && typeof timezone === 'string' && (!user.preferences?.timezone || user.preferences.timezone !== timezone)) {
             user.preferences = { ...user.preferences, timezone }
+        }
+        // [HOTFIX-v7.0-CHAT] ensure owner is Agency unlimited
+        if (user.role === 'owner' && user.subscription !== 'agency') {
+            user.subscription = 'agency'
         }
         await user.save()
 

@@ -575,5 +575,30 @@
   "ad.submitted": "Submitted for owner approval",
   "ad.analyzeCompetitor": "Competitor analysis",
   "ad.generatedVariants": "Generated variants",
-  "ad.variantsHint": "Fill the form and click Generate variants"
+  "ad.variantsHint": "Fill the form and click Generate variants",
+  "chat": {
+    "serverUnavailable": "OMEGA is temporarily unavailable. Retry in 10s.",
+    "placeholder": "Ask OMEGA...",
+    "privacy": "Your data is protected. OMEGA never reveals other projects.",
+    "action": {
+      "hook": "🪝 Hook",
+      "script": "📝 Script",
+      "code": "💻 Code",
+      "site": "🌐 Site",
+      "adVariants": "📢 Ad",
+      "niche": "🎯 Niche"
+    },
+    "variants": "Variants",
+    "thinking": "OMEGA is thinking...",
+    "send": "Send",
+    "voice": "Voice input",
+    "recording": "Recording...",
+    "mic": "Voice input",
+    "copy": "Copied!",
+    "copyCode": "Copy",
+    "copied": "Copied",
+    "error": "Connection error. Please retry.",
+    "empty": "Start a conversation with OMEGA",
+    "section": "Section"
+  }
 }

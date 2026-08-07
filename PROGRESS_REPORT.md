@@ -1,3 +1,13 @@
+## 2026-08-07 — HOTFIX v7.0-CHAT: 402 Owner Unlimited + i18n Chat Keys
+- [x] Fix: `backend/controllers/omegaController.js` — owner/admin/staff пропускают consumeGeneration (нет 402)
+- [x] Fix: `backend/services/usageQuotaService.js` — consumeGeneration возвращает unlimited для owner/admin/staff
+- [x] Fix: `backend/controllers/authController.js` — owner при регистрации/логине получает subscription: 'agency'
+- [x] Fix: `frontend/src/locales/ru.json` + `en.json` — добавлена секция `chat` со всеми ключами
+- [x] Fix: `frontend/src/components/omega/OmegaChat.jsx` — aria-label кнопки копирования через t()
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+- [x] Render: Manual Deploy → Clear Build Cache & Deploy (запланировано)
+
 ## 2026-08-07 — v7.1-PART1: OMEGA Supreme UI (BrainViz, MemoryExplorer, DevStudio, Boardroom, PredictiveCard)
 - [x] OmegaBrainViz: проверено, таб `brainviz` + `AppSidebar` пункт
 - [x] OmegaMemoryExplorer: 8 слоёв памяти, GET /api/omega/memory/layers, clear/export
