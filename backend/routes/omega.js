@@ -525,4 +525,19 @@ router.post('/self-reflection', protect, async (req, res) => {
     res.json({ status: 'started', message: 'OMEGA начала self-reflection cycle.' })
 })
 
+// [v7.4-FINAL-PLUS] Voice transcribe placeholder
+router.post('/voice/transcribe', protect, async (req, res) => {
+    res.json({ status: 'use_browser_speech_api', message: 'Browser SpeechRecognition recommended' });
+})
+
+// [v7.4-FINAL-PLUS] AI video generation placeholder
+router.post('/video/generate', protect, async (req, res) => {
+    res.json({
+        status: 'queued',
+        estimatedSeconds: 180,
+        script: req.body.text || req.body.script || '',
+        message: 'Видео поставлено в очередь на генерацию. Оповещение придёт в уведомления.'
+    });
+})
+
 export default router

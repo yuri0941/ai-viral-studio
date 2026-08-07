@@ -636,14 +636,48 @@
     "thinking": "OMEGA is thinking...",
     "send": "Send",
     "voice": "Voice input",
+    "voiceMode": "Voice input",
+    "listening": "OMEGA is listening...",
     "recording": "Recording...",
     "mic": "Voice input",
+    "micNotSupported": "Microphone is not supported by browser",
+    "reasoningTitle": "🧠 How does OMEGA think?",
+    "step": "Step {{number}}",
     "copy": "Copied!",
     "copyCode": "Copy",
     "copied": "Copied",
     "error": "Connection error. Please retry.",
     "empty": "Start a conversation with OMEGA",
     "section": "Section"
+  },
+  "aiVideo": {
+    "title": "AI Video",
+    "createReels": "Create Reels/Shorts",
+    "topic": "Video topic",
+    "niche": "Niche",
+    "duration": "Duration",
+    "style": "Style",
+    "generate": "🎬 Generate",
+    "processing": "Video is being generated...",
+    "seconds": "s",
+    "copyScript": "📋 Copy script",
+    "styles": {
+      "dynamic": "Dynamic",
+      "calm": "Calm",
+      "motivational": "Motivational",
+      "humorous": "Humorous"
+    }
+  },
+  "launchPage": {
+    "title": "AI Viral Studio — Launch 2026",
+    "subtitle": "AI platform for viral content",
+    "notifyMe": "Notify me first",
+    "features": "Features",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "shareTwitter": "Share on Twitter",
+    "shareLinkedIn": "Share on LinkedIn",
+    "shareTelegram": "Share on Telegram"
   },
   "brainviz": {
     "title": "🧠 Neural Graph: {{nodes}} nodes | {{edges}} connections | {{clusters}} clusters",

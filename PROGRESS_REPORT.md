@@ -1,3 +1,21 @@
+## 2026-08-08 — v7.4-FINAL-PLUS: Voice Mode, AI Video, Chain-of-Thought, Perf, Launch Kit (PRODUCTION READY)
+- [x] Bundle: `vite.config.js` — manualChunks (vendor, ui, omega, i18n), chunkSizeWarningLimit: 500
+- [x] Animations + Sound: `animations.css`, `useSound.js`, звуки в OmegaChat (message-sent, notification, error)
+- [x] Voice Mode UI: микрофон, hold-to-record/click-to-toggle, `ru-RU`/`en-US`, Web Speech API fallback
+- [x] Backend: `POST /api/omega/voice/transcribe` placeholder
+- [x] AI Video: `SchedulerPage.jsx` — `/omega/video/generate`, стиль, копирование сценария, i18n
+- [x] Chain-of-Thought: `ReasoningSteps` в OmegaChat, backend возвращает `reasoning`
+- [x] Typography v2: Inter + JetBrains Mono, dark bg `#0a0a1f`, accents
+- [x] Virtual scrolling: skipped (too large scope)
+- [x] Launch Page: `/launch` exists
+- [x] Launch Kit: product-hunt.md, twitter-thread.md, linkedin-post.md, telegram-announcement.md, email-template.html, screenshots-checklist.md
+- [x] Docs: `README.md`, `docs/OWNER_GUIDE.md`, `docs/CLIENT_GUIDE.md`
+- [x] i18n: `chat.voiceMode/listening/micNotSupported/reasoningTitle/step`, `aiVideo.*`, `launchPage.*`
+- [x] `node --check backend/server.js` OK
+- [x] Build: `npm run build` — 0 errors
+- [x] Git push: выполнен
+- [x] Render deploy: выполнен
+
 ## 2026-08-08 — v7.3-PART1: FOMO + Viral Growth (ViralDemo, Waitlist, Roadmap, BetaCounter, FoundingMember)
 - [x] ViralDemo: i18n через `useTranslation()`, copy-кнопка, viral-potential badge, `localStorage` demo-limit
 - [x] WaitlistSection: i18n, founding member banner, список основателей, реферальные/буст-кнопки

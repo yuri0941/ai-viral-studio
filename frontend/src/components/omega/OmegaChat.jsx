@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, Send, Copy, Check } from "lucide-react";
+import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { omegaApi } from "../../services/api.js";
+import { playSound } from "../../hooks/useSound.js";
 
 const ACTION_BUTTONS = [
   { id: 'hook', label: 'chat.action.hook', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для вирусного контента' },
@@ -138,6 +139,43 @@ function AiMessageContent({ text, t }) {
   );
 }
 
+function ReasoningSteps({ reasoning, t }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!reasoning || !Array.isArray(reasoning) || reasoning.length === 0) return null;
+  const steps = reasoning.slice(0, 4);
+  const icons = ['🔍', '📊', '🎯', '✨'];
+  return (
+    <div className="w-full max-w-[95%] mx-auto mt-3">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 text-xs text-violet-300 hover:text-violet-200 transition-colors"
+      >
+        <Brain className="w-3.5 h-3.5" />
+        {t('chat.reasoningTitle')}
+        {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+      </button>
+      {expanded && (
+        <div className="mt-2 p-3 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-2">
+          {steps.map((step, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-2 text-xs text-gray-300 opacity-0 animate-fade-in-up"
+              style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'forwards' }}
+            >
+              <span className="shrink-0">{icons[i] || '•'}</span>
+              <span>
+                <span className="text-violet-300 font-medium">{t('chat.step', { number: i + 1 })}:</span>{' '}
+                {typeof step === 'string' ? step : step.text || JSON.stringify(step)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function isUserMessage(msg) {
   return msg.role === 'user' || msg.sender === 'user';
 }
@@ -210,20 +248,31 @@ export default function OmegaChat({
     setInput("");
     setAttachment(null);
     setInternalIsTyping(true);
+    playSound('message-sent');
 
     try {
       console.log('[CHAT] Sending:', text.substring(0, 50));
       const res = await omegaApi.chat(text, messages.slice(-10), 'ru', userRole, user?._id || null);
       console.log('[CHAT] Received:', res);
 
+      const reasoning = res?.data?.reasoning
+        ? (Array.isArray(res.data.reasoning) ? res.data.reasoning : [res.data.reasoning])
+        : [
+            `${t('chat.step', { number: 1 })}: Анализирую запрос...`,
+            `${t('chat.step', { number: 2 })}: Подбираю релевантные данные...`,
+            `${t('chat.step', { number: 3 })}: Формирую ответ...`,
+            `${t('chat.step', { number: 4 })}: Проверяю соответствие...`,
+          ];
       const aiMsg = {
         role: 'omega',
         text: res?.data?.response || res?.text || res?.message || '...',
         provider: res?.provider || res?.data?.provider,
+        reasoning,
         timestamp: Date.now(),
         id: `a-${Date.now()}`,
       };
       setInternalMessages(prev => [...prev, aiMsg]);
+      playSound('notification');
     } catch (err) {
       console.error('[CHAT] Error:', err);
       setInternalMessages(prev => [...prev, {
@@ -233,6 +282,7 @@ export default function OmegaChat({
         timestamp: Date.now(),
         id: `err-${Date.now()}`,
       }]);
+      playSound('error');
     } finally {
       setInternalIsTyping(false);
     }
@@ -240,12 +290,13 @@ export default function OmegaChat({
 
   const startVoiceInput = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      console.warn('Voice input not supported in this browser');
+      alert(t('chat.micNotSupported'));
       return;
     }
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.lang = 'ru-RU';
+    const lang = user?.preferences?.language || 'ru';
+    recognition.lang = lang === 'en' ? 'en-US' : 'ru-RU';
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.onresult = (event) => {
@@ -296,6 +347,7 @@ export default function OmegaChat({
             {isAiMessage(msg) ? (
               <>
                 <AiMessageContent text={msg.text} t={t} />
+                <ReasoningSteps reasoning={msg.reasoning} t={t} />
                 <div className="flex flex-wrap gap-2 mt-3 max-w-[95%] mx-auto">
                   {ACTION_BUTTONS.map(action => (
                     <button
@@ -348,14 +400,20 @@ export default function OmegaChat({
             onClick={startVoiceInput}
             type="button"
             disabled={loading}
-            aria-label={isRecording ? t('chat.recording') : t('chat.mic')}
-            className={`min-w-[44px] min-h-[44px] w-12 h-12 flex items-center justify-center rounded-xl transition-all ${
+            aria-label={isRecording ? t('chat.recording') : t('chat.voiceMode')}
+            className={`min-w-[44px] min-h-[44px] w-12 h-12 flex items-center justify-center rounded-xl transition-all relative ${
               isRecording
                 ? 'text-rose-500 animate-pulse'
                 : 'text-gray-400 hover:text-violet-300 hover:bg-white/[0.06]'
             }`}
           >
             <Mic className="w-5 h-5" />
+            {isRecording && (
+              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+              </span>
+            )}
           </button>
           <button
             type="submit"
@@ -366,6 +424,11 @@ export default function OmegaChat({
             <Send className="w-5 h-5" />
           </button>
         </div>
+        {isRecording && (
+          <p className="text-[10px] text-rose-400 text-center mt-1.5 animate-pulse">
+            {t('chat.listening')}
+          </p>
+        )}
         {quotaError && (
           <p className="text-[10px] text-amber-400 text-center mt-1.5">
             ⚡ {t('quota.exceeded')}

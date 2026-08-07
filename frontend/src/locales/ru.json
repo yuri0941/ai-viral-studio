@@ -636,14 +636,48 @@
     "thinking": "OMEGA думает...",
     "send": "Отправить",
     "voice": "Голосовой ввод",
+    "voiceMode": "Голосовой ввод",
+    "listening": "OMEGA слушает...",
     "recording": "Идёт запись...",
     "mic": "Голосовой ввод",
+    "micNotSupported": "Микрофон не поддерживается браузером",
+    "reasoningTitle": "🧠 Как OMEGA думает?",
+    "step": "Шаг {{number}}",
     "copy": "Скопировано!",
     "copyCode": "Копировать",
     "copied": "Скопировано",
     "error": "Ошибка соединения. Повторите.",
     "empty": "Начните диалог с OMEGA",
     "section": "Раздел"
+  },
+  "aiVideo": {
+    "title": "AI Видео",
+    "createReels": "Создать Reels/Shorts",
+    "topic": "Тема видео",
+    "niche": "Ниша",
+    "duration": "Длительность",
+    "style": "Стиль",
+    "generate": "🎬 Сгенерировать",
+    "processing": "Видео генерируется...",
+    "seconds": "сек",
+    "copyScript": "📋 Скопировать сценарий",
+    "styles": {
+      "dynamic": "Динамичный",
+      "calm": "Спокойный",
+      "motivational": "Мотивационный",
+      "humorous": "Юмористический"
+    }
+  },
+  "launchPage": {
+    "title": "AI Viral Studio — запуск 2026",
+    "subtitle": "AI-платформа для вирусного контента",
+    "notifyMe": "Узнай первым",
+    "features": "Особенности",
+    "pricing": "Тарифы",
+    "faq": "FAQ",
+    "shareTwitter": "Поделиться в Twitter",
+    "shareLinkedIn": "Поделиться в LinkedIn",
+    "shareTelegram": "Поделиться в Telegram"
   },
   "brainviz": {
     "title": "🧠 Neural Graph: {{nodes}} узлов | {{edges}} связей | {{clusters}} кластеров",

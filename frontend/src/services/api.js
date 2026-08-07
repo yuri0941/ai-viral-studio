@@ -187,6 +187,10 @@ export const omegaApi = {
         body: JSON.stringify({ imageUrl }),
     }),
     selfReflection: () => request('/omega/self-reflection'),
+    videoGenerate: (data) => request('/omega/video/generate', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
 }
 
 // ============================================

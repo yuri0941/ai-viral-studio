@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Calendar, ChevronLeft, ChevronRight, Plus, Clock,
     Video, Image, FileText, Trash2, Edit3, Upload,
@@ -6,7 +7,7 @@ import {
     Youtube, Music, Instagram, Twitter, Send, Globe,
     Film, SquarePlay, Images, Newspaper, BookOpen, Layers,
     Trash, Play, Maximize2, Wand2, Zap, LayoutTemplate,
-    ToggleLeft, ToggleRight, Bot, Loader2
+    ToggleLeft, ToggleRight, Bot, Loader2, Copy
 } from 'lucide-react';
 import { omegaApi } from '../services/api';
 import { API_BASE_URL } from '../config.js';
@@ -69,6 +70,7 @@ function getWeekStart(date) {
 }
 
 function SchedulerPage() {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const userTimezone = user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -97,8 +99,15 @@ function SchedulerPage() {
     const [videoTopic, setVideoTopic] = useState('');
     const [videoNiche, setVideoNiche] = useState('Бизнес');
     const [videoDuration, setVideoDuration] = useState(15);
+    const [videoStyle, setVideoStyle] = useState('dynamic');
     const [videoLoading, setVideoLoading] = useState(false);
     const [videoResult, setVideoResult] = useState(null);
+    const VIDEO_STYLES = [
+        { id: 'dynamic', label: t('aiVideo.styles.dynamic') },
+        { id: 'calm', label: t('aiVideo.styles.calm') },
+        { id: 'motivational', label: t('aiVideo.styles.motivational') },
+        { id: 'humorous', label: t('aiVideo.styles.humorous') },
+    ];
     const [imageZoom, setImageZoom] = useState(1);
     const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -313,17 +322,28 @@ function SchedulerPage() {
         if (!videoTopic.trim()) return;
         setVideoLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/omega/generate-video`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ topic: videoTopic, niche: videoNiche, duration: videoDuration }),
+            const json = await omegaApi.videoGenerate({
+                topic: videoTopic,
+                niche: videoNiche,
+                duration: videoDuration,
+                style: videoStyle,
             });
-            const json = await res.json();
-            if (json.status === 'success') setVideoResult(json.data);
-            else alert(json.message || 'Ошибка генерации видео');
+            if (json.status === 'queued' || json.script) {
+                setVideoResult({
+                    script: json.script || {
+                        title: videoTopic,
+                        hook: t('aiVideo.processing'),
+                        scenes: [{ index: 1, duration: videoDuration, text: json.message || t('aiVideo.processing'), visualHint: '' }]
+                    },
+                    placeholder: json.placeholder,
+                    estimatedSeconds: json.estimatedSeconds,
+                    message: json.message,
+                });
+            } else {
+                alert(json.message || t('common.error'));
+            }
         } catch (err) {
-            alert('Ошибка сети: ' + err.message);
+            alert(t('common.error') + ': ' + err.message);
         } finally {
             setVideoLoading(false);
         }
@@ -1130,41 +1150,56 @@ function SchedulerPage() {
                 <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold flex items-center gap-2"><Film className="text-violet-400" /> Сгенерировать Reels</h2>
+                            <h2 className="text-xl font-bold flex items-center gap-2"><Film className="text-violet-400" /> {t('aiVideo.createReels')}</h2>
                             <button onClick={() => { setVideoModalOpen(false); setVideoResult(null); }} className="text-gray-400 hover:text-white">✕</button>
                         </div>
                         <div className="space-y-4 mb-4">
                             <div>
-                                <label className="text-xs text-gray-400 block mb-1">Тема видео</label>
-                                <input value={videoTopic} onChange={e => setVideoTopic(e.target.value)} placeholder="Например, 5 лайфхаков для продуктивности" className="w-full px-3 py-2 rounded-lg bg-[#252530] border border-white/10 text-white outline-none" />
+                                <label className="text-xs text-gray-400 block mb-1">{t('aiVideo.topic')}</label>
+                                <input value={videoTopic} onChange={e => setVideoTopic(e.target.value)} placeholder={t('aiVideo.topic')} className="w-full px-3 py-2 rounded-lg bg-[#252530] border border-white/10 text-white outline-none" />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-xs text-gray-400 block mb-1">Ниша</label>
+                                    <label className="text-xs text-gray-400 block mb-1">{t('aiVideo.niche')}</label>
                                     <input value={videoNiche} onChange={e => setVideoNiche(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#252530] border border-white/10 text-white outline-none" />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-400 block mb-1">Длительность (сек)</label>
+                                    <label className="text-xs text-gray-400 block mb-1">{t('aiVideo.duration')} ({t('aiVideo.seconds')})</label>
                                     <input type="number" min={10} max={60} value={videoDuration} onChange={e => setVideoDuration(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg bg-[#252530] border border-white/10 text-white outline-none" />
                                 </div>
                             </div>
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-1">{t('aiVideo.style')}</label>
+                                <select value={videoStyle} onChange={e => setVideoStyle(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#252530] border border-white/10 text-white outline-none">
+                                    {VIDEO_STYLES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                                </select>
+                            </div>
                             <button onClick={handleGenerateVideo} disabled={videoLoading || !videoTopic.trim()} className="w-full py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 text-white font-medium flex items-center justify-center gap-2">
                                 {videoLoading ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
-                                {videoLoading ? 'Генерация…' : 'Сгенерировать сценарий'}
+                                {videoLoading ? t('aiVideo.processing') : t('aiVideo.generate')}
                             </button>
                         </div>
 
                         {videoResult?.script && (
                             <div className="space-y-4 border-t border-white/10 pt-4">
-                                <div>
-                                    <div className="text-sm text-gray-400">Заголовок</div>
-                                    <div className="text-white font-semibold">{videoResult.script.title}</div>
-                                    <div className="text-xs text-violet-400 mt-1">{videoResult.script.hook}</div>
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <div className="text-sm text-gray-400">{t('aiVideo.topic')}</div>
+                                        <div className="text-white font-semibold">{videoResult.script.title}</div>
+                                        <div className="text-xs text-violet-400 mt-1">{videoResult.script.hook}</div>
+                                    </div>
+                                    <button
+                                        onClick={() => navigator.clipboard.writeText(videoResult.script.scenes.map(s => s.text).join('\n\n'))}
+                                        className="px-3 py-1.5 rounded-lg bg-[#252530] hover:bg-[#303040] text-white text-xs flex items-center gap-2"
+                                        title={t('aiVideo.copyScript')}
+                                    >
+                                        <Copy size={14} /> {t('aiVideo.copyScript')}
+                                    </button>
                                 </div>
                                 <div className="space-y-2">
                                     {videoResult.script.scenes.map((scene) => (
                                         <div key={scene.index} className="bg-[#252530] rounded-lg p-3 text-sm">
-                                            <div className="text-emerald-400 text-xs font-medium mb-1">Сцена {scene.index} · {scene.duration}с</div>
+                                            <div className="text-emerald-400 text-xs font-medium mb-1">{t('aiVideo.step')} {scene.index} · {scene.duration}{t('aiVideo.seconds')}</div>
                                             <div className="text-white">{scene.text}</div>
                                             <div className="text-gray-500 text-xs mt-1">{scene.visualHint}</div>
                                         </div>
@@ -1181,8 +1216,8 @@ function SchedulerPage() {
                                     </div>
                                 )}
                                 <div className="flex gap-2">
-                                    <button onClick={handleScheduleVideo} className="flex-1 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-medium">Запланировать</button>
-                                    <button onClick={() => window.open(videoResult.placeholder?.fallbackUrl, '_blank')} className="flex-1 py-2 rounded-lg bg-[#252530] hover:bg-[#303040] text-white">Открыть в Canva</button>
+                                    <button onClick={handleScheduleVideo} className="flex-1 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-medium">{t('common.save')}</button>
+                                    <button onClick={() => window.open(videoResult.placeholder?.fallbackUrl, '_blank')} className="flex-1 py-2 rounded-lg bg-[#252530] hover:bg-[#303040] text-white">Canva</button>
                                 </div>
                             </div>
                         )}
