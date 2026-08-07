@@ -164,6 +164,7 @@ export const TAB_LABELS = {
     audit: 'Аудит',
     subscriptions: 'Подписки',
     payments: '💳 Платёжные системы',
+    subscribers: '👥 Подписчики',
     requisites: '🏢 Реквизиты',
     servers: 'Серверы',
     updates: 'Обновления',

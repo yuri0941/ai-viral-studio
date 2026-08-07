@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { getStripe } from '../config/stripe.js'
 import { protect } from '../middleware/auth.js'
 import PaymentProvider from '../models/PaymentProvider.js'
+import Subscription from '../models/Subscription.js'
 import { createYookassaPayment, yookassaWebhookHandler, getPaymentStatus } from '../controllers/paymentController.js'
 
 const router = express.Router()
@@ -207,6 +208,165 @@ router.get('/admin/providers', protect, async (req, res) => {
         res.json(safe)
     } catch (err) {
         console.error('[payments/admin/providers:get]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+// ============ SUBSCRIPTION WEBHOOK (Stripe + generic) ============
+router.post('/webhook/subscriptions', express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+        let event
+        const sig = req.headers['stripe-signature']
+        const stripe = getStripe()
+
+        if (sig && stripe && process.env.STRIPE_WEBHOOK_SECRET) {
+            event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET)
+        } else {
+            event = JSON.parse(req.body)
+        }
+
+        const obj = event.data?.object || event.data?.object || {}
+        const subId = obj.subscription || obj.id
+
+        if (event.type === 'checkout.session.completed' || event.type === 'invoice.paid' || event.type === 'payment.success') {
+            const sub = await Subscription.findOne({ providerSubscriptionId: subId })
+            if (!sub && obj.metadata?.userId && obj.metadata?.plan) {
+                await Subscription.create({
+                    userId: obj.metadata.userId,
+                    plan: obj.metadata.plan,
+                    status: 'active',
+                    provider: 'stripe',
+                    providerSubscriptionId: subId,
+                    currentPeriodStart: new Date(),
+                    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                    amount: (obj.amount_total || obj.amount || 0) / 100,
+                    currency: obj.currency?.toUpperCase() || 'USD',
+                    paymentHistory: [{
+                        amount: (obj.amount_total || obj.amount || 0) / 100,
+                        currency: obj.currency?.toUpperCase() || 'USD',
+                        status: 'paid',
+                        providerPaymentId: obj.payment_intent || obj.id
+                    }]
+                })
+            } else if (sub) {
+                sub.status = 'active'
+                sub.currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                sub.paymentHistory.push({
+                    amount: (obj.amount_total || obj.amount || 0) / 100,
+                    currency: obj.currency?.toUpperCase() || sub.currency,
+                    status: 'paid',
+                    providerPaymentId: obj.payment_intent || obj.id
+                })
+                await sub.save()
+            }
+        }
+
+        if (event.type === 'customer.subscription.deleted' || event.type === 'subscription.canceled') {
+            await Subscription.updateOne(
+                { providerSubscriptionId: subId },
+                { status: 'canceled', cancelAtPeriodEnd: true }
+            )
+        }
+
+        res.json({ received: true })
+    } catch (err) {
+        console.error('[payments/webhook/subscriptions]', err.message)
+        res.status(400).json({ error: err.message })
+    }
+})
+
+// ============ ADMIN: SUBSCRIPTIONS ============
+function requireOwner(req, res, next) {
+    if (req.user?.role !== 'owner') {
+        return res.status(403).json({ error: 'Only owner' })
+    }
+    next()
+}
+
+router.get('/admin/subscriptions', protect, requireOwner, async (req, res) => {
+    try {
+        const subs = await Subscription.find()
+            .populate('userId', 'name email avatar')
+            .sort({ currentPeriodEnd: -1 })
+            .lean()
+        res.json(subs)
+    } catch (err) {
+        console.error('[payments/admin/subscriptions]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+// ============ ADMIN: REFUND / EXTEND / BROADCAST ============
+router.post('/admin/refund/:subscriptionId', protect, requireOwner, async (req, res) => {
+    try {
+        const sub = await Subscription.findById(req.params.subscriptionId)
+        if (!sub) return res.status(404).json({ error: 'Подписка не найдена' })
+
+        const lastPayment = sub.paymentHistory?.slice(-1)[0]
+        if (!lastPayment) return res.status(400).json({ error: 'Нет платежей для возврата' })
+
+        if (sub.provider === 'stripe' && process.env.STRIPE_SECRET_KEY) {
+            const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+            await stripe.refunds.create({ payment_intent: lastPayment.providerPaymentId })
+        }
+
+        sub.status = 'refunded'
+        sub.cancelAtPeriodEnd = true
+        sub.paymentHistory.push({ ...lastPayment, status: 'refunded', createdAt: new Date() })
+        await sub.save()
+
+        res.json({ success: true, message: 'Возврат выполнен' })
+    } catch (err) {
+        console.error('[payments/admin/refund]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.post('/admin/extend/:subscriptionId', protect, requireOwner, async (req, res) => {
+    try {
+        const { months = 1 } = req.body || {}
+        const sub = await Subscription.findById(req.params.subscriptionId)
+        if (!sub) return res.status(404).json({ error: 'Не найдена' })
+
+        const currentEnd = sub.currentPeriodEnd || new Date()
+        sub.currentPeriodEnd = new Date(currentEnd.getTime() + Number(months) * 30 * 24 * 60 * 60 * 1000)
+        sub.status = 'active'
+        sub.cancelAtPeriodEnd = false
+        await sub.save()
+
+        res.json({ success: true, newPeriodEnd: sub.currentPeriodEnd })
+    } catch (err) {
+        console.error('[payments/admin/extend]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.post('/admin/broadcast', protect, requireOwner, async (req, res) => {
+    try {
+        const { segment = 'all', subject, message, discountCode } = req.body || {}
+        let query = {}
+        if (segment === 'active') query.status = 'active'
+        if (segment === 'past_due') query.status = 'past_due'
+        if (segment === 'canceled') query.status = 'canceled'
+        if (segment === 'refunded') query.status = 'refunded'
+        if (segment === 'pro') query.plan = 'pro'
+        if (segment === 'business') query.plan = 'business'
+        if (segment === 'agency') query.plan = 'agency'
+
+        const subs = await Subscription.find(query).populate('userId', 'email telegramId name').lean()
+        const results = subs.map(sub => ({
+            userId: sub.userId?._id,
+            email: sub.userId?.email,
+            telegramId: sub.userId?.telegramId,
+            name: sub.userId?.name,
+            status: 'queued'
+        }))
+
+        // TODO: plug into email/telegram queue
+        console.log(`[broadcast] ${results.length} recipients, segment=${segment}`)
+        res.json({ sent: results.length, segment, discountCode, recipients: results })
+    } catch (err) {
+        console.error('[payments/admin/broadcast]', err.message)
         res.status(500).json({ error: err.message })
     }
 })
