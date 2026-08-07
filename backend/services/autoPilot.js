@@ -98,3 +98,16 @@ export function startAutopilot() {
     console.error('[autoPilot] failed to load node-cron:', err.message)
   })
 }
+
+export const isAutopilotEnabled = () => {
+  return process.env.AUTOPILOT_ENABLED === 'true' || false;
+}
+
+export const setAutopilotEnabled = (enabled) => {
+  process.env.AUTOPILOT_ENABLED = enabled ? 'true' : 'false';
+  return enabled;
+}
+
+export const scheduleAutoPost = (post) => {
+  console.log('[AutoPilot] Scheduled:', post);
+}
