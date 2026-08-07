@@ -162,6 +162,20 @@
     "shareLinkedIn": "Share on LinkedIn",
     "countdown": "Launching in"
   },
+  "payment": {
+    "selectMethod": "Select payment method",
+    "detectedCountry": "Country",
+    "autoDetected": "auto-detected",
+    "recommended": "Recommended",
+    "commission": "Commission",
+    "noCommission": "No commission",
+    "pay": "Pay",
+    "processing": "Processing...",
+    "secure": "🔒 Secure SSL payment",
+    "noMethods": "Payment methods temporarily unavailable",
+    "cryptoAlert": "Send",
+    "cryptoTo": "to address"
+  },
   "timezone": {
     "label": "Timezone",
     "detect": "Detect automatically"
@@ -284,7 +298,9 @@
     "positionBottomLeft": "Bottom left",
     "positionTopRight": "Top right",
     "positionTopLeft": "Top left",
-    "positionCenter": "Center"
+    "positionCenter": "Center",
+    "supportContact": "Telegram: @ai_viral_support",
+    "writeSupport": "Contact support"
   },
   "subscriptions": {
     "title": "Subscriptions",

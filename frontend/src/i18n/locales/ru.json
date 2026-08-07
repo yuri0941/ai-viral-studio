@@ -164,6 +164,20 @@
     "shareLinkedIn": "Поделиться в LinkedIn",
     "countdown": "До запуска"
   },
+  "payment": {
+    "selectMethod": "Выберите способ оплаты",
+    "detectedCountry": "Страна",
+    "autoDetected": "определена автоматически",
+    "recommended": "Рекомендуем",
+    "commission": "Комиссия",
+    "noCommission": "Без комиссии",
+    "pay": "Оплатить",
+    "processing": "Обработка...",
+    "secure": "🔒 Безопасная оплата SSL",
+    "noMethods": "Способы оплаты временно недоступны",
+    "cryptoAlert": "Отправьте",
+    "cryptoTo": "на адрес"
+  },
   "timezone": {
     "label": "Часовой пояс",
     "detect": "Определить автоматически"
@@ -286,7 +300,9 @@
     "positionBottomLeft": "Нижний левый угол",
     "positionTopRight": "Верхний правый угол",
     "positionTopLeft": "Верхний левый угол",
-    "positionCenter": "Центр"
+    "positionCenter": "Центр",
+    "supportContact": "Telegram: @ai_viral_support",
+    "writeSupport": "Написать в поддержку"
   },
   "subscriptions": {
     "title": "Подписки",

@@ -163,6 +163,7 @@ export const TAB_LABELS = {
     legal: 'Юр. лицо',
     audit: 'Аудит',
     subscriptions: 'Подписки',
+    payments: '💳 Платёжные системы',
     requisites: '🏢 Реквизиты',
     servers: 'Серверы',
     updates: 'Обновления',

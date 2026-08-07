@@ -33,6 +33,7 @@ import { NotificationsTab } from './components/tabs/NotificationsTab'
 import { HelpTab } from './components/tabs/HelpTab'
 import { FeedbackTab } from './components/tabs/FeedbackTab'
 import { DevStudioTab } from './components/tabs/DevStudioTab'
+import { PaymentProvidersTab } from './components/tabs/PaymentProvidersTab.jsx'
 import { OmegaFinanceTab } from './components/tabs/OmegaFinanceTab'
 import { OmegaSkillsTab } from './components/tabs/OmegaSkillsTab'
 import { OmegaMemoryTab } from './components/tabs/OmegaMemoryTab'
@@ -117,6 +118,7 @@ const TAB_ICONS = {
     feedback: Heart,
     devStudio: Rocket,
     devstudio: Code2,
+    payments: CreditCard,
     omegaFinance: Wallet,
     omegaSkills: BrainCircuit,
     omegaMemory: Database,
@@ -330,6 +332,7 @@ export default function OwnerDashboardPage() {
             case 'legal': return <LegalTab data={ownerData} />
             case 'audit': return <AuditTab data={ownerData} />
             case 'subscriptions': return <SubscriptionsTab data={ownerData} />
+            case 'payments': return <PaymentProvidersTab />
             case 'servers': return <ServersTab data={ownerData} />
             case 'updates': return <UpdatesTab data={ownerData} />
             case 'promo': return <PromoTab data={ownerData} />

@@ -40,6 +40,10 @@ function classifyError(log) {
 
 export async function scanForErrors() {
     const logs = await loadRecentAuditLogs()
+    if (!logs || logs.length === 0) {
+        console.log('[autoFixAgent] No errors found')
+        return []
+    }
     const grouped = {}
     for (const log of logs) {
         const { type, priority, module } = classifyError(log)

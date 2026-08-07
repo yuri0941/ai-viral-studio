@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { PLANS, getPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
 import IntegrationsTab from './settings/IntegrationsTab.jsx'; // [SOCIAL-v5.1] added
+import PaymentMethodSelector from '../components/payments/PaymentMethodSelector.jsx'; // [v6.6-HOTFIX-PAYMENTS] multi-payment selector
 import {
     User, Diamond, Link2, Bell, Shield, Palette, LogOut,
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
@@ -56,6 +57,8 @@ function SettingsPage() {
     const [twoFA, setTwoFA] = useState(false);
     const [isYearly, setIsYearly] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState({}); // [P24] fixed: per-method loading state
+    const [showPaymentSelector, setShowPaymentSelector] = useState(false); // [v6.6-HOTFIX-PAYMENTS]
+    const [selectedPlan, setSelectedPlan] = useState(null); // [v6.6-HOTFIX-PAYMENTS]
     const [userSubscription, setUserSubscription] = useState(() => {
         const saved = localStorage.getItem('user_subscription');
         return saved ? JSON.parse(saved) : null;
@@ -215,105 +218,15 @@ function SettingsPage() {
         setPaymentLoading(prev => ({ ...prev, [planId]: loading }));
     };
 
-    const handlePayment = async (plan) => {
-        if (plan.priceRUB === 0 && plan.priceUSD === 0) {
+    const handlePayment = (plan) => {
+        // [v6.6-HOTFIX-PAYMENTS] open multi-provider selector instead of direct fetch
+        if ((plan.priceRUB === 0 && plan.priceUSD === 0) || plan.price === 0) {
             handleSubscribe(plan);
             return;
         }
-        const loadingKey = `${plan.id}-${selectedPaymentMethod}`;
-        setLoading(loadingKey, true);
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        const token = localStorage.getItem('token') || '';
-        const amount = getCurrentPrice(plan);
-        const fallbackToYookassa = () => {
-            if (selectedPaymentMethod !== 'yookassa' && paymentMethods.find(m => m.id === 'yookassa')) {
-                setSelectedPaymentMethod('yookassa');
-                showToast(t('subscriptions.fallbackToYookassa'), 'info');
-            }
-        };
-
-        try {
-            let res;
-            if (selectedPaymentMethod === 'yookassa') {
-                // [MASTER-v5.6] fixed: use unified checkout endpoint
-                res = await fetch(`${API_BASE_URL}/checkout/create`, {
-                    method: 'POST',
-                    signal: controller.signal,
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ planId: plan.id, provider: 'yookassa', currency: subscriptionCurrency })
-                }).then(r => r.json());
-                if (res.paymentUrl) {
-                    window.location.href = res.paymentUrl;
-                    return;
-                }
-            } else if (selectedPaymentMethod === 'stripe') {
-                const stripeRes = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
-                    method: 'POST',
-                    signal: controller.signal,
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ planId: plan.name, price: amount, isYearly, currency: subscriptionCurrency, userId: user?.id || user?._id || 'anonymous' })
-                });
-                // [HOTFIX-v6.5.5-H8] Stripe 503 guard
-                if (stripeRes.status === 503) {
-                    showToast(t('stripe.unavailable') || 'Оплата Stripe временно недоступна. Попробуйте позже или свяжитесь с поддержкой.', 'warning');
-                    fallbackToYookassa();
-                    clearTimeout(timeoutId);
-                    setLoading(loadingKey, false);
-                    return;
-                }
-                res = await stripeRes.json();
-                if (res.url) {
-                    window.location.href = res.url;
-                    return;
-                }
-            } else if (selectedPaymentMethod === 'paypal') {
-                res = await fetch(`${API_BASE_URL}/paypal/create-order`, {
-                    method: 'POST',
-                    signal: controller.signal,
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ planId: plan.name, amount, currency: subscriptionCurrency, description: `${isYearly ? 'Yearly' : 'Monthly'} ${plan.name} subscription` })
-                }).then(r => r.json());
-                if (res.approvalUrl) {
-                    window.location.href = res.approvalUrl;
-                    return;
-                }
-            } else if (selectedPaymentMethod === 'crypto') {
-                res = await fetch(`${API_BASE_URL}/payments/crypto-charge`, {
-                    method: 'POST',
-                    signal: controller.signal,
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ name: `AI Viral Studio — ${plan.name}`, description: `${isYearly ? 'Годовая' : 'Месячная'} подписка ${plan.name}`, price: amount, currency: subscriptionCurrency })
-                }).then(r => r.json());
-                if (res.hosted_url) {
-                    window.open(res.hosted_url, '_blank');
-                    setLoading(loadingKey, false);
-                    clearTimeout(timeoutId);
-                    return;
-                }
-            }
-
-            if (res?.fallback && res?.status === 'error') fallbackToYookassa();
-            if (selectedPaymentMethod === 'stripe') {
-                console.warn('[SettingsPage:handlePayment] Stripe error:', res?.error || res?.message);
-            } else {
-                showToast(res?.error || res?.message || t('subscriptions.paymentError'), 'error');
-            }
-        } catch (err) {
-            if (err.name === 'AbortError') {
-                showToast(t('subscriptions.gatewayTimeout'), 'error');
-                fallbackToYookassa();
-            } else if (selectedPaymentMethod === 'stripe') {
-                console.warn('[SettingsPage:handlePayment] Stripe error:', err.message);
-            } else {
-                console.error('[SettingsPage:handlePayment]', err);
-                showToast(err.message || t('subscriptions.paymentError'), 'error');
-            }
-        } finally {
-            clearTimeout(timeoutId);
-            setLoading(loadingKey, false);
-        }
-    }; // [P24] fixed: unified payment flow with timeout + fallback
+        setSelectedPlan(plan);
+        setShowPaymentSelector(true);
+    };
 
     const showToast = (message, type = 'info') => {
         if (window.showToast) {
@@ -1395,6 +1308,14 @@ function SettingsPage() {
                     </div>
                 </div>
             </div>
+            {showPaymentSelector && selectedPlan && (
+                <PaymentMethodSelector
+                    plan={selectedPlan}
+                    onClose={() => setShowPaymentSelector(false)}
+                    userId={user?.id || user?._id}
+                    email={user?.email}
+                />
+            )}
         </div>
     );
 }

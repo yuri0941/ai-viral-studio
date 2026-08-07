@@ -35,27 +35,21 @@ function maskSecret(str) {
 
 router.get('/payment-providers', protect, authorize('owner'), async (req, res) => {
   try {
-    let provider = await PaymentProvider.findOne({ ownerId: req.user.id }).lean()
-    if (!provider) {
-      provider = {
-        yookassaEnabled: false,
-        yookassaShopId: '',
-        yookassaSecretKey: '',
-        stripeEnabled: false,
-        stripeSecretKey: '',
-        stripePublishableKey: '',
-        stripeWebhookSecret: '',
-      }
+    const providers = await PaymentProvider.find().lean()
+    const yookassa = providers.find(p => p.name === 'yookassa') || {}
+    const stripe = providers.find(p => p.name === 'stripe') || {}
+
+    const provider = {
+      yookassaEnabled: yookassa.isActive || false,
+      yookassaShopId: yookassa.config?.shopId || '',
+      yookassaSecretKey: maskSecret(yookassa.config?.secretKey || ''),
+      stripeEnabled: stripe.isActive || false,
+      stripeSecretKey: maskSecret(stripe.config?.secretKey || ''),
+      stripePublishableKey: stripe.config?.publicKey || '',
+      stripeWebhookSecret: maskSecret(stripe.config?.webhookSecret || ''),
     }
-    res.json({
-      success: true,
-      provider: {
-        ...provider,
-        yookassaSecretKey: maskSecret(provider.yookassaSecretKey),
-        stripeSecretKey: maskSecret(provider.stripeSecretKey),
-        stripeWebhookSecret: maskSecret(provider.stripeWebhookSecret),
-      },
-    })
+
+    res.json({ success: true, provider })
   } catch (err) {
     console.error('[admin:payment-providers:get]', err.message)
     res.status(500).json({ success: false, error: 'Ошибка сервера' })
@@ -77,28 +71,34 @@ router.put('/payment-providers', protect, authorize('owner'), async (req, res) =
       stripeWebhookSecret,
     } = req.body
 
-    let provider = await PaymentProvider.findOne({ ownerId: req.user.id })
-    if (!provider) {
-      provider = new PaymentProvider({ ownerId: req.user.id })
+    if (yookassaEnabled !== undefined) {
+      const update = {
+        name: 'yookassa',
+        displayName: 'ЮKassa',
+        isActive: !!yookassaEnabled,
+        supportedCountries: ['RU', 'KZ', 'BY'],
+        defaultCurrency: 'RUB',
+        commissionPercent: 3.5,
+      }
+      if (yookassaShopId !== undefined) update['config.shopId'] = yookassaShopId
+      if (yookassaSecretKey && !yookassaSecretKey.includes('***')) update['config.secretKey'] = yookassaSecretKey
+      await PaymentProvider.findOneAndUpdate({ name: 'yookassa' }, update, { upsert: true, new: true })
     }
 
-    provider.yookassaEnabled = !!yookassaEnabled
-    if (yookassaShopId !== undefined) provider.yookassaShopId = yookassaShopId
-    if (yookassaSecretKey && !yookassaSecretKey.includes('***')) {
-      provider.yookassaSecretKey = yookassaSecretKey
+    if (stripeEnabled !== undefined) {
+      const update = {
+        name: 'stripe',
+        displayName: 'Stripe',
+        isActive: !!stripeEnabled,
+        supportedCountries: ['US', 'EU', 'GB'],
+        defaultCurrency: 'USD',
+        commissionPercent: 2.9,
+      }
+      if (stripeSecretKey && !stripeSecretKey.includes('***')) update['config.secretKey'] = stripeSecretKey
+      if (stripePublishableKey !== undefined) update['config.publicKey'] = stripePublishableKey
+      if (stripeWebhookSecret && !stripeWebhookSecret.includes('***')) update['config.webhookSecret'] = stripeWebhookSecret
+      await PaymentProvider.findOneAndUpdate({ name: 'stripe' }, update, { upsert: true, new: true })
     }
-
-    provider.stripeEnabled = !!stripeEnabled
-    if (stripeSecretKey && !stripeSecretKey.includes('***')) {
-      provider.stripeSecretKey = stripeSecretKey
-    }
-    if (stripePublishableKey !== undefined) provider.stripePublishableKey = stripePublishableKey
-    if (stripeWebhookSecret && !stripeWebhookSecret.includes('***')) {
-      provider.stripeWebhookSecret = stripeWebhookSecret
-    }
-
-    provider.updatedAt = new Date()
-    await provider.save()
 
     res.json({ success: true, message: 'Настройки сохранены' })
   } catch (err) {
