@@ -37,6 +37,7 @@ import adRequestRoutes from './routes/adRequests.js'  // ← НОВОЕ: AdReque
 import subscriptionRoutes from './routes/subscriptions.js'  // ← P10: Подписки
 import invoiceRoutes from './routes/invoices.js'  // ← P10: Счета
 import addonsRoutes from './routes/addons.js'  // [v7.0-PART2] addon marketplace
+import downloadsRoutes from './routes/downloads.js'  // [v7.0] added: download center
 import ownerRequisitesRoutes from './routes/ownerRequisites.js'  // ← P10: Реквизиты
 import ownerLegalInfoRoutes from './routes/ownerLegalInfo.js'  // ← Legal Shield: Owner legal info
 import { getPublicLegalInfo } from './controllers/ownerLegalInfoController.js'  // ← Public legal info
