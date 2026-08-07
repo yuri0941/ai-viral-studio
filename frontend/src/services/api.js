@@ -453,6 +453,37 @@ export const scheduledPostsApi = {
 }
 
 // ============================================
+// AI Video API [v8.0-PART1]
+// ============================================
+export const videoApi = {
+    create: (data) => request('/video/create', { method: 'POST', body: JSON.stringify(data) }),
+    status: (jobId) => request(`/video/status/${jobId}`),
+    list: () => request('/video/list'),
+}
+
+// ============================================
+// Voice API [v8.0-PART1]
+// ============================================
+export const voiceApi = {
+    voices: () => request('/voice/voices'),
+    speak: (text, voice = 'ru-RU-female') => request('/voice/speak', { method: 'POST', body: JSON.stringify({ text, voice }) }),
+    transcribe: (file) => {
+        const formData = new FormData()
+        formData.append('audio', file)
+        return fetch(`${API_BASE}/voice/transcribe`, { method: 'POST', headers: getAuthHeaders(), body: formData }).then(r => r.json())
+    },
+    saveSettings: (settings) => request('/voice/users/me/voice-settings', { method: 'PATCH', body: JSON.stringify(settings) }),
+}
+
+// ============================================
+// Neuro-Sales API [v8.0-PART1]
+// ============================================
+export const neuroSalesApi = {
+    analyze: (text) => request('/analytics/neuro-sales/analyze', { method: 'POST', body: JSON.stringify({ text }) }),
+    history: () => request('/analytics/neuro-sales/history'),
+}
+
+// ============================================
 // Default export (kept for compatibility)
 // ============================================
 export default {

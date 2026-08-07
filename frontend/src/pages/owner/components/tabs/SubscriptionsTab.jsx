@@ -93,6 +93,9 @@ export function SubscriptionsTab({ data }) {
     const [quotaSettings, setQuotaSettings] = useState({ generationsLimit: 100, overageCost: 4, topUpPackSize: 100, topUpPackPrice: 4 })
     const [savingQuota, setSavingQuota] = useState(false)
     const [pricingOpen, setPricingOpen] = useState(false)
+    const [dynamicEnabled, setDynamicEnabled] = useState(() => {
+        try { return localStorage.getItem('omega_dynamic_pricing_enabled') === 'true' } catch { return false }
+    })
     const [pricingForm, setPricingForm] = useState({ niche: 'SaaS', region: 'Global', competitorPrices: '' })
     const [pricingLoading, setPricingLoading] = useState(false)
     const [pricingResult, setPricingResult] = useState(null)
@@ -376,6 +379,13 @@ export function SubscriptionsTab({ data }) {
                     </h2>
                     <p className="text-[var(--text-muted)] mt-1">{t('subscriptions.subtitle')}</p>
                 </div>
+                {(user?.role === 'owner' || user?.role === 'admin') && (
+                    <label className="flex items-center gap-3 glass rounded-xl px-4 py-2 cursor-pointer">
+                        <ToggleLeft className={`w-5 h-5 ${dynamicEnabled ? 'text-violet-400' : 'text-gray-500'}`} />
+                        <span className="text-sm text-[var(--text)]">{t('dynamicPricing.enabled')}</span>
+                        <input type="checkbox" checked={dynamicEnabled} onChange={e => { setDynamicEnabled(e.target.checked); localStorage.setItem('omega_dynamic_pricing_enabled', e.target.checked); }} className="sr-only" />
+                    </label>
+                )}
                 <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center glass rounded-lg p-1">
                         {CURRENCIES.map((cur) => (

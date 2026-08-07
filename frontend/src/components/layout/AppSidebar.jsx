@@ -10,6 +10,7 @@ import {
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
     Palette, LayoutTemplate, Flame, Cpu, Swords, Zap, Sparkles,
+    Clapperboard,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
@@ -140,7 +141,9 @@ const OWNER_GROUPS = [
             { id: 'promo', label: 'Промо', icon: Gift },
             { id: 'templates', label: '📋 Шаблоны', icon: LayoutTemplate },
             { id: 'brandVoice', label: '🎨 Brand Voice', icon: Palette },
+            { id: 'videoCreator', label: '🎬 AI Video', icon: Clapperboard, path: '/video-creator' },
             { id: 'contentAnalysis', label: '🔍 Анализ контента', icon: Search },
+            { id: 'neuroSales', label: '🧠 Neuro-Sales', icon: Brain, path: '/neuro-sales' },
             { id: 'scout', label: '🔥 Scout', icon: Flame },
         ],
     },
@@ -215,6 +218,9 @@ export function AppSidebar({
     const groups = isOwner ? OWNER_GROUPS : [{ id: 'main', title: t('sidebar.menu', 'МЕНЮ'), items: roleMenu.map(item => ({ ...item, path: item.path })) }]
 
     const isItemActive = (item) => {
+        if (item.path) {
+            return location.pathname === item.path
+        }
         if (isOwner) {
             const active = ownerTab || 'overview'
             return item.id === active
@@ -230,6 +236,7 @@ export function AppSidebar({
         }
         onClose?.()
     }
+
 
     const toggleGroup = (groupId) => {
         setOpenGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }))

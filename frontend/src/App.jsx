@@ -21,6 +21,8 @@ import StaffDashboardPage from './pages/StaffDashboardPage'
 import AdvertiserDashboardPage from './pages/AdvertiserDashboardPage'
 import CreatorDashboardPage from './pages/CreatorDashboardPage'
 const AIChatPage = lazy(() => import('./pages/AIChatPage'))
+const AIVideoCreator = lazy(() => import('./components/video/AIVideoCreator.jsx'))
+const NeuroSalesDashboard = lazy(() => import('./components/analytics/NeuroSalesDashboard.jsx'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
 const SchedulerPage = lazy(() => import('./pages/SchedulerPage'))
 import SettingsPage from './pages/SettingsPage'
@@ -326,6 +328,16 @@ function App() {
                 <Route path="/scheduler" element={
                     <ProtectedRoute>
                         <SchedulerPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/video-creator" element={
+                    <ProtectedRoute allowedRoles={['creator', 'pro', 'agency', 'owner', 'admin']}>
+                        <AIVideoCreator />
+                    </ProtectedRoute>
+                } />
+                <Route path="/neuro-sales" element={
+                    <ProtectedRoute allowedRoles={['advertiser', 'pro', 'agency', 'owner', 'admin']}>
+                        <NeuroSalesDashboard />
                     </ProtectedRoute>
                 } />
                 <Route path="/settings" element={

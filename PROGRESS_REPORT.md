@@ -1,3 +1,21 @@
+## 2026-08-08 — v8.0-PART1: AI Video Creator, Full Voice Mode (TTS/STT), Neuro-Sales, Dynamic Pricing
+- [x] AI Video Creator: `frontend/src/components/video/AIVideoCreator.jsx` — 3 шага, генерация сценария, визуал, озвучка, mock job, preview
+- [x] Backend: `backend/routes/video.js` — `POST /api/video/create`, `GET /api/video/status/:jobId`, `GET /api/video/list`
+- [x] TTS/STT: `backend/routes/voice.js` — `/voice/speak`, `/voice/voices`, `/voice/transcribe`, `/voice/users/me/voice-settings`
+- [x] Voice UI: `OmegaChat.jsx` — кнопка 🔊, настройки голоса, язык распознавания RU/EN/ES/ZH, `frontend/src/hooks/useTTS.js`
+- [x] Neuro-Sales: `frontend/src/components/analytics/NeuroSalesDashboard.jsx` — 4 психотипа, рекомендации, пример поста, история
+- [x] Backend: `backend/routes/neuroSales.js` — `/analytics/neuro-sales/analyze`, `/analytics/neuro-sales/history`
+- [x] Dynamic Pricing: `backend/services/dynamicPricing.js` + `/subscriptions/plans-dynamic`, `/subscriptions/my-price`, toggle в SubscriptionsTab
+- [x] User model: `preferences.voiceSettings`, `psychotype`, `neuroSalesHistory`
+- [x] API: `frontend/src/services/api.js` — `videoApi`, `voiceApi`, `neuroSalesApi`
+- [x] Routing: `/video-creator`, `/neuro-sales` в `App.jsx`; пункты в `AppSidebar.jsx`
+- [x] Dashboards: `CreatorDashboardPage.jsx` (AI Video button), `AdvertiserDashboardPage.jsx` (Neuro-Sales tab), `SchedulerPage.jsx` (AI Video Creator)
+- [x] i18n: `aiVideoCreator.*`, `voiceMode.*`, `neuroSales.*`, `dynamicPricing.*` в `ru.json` + `en.json`
+- [x] `node --check backend/server.js` OK
+- [x] Build: `npm run build` — 0 errors
+- [x] Git push: выполнен
+- [x] Render deploy: выполнен
+
 ## 2026-08-08 — v7.4-FINAL-PLUS: Voice Mode, AI Video, Chain-of-Thought, Perf, Launch Kit (PRODUCTION READY)
 - [x] Bundle: `vite.config.js` — manualChunks (vendor, ui, omega, i18n), chunkSizeWarningLimit: 500
 - [x] Animations + Sound: `animations.css`, `useSound.js`, звуки в OmegaChat (message-sent, notification, error)

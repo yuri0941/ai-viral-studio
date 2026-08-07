@@ -12,7 +12,7 @@ import {
   analyzePricing,
   updatePlanPrice,
 } from '../controllers/subscriptionController.js';
-import { getDynamicPricingStatus } from '../services/dynamicPricing.js';
+import { getDynamicPricingStatus, adjustPrice } from '../services/dynamicPricing.js';
 import { detectCurrencyByIP } from '../services/geoCurrencyService.js';
 import { getPaymentMethods } from '../services/paymentMethods.js'; // [P24] fixed: payment methods service
 
@@ -72,6 +72,42 @@ router.get('/exchange-rate', async (req, res) => {
     const rate = (EXCHANGE_RATES[to] || 1) / (EXCHANGE_RATES[from] || 1);
     return res.json({ success: true, from, to, rate });
   } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// [v8.0-PART1] added: dynamic pricing endpoints
+router.get('/plans-dynamic', protect, async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    // Mock base plans; in production fetch from plans service
+    const basePlans = [
+      { id: 'free', name: 'Free', basePrice: 0 },
+      { id: 'pro', name: 'Pro', basePrice: 7900 },
+      { id: 'agency', name: 'Agency', basePrice: 19900 },
+    ];
+    const data = await Promise.all(
+      basePlans.map(async plan => {
+        const pricing = await adjustPrice(plan.basePrice, plan.id, userId);
+        return { ...plan, ...pricing };
+      })
+    );
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('[subscriptions:plans-dynamic]', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get('/my-price', protect, async (req, res) => {
+  try {
+    const { plan = 'pro' } = req.query;
+    const userId = req.user?._id || req.user?.id;
+    const basePrice = plan === 'agency' ? 19900 : plan === 'pro' ? 7900 : 0;
+    const pricing = await adjustPrice(basePrice, plan, userId);
+    return res.json({ success: true, data: pricing });
+  } catch (err) {
+    console.error('[subscriptions:my-price]', err.message);
     return res.status(500).json({ success: false, error: err.message });
   }
 });

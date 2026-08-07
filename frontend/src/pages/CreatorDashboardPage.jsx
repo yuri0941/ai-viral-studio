@@ -4,11 +4,13 @@ import { UpgradeNudge } from '../components/shared/UpgradeNudge.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { API_URL } from '../config'
+import AIVideoCreator from '../components/video/AIVideoCreator.jsx'
 import {
     LayoutDashboard, Video, Eye, Users, Heart, DollarSign,
     Plus, Calendar, BarChart as BarChartIcon, Bot, TrendingUp, Clock,
     Play, Instagram, Youtube, Music2, MessageCircle,
-    ChevronRight, Sparkles, Award, Sunrise, Trophy, Flame, Lightbulb
+    ChevronRight, Sparkles, Award, Sunrise, Trophy, Flame, Lightbulb,
+    Clapperboard
 } from 'lucide-react'
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -118,6 +120,7 @@ function CreatorDashboardPage() {
     // [VALUE-2026-08-04] added: real stats from API, no hardcode
     const [stats, setStats] = useState({ posts: 0, views: 0, subscribers: 0, engagement: 0, income: 0 })
     const [statsLoading, setStatsLoading] = useState(true)
+    const [showAIVideoCreator, setShowAIVideoCreator] = useState(false)
 
     useEffect(() => {
         const token = localStorage.getItem('token')
@@ -353,6 +356,7 @@ function CreatorDashboardPage() {
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <QuickAction icon={Plus} label={t('creator.createPost')} color="from-emerald-500 to-emerald-700" onClick={() => {}} />
+                    <QuickAction icon={Clapperboard} label={t('creator.aiVideo', 'AI Video')} color="from-violet-500 to-cyan-600" onClick={() => setShowAIVideoCreator(true)} />
                     <QuickAction icon={Calendar} label={t('creator.schedule')} color="from-blue-500 to-blue-700" onClick={() => {}} />
                     <QuickAction icon={BarChartIcon} label={t('creator.competitorAnalysis')} color="from-purple-500 to-pink-600" onClick={() => {}} />
                     <QuickAction icon={Bot} label={t('creator.aiChat')} color="from-amber-500 to-orange-600" onClick={() => navigate('/ai-chat')} />
@@ -565,6 +569,8 @@ function CreatorDashboardPage() {
 
                 </>
             )}
+
+            {showAIVideoCreator && <AIVideoCreator onClose={() => setShowAIVideoCreator(false)} />}
         </div>
     )
 }

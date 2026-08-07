@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain } from "lucide-react";
+import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
-import { omegaApi } from "../../services/api.js";
+import { omegaApi, voiceApi } from "../../services/api.js";
 import { playSound } from "../../hooks/useSound.js";
+import { useTTS } from "../../hooks/useTTS.js";
 
 const ACTION_BUTTONS = [
   { id: 'hook', label: 'chat.action.hook', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для вирусного контента' },
@@ -205,6 +206,9 @@ export default function OmegaChat({
   const [isRecording, setIsRecording] = useState(false);
   const [attachment, setAttachment] = useState(null);
   const [variantCount, setVariantCount] = useState(3);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [recognitionLang, setRecognitionLang] = useState(() => localStorage.getItem('omega_recognition_lang') || 'ru');
+  const { speak, stop, playingId, loadingId, settings, setSettings } = useTTS();
 
   const input = externalInput !== undefined ? externalInput : internalInput;
   const setInput = externalSetInput || setInternalInput;
@@ -295,8 +299,8 @@ export default function OmegaChat({
     }
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    const lang = user?.preferences?.language || 'ru';
-    recognition.lang = lang === 'en' ? 'en-US' : 'ru-RU';
+    const langMap = { ru: 'ru-RU', en: 'en-US', es: 'es-ES', zh: 'zh-CN' };
+    recognition.lang = langMap[recognitionLang] || 'ru-RU';
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.onresult = (event) => {
@@ -348,6 +352,30 @@ export default function OmegaChat({
               <>
                 <AiMessageContent text={msg.text} t={t} />
                 <ReasoningSteps reasoning={msg.reasoning} t={t} />
+                <div className="flex flex-wrap items-center gap-2 mt-2 max-w-[95%] mx-auto">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const res = await speak(msg.text, msg.id);
+                      if (res?.placeholder) alert(t('voiceMode.placeholder'));
+                    }}
+                    className={`px-2 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition ${
+                      playingId === msg.id
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-white/[0.06] text-gray-400 hover:bg-white/[0.1] hover:text-white'
+                    }`}
+                  >
+                    {loadingId === msg.id ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : playingId === msg.id ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                    {playingId === msg.id ? t('voiceMode.stop') : t('voiceMode.speak')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowVoiceSettings(true)}
+                    className="px-2 py-1.5 rounded-lg flex items-center gap-1.5 text-xs bg-white/[0.06] text-gray-400 hover:bg-white/[0.1] hover:text-white transition"
+                  >
+                    <Settings size={14} /> {t('voiceMode.settings')}
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-2 mt-3 max-w-[95%] mx-auto">
                   {ACTION_BUTTONS.map(action => (
                     <button
@@ -396,6 +424,16 @@ export default function OmegaChat({
             disabled={loading}
             className="flex-1 h-12 bg-transparent text-base outline-none text-white placeholder-gray-500 disabled:opacity-50"
           />
+          <select
+            value={recognitionLang}
+            onChange={(e) => { setRecognitionLang(e.target.value); localStorage.setItem('omega_recognition_lang', e.target.value); }}
+            className="h-10 px-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs outline-none"
+          >
+            <option value="ru">RU</option>
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="zh">ZH</option>
+          </select>
           <button
             onClick={startVoiceInput}
             type="button"
@@ -436,6 +474,53 @@ export default function OmegaChat({
         )}
         <p className="text-[10px] text-gray-500 text-center mt-1.5">{t('chat.privacy')}</p>
       </form>
+
+      {showVoiceSettings && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">{t('voiceMode.settings')}</h3>
+              <button onClick={() => setShowVoiceSettings(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('voiceMode.voice')}</label>
+                <select value={settings.voiceId} onChange={(e) => setSettings(s => ({ ...s, voiceId: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none">
+                  <option value="ru-RU-female">Russian Female</option>
+                  <option value="ru-RU-male">Russian Male</option>
+                  <option value="en-US-female">English Female</option>
+                  <option value="en-US-male">English Male</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('voiceMode.speed')}: {settings.speed.toFixed(1)}x</label>
+                <input type="range" min={0.8} max={1.5} step={0.1} value={settings.speed} onChange={(e) => setSettings(s => ({ ...s, speed: Number(e.target.value) }))} className="w-full" />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('voiceMode.pitch')}</label>
+                <select value={settings.pitch} onChange={(e) => setSettings(s => ({ ...s, pitch: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none">
+                  <option value="high">{t('voiceMode.high') || 'Высокий'}</option>
+                  <option value="normal">{t('voiceMode.normal') || 'Нормальный'}</option>
+                  <option value="low">{t('voiceMode.low') || 'Низкий'}</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('voiceMode.accent')}</label>
+                <select value={settings.accent} onChange={(e) => setSettings(s => ({ ...s, accent: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none">
+                  <option value="ru">RU</option>
+                  <option value="en">EN</option>
+                  <option value="es">ES</option>
+                  <option value="zh">ZH</option>
+                </select>
+              </div>
+              <button onClick={async () => {
+                try { await voiceApi.saveSettings(settings); } catch (e) { console.error(e); }
+                setShowVoiceSettings(false);
+              }} className="w-full py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium">{t('common.save')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

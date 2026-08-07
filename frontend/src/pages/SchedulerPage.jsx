@@ -19,6 +19,7 @@ import ABTestModal from '../components/scheduler/ABTestModal';
 import { EmptyState } from '../components/common/EmptyState.jsx';
 import PredictionCard from '../components/omega/PredictionCard.jsx';
 import { OneClickPublish } from '../components/scheduler/OneClickPublish';
+import AIVideoCreator from '../components/video/AIVideoCreator.jsx';
 
 // [VALUE-2026-08-04] updated: platform colors per spec
 const PLATFORM_COLORS = {
@@ -102,6 +103,7 @@ function SchedulerPage() {
     const [videoStyle, setVideoStyle] = useState('dynamic');
     const [videoLoading, setVideoLoading] = useState(false);
     const [videoResult, setVideoResult] = useState(null);
+    const [showAIVideoCreator, setShowAIVideoCreator] = useState(false);
     const VIDEO_STYLES = [
         { id: 'dynamic', label: t('aiVideo.styles.dynamic') },
         { id: 'calm', label: t('aiVideo.styles.calm') },
@@ -736,6 +738,7 @@ function SchedulerPage() {
                     {/* [P19] added: AI Video generation trigger */}
                     {/* [LUXURY-UI] added: premium gradient button with shadow */}
                     <button onClick={() => setVideoModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium rounded-xl shadow-lg shadow-pink-500/20 transition-all hover:scale-105"><Film size={18} /> Сгенерировать Reels</button>
+                    <button onClick={() => setShowAIVideoCreator(true)} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-cyan-500 text-white font-medium rounded-xl shadow-lg shadow-violet-500/20 transition-all hover:scale-105"><Clapperboard size={18} /> AI Video Creator</button>
                     {/* [LUXURY-UI] added: premium white CTA button */}
                     <button onClick={() => openModal()} className="flex items-center gap-2 px-5 py-2.5 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-all hover:scale-105"><Plus size={18} /> Новый пост</button>
                 </div>
@@ -1224,6 +1227,8 @@ function SchedulerPage() {
                     </div>
                 </div>
             )}
+
+            {showAIVideoCreator && <AIVideoCreator onClose={() => setShowAIVideoCreator(false)} />}
 
             <PostPreview
                 isOpen={showPreview}

@@ -55,6 +55,9 @@ import launchRoutes from './routes/launch.js'  // ← Product Hunt waitlist
 import demoRoutes from './routes/demo.js'  // ← Pre-launch viral demo hooks
 import integrationsRoutes from './routes/integrations.js'  // ← External integrations
 import plansRoutes from './routes/plans.js'  // [PLANS-SYNC] added
+import videoRoutes from './routes/video.js'  // [v8.0-PART1] AI Video Creator
+import voiceRoutes from './routes/voice.js'  // [v8.0-PART1] TTS/STT
+import neuroSalesRoutes from './routes/neuroSales.js'  // [v8.0-PART1] Neuro-Sales
 import checkoutRoutes from './routes/checkout.js'  // [PAYMENT-v5.2] added
 import qrRoutes from './routes/qr.js'  // ← P11: QR codes
 import printRoutes from './routes/print.js'  // ← P11: Print orders
@@ -70,7 +73,6 @@ import businessSpawnerRoutes from './routes/businessSpawner.js'  // ← P14: Bus
 import roadmapRoutes from './routes/roadmap.js'  // ← Public roadmap + voting
 import adminRoutes from './routes/admin.js'  // Admin + emergency stop
 import selfImprovementRoutes from './routes/selfImprovement.js'  // ← P15: Self-improvement + churn + niche intelligence
-import neuroSalesRoutes from './routes/neuroSales.js'  // [P18] added: Neuro-Sales psychotypes
 import challengeRoutes from './routes/challenges.js'  // [P20] added: OMEGA Challenge
 import uploadRoutes from './routes/upload.js'  // [P21] added: image upload optimization
 import scheduledPostsRoutes from './routes/scheduledPosts.js'  // [v6.0-fix] added: missing import
@@ -324,6 +326,9 @@ app.use('/api/ads', protect, adRoutes)  // [v6.6] Advertiser campaigns + approva
 app.use('/api/creator', protect, creatorRoutes)  // [v6.6-PART2] Creator analytics (no 401 for valid token)
 app.use('/api/subscriptions', subscriptionRoutes)  // ← P10: Подписки
 app.use('/api/subscriptions', addonsRoutes)  // [v7.0-PART2] addon marketplace
+app.use('/api/video', videoRoutes)  // [v8.0-PART1] AI Video Creator
+app.use('/api/voice', voiceRoutes)  // [v8.0-PART1] TTS/STT
+app.use('/api/analytics/neuro-sales', neuroSalesRoutes)  // [v8.0-PART1] Neuro-Sales
 app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета
 app.use('/api/owner-requisites', ownerRequisitesRoutes)  // ← P10: Реквизиты
 app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Owner legal info
@@ -350,7 +355,6 @@ app.use('/api/monitoring', monitoringRoutes)
 app.use('/api/gamification', gamificationRoutes)
 app.use('/api/boardroom', boardroomRoutes)
 app.use('/api/business-spawner', businessSpawnerRoutes)
-app.use('/api/neuro-sales', neuroSalesRoutes)  // [P18] added: Neuro-Sales API
 app.use('/api/challenges', challengeRoutes)  // [P20] added: OMEGA Challenge API
 app.use('/api/upload', uploadRoutes)  // [P21] added: image upload optimization
 app.use('/api/roadmap', roadmapRoutes)

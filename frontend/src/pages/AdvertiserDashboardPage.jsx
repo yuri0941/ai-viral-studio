@@ -17,6 +17,7 @@ import {
 } from 'recharts'
 import { AdStudioTab } from './advertiser/AdStudioTab'
 import { CreateAdTab } from './advertiser/CreateAdTab'
+import NeuroSalesDashboard from '../components/analytics/NeuroSalesDashboard.jsx'
 
 function AdvertiserDashboardPage() {
     const { t } = useTranslation()
@@ -331,6 +332,7 @@ AI Viral Studio`, {
         { id: 'adstudio', label: t('advertiser.adStudio'), icon: Wand2 },
         { id: 'createad', label: t('advertiser.createAd'), icon: Plus },
         { id: 'campaigns', label: t('advertiser.campaigns'), icon: Target },
+        { id: 'neurosales', label: t('neuroSales.title'), icon: Brain },
         { id: 'calendar', label: t('advertiser.calendar'), icon: Calendar },
         { id: 'chat', label: t('advertiser.chat'), icon: MessageSquare },
         { id: 'reports', label: t('advertiser.reports'), icon: BarChartIcon },
@@ -460,6 +462,9 @@ AI Viral Studio`, {
 
             {/* CREATE AD TAB */}
             {activeTab === 'createad' && <CreateAdTab />}
+
+            {/* NEURO-SALES TAB */}
+            {activeTab === 'neurosales' && <NeuroSalesDashboard />}
 
             {/* CAMPAIGNS TAB */}
             {activeTab === 'campaigns' && (
