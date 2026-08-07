@@ -1,3 +1,19 @@
+## 2026-08-08 — v7.3-PART1: FOMO + Viral Growth (ViralDemo, Waitlist, Roadmap, BetaCounter, FoundingMember)
+- [x] ViralDemo: i18n через `useTranslation()`, copy-кнопка, viral-potential badge, `localStorage` demo-limit
+- [x] WaitlistSection: i18n, founding member banner, список основателей, реферальные/буст-кнопки
+- [x] PublicRoadmap: i18n, топ-5 следующего спринта, блок "OMEGA рекомендует"
+- [x] BetaCounter: i18n, подключён в Hero LandingPage
+- [x] Backend: `Waitlist.js` — `isFoundingMember`, `foundingMemberRank`, `foundingMemberBadge`
+- [x] Backend: `User.js` — `isFoundingMember`, `foundingMemberDiscount`, `foundingMemberRank`, `foundingMemberBadge`
+- [x] Backend: `launch.js` — логика Founding Member + `GET /api/launch/waitlist/founding-members`
+- [x] Frontend API: `launchApi.foundingMembers()`
+- [x] i18n: `ru.json` + `en.json` секции `viralDemo`, `waitlist`, `roadmap`, `betaCounter`
+- [x] Backend роуты `/api/demo`, `/api/launch`, `/api/roadmap` подключены в `server.js`
+- [x] `node --check backend/server.js` + все backend файлы — OK
+- [x] Build: `npm run build` — 0 ошибок
+- [x] Git push: выполнен
+- [x] Render: авто-деплой, health 200
+
 ## 2026-08-08 — v7.1-PART1-i18n: OMEGA Supreme UI i18n + BrainViz/Memory/DevStudio/Boardroom/PredictiveCard
 - [x] i18n: `frontend/src/locales/ru.json` + `en.json` — добавлены секции `brainviz`, `memoryExplorer`, `devStudio`, `boardroom`, `predictiveCard`
 - [x] i18n: `frontend/src/components/omega/OmegaBrainViz.jsx` — фильтры, типы узлов, tooltip, reset через `useTranslation()`

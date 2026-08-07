@@ -79,6 +79,9 @@ router.post('/waitlist', async (req, res) => {
 
         const finalPosition = await entry.calculatePosition()
         entry.position = finalPosition
+        entry.isFoundingMember = finalPosition <= 100
+        entry.foundingMemberRank = finalPosition <= 100 ? finalPosition : undefined
+        entry.foundingMemberBadge = finalPosition <= 100 ? (finalPosition <= 10 ? '🥇 Top 10' : finalPosition <= 50 ? '🥈 Top 50' : '🥉 Top 100') : undefined
         await entry.save()
 
         const count = await Waitlist.countDocuments()
@@ -88,7 +91,9 @@ router.post('/waitlist', async (req, res) => {
             total: count,
             position: finalPosition,
             referralCode: entry.referralCode,
-            isFoundingMember: finalPosition <= 100,
+            isFoundingMember: entry.isFoundingMember,
+            foundingMemberRank: entry.foundingMemberRank,
+            foundingMemberBadge: entry.foundingMemberBadge,
         })
     } catch (err) {
         if (err.code === 11000) {
@@ -188,6 +193,26 @@ router.post('/waitlist/boost', async (req, res) => {
 
         const position = await entry.calculatePosition()
         res.json({ success: true, data: { position, points: entry.points, action } })
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message })
+    }
+})
+
+// GET /api/launch/waitlist/founding-members — первые 100 (анонимно)
+router.get('/waitlist/founding-members', async (req, res) => {
+    try {
+        const members = await Waitlist.find({ isFoundingMember: true })
+            .sort({ foundingMemberRank: 1 })
+            .limit(100)
+            .select('foundingMemberRank foundingMemberBadge createdAt -_id')
+            .lean()
+        const anonymized = members.map(m => ({
+            rank: m.foundingMemberRank,
+            badge: m.foundingMemberBadge,
+            initials: 'FM',
+            joinedAt: m.createdAt,
+        }))
+        res.json({ success: true, data: { members: anonymized } })
     } catch (err) {
         res.status(500).json({ success: false, message: err.message })
     }

@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { roadmapApi } from '../../services/api.js'
 
-const COLUMNS = [
-    { key: 'planned', label: 'Запланировано', color: 'border-gray-500/30' },
-    { key: 'in_progress', label: 'В разработке', color: 'border-blue-500/30' },
-    { key: 'testing', label: 'Тестирование', color: 'border-yellow-500/30' },
-    { key: 'launched', label: 'Запущено', color: 'border-[#00ff41]/30' },
-]
+const COLUMN_KEYS = ['planned', 'in_progress', 'testing', 'launched']
 
 const STATUS_COLORS = {
     planned: 'bg-gray-500/20 text-gray-300',
@@ -16,15 +12,24 @@ const STATUS_COLORS = {
 }
 
 function PublicRoadmap() {
+    const { t } = useTranslation()
+    const COLUMNS = [
+        { key: 'planned', label: t('roadmap.planned'), color: 'border-gray-500/30' },
+        { key: 'in_progress', label: t('roadmap.inDevelopment'), color: 'border-blue-500/30' },
+        { key: 'testing', label: t('roadmap.testing'), color: 'border-yellow-500/30' },
+        { key: 'launched', label: t('roadmap.launched'), color: 'border-[#00ff41]/30' },
+    ]
     const [features, setFeatures] = useState([])
+    const [topFeatures, setTopFeatures] = useState([])
     const [loading, setLoading] = useState(true)
     const [voted, setVoted] = useState(new Set())
     const [error, setError] = useState('')
 
     useEffect(() => {
-        roadmapApi.list()
-            .then(res => {
-                setFeatures(res.data?.features || [])
+        Promise.all([roadmapApi.list(), roadmapApi.top()])
+            .then(([listRes, topRes]) => {
+                setFeatures(listRes.data?.features || [])
+                setTopFeatures(topRes.data?.features || [])
                 setLoading(false)
             })
             .catch(err => {
@@ -65,12 +70,40 @@ function PublicRoadmap() {
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-6xl font-black mb-4">
-                        Публичный <span className="gradient-text">Roadmap</span>
+                        {t('roadmap.title')}
                     </h1>
                     <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                        Голосуй за фичи, которые нужны именно тебе. Топ-5 по голосам попадает в следующий спринт.
+                        {t('roadmap.subtitle')}
                     </p>
                 </div>
+
+                {!loading && topFeatures.length > 0 && (
+                    <div className="mb-16 p-6 rounded-3xl glass-card border border-[#00ff41]/20 glow-border">
+                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                            <span>🚀</span> {t('roadmap.nextSprint')}
+                        </h2>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+                            {topFeatures.map((feature, i) => (
+                                <div key={feature.featureId} className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                                    <div className="text-xs text-[#00ff41] font-medium mb-2">#{i + 1}</div>
+                                    <div className="font-semibold text-sm mb-2">{feature.featureTitle}</div>
+                                    <div className="text-xs text-gray-500">{feature.votes} {t('roadmap.votes')}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {!loading && (
+                    <div className="mb-16 p-6 rounded-3xl glass-card border border-violet-500/20">
+                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <span>🤖</span> {t('roadmap.omegaRecommends')}
+                        </h2>
+                        <p className="text-gray-400 text-sm">
+                            {topFeatures[0]?.featureTitle || t('roadmap.launched')}
+                        </p>
+                    </div>
+                )}
 
                 {loading && (
                     <div className="flex justify-center py-20">
@@ -79,7 +112,7 @@ function PublicRoadmap() {
                 )}
 
                 {error && !loading && (
-                    <p className="text-center text-red-400 mb-8">{error}</p>
+                    <p className="text-center text-red-400 mb-8">{t('roadmap.error')}</p>
                 )}
 
                 {!loading && (
@@ -88,7 +121,7 @@ function PublicRoadmap() {
                             <div key={col.key} className="flex flex-col gap-4">
                                 <div className={`p-4 rounded-2xl glass border ${col.color} sticky top-24`}>
                                     <h2 className="font-bold text-lg">{col.label}</h2>
-                                    <p className="text-sm text-gray-500">{col.items.length} фич</p>
+                                    <p className="text-sm text-gray-500">{t('roadmap.featuresCount', { count: col.items.length })}</p>
                                 </div>
                                 {col.items.map(feature => (
                                     <div
@@ -112,11 +145,8 @@ function PublicRoadmap() {
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                                                 </svg>
-                                                {feature.votes}
+                                                {voted.has(feature.featureId) ? t('roadmap.voted') : `${t('roadmap.vote')} · ${feature.votes}`}
                                             </button>
-                                            {voted.has(feature.featureId) && (
-                                                <span className="text-xs text-[#00ff41]">Голос засчитан</span>
-                                            )}
                                         </div>
                                     </div>
                                 ))}

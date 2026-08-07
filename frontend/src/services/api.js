@@ -199,6 +199,7 @@ export const launchApi = {
     applyReferral: (email, referralCode) => request('/launch/waitlist/referral', { method: 'POST', body: JSON.stringify({ email, referralCode }) }),
     boost: (email, action) => request('/launch/waitlist/boost', { method: 'POST', body: JSON.stringify({ email, action }) }),
     betaSlots: () => request('/launch/beta/slots'),
+    foundingMembers: () => request('/launch/waitlist/founding-members'),
 }
 
 // ============================================

@@ -108,6 +108,10 @@ const userSchema = new mongoose.Schema(
             examples: [String],
             updatedAt: { type: Date, default: Date.now },
         },
+        isFoundingMember: { type: Boolean, default: false },
+        foundingMemberDiscount: { type: Number, default: 0 },
+        foundingMemberRank: { type: Number },
+        foundingMemberBadge: { type: String, default: '' },
         // [P20] added: watermark settings for "Сделано в OMEGA"
         watermarkSettings: {
             enabled: { type: Boolean, default: true },

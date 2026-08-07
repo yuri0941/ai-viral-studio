@@ -10,6 +10,7 @@ import { API_URL } from '../config.js'
 import { PLANS, getPrice } from '../config/plans.js'
 import WaitlistSection from './landing/WaitlistSection'
 import ViralDemo from './landing/ViralDemo'
+import BetaCounter from '../components/landing/BetaCounter'
 import { OmegaCompetitorRadar } from '../components/omega/OmegaCompetitorRadar.jsx'
 // [P16-FINAL] added: launch pill replacing beta counter
 function LaunchPill() {
@@ -268,6 +269,10 @@ function LandingPage() {
                         Создавай <span className="italic gradient-text">вирусный</span><br />
                         контент за 60 секунд
                     </h1>
+
+                    <div className="flex justify-center mb-8">
+                        <BetaCounter />
+                    </div>
 
                     <p className="text-lg font-light text-[var(--text-muted)] mb-12 max-w-xl mx-auto leading-relaxed">
                         AI генерирует скрипты, анализирует тренды и публикует
