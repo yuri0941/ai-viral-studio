@@ -1,3 +1,20 @@
+## 2026-08-07 — v7.0-PART1 Cleanup Demo + Failover + OTA + Download Center
+- [x] Cleanup: demo-режим и demo-фразы убраны из `aiService.js` (переменная `demoReply` → `fallbackReply`)
+- [x] Cleanup: `backend/data/ownerMockData.js` уже переименован в `ownerFallbackData.js`, realistic fallback
+- [x] Cleanup: `backend/controllers/ownerController.js` — mock-имена заменены на fallback
+- [x] Feature: `failoverService.js` v3 — пинг `/api/health` каждые 30 сек, offline mode >60 сек, Mongo/payment сообщения
+- [x] Feature: `backend/models/OfflineQueue.js` — queue writes при недоступности Mongo
+- [x] Feature: `frontend/src/services/offlineSync.js` — IndexedDB queue + sync + online check
+- [x] Feature: версионирование — `frontend/src/config/version.js` → `7.0.0`, `backend/routes/version.js` → `7.0.0`
+- [x] Feature: `UpdateModal.jsx` — PWA force-update, skipWaiting, changelog
+- [x] Feature: Capacitor OTA — `useOTAUpdate.js`, `@capawesome/capacitor-app-update`, конфиг `CapacitorUpdater`
+- [x] Feature: Tauri Auto-Updater — `desktop/src-tauri/tauri.conf.json` updater + `backend/routes/desktopUpdate.js`
+- [x] Feature: Download Center — `frontend/src/pages/DownloadPage.jsx`, QR для Android, EXE/DMG, changelog, история
+- [x] Feature: Downloads API — `backend/routes/downloads.js` + `backend/models/DownloadVersion.js`
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен (commit 2181a270)
+- [x] Render: Manual Deploy → Clear Build Cache & Deploy (запланировано)
+
 ## 2026-08-07 — v6.6-HOTFIX-FINAL Исправление ошибок
 - [x] Fix: Subscription.js — убран дублирующийся индекс providerSubscriptionId (оставлен index: true в поле)
 - [x] Fix: Omega routes — добавлены POST /generate-template/referral-post и /self-reflection (GET+POST) в backend/routes/omega.js
