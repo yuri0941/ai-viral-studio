@@ -1,3 +1,15 @@
+## 2026-08-07 — v6.6-HOTFIX-EXPORT Читаемые CSV/Excel отчёты + BOM + metadata flatten
+- [x] Feature: ExportService — flattenObject (metadata.userId, metadata.error...), русские заголовки, BOM, форматирование дат
+- [x] Feature: json2csv установлен в backend
+- [x] Feature: /api/audit/export — CSV с AuditLog, русские заголовки, BOM UTF-8, подключён в server.js
+- [x] Feature: /api/payments/admin/subscriptions/export — CSV с подписчиками, flatten userId.name/email
+- [x] Fix: AuditTab.jsx — кнопка "📥 Скачать отчёт" скачивает CSV с backend, правильное имя файла `Отчёт_аудит_ДД.ММ.ГГГГ.csv`
+- [x] Fix: SubscribersTab.jsx — добавлена кнопка "📥 Скачать отчёт" для экспорта подписчиков
+- [x] Fix: metadata больше не сериализуется как [object Object] — вложенные объекты разворачиваются в колонки
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен (commit 5faa3f4c)
+- [x] Render: auto-deploy from git push, /health returns OK
+
 ## 2026-08-07 — v6.6-HOTFIX-SUBSCRIPTIONS Учёт подписчиков + Возвраты + OMEGA Auto-Pilot
 - [x] Feature: Subscription model — userId, plan, status, provider, currentPeriodEnd, paymentHistory
 - [x] Feature: Webhook /api/payments/webhook/subscriptions — обработка checkout.session.completed, invoice.paid, customer.subscription.deleted
