@@ -576,6 +576,17 @@
   "ad.analyzeCompetitor": "Анализ конкурента",
   "ad.generatedVariants": "Сгенерированные варианты",
   "ad.variantsHint": "Заполните форму и нажмите «Сгенерировать варианты»",
+  "omegaFinance": {
+    "title": "OMEGA Финансы",
+    "dynamicLimit": "Динамический лимит",
+    "roi": "ROI по категориям",
+    "forecast": "Прогноз MRR",
+    "crypto": "Крипто-портфель",
+    "transactions": "Транзакции",
+    "budget": "Бюджет OMEGA",
+    "remaining": "Осталось {{amount}} из {{limit}}",
+    "increaseLimit": "Увеличить лимит"
+  },
   "addons": {
     "title": "Маркетплейс аддонов",
     "subtitle": "Докупите функции под ваши задачи",

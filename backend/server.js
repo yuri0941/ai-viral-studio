@@ -39,6 +39,7 @@ import invoiceRoutes from './routes/invoices.js'  // ← P10: Счета
 import addonsRoutes from './routes/addons.js'  // [v7.0-PART2] addon marketplace
 import downloadsRoutes from './routes/downloads.js'  // [v7.0] added: download center
 import ownerRequisitesRoutes from './routes/ownerRequisites.js'  // ← P10: Реквизиты
+import omegaFinanceRoutes from './routes/omegaFinance.js'  // [v7.1-PART2] OMEGA Finance
 import ownerLegalInfoRoutes from './routes/ownerLegalInfo.js'  // ← Legal Shield: Owner legal info
 import { getPublicLegalInfo } from './controllers/ownerLegalInfoController.js'  // ← Public legal info
 import { detectCurrency } from './controllers/geoController.js'  // [PAYMENT-v5.2] added
@@ -311,6 +312,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
 app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API
+app.use('/api/owner/omega-finance', omegaFinanceRoutes)  // [v7.1-PART2] OMEGA Finance
 app.use('/api/audit', auditRoutes)  // ← v6.6-HOTFIX-EXPORT: audit CSV export
 app.use('/api/omega', omegaRoutes)  // ← НОВОЕ: OMEGA Core API
 app.use('/api/omega', devStudioRoutes)  // [v6.6] added: OMEGA DevStudio

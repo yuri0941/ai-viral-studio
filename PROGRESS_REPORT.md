@@ -1,3 +1,16 @@
+## 2026-08-07 — v7.1-PART2: OMEGA Finance UI + v7.2 Tab Check
+- [x] OmegaFinanceTab: уже существовал (динамические лимиты, ROI, прогноз, крипто, таблица транзакций)
+- [x] OmegaBudgetWidget: создан и встроен в OverviewTab bento grid
+- [x] Backend: `backend/services/omegaFinance.js` — calculateDynamicLimit, getROIBreakdown, getMRRForecast, getTransactions
+- [x] Backend: `backend/routes/omegaFinance.js` — /api/owner/omega-finance/limit|roi|forecast|transactions
+- [x] Backend: `backend/server.js` — подключен `/api/owner/omega-finance`
+- [x] i18n: `ru.json` + `en.json` секция `omegaFinance`
+- [x] AppSidebar: пункт "💰 OMEGA Finance" уже существует
+- [x] v7.2 Tab Check: FranchiseTab, FleetTab, WhiteLabelTab, DeveloperTab — все уже заполнены функционалом
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен
+- [x] Render: Manual Deploy → Clear Build Cache & Deploy (запланировано)
+
 ## 2026-08-07 — v7.1-ADDON-PRICING: AI Pricing Engine + Owner Edit + Multi-Currency
 - [x] Backend: `backend/models/Addon.js` — price, basePrice, currencies, paymentMethods, ownerPriceConfig, isEditableByOwner
 - [x] Backend: `backend/routes/addons.js` — PATCH /price, GET /pricing-config, POST /reset-price, POST /analyze-price, GET /pricing-report (owner/admin)

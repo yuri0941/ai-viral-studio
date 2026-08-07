@@ -576,6 +576,17 @@
   "ad.analyzeCompetitor": "Competitor analysis",
   "ad.generatedVariants": "Generated variants",
   "ad.variantsHint": "Fill the form and click Generate variants",
+  "omegaFinance": {
+    "title": "OMEGA Finance",
+    "dynamicLimit": "Dynamic limit",
+    "roi": "ROI by category",
+    "forecast": "MRR forecast",
+    "crypto": "Crypto portfolio",
+    "transactions": "Transactions",
+    "budget": "OMEGA Budget",
+    "remaining": "{{amount}} left of {{limit}}",
+    "increaseLimit": "Increase limit"
+  },
   "addons": {
     "title": "Addon Marketplace",
     "subtitle": "Buy features for your needs",

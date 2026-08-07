@@ -17,6 +17,7 @@ import { AutoReportWidget } from '../../../../components/owner/AutoReportWidget.
 import { UpgradeNudge } from '../../../../components/shared/UpgradeNudge.jsx'
 import { OmegaCompetitorRadar } from '../../../../components/omega/OmegaCompetitorRadar.jsx'
 import OmegaPredictiveCard from '../../../../components/omega/OmegaPredictiveCard.jsx'
+import OmegaBudgetWidget from '../../../../components/omega/OmegaBudgetWidget.jsx'
 
 function BentoCard({ title, value, subtext, icon: Icon, color, onClick, children, className = '' }) {
     return (
@@ -182,6 +183,8 @@ export function OverviewTab({ data }) {
                     color="purple"
                     onClick={() => go('/owner?tab=omega')}
                 />
+
+                <OmegaBudgetWidget onOpenFinance={() => go('/owner?tab=omegaFinance')} />
 
                 <BentoCard
                     title="Планировщик"
