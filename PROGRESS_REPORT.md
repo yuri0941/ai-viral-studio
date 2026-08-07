@@ -1,3 +1,15 @@
+## 2026-08-08 — v7.1-PART1-i18n: OMEGA Supreme UI i18n + BrainViz/Memory/DevStudio/Boardroom/PredictiveCard
+- [x] i18n: `frontend/src/locales/ru.json` + `en.json` — добавлены секции `brainviz`, `memoryExplorer`, `devStudio`, `boardroom`, `predictiveCard`
+- [x] i18n: `frontend/src/components/omega/OmegaBrainViz.jsx` — фильтры, типы узлов, tooltip, reset через `useTranslation()`
+- [x] i18n: `frontend/src/components/omega/OmegaMemoryExplorer.jsx` — заголовок, слои, поиск, записи, export/clear через `useTranslation()`
+- [x] i18n: `frontend/src/components/omega/OmegaDevStudio.jsx` — заголовок, поля, табы, кнопки, статусы через `useTranslation()`
+- [x] i18n: `frontend/src/components/omega/OmegaBoardroom.jsx` — заголовок, агенты, голоса, история, задачи через `useTranslation()`
+- [x] i18n: `frontend/src/components/omega/OmegaPredictiveCard.jsx` — заголовок, типы предложений, кнопки через `useTranslation()`
+- [x] Build: `npm run build` — 0 ошибок
+- [x] `node --check backend/server.js` — OK
+- [x] Git push: выполнен
+- [x] Render: Manual Deploy → Clear Build Cache & Deploy (запланировано)
+
 ## 2026-08-07 — v7.1-PART2: OMEGA Finance UI + v7.2 Tab Check
 - [x] OmegaFinanceTab: уже существовал (динамические лимиты, ROI, прогноз, крипто, таблица транзакций)
 - [x] OmegaBudgetWidget: создан и встроен в OverviewTab bento grid

@@ -644,5 +644,112 @@
     "error": "Connection error. Please retry.",
     "empty": "Start a conversation with OMEGA",
     "section": "Section"
+  },
+  "brainviz": {
+    "title": "🧠 Neural Graph: {{nodes}} nodes | {{edges}} connections | {{clusters}} clusters",
+    "filters": {
+      "all": "All",
+      "project": "Projects",
+      "client": "Clients",
+      "error": "Errors",
+      "idea": "Ideas"
+    },
+    "types": {
+      "project": "Project",
+      "client": "Client",
+      "error": "Error",
+      "idea": "Idea",
+      "trend": "Trend",
+      "tech": "Technology"
+    },
+    "reset": "Reset",
+    "connections": "connections"
+  },
+  "memoryExplorer": {
+    "title": "OMEGA Memory Explorer",
+    "subtitle": "8 memory layers · {{count}} records",
+    "searchPlaceholder": "Search memory...",
+    "records": "{{count}} records",
+    "noRecords": "No records",
+    "export": "JSONL",
+    "clear": "Clear",
+    "clearConfirm": "Clear memory layer?",
+    "layers": {
+      "short_term": "Short-term",
+      "working": "Working",
+      "long_term": "Long-term",
+      "semantic": "Semantic",
+      "procedural": "Procedural",
+      "episodic": "Episodic",
+      "owner_profile": "Owner profile",
+      "emotional": "Emotional"
+    }
+  },
+  "devStudio": {
+    "title": "OMEGA DevStudio",
+    "subtitle": "OMEGA writes production-ready code from your spec",
+    "moduleName": "Module name",
+    "moduleNamePlaceholder": "e.g. ViralHookEditor",
+    "type": "Type",
+    "technologies": "Technologies",
+    "design": "Design",
+    "features": "Features",
+    "generate": "Generate with OMEGA",
+    "generating": "Generating...",
+    "tabs": {
+      "frontend": "frontend",
+      "backend": "backend",
+      "tests": "tests"
+    },
+    "emptyCode": "// empty",
+    "copy": "Copy",
+    "approve": "Approve",
+    "reject": "Reject",
+    "regenerate": "Regenerate",
+    "createdModules": "Created modules",
+    "noModules": "No modules created yet.",
+    "status": {
+      "draft": "draft",
+      "approved": "approved",
+      "deployed": "deployed"
+    }
+  },
+  "boardroom": {
+    "title": "AI Boardroom",
+    "subtitle": "5 AI directors discuss strategy",
+    "hideHistory": "Hide",
+    "showHistory": "History",
+    "historyTitle": "Round history",
+    "emptyHistory": "History is empty",
+    "topicPlaceholder": "Topic: launch new plan, integration, budget...",
+    "startRound": "Start round",
+    "agents": {
+      "ceo": { "name": "Alex CEO", "role": "CEO", "stance": "strategy" },
+      "cmo": { "name": "Maria CMO", "role": "CMO", "stance": "marketing" },
+      "cto": { "name": "Ivan CTO", "role": "CTO", "stance": "technology" },
+      "cfo": { "name": "Dmitry CFO", "role": "CFO", "stance": "finance" },
+      "chro": { "name": "Elena CHRO", "role": "CHRO", "stance": "people" }
+    },
+    "defaultArgument": "Ready to discuss details.",
+    "votes": {
+      "for": "FOR",
+      "against": "AGAINST",
+      "abstain": "Abstain"
+    },
+    "approved": "Decision approved ({{count}}/5)",
+    "createTask": "Create task",
+    "taskCreated": "Task created: {{topic}}"
+  },
+  "predictiveCard": {
+    "title": "OMEGA has prepared",
+    "postpone": "Postpone",
+    "expand": "View",
+    "collapse": "Hide",
+    "applied": "OMEGA applied: {{title}}",
+    "types": {
+      "post": { "title": "Post for tomorrow", "action": "Create post" },
+      "competitor": { "title": "Competitor analysis", "action": "Analyze" },
+      "pricing": { "title": "Plan optimization", "action": "Apply" }
+    }
   }
 }

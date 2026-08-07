@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Sparkles, Eye, Check, Clock, X, Zap } from 'lucide-react'
 import { API_BASE_URL } from '../../config.js'
 
-const TYPE_META = {
-    post: { icon: Sparkles, title: 'Пост на завтра', action: 'Создать пост' },
-    competitor: { icon: Zap, title: 'Анализ конкурента', action: 'Проанализировать' },
-    pricing: { icon: Clock, title: 'Оптимизация тарифа', action: 'Применить' },
+const TYPE_ICONS = {
+    post: Sparkles,
+    competitor: Zap,
+    pricing: Clock,
 }
 
 export default function OmegaPredictiveCard() {
+    const { t } = useTranslation()
     const [predictions, setPredictions] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
@@ -52,7 +54,7 @@ export default function OmegaPredictiveCard() {
                 headers: { Authorization: `Bearer ${token}` },
             })
             if (!res.ok) throw new Error('Apply failed')
-            alert(`OMEGA применил: ${p.title}`)
+            alert(t('predictiveCard.applied', { title: p.title }))
             await load()
         } catch (err) {
             console.error('[OmegaPredictiveCard apply]', err.message)
@@ -64,8 +66,7 @@ export default function OmegaPredictiveCard() {
     if (error || predictions.length === 0) return null
 
     const current = predictions[0]
-    const meta = TYPE_META[current.type]
-    const Icon = meta.icon
+    const Icon = TYPE_ICONS[current.type] || Sparkles
 
     return (
         <div className="glass-card glow-border rounded-2xl p-5 relative overflow-hidden">
@@ -77,15 +78,15 @@ export default function OmegaPredictiveCard() {
                             <Icon className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-sm">OMEGA уже подготовил</h3>
-                            <p className="text-xs text-[var(--text-muted)]">{meta.title}</p>
+                            <h3 className="font-bold text-sm">{t('predictiveCard.title')}</h3>
+                            <p className="text-xs text-[var(--text-muted)]">{t(`predictiveCard.types.${current.type}.title`, current.type)}</p>
                         </div>
                     </div>
                     <button
                         type="button"
                         onClick={postpone}
                         className="p-2 min-w-[44px] min-h-[44px] rounded-lg hover:bg-white/5 text-[var(--text-muted)]"
-                        aria-label="Отложить"
+                        aria-label={t('predictiveCard.postpone')}
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -103,14 +104,14 @@ export default function OmegaPredictiveCard() {
                         onClick={() => setExpanded(!expanded)}
                         className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-lg bg-white/5 hover:bg-white/10 text-xs"
                     >
-                        <Eye className="w-3.5 h-3.5" /> {expanded ? 'Свернуть' : 'Посмотреть'}
+                        <Eye className="w-3.5 h-3.5" /> {expanded ? t('predictiveCard.collapse') : t('predictiveCard.expand')}
                     </button>
                     <button
                         type="button"
                         onClick={() => apply(current)}
                         className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-lg bg-[var(--primary)]/20 text-[var(--primary)] hover:bg-[var(--primary)]/30 text-xs font-medium"
                     >
-                        <Check className="w-3.5 h-3.5" /> {meta.action}
+                        <Check className="w-3.5 h-3.5" /> {t(`predictiveCard.types.${current.type}.action`, current.type)}
                     </button>
                 </div>
             </div>

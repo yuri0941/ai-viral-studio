@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { API_BASE_URL } from '../../config.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { Code2, CheckCircle, XCircle, RefreshCw, Loader2, Copy, Check } from 'lucide-react'
@@ -9,6 +10,7 @@ const TYPES = ['Frontend', 'Backend', 'Fullstack']
 const DESIGNS = ['Glassmorphism', 'Minimal']
 
 export default function OmegaDevStudio() {
+    const { t } = useTranslation()
     const { user } = useAuth()
     const [name, setName] = useState('')
     const [type, setType] = useState('Fullstack')
@@ -98,23 +100,23 @@ export default function OmegaDevStudio() {
                         <Code2 className="w-5 h-5 text-violet-400" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold text-white">OMEGA DevStudio</h2>
-                        <p className="text-xs text-[var(--text-muted)]">OMEGA пишет production-ready код по спецификации</p>
+                        <h2 className="text-lg font-semibold text-white">{t('devStudio.title')}</h2>
+                        <p className="text-xs text-[var(--text-muted)]">{t('devStudio.subtitle')}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="space-y-2">
-                        <label className="text-xs text-[var(--text-muted)]">Название модуля</label>
+                        <label className="text-xs text-[var(--text-muted)]">{t('devStudio.moduleName')}</label>
                         <input
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] text-white text-sm focus:outline-none focus:border-violet-500/50"
-                            placeholder="Например: ViralHookEditor"
+                            placeholder={t('devStudio.moduleNamePlaceholder')}
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-xs text-[var(--text-muted)]">Тип</label>
+                        <label className="text-xs text-[var(--text-muted)]">{t('devStudio.type')}</label>
                         <select
                             value={type}
                             onChange={(e) => setType(e.target.value)}
@@ -124,7 +126,7 @@ export default function OmegaDevStudio() {
                         </select>
                     </div>
                     <div className="space-y-2">
-                        <label className="text-xs text-[var(--text-muted)]">Технологии</label>
+                        <label className="text-xs text-[var(--text-muted)]">{t('devStudio.technologies')}</label>
                         <div className="flex flex-wrap gap-2">
                             {TECH_OPTIONS.map(t => (
                                 <button
@@ -142,7 +144,7 @@ export default function OmegaDevStudio() {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="text-xs text-[var(--text-muted)]">Дизайн</label>
+                        <label className="text-xs text-[var(--text-muted)]">{t('devStudio.design')}</label>
                         <select
                             value={design}
                             onChange={(e) => setDesign(e.target.value)}
@@ -154,7 +156,7 @@ export default function OmegaDevStudio() {
                 </div>
 
                 <div className="space-y-2 mb-4">
-                    <label className="text-xs text-[var(--text-muted)]">Фичи</label>
+                    <label className="text-xs text-[var(--text-muted)]">{t('devStudio.features')}</label>
                     <div className="flex flex-wrap gap-2">
                         {FEATURES.map(f => (
                             <label key={f} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 cursor-pointer select-none">
@@ -176,7 +178,7 @@ export default function OmegaDevStudio() {
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <Code2 size={16} />}
-                    Сгенерировать с OMEGA
+                    {loading ? t('devStudio.generating') : t('devStudio.generate')}
                 </button>
                 {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
             </div>
@@ -184,17 +186,17 @@ export default function OmegaDevStudio() {
             {result && (
                 <div className="glass-card glow-border rounded-2xl p-4 md:p-6">
                     <div className="flex flex-wrap gap-2 mb-4">
-                        {['frontend', 'backend', 'tests'].map(t => (
+                        {['frontend', 'backend', 'tests'].map(tab => (
                             <button
-                                key={t}
-                                onClick={() => setActiveTab(t)}
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
-                                    activeTab === t
+                                    activeTab === tab
                                         ? 'bg-violet-500/20 text-violet-200 border border-violet-500/30'
                                         : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
                                 }`}
                             >
-                                {t}
+                                {t(`devStudio.tabs.${tab}`)}
                             </button>
                         ))}
                     </div>
@@ -207,30 +209,30 @@ export default function OmegaDevStudio() {
                             }}
                             type="button"
                             className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-70 hover:opacity-100 transition-opacity"
-                            aria-label="Copy"
+                            aria-label={t('devStudio.copy')}
                         >
                             {copied ? <Check size={14} /> : <Copy size={14} />}
                         </button>
-                        <pre className="text-xs text-emerald-300 font-mono whitespace-pre-wrap">{result[activeTab] || '// empty'}</pre>
+                        <pre className="text-xs text-emerald-300 font-mono whitespace-pre-wrap">{result[activeTab] || t('devStudio.emptyCode')}</pre>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-4">
                         <button onClick={() => action(result.moduleId, 'approve')} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs hover:bg-emerald-500/20">
-                            <CheckCircle size={14} /> Одобрить
+                            <CheckCircle size={14} /> {t('devStudio.approve')}
                         </button>
                         <button onClick={() => setResult(null)} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-xs hover:bg-red-500/20">
-                            <XCircle size={14} /> Отклонить
+                            <XCircle size={14} /> {t('devStudio.reject')}
                         </button>
                         <button onClick={regenerate} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-xs hover:bg-white/10">
-                            <RefreshCw size={14} /> Перегенерировать
+                            <RefreshCw size={14} /> {t('devStudio.regenerate')}
                         </button>
                     </div>
                 </div>
             )}
 
             <div className="glass-card glow-border rounded-2xl p-4 md:p-6">
-                <h3 className="text-sm font-semibold text-white mb-3">Созданные модули</h3>
+                <h3 className="text-sm font-semibold text-white mb-3">{t('devStudio.createdModules')}</h3>
                 {modules.length === 0 ? (
-                    <p className="text-xs text-[var(--text-muted)]">Пока нет созданных модулей.</p>
+                    <p className="text-xs text-[var(--text-muted)]">{t('devStudio.noModules')}</p>
                 ) : (
                     <div className="space-y-2">
                         {modules.map(m => (
@@ -245,7 +247,7 @@ export default function OmegaDevStudio() {
                                         m.status === 'deployed' ? 'bg-blue-500/10 text-blue-300' :
                                         'bg-yellow-500/10 text-yellow-300'
                                     }`}>
-                                        {m.status}
+                                        {t(`devStudio.status.${m.status}`, m.status)}
                                     </span>
                                     {m.status === 'draft' && (
                                         <button onClick={() => action(m._id, 'approve')} className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/20">✅</button>

@@ -644,5 +644,112 @@
     "error": "Ошибка соединения. Повторите.",
     "empty": "Начните диалог с OMEGA",
     "section": "Раздел"
+  },
+  "brainviz": {
+    "title": "🧠 Neural Graph: {{nodes}} узлов | {{edges}} связей | {{clusters}} кластеров",
+    "filters": {
+      "all": "Все",
+      "project": "Проекты",
+      "client": "Клиенты",
+      "error": "Ошибки",
+      "idea": "Идеи"
+    },
+    "types": {
+      "project": "Проект",
+      "client": "Клиент",
+      "error": "Ошибка",
+      "idea": "Идея",
+      "trend": "Тренд",
+      "tech": "Технология"
+    },
+    "reset": "Сброс",
+    "connections": "связей"
+  },
+  "memoryExplorer": {
+    "title": "OMEGA Memory Explorer",
+    "subtitle": "8 слоёв памяти · {{count}} записей",
+    "searchPlaceholder": "Поиск по памяти...",
+    "records": "{{count}} записей",
+    "noRecords": "Нет записей",
+    "export": "JSONL",
+    "clear": "Очистить",
+    "clearConfirm": "Очистить слой памяти?",
+    "layers": {
+      "short_term": "Кратковременная",
+      "working": "Рабочая",
+      "long_term": "Долговременная",
+      "semantic": "Семантическая",
+      "procedural": "Процедурная",
+      "episodic": "Эпизодическая",
+      "owner_profile": "Профиль владельца",
+      "emotional": "Эмоциональная"
+    }
+  },
+  "devStudio": {
+    "title": "OMEGA DevStudio",
+    "subtitle": "OMEGA пишет production-ready код по спецификации",
+    "moduleName": "Название модуля",
+    "moduleNamePlaceholder": "Например: ViralHookEditor",
+    "type": "Тип",
+    "technologies": "Технологии",
+    "design": "Дизайн",
+    "features": "Фичи",
+    "generate": "Сгенерировать с OMEGA",
+    "generating": "Генерация...",
+    "tabs": {
+      "frontend": "frontend",
+      "backend": "backend",
+      "tests": "tests"
+    },
+    "emptyCode": "// пусто",
+    "copy": "Копировать",
+    "approve": "Одобрить",
+    "reject": "Отклонить",
+    "regenerate": "Перегенерировать",
+    "createdModules": "Созданные модули",
+    "noModules": "Пока нет созданных модулей.",
+    "status": {
+      "draft": "draft",
+      "approved": "approved",
+      "deployed": "deployed"
+    }
+  },
+  "boardroom": {
+    "title": "AI Boardroom",
+    "subtitle": "5 AI-директоров обсуждают стратегию",
+    "hideHistory": "Скрыть",
+    "showHistory": "История",
+    "historyTitle": "История раундов",
+    "emptyHistory": "История пуста",
+    "topicPlaceholder": "Тема для обсуждения: запуск нового тарифа, интеграция, бюджет...",
+    "startRound": "Начать раунд",
+    "agents": {
+      "ceo": { "name": "Alex CEO", "role": "CEO", "stance": "стратегия" },
+      "cmo": { "name": "Maria CMO", "role": "CMO", "stance": "маркетинг" },
+      "cto": { "name": "Ivan CTO", "role": "CTO", "stance": "технологии" },
+      "cfo": { "name": "Dmitry CFO", "role": "CFO", "stance": "финансы" },
+      "chro": { "name": "Elena CHRO", "role": "CHRO", "stance": "люди" }
+    },
+    "defaultArgument": "Готов обсудить детали.",
+    "votes": {
+      "for": "ЗА",
+      "against": "ПРОТИВ",
+      "abstain": "Воздержался"
+    },
+    "approved": "Решение принято ({{count}}/5)",
+    "createTask": "Создать задачу",
+    "taskCreated": "Создана задача: {{topic}}"
+  },
+  "predictiveCard": {
+    "title": "OMEGA уже подготовил",
+    "postpone": "Отложить",
+    "expand": "Посмотреть",
+    "collapse": "Свернуть",
+    "applied": "OMEGA применил: {{title}}",
+    "types": {
+      "post": { "title": "Пост на завтра", "action": "Создать пост" },
+      "competitor": { "title": "Анализ конкурента", "action": "Проанализировать" },
+      "pricing": { "title": "Оптимизация тарифа", "action": "Применить" }
+    }
   }
 }

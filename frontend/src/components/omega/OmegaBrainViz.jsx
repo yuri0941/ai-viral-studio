@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const NODE_TYPES = {
   project: '#8B5CF6',
@@ -82,6 +83,7 @@ export default function OmegaBrainViz({ nodes: propNodes }) {
   const pinchRef = useRef(null)
   const animRef = useRef(null)
   const timeRef = useRef(0)
+  const { t } = useTranslation()
 
   useEffect(() => {
     async function load() {
@@ -327,11 +329,11 @@ export default function OmegaBrainViz({ nodes: propNodes }) {
   }
 
   const filters = [
-    { key: 'all', label: 'Все' },
-    { key: 'project', label: 'Проекты' },
-    { key: 'client', label: 'Клиенты' },
-    { key: 'error', label: 'Ошибки' },
-    { key: 'idea', label: 'Идеи' },
+    { key: 'all', label: t('brainviz.filters.all') },
+    { key: 'project', label: t('brainviz.filters.project') },
+    { key: 'client', label: t('brainviz.filters.client') },
+    { key: 'error', label: t('brainviz.filters.error') },
+    { key: 'idea', label: t('brainviz.filters.idea') },
   ]
 
   return (
@@ -339,7 +341,7 @@ export default function OmegaBrainViz({ nodes: propNodes }) {
       <div className="glass-card glow-border rounded-2xl p-4 md:p-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
           <div className="text-sm text-[var(--text-muted)]">
-            🧠 Neural Graph: {status.nodes} nodes | {status.edges || edges.length} connections | {status.clusters} clusters
+            {t('brainviz.title', { nodes: status.nodes, edges: status.edges || edges.length, clusters: status.clusters })}
           </div>
           <div className="flex flex-wrap gap-2">
             {filters.map(f => (
@@ -359,7 +361,7 @@ export default function OmegaBrainViz({ nodes: propNodes }) {
               onClick={() => { setOffset({ x: 0, y: 0 }); setScale(1) }}
               className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10"
             >
-              Reset
+              {t('brainviz.reset')}
             </button>
           </div>
         </div>
@@ -382,8 +384,8 @@ export default function OmegaBrainViz({ nodes: propNodes }) {
               style={{ left: tooltip.x + 12, top: tooltip.y + 12 }}
             >
               <div className="font-semibold text-white">{tooltip.node.label}</div>
-              <div className="text-gray-300">{TYPE_LABELS[tooltip.node.type] || tooltip.node.type}</div>
-              <div className="text-gray-400">connections: {tooltip.node.connections || 0}</div>
+              <div className="text-gray-300">{t(`brainviz.types.${tooltip.node.type}`, tooltip.node.type)}</div>
+              <div className="text-gray-400">{t('brainviz.connections')}: {tooltip.node.connections || 0}</div>
             </div>
           )}
         </div>

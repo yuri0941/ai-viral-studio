@@ -1,17 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Database, Search, Trash2, Download, ChevronDown, ChevronUp, Brain, Layers } from 'lucide-react'
 import { API_BASE_URL } from '../../config.js'
-
-const LAYERS = [
-    { id: 'short_term', label: 'Кратковременная', color: '#8B5CF6', icon: Brain },
-    { id: 'working', label: 'Рабочая', color: '#06B6D4', icon: Layers },
-    { id: 'long_term', label: 'Долговременная', color: '#10b981', icon: Database },
-    { id: 'semantic', label: 'Семантическая', color: '#F59E0B', icon: Brain },
-    { id: 'procedural', label: 'Процедурная', color: '#EC4899', icon: Layers },
-    { id: 'episodic', label: 'Эпизодическая', color: '#6366f1', icon: Database },
-    { id: 'owner_profile', label: 'Профиль владельца', color: '#14b8a6', icon: Brain },
-    { id: 'emotional', label: 'Эмоциональная', color: '#F97316', icon: Layers },
-]
 
 function Progress({ value, color }) {
     return (
@@ -27,6 +17,17 @@ function formatDate(d) {
 }
 
 export default function OmegaMemoryExplorer() {
+    const { t } = useTranslation()
+    const LAYERS = useMemo(() => [
+        { id: 'short_term', label: t('memoryExplorer.layers.short_term'), color: '#8B5CF6', icon: Brain },
+        { id: 'working', label: t('memoryExplorer.layers.working'), color: '#06B6D4', icon: Layers },
+        { id: 'long_term', label: t('memoryExplorer.layers.long_term'), color: '#10b981', icon: Database },
+        { id: 'semantic', label: t('memoryExplorer.layers.semantic'), color: '#F59E0B', icon: Brain },
+        { id: 'procedural', label: t('memoryExplorer.layers.procedural'), color: '#EC4899', icon: Layers },
+        { id: 'episodic', label: t('memoryExplorer.layers.episodic'), color: '#6366f1', icon: Database },
+        { id: 'owner_profile', label: t('memoryExplorer.layers.owner_profile'), color: '#14b8a6', icon: Brain },
+        { id: 'emotional', label: t('memoryExplorer.layers.emotional'), color: '#F97316', icon: Layers },
+    ], [t])
     const [layers, setLayers] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
@@ -55,7 +56,7 @@ export default function OmegaMemoryExplorer() {
     useEffect(() => { load() }, [])
 
     const clearLayer = async (layerId) => {
-        if (!confirm('Очистить слой памяти?')) return
+        if (!confirm(t('memoryExplorer.clearConfirm'))) return
         try {
             const res = await fetch(`${API_BASE_URL}/omega/memory/layers/${layerId}/clear`, {
                 method: 'POST',
@@ -99,16 +100,16 @@ export default function OmegaMemoryExplorer() {
                 <div>
                     <h2 className="text-2xl font-bold flex items-center gap-2">
                         <Database className="w-6 h-6 text-[var(--primary)]" />
-                        OMEGA Memory Explorer
+                        {t('memoryExplorer.title')}
                     </h2>
-                    <p className="text-sm text-[var(--text-muted)] mt-1">8 слоёв памяти · {totalRecords} записей</p>
+                    <p className="text-sm text-[var(--text-muted)] mt-1">{t('memoryExplorer.subtitle', { count: totalRecords })}</p>
                 </div>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                     <input
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder="Поиск по памяти..."
+                        placeholder={t('memoryExplorer.searchPlaceholder')}
                         className="pl-9 pr-4 py-2 rounded-xl glass-card bg-transparent text-sm w-full md:w-64"
                     />
                 </div>
@@ -134,7 +135,7 @@ export default function OmegaMemoryExplorer() {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-sm">{layerDef.label}</h3>
-                                        <p className="text-xs text-[var(--text-muted)]">{data.count || 0} записей</p>
+                                        <p className="text-xs text-[var(--text-muted)]">{t('memoryExplorer.records', { count: data.count || 0 })}</p>
                                     </div>
                                 </div>
                                 <button
@@ -155,14 +156,14 @@ export default function OmegaMemoryExplorer() {
                                             onClick={() => exportLayer({ ...data, id: layerDef.id, entries: data.entries })}
                                             className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-lg bg-white/5 hover:bg-white/10 text-xs"
                                         >
-                                            <Download className="w-3.5 h-3.5" /> JSONL
+                                            <Download className="w-3.5 h-3.5" /> {t('memoryExplorer.export')}
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => clearLayer(layerDef.id)}
                                             className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs"
                                         >
-                                            <Trash2 className="w-3.5 h-3.5" /> Очистить
+                                            <Trash2 className="w-3.5 h-3.5" /> {t('memoryExplorer.clear')}
                                         </button>
                                     </div>
                                     <div className="space-y-2 max-h-64 overflow-y-auto omega-chat-scroll pr-1">
@@ -178,7 +179,7 @@ export default function OmegaMemoryExplorer() {
                                             </div>
                                         ))}
                                         {!data.entries?.length && (
-                                            <p className="text-xs text-[var(--text-muted)] text-center py-4">Нет записей</p>
+                                            <p className="text-xs text-[var(--text-muted)] text-center py-4">{t('memoryExplorer.noRecords')}</p>
                                         )}
                                     </div>
                                 </div>
