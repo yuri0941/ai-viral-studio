@@ -23,6 +23,10 @@
     },
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": true,
+      "channel": "production"
     }
   },
   "ios": {

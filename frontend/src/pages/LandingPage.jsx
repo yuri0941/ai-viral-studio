@@ -215,6 +215,7 @@ function LandingPage() {
                             <a href="#how-it-works" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Как работает</a>
                             <a href="#pricing" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Тарифы</a>
                             <Link to="/roadmap" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Roadmap</Link>
+                            <Link to="/download" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Скачать</Link>
                             <LaunchPill />
                             <PWAInstallButton />
                             <button

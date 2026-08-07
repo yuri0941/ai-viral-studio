@@ -80,6 +80,8 @@ import researchRoutes from './routes/research.js'  // [v6.6] added: Web Research
 import adRoutes from './routes/ads.js'  // [v6.6] Advertiser ads API
 import creatorRoutes from './routes/creator.js'  // [v6.6-PART2] Creator analytics
 import versionRoutes from './routes/version.js'  // [v6.5.5] added: version API
+import desktopUpdateRoutes from './routes/desktopUpdate.js'  // [v7.0] added: Tauri desktop updater
+import downloadsRoutes from './routes/downloads.js'  // [v7.0] added: download center
 import fallbackRoutes from './routes/fallbackRoutes.js'  // [v6.0] added: structured fallback routes
 
 // [v6.0-fix] added: fallback routers for expected frontend endpoints without mock data
@@ -272,6 +274,8 @@ const limiter = rateLimit({
 })
 app.use('/api/', limiter)
 
+app.use('/uploads', express.static('uploads'))
+
 // White-label detection — applies to all requests so custom branding can be detected
 app.use(detectWhiteLabel)
 app.use(whiteLabelHeaders)
@@ -365,6 +369,8 @@ app.use('/api/scheduled-posts', scheduledPostsRoutes)
 app.use('/api/approvals', approvalRoutes)  // [v6.5] added: OMEGA approval queue
 app.use('/api/repurposing', repurposingRoutes)  // [v6.5] added: content repurposing engine
 app.use('/api/version', versionRoutes)  // [v6.5.5] added: version API
+app.use('/api/desktop', desktopUpdateRoutes)  // [v7.0] added: Tauri desktop updater
+app.use('/api/downloads', downloadsRoutes)  // [v7.0] added: download center
 
 // [v6.0-fix] added: fallback routers for expected frontend endpoints (real empty structures, no mock)
 app.use('/api/analytics', analyticsFallbackRoutes)

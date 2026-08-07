@@ -50,6 +50,12 @@
     ]
   },
   "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": ["https://ai-viral-studio.pages.dev/api/desktop/update/{{target}}/{{arch}}/{{current_version}}"],
+      "dialog": true,
+      "pubkey": "YOUR_TAURI_PUBLIC_KEY"
+    },
     "globalShortcut": {
       "CtrlShiftO": "open-omega",
       "CtrlShiftN": "new-notification",

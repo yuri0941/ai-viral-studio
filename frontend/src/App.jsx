@@ -11,6 +11,8 @@ import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
 import { useNotifications } from './hooks/useNotifications'
 import { useDashboardData } from './hooks/useDashboardData'
 
+import { useOTAUpdate } from './hooks/useOTAUpdate.js'
+
 // Pages
 import LandingPage from './pages/LandingPage'
 import OwnerDashboardPage from './pages/owner/OwnerDashboardPage'
@@ -22,6 +24,7 @@ const AIChatPage = lazy(() => import('./pages/AIChatPage'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
 const SchedulerPage = lazy(() => import('./pages/SchedulerPage'))
 import SettingsPage from './pages/SettingsPage'
+import DownloadPage from './pages/DownloadPage'
 const ContentAnalyzerPage = lazy(() => import('./pages/ContentAnalyzerPage'))
 const AIvsHumanPage = lazy(() => import('./pages/owner/AIvsHumanPage'))
 const BoardroomPage = lazy(() => import('./pages/owner/BoardroomPage'))
@@ -223,10 +226,11 @@ function RoleRedirect() {
 // APP
 // ============================================
 function App() {
-  const BUILD_ID = 'v6.5.5-2026-08-06'; console.log('[BUILD]', BUILD_ID);
-      // v6.5.5-force-rebuild
-  window.__APP_BUILD__ = 'v6.5.5';
+  const BUILD_ID = 'v7.0.0-2026-08-07'; console.log('[BUILD]', BUILD_ID);
+      // v7.0.0-force-rebuild
+  window.__APP_BUILD__ = 'v7.0.0';
   console.log('[AI VIRAL STUDIO] Build:', window.__APP_BUILD__);
+  useOTAUpdate()
   useEffect(() => {
         const meta = document.createElement('meta')
         meta.name = 'viewport'
@@ -407,6 +411,7 @@ function App() {
                 } />
                 <Route path="/launch" element={<LaunchPage />} />
                 <Route path="/roadmap" element={<PublicRoadmap />} />
+                <Route path="/download" element={<DownloadPage />} />
                 <Route path="/onboarding" element={<OnboardingWizard />} />
                 <Route path="/welcome" element={<Navigate to="/onboarding" replace />} />
 

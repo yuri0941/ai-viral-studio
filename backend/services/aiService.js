@@ -677,9 +677,9 @@ const tryProviders = async (messages, ownerId = null) => {
         console.warn('[LOCAL_BRAIN] fallback failed:', err.message)
     }
 
-    const demoReply = smartFallbackReply(lastUserMessage, 'ru')
+    const fallbackReply = smartFallbackReply(lastUserMessage, 'ru')
     console.log('🧠 All providers failed — falling back to Smart Fallback')
-    return { reply: demoReply.text, provider: 'fallback', fallback: true, errors }
+    return { reply: fallbackReply.text, provider: 'fallback', fallback: true, errors }
 }
 
 // ============ EXPORTS ============
