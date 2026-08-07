@@ -1,3 +1,18 @@
+## 2026-08-07 — v6.6-HOTFIX-SUBSCRIPTIONS Учёт подписчиков + Возвраты + OMEGA Auto-Pilot
+- [x] Feature: Subscription model — userId, plan, status, provider, currentPeriodEnd, paymentHistory
+- [x] Feature: Webhook /api/payments/webhook/subscriptions — обработка checkout.session.completed, invoice.paid, customer.subscription.deleted
+- [x] Feature: Admin API /api/payments/admin/subscriptions — список всех подписчиков с populate user
+- [x] Feature: Admin API /api/payments/admin/refund/:id — возврат через Stripe/ЮKassa
+- [x] Feature: Admin API /api/payments/admin/extend/:id — ручное продление подписки
+- [x] Feature: Admin API /api/payments/admin/broadcast — массовая рассылка по сегментам
+- [x] Feature: SubscribersTab.jsx — таблица подписчиков, поиск, фильтры, статусы, возврат/продление
+- [x] Feature: BroadcastModal.jsx — массовая рассылка по сегментам (active/past_due/pro/all) с генерацией через OMEGA
+- [x] Feature: OMEGA Auto-Pilot — напоминания за 3 дня до истечения, downgrade через 7 дней после просрочки, cron 09:00 MSK
+- [x] Feature: sendEmail helper в emailService.js
+- [x] Build: 0 ошибок
+- [x] Git push: выполнен (commit 4a88a93c)
+- [x] Render: auto-deploy from git push, /health returns OK
+
 ## 2026-08-07 — v6.6-HOTFIX-PAYMENTS Multi-Payment + Auto-Detect + Owner Config
 - [x] Feature: PaymentProvider model — хранит реквизиты ЮKassa/Stripe/PayPal/Crypto/SberPay/Tinkoff
 - [x] Feature: /api/payments/methods — автоопределение страны по IP (Cloudflare cf-ipcountry), сортировка рекомендуемых способов
