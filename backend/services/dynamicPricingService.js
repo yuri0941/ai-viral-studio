@@ -1,4 +1,4 @@
-const User = require('../models/User');
+import User from '../models/User.js';
 
 function getCurrentHourInfo() {
     const now = new Date();
@@ -110,7 +110,7 @@ async function applyDiscount(user, plan) {
     };
 }
 
-module.exports = {
+export {
     calculateDemandMultiplier,
     getPersonalizedPrice,
     applyDiscount,

@@ -1,7 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const { protect } = require('../middleware/auth');
-const User = require('../models/User');
+import { Router } from 'express';
+const router = Router();
+import { protect } from '../middleware/auth.js';
+import User from '../models/User.js';
 
 // In-memory mock video jobs
 const videoJobs = new Map();
