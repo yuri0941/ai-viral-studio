@@ -1,9 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../../context/AuthContext'
 import {
     LayoutDashboard, BarChart, MessageSquare, Search, Swords, Zap, Calendar, Settings,
-    X,
+    X, LogOut,
 } from 'lucide-react'
 
 // [v6.6-PART2] full drawer with all desktop sidebar tabs
@@ -23,6 +24,7 @@ export function MobileDrawer({ open, onClose, userRole = 'creator', onHaptic }) 
     const { t } = useTranslation()
     const navigate = useNavigate()
     const location = useLocation()
+    const { logout } = useAuth()
     const touchStartX = useRef(null)
     const drawerRef = useRef(null)
 
@@ -34,6 +36,13 @@ export function MobileDrawer({ open, onClose, userRole = 'creator', onHaptic }) 
     const handleNavigate = (path) => {
         navigate(path)
         handleClose()
+    }
+
+    const handleLogout = () => {
+        onHaptic?.()
+        logout?.()
+        handleClose()
+        navigate('/')
     }
 
     useEffect(() => {
@@ -113,6 +122,16 @@ export function MobileDrawer({ open, onClose, userRole = 'creator', onHaptic }) 
                         )
                     })}
                 </nav>
+                <div className="border-t border-[var(--border)] p-3">
+                    <button
+                        onClick={handleLogout}
+                        type="button"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-colors"
+                    >
+                        <LogOut className="w-5 h-5" />
+                        {t('common.logout', 'Выйти')}
+                    </button>
+                </div>
             </div>
         </div>
     )

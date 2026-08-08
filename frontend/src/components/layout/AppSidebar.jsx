@@ -149,6 +149,17 @@ const OWNER_GROUPS = [
         ],
     },
     {
+        id: 'client',
+        title: 'CLIENT',
+        items: [
+            { id: 'analytics', label: '📊 Аналитика', icon: BarChart },
+            { id: 'aiChat', label: '🤖 AI Chat', icon: MessageSquare },
+            { id: 'contentAnalyzer', label: '🔍 Анализ контента', icon: Search },
+            { id: 'scheduler', label: '📅 Планировщик', icon: Calendar },
+            { id: 'viralChat', label: '💬 Viral Chat', icon: TrendingUp },
+        ],
+    },
+    {
         id: 'settings',
         title: 'НАСТРОЙКИ',
         items: [
@@ -344,7 +355,7 @@ export function AppSidebar({
                                     const active = isItemActive(item)
                                     return (
                                         <button
-                                            key={item.id || item.path}
+                                            key={`${group.id}-${item.id || item.path}`}
                                             onClick={() => handleItemClick(item)}
                                             className={`
                                                 group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-200 w-full text-left min-h-[44px]

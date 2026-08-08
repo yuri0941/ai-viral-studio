@@ -158,7 +158,7 @@ export function DashboardShell({
                     onTouchStart={handleSidebarTouchStart}
                     onTouchMove={handleSidebarTouchMove}
                     className={`
-                        fixed top-0 left-0 h-full z-[60]
+                        fixed top-0 left-0 h-full z-[60] overflow-y-auto
                         transform transition-transform duration-300 ease-out
                         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                     `}
