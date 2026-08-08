@@ -180,3 +180,26 @@ See `backend/.env.example` for the full template. Key variables:
 ### Build Status
 - `npm run build` — 0 errors.
 - `node --check backend/server.js` — OK.
+
+## v9.9.9-CHAT-UNIFIED Update (2026-08-09)
+
+### New Features
+- **Unified OMEGA Chat**: support ticket form is now embedded inside the chat window via the `💬 Поддержка` quick action.
+- **Draggable Chat Widget**: `OmegaChatWidget.jsx` rewritten — drag header to move, position persisted in `localStorage`, minimize/maximize/close controls.
+- **Adaptive Chat**: mobile `clamp(320px, 90vw, 420px)` / desktop fixed draggable floating window.
+
+### Fixes
+- **Duplicate Icons**: quick actions deduplicated by `id`; added `UNIQUE_ACTION_BUTTONS` guard.
+- **Landing CTA**: `Начать` remains primary gradient CTA, `Войти` restyled as ghost/outline button, both in a single row.
+- **Removed SupportWidget**: deleted from `App.jsx` to avoid duplicating the chat-integrated support flow.
+
+### Updated Files
+- `frontend/src/components/omega/OmegaChat.jsx`: support mode, ticket form, `embedded` prop, unique quick actions.
+- `frontend/src/components/omega/OmegaChatWidget.jsx`: fully rewritten draggable widget.
+- `frontend/src/pages/LandingPage.jsx`: hero CTA buttons restyled.
+- `frontend/src/App.jsx`: removed `<SupportWidget />`.
+- `frontend/src/locales/ru.json` & `frontend/src/i18n/locales/ru.json`: new `chat` and `landing` keys.
+
+### Build Status
+- `npm run build` — 0 errors.
+- `node --check backend/server.js` — OK.

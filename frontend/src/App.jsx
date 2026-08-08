@@ -55,7 +55,6 @@ import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
 import { UpdateModal } from './components/shared/UpdateModal.jsx'
 import { Toaster } from 'react-hot-toast'
-import SupportWidget from './components/support/SupportWidget.jsx'
 import { APP_VERSION } from './config/version.js'
 
 // Version check: warn if backend requires newer frontend
@@ -475,7 +474,7 @@ function App() {
 
             <CookieConsent />
         <CommandPalette />
-        <SupportWidget />
+
     </>
 )
 }

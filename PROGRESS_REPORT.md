@@ -1,3 +1,12 @@
+## 2026-08-09 — v9.9.9-CHAT-UNIFIED
+- [FIX] Убраны дублирующиеся смайлики/иконки в OmegaChat quick actions
+- [FEATURE] Техподдержка объединена внутри OMEGA Chat — кнопка "💬 Поддержка" открывает форму тикета внутри окна чата
+- [FEATURE] Draggable Chat Widget — перетаскивание за заголовок, сохранение позиции в localStorage, minimize/maximize/close
+- [FEATURE] Адаптивность чата — mobile: clamp(320px, 90vw, 420px), desktop: fixed draggable
+- [FIX] Landing Page — кнопка "Войти" ghost/outline стиль (не яркая), "Начать" primary CTA, обе в одном ряду
+- [FIX] Убран дублирующий SupportWidget из App.jsx
+- [DEPLOY] Git push + Render Clear Build Cache & Deploy
+
 ## 2026-08-09 — v9.9.8-SALES-OMEGA
 - [FEATURE] Sales Script Engine — каждый ответ OMEGA заканчивается CTA (демо, тариф, кейс)
 - [FEATURE] Personality Evolution — OMEGA адаптирует тон (formal/casual/ironic/technical/emotional) под клиента

@@ -582,6 +582,7 @@
   "chat.action.site": "Создать сайт",
   "chat.action.adVariants": "Варианты рекламы",
   "chat.action.niche": "Анализ ниши",
+  "chat.action.support": "Поддержка",
   "chat.variants": "Вариантов",
   "chat.recording": "Запись голоса",
   "chat.privacy": "Работаем через серверных провайдеров — ваши данные защищены",
@@ -682,5 +683,20 @@
     "topIntents": "Топ интентов клиентов",
     "intent": "Интент",
     "count": "Количество"
+  },
+  "chat": {
+    "support": "Поддержка",
+    "newTicket": "Новое обращение",
+    "subject": "Тема",
+    "description": "Опишите проблему",
+    "send": "Отправить",
+    "cancel": "Отмена",
+    "ticketSent": "Обращение отправлено! Мы ответим в ближайшее время.",
+    "orTelegram": "Или напишите в",
+    "dragHint": "Перетащите за заголовок"
+  },
+  "landing": {
+    "start": "Начать",
+    "login": "Войти"
   }
 }

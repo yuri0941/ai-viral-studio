@@ -14,9 +14,13 @@ const ACTION_BUTTONS = [
   { id: 'script', label: 'chat.action.script', icon: '📝', prompt: 'Напиши сценарий Reels/Shorts для AI Viral Studio' },
   { id: 'code', label: 'chat.action.code', icon: '💻', prompt: 'Сгенерируй production-ready React/Node.js код для AI Viral Studio. Стек: React 18, Vite, Tailwind, Node.js, Express, MongoDB. Не используй mock.' },
   { id: 'site', label: 'chat.action.site', icon: '🌐', prompt: 'Создай landing page для AI Viral Studio: HTML, CSS, структура, тексты, CTA. Верни полный HTML файл.' },
-  { id: 'ad-variants', label: 'chat.action.adVariants', icon: '📢', prompt: 'Сгенерируй {n} варианта рекламного креатива для AI Viral Studio: заголовок, текст, CTA, целевая аудитория, прогноз CTR и engagement. Верни результат в виде markdown-таблицы.' },
-  { id: 'niche', label: 'chat.action.niche', icon: '🔍', prompt: 'Проанализируй нишу AI-инструментов для вирусного контента: тренды, конкуренты, аудитория, возможности.' }
+  { id: 'ad-variants', label: 'chat.action.adVariants', icon: '📢', prompt: 'Сгенируй {n} варианта рекламного креатива для AI Viral Studio: заголовок, текст, CTA, целевая аудитория, прогноз CTR и engagement. Верни результат в виде markdown-таблицы.' },
+  { id: 'niche', label: 'chat.action.niche', icon: '🔍', prompt: 'Проанализируй нишу AI-инструментов для вирусного контента: тренды, конкуренты, аудитория, возможности.' },
+  { id: 'support', label: 'chat.action.support', icon: '💬', action: 'support' }
 ];
+
+// Защита от дублирующихся кнопок (по id)
+const UNIQUE_ACTION_BUTTONS = Array.from(new Map(ACTION_BUTTONS.map(a => [a.id, a])).values());
 
 function getSectionMeta(title) {
   const lower = (title || '').toLowerCase();
@@ -197,6 +201,7 @@ export default function OmegaChat({
   setInput: externalSetInput,
   quotaError: externalQuotaError,
   userRole: externalUserRole,
+  embedded = false,
 }) {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -211,6 +216,8 @@ export default function OmegaChat({
   const [recognitionLang, setRecognitionLang] = useState(() => localStorage.getItem('omega_recognition_lang') || 'ru');
   const [elevenlabsStatus, setElevenlabsStatus] = useState(null);
   const [quota, setQuota] = useState(null);
+  const [supportMode, setSupportMode] = useState(false);
+  const [ticketForm, setTicketForm] = useState({ subject: '', description: '', screenshot: null });
   const { speak, stop, playingId, loadingId, settings, setSettings } = useTTS();
 
   useEffect(() => {
@@ -257,6 +264,10 @@ export default function OmegaChat({
   }, [messages]);
 
   const runQuickAction = (action) => {
+    if (action.action === 'support') {
+      setSupportMode(true);
+      return;
+    }
     const prompt = action.prompt.replace('{n}', String(variantCount));
     setInput(prompt);
   };
@@ -364,27 +375,29 @@ export default function OmegaChat({
 
   return (
     <div className={`flex flex-col bg-[#0a0a0f] text-white ${variant === 'fullscreen' ? 'h-[100dvh] md:h-[calc(100vh-80px)]' : 'h-full min-h-0'}`}>
-      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-lg font-bold">AI</div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0a0a0f]"></span>
-          </div>
-          <div>
-            <div className="text-sm font-semibold">{t('appName')}</div>
-            <div className="text-[11px] text-emerald-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-              {loading ? t('omega.thinking') : t('omega.ready')}
+      {!embedded && (
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-lg font-bold">AI</div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0a0a0f]"></span>
+            </div>
+            <div>
+              <div className="text-sm font-semibold">{t('appName')}</div>
+              <div className="text-[11px] text-emerald-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                {loading ? t('omega.thinking') : t('omega.ready')}
+              </div>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <span data-tour="token-counter" className="text-[10px] sm:text-xs px-2 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono">
+              ⚡ {quota?.trialTokens ?? user?.trialTokens ?? 0} / 10
+            </span>
+            <OmegaLocalModeIndicator />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span data-tour="token-counter" className="text-[10px] sm:text-xs px-2 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono">
-            ⚡ {quota?.trialTokens ?? user?.trialTokens ?? 0} / 10
-          </span>
-          <OmegaLocalModeIndicator />
-        </div>
-      </div>
+      )}
 
       <div
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden omega-chat-scroll touch-pan-y scroll-smooth p-4 space-y-4"
@@ -430,7 +443,7 @@ export default function OmegaChat({
                   </button>
                 </div>
                 <div data-tour="quick-actions" className="flex flex-wrap gap-2 mt-3 max-w-[95%] mx-auto">
-                  {ACTION_BUTTONS.map(action => (
+                  {UNIQUE_ACTION_BUTTONS.map(action => (
                     <button
                       key={action.id}
                       onClick={() => runQuickAction(action)}
@@ -453,6 +466,67 @@ export default function OmegaChat({
         ))}
         <div ref={bottomRef} />
       </div>
+
+      {supportMode && (
+        <div className="flex-shrink-0 p-4 border-t border-white/[0.06] bg-[#0a0a0f]/60 animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-white">{t('chat.newTicket')}</h4>
+            <button onClick={() => setSupportMode(false)} className="text-gray-400 hover:text-white">✕</button>
+          </div>
+          <input
+            type="text"
+            placeholder={t('chat.subject')}
+            value={ticketForm.subject}
+            onChange={e => setTicketForm(p => ({...p, subject: e.target.value}))}
+            className="w-full mb-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:border-violet-500 outline-none"
+          />
+          <textarea
+            placeholder={t('chat.description')}
+            value={ticketForm.description}
+            onChange={e => setTicketForm(p => ({...p, description: e.target.value}))}
+            rows={3}
+            className="w-full mb-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:border-violet-500 outline-none resize-none"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  await request('/api/support', {
+                    method: 'POST',
+                    body: {
+                      subject: ticketForm.subject || t('chat.newTicket'),
+                      description: ticketForm.description
+                    }
+                  });
+                } catch (e) {
+                  console.error('[OmegaChat] ticket submit failed:', e);
+                }
+                setSupportMode(false);
+                setTicketForm({ subject: '', description: '', screenshot: null });
+                const systemMsg = {
+                  role: 'system',
+                  text: t('chat.ticketSent'),
+                  timestamp: Date.now(),
+                  id: `sys-${Date.now()}`,
+                };
+                if (isExternal) {
+                  // В embedded режиме не управляем внешними сообщениями
+                } else {
+                  setInternalMessages(prev => [...prev, systemMsg]);
+                }
+              }}
+              disabled={!ticketForm.description.trim()}
+              className="flex-1 px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-500 transition disabled:opacity-40"
+            >
+              {t('chat.send')}
+            </button>
+            <button onClick={() => setSupportMode(false)} className="px-4 py-2 rounded-lg bg-white/5 text-gray-300 text-sm hover:text-white transition">{t('chat.cancel')}</button>
+          </div>
+          <p className="mt-2 text-[10px] text-gray-500">
+            {t('chat.orTelegram')} <a href="https://t.me/aiviral_omega_bot" target="_blank" rel="noreferrer" className="text-violet-400 hover:underline">Telegram</a>
+          </p>
+        </div>
+      )}
 
       <form
         onSubmit={handleSendMessage}

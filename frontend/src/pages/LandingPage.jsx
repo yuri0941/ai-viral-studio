@@ -280,25 +280,18 @@ function LandingPage() {
                     </p>
 
                     {/* CTA Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8 mb-20">
                         <button
                             onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true) }}
-                            className="magnetic-btn inline-flex items-center justify-center gap-2 bg-[var(--text)] text-[var(--text-inverse)] rounded-full px-8 py-4 text-base font-medium hover:scale-105 hover:shadow-xl transition-all duration-300"
+                            className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold text-sm hover:shadow-lg hover:shadow-violet-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            Попробовать бесплатно
+                            🚀 {t('landing.start') || 'Начать'}
                         </button>
                         <button
-                            onClick={() => navigate('/dashboard')}
-                            className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full glass border border-[var(--border-strong)] text-[var(--text)] font-medium hover:bg-[var(--surface)] transition-all duration-300"
+                            onClick={() => { setAuthModalMode('login'); setAuthModalOpen(true) }}
+                            className="px-8 py-3.5 rounded-xl bg-transparent border border-[var(--border)] text-[var(--text-muted)] font-medium text-sm hover:text-[var(--text)] hover:border-[var(--text-muted)] hover:bg-[var(--card)]/50 transition-all"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Демо
+                            {t('landing.login') || 'Войти'}
                         </button>
                     </div>
 
