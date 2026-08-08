@@ -30,19 +30,52 @@ export async function executeBoardroomVote(tasks, ownerId) {
 }
 
 export async function runBoardroomCycle(ownerId, context) {
-  const tasks = await generateBoardroomTasks(ownerId, context);
-  const vote = await executeBoardroomVote(tasks, ownerId);
+  const agents = [
+    { role: 'CEO', name: 'Алексей (CEO)', stance: 'strategy', icon: '👔' },
+    { role: 'CMO', name: 'Мария (CMO)', stance: 'marketing', icon: '📢' },
+    { role: 'CTO', name: 'Дмитрий (CTO)', stance: 'tech', icon: '💻' },
+    { role: 'CFO', name: 'Анна (CFO)', stance: 'finance', icon: '💰' },
+    { role: 'CHRO', name: 'Иван (CHRO)', stance: 'people', icon: '🤝' }
+  ]
 
-  if (vote.approved.length > 0) {
-    const workerTasks = vote.approved.map(t => ({
+  const votes = []
+  for (const agent of agents) {
+    const prompt = `You are ${agent.name} of AI Viral Studio. Context: "${context || 'No context provided'}".
+Question: Should we proceed? Analyze and vote: FOR / AGAINST / ABSTAIN.
+Write a brief comment (2-3 sentences in Russian) explaining your position and suggest ONE specific improvement.
+Return JSON: { vote: "FOR"|"AGAINST"|"ABSTAIN", comment: "...", improvement: "..." }`
+    const aiResult = await chatWithAI(prompt, [], 'ru', { system: 'Return ONLY valid JSON.', maxTokens: 400, temperature: 0.7 })
+    let voteData
+    try {
+      voteData = JSON.parse(aiResult?.reply || aiResult?.text || '{}')
+    } catch (e) {
+      voteData = { vote: 'ABSTAIN', comment: 'Воздерживаюсь.', improvement: 'Нет предложений.' }
+    }
+    votes.push({ ...agent, vote: voteData.vote || 'ABSTAIN', comment: voteData.comment || '—', improvement: voteData.improvement || '', timestamp: new Date() })
+  }
+
+  const forCount = votes.filter(v => v.vote === 'FOR').length
+  const againstCount = votes.filter(v => v.vote === 'AGAINST').length
+  const consensus = forCount >= 4
+
+  const improvements = votes.map(v => v.improvement).filter(Boolean)
+  const summary = `Голосование: ${forCount} ЗА, ${againstCount} ПРОТИВ, ${votes.length - forCount - againstCount} воздержались.`
+
+  // Generate tasks for compatibility with existing UI
+  const tasks = await generateBoardroomTasks(ownerId, context).catch(() => [])
+
+  if (consensus && tasks.length > 0) {
+    const workerTasks = tasks.slice(0, 3).map(t => ({
       role: t.role.toLowerCase(),
       specialization: t.title,
       type: 'generate_text',
       prompt: `Execute task: ${t.title}. ${t.description}. Expected outcome: ${t.expectedOutcome}`,
       fallback: `Task ${t.title} queued for manual review`
-    }));
-    orchestrate(workerTasks).catch(() => {});
+    }))
+    orchestrate(workerTasks).catch(() => {})
   }
 
-  return { tasks, vote, queued: vote.approved.length };
+  await createNode({ type: 'decision', content: `Boardroom vote: ${summary}`, confidence: 0.9, source: 'boardroom_auto_task', metadata: { ownerId, votes, improvements, consensus, context, type: 'boardroom_vote' } })
+
+  return { consensus, votes, summary, improvements, context, tasks, queued: consensus ? 1 : 0, createdAt: new Date() }
 }

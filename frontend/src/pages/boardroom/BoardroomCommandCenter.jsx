@@ -56,7 +56,7 @@ export default function BoardroomCommandCenter() {
                 body: JSON.stringify({ context }),
             })
             setResult(data)
-            const entry = { date: new Date().toISOString(), context: context.slice(0, 100), tasks: data.tasks?.length || 0, approved: data.vote?.approved?.length || 0 }
+            const entry = { date: new Date().toISOString(), context: context.slice(0, 100), tasks: data.tasks?.length || 0, consensus: data.consensus, votes: data.votes, improvements: data.improvements }
             const next = [entry, ...history].slice(0, 5)
             setHistory(next)
             localStorage.setItem('boardroom_history', JSON.stringify(next))
@@ -143,48 +143,58 @@ export default function BoardroomCommandCenter() {
                             </div>
                         </div>
 
-                        {/* Vote */}
+                        {/* Votes */}
                         <div className="glass-card rounded-2xl p-5 border border-white/10 space-y-4">
                             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <AlertCircle className="w-5 h-5 text-violet-400" />
                                 {t('boardroom.vote', 'Голосование')}
+                                {result.consensus && <span className="ml-auto text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400">Консенсус достигнут</span>}
                             </h2>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="text-xs text-gray-400 uppercase bg-slate-900/50">
-                                        <tr>
-                                            <th className="px-4 py-3 rounded-l-lg">{t('boardroom.role', 'Роль')}</th>
-                                            <th className="px-4 py-3">{t('boardroom.tasks', 'Задача')}</th>
-                                            <th className="px-4 py-3">{t('boardroom.vote', 'Голос')}</th>
-                                            <th className="px-4 py-3 rounded-r-lg">{t('boardroom.reasoning', 'Обоснование')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {result.vote?.votes?.map((v, i) => (
-                                            <tr key={i} className="border-b border-white/5 hover:bg-white/5">
-                                                <td className="px-4 py-3 text-white font-medium">{v.role}</td>
-                                                <td className="px-4 py-3 text-gray-300 text-xs">{result.tasks?.[v.taskIndex]?.title}</td>
-                                                <td className="px-4 py-3">
-                                                    {v.vote === 'approve' && <span className="text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> {t('boardroom.approve', 'Одобрено')}</span>}
-                                                    {v.vote === 'reject' && <span className="text-red-400 flex items-center gap-1"><XCircle className="w-3 h-3" /> {t('boardroom.reject', 'Отклонено')}</span>}
-                                                    {v.vote === 'modify' && <span className="text-yellow-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {t('boardroom.modify', 'Изменить')}</span>}
-                                                </td>
-                                                <td className="px-4 py-3 text-gray-400 text-xs">{v.reasoning}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            {result.summary && <p className="text-sm text-slate-400">{result.summary}</p>}
+
+                            <div className="space-y-3">
+                                {result.votes?.map((vote, idx) => (
+                                    <div key={idx} className={`p-3 rounded-xl border ${vote.vote === 'FOR' ? 'border-emerald-500/30 bg-emerald-500/10' : vote.vote === 'AGAINST' ? 'border-rose-500/30 bg-rose-500/10' : 'border-slate-600/30 bg-slate-800/50'}`}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm font-medium text-white">{vote.icon} {vote.name}</span>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full ${vote.vote === 'FOR' ? 'bg-emerald-500/20 text-emerald-400' : vote.vote === 'AGAINST' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-600/20 text-slate-400'}`}>
+                                                {vote.vote === 'FOR' ? 'ЗА' : vote.vote === 'AGAINST' ? 'ПРОТИВ' : 'Воздержался'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mb-2">{vote.comment}</p>
+                                        {vote.improvement && (
+                                            <div className="bg-slate-900/50 rounded-lg p-2 border-l-2 border-purple-500">
+                                                <span className="text-xs text-purple-400 font-medium">💡 Предложение:</span>
+                                                <p className="text-xs text-slate-300 mt-0.5">{vote.improvement}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
+
+                            {result.improvements && result.improvements.length > 0 && (
+                                <div className="mt-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                                    <h4 className="text-sm font-semibold text-purple-400 mb-2">📋 Улучшения от Совета</h4>
+                                    <ul className="space-y-1">
+                                        {result.improvements.map((imp, i) => (
+                                            <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                                                <span className="text-purple-400 mt-0.5">•</span>
+                                                {imp}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/50">
                                 <div className="text-sm text-gray-300">
-                                    <span className="text-emerald-400 font-semibold">✅ {t('boardroom.approved', 'Одобрено')}: {result.vote?.approved?.length || 0}</span>
+                                    <span className="text-emerald-400 font-semibold">✅ {t('boardroom.approved', 'ЗА')}: {result.votes?.filter(v => v.vote === 'FOR').length || 0}</span>
                                     <span className="mx-3">|</span>
-                                    <span className="text-red-400 font-semibold">❌ {t('boardroom.rejected', 'Отклонено')}: {result.vote?.rejected?.length || 0}</span>
+                                    <span className="text-rose-400 font-semibold">❌ {t('boardroom.rejected', 'ПРОТИВ')}: {result.votes?.filter(v => v.vote === 'AGAINST').length || 0}</span>
                                 </div>
                                 <button
                                     onClick={runAutoExecute}
-                                    disabled={loading || (result.vote?.approved?.length || 0) === 0}
+                                    disabled={loading || !result.consensus}
                                     className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium flex items-center gap-2"
                                 >
                                     {loading && <Loader2 className="w-4 h-4 animate-spin" />}
