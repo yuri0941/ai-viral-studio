@@ -30,13 +30,12 @@ export function invalidateApiKeysCache() {
 }
 
 // [HOTFIX-2026-08-08] Groq fallback chain + smaller models to avoid TPD rate limits
-// [HOTFIX-2026-08-08] llama-3.1-70b-versatile returns 400, moved to last fallback
+// [v9.6.2-TELEGRAM-OWNER] removed llama-3.1-70b-versatile (returns 400)
 const GROQ_MODELS = [
     'llama-3.3-70b-versatile',  // рабочая — первая
     'llama-3.1-8b-instant',
     'llama-3.2-1b-preview',
     'mixtral-8x7b-32768',
-    'llama-3.1-70b-versatile'   // проблемная — последняя
 ]
 
 // [P24] fixed: auto-detect user query language

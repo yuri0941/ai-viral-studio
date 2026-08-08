@@ -47,6 +47,17 @@ function createStubBot() {
   }
 }
 
+// [v9.6.2-TELEGRAM-OWNER] Markdown to Telegram HTML
+function markdownToHtml(text) {
+  if (!text) return ''
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // **bold** → <b>bold</b>
+    .replace(/\*(.*?)\*/g, '<i>$1</i>')       // *italic* → <i>italic</i>
+    .replace(/__(.*?)__/g, '<u>$1</u>')       // __underline__ → <u>...
+    .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+}
+
 // [HOTFIX-2026-08-08] stringify objects before sendMessage to avoid "[object Object]"
 function safeSendMessage(chatId, data, options = {}) {
   let text
@@ -57,8 +68,34 @@ function safeSendMessage(chatId, data, options = {}) {
   } else {
     text = String(data)
   }
+  text = markdownToHtml(text)
   if (text.length > 4000) text = text.slice(0, 4000) + '...'
-  return bot.sendMessage(chatId, text, options)
+  return bot.sendMessage(chatId, text, { parse_mode: 'HTML', disable_web_page_preview: true, ...options })
+}
+
+function sendLuxuryMessage(chatId, title, content, buttons = null) {
+  let text = `🤖 <b>${markdownToHtml(title)}</b>\n`
+  text += `━━━━━━━━━━━━━━\n`
+  text += `${markdownToHtml(content)}\n`
+  text += `━━━━━━━━━━━━━━\n`
+  text += `<i>OMEGA AI Viral Studio</i>`
+  const opts = { parse_mode: 'HTML', disable_web_page_preview: true }
+  if (buttons) opts.reply_markup = { inline_keyboard: buttons }
+  return bot.sendMessage(chatId, text, opts)
+}
+
+// [v9.6.2-TELEGRAM-OWNER] Proactive next-step suggestion based on owner context
+async function getProactiveSuggestion(context) {
+  const suggestions = []
+  if (!context?.activeProjects?.length) suggestions.push('создать первый проект в Factory')
+  else suggestions.push('проверить статус активных проектов')
+
+  const hour = new Date().getHours()
+  if (hour < 12) suggestions.push('сгенерировать утренний пост для канала')
+  else if (hour > 18) suggestions.push('проверить аналитику за день')
+  else suggestions.push('посмотреть прогнозы и разведку')
+
+  return suggestions[0] || 'задать мне задачу'
 }
 
 // [MASTER-v5.6-CONT] Owner Bot with OMEGA Owner Mode
@@ -220,25 +257,27 @@ export const initOwnerBot = () => {
 
     // Owner → smart reply with context
     try {
-      const ownerPrompt = `Owner (Юрий) sent: "${text}". His style: ${JSON.stringify(context.style)}. Active projects: ${context.activeProjects?.join('; ').slice(0, 300)}. Recent decisions: ${context.recentDecisions?.join('; ').slice(0, 300)}. Reply as OMEGA — SHORT (max 300 chars), helpful, no generic lists, no "Вот что я умею". If it's a task — confirm and suggest ONE next step. If it's a question — answer directly. Language: Russian.`;
+      const cleanProjects = (context.activeProjects || []).join('; ').slice(0, 200)
+      const cleanDecisions = (context.recentDecisions || []).join('; ').slice(0, 200)
+      const ownerPrompt = `Ты — OMEGA, личный AI-ассистент владельца AI Viral Studio (Юрий).\nТы НЕ объясняешь базовые возможности платформы — владелец их знает.\nТы НЕ даёшь нумерованные списки "1. 2. 3." — отвечай коротко, по делу, в свободной форме.\nКонтекст: активные проекты (${cleanProjects}), недавние решения (${cleanDecisions}).\nЕсли владелец пишет "Привет" — отвечай приветствием + краткий статус + предложи следующий шаг.\nЕсли владелец кидает ссылку — проанализируй её кратко.\nЕсли владелец просит отчёт — дай сводку по системе.\nЕсли владелец пишет задачу — подтверди и предложи ОДИН следующий шаг.\nФормат: HTML-теги (<b>жирный</b>, <i>курсив</i>), без markdown **.\nМаксимум 400 символов + кнопки.\nЯзык: Russian.\nСообщение владельца: "${text}"`;
       const aiResult = await chatWithAI(ownerPrompt, [], 'ru', { maxTokens: 600, temperature: 0.6 });
-      const reply = aiResult?.reply || aiResult?.text || 'Принято, работаю.';
+      let reply = aiResult?.reply || aiResult?.text || 'Принято, работаю.';
+      reply = reply.replace(/\*\*/g, '').replace(/^\s*\d+\.[\s\S]/g, '')
 
-      let formatted = `🤖 <b>OMEGA</b>\n`;
-      formatted += `━━━━━━━━━━━━━━\n`;
-      formatted += `${reply}\n`;
-      formatted += `━━━━━━━━━━━━━━\n`;
-      formatted += `<i>Напишите следующую задачу или используйте /menu</i>`;
-
-      bot.sendMessage(chatId, formatted, {
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '🎬 Контент', callback_data: 'quick:content' }, { text: '📊 Аналитика', callback_data: 'quick:analytics' }],
-            [{ text: '⚡ Ещё', callback_data: 'quick:more' }]
-          ]
-        }
-      });
+      const isGreeting = /^(привет|здравствуй|хай|hi|hello|hey)/i.test(text);
+      if (isGreeting && reply.length < 500) {
+        const proactive = await getProactiveSuggestion(context);
+        sendLuxuryMessage(chatId, 'OMEGA', `${reply}\n\n💡 <b>Следующий шаг:</b> ${proactive}`, [
+          [{ text: '🎬 Контент', callback_data: 'quick:content' }, { text: '📊 Аналитика', callback_data: 'quick:analytics' }],
+          [{ text: '🏭 Factory', callback_data: 'quick:factory' }, { text: '🔮 Прогнозы', callback_data: 'quick:prediction' }],
+          [{ text: '📋 Отчёт', callback_data: 'quick:report' }, { text: '⚡ Ещё', callback_data: 'quick:more' }]
+        ]);
+      } else {
+        sendLuxuryMessage(chatId, 'OMEGA', reply, [
+          [{ text: '🎬 Контент', callback_data: 'quick:content' }, { text: '📊 Аналитика', callback_data: 'quick:analytics' }],
+          [{ text: '⚡ Ещё', callback_data: 'quick:more' }]
+        ]);
+      }
 
       await createNode({ type: 'telegram', content: `Owner: ${text} | OMEGA: ${reply}`, confidence: 0.9, source: 'telegram_bot', metadata: { chatId, text, reply, type: 'telegram_dialog' } });
     } catch (e) {
