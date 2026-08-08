@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, FileText, AlertTriangle, CheckCircle, Lock, Scale, Mail, MapPin, User, Phone } from 'lucide-react';
+import { Shield, FileText, AlertTriangle, CheckCircle, Lock, Scale, Mail, MapPin, User, Phone, MessageCircle } from 'lucide-react';
 
 export default function TermsPage() {
   const [legal, setLegal] = useState(null);
@@ -22,9 +22,22 @@ export default function TermsPage() {
     );
   }
 
+  const FALLBACK = {
+    operatorName: 'Тихонов Юрий Сергеевич',
+    inn: '344212910482',
+    operatorType: 'Самозанятый',
+    contactEmail: 'tvinki05@yandex.ru',
+    email: 'tvinki05@yandex.ru',
+    operatorAddress: 'г.Волгоград, Волгоградская обл',
+    phone: '+79623164478'
+  };
+
   const operatorText = legal
-    ? `${legal.operatorName}${legal.inn ? ` (ИНН: ${legal.inn})` : ''}. Email: ${legal.contactEmail || '—'}. Адрес: ${legal.operatorAddress || '—'}.`
-    : 'Оператор: [Укажите в Юридических настройках владельца]. Email: [Укажите email в настройках]. Адрес: [Укажите адрес в настройках].';
+    ? `${legal.operatorName}${legal.inn ? ` (ИНН: ${legal.inn})` : ''}. Email: ${legal.contactEmail || legal.email || '—'}. Адрес: ${legal.operatorAddress || '—'}.`
+    : `Оператор: ${FALLBACK.operatorName} (ИНН: ${FALLBACK.inn}). Email: ${FALLBACK.contactEmail}. Адрес: ${FALLBACK.operatorAddress}.`;
+
+  const contactEmail = legal?.contactEmail || legal?.email || FALLBACK.contactEmail;
+  const emailLink = (email) => <a href={`mailto:${email}`} className="text-purple-400 underline">{email}</a>;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 py-12 px-4">
@@ -106,7 +119,7 @@ export default function TermsPage() {
 
           <Section icon={<CheckCircle size={18} />} title="7. Возврат средств">
             <p>7.1. Возврат возможен в течение 14 календарных дней с момента оплаты, если услуга не была оказана (пользователь не сгенерировал ни одного поста/ответа).</p>
-            <p>7.2. Если услуга оказана частично или полностью — возврат рассматривается индивидуально по запросу на {legal?.contactEmail || '[CONTACT_EMAIL]'}.</p>
+            <p>7.2. Если услуга оказана частично или полностью — возврат рассматривается индивидуально по запросу на {emailLink(contactEmail)}.</p>
             <p>7.3. Возврат производится на ту же карту/счёт, с которого была произведена оплата.</p>
           </Section>
 
@@ -118,12 +131,12 @@ export default function TermsPage() {
 
           <Section icon={<FileText size={18} />} title="9. Блокировка и удаление аккаунта">
             <p>9.1. Блокировка при нарушении Условий, генерации запрещённого контента, спаме, попытках взлома.</p>
-            <p>9.2. Удаление аккаунта — самостоятельно или запросом на {legal?.contactEmail || '[CONTACT_EMAIL]'}.</p>
+            <p>9.2. Удаление аккаунта — самостоятельно или запросом на {emailLink(contactEmail)}.</p>
           </Section>
 
-          <Section icon={<FileText size={18} />} title="10. Изменения условий">
+          <Section icon={<MessageCircle size={18} />} title="10. Изменения условий">
             <p>Существенные изменения — уведомление по email за 7 дней.</p>
-            <p>По вопросам: {legal?.contactEmail || '[CONTACT_EMAIL]'}</p>
+            <p>По вопросам: {emailLink(contactEmail)}</p>
           </Section>
 
           <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">

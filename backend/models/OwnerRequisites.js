@@ -54,6 +54,12 @@ const ownerRequisitesSchema = new mongoose.Schema({
     trim: true,
     lowercase: true,
   },
+  contactEmail: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    default: '',
+  },
   phone: {
     type: String,
     trim: true,

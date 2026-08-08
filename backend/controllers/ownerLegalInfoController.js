@@ -1,4 +1,4 @@
-import { OwnerLegalInfo, OwnerRequisites } from '../models/index.js'
+import { OwnerLegalInfo, OwnerRequisites, User } from '../models/index.js'
 
 export const getMyLegalInfo = async (req, res) => {
   try {
@@ -73,14 +73,20 @@ export const updateMyLegalInfo = async (req, res) => {
 export const getPublicLegalInfo = async (req, res) => {
   try {
     // [HOTFIX-2026-08-08] read actual owner requisites so legal pages auto-update
-    const requisites = await OwnerRequisites.findOne().sort({ updatedAt: -1 }).lean()
+    const owner = await User.findOne({ role: 'owner' }).select('_id email').lean()
+    const requisites = owner
+      ? await OwnerRequisites.findOne({ ownerId: owner._id }).lean()
+      : null
 
     const fallback = {
       operatorName: process.env.OWNER_NAME || 'Тихонов Юрий Сергеевич',
-      operatorType: 'self_employed',
-      contactEmail: process.env.OWNER_EMAIL || 'Odzax@yandex.ru',
+      operatorType: 'Самозанятый',
+      contactEmail: process.env.OWNER_EMAIL || 'tvinki05@yandex.ru',
+      email: process.env.OWNER_EMAIL || 'tvinki05@yandex.ru',
       siteUrl: process.env.SITE_URL || 'app.aiviral.studio',
-      operatorAddress: process.env.OWNER_ADDRESS || 'г.Волгоград, Волгоградская обл'
+      operatorAddress: process.env.OWNER_ADDRESS || 'г.Волгоград, Волгоградская обл',
+      phone: process.env.OWNER_PHONE || '+79623164478',
+      inn: process.env.OWNER_INN || '344212910482'
     }
 
     const typeMap = {
@@ -98,12 +104,13 @@ export const getPublicLegalInfo = async (req, res) => {
       success: true,
       legalInfo: {
         operatorName: requisites.name || fallback.operatorName,
-        operatorType: typeMap[requisites.type] || fallback.operatorType,
-        contactEmail: requisites.email || fallback.contactEmail,
+        operatorType: typeMap[requisites.type] || requisites.type || fallback.operatorType,
+        contactEmail: requisites.contactEmail || requisites.email || owner?.email || fallback.contactEmail,
+        email: requisites.email || owner?.email || fallback.email,
         siteUrl: requisites.siteUrl || fallback.siteUrl,
         operatorAddress: requisites.address || fallback.operatorAddress,
-        phone: requisites.phone || '',
-        inn: requisites.inn || ''
+        phone: requisites.phone || fallback.phone,
+        inn: requisites.inn || fallback.inn
       }
     })
   } catch (err) {

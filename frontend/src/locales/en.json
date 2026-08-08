@@ -26,6 +26,10 @@
     "profile": "Profile",
     "settings": "Settings"
   },
+  "requisites": {
+    "contactEmail": "Contact email for client questions",
+    "contactEmailHint": "This email will be listed in the offer agreement and privacy policy for customer contact"
+  },
   "languages": {
     "ru": "Русский",
     "en": "English"
@@ -41,7 +45,7 @@
     "omegaMemory": "🗄️ OMEGA Memory",
     "finance": "Finance",
     "subscriptions": "Subscriptions",
-    "requisites": "🏢 Requisites",
+    "requisitesLabel": "🏢 Requisites",
     "advertising": "Advertising",
     "referrals": "Referrals",
     "team": "Team",

@@ -26,6 +26,10 @@
     "profile": "Профиль",
     "settings": "Настройки"
   },
+  "requisites": {
+    "contactEmail": "Контактный email для вопросов клиентов",
+    "contactEmailHint": "Этот email будет указан в договоре оферте и политике конфиденциальности"
+  },
   "languages": {
     "ru": "Русский",
     "en": "English"
@@ -41,7 +45,7 @@
     "omegaMemory": "🗄️ OMEGA Memory",
     "finance": "Финансы",
     "subscriptions": "Подписки",
-    "requisites": "🏢 Реквизиты",
+    "requisitesLabel": "🏢 Реквизиты",
     "advertising": "Реклама",
     "referrals": "Рефералы",
     "team": "Команда",

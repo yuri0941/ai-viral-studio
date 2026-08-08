@@ -43,12 +43,24 @@ export function LegalPage({ type }) {
     return () => { cancelled = true }
   }, [])
 
+  const FALLBACK = {
+    operatorName: 'Тихонов Юрий Сергеевич',
+    inn: '344212910482',
+    contactEmail: 'tvinki05@yandex.ru',
+    email: 'tvinki05@yandex.ru',
+    operatorAddress: 'г.Волгоград, Волгоградская обл',
+    siteUrl: 'app.aiviral.studio'
+  }
+
+  const contactEmail = info?.contactEmail || info?.email || FALLBACK.contactEmail
+  const contactEmailLink = `<a href="mailto:${contactEmail}" class="text-purple-400 underline">${contactEmail}</a>`
+
   const content = CONTENT[type] || CONTENT.consent
   const placeholders = {
-    '[OPERATOR_NAME]': info?.operatorName || '[Укажите в Юридических настройках владельца]',
-    '[CONTACT_EMAIL]': info?.contactEmail || '[Укажите email в настройках]',
-    '[OPERATOR_ADDRESS]': info?.operatorAddress || '[Укажите адрес в настройках]',
-    '[SITE_URL]': info?.siteUrl || 'app.aiviral.studio',
+    '[OPERATOR_NAME]': info?.operatorName || FALLBACK.operatorName,
+    '[CONTACT_EMAIL]': contactEmailLink,
+    '[OPERATOR_ADDRESS]': info?.operatorAddress || FALLBACK.operatorAddress,
+    '[SITE_URL]': info?.siteUrl || FALLBACK.siteUrl,
   }
 
   let html = content.html
@@ -56,7 +68,7 @@ export function LegalPage({ type }) {
     html = html.replaceAll(key, value)
   })
 
-  const missingData = !info?.operatorName || !info?.contactEmail || !info?.operatorAddress
+  const missingData = !info?.operatorInn
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, Eye, Database, Mail, MapPin, Trash2, Cookie, Server, Scale, Phone } from 'lucide-react';
+import { Shield, Eye, Database, Mail, MapPin, Trash2, Cookie, Server, Scale, Phone, MessageCircle } from 'lucide-react';
 
 export default function PrivacyPage() {
   const [legal, setLegal] = useState(null);
@@ -22,9 +22,23 @@ export default function PrivacyPage() {
     );
   }
 
+  const FALLBACK = {
+    operatorName: 'Тихонов Юрий Сергеевич',
+    inn: '344212910482',
+    operatorType: 'Самозанятый',
+    contactEmail: 'tvinki05@yandex.ru',
+    email: 'tvinki05@yandex.ru',
+    operatorAddress: 'г.Волгоград, Волгоградская обл',
+    phone: '+79623164478',
+    siteUrl: 'app.aiviral.studio'
+  };
+
   const operatorBlock = legal
-    ? `${legal.operatorName}${legal.inn ? ` (ИНН: ${legal.inn})` : ''}, email: ${legal.contactEmail || '—'}, адрес: ${legal.operatorAddress || '—'}`
-    : 'Оператор: [Укажите в Юридических настройках владельца], email: [Укажите email в настройках], адрес: [Укажите адрес в настройках]';
+    ? `${legal.operatorName}${legal.inn ? ` (ИНН: ${legal.inn})` : ''}, email: ${legal.contactEmail || legal.email || '—'}, адрес: ${legal.operatorAddress || '—'}`
+    : `Оператор: ${FALLBACK.operatorName} (ИНН: ${FALLBACK.inn}), email: ${FALLBACK.contactEmail}, адрес: ${FALLBACK.operatorAddress}`;
+
+  const contactEmail = legal?.contactEmail || legal?.email || FALLBACK.contactEmail;
+  const emailLink = (email) => <a href={`mailto:${email}`} className="text-emerald-400 underline">{email}</a>;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 py-12 px-4">
@@ -116,8 +130,8 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-5 space-y-1">
               <li><strong>Доступ:</strong> запросить копию ваших данных.</li>
               <li><strong>Исправление:</strong> изменить данные в личном кабинете.</li>
-              <li><strong>Удаление:</strong> удалить аккаунт — напишите на {legal?.contactEmail || '[CONTACT_EMAIL]'}.</li>
-              <li><strong>Отзыв согласия:</strong> напишите на {legal?.contactEmail || '[CONTACT_EMAIL]'}. Данные удалятся в течение 30 дней, доступ к Сервису прекратится.</li>
+              <li><strong>Удаление:</strong> удалить аккаунт — напишите на {emailLink(contactEmail)}.</li>
+              <li><strong>Отзыв согласия:</strong> напишите на {emailLink(contactEmail)}. Данные удалятся в течение 30 дней, доступ к Сервису прекратится.</li>
             </ul>
           </Section>
 
@@ -129,9 +143,9 @@ export default function PrivacyPage() {
             <p>HTTPS, bcrypt для паролей, JWT-токены. Доступ к базе ограничен.</p>
           </Section>
 
-          <Section icon={<Eye size={18} />} title="10. Изменения">
+          <Section icon={<MessageCircle size={18} />} title="10. Изменения">
             <p>Обновления Политики — уведомление по email при существенных изменениях.</p>
-            <p>По вопросам: {legal?.contactEmail || '[CONTACT_EMAIL]'}</p>
+            <p>По вопросам: {emailLink(contactEmail)}</p>
           </Section>
 
           <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
