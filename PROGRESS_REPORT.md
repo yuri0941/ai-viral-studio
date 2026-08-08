@@ -1,3 +1,10 @@
+## 2026-08-08 — HOTFIX: Telegram [object Object] safeSendMessage (ownerBot + omegaBot)
+- [x] backend/services/ownerBot.js: safeSendMessage uses `.text/.message/.content/.response/.reply` + JSON.stringify fallback, message handler extracts `.reply/.text/.content/.message`
+- [x] backend/services/omegaBot.js: safeSendMessage aligned with `.reply` fallback
+- [x] node --check ownerBot.js + omegaBot.js OK
+- [x] Git commit/push: выполнен
+- [ ] Render deploy: требует ручного Clear Build Cache & Deploy
+
 ## 2026-08-08 — MEGA-HOTFIX: Telegram [object Object] stringify, API retry 429/5xx, version v9.1.0, OmegaChat 403 guard
 - [x] backend/services/ownerBot.js: safeSendMessage helper serializes objects before bot.sendMessage, truncates >4000 chars, /improve formats arrays/objects
 - [x] backend/services/omegaBot.js: safeSendMessage helper, /improve formats arrays/objects, formatOmegaResponse receives guaranteed string
