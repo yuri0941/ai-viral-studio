@@ -10,7 +10,7 @@ import {
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
     Palette, LayoutTemplate, Flame, Cpu, Swords, Zap, Sparkles,
-    Clapperboard, Factory, Telescope, Landmark, Send,
+    Clapperboard, Factory, Telescope, Landmark, Send, MessageCircle,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
@@ -184,6 +184,7 @@ const OWNER_GROUPS = [
             { id: 'aiAnalytics', label: 'AI Аналитика', icon: BarChart },
             { id: 'logs', label: 'Логи системы', icon: FileText },
             { id: 'notifications', label: 'Уведомления', icon: Bell },
+            { id: 'support', label: '💬 Поддержка', icon: MessageCircle },
             { id: 'help', label: 'Помощь', icon: HelpCircle },
             { id: 'feedback', label: 'Feedback', icon: Heart },
             { id: 'devStudio', label: '🚀 DevStudio', icon: Rocket },

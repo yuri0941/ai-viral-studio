@@ -2,12 +2,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
+import OnboardingTour from "../onboarding/OnboardingTour.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { omegaApi, voiceApi, request } from "../../services/api.js";
 import { playSound } from "../../hooks/useSound.js";
 import { useTTS } from "../../hooks/useTTS.js";
-
+import toast from "react-hot-toast";
 const ACTION_BUTTONS = [
   { id: 'hook', label: 'chat.action.hook', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для вирусного контента' },
   { id: 'script', label: 'chat.action.script', icon: '📝', prompt: 'Напиши сценарий Reels/Shorts для AI Viral Studio' },
@@ -209,6 +210,7 @@ export default function OmegaChat({
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [recognitionLang, setRecognitionLang] = useState(() => localStorage.getItem('omega_recognition_lang') || 'ru');
   const [elevenlabsStatus, setElevenlabsStatus] = useState(null);
+  const [quota, setQuota] = useState(null);
   const { speak, stop, playingId, loadingId, settings, setSettings } = useTTS();
 
   useEffect(() => {
@@ -226,6 +228,19 @@ export default function OmegaChat({
         console.warn('[OmegaChat] external keys fetch failed', err);
       });
   }, [user?.role]);
+
+  // [v9.9.2-MASTER-FIX] Fetch trial token quota for header counter
+  useEffect(() => {
+    if (!user?._id && !user?.id) return;
+    request('/users/me/quota')
+      .then(res => {
+        const q = res?.data || res;
+        setQuota(q);
+      })
+      .catch(err => {
+        console.warn('[OmegaChat] quota fetch failed', err);
+      });
+  }, [user?._id, user?.id]);
 
   const input = externalInput !== undefined ? externalInput : internalInput;
   const setInput = externalSetInput || setInternalInput;
@@ -296,13 +311,20 @@ export default function OmegaChat({
       playSound('notification');
     } catch (err) {
       console.error('[CHAT] Error:', err);
+      const status = err?.status || err?.response?.status;
+      const errMessage = err?.data?.message || err?.response?.data?.message || err?.message;
+      const isQuotaError = status === 402 || err?.data?.code === 'TRIAL_EXHAUSTED' || err?.data?.code === 'QUOTA_EXCEEDED';
       setInternalMessages(prev => [...prev, {
         role: 'omega',
-        text: t('chat.serverUnavailable'),
+        text: isQuotaError ? (errMessage || t('chat.limitReached')) : t('chat.serverUnavailable'),
         isError: true,
+        isQuotaError,
         timestamp: Date.now(),
         id: `err-${Date.now()}`,
       }]);
+      if (isQuotaError) {
+        toast.error(errMessage || t('chat.limitReached'), { duration: 5000, icon: '⚡' });
+      }
       playSound('error');
     } finally {
       setInternalIsTyping(false);
@@ -311,7 +333,7 @@ export default function OmegaChat({
 
   const startVoiceInput = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert(t('chat.micNotSupported'));
+      toast.error(t('chat.micNotSupported'), { duration: 4000, icon: '🎙️' });
       return;
     }
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -356,7 +378,12 @@ export default function OmegaChat({
             </div>
           </div>
         </div>
-        <OmegaLocalModeIndicator />
+        <div className="flex items-center gap-2">
+          <span data-tour="token-counter" className="text-[10px] sm:text-xs px-2 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono">
+            ⚡ {quota?.trialTokens ?? user?.trialTokens ?? 0} / 10
+          </span>
+          <OmegaLocalModeIndicator />
+        </div>
       </div>
 
       <div
@@ -376,9 +403,9 @@ export default function OmegaChat({
                       const res = await speak(msg.text, msg.id);
                       if (res?.placeholder) {
                         if (res?.mock) {
-                          alert(t('voice.mockToast'));
+                          toast.success(t('voice.mockToast'), { duration: 3000, icon: '🔊' });
                         } else {
-                          alert(t('voiceMode.placeholder'));
+                          toast(t('voiceMode.placeholder'), { duration: 3000, icon: '🔊' });
                         }
                       }
                     }}
@@ -402,7 +429,7 @@ export default function OmegaChat({
                     <Settings size={14} /> {t('voiceMode.settings')}
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-3 max-w-[95%] mx-auto">
+                <div data-tour="quick-actions" className="flex flex-wrap gap-2 mt-3 max-w-[95%] mx-auto">
                   {ACTION_BUTTONS.map(action => (
                     <button
                       key={action.id}
@@ -443,6 +470,7 @@ export default function OmegaChat({
         </div>
         <div className="flex items-center gap-2 bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-2xl px-3 py-2">
           <input
+            data-tour="omega-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -461,6 +489,7 @@ export default function OmegaChat({
             <option value="zh">ZH</option>
           </select>
           <button
+            data-tour="voice-input"
             onClick={startVoiceInput}
             type="button"
             disabled={loading}
@@ -547,6 +576,7 @@ export default function OmegaChat({
           </div>
         </div>
       )}
+      <OnboardingTour />
     </div>
   );
 }

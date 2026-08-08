@@ -53,6 +53,18 @@ const usageQuotaSchema = new mongoose.Schema({
         type: Date,
         default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
+    trialTokens: {
+        type: Number,
+        default: 10,
+    },
+    trialUsed: {
+        type: Number,
+        default: 0,
+    },
+    lastTokenReset: {
+        type: Date,
+        default: Date.now,
+    },
 }, {
     timestamps: true,
 })

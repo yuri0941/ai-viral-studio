@@ -2,13 +2,18 @@ import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
 import { chatWithAI } from './aiService.js'
 import { isOwner, getOwnerContext } from './ownerContext.js'
+import { createTicket } from './supportService.js'
 
 // [P16-FINAL] singleton to avoid duplicate polling / 409 conflict
 let bot = global.omegaBotInstance || null
 let started = global.omegaBotStarted || false
 
-const OMEGA_TOKEN = process.env.TELEGRAM_OMEGA_BOT_TOKEN
+const OMEGA_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_OMEGA_BOT_TOKEN
 const OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID
+
+// [v9.9.2-MASTER-FIX] client support state per chat
+const supportState = global.omegaSupportState || new Map()
+global.omegaSupportState = supportState
 
 function createStubBot() {
   return {
@@ -25,6 +30,17 @@ function createStubBot() {
 }
 
 // [HOTFIX-2026-08-08] stringify objects before sendMessage to avoid "[object Object]"
+function sendClientMenu(chatId) {
+  bot.sendMessage(chatId, '👋 <b>AI Viral Studio</b>\n━━━━━━━━━━━━━━\nЧем помочь?', {
+    parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '💬 Поддержка', callback_data: 'support:start' }, { text: '🚀 В приложение', url: 'https://aiviral-studio.ru' }]
+      ]
+    }
+  })
+}
+
 function safeSendMessage(chatId, data, options = {}) {
   let text
   if (typeof data === 'string') {
@@ -45,7 +61,7 @@ export const initOmegaBot = () => {
   global.omegaBotStarted = true
 
   if (!OMEGA_TOKEN) {
-    console.warn('[OMEGA-BOT] Skip: TELEGRAM_OMEGA_BOT_TOKEN missing')
+    console.warn('[OMEGA-BOT] Skip: TELEGRAM_BOT_TOKEN / TELEGRAM_OMEGA_BOT_TOKEN missing')
     bot = createStubBot()
     global.omegaBotInstance = bot
     return
@@ -53,14 +69,14 @@ export const initOmegaBot = () => {
 
   bot = new TelegramBot(OMEGA_TOKEN, { polling: false })
   global.omegaBotInstance = bot
-  console.log('[OMEGA-BOT] Created, preparing polling')
+  console.log('[OMEGA-BOT] Created, preparing webhook')
 
   updateBotMenu()
 
   bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isOwner(chatId)) {
-      bot.sendMessage(chatId, '🤖 <b>OMEGA Bot</b>\n\nЯ технический бот AI Viral Studio.\nПо вопросам обращайтесь к @owner_username.', { parse_mode: 'HTML' });
+      sendClientMenu(chatId)
       return;
     }
     const context = await getOwnerContext(chatId);
@@ -109,28 +125,63 @@ export const initOmegaBot = () => {
     }
   })
 
-  // Главный обработчик — AI для всех
+  // [v9.9.2-MASTER-FIX] client support flow + existing AI handler
   bot.on('message', async (msg) => {
     if (msg.text && msg.text.startsWith('/')) return
     const chatId = msg.chat.id
     const text = msg.text?.trim()
-    const isOwner = String(chatId) === String(OWNER_CHAT_ID)
+    const owner = isOwner(chatId)
     if (!text) return
+
+    // Support ticket flow for non-owners
+    if (!owner && supportState.get(chatId)) {
+      bot.sendChatAction(chatId, 'typing')
+      try {
+        const ticket = await createTicket({
+          userEmail: `tg_${chatId}@aiviral-studio.ru`,
+          userName: msg.chat.username || msg.chat.first_name || `Telegram ${chatId}`,
+          subject: 'Telegram Support',
+          description: text,
+          telegramChatId: String(chatId)
+        })
+        let reply = `🎫 <b>Обращение #${ticket._id.toString().slice(-6)} создано</b>\n`
+        if (ticket.aiSuggestion && ticket.status === 'ai_handled') {
+          reply += `💡 <b>OMEGA совет:</b>\n${ticket.aiSuggestion}\n\nПомогло?`
+          bot.sendMessage(chatId, reply, {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '👍 Помогло', callback_data: `ticket:${ticket._id}:resolve` },
+                 { text: '👎 Нет', callback_data: `ticket:${ticket._id}:escalate` }]
+              ]
+            }
+          })
+        } else {
+          reply += `⏳ Передаю оператору. Ожидайте...`
+          bot.sendMessage(chatId, reply, { parse_mode: 'HTML' })
+        }
+        supportState.delete(chatId)
+      } catch (err) {
+        console.error('[OMEGA-BOT] support ticket failed:', err.message)
+        safeSendMessage(chatId, '⚠️ Не удалось создать обращение. Попробуйте позже.', { parse_mode: 'HTML' })
+      }
+      return
+    }
 
     bot.sendChatAction(chatId, 'typing')
 
     try {
       const result = await chatWithAI(text, [], {
-        userRole: isOwner ? 'owner' : 'client',
+        userRole: owner ? 'owner' : 'client',
         language: 'ru',
-        context: isOwner ? 'telegram_owner_chat' : 'telegram_bot'
+        context: owner ? 'telegram_owner_chat' : 'telegram_bot'
       })
 
       const rawText = result.text || result
       const textToFormat = typeof rawText === 'string' ? rawText : (rawText && typeof rawText === 'object' ? (rawText.text || rawText.message || rawText.content || JSON.stringify(rawText, null, 2)) : String(rawText))
-      const formatted = formatOmegaResponse(textToFormat, isOwner)
+      const formatted = formatOmegaResponse(textToFormat, owner)
 
-      const keyboard = isOwner ? {
+      const keyboard = owner ? {
         reply_markup: {
           inline_keyboard: [
             [{ text: '✅ Готово', callback_data: 'owner_done' }, { text: '🔄 Уточнить', callback_data: 'owner_refine' }],
@@ -141,7 +192,8 @@ export const initOmegaBot = () => {
         reply_markup: {
           inline_keyboard: [
             [{ text: '✅ Использовать', callback_data: 'use_result' }, { text: '🔄 Переделать', callback_data: 'regenerate' }],
-            [{ text: '📋 Скопировать', callback_data: 'copy' }, { text: '📤 Опубликовать', callback_data: 'publish_menu' }]
+            [{ text: '📋 Скопировать', callback_data: 'copy' }, { text: '📤 Опубликовать', callback_data: 'publish_menu' }],
+            [{ text: '💬 Поддержка', callback_data: 'support:start' }]
           ]
         }
       }
@@ -156,10 +208,39 @@ export const initOmegaBot = () => {
   bot.on('callback_query', async (q) => {
     const chatId = q.message.chat.id
     const data = q.data
-    const isOwner = String(chatId) === String(OWNER_CHAT_ID)
+    const owner = isOwner(chatId)
     bot.answerCallbackQuery(q.id).catch(() => {})
 
-    if (isOwner) {
+    // [v9.9.2-MASTER-FIX] unified support callbacks (work for everyone)
+    if (data === 'support:start') {
+      supportState.set(chatId, true)
+      bot.sendMessage(chatId, '💬 <b>Поддержка</b>\nОпишите проблему одним сообщением. OMEGA ответит или передаст оператору.', { parse_mode: 'HTML' })
+      return
+    }
+    if (data.startsWith('ticket:')) {
+      const [, ticketId, action] = data.split(':')
+      try {
+        const SupportTicket = (await import('../models/SupportTicket.js')).default
+        const ticket = await SupportTicket.findById(ticketId)
+        if (ticket) {
+          if (action === 'resolve') {
+            ticket.status = 'resolved'
+            await ticket.save()
+            safeSendMessage(chatId, '✅ Обращение закрыто. Рады помочь!', { parse_mode: 'HTML' })
+          } else if (action === 'escalate') {
+            ticket.status = 'needs_owner'
+            await ticket.save()
+            safeSendMessage(chatId, '⏳ Передаю оператору. Ожидайте...', { parse_mode: 'HTML' })
+          }
+        }
+      } catch (err) {
+        console.error('[OMEGA-BOT] ticket callback failed:', err.message)
+        safeSendMessage(chatId, '⚠️ Не удалось обновить обращение.', { parse_mode: 'HTML' })
+      }
+      return
+    }
+
+    if (owner) {
       if (data === 'owner_exec') safeSendMessage(chatId, '⚡ Напишите задачу:\n<i>Например: "Создай пост про кофейню"</i>', { parse_mode: 'HTML' })
       else if (data === 'owner_feature') safeSendMessage(chatId, '✨ Опишите фичу:\n<i>Например: "Добавить голосовой ввод"</i>', { parse_mode: 'HTML' })
       else if (data === 'owner_omega') safeSendMessage(chatId, '🤖 <b>OMEGA Core</b>\n\nAutoPilot: ✅\nDream Mode: 🌙\nSelf-Healing: 🔧', { parse_mode: 'HTML' })

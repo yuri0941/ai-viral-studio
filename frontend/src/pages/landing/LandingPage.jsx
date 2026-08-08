@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, Bot, BarChart3, Factory, Telescope, Calendar, Check, ChevronDown, ArrowRight, Send, Mail, Menu, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import FeatureMap from '../../components/landing/FeatureMap.jsx'
 
 const FEATURES = [
   { icon: Bot, title: 'AI Контент', desc: 'OMEGA генерирует посты, видео и идеи под вашу нишу.' },
@@ -173,6 +174,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <FeatureMap />
 
       {/* Pricing */}
       <section id="pricing" className="py-20 px-4">

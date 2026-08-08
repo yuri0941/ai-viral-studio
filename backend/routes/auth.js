@@ -1,6 +1,7 @@
 import express from 'express'
 import crypto from 'crypto'
 import User from '../models/User.js'
+import { UsageQuota } from '../models/index.js'
 import { protect } from '../middleware/auth.js'
 import { sendVerificationEmail, sendPasswordReset } from '../services/emailService.js'
 import { verifyTurnstile } from '../middleware/turnstile.js'
@@ -57,6 +58,18 @@ router.post('/register', validateRegister, verifyTurnstile, async (req, res) => 
       await sendVerificationEmail(user.email, user.name, user.verificationToken)
     } catch (emailErr) {
       console.error('[auth:register] verification email failed:', emailErr.message)
+    }
+
+    try {
+      await UsageQuota.create({
+        userId: user._id,
+        plan: 'free',
+        trialTokens: 10,
+        trialUsed: 0,
+        generationsLimit: 0,
+      })
+    } catch (quotaErr) {
+      console.error('[auth:register] usage quota creation failed:', quotaErr.message)
     }
 
     const token = user.generateToken()

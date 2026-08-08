@@ -230,4 +230,5 @@ export const TAB_LABELS = {
     prediction: '🔮 Разведка',
     investment: '💰 Инвестиции',
     selfOptimize: '🧠 Self-Optimize',
+    support: '💬 Поддержка',
 }

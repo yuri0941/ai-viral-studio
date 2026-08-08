@@ -54,11 +54,42 @@ export async function checkQuota(userId) {
     }
 }
 
-export async function consumeGeneration(userId, userRole = null) {
+export async function consumeGeneration(userId, userRole = null, { isInfoQuery = false } = {}) {
     if (['owner', 'admin', 'staff'].includes(userRole)) {
         return { allowed: true, remaining: Infinity, unlimited: true }
     }
     const quota = await getOrCreateQuota(userId)
+
+    // [v9.9.2-MASTER-FIX] Smart quota: info/help/navigation queries don't consume tokens
+    if (isInfoQuery) {
+        return { ...await checkQuota(userId), allowed: true, infoQuery: true, consumed: false }
+    }
+
+    // [v9.9.2-MASTER-FIX] Trial token system for free users
+    if (quota.plan === 'free' || !quota.plan) {
+        if ((quota.trialTokens || 0) > 0) {
+            quota.trialTokens = (quota.trialTokens || 0) - 1
+            quota.trialUsed = (quota.trialUsed || 0) + 1
+            await quota.save()
+            return {
+                ...await checkQuota(userId),
+                allowed: true,
+                consumed: true,
+                trialTokens: quota.trialTokens,
+                trialUsed: quota.trialUsed,
+            }
+        }
+        return {
+            ...await checkQuota(userId),
+            allowed: false,
+            blocked: true,
+            code: 'TRIAL_EXHAUSTED',
+            message: '⚡️ Лимит генераций исчерпан. Перейдите на платный тариф.',
+            upgradeUrl: '/pricing',
+            trialTokens: 0,
+        }
+    }
+
     if (quota.generationsUsed < quota.generationsLimit) {
         quota.generationsUsed += 1
     } else {

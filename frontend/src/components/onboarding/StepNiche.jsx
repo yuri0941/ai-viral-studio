@@ -71,14 +71,23 @@ function StepNiche({ value, onChange }) {
                 <p className="text-gray-400">OMEGA подстроится под вашу аудиторию и тренды</p>
             </div>
 
-            <div className="relative max-w-md mx-auto space-y-3">
+            <div className="relative max-w-md mx-auto">
                 <input
                     type="text"
                     value={query}
                     onChange={e => { setQuery(e.target.value); onChange(e.target.value) }}
-                    placeholder="Начните печатать, например: коф..."
-                    className="w-full px-5 py-4 rounded-xl bg-[#0a0a0f] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#8B5CF6]/50"
+                    onKeyDown={e => e.key === 'Enter' && autoDetect()}
+                    placeholder="Например: книги, бьюти, IT, кофейня..."
+                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl pl-4 pr-14 py-3.5 text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all text-sm sm:text-base"
                 />
+                <button
+                    type="button"
+                    onClick={autoDetect}
+                    disabled={detecting || !query.trim()}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-500/20 transition disabled:opacity-50"
+                >
+                    {detecting ? '...' : 'OK'}
+                </button>
                 {suggestions.length > 0 && (
                     <div className="absolute left-0 right-0 top-full mt-2 bg-[#1a1a24] border border-white/10 rounded-xl overflow-hidden z-10">
                         {suggestions.map(s => (
@@ -93,28 +102,19 @@ function StepNiche({ value, onChange }) {
                         ))}
                     </div>
                 )}
-                <button
-                    type="button"
-                    onClick={autoDetect}
-                    disabled={detecting || !query.trim()}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-200 hover:bg-white/10 hover:border-[#8B5CF6]/30 transition-all disabled:opacity-50"
-                >
-                    <Wand2 className={`w-4 h-4 ${detecting ? 'animate-spin' : ''}`} />
-                    {detecting ? 'OMEGA думает...' : 'OMEGA, определи мою нишу по названию'}
-                </button>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-2 max-w-lg mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
                 {NICHE_SUGGESTIONS.slice(0, 10).map(n => (
                     <button
                         key={n}
                         type="button"
                         onClick={() => select(n)}
-                        className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
-                            value === n ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/40 text-[#8B5CF6]' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                        className={`p-4 rounded-xl border text-left transition-all active:scale-[0.98] ${
+                            value === n ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-slate-700/50 bg-slate-800/30 hover:bg-slate-700/40 hover:border-emerald-500/40 text-slate-300'
                         }`}
                     >
-                        {n}
+                        <div className="font-medium text-sm sm:text-base">{n}</div>
                     </button>
                 ))}
             </div>

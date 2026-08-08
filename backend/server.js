@@ -96,6 +96,7 @@ import researchRoutes from './routes/research.js'  // [v6.6] added: Web Research
 import adRoutes from './routes/ads.js'  // [v6.6] Advertiser ads API
 import creatorRoutes from './routes/creator.js'  // [v6.6-PART2] Creator analytics
 import versionRoutes from './routes/version.js'  // [v6.5.5] added: version API
+import supportRoutes from './routes/support.js'  // [v9.9.2-MASTER-FIX] unified support tickets
 import desktopUpdateRoutes from './routes/desktopUpdate.js'  // [v7.0] added: Tauri desktop updater
 import { startBackupCron } from './services/disasterRecovery.js'  // [v7.0-PART2] added: disaster recovery
 import disasterRoutes from './routes/disaster.js'  // [v7.0-PART2] added: disaster recovery API
@@ -370,6 +371,7 @@ app.use('/api/ai', aiRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/scheduler', schedulerRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/support', supportRoutes)  // [v9.9.2-MASTER-FIX] unified support tickets
 app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
 app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API

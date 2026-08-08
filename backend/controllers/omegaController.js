@@ -23,6 +23,7 @@ import axios from 'axios'
 import { checkQuota, consumeGeneration } from '../services/usageQuotaService.js'
 import { scrapeVideo } from '../services/youtubeScraper.js'
 import dialogueEvolution from '../ai/omega/dialogueEvolution.js'
+import { findNiche, NICHE_REGISTRY } from '../data/niches.js'
 
 let omegaCore = null
 
@@ -100,20 +101,27 @@ export async function chat(req, res) {
         // [HOTFIX-v7.0-CHAT] owner/admin/staff unlimited
         const UNLIMITED_ROLES = ['owner', 'admin', 'staff']
 
+        // [v9.9.2-MASTER-FIX] Smart quota: info/help/navigation queries don't consume trial tokens
+        const infoKeywords = ['что это', 'как работает', 'справка', 'помощь', 'меню', 'привет', 'hello', 'help', 'кто ты', 'возможности', 'что ты умеешь', 'навигация']
+        const isInfoQuery = infoKeywords.some(k => message.toLowerCase().includes(k))
+
         // [MONETIZE-2026-08-04] added: consume quota before AI call
         if (userId && !UNLIMITED_ROLES.includes(effectiveRole)) {
             try {
-                const quota = await consumeGeneration(userId)
-                if (quota.blocked) {
+                const quota = await consumeGeneration(userId, effectiveRole, { isInfoQuery })
+                if (!quota.allowed || quota.blocked) {
                     return res.status(402).json({
                         status: 'error',
-                        code: 'QUOTA_EXCEEDED',
-                        message: 'Генерации исчерпаны. Докупите пакет, чтобы продолжить.',
+                        code: quota.code || 'QUOTA_EXCEEDED',
+                        message: quota.message || 'Генерации исчерпаны. Докупите пакет, чтобы продолжить.',
                         data: {
                             used: quota.used,
                             limit: quota.limit,
+                            trialTokens: quota.trialTokens,
+                            trialUsed: quota.trialUsed,
                             topUpPackSize: quota.topUpPackSize,
                             topUpPackPrice: quota.topUpPackPrice,
+                            upgradeUrl: quota.upgradeUrl || '/pricing',
                         },
                     })
                 }
@@ -793,6 +801,27 @@ export async function generateVideo(req, res) {
         })
     } catch (err) {
         console.error('[omegaController:generateVideo]', err.message)
+        return res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+// [v9.9.2-MASTER-FIX] Niche recognition endpoint with fuzzy registry + AI fallback
+export async function detectNiche(req, res) {
+    try {
+        const { input } = req.body || {}
+        const match = findNiche(input)
+        if (match) {
+            return res.json({ recognized: true, ...match })
+        }
+        const aiPrompt = `Пользователь ввёл нишу: "${input}". Выбери ближайшую из: ${NICHE_REGISTRY.map(n => n.names[0]).join(', ')}. Ответь JSON: { recognized: true/false, niche: "id", suggestions: ["..."] }`
+        try {
+            const aiResult = await chatWithAI(aiPrompt, [], 'ru', { maxTokens: 200 })
+            return res.json(JSON.parse(aiResult?.reply || '{}'))
+        } catch (e) {
+            return res.json({ recognized: false, suggestions: ['бьюти','it','книги','кофейня','фитнес'] })
+        }
+    } catch (err) {
+        console.error('[omegaController:detectNiche]', err.message)
         return res.status(500).json({ status: 'error', message: err.message })
     }
 }

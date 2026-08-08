@@ -3,6 +3,7 @@ import { protect } from '../middleware/auth.js'
 import { getMe, updateMe, changePassword, changeEmail, deleteMyData, exportMyData } from '../controllers/userController.js'
 import { applyWatermarkToImage, canDisableWatermark } from '../services/watermarkService.js'
 import { checkQuota } from '../services/usageQuotaService.js'
+import { UsageQuota } from '../models/index.js'
 import User from '../models/User.js'
 
 const router = express.Router()
@@ -98,6 +99,7 @@ router.get('/me/export', protect, exportMyData)
 router.get('/me/quota', protect, async (req, res) => {
     try {
         const quota = await checkQuota(req.user._id || req.user.id)
+        const quotaDoc = await UsageQuota.findOne({ userId: req.user._id || req.user.id }).lean()
         res.json({
             status: 'success',
             data: {
@@ -106,6 +108,8 @@ router.get('/me/quota', protect, async (req, res) => {
                 remaining: quota.remaining,
                 plan: quota.plan,
                 cycleEndsAt: quota.cycleEndsAt,
+                trialTokens: quotaDoc?.trialTokens ?? 0,
+                trialUsed: quotaDoc?.trialUsed ?? 0,
             }
         })
     } catch (err) {

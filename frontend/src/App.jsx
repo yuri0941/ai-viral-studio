@@ -54,6 +54,8 @@ import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
 import { UpdateModal } from './components/shared/UpdateModal.jsx'
+import { Toaster } from 'react-hot-toast'
+import SupportWidget from './components/support/SupportWidget.jsx'
 import { APP_VERSION } from './config/version.js'
 
 // Version check: warn if backend requires newer frontend
@@ -260,6 +262,7 @@ function App() {
 
     return (
         <>
+            <Toaster position="top-right" toastOptions={{ style: { background: '#1a1a2e', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }} />
             <VersionCheck />
             <Suspense fallback={
                 <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
@@ -472,6 +475,7 @@ function App() {
 
             <CookieConsent />
         <CommandPalette />
+        <SupportWidget />
     </>
 )
 }

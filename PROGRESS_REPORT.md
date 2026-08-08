@@ -1,3 +1,20 @@
+## 2026-08-08 — v9.9.2-MASTER-FIX (CONTINUED)
+- [CRITICAL FIX] Email Service — Resend API primary + SMTP fallback
+- [CRITICAL FIX] Убраны ВСЕ alert() → Toast + ErrorBoundary
+- [CRITICAL FIX] Checkbox Component — shared 18x18, dark theme
+- [CRITICAL FIX] Onboarding Adaptive — max-w-xl, centered, responsive
+- [FEATURE] Trial Tokens — интегрированы в UsageQuota/User, 10 бесплатных, счётчик в UI
+- [FEATURE] Smart Quota — info/help/navigation не тратят токены
+- [FEATURE] Niche Recognition — NICHE_REGISTRY (20+ ниш), fuzzy matching
+- [FEATURE] Unified Support — SupportTicket, AI-анализ, эскалация при confidence < 0.7
+- [FEATURE] SupportTab + SupportWidget — Dashboard + плавающая кнопка
+- [FEATURE] Telegram @aiviral_omega_bot — клиентское меню, поддержка, тикеты
+- [FEATURE] Telegram @aiviral_alerts_bot — владелец, /tickets, алерты
+- [FEATURE] Feature Map — 6 bento-карточек
+- [FEATURE] Interactive Tutorial — driver.js, 5 шагов
+- [BUILD] npm run build — 0 errors, node --check backend OK
+- [DEPLOY] Git push origin main; Render Clear Build Cache & Deploy pending
+
 ## 2026-08-08 — v9.9-LAUNCH: Public Landing, Beta Signup, Payments, Client Onboarding, Referral, Monetization Dashboard, API Docs
 - [FEATURE] Public Landing Page — /, hero, features bento, pricing, how it works, testimonials, FAQ, footer (glassmorphism, adaptive)
 - [FEATURE] Beta Signup Flow — /signup, 4-step wizard: email/plan, onboarding (niche/goals/socials), payment mock, first project

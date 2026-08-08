@@ -34,6 +34,7 @@ import {
     recommendPublishTime,
     speakVoice,
     generateVideo,
+    detectNiche,
 } from '../controllers/omegaController.js'
 import {
     getApprovalQueue,
@@ -61,6 +62,7 @@ router.post('/chat', protect, async (req, res, next) => {
         res.status(500).json({ status: 'error', error: 'AI service error', details: err.message })
     }
 })
+router.post('/detect-niche', protect, detectNiche)
 router.get('/memory', getMemory)
 router.post('/memory', createMemory)
 

@@ -88,3 +88,30 @@ See `backend/.env.example` for the full template. Key variables:
 - Full AI video generation (Pictory / HeyGen integration).
 - 3D OMEGA avatars.
 - Optional blockchain / NFT integration.
+
+## v9.9.2-MASTER-FIX Update (2026-08-08)
+
+### New Features
+- **Trial Tokens**: 10 free AI generations for new users via UsageQuota model, visible counter in OmegaChat header.
+- **Smart Quota**: Help/info/navigation queries bypass token consumption.
+- **Niche Recognition**: Fuzzy registry of 20+ niches + AI fallback, endpoint `POST /api/omega/detect-niche`.
+- **Unified Support**: SupportTicket model, AI-first triage with confidence scoring, escalation to owner when confidence < 0.7.
+- **SupportTab**: Owner dashboard panel for support tickets (filter, search, reply, status change).
+- **SupportWidget**: Global floating support button with screenshot upload and Telegram link.
+- **Telegram Client Bot** `@aiviral_omega_bot`: client menu, support flow, ticket creation.
+- **Telegram Owner Bot** `@aiviral_alerts_bot`: `/tickets` command and owner alerts.
+- **Feature Map**: 6-card bento feature section on landing page.
+- **Interactive Tutorial**: driver.js 5-step onboarding tour in OmegaChat.
+
+### Updated Environment Variables
+- `TELEGRAM_BOT_TOKEN` — client bot `@aiviral_omega_bot`
+- `TELEGRAM_OWNER_BOT_TOKEN` — owner bot `@aiviral_alerts_bot`
+- `TELEGRAM_OWNER_CHAT_ID` — owner chat for alerts
+
+### Build Status
+- `npm run build` — 0 errors.
+- `node --check backend/server.js` — OK.
+
+### Deployment
+- Backend: Render (clear build cache & deploy).
+- Frontend: Cloudflare Pages from `frontend/dist`.

@@ -694,3 +694,18 @@ NODE_ENV=production
 - [x] 3 separate tabs → 1 Creative Hub
 - [x] 2 chat versions → unified chat
 - [x] Role-aware greeting
+
+## Current State (v9.9.2-MASTER-FIX — 2026-08-08)
+- Trial Tokens: 10 бесплатных генераций для новых пользователей, интегрированы в UsageQuota и UI чата (⚡ N/10).
+- Smart Quota: info/help/navigation запросы не расходуют токены (keywords whitelist).
+- Niche Recognition: backend/data/niches.js (20+ ниш), fuzzy matching + AI fallback, endpoint POST /api/omega/detect-niche.
+- Unified Support: SupportTicket model + supportService (AI suggestion + escalation при confidence < 0.7) + /api/support routes.
+- SupportTab в Owner Dashboard: таблица тикетов, фильтр, поиск, ответ, смена статуса.
+- SupportWidget: плавающая кнопка 💬 глобально, модалка с темой/описанием/скриншотом, Telegram-ссылка.
+- Telegram @aiviral_omega_bot (client): TELEGRAM_BOT_TOKEN, клиентское меню, поддержка, создание тикетов.
+- Telegram @aiviral_alerts_bot (owner): TELEGRAM_OWNER_BOT_TOKEN, /tickets, owner alerts.
+- Feature Map: 6 bento-карточек на лендинге.
+- Interactive Tutorial: driver.js, 5 шагов по UI OMEGA Chat.
+- i18n: support.*, onboarding.*, tutorial.*, chat.limitReached/tokensLeft/infoQueryFree в ru.json.
+- Build: npm run build 0 errors, node --check backend OK.
+- Deploy: Git push origin main; Render Clear Build Cache & Deploy pending.

@@ -5,14 +5,15 @@ import { createNode, queryMesh } from './cognitiveMesh.js'
 import { isOwner as isOwnerContext, getOwnerContext, getSmartGreeting } from './ownerContext.js'
 import { getMenu, trackClick, generateMenuImprovements, applyMenuChanges, addCustomButton, toggleButton } from './telegramMenuService.js'
 import User from '../models/User.js'
+import SupportTicket from '../models/SupportTicket.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
 let bot = global.ownerBotInstance || null
 let started = global.ownerBotStarted || false
 
-const OWNER_TOKEN = process.env.TELEGRAM_BOT_TOKEN
-const OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID
+const OWNER_TOKEN = process.env.TELEGRAM_OWNER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN
+const OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID || process.env.OWNER_CHAT_ID || process.env.OWNER_USER_ID
 
 // [v9.6.2-BOT-EVOLUTION] Resolve owner MongoDB id for menu/personalization
 async function getOwnerMongoId() {
@@ -125,7 +126,7 @@ export const initOwnerBot = () => {
   global.ownerBotStarted = true
 
   if (!OWNER_TOKEN || !OWNER_CHAT_ID) {
-    console.warn('[OWNER-BOT] Skip: TELEGRAM_BOT_TOKEN or TELEGRAM_OWNER_CHAT_ID missing')
+    console.warn('[OWNER-BOT] Skip: TELEGRAM_OWNER_BOT_TOKEN or TELEGRAM_OWNER_CHAT_ID missing')
     bot = createStubBot()
     global.ownerBotInstance = bot
     global.ownerBot = bot
@@ -135,12 +136,13 @@ export const initOwnerBot = () => {
   bot = new TelegramBot(OWNER_TOKEN, { polling: false })
   global.ownerBotInstance = bot
   global.ownerBot = bot
-  console.log('[OWNER-BOT] Created, preparing polling')
+  console.log('[OWNER-BOT] Created, preparing webhook')
 
   bot.setMyCommands([
     { command: 'start', description: '🏠 Главная' },
     { command: 'status', description: '📊 Статус' },
     { command: 'stats', description: '💎 Метрики' },
+    { command: 'tickets', description: '🎫 Обращения' },
     { command: 'omega', description: '🤖 OMEGA' },
     { command: 'exec', description: '⚡ Выполнить' },
     { command: 'menu', description: '📝 Изменить меню' },
@@ -164,6 +166,32 @@ export const initOwnerBot = () => {
 
   bot.onText(/\/status/, (msg) => { if (!isOwner(msg.chat.id)) return; sendStatus(msg.chat.id) })
   bot.onText(/\/stats/, (msg) => { if (!isOwner(msg.chat.id)) return; sendStats(msg.chat.id) })
+
+  // [v9.9.2-MASTER-FIX] /tickets — list open support tickets
+  bot.onText(/\/tickets/, async (msg) => {
+    const chatId = msg.chat.id
+    if (!isOwner(chatId)) return
+    try {
+      const tickets = await SupportTicket.find({ status: { $in: ['open','needs_owner','in_progress'] } })
+        .sort({ createdAt: -1 })
+        .limit(5)
+      if (!tickets.length) {
+        safeSendMessage(chatId, '✅ Нет открытых обращений.')
+        return
+      }
+      let text = '📋 <b>Открытые обращения:</b>\n━━━━━━━━━━━━━━\n'
+      tickets.forEach(t => {
+        const emoji = t.status === 'needs_owner' ? '🔴' : t.status === 'ai_handled' ? '🔵' : '🟡'
+        text += `${emoji} #${t._id.toString().slice(-6)} — ${t.subject}\n👤 ${t.userName || t.userEmail}\n💡 AI: ${t.aiConfidence ? Math.round(t.aiConfidence * 100) + '%' : 'N/A'}\n\n`
+      })
+      text += '━━━━━━━━━━━━━━\nОткрыть Dashboard: https://aiviral-studio.ru/owner?tab=support'
+      safeSendMessage(chatId, text, { parse_mode: 'HTML' })
+    } catch (e) {
+      console.error('[OWNER-BOT] /tickets failed:', e.message)
+      safeSendMessage(chatId, '⚠️ Не удалось загрузить обращения.', { parse_mode: 'HTML' })
+    }
+  })
+
   bot.onText(/\/omega/, (msg) => { if (!isOwner(msg.chat.id)) return; sendOmegaPanel(msg.chat.id) })
 
   // OWNER MODE — выполнение команд

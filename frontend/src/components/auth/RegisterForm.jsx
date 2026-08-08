@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Eye, EyeOff, Mail, RefreshCw } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { API_BASE_URL } from '../../config.js'
+import { Checkbox } from '../shared/Checkbox.jsx'
 
 function RegisterForm({ onSuccess }) {
     const [name, setName] = useState('')
@@ -101,8 +102,6 @@ function RegisterForm({ onSuccess }) {
             setResendLoading(false)
         }
     }
-
-    const checkboxClass = "w-4 h-4 rounded border border-white/20 bg-white/5 text-[#00ff41] focus:ring-[#00ff41]/30 focus:ring-offset-0"
 
     if (registered) {
         return (
@@ -225,60 +224,45 @@ function RegisterForm({ onSuccess }) {
                 </div>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3 pt-2 max-w-full overflow-hidden">
                 <p className="text-sm text-gray-400 font-medium">Обязательные согласия</p>
 
-                <label className="flex items-start gap-3 cursor-pointer group">
-                    <input
-                        type="checkbox"
-                        checked={consent.acceptedTerms}
-                        onChange={handleConsentChange('acceptedTerms')}
-                        className={checkboxClass}
-                    />
-                    <span className="text-sm text-gray-400 group-hover:text-gray-300">
-                        Я согласен с{' '}
-                        <Link to="/terms-of-service" target="_blank" className="text-[#00ff41] hover:underline">Условиями использования</Link>
-                    </span>
-                </label>
+                <Checkbox
+                    checked={consent.acceptedTerms}
+                    onChange={handleConsentChange('acceptedTerms')}
+                    label={
+                        <span>Я согласен с{' '}
+                            <Link to="/terms-of-service" target="_blank" className="text-[#00ff41] hover:underline">Условиями использования</Link>
+                        </span>
+                    }
+                />
 
-                <label className="flex items-start gap-3 cursor-pointer group">
-                    <input
-                        type="checkbox"
-                        checked={consent.acceptedPrivacy}
-                        onChange={handleConsentChange('acceptedPrivacy')}
-                        className={checkboxClass}
-                    />
-                    <span className="text-sm text-gray-400 group-hover:text-gray-300">
-                        Я согласен с{' '}
-                        <Link to="/privacy-policy" target="_blank" className="text-[#00ff41] hover:underline">Политикой конфиденциальности</Link>
-                    </span>
-                </label>
+                <Checkbox
+                    checked={consent.acceptedPrivacy}
+                    onChange={handleConsentChange('acceptedPrivacy')}
+                    label={
+                        <span>Я согласен с{' '}
+                            <Link to="/privacy-policy" target="_blank" className="text-[#00ff41] hover:underline">Политикой конфиденциальности</Link>
+                        </span>
+                    }
+                />
 
-                <label className="flex items-start gap-3 cursor-pointer group">
-                    <input
-                        type="checkbox"
-                        checked={consent.acceptedConsent}
-                        onChange={handleConsentChange('acceptedConsent')}
-                        className={checkboxClass}
-                    />
-                    <span className="text-sm text-gray-400 group-hover:text-gray-300">
-                        Я даю{' '}
-                        <Link to="/consent" target="_blank" className="text-[#00ff41] hover:underline">Согласие на обработку ПДн</Link>
-                        , включая трансграничную передачу в США/ЕС
-                    </span>
-                </label>
+                <Checkbox
+                    checked={consent.acceptedConsent}
+                    onChange={handleConsentChange('acceptedConsent')}
+                    label={
+                        <span>Я даю{' '}
+                            <Link to="/consent" target="_blank" className="text-[#00ff41] hover:underline">Согласие на обработку ПДн</Link>
+                            , включая трансграничную передачу в США/ЕС
+                        </span>
+                    }
+                />
 
-                <label className="flex items-start gap-3 cursor-pointer group">
-                    <input
-                        type="checkbox"
-                        checked={consent.isAdult}
-                        onChange={handleConsentChange('isAdult')}
-                        className={checkboxClass}
-                    />
-                    <span className="text-sm text-gray-400 group-hover:text-gray-300">
-                        Мне исполнилось 18 лет
-                    </span>
-                </label>
+                <Checkbox
+                    checked={consent.isAdult}
+                    onChange={handleConsentChange('isAdult')}
+                    label="Мне исполнилось 18 лет"
+                />
             </div>
 
             {/* [P16-hotfix] Turnstile widget hidden */}

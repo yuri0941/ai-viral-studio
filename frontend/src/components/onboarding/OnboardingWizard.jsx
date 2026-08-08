@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ChevronLeft, Award, Wand2, Sparkles, Loader2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { omegaApi, scheduledPostsApi } from '../../services/api'
+import toast from 'react-hot-toast'
 import StepNiche from './StepNiche'
 import StepSocials from './StepSocials'
 import StepStyle from './StepStyle'
@@ -150,7 +151,7 @@ function OnboardingWizard() {
             }
         } catch (err) {
             console.error('[OnboardingWizard] AI fill failed:', err)
-            alert('OMEGA не смогла распознать описание. Попробуйте заполнить вручную.')
+            toast.error('OMEGA не смогла распознать описание. Попробуйте заполнить вручную.', { duration: 4000, icon: '❌' })
         } finally {
             setAiFillLoading(false)
         }
@@ -208,10 +209,10 @@ function OnboardingWizard() {
     const progress = ((step + 1) / STEP_TITLES.length) * 100
 
     return (
-        <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col items-center justify-center p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm overflow-y-auto">
             {showConfetti && <Confetti />}
 
-            <div className="w-full max-w-4xl">
+            <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto bg-[var(--card)]/90 backdrop-blur-xl rounded-2xl border border-[var(--border)] shadow-2xl p-5 sm:p-8 text-white mx-auto">
                 <div className="mb-8">
                     <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                         <div
