@@ -167,10 +167,10 @@ export const initOwnerBot = () => {
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '📋 Тикеты', callback_data: 'owner:tickets' }, { text: '🛒 Заказы рекламы', callback_data: 'owner:adorders' }],
-          [{ text: '💰 Цены рекламы', callback_data: 'owner:prices' }, { text: '📊 Статистика', callback_data: 'owner:stats' }],
-          [{ text: '📢 Опубликовать', callback_data: 'owner:post' }, { text: '⏸ Стоп / ▶️ Старт', callback_data: 'owner:toggle' }],
-          [{ text: '🌐 Dashboard', url: 'https://aiviral-studio.ru/owner' }]
+          [{ text: '📋 Тикеты', callback_data: 'owner:tickets' }, { text: '💬 Диалоги', callback_data: 'owner:conversations' }],
+          [{ text: '🛒 Заказы рекламы', callback_data: 'owner:adorders' }, { text: '💰 Цены рекламы', callback_data: 'owner:prices' }],
+          [{ text: '📊 Статистика', callback_data: 'owner:stats' }, { text: '📢 Опубликовать', callback_data: 'owner:post' }],
+          [{ text: '⏸ Стоп / ▶️ Старт', callback_data: 'owner:toggle' }, { text: '🌐 Dashboard', url: 'https://aiviral-studio.ru/owner' }]
         ]
       }
     });
@@ -472,6 +472,21 @@ export const initOwnerBot = () => {
         if (!tickets.length) text += '✅ Нет открытых обращений.';
         else tickets.forEach(t => { const e = t.status === 'needs_owner' ? '🔴' : '🟡'; text += `${e} #${t._id.toString().slice(-6)} — ${t.subject}\n`; });
       } catch (e) { text += '⚠️ Модуль тикетов не подключён.'; }
+      safeSendMessage(chatId, text);
+      return;
+    }
+    if (data === 'owner:conversations') {
+      let text = '💬 <b>Диалоги с клиентами</b>\n━━━━━━━━━━━━━━\n';
+      try {
+        const { default: SupportTicket } = await import('../models/SupportTicket.js');
+        const tickets = await SupportTicket.find({ status: { $in: ['needs_owner', 'open', 'ai_handled'] }, source: 'telegram' }).sort({ createdAt: -1 }).limit(5);
+        if (!tickets.length) text += '✅ Нет активных диалогов.';
+        else tickets.forEach((t, i) => {
+          const statusEmoji = t.status === 'needs_owner' ? '🔴' : t.status === 'ai_handled' ? '💡' : '🟡';
+          text += `${i + 1}. ${statusEmoji} #${t._id.toString().slice(-6)} — ${t.description ? t.description.slice(0, 45) : t.subject}...\n`;
+        });
+        text += '\n━━━━━━━━━━━━━━\nПолный список в Dashboard → Обращения';
+      } catch (e) { text += '⚠️ Модуль не подключён.'; }
       safeSendMessage(chatId, text);
       return;
     }

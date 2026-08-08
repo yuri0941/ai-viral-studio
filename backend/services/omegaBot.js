@@ -1,5 +1,17 @@
 import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
+
+// Контекстная память диалогов клиентов (последние 10 сообщений)
+global.clientDialogues = global.clientDialogues || {};
+
+// Privacy Firewall — запрещённые паттерны для ответов клиентам
+const CLIENT_PRIVACY_PATTERNS = [
+  /владелец|юрий|tvinki013|2130452126/i,
+  /mrr|доход платформы|общий доход|сколько зарабатывает|прибыль проекта|зарплата/i,
+  /стек технологий|на чём написано|исходный код|архитектура|backend|frontend|mongodb|express/i,
+  /другие клиенты|чужой проект|данные клиента|конфиденциальная информация/i,
+  /пароль|токен|api.key|env/i,
+];
 import { chatWithAI } from './aiService.js'
 import { isOwner, getOwnerContext } from './ownerContext.js'
 import { createTicket } from './supportService.js'
@@ -142,6 +154,93 @@ export const initOmegaBot = () => {
     }
   })
 
+  // [v9.9.7-BOT-CONVERSATION] AI chat with privacy firewall, context memory, smart routing, escalation
+  async function handleFreeText(chatId, text, username) {
+    // Инициализируем историю
+    global.clientDialogues[chatId] = global.clientDialogues[chatId] || [];
+    global.clientDialogues[chatId].push({ role: 'user', content: text, time: Date.now() });
+    if (global.clientDialogues[chatId].length > 10) {
+      global.clientDialogues[chatId] = global.clientDialogues[chatId].slice(-10);
+    }
+
+    const systemPrompt = `Ты — OMEGA AI 🤖, ассистент AI Viral Studio. Ты помогаешь клиентам с SMM, вирусным контентом, тарифами, настройкой аккаунта.
+Правила:
+1. Отвечай кратко (2-4 предложения), по делу, с эмодзи, на русском.
+2. НЕ раскрывай: имя владельца, MRR, технический стек, данные других клиентов, исходный код, пароли, токены.
+3. Если спрашивают про оплату/возврат/баг/взлом/удаление аккаунта — ответь: "Для решения этого вопроса я подключу нашего специалиста. Ожидайте..." и добавь в конце ESCALATE.
+4. Если клиент хочет рекламу — предложи перейти в раздел рекламы.
+5. Если клиент хочет скидку — предложи промокод.
+6. Если не знаешь ответ или вопрос сложный — честно скажи "Уточню у команды" и добавь ESCALATE.
+7. Подписывайся: "OMEGA 🤖"
+8. Будь дружелюбной, но профессиональной. Если клиент просто здоровается — поздоровайся и предложи помощь.`;
+
+    const history = global.clientDialogues[chatId].map(m => m.content);
+
+    try {
+      bot.sendChatAction(chatId, 'typing');
+      const ai = await chatWithAI(systemPrompt, history, 'ru', { maxTokens: 700, temperature: 0.75 });
+      let reply = ai?.reply || ai?.text || 'Извините, я временно недоступна. Попробуйте позже.';
+
+      // Privacy Firewall — пост-обработка ответа
+      for (const pattern of CLIENT_PRIVACY_PATTERNS) {
+        if (pattern.test(reply)) {
+          reply = 'Это конфиденциальная информация. Давайте лучше поговорим о вашем SMM-стратегии! 💡';
+          break;
+        }
+      }
+
+      // Smart Routing — определяем intent для inline keyboard
+      const lowerReply = reply.toLowerCase();
+      const lowerText = text.toLowerCase();
+      const keyboard = [];
+      let needsEscalation = reply.includes('ESCALATE');
+
+      if (lowerText.includes('реклам') || lowerReply.includes('реклам') || lowerText.includes('разместить')) {
+        keyboard.push([{ text: '🛒 Заказать рекламу', callback_data: 'ad:start' }]);
+      }
+      if (lowerText.includes('скидк') || lowerText.includes('промокод') || lowerText.includes('дешевле') || lowerReply.includes('скидк')) {
+        keyboard.push([{ text: '💰 Активные промокоды', callback_data: 'discount:list' }]);
+      }
+      if (lowerText.includes('видео') || lowerText.includes('reels') || lowerText.includes('тикток') || lowerText.includes('shorts') || lowerReply.includes('видео')) {
+        keyboard.push([{ text: '🎬 Создать видео', callback_data: 'video:start' }]);
+      }
+      if (lowerText.includes('поддержк') || lowerText.includes('помощ') || lowerText.includes('не работает') || lowerText.includes('баг') || lowerText.includes('ошибк') || needsEscalation) {
+        keyboard.push([{ text: '💬 Написать в поддержку', callback_data: 'support:start' }]);
+      }
+
+      // Если escalation — создаём тикет
+      if (needsEscalation) {
+        reply = reply.replace(/ESCALATE/g, '').trim();
+        try {
+          const { createTicket } = await import('./supportService.js');
+          await createTicket({
+            userEmail: `tg_${chatId}@aiviral-studio.ru`,
+            subject: 'AI Escalation',
+            description: `Клиент написал: "${text}"\nOMEGA не смогла ответить или вопрос требует оператора.`,
+            telegramChatId: String(chatId)
+          });
+        } catch (e) { console.error('Escalation ticket failed:', e); }
+      }
+
+      keyboard.push([{ text: '📋 Главное меню', callback_data: 'menu:main' }]);
+
+      // Сохраняем ответ в историю
+      global.clientDialogues[chatId].push({ role: 'assistant', content: reply, time: Date.now() });
+
+      await bot.sendMessage(chatId, `🤖 <b>OMEGA</b>\n━━━━━━━━━━━━━━\n${reply}`, {
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: keyboard }
+      });
+
+    } catch (e) {
+      console.error('Free text chat error:', e);
+      bot.sendMessage(chatId, `🤖 <b>OMEGA</b>\n━━━━━━━━━━━━━━\nИзвините, я временно недоступна. Попробуйте позже.\n\n💬 Написать в поддержку — нажмите кнопку ниже.`, {
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: [[{ text: '💬 Поддержка', callback_data: 'support:start' }], [{ text: '📋 Меню', callback_data: 'menu:main' }]] }
+      });
+    }
+  }
+
   // [v9.9.2-MASTER-FIX] client support flow + existing AI handler
   bot.on('message', async (msg) => {
     if (msg.text && msg.text.startsWith('/')) return
@@ -192,32 +291,34 @@ export const initOmegaBot = () => {
       return
     }
 
+    if (!owner) {
+      if (text && text.trim()) {
+        await handleFreeText(chatId, text, msg.from?.username);
+      } else {
+        sendClientMenu(chatId);
+      }
+      return
+    }
+
+    // Owner fallback — smart OMEGA reply
     bot.sendChatAction(chatId, 'typing')
 
     try {
       const result = await chatWithAI(text, [], {
-        userRole: owner ? 'owner' : 'client',
+        userRole: 'owner',
         language: 'ru',
-        context: owner ? 'telegram_owner_chat' : 'telegram_bot'
+        context: 'telegram_owner_chat'
       })
 
       const rawText = result.text || result
       const textToFormat = typeof rawText === 'string' ? rawText : (rawText && typeof rawText === 'object' ? (rawText.text || rawText.message || rawText.content || JSON.stringify(rawText, null, 2)) : String(rawText))
       const formatted = formatOmegaResponse(textToFormat, owner)
 
-      const keyboard = owner ? {
+      const keyboard = {
         reply_markup: {
           inline_keyboard: [
             [{ text: '✅ Готово', callback_data: 'owner_done' }, { text: '🔄 Уточнить', callback_data: 'owner_refine' }],
             [{ text: '📝 В ТЗ', callback_data: 'owner_tz' }, { text: '⚡ Применить', callback_data: 'owner_apply' }]
-          ]
-        }
-      } : {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '✅ Использовать', callback_data: 'use_result' }, { text: '🔄 Переделать', callback_data: 'regenerate' }],
-            [{ text: '📋 Скопировать', callback_data: 'copy' }, { text: '📤 Опубликовать', callback_data: 'publish_menu' }],
-            [{ text: '💬 Поддержка', callback_data: 'support:start' }]
           ]
         }
       }
@@ -242,24 +343,24 @@ export const initOmegaBot = () => {
       return
     }
     if (data.startsWith('ticket:')) {
-      const [, ticketId, action] = data.split(':')
-      try {
-        const SupportTicket = (await import('../models/SupportTicket.js')).default
-        const ticket = await SupportTicket.findById(ticketId)
-        if (ticket) {
-          if (action === 'resolve') {
-            ticket.status = 'resolved'
-            await ticket.save()
-            safeSendMessage(chatId, '✅ Обращение закрыто. Рады помочь!', { parse_mode: 'HTML' })
-          } else if (action === 'escalate') {
-            ticket.status = 'needs_owner'
-            await ticket.save()
-            safeSendMessage(chatId, '⏳ Передаю оператору. Ожидайте...', { parse_mode: 'HTML' })
-          }
-        }
-      } catch (err) {
-        console.error('[OMEGA-BOT] ticket callback failed:', err.message)
-        safeSendMessage(chatId, '⚠️ Не удалось обновить обращение.', { parse_mode: 'HTML' })
+      const parts = data.split(':');
+      const ticketId = parts[1];
+      const action = parts[2];
+      if (action === 'resolve') {
+        bot.sendMessage(chatId, `✅ Рад была помочь! Если понадобится ещё — пишите. OMEGA 🤖`, { parse_mode: 'HTML' });
+        try {
+          const { updateTicketStatus } = await import('./supportService.js');
+          await updateTicketStatus(ticketId, 'resolved');
+        } catch (e) { console.error('Ticket resolve failed:', e); }
+      }
+      else if (action === 'escalate') {
+        bot.sendMessage(chatId, `⏳ Передаю оператору. Ожидайте ответа...`, { parse_mode: 'HTML' });
+        try {
+          const { updateTicketStatus } = await import('./supportService.js');
+          await updateTicketStatus(ticketId, 'needs_owner');
+          const ownerBot = new TelegramBot(process.env.TELEGRAM_OWNER_BOT_TOKEN, { polling: false });
+          await ownerBot.sendMessage(process.env.OWNER_CHAT_ID, `🔴 <b>Клиент недоволен ответом AI!</b>\n━━━━━━━━━━━━━━\nТикет #${ticketId.slice(-6)}\nТребуется оператор.\n👁 <a href="https://aiviral-studio.ru/owner?tab=tickets">Открыть в Dashboard</a>`, { parse_mode: 'HTML', disable_web_page_preview: true });
+        } catch (e) { console.error('Escalation notify failed:', e); }
       }
       return
     }
@@ -317,6 +418,9 @@ export const initOmegaBot = () => {
       else if (data === 'copy') safeSendMessage(chatId, '📋 Скопировано!', { parse_mode: 'HTML' })
       else if (data === 'publish_menu') {
         safeSendMessage(chatId, '📤 <b>Платформа:</b>', { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: '✈️ Telegram', callback_data: 'pub_tg' }, { text: '🔵 VK', callback_data: 'pub_vk' }]] } })
+      }
+      else if (data === 'menu:main') {
+        sendClientMenu(chatId);
       }
     }
   })

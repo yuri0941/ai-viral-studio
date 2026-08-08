@@ -157,9 +157,14 @@ export function SupportTab() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${meta.color}`}>
-                        {meta.emoji} {meta.label}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${meta.color}`}>
+                          {meta.emoji} {meta.label}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--card)] text-[var(--text-muted)] border border-[var(--border)]">
+                          {t.source === 'free_chat' ? '💬 Диалог' : t.source === 'telegram' ? '📱 TG' : '🌐 Web'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {ticket.aiConfidence !== undefined ? (

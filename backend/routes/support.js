@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { protect, requireRole } from '../middleware/auth.js'
-import { createTicket, addMessage } from '../services/supportService.js'
+import { createTicket, addMessage, updateTicketStatus } from '../services/supportService.js'
 
 const router = Router()
 
@@ -56,11 +56,11 @@ router.get('/', protect, async (req, res) => {
 
 router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), async (req, res) => {
   try {
-    const ticket = await SupportTicket.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status, assignedTo: req.body.assignedTo, updatedAt: new Date() },
-      { new: true }
-    )
+    const ticket = await updateTicketStatus(req.params.id, req.body.status, req.body.resolution)
+    if (req.body.assignedTo) {
+      ticket.assignedTo = req.body.assignedTo
+      await ticket.save()
+    }
     res.json({ status: 'success', data: ticket })
   } catch (err) {
     console.error('[support] status update failed:', err.message)

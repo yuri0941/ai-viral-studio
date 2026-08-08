@@ -49,3 +49,9 @@ export async function addMessage(ticketId, sender, text) {
   await ticket.save()
   return ticket
 }
+
+export async function updateTicketStatus(ticketId, status, resolution = null) {
+  const update = { status, updatedAt: new Date() }
+  if (resolution) update.resolution = resolution
+  return await SupportTicket.findByIdAndUpdate(ticketId, update, { new: true })
+}

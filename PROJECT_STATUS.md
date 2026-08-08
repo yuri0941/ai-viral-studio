@@ -133,3 +133,23 @@ See `backend/.env.example` for the full template. Key variables:
 ### Deployment
 - Backend: Render (clear build cache & deploy).
 - Frontend: Cloudflare Pages from `frontend/dist`.
+
+## v9.9.7-BOT-CONVERSATION Update (2026-08-09)
+
+### New Features
+- **OmegaBot AI Dialog**: free-text AI replies with context memory (last 10 messages) instead of only buttons.
+- **Privacy Firewall**: 5 regex patterns block owner / revenue / stack / other clients / secrets from client replies.
+- **Smart Routing**: AI detects intent (ads, discounts, video, support) and offers inline action buttons.
+- **Auto-Escalation**: unknown / payment / bug / account issues create a support ticket and alert the owner.
+- **Ticket Inline Actions**: 👍 resolves ticket, 👎 escalates to owner with Telegram + Dashboard alert.
+- **OwnerBot Conversations**: new `💬 Диалоги` button lists `needs_owner` / `open` / `ai_handled` Telegram tickets.
+- **TicketsTab Source Badge**: each ticket shows `💬 Диалог` / `📱 TG` / `🌐 Web` source.
+
+### Updated Backend
+- `backend/services/omegaBot.js`: `handleFreeText`, `CLIENT_PRIVACY_PATTERNS`, `global.clientDialogues`.
+- `backend/services/supportService.js`: exported `updateTicketStatus`.
+- `backend/routes/support.js`: `PATCH /:id/status` now uses `updateTicketStatus`.
+
+### Build Status
+- `npm run build` — 0 errors.
+- `node --check backend/server.js` — OK.

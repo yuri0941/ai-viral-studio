@@ -657,5 +657,19 @@
     "openDashboard": "Открыть Dashboard",
     "supportSent": "Обращение отправлено",
     "writeInTelegram": "Написать в Telegram"
+  },
+  "clientChat": {
+    "greeting": "Привет! Я OMEGA 🤖 Чем могу помочь с вашим SMM сегодня?",
+    "escalate": "Передаю оператора...",
+    "privacyBlock": "Это конфиденциально. Давайте лучше поговорим о вашем проекте! 💡",
+    "smartSuggest": "Попробуйте:",
+    "menu": "Главное меню"
+  },
+  "ownerConversations": {
+    "title": "Диалоги с клиентами",
+    "noConversations": "Нет активных диалогов",
+    "needsOwner": "Требуется оператор",
+    "aiHandled": "OMEGA ответила",
+    "open": "Открыт"
   }
 }

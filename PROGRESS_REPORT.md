@@ -1,3 +1,15 @@
+## 2026-08-09 — v9.9.7-BOT-CONVERSATION
+- [FEATURE] Клиентский AI-диалог в @aiviral_omega_bot — свободный текст, не только кнопки
+- [FEATURE] Privacy Firewall для клиентов — 5 паттернов, блокировка конфиденциального
+- [FEATURE] Context Memory — последние 10 сообщений диалога передаются в OMEGA
+- [FEATURE] Smart Routing — AI понимает intent (реклама, скидки, видео, поддержка) и предлагает кнопки
+- [FEATURE] Auto-Escalation — незнакомый вопрос/баг/оплата → автотикет + алерт владельцу
+- [FEATURE] Ticket resolve/escalate inline-кнопки (👍 Да / 👎 Нет) работают
+- [FEATURE] ownerBot: кнопка 💬 Диалоги — быстрый доступ к needs_owner тикетам
+- [FEATURE] TicketsTab: source badge (💬 Диалог / 📱 TG / 🌐 Web)
+- [FIX] omegaBot: свободный текст больше не вызывает меню, а запускает AI-чат
+- [DEPLOY] Git push + Render Clear Build Cache & Deploy
+
 ## 2026-08-08 — v9.9.5-TELEGRAM-UNIFIED
 - [FEATURE] 2-Bot Architecture: @aiviral_omega_bot (клиенты) + @aiviral_alerts_bot (владелец ID 2130452126)
 - [FEATURE] Channel @aiviralstudio — авто-публикация, обложки, бренд-подпись
