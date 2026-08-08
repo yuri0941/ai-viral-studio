@@ -14,8 +14,10 @@ import { protect } from './middleware/auth.js' // [HOTFIX-2026-08-04] added — 
 import { apiLimiter, omegaChatLimiter, authLoginLimiter, authRegisterLimiter, checkBlockedIP, autoBanMiddleware } from './middleware/rateLimiter.js'  // [v7.0-PART2] rate limiting v2
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import bot from './services/ownerBot.js'
-import { initOwnerBot } from './services/ownerBot.js'
+import { initOwnerBot, sendOwnerAlert } from './services/ownerBot.js'
 import { initOmegaBot } from './services/omegaBot.js'
+import { getTaxReminder } from './services/financeService.js'
+import { createNode } from './services/cognitiveMesh.js'
 import { Campaign } from './models/Campaign.js'
 import Ticket from './models/Ticket.js'
 import User from './models/User.js'
@@ -191,6 +193,20 @@ if (isConnected) {
 
     console.log('🧠 Self-improvement crons scheduled')
 }
+
+// [v9.5.2-CLIENT-MANAGER] Daily tax reminder for self-employed NPD (20th-25th)
+cron.schedule('0 20 * * *', async () => {
+    try {
+        const reminder = getTaxReminder()
+        if (reminder.urgent) {
+            console.log(`[TAX REMINDER] ${reminder.message}`)
+            try { await sendOwnerAlert(`🧾 ${reminder.message}`, 'warning') } catch (e) {}
+            try { await createNode({ type: 'system', content: reminder.message, confidence: 1, source: 'tax_reminder', metadata: { type: 'tax_due' } }) } catch (e) {}
+        }
+    } catch (err) {
+        console.error('[cron] tax reminder failed:', err.message)
+    }
+})
 
 // [MASTER-v5.0] added: subscription lifecycle cron
 startSubscriptionCron()

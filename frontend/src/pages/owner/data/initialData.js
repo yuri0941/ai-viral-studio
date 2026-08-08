@@ -166,6 +166,8 @@ export const TAB_LABELS = {
     payments: '💳 Платёжные системы',
     subscribers: '👥 Подписчики',
     requisites: '🏢 Реквизиты',
+    clients: '👥 Клиенты',
+    monetization: '💸 Монетизация',
     servers: 'Серверы',
     updates: 'Обновления',
     promo: 'Промо',

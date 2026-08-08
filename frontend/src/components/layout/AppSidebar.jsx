@@ -120,6 +120,7 @@ const OWNER_GROUPS = [
         items: [
             { id: 'finance', label: 'Финансы', icon: DollarSign },
             { id: 'subscriptions', label: 'Подписки', icon: CreditCard },
+            { id: 'monetization', label: '💸 Возвраты', icon: DollarSign },
             { id: 'requisites', label: '🏢 Реквизиты', icon: Building2 },
             { id: 'advertising', label: 'Реклама', icon: Megaphone },
             { id: 'referrals', label: 'Рефералы', icon: Share2 },
@@ -130,6 +131,7 @@ const OWNER_GROUPS = [
         title: 'КОМАНДА',
         items: [
             { id: 'team', label: 'Команда', icon: Users },
+            { id: 'clients', label: '👥 Клиенты', icon: Users },
             { id: 'cabinets', label: 'Кабинеты', icon: Monitor },
             { id: 'tasks', label: '✅ Задачи', icon: CheckSquare },
             { id: 'boardroom', label: '🏢 Совет', icon: Building2, path: '/boardroom' },

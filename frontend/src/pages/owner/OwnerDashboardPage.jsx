@@ -53,6 +53,8 @@ import OmegaMemoryExplorer from '../../components/omega/OmegaMemoryExplorer.jsx'
 import OmegaBoardroom from '../../components/omega/OmegaBoardroom.jsx'
 import { OwnerRequisitesTab } from './components/tabs/OwnerRequisitesTab'
 import { LegalSettingsTab } from './components/tabs/LegalSettingsTab'
+import { ClientsTab } from './components/tabs/ClientsTab'
+import { MonetizationTab } from './components/tabs/MonetizationTab'
 import { BrandVoiceTab } from './components/tabs/BrandVoiceTab'
 import PersonalityTab from './components/tabs/PersonalityTab'
 import DreamModeTab from './components/tabs/DreamModeTab'
@@ -142,6 +144,8 @@ const TAB_ICONS = {
     devstudio: Code2,
     payments: CreditCard,
     subscribers: Users,
+    clients: Users,
+    monetization: DollarSign,
     omegaFinance: Wallet,
     omegaSkills: BrainCircuit,
     omegaMemory: Database,
@@ -414,6 +418,8 @@ export default function OwnerDashboardPage() {
             case 'dream': return <DreamModeTab data={ownerData} />
             case 'requisites': return <OwnerRequisitesTab data={ownerData} />
             case 'legalSettings': return <LegalSettingsTab data={ownerData} />
+            case 'clients': return <ClientsTab data={ownerData} />
+            case 'monetization': return <MonetizationTab data={ownerData} />
             case 'brandVoice': return <BrandVoiceTab data={ownerData} />
             case 'templates': return <TemplatesTab data={ownerData} />
             case 'scout': return <ScoutTab data={ownerData} />

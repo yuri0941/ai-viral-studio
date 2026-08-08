@@ -1,6 +1,11 @@
 import express from 'express'
 import { protect, authorize } from '../middleware/auth.js'
 import PaymentProvider from '../models/PaymentProvider.js'
+import {
+  listClients, getClientDetails, deleteClientAccount, blockClient, unblockClient, getClientStats
+} from '../services/userManager.js'
+import { requestRefund, processRefund, listRefunds, getRefundStats } from '../services/refundService.js'
+import { addIncome, addExpense, getMonthlyReport, getYearlyForecast, getTaxReminder } from '../services/financeService.js'
 
 const router = express.Router()
 
@@ -104,6 +109,147 @@ router.put('/payment-providers', protect, authorize('owner'), async (req, res) =
   } catch (err) {
     console.error('[admin:payment-providers:put]', err.message)
     res.status(500).json({ success: false, error: 'Ошибка сервера' })
+  }
+})
+
+// === Users management (owner/admin only) ===
+router.get('/users', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const clients = await listClients(req.user.id || req.user._id, req.query)
+    res.json({ success: true, clients, count: clients.length })
+  } catch (err) {
+    console.error('[admin:users:list]', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.get('/users/stats/overview', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    res.json({ success: true, stats: await getClientStats() })
+  } catch (err) {
+    console.error('[admin:users:stats]', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.get('/users/:id', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const client = await getClientDetails(req.params.id, req.user.id || req.user._id)
+    res.json({ success: true, client })
+  } catch (err) {
+    console.error('[admin:users:details]', err.message)
+    res.status(err.message === 'Client not found' ? 404 : 500).json({ success: false, error: err.message })
+  }
+})
+
+router.post('/users/:id/delete', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const result = await deleteClientAccount(req.params.id, req.user.id || req.user._id, req.body.reason)
+    res.json(result)
+  } catch (err) {
+    console.error('[admin:users:delete]', err.message)
+    res.status(err.message === 'Client not found' ? 404 : 500).json({ success: false, error: err.message })
+  }
+})
+
+router.post('/users/:id/block', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const result = await blockClient(req.params.id, req.user.id || req.user._id, req.body.reason)
+    res.json(result)
+  } catch (err) {
+    console.error('[admin:users:block]', err.message)
+    res.status(err.message === 'Client not found' ? 404 : 500).json({ success: false, error: err.message })
+  }
+})
+
+router.post('/users/:id/unblock', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const result = await unblockClient(req.params.id, req.user.id || req.user._id)
+    res.json(result)
+  } catch (err) {
+    console.error('[admin:users:unblock]', err.message)
+    res.status(err.message === 'Client not found' ? 404 : 500).json({ success: false, error: err.message })
+  }
+})
+
+// === Refunds ===
+router.get('/refunds', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    res.json({ success: true, refunds: listRefunds(req.query.status), stats: getRefundStats() })
+  } catch (err) {
+    console.error('[admin:refunds:list]', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.post('/refunds', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const refund = await requestRefund(req.body.userId, req.body.amount, req.body.reason, req.body.paymentId)
+    res.json({ success: true, refund })
+  } catch (err) {
+    console.error('[admin:refunds:create]', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.post('/refunds/:id/process', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const yookassaEnabled = !!(process.env.YOOKASSA_SHOP_ID && process.env.YOOKASSA_SECRET_KEY)
+    const refund = await processRefund(req.params.id, req.user.id || req.user._id, yookassaEnabled)
+    res.json({ success: true, refund })
+  } catch (err) {
+    console.error('[admin:refunds:process]', err.message)
+    res.status(err.message === 'Refund not found' ? 404 : 500).json({ success: false, error: err.message })
+  }
+})
+
+// === Finance (taxes, income, expenses, forecast) ===
+router.post('/finance/income', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const entry = await addIncome(req.body, req.user.id || req.user._id)
+    res.json({ success: true, entry })
+  } catch (err) {
+    console.error('[admin:finance:income]', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.post('/finance/expense', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const entry = await addExpense(req.body, req.user.id || req.user._id)
+    res.json({ success: true, entry })
+  } catch (err) {
+    console.error('[admin:finance:expense]', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.get('/finance/report', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const { year, month } = req.query
+    const report = getMonthlyReport(parseInt(year), parseInt(month), req.user.id || req.user._id)
+    res.json({ success: true, report })
+  } catch (err) {
+    console.error('[admin:finance:report]', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.get('/finance/forecast', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    res.json({ success: true, forecast: getYearlyForecast(req.user.id || req.user._id) })
+  } catch (err) {
+    console.error('[admin:finance:forecast]', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.get('/finance/tax-reminder', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    res.json({ success: true, reminder: getTaxReminder() })
+  } catch (err) {
+    console.error('[admin:finance:tax-reminder]', err.message)
+    res.status(500).json({ success: false, error: err.message })
   }
 })
 

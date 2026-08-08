@@ -3310,3 +3310,24 @@
 - [x] `node --check backend/services/omegaBot.js` OK
 - [x] Git commit/push: выполнен
 - [ ] Render deploy: требует ручного Clear Build Cache & Deploy
+
+## 2026-08-08 — v9.5.2-CLIENT-MANAGER+FINANCE: Users, refunds, tax dashboard, income/expense tracking, auto-reminders, forecast
+- [x] `backend/services/userManager.js` — список клиентов, детали, блокировка, разблокировка, удаление, статистика
+- [x] `backend/services/refundService.js` — in-memory mock возвратов, готов к интеграции ЮKassa
+- [x] `backend/services/financeService.js` — доходы, расходы, месячный отчёт, НПД 4
+## 2026-08-08 — v9.5.2-CLIENT-MANAGER+FINANCE: Users, refunds, tax dashboard, income/expense tracking, auto-reminders, forecast
+- [x] `backend/services/userManager.js` — список клиентов, детали, блокировка, разблокировка, удаление, статистика
+- [x] `backend/services/refundService.js` — in-memory mock возвратов, готов к интеграции ЮKassa
+- [x] `backend/services/financeService.js` — доходы, расходы, месячный отчёт, НПД 4%, годовой прогноз, налоговое напоминание
+- [x] `backend/models/User.js` — добавлены `status`, `blockedAt`, `blockedReason`, `blockedBy`, `deletedAt`, `deletionReason`, `deletedBy`
+- [x] `backend/routes/admin.js` — `/api/admin/users*`, `/api/admin/refunds*`, `/api/admin/finance/*` под `owner/admin`
+- [x] `backend/server.js` — cron `0 20 * * *` налогового напоминания + alert owner в Telegram
+- [x] `frontend/src/pages/owner/components/tabs/ClientsTab.jsx` — таблица клиентов, фильтры, детали, блокировка, удаление
+- [x] `frontend/src/pages/owner/components/tabs/MonetizationTab.jsx` — панель возвратов (mock), статистика, создание/обработка
+- [x] `frontend/src/pages/owner/OwnerDashboardPage.jsx` + `data/initialData.js` + `utils/constants.js` — вкладки `clients` и `monetization`
+- [x] `frontend/src/components/layout/AppSidebar.jsx` — пункты меню 👥 Клиенты и 💸 Возвраты
+- [x] `frontend/src/locales/ru.json` + `en.json` — ключи `clients.*`, `refunds.*`, `finance.*`
+- [x] `node --check backend/server.js` OK
+- [x] `npm run build` — 0 errors
+- [x] Git commit/push: выполнен
+- [ ] Render deploy: требует ручного Clear Build Cache & Deploy

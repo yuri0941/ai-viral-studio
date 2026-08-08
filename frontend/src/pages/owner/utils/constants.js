@@ -41,7 +41,7 @@ export const CRYPTO_NETWORKS = ['TRC20', 'ERC20', 'BEP20', 'SOL', 'BTC']
 export const CRYPTO_CURRENCIES = ['USDT', 'BTC', 'ETH']
 
 export const TABS_ORDER = [
-    'overview', 'team', 'tasks', 'cabinets', 'finance', 'legal', 'legalSettings', 'audit',
+    'overview', 'team', 'tasks', 'cabinets', 'finance', 'monetization', 'clients', 'legal', 'legalSettings', 'audit',
     'subscriptions', 'requisites', 'servers', 'updates', 'promo', 'news', 'referrals',
     'advertising', 'security', 'apiKeys', 'integrations', 'aiAnalytics', 'logs',
     'agents', 'omega', 'omegaFinance', 'omegaSkills', 'omegaMemory',
