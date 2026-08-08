@@ -259,13 +259,25 @@ if (isConnected) {
     }
 }
 
-// CORS must be first — before any route or body parser
-// [HOTFIX-2026-08-08] temporary: allow all origins for mobile diagnostics
+const ALLOWED_ORIGINS = [
+    'https://aiviral-studio.ru',
+    'https://www.aiviral-studio.ru',
+    'http://localhost:5173',
+    'http://localhost:3000'
+]
+
+// [HOTFIX-2026-08-08] CORS: allow aiviral-studio.ru frontend only
 const corsOptions = {
-    origin: '*',
+    origin: function (origin, callback) {
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+            callback(null, true)
+        } else {
+            callback(new Error('Not allowed by CORS'))
+        }
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true,
 }
 
 app.use(cors(corsOptions))
