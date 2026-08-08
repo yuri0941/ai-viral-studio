@@ -12,6 +12,26 @@ let started = global.ownerBotStarted || false
 const OWNER_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID
 
+// [v9.6.1-OMEGA-FIX] Anti-spam cooldown per alert type
+const ALERT_COOLDOWN = new Map()
+const DEFAULT_COOLDOWN_MS = 15 * 60 * 1000
+const COOLDOWN_BY_TYPE = {
+  error: 15 * 60 * 1000,
+  warning: 15 * 60 * 1000,
+  info: 5 * 60 * 1000,
+  success: 2 * 60 * 1000,
+  payment: 2 * 60 * 1000,
+  newuser: 2 * 60 * 1000,
+}
+
+export function shouldSendAlert(alertType, cooldownMs) {
+  const cooldown = cooldownMs ?? COOLDOWN_BY_TYPE[alertType] ?? DEFAULT_COOLDOWN_MS
+  const last = ALERT_COOLDOWN.get(alertType)
+  if (last && Date.now() - last < cooldown) return false
+  ALERT_COOLDOWN.set(alertType, Date.now())
+  return true
+}
+
 function createStubBot() {
   return {
     sendMessage: () => Promise.resolve(),
@@ -341,6 +361,7 @@ const sendOmegaPanel = (chatId) => {
 
 export const sendOwnerAlert = async (message, type = 'info') => {
   if (!bot || !OWNER_CHAT_ID) return
+  if (!shouldSendAlert(type)) return
   const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '🚨', payment: '💰', newuser: '👤' }
   const text = `${icons[type] || 'ℹ️'} <b>AI Viral Studio Alert</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU')}</i>`
   try { await safeSendMessage(OWNER_CHAT_ID, text, { parse_mode: 'HTML' }) } catch (e) {}

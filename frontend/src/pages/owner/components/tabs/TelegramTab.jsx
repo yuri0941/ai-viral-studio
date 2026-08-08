@@ -51,6 +51,7 @@ export default function TelegramTab({ data }) {
   const [lastPost, setLastPost] = useState(null);
   const [plan, setPlan] = useState(null);
   const [stats, setStats] = useState({ subscribers: 0, mock: true });
+  const [botStats, setBotStats] = useState({ total: 0, errors: 0, successful: 0, successRate: 0, recentMessages: [] });
   const [settings, setSettings] = useState({ channelId: '', botToken: '', autoReply: true });
   const [showToken, setShowToken] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -65,6 +66,7 @@ export default function TelegramTab({ data }) {
       setLogs(JSON.parse(localStorage.getItem('telegram_bot_logs') || '[]'));
     } catch {}
     fetchStats();
+    fetchBotStats();
   }, []);
 
   const addLog = useCallback((message) => {
@@ -81,6 +83,15 @@ export default function TelegramTab({ data }) {
       setStats(res || { subscribers: 0, mock: true });
     } catch (err) {
       console.error('[TelegramTab] stats failed', err);
+    }
+  };
+
+  const fetchBotStats = async () => {
+    try {
+      const res = await request('/admin/telegram-bot-stats');
+      if (res?.success) setBotStats(res.stats || { total: 0, errors: 0, successful: 0, successRate: 0, recentMessages: [] });
+    } catch (err) {
+      console.error('[TelegramTab] bot stats failed', err);
     }
   };
 
@@ -365,6 +376,42 @@ export default function TelegramTab({ data }) {
           <Save size={16} />
           {t('telegram.saveSettings')}
         </button>
+      </Section>
+
+      <Section
+        title={t('telegramBot.stats', 'Статистика бота')}
+        icon={Bot}
+        open={activeSection === 'botStats'}
+        onToggle={() => setActiveSection(activeSection === 'botStats' ? '' : 'botStats')}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div className="glass-card rounded-xl p-4 border border-white/10">
+            <p className="text-gray-400 text-xs">{t('telegramBot.dialogs', 'Диалогов за 24ч')}</p>
+            <p className="text-2xl font-bold text-white mt-1">{botStats.total || 0}</p>
+          </div>
+          <div className="glass-card rounded-xl p-4 border border-white/10">
+            <p className="text-gray-400 text-xs">{t('telegramBot.errors', 'Ошибок')}</p>
+            <p className={`text-2xl font-bold mt-1 ${(botStats.errors || 0) > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{botStats.errors || 0}</p>
+          </div>
+          <div className="glass-card rounded-xl p-4 border border-white/10">
+            <p className="text-gray-400 text-xs">{t('telegramBot.successRate', 'Success Rate')}</p>
+            <p className="text-2xl font-bold text-white mt-1">{Math.round((botStats.successRate || 0) * 100)}%</p>
+          </div>
+        </div>
+        <div className="mt-5">
+          <h4 className="text-sm font-medium text-gray-300 mb-2">{t('telegramBot.recentMessages', 'Последние сообщения')}</h4>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {(botStats.recentMessages || []).length === 0 && <p className="text-xs text-gray-500">{t('common.noData', 'Нет данных')}</p>}
+            {(botStats.recentMessages || []).map((msg, idx) => (
+              <div key={msg.id || idx} className="text-xs text-gray-300 bg-white/5 rounded-lg p-2 border border-white/5">
+                <span className="text-gray-500">{new Date(msg.createdAt).toLocaleString('ru-RU')}</span>
+                {' — '}
+                <span className={msg.type === 'error' ? 'text-rose-400' : 'text-emerald-400'}>{msg.type}</span>
+                <p className="mt-1 line-clamp-2">{msg.content}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </Section>
 
       <Section

@@ -21,6 +21,7 @@ import { createNode } from './services/cognitiveMesh.js'
 import { Campaign } from './models/Campaign.js'
 import Ticket from './models/Ticket.js'
 import User from './models/User.js'
+import './models/CognitiveNode.js' // [v9.6.1-OMEGA-FIX] ensure schema is registered before cognitiveMesh uses it
 
 import { detectWhiteLabel, whiteLabelHeaders, getWhiteLabelConfig } from './middleware/whiteLabel.js'
 

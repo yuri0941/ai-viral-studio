@@ -8,7 +8,7 @@ const connectionSchema = new Schema({
 }, { _id: false });
 
 const cognitiveNodeSchema = new Schema({
-  type: { type: String, enum: ['fact','skill','intent','emotion','decision','prediction','error','trend','project','client'], required: true },
+  type: { type: String, enum: ['fact','skill','intent','emotion','decision','prediction','error','trend','project','client','telegram'], required: true },
   content: { type: String, required: true, index: 'text' },
   confidence: { type: Number, min: 0, max: 1, default: 0.8 },
   source: { type: String, default: 'omega' },

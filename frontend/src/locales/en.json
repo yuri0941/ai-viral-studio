@@ -1364,5 +1364,12 @@
     "applyPlaceholder": "Applied (placeholder)",
     "optimizePlaceholder": "Optimization started (placeholder)",
     "tunePreview": "Tune result"
+  },
+  "telegramBot": {
+    "stats": "Bot statistics",
+    "dialogs": "Dialogs in 24h",
+    "errors": "Errors",
+    "successRate": "Success rate",
+    "recentMessages": "Recent messages"
   }
 }

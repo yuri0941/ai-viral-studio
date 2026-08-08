@@ -1364,5 +1364,12 @@
     "applyPlaceholder": "Применено (placeholder)",
     "optimizePlaceholder": "Оптимизация запущена (placeholder)",
     "tunePreview": "Результат тюнинга"
+  },
+  "telegramBot": {
+    "stats": "Статистика бота",
+    "dialogs": "Диалогов за 24ч",
+    "errors": "Ошибок",
+    "successRate": "Success Rate",
+    "recentMessages": "Последние сообщения"
   }
 }

@@ -6,6 +6,8 @@ import {
 } from '../services/userManager.js'
 import { requestRefund, processRefund, listRefunds, getRefundStats } from '../services/refundService.js'
 import { addIncome, addExpense, getMonthlyReport, getYearlyForecast, getTaxReminder } from '../services/financeService.js'
+import { queryMesh } from '../services/cognitiveMesh.js'
+import CognitiveNode from '../models/CognitiveNode.js'
 
 const router = express.Router()
 
@@ -249,6 +251,37 @@ router.get('/finance/tax-reminder', protect, authorize('owner', 'admin'), async 
     res.json({ success: true, reminder: getTaxReminder() })
   } catch (err) {
     console.error('[admin:finance:tax-reminder]', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+// === Telegram bot stats from cognitive mesh ===
+router.get('/telegram-bot-stats', protect, authorize('owner', 'admin'), async (req, res) => {
+  try {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const nodes = await CognitiveNode.find({ source: 'telegram_bot', createdAt: { $gte: since } })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean()
+
+    const total = nodes.length
+    const errors = nodes.filter(n => n.type === 'error' || /error|ошибка|fail/i.test(n.content)).length
+    const successful = nodes.filter(n => n.metadata?.outcome === 'success' || n.confidence > 0.8).length
+    const successRate = total > 0 ? (successful / total) : 0
+
+    res.json({
+      success: true,
+      stats: { total, errors, successful, successRate },
+      recentMessages: nodes.slice(0, 10).map(n => ({
+        id: n._id,
+        content: n.content?.slice(0, 200),
+        type: n.type,
+        confidence: n.confidence,
+        createdAt: n.createdAt,
+      })),
+    })
+  } catch (err) {
+    console.error('[admin:telegram-bot-stats]', err.message)
     res.status(500).json({ success: false, error: err.message })
   }
 })

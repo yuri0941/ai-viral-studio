@@ -1,7 +1,7 @@
 import os from 'os'
 import mongoose from 'mongoose'
 import { sendEmail } from './emailService.js'
-import { getOwnerBot } from './ownerBot.js'
+import { getOwnerBot, sendOwnerAlert } from './ownerBot.js'
 
 const MAX_HISTORY = 1440 // 24h at 1 sample/min
 const metricsHistory = []
@@ -20,12 +20,11 @@ function pushAlert(type) {
     const cooldown = 30 * 60 * 1000
     if (now() - (lastAlertSent[type] || 0) < cooldown) return
     lastAlertSent[type] = now()
-    const bot = getOwnerBot()
     const message = type === 'errorRate' ? '⚠️ Error rate >5% за последние 5 мин.'
         : type === 'latency' ? '⚠️ API response time >2 сек. Проверьте backend.'
             : '⚠️ MongoDB connections приближаются к лимиту.'
-    if (bot && process.env.TELEGRAM_OWNER_CHAT_ID) {
-        bot.sendMessage(process.env.TELEGRAM_OWNER_CHAT_ID, `[AI Viral Studio] ${message}`).catch(() => {})
+    if (process.env.TELEGRAM_OWNER_CHAT_ID) {
+        sendOwnerAlert(message, type === 'errorRate' ? 'warning' : type).catch(() => {})
     }
     if (process.env.OWNER_EMAIL) {
         sendEmail({ to: process.env.OWNER_EMAIL, subject: '[AI Viral Studio] Monitoring alert', text: message }).catch(() => {})
