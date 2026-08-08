@@ -1,4 +1,4 @@
-import { OwnerLegalInfo } from '../models/index.js'
+import { OwnerLegalInfo, OwnerRequisites } from '../models/index.js'
 
 export const getMyLegalInfo = async (req, res) => {
   try {
@@ -72,28 +72,38 @@ export const updateMyLegalInfo = async (req, res) => {
 
 export const getPublicLegalInfo = async (req, res) => {
   try {
-    const legalInfo = await OwnerLegalInfo.findOne().sort({ updatedAt: -1 }).lean()
+    // [HOTFIX-2026-08-08] read actual owner requisites so legal pages auto-update
+    const requisites = await OwnerRequisites.findOne().sort({ updatedAt: -1 }).lean()
 
     const fallback = {
-      operatorName: process.env.OWNER_NAME || '[Укажите в Юридических настройках владельца]',
+      operatorName: process.env.OWNER_NAME || 'Тихонов Юрий Сергеевич',
       operatorType: 'self_employed',
-      contactEmail: process.env.OWNER_EMAIL || '[Укажите email в настройках]',
+      contactEmail: process.env.OWNER_EMAIL || 'Odzax@yandex.ru',
       siteUrl: process.env.SITE_URL || 'app.aiviral.studio',
-      operatorAddress: process.env.OWNER_ADDRESS || '[Укажите адрес в настройках]'
+      operatorAddress: process.env.OWNER_ADDRESS || 'г.Волгоград, Волгоградская обл'
     }
 
-    if (!legalInfo) {
+    const typeMap = {
+      individual: 'Физическое лицо',
+      company: 'Юридическое лицо',
+      entrepreneur: 'Индивидуальный предприниматель',
+      self_employed: 'Самозанятый'
+    }
+
+    if (!requisites) {
       return res.json({ success: true, legalInfo: fallback })
     }
 
     return res.json({
       success: true,
       legalInfo: {
-        operatorName: legalInfo.operatorName || fallback.operatorName,
-        operatorType: legalInfo.operatorType || fallback.operatorType,
-        contactEmail: legalInfo.contactEmail || fallback.contactEmail,
-        siteUrl: legalInfo.siteUrl || fallback.siteUrl,
-        operatorAddress: legalInfo.operatorAddress || fallback.operatorAddress
+        operatorName: requisites.name || fallback.operatorName,
+        operatorType: typeMap[requisites.type] || fallback.operatorType,
+        contactEmail: requisites.email || fallback.contactEmail,
+        siteUrl: requisites.siteUrl || fallback.siteUrl,
+        operatorAddress: requisites.address || fallback.operatorAddress,
+        phone: requisites.phone || '',
+        inn: requisites.inn || ''
       }
     })
   } catch (err) {

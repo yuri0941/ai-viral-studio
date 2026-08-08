@@ -102,7 +102,7 @@ export function OwnerRequisitesTab({ data }) {
     try {
       await ownerRequisitesApi.save(form);
       setHasData(true);
-      pushToast('success', 'Реквизиты сохранены');
+      pushToast('success', '✅ Реквизиты сохранены. Изменения применены на юридических страницах.');
     } catch (err) {
       console.error('[OwnerRequisitesTab:save]', err);
       pushToast('error', err.message || 'Ошибка сохранения');

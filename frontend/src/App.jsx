@@ -434,7 +434,9 @@ function App() {
                     </ProtectedRoute>
                 } />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+                <Route path="/terms" element={<TermsOfServicePage />} />
                 <Route path="/consent" element={<ConsentPage />} />
                 <Route path="/gdpr" element={
                     <ProtectedRoute>
