@@ -26,16 +26,28 @@ api.interceptors.request.use((config) => {
     return config
 })
 
-// [HOTFIX-2026-08-08] mobile retry interceptor (Render cold-start / flaky mobile networks)
+// [MEGA-HOTFIX-2026-08-08] unified retry interceptor: 429 / 5xx / network errors with exponential backoff
 api.interceptors.response.use(
     response => response,
     async error => {
-        if (isMobileUA && error.code === 'ERR_NETWORK' && error.config && !error.config.__retryCount) {
-            error.config.__retryCount = 1
-            await new Promise(r => setTimeout(r, 2000))
-            return api(error.config)
+        const { config, response } = error
+        const status = response?.status
+        const isRetryable = error.code === 'ERR_NETWORK' || status === 429 || (status >= 500 && status < 600)
+
+        if (!config || !isRetryable) return Promise.reject(error)
+
+        config.__retryCount = config.__retryCount || 0
+        const MAX_RETRY = 5
+        if (config.__retryCount >= MAX_RETRY) {
+            console.error(`[API] Max retries reached for ${config.url}: ${status || error.code}`)
+            return Promise.reject(error)
         }
-        return Promise.reject(error)
+
+        config.__retryCount++
+        const delay = Math.min(2000 * Math.pow(2, config.__retryCount - 1), 30000)
+        console.log(`[API] ${status || error.code} on ${config.url} — retry ${config.__retryCount}/${MAX_RETRY} in ${delay}ms`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        return api(config)
     }
 )
 
@@ -48,6 +60,8 @@ function getAuthHeaders() {
 async function request(path, options = {}) {
     const url = `${API_BASE}${path}`
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const retryCount = options.__retryCount || 0
+    const MAX_RETRY = 5
 
     console.log('[API] Request:', url, options.method || 'GET')
 
@@ -62,13 +76,23 @@ async function request(path, options = {}) {
             },
         })
     } catch (err) {
-        // [HOTFIX-2026-08-08] retry once on mobile network failures (Render cold start)
-        if (isMobileUA && !options.__retryCount) {
-            console.warn('[API] Mobile fetch failed, retrying once:', err.message)
-            await new Promise(r => setTimeout(r, 2000))
-            return request(path, { ...options, __retryCount: 1 })
+        // [MEGA-HOTFIX-2026-08-08] retry network failures with exponential backoff
+        if (retryCount < MAX_RETRY) {
+            const delay = Math.min(2000 * Math.pow(2, retryCount), 30000)
+            console.warn(`[API] Network error on ${path}, retry ${retryCount + 1}/${MAX_RETRY} in ${delay}ms:`, err.message)
+            await new Promise(r => setTimeout(r, delay))
+            return request(path, { ...options, __retryCount: retryCount + 1 })
         }
         throw err
+    }
+
+    // [MEGA-HOTFIX-2026-08-08] retry 429 / 5xx before parsing body
+    const isRetryable = res.status === 429 || (res.status >= 500 && res.status < 600)
+    if (isRetryable && retryCount < MAX_RETRY) {
+        const delay = Math.min(2000 * Math.pow(2, retryCount), 30000)
+        console.warn(`[API] ${res.status} on ${path}, retry ${retryCount + 1}/${MAX_RETRY} in ${delay}ms`)
+        await new Promise(r => setTimeout(r, delay))
+        return request(path, { ...options, __retryCount: retryCount + 1 })
     }
 
     // 🔴 ЗАЩИТА: если сервер отдал HTML (404/502/503), не пытаемся парсить как JSON

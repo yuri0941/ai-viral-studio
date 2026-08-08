@@ -212,14 +212,20 @@ export default function OmegaChat({
   const { speak, stop, playingId, loadingId, settings, setSettings } = useTTS();
 
   useEffect(() => {
+    const role = user?.role || JSON.parse(localStorage.getItem('user') || '{}')?.role;
+    if (role !== 'owner' && role !== 'admin') return;
+
     request('/admin/external-keys')
       .then(res => {
         const map = {};
         (res?.data || []).forEach(k => { map[k.provider] = k; });
         setElevenlabsStatus(map['elevenlabs'] || null);
       })
-      .catch(err => console.warn('[OmegaChat] external keys fetch failed', err));
-  }, []);
+      .catch(err => {
+        if (err?.message?.includes('403') || err?.status === 403) return;
+        console.warn('[OmegaChat] external keys fetch failed', err);
+      });
+  }, [user?.role]);
 
   const input = externalInput !== undefined ? externalInput : internalInput;
   const setInput = externalSetInput || setInternalInput;

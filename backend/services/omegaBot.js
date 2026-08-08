@@ -23,6 +23,20 @@ function createStubBot() {
   }
 }
 
+// [MEGA-HOTFIX-2026-08-08] stringify objects before sendMessage to avoid "[object Object]"
+function safeSendMessage(chatId, data, options = {}) {
+  let text
+  if (typeof data === 'string') {
+    text = data
+  } else if (data && typeof data === 'object') {
+    text = data.text || data.message || data.content || data.response || data.result || JSON.stringify(data, null, 2)
+  } else {
+    text = String(data)
+  }
+  if (text.length > 4000) text = text.slice(0, 4000) + '...'
+  return bot.sendMessage(chatId, text, options)
+}
+
 // [MASTER-v5.6-CONT] OMEGA Bot with Owner Mode & Auto-Features
 export const initOmegaBot = () => {
   if (started) { console.log('[OMEGA-BOT] Already started, skipping'); return }
@@ -68,7 +82,7 @@ export const initOmegaBot = () => {
       }
     }
 
-    bot.sendMessage(chatId, welcome, { parse_mode: 'HTML', ...keyboard })
+    safeSendMessage(chatId, welcome, { parse_mode: 'HTML', ...keyboard })
   })
 
   bot.onText(/\/help/, (msg) => {
@@ -77,20 +91,28 @@ export const initOmegaBot = () => {
     const help = isOwner
       ? `<b>👑 Owner Commands</b>\n\n/start — Главное меню\n/exec [задача] — Выполнить\n/feature [идея] — ТЗ для новой фичи\n/menu [описание] — Изменить меню\n/improve — Улучшить бота\n/help — Эта справка\n\n<i>Свободный текст — OMEGA выполнит как команду</i>`
       : `<b>🤖 OMEGA Help</b>\n\n/create_post — Создать пост\n/hook — Хук для видео\n/analyze — Анализ конкурента\n/plan — Контент-план\n/cover — AI-обложка\n\n<i>Или просто напишите тему!</i>`
-    bot.sendMessage(chatId, help, { parse_mode: 'HTML' })
+    safeSendMessage(chatId, help, { parse_mode: 'HTML' })
   })
 
   // OWNER MODE — авто-улучшение бота
   bot.onText(/\/improve/, async (msg) => {
     const chatId = msg.chat.id
     const isOwner = String(chatId) === String(OWNER_CHAT_ID)
-    if (!isOwner) { bot.sendMessage(chatId, '⛔ Только владелец'); return }
-    bot.sendMessage(chatId, `🔧 <b>Анализирую код бота...</b>\n\n<i>OMEGA ищет, что можно улучшить</i>`, { parse_mode: 'HTML' })
+    if (!isOwner) { safeSendMessage(chatId, '⛔ Только владелец'); return }
+    safeSendMessage(chatId, `🔧 <b>Анализирую код бота...</b>\n\n<i>OMEGA ищет, что можно улучшить</i>`, { parse_mode: 'HTML' })
     try {
       const code = fs.readFileSync(new URL(import.meta.url), 'utf8')
       const result = await chatWithAI(`Проанализируй код Telegram-бота и предложи 3 конкретных улучшения (новые команды, ответы, inline keyboard). Код:\n${code.slice(0, 4000)}\n\nВерни краткий список с названием, описанием и примером кода.`, [], { userRole: 'owner' })
-      const text = result.text || result
-      bot.sendMessage(chatId, `🔧 <b>Предлагаю добавить:</b>\n\n${text}`, {
+      let message = '🔧 <b>Предлагаю добавить:</b>\n\n'
+      const improvements = result.text || result
+      if (Array.isArray(improvements)) {
+        message += improvements.map((imp, i) => `${i + 1}. ${imp.title || imp.name || 'Улучшение'}\n${imp.description || imp.details || JSON.stringify(imp)}`).join('\n\n')
+      } else if (improvements && typeof improvements === 'object') {
+        message += improvements.text || improvements.message || improvements.content || JSON.stringify(improvements, null, 2)
+      } else {
+        message += String(improvements || '')
+      }
+      safeSendMessage(chatId, message, {
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -100,7 +122,7 @@ export const initOmegaBot = () => {
         }
       })
     } catch (e) {
-      bot.sendMessage(chatId, `⚠️ Ошибка: ${e.message}`, { parse_mode: 'HTML' })
+      safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`, { parse_mode: 'HTML' })
     }
   })
 
@@ -121,7 +143,9 @@ export const initOmegaBot = () => {
         context: isOwner ? 'telegram_owner_chat' : 'telegram_bot'
       })
 
-      const formatted = formatOmegaResponse(result.text || result, isOwner)
+      const rawText = result.text || result
+      const textToFormat = typeof rawText === 'string' ? rawText : (rawText && typeof rawText === 'object' ? (rawText.text || rawText.message || rawText.content || JSON.stringify(rawText, null, 2)) : String(rawText))
+      const formatted = formatOmegaResponse(textToFormat, isOwner)
 
       const keyboard = isOwner ? {
         reply_markup: {
@@ -139,9 +163,9 @@ export const initOmegaBot = () => {
         }
       }
 
-      bot.sendMessage(chatId, formatted, { parse_mode: 'HTML', ...keyboard })
+      safeSendMessage(chatId, formatted, { parse_mode: 'HTML', ...keyboard })
     } catch (err) {
-      bot.sendMessage(chatId, `⚠️ <b>OMEGA Error</b>\n\n${err.message}`, { parse_mode: 'HTML' })
+      safeSendMessage(chatId, `⚠️ <b>OMEGA Error</b>\n\n${err.message}`, { parse_mode: 'HTML' })
     }
   })
 
@@ -153,29 +177,29 @@ export const initOmegaBot = () => {
     bot.answerCallbackQuery(q.id).catch(() => {})
 
     if (isOwner) {
-      if (data === 'owner_exec') bot.sendMessage(chatId, '⚡ Напишите задачу:\n<i>Например: "Создай пост про кофейню"</i>', { parse_mode: 'HTML' })
-      else if (data === 'owner_feature') bot.sendMessage(chatId, '✨ Опишите фичу:\n<i>Например: "Добавить голосовой ввод"</i>', { parse_mode: 'HTML' })
-      else if (data === 'owner_omega') bot.sendMessage(chatId, '🤖 <b>OMEGA Core</b>\n\nAutoPilot: ✅\nDream Mode: 🌙\nSelf-Healing: 🔧', { parse_mode: 'HTML' })
-      else if (data === 'owner_status') bot.sendMessage(chatId, `🟢 <b>Статус</b>\n\n${new Date().toLocaleString('ru-RU')}\nOMEGA: Online`, { parse_mode: 'HTML' })
-      else if (data === 'owner_done') bot.sendMessage(chatId, '✅ Задача выполнена!', { parse_mode: 'HTML' })
-      else if (data === 'owner_refine') bot.sendMessage(chatId, '🔄 Напишите уточнение:', { parse_mode: 'HTML' })
-      else if (data === 'owner_tz') bot.sendMessage(chatId, '📝 Скопируйте результат и отправьте в Kimi VS Code.', { parse_mode: 'HTML' })
-      else if (data === 'owner_apply') bot.sendMessage(chatId, '⚡ <b>Применение...</b>\n\nФункция в разработке. Скопируйте код вручную.', { parse_mode: 'HTML' })
-      else if (data === 'improve_apply') bot.sendMessage(chatId, '✅ <b>OMEGA редактирует файл бота...</b>\n\n<i>git commit + deploy (placeholder)</i>', { parse_mode: 'HTML' })
-      else if (data === 'improve_reject') bot.sendMessage(chatId, '❌ Улучшение отклонено.', { parse_mode: 'HTML' })
-      else if (data === 'improve_retry') bot.sendMessage(chatId, '🔄 Напишите <code>/improve</code> для другого варианта.', { parse_mode: 'HTML' })
+      if (data === 'owner_exec') safeSendMessage(chatId, '⚡ Напишите задачу:\n<i>Например: "Создай пост про кофейню"</i>', { parse_mode: 'HTML' })
+      else if (data === 'owner_feature') safeSendMessage(chatId, '✨ Опишите фичу:\n<i>Например: "Добавить голосовой ввод"</i>', { parse_mode: 'HTML' })
+      else if (data === 'owner_omega') safeSendMessage(chatId, '🤖 <b>OMEGA Core</b>\n\nAutoPilot: ✅\nDream Mode: 🌙\nSelf-Healing: 🔧', { parse_mode: 'HTML' })
+      else if (data === 'owner_status') safeSendMessage(chatId, `🟢 <b>Статус</b>\n\n${new Date().toLocaleString('ru-RU')}\nOMEGA: Online`, { parse_mode: 'HTML' })
+      else if (data === 'owner_done') safeSendMessage(chatId, '✅ Задача выполнена!', { parse_mode: 'HTML' })
+      else if (data === 'owner_refine') safeSendMessage(chatId, '🔄 Напишите уточнение:', { parse_mode: 'HTML' })
+      else if (data === 'owner_tz') safeSendMessage(chatId, '📝 Скопируйте результат и отправьте в Kimi VS Code.', { parse_mode: 'HTML' })
+      else if (data === 'owner_apply') safeSendMessage(chatId, '⚡ <b>Применение...</b>\n\nФункция в разработке. Скопируйте код вручную.', { parse_mode: 'HTML' })
+      else if (data === 'improve_apply') safeSendMessage(chatId, '✅ <b>OMEGA редактирует файл бота...</b>\n\n<i>git commit + deploy (placeholder)</i>', { parse_mode: 'HTML' })
+      else if (data === 'improve_reject') safeSendMessage(chatId, '❌ Улучшение отклонено.', { parse_mode: 'HTML' })
+      else if (data === 'improve_retry') safeSendMessage(chatId, '🔄 Напишите <code>/improve</code> для другого варианта.', { parse_mode: 'HTML' })
     } else {
-      if (data === 'create_post') bot.sendMessage(chatId, '✍️ Напишите тему:', { parse_mode: 'HTML' })
-      else if (data === 'generate_hook') bot.sendMessage(chatId, '🔥 Напишите тему видео:', { parse_mode: 'HTML' })
-      else if (data === 'analyze') bot.sendMessage(chatId, '🔍 Отправьте ссылку:', { parse_mode: 'HTML' })
-      else if (data === 'content_plan') bot.sendMessage(chatId, '📅 Ниша и период:', { parse_mode: 'HTML' })
-      else if (data === 'ai_cover') bot.sendMessage(chatId, '🎨 Опишите картинку:', { parse_mode: 'HTML' })
-      else if (data === 'free_chat') bot.sendMessage(chatId, '💬 Режим свободного общения.', { parse_mode: 'HTML' })
-      else if (data === 'regenerate') bot.sendMessage(chatId, '🔄 Напишите заново:', { parse_mode: 'HTML' })
-      else if (data === 'use_result') bot.sendMessage(chatId, '✅ Сохранено!', { parse_mode: 'HTML' })
-      else if (data === 'copy') bot.sendMessage(chatId, '📋 Скопировано!', { parse_mode: 'HTML' })
+      if (data === 'create_post') safeSendMessage(chatId, '✍️ Напишите тему:', { parse_mode: 'HTML' })
+      else if (data === 'generate_hook') safeSendMessage(chatId, '🔥 Напишите тему видео:', { parse_mode: 'HTML' })
+      else if (data === 'analyze') safeSendMessage(chatId, '🔍 Отправьте ссылку:', { parse_mode: 'HTML' })
+      else if (data === 'content_plan') safeSendMessage(chatId, '📅 Ниша и период:', { parse_mode: 'HTML' })
+      else if (data === 'ai_cover') safeSendMessage(chatId, '🎨 Опишите картинку:', { parse_mode: 'HTML' })
+      else if (data === 'free_chat') safeSendMessage(chatId, '💬 Режим свободного общения.', { parse_mode: 'HTML' })
+      else if (data === 'regenerate') safeSendMessage(chatId, '🔄 Напишите заново:', { parse_mode: 'HTML' })
+      else if (data === 'use_result') safeSendMessage(chatId, '✅ Сохранено!', { parse_mode: 'HTML' })
+      else if (data === 'copy') safeSendMessage(chatId, '📋 Скопировано!', { parse_mode: 'HTML' })
       else if (data === 'publish_menu') {
-        bot.sendMessage(chatId, '📤 <b>Платформа:</b>', { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: '✈️ Telegram', callback_data: 'pub_tg' }, { text: '🔵 VK', callback_data: 'pub_vk' }]] } })
+        safeSendMessage(chatId, '📤 <b>Платформа:</b>', { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: '✈️ Telegram', callback_data: 'pub_tg' }, { text: '🔵 VK', callback_data: 'pub_vk' }]] } })
       }
     }
   })
@@ -231,7 +255,7 @@ export async function alertOmega(message) {
   const b = getOmegaBot()
   if (!chatId || !b || typeof b.sendMessage !== 'function') return
   try {
-    await b.sendMessage(chatId, `🤖 OMEGA Alert:\n${message}`)
+    await safeSendMessage(chatId, `🤖 OMEGA Alert:\n${message}`)
   } catch (e) {
     console.error('[omegaBot] alert failed:', e.message)
   }

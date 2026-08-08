@@ -1,3 +1,16 @@
+## 2026-08-08 — MEGA-HOTFIX: Telegram [object Object] stringify, API retry 429/5xx, version v9.1.0, OmegaChat 403 guard
+- [x] backend/services/ownerBot.js: safeSendMessage helper serializes objects before bot.sendMessage, truncates >4000 chars, /improve formats arrays/objects
+- [x] backend/services/omegaBot.js: safeSendMessage helper, /improve formats arrays/objects, formatOmegaResponse receives guaranteed string
+- [x] frontend/src/services/api.js: axios interceptor retries 429/5xx/ERR_NETWORK up to 5 times with exponential backoff; fetch request() retries 429/5xx/network errors
+- [x] frontend/src/App.jsx: BUILD_ID + __APP_BUILD__ bumped to v9.1.0
+- [x] frontend/package.json: version 0.1.0 → 9.1.0
+- [x] frontend/public/manifest.json: added version 9.1.0
+- [x] frontend/src/components/omega/OmegaChat.jsx: role guard skips /admin/external-keys for non-owner/admin, suppresses 403 logs
+- [x] node --check backend/server.js, ownerBot.js, omegaBot.js OK
+- [x] npm run build — 0 errors
+- [x] Git commit/push: выполнен
+- [ ] Render deploy: требует ручного Clear Build Cache & Deploy
+
 ## 2026-08-08 — v9.3-PREDICTION: Trend Engine, Investment Scout, Boardroom Auto-Task, Market Intelligence
 - [x] backend/services/predictionEngine.js: scanViralTrends, analyzeStockOpportunity, analyzeCryptoOpportunity, findBusinessNiche, generateWeeklyForecast
 - [x] backend/services/investmentScout.js: generatePitchDeck, findInvestorMatches, generateSAFENote, generateNegotiationScript

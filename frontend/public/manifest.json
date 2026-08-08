@@ -1,6 +1,7 @@
 {
   "name": "AI Viral Studio",
   "short_name": "AI Viral",
+  "version": "9.1.0",
   "description": "AI-powered platform for viral content creation, analytics, and monetization",
   "start_url": "/",
   "display": "standalone",
