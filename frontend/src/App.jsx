@@ -44,6 +44,9 @@ import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/lega
 import { CookieConsent } from './components/CookieConsent'
 import GDPRPage from './pages/GDPRPage'
 const ProjectFactoryPage = lazy(() => import('./pages/project-factory/ProjectFactoryPage.jsx'))
+const PredictionDashboard = lazy(() => import('./pages/prediction/PredictionDashboard.jsx'))
+const InvestmentPanel = lazy(() => import('./pages/investment/InvestmentPanel.jsx'))
+const BoardroomCommandCenter = lazy(() => import('./pages/boardroom/BoardroomCommandCenter.jsx'))
 import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
@@ -352,6 +355,16 @@ function App() {
                         <ProjectFactoryPage />
                     </ProtectedRoute>
                 } />
+                <Route path="/prediction" element={
+                    <ProtectedRoute allowedRoles={['owner', 'admin']}>
+                        <PredictionDashboard />
+                    </ProtectedRoute>
+                } />
+                <Route path="/investment" element={
+                    <ProtectedRoute allowedRoles={['owner', 'admin']}>
+                        <InvestmentPanel />
+                    </ProtectedRoute>
+                } />
                 <Route path="/settings" element={
                     <ProtectedRoute>
                         <SettingsPage />
@@ -364,7 +377,7 @@ function App() {
                 } />
                 <Route path="/boardroom" element={
                     <ProtectedRoute allowedRoles={['owner', 'admin', 'business']}>
-                        <BoardroomPage />
+                        <BoardroomCommandCenter />
                     </ProtectedRoute>
                 } />
                 <Route path="/business-spawner" element={

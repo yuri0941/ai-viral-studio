@@ -71,6 +71,9 @@ import { SandboxPanel } from './components/tabs/SandboxPanel'
 
 const AnalyticsPage = lazy(() => import('../AnalyticsPage'))
 const ProjectFactoryPage = lazy(() => import('../project-factory/ProjectFactoryPage.jsx'))
+const PredictionDashboard = lazy(() => import('../prediction/PredictionDashboard.jsx'))
+const InvestmentPanel = lazy(() => import('../investment/InvestmentPanel.jsx'))
+const BoardroomCommandCenter = lazy(() => import('../boardroom/BoardroomCommandCenter.jsx'))
 const AIChatPage = lazy(() => import('../AIChatPage'))
 const ContentAnalyzerPage = lazy(() => import('../ContentAnalyzerPage'))
 const SchedulerPage = lazy(() => import('../SchedulerPage'))
@@ -100,7 +103,8 @@ import {
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
     BrainCircuit, Database, Scale, BarChart, BarChart3, Search, Calendar, TrendingUp, Zap,
     X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, Code2, QrCode, Store, Shield, Terminal, Network,
-    Wrench, GraduationCap, Microscope, Activity, Cpu, Map, Fingerprint, Moon, Factory, FlaskConical
+    Wrench, GraduationCap, Microscope, Activity, Cpu, Map, Fingerprint, Moon, Factory, FlaskConical,
+    Telescope, Landmark
 } from 'lucide-react'
 
 const TAB_ICONS = {
@@ -170,8 +174,10 @@ const TAB_ICONS = {
     roadmap: Map,
     brainviz: Brain,
     memory: Database,
-    boardroom: Users,
+    boardroom: Building2,
     factory: Factory,
+    prediction: Telescope,
+    investment: Landmark,
 }
 
 // [v6.0] added: count-up hook with requestAnimationFrame
@@ -395,7 +401,9 @@ export default function OwnerDashboardPage() {
             case 'roadmap': return <OmegaRoadmap />
             case 'brainviz': return <OmegaBrainViz />
             case 'memory': return <OmegaMemoryExplorer />
-            case 'boardroom': return <OmegaBoardroom />
+            case 'boardroom': return <BoardroomCommandCenter />
+            case 'prediction': return <PredictionDashboard />
+            case 'investment': return <InvestmentPanel />
             case 'omegaFinance': return <OmegaFinanceTab data={ownerData} />
             case 'omegaSkills': return <OmegaSkillsTab data={ownerData} />
             case 'omegaMemory': return <OmegaMemoryTab data={ownerData} />

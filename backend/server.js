@@ -62,6 +62,7 @@ import externalApiKeysRoutes from './routes/externalApiKeys.js'  // [v8.1-PART1]
 import omegaSupremeRoutes from './routes/omegaSupreme.js'  // [v9.0-ARCH] OMEGA Supreme
 import projectFactoryRoutes from './routes/projectFactory.js'  // [v9.2-SELF-CODING] Project Factory: cognitive mesh, swarm, memory, scaler, wallet
 import personalityRoutes from './routes/personality.js'  // [v9.1-PERSONALITY] Digital Twin, Voice Clone, Dream Mode
+import predictionRoutes from './routes/prediction.js'  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
 import checkoutRoutes from './routes/checkout.js'  // [PAYMENT-v5.2] added
 import qrRoutes from './routes/qr.js'  // ← P11: QR codes
 import printRoutes from './routes/print.js'  // ← P11: Print orders
@@ -333,6 +334,7 @@ app.use('/api/admin/external-keys', externalApiKeysRoutes)  // [v8.1-PART1] Exte
 app.use('/api/omega-supreme', omegaSupremeRoutes)  // [v9.0-ARCH] OMEGA Supreme
 app.use('/api/omega-supreme', personalityRoutes)  // [v9.1-PERSONALITY] Digital Twin, Voice Clone, Dream Mode
 app.use('/api/project-factory', projectFactoryRoutes)  // [v9.2-SELF-CODING] Project Factory
+app.use('/api/prediction', predictionRoutes)  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
 app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета
 app.use('/api/owner-requisites', ownerRequisitesRoutes)  // ← P10: Реквизиты
 app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Owner legal info

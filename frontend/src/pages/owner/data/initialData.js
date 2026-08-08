@@ -225,4 +225,6 @@ export const TAB_LABELS = {
     memory: '💾 Память',
     boardroom: '🏛 Совет',
     factory: '🏭 Project Factory',
+    prediction: '🔮 Разведка',
+    investment: '💰 Инвестиции',
 }

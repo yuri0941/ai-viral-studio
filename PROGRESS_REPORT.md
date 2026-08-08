@@ -1,3 +1,21 @@
+## 2026-08-08 — v9.3-PREDICTION: Trend Engine, Investment Scout, Boardroom Auto-Task, Market Intelligence
+- [x] backend/services/predictionEngine.js: scanViralTrends, analyzeStockOpportunity, analyzeCryptoOpportunity, findBusinessNiche, generateWeeklyForecast
+- [x] backend/services/investmentScout.js: generatePitchDeck, findInvestorMatches, generateSAFENote, generateNegotiationScript
+- [x] backend/services/boardroomAutoTask.js: generateBoardroomTasks, executeBoardroomVote, runBoardroomCycle
+- [x] backend/routes/prediction.js: /trends, /stock, /crypto, /niches, /forecast, /pitch-deck, /investor-match, /safe-note, /negotiation-script, /boardroom/run, /boardroom/tasks with requireRole('owner','admin')
+- [x] backend/server.js: predictionRoutes mounted at /api/prediction
+- [x] frontend/src/pages/prediction/PredictionDashboard.jsx: viral trends, financial signals, business niches, weekly forecast (owner/admin only)
+- [x] frontend/src/pages/investment/InvestmentPanel.jsx: pitch deck generator, investor matching, SAFE note, negotiation script (owner/admin only)
+- [x] frontend/src/pages/boardroom/BoardroomCommandCenter.jsx: board context input, auto-task generation, voting, auto-execute, history (owner/admin only)
+- [x] App.jsx: /prediction, /investment, /boardroom routes protected for owner/admin
+- [x] OwnerDashboardPage.jsx + initialData.js: tabs 'prediction' (Telescope), 'investment' (Landmark), 'boardroom' (Building2)
+- [x] AppSidebar.jsx: sidebar items for owner — 🔮 Разведка → /prediction, 💰 Инвестиции → /investment, 🏢 Совет → /boardroom
+- [x] frontend/src/locales/ru.json + en.json: prediction.*, investment.*, boardroom.* keys + sidebar labels
+- [x] node --check backend/server.js OK
+- [x] npm run build — 0 errors
+- [x] Git commit/push: выполнен
+- [ ] Render deploy: требует ручного Clear Build Cache & Deploy
+
 ## 2026-08-08 — v9.2-SELF-CODING: Project Factory (OWNER ONLY), Live Preview, Auto-Deploy, Quality Gates, A/B Testing
 - [x] backend/services/projectFactory.js: generateProject, deployProject, runQualityChecks
 - [x] backend/services/autoImprovement.js: analyzeCodeForImprovement, generateFix, autoImproveFile

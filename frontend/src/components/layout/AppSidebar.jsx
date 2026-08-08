@@ -10,7 +10,7 @@ import {
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
     Palette, LayoutTemplate, Flame, Cpu, Swords, Zap, Sparkles,
-    Clapperboard, Factory,
+    Clapperboard, Factory, Telescope, Landmark,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
@@ -131,7 +131,9 @@ const OWNER_GROUPS = [
             { id: 'team', label: 'Команда', icon: Users },
             { id: 'cabinets', label: 'Кабинеты', icon: Monitor },
             { id: 'tasks', label: '✅ Задачи', icon: CheckSquare },
-            { id: 'boardroom', label: 'Совет директоров', icon: Users },
+            { id: 'boardroom', label: '🏢 Совет', icon: Building2, path: '/boardroom' },
+            { id: 'prediction', label: '🔮 Разведка', icon: Telescope, path: '/prediction' },
+            { id: 'investment', label: '💰 Инвестиции', icon: Landmark, path: '/investment' },
             { id: 'businessSpawner', label: '🚀 Рождение бизнеса', icon: Rocket },
         ],
     },
