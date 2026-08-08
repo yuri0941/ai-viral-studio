@@ -3300,3 +3300,13 @@
 - [x] `npm run build` — 0 errors
 - [x] Git commit/push: выполнен
 - [ ] Render / Cloudflare redeploy: требует ручного действия
+
+## 2026-08-08 — v9.5.1-LUXURY-BOT: Luxury UI, Owner Recognition, Smart Context
+- [x] `backend/services/ownerContext.js` — `isOwner`, `getOwnerContext`, `getSmartGreeting` с когнитивным контекстом
+- [x] `backend/services/ownerBot.js` — luxury inline-клавиатуры, owner recognition, smart reply без generic lists, `/menu`, `/start`
+- [x] `backend/services/omegaBot.js` — упрощённый `/start` для owner/не-owner
+- [x] `node --check backend/server.js` OK
+- [x] `node --check backend/services/ownerBot.js` OK
+- [x] `node --check backend/services/omegaBot.js` OK
+- [x] Git commit/push: выполнен
+- [ ] Render deploy: требует ручного Clear Build Cache & Deploy
