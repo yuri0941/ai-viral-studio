@@ -75,6 +75,7 @@ import TelegramTab from './components/tabs/TelegramTab'
 import { SupportTab } from './components/tabs/SupportTab'
 import { ChannelManagerTab } from './components/tabs/ChannelManagerTab'
 import { AdOrdersTab } from './components/tabs/AdOrdersTab'
+import SalesMetricsTab from './components/tabs/SalesMetricsTab.jsx'
 
 const AnalyticsPage = lazy(() => import('../AnalyticsPage'))
 const ProjectFactoryPage = lazy(() => import('../project-factory/ProjectFactoryPage.jsx'))
@@ -192,6 +193,7 @@ const TAB_ICONS = {
     support: MessageCircle,
     channelManager: Radio,
     adOrders: Megaphone,
+    salesMetrics: TrendingUp,
 }
 
 // [v6.0] added: count-up hook with requestAnimationFrame
@@ -422,6 +424,7 @@ export default function OwnerDashboardPage() {
             case 'support': return <SupportTab data={ownerData} />
             case 'channelManager': return <ChannelManagerTab data={ownerData} />
             case 'adOrders': return <AdOrdersTab data={ownerData} />
+            case 'salesMetrics': return <SalesMetricsTab />
             case 'omegaFinance': return <OmegaFinanceTab data={ownerData} />
             case 'omegaSkills': return <OmegaSkillsTab data={ownerData} />
             case 'omegaMemory': return <OmegaMemoryTab data={ownerData} />

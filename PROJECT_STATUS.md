@@ -153,3 +153,30 @@ See `backend/.env.example` for the full template. Key variables:
 ### Build Status
 - `npm run build` — 0 errors.
 - `node --check backend/server.js` — OK.
+
+## v9.9.8-SALES-OMEGA Update (2026-08-09)
+
+### New Features
+- **Sales Script Engine**: every OMEGA reply ends with a CTA (demo, plan, case study).
+- **Personality Evolution**: OMEGA adapts tone (`formal`, `casual`, `ironic`, `technical`, `emotional`) to the client.
+- **Dialogue Learning**: client dialogues are saved to `ClientDialogue` + Vector Store for RAG-based learning.
+- **Churn Guard**: patterns like "delete account / cancel" trigger instant `OMEGACHURN30` offer + urgent ticket.
+- **Cross-sell / Up-sell**: Free→Pro and Pro→Agency suggestions based on detected intent.
+- **Retention Engine**: cron every 3 days re-engages clients inactive for 3+ days.
+- **Sales Metrics API**: `GET /api/admin/sales-metrics` returns conversion rate, top intents, 7-day dynamics.
+- **Sales Metrics Tab**: `SalesMetricsTab.jsx` with 4 summary cards, BarChart and PieChart.
+- **Owner Sidebar**: new "Метрики продаж" menu item.
+
+### New Backend Files
+- `backend/models/ClientDialogue.js`
+- `backend/services/dialogueLearningService.js`
+- `backend/services/retentionEngine.js`
+- `backend/routes/salesMetrics.js`
+
+### Updated Backend
+- `backend/services/omegaBot.js`: `detectIntent`, `detectClientTone`, `findSimilarSuccess`, sales system prompt, Churn Guard.
+- `backend/server.js`: retention cron, `/api/admin/sales-metrics` route.
+
+### Build Status
+- `npm run build` — 0 errors.
+- `node --check backend/server.js` — OK.

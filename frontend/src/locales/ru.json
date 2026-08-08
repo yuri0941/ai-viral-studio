@@ -1560,5 +1560,16 @@
     "needsOwner": "Требуется оператор",
     "aiHandled": "OMEGA ответила",
     "open": "Открыт"
+  },
+  "salesMetrics": {
+    "title": "Метрики продаж OMEGA",
+    "totalDialogs": "Диалогов",
+    "conversions": "Конверсий",
+    "conversionRate": "Конверсия",
+    "churnRisk": "Churn Risk",
+    "dailyDynamics": "Динамика за 7 дней",
+    "topIntents": "Топ интентов клиентов",
+    "intent": "Интент",
+    "count": "Количество"
   }
 }

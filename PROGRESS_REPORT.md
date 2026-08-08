@@ -1,3 +1,15 @@
+## 2026-08-09 — v9.9.8-SALES-OMEGA
+- [FEATURE] Sales Script Engine — каждый ответ OMEGA заканчивается CTA (демо, тариф, кейс)
+- [FEATURE] Personality Evolution — OMEGA адаптирует тон (formal/casual/ironic/technical/emotional) под клиента
+- [FEATURE] Dialogue Learning — сохранение диалогов в ClientDialogue + Vector Store для RAG
+- [FEATURE] Churn Guard — паттерны "удалить/отменить" → мгновенный оффер OMEGACHURN30 + urgent тикет
+- [FEATURE] Cross-sell / Up-sell — Free→Pro, Pro→Agency на основе intent
+- [FEATURE] Retention Engine — cron каждые 3 дня: реактивация inactive клиентов
+- [FEATURE] Sales Metrics API — /api/admin/sales-metrics (конверсия, интенты, динамика)
+- [FEATURE] Frontend SalesMetricsTab.jsx — 4 карточки, BarChart, PieChart
+- [FEATURE] AppSidebar — пункт "Метрики продаж" для owner
+- [DEPLOY] Git push + Render Clear Build Cache & Deploy
+
 ## 2026-08-09 — v9.9.7-BOT-CONVERSATION
 - [FEATURE] Клиентский AI-диалог в @aiviral_omega_bot — свободный текст, не только кнопки
 - [FEATURE] Privacy Firewall для клиентов — 5 паттернов, блокировка конфиденциального

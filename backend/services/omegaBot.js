@@ -1,5 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
+import { detectIntent, detectClientTone, saveDialogue, findSimilarSuccess, updateDialogueOutcome } from './dialogueLearningService.js';
 
 // Контекстная память диалогов клиентов (последние 10 сообщений)
 global.clientDialogues = global.clientDialogues || {};
@@ -163,18 +164,41 @@ export const initOmegaBot = () => {
       global.clientDialogues[chatId] = global.clientDialogues[chatId].slice(-10);
     }
 
-    const systemPrompt = `Ты — OMEGA AI 🤖, ассистент AI Viral Studio. Ты помогаешь клиентам с SMM, вирусным контентом, тарифами, настройкой аккаунта.
-Правила:
-1. Отвечай кратко (2-4 предложения), по делу, с эмодзи, на русском.
-2. НЕ раскрывай: имя владельца, MRR, технический стек, данные других клиентов, исходный код, пароли, токены.
-3. Если спрашивают про оплату/возврат/баг/взлом/удаление аккаунта — ответь: "Для решения этого вопроса я подключу нашего специалиста. Ожидайте..." и добавь в конце ESCALATE.
-4. Если клиент хочет рекламу — предложи перейти в раздел рекламы.
-5. Если клиент хочет скидку — предложи промокод.
-6. Если не знаешь ответ или вопрос сложный — честно скажи "Уточню у команды" и добавь ESCALATE.
-7. Подписывайся: "OMEGA 🤖"
-8. Будь дружелюбной, но профессиональной. Если клиент просто здоровается — поздоровайся и предложи помощь.`;
-
     const history = global.clientDialogues[chatId].map(m => m.content);
+
+    // Определяем intent и тон
+    const intent = detectIntent(text);
+    const clientTone = detectClientTone(text);
+
+    // Churn Guard — агрессивная защита от оттока
+    const CHURN_PATTERNS = /удалить аккаунт|отменить подписку|отписаться|не нужен|перестать|возврат денег|удалить профиль/i;
+    const isChurnRisk = CHURN_PATTERNS.test(text);
+
+    // Ищем похожие успешные диалоги
+    const similarSuccess = await findSimilarSuccess(text, 'general', 2);
+    const successHints = similarSuccess.length > 0
+      ? `\n\nУспешные кейсы похожих диалогов:\n${similarSuccess.map(s => `- ${s.text ? s.text.slice(0, 150) : s.content ? s.content.slice(0, 150) : ''}...`).join('\n')}`
+      : '';
+
+    const toneInstructions = {
+      formal: 'Обращайтесь на "Вы", используйте деловой стиль, избегайте сленга.',
+      casual: 'Обращайся на "ты", используй разговорный стиль, эмодзи, лёгкий юмор.',
+      ironic: 'Используй лёгкую иронию, умный юмор, не будь занудой.',
+      technical: 'Давай точные термины, сравнения, структурируй ответ (1, 2, 3).',
+      emotional: 'Будь максимально эмпатичной, поддерживающей, предложи конкретное решение.',
+    };
+
+    const systemPrompt = `Ты — OMEGA AI 🤖, SMM-ассистент AI Viral Studio. Твоя цель №1: помочь клиенту и мягко привести его к действию (демо, тариф, кейс).
+КРИТИЧЕСКИЕ ПРАВИЛА:
+1. Отвечай кратко (2-4 предложения). ${toneInstructions[clientTone] || toneInstructions.casual}
+2. ВСЕГДА заканчивай вопросом или CTA (призывом к действию).
+3. Если клиент на Free и спрашивает про аналитику/автопостинг/шаблоны → предложи Pro: "Это доступно в Pro — 990₽/мес, первый месяц со скидкой 20%".
+4. Если клиент на Pro и спрашивает про команду/white-label → предложи Agency.
+5. Если клиент спрашивает про контент/вирусность → предложи бесплатное демо: "Хотите, я сгенерирую 3 хука для вашей ниши прямо сейчас? Бесплатно."
+6. Если клиент пишет 2+ раза про одно и то же без покупки → предложи персональный промокод: "Вот промокод OMEGAPERSONAL20 — скидка 20% только для вас."
+7. НЕ раскрывай: владельца, MRR, стек, других клиентов, пароли.
+8. Если вопрос про оплату/баг/возврат/удаление → ESCALATE.
+9. Подписывайся: "OMEGA 🤖"${successHints}`;
 
     try {
       bot.sendChatAction(chatId, 'typing');
@@ -187,6 +211,32 @@ export const initOmegaBot = () => {
           reply = 'Это конфиденциальная информация. Давайте лучше поговорим о вашем SMM-стратегии! 💡';
           break;
         }
+      }
+
+      // Churn Guard — если клиент хочет уйти
+      if (isChurnRisk) {
+        reply = `😔 Жаль, что что-то пошло не так...\n\nЯ подготовила для вас персональное предложение: **OMEGACHURN30** — скидка 30% на 3 месяца + персональный onboarding с нашим экспертом.\n\nИли, если хотите, я подключу специалиста прямо сейчас. Что выберете?`;
+        // Создаём тикет с высоким приоритетом
+        try {
+          const { createTicket } = await import('./supportService.js');
+          await createTicket({
+            userEmail: `tg_${chatId}@aiviral-studio.ru`,
+            subject: '🔴 CHURN RISK — Клиент хочет уйти',
+            description: `Клиент написал: "${text}"\nТон: ${clientTone}\nIntent: ${intent}\nНужен срочный retention-звонок/сообщение.`,
+            telegramChatId: String(chatId)
+          });
+          await updateDialogueOutcome(chatId, 'churn_risk');
+        } catch (e) { console.error('Churn ticket failed:', e); }
+
+        await bot.sendMessage(chatId, `🤖 <b>OMEGA</b>\n━━━━━━━━━━━━━━\n${reply}`, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: [
+            [{ text: '🎁 Активировать скидку 30%', callback_data: 'discount:churn30' }],
+            [{ text: '💬 Поговорить со специалистом', callback_data: 'support:urgent' }],
+            [{ text: '📋 Меню', callback_data: 'menu:main' }]
+          ]}
+        });
+        return; // Не сохраняем в обычную историю, уже сохранили как churn_risk
       }
 
       // Smart Routing — определяем intent для inline keyboard
@@ -219,18 +269,29 @@ export const initOmegaBot = () => {
             description: `Клиент написал: "${text}"\nOMEGA не смогла ответить или вопрос требует оператора.`,
             telegramChatId: String(chatId)
           });
+          await updateDialogueOutcome(chatId, 'escalated');
         } catch (e) { console.error('Escalation ticket failed:', e); }
       }
 
       keyboard.push([{ text: '📋 Главное меню', callback_data: 'menu:main' }]);
 
       // Сохраняем ответ в историю
-      global.clientDialogues[chatId].push({ role: 'assistant', content: reply, time: Date.now() });
+      global.clientDialogues[chatId].push({ role: 'assistant', content: reply, intent, time: Date.now() });
 
       await bot.sendMessage(chatId, `🤖 <b>OMEGA</b>\n━━━━━━━━━━━━━━\n${reply}`, {
         parse_mode: 'HTML',
         reply_markup: { inline_keyboard: keyboard }
       });
+
+      // Сохраняем диалог для обучения
+      try {
+        const dialogueMessages = global.clientDialogues[chatId].slice(-6).map(m => ({
+          role: m.role,
+          content: m.content,
+          intent: m.role === 'user' ? detectIntent(m.content) : 'sales'
+        }));
+        await saveDialogue(chatId, dialogueMessages, needsEscalation ? 'escalated' : 'pending', 'general');
+      } catch (e) { console.error('Dialogue save error:', e); }
 
     } catch (e) {
       console.error('Free text chat error:', e);

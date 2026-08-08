@@ -21,6 +21,7 @@ import ChannelConfig from './models/ChannelConfig.js'
 import { publishToChannel, getChannelStats } from './services/channelPublisher.js'
 import { generateDiscountPost, publishDiscountToChannel } from './services/discountService.js'
 import { publishVideoPromo } from './services/videoPromoService.js'
+import { checkInactiveClients } from './services/retentionEngine.js'
 import { createNode } from './services/cognitiveMesh.js'
 import { Campaign } from './models/Campaign.js'
 import Ticket from './models/Ticket.js'
@@ -104,6 +105,7 @@ import supportRoutes from './routes/support.js'  // [v9.9.2-MASTER-FIX] unified 
 import channelRoutes from './routes/channel.js'  // [v9.9.5-TELEGRAM-UNIFIED]
 import adOrderRoutes from './routes/adOrders.js'  // [v9.9.5-TELEGRAM-UNIFIED]
 import discountRoutes from './routes/discounts.js'  // [v9.9.5-TELEGRAM-UNIFIED]
+import salesMetricsRoutes from './routes/salesMetrics.js'  // [v9.9.8-SALES-OMEGA]
 import desktopUpdateRoutes from './routes/desktopUpdate.js'  // [v7.0] added: Tauri desktop updater
 import { startBackupCron } from './services/disasterRecovery.js'  // [v7.0-PART2] added: disaster recovery
 import disasterRoutes from './routes/disaster.js'  // [v7.0-PART2] added: disaster recovery API
@@ -308,6 +310,12 @@ if (isConnected) {
     })
 
     console.log('📱 Telegram unified channel crons scheduled')
+
+    // [v9.9.8-SALES-OMEGA] Retention: реактивация inactive клиентов каждые 3 дня в 14:00
+    cron.schedule('0 14 */3 * *', async () => {
+        try { await checkInactiveClients(); }
+        catch (e) { console.error('Retention cron error:', e); }
+    });
 }
 
 // Seed default OMEGA agents after DB connection
@@ -444,6 +452,7 @@ app.use('/api/support', supportRoutes)  // [v9.9.2-MASTER-FIX] unified support t
 app.use('/api/channel', channelRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]
 app.use('/api/ad-orders', adOrderRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]
 app.use('/api/discounts', discountRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]
+app.use('/api/admin/sales-metrics', salesMetricsRoutes)  // [v9.9.8-SALES-OMEGA]
 app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
 app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API

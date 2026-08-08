@@ -233,4 +233,5 @@ export const TAB_LABELS = {
     support: '💬 Поддержка',
     channelManager: '📡 Каналы',
     adOrders: '🛒 Заказы рекламы',
+    salesMetrics: '📈 Метрики продаж',
 }

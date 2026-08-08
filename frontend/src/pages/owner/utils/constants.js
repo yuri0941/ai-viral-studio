@@ -46,7 +46,8 @@ export const TABS_ORDER = [
     'advertising', 'security', 'apiKeys', 'integrations', 'aiAnalytics', 'logs',
     'agents', 'omega', 'omegaFinance', 'omegaSkills', 'omegaMemory',
     'notifications', 'devStudio', 'help', 'feedback', 'chat',
-    'analytics', 'aiChat', 'contentAnalyzer', 'scheduler', 'viralChat'
+    'analytics', 'aiChat', 'contentAnalyzer', 'scheduler', 'viralChat',
+    'salesMetrics'
 ]
 
 export const CHAT_TYPES = {

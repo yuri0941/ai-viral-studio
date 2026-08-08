@@ -156,6 +156,7 @@ const OWNER_GROUPS = [
             { id: 'telegram', label: '📱 Telegram', icon: Send },
             { id: 'channelManager', label: '📡 Каналы', icon: Radio },
             { id: 'adOrders', label: '🛒 Заказы рекламы', icon: Megaphone },
+            { id: 'salesMetrics', label: '📈 Метрики продаж', icon: TrendingUp },
         ],
     },
     {
