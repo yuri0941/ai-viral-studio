@@ -28,7 +28,13 @@ export default function OmegaPredictiveCard() {
             })
             if (!res.ok) throw new Error('Failed')
             const json = await res.json()
-            const items = (json.data || json.predictions || []).filter(p => p.type && TYPE_META[p.type])
+            console.log('[OmegaPredictiveCard] API response:', json)
+            const raw = Array.isArray(json?.data) ? json.data
+                : Array.isArray(json?.predictions) ? json.predictions
+                : Array.isArray(json?.data?.predictions) ? json.data.predictions
+                : []
+            console.log('[OmegaPredictiveCard] Predictions:', raw)
+            const items = raw.filter(p => p && p.type && TYPE_ICONS[p.type])
             setPredictions(items)
             setError(null)
         } catch (err) {
