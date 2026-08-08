@@ -30,6 +30,52 @@
     "contactEmail": "Контактный email для вопросов клиентов",
     "contactEmailHint": "Этот email будет указан в договоре оферте и политике конфиденциальности"
   },
+  "landing": {
+    "heroTitle": "AI Viral Studio — Автоматизируй вирусный контент с OMEGA",
+    "heroSubtitle": "ИИ создаёт, публикует и анализирует контент за вас",
+    "joinBeta": "🚀 Записаться в бета",
+    "forBusiness": "💼 Для бизнеса",
+    "features": "Возможности",
+    "pricing": "Тарифы",
+    "howItWorks": "Как это работает",
+    "testimonials": "Отзывы",
+    "faq": "FAQ"
+  },
+  "signup": {
+    "title": "Регистрация",
+    "email": "Email",
+    "password": "Пароль",
+    "selectPlan": "Выберите тариф",
+    "niche": "Ваша ниша",
+    "goals": "Цели",
+    "socials": "Соцсети",
+    "firstProject": "Первый проект",
+    "pay": "Оплатить",
+    "success": "Добро пожаловать!"
+  },
+  "monetization": {
+    "title": "Monetization",
+    "mrr": "MRR",
+    "arpu": "ARPU",
+    "activeUsers": "Активные пользователи",
+    "churnRate": "Churn Rate",
+    "waitlist": "Waitlist",
+    "approve": "Одобрить",
+    "referrals": "Рефералы",
+    "referralCode": "Реферальный код",
+    "copyLink": "Копировать ссылку",
+    "totalReferrals": "Всего рефералов",
+    "activeReferrals": "Активные",
+    "earnings": "Заработок",
+    "plansManagement": "Управление тарифами"
+  },
+  "apiDocs": {
+    "title": "AI Viral Studio API",
+    "authentication": "Authentication",
+    "endpoints": "Endpoints",
+    "rateLimits": "Rate Limits",
+    "sdk": "SDK"
+  },
   "clients": {
     "title": "Клиенты",
     "total": "Всего",

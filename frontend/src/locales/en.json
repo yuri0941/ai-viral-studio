@@ -30,6 +30,52 @@
     "contactEmail": "Contact email for client questions",
     "contactEmailHint": "This email will be listed in the offer agreement and privacy policy for customer contact"
   },
+  "landing": {
+    "heroTitle": "AI Viral Studio — Automate viral content with OMEGA",
+    "heroSubtitle": "AI creates, publishes and analyzes content for you",
+    "joinBeta": "🚀 Join beta",
+    "forBusiness": "💼 For business",
+    "features": "Features",
+    "pricing": "Pricing",
+    "howItWorks": "How it works",
+    "testimonials": "Testimonials",
+    "faq": "FAQ"
+  },
+  "signup": {
+    "title": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "selectPlan": "Select plan",
+    "niche": "Your niche",
+    "goals": "Goals",
+    "socials": "Social networks",
+    "firstProject": "First project",
+    "pay": "Pay",
+    "success": "Welcome!"
+  },
+  "monetization": {
+    "title": "Monetization",
+    "mrr": "MRR",
+    "arpu": "ARPU",
+    "activeUsers": "Active users",
+    "churnRate": "Churn rate",
+    "waitlist": "Waitlist",
+    "approve": "Approve",
+    "referrals": "Referrals",
+    "referralCode": "Referral code",
+    "copyLink": "Copy link",
+    "totalReferrals": "Total referrals",
+    "activeReferrals": "Active",
+    "earnings": "Earnings",
+    "plansManagement": "Plans management"
+  },
+  "apiDocs": {
+    "title": "AI Viral Studio API",
+    "authentication": "Authentication",
+    "endpoints": "Endpoints",
+    "rateLimits": "Rate Limits",
+    "sdk": "SDK"
+  },
   "clients": {
     "title": "Clients",
     "total": "Total",

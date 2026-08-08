@@ -1,3 +1,16 @@
+## 2026-08-08 — v9.9-LAUNCH: Public Landing, Beta Signup, Payments, Client Onboarding, Referral, Monetization Dashboard, API Docs
+- [FEATURE] Public Landing Page — /, hero, features bento, pricing, how it works, testimonials, FAQ, footer (glassmorphism, adaptive)
+- [FEATURE] Beta Signup Flow — /signup, 4-step wizard: email/plan, onboarding (niche/goals/socials), payment mock, first project
+- [FEATURE] Payment Service — backend/services/paymentService.js, mock YooKassa-ready plans: Free, Pro (990₽), Agency (4990₽)
+- [FEATURE] Waitlist Service — backend/services/waitlistService.js, POST /api/public/waitlist, owner approve endpoint
+- [FEATURE] Public Routes — backend/routes/public.js: /plans, /waitlist, /subscribe, /quota, /referral, /waitlist/approve
+- [FEATURE] API Docs Page — /docs, public documentation for auth, endpoints, rate limits, SDK placeholder
+- [FEATURE] i18n keys — landing, signup, monetization, apiDocs added to ru.json and en.json
+- [FIX] Referral system reused existing backend/services/referralService.js (do not recreate working code)
+- [NOTE] MonetizationTab.jsx already exists (refunds focus); skipped creating duplicate per instructions
+- [BUILD] npm run build 0 errors, node --check backend OK
+- [DEPLOY] Git push origin main; Render manual deploy pending
+
 ## 2026-08-08 — v9.6.1-OMEGA-FIX
 - [CRITICAL FIX] MissingSchemaError CognitiveNode — импорт модели, сервер не падает при Telegram-сообщениях
 - [CRITICAL FIX] CORS — разрешены запросы с https://aiviral-studio.ru, API работает

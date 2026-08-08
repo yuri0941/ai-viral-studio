@@ -83,6 +83,7 @@ import roadmapRoutes from './routes/roadmap.js'  // ← Public roadmap + voting
 import adminRoutes from './routes/admin.js'  // Admin + emergency stop
 import selfImprovementRoutes from './routes/selfImprovement.js'  // ← P15: Self-improvement + churn + niche intelligence
 import selfOptimizeRoutes from './routes/selfOptimize.js'  // [v9.6-SELF-OPTIMIZE] self-reflection, prompt tuning, healing, performance
+import publicRoutes from './routes/public.js'  // [v9.9-LAUNCH] public landing, payments, referrals, waitlist
 import challengeRoutes from './routes/challenges.js'  // [P20] added: OMEGA Challenge
 import uploadRoutes from './routes/upload.js'  // [P21] added: image upload optimization
 import scheduledPostsRoutes from './routes/scheduledPosts.js'  // [v6.0-fix] added: missing import
@@ -356,6 +357,9 @@ app.get('/api/health', (req, res) => {
 
 // Public legal info endpoint (for privacy policy, terms, footer)
 app.get('/api/public/legal-info', getPublicLegalInfo)
+
+// [v9.9-LAUNCH] Public landing routes: plans, waitlist, payments, referrals
+app.use('/api/public', publicRoutes)
 
 // [PAYMENT-v5.2] added: geo-currency detection
 app.get('/api/geo/currency', detectCurrency)

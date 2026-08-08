@@ -14,7 +14,10 @@ import { useDashboardData } from './hooks/useDashboardData'
 import { useOTAUpdate } from './hooks/useOTAUpdate.js'
 
 // Pages
-import LandingPage from './pages/LandingPage'
+import LegacyLandingPage from './pages/LandingPage'
+import PublicLandingPage from './pages/landing/LandingPage'
+import SignupPage from './pages/auth/SignupPage'
+import ApiDocsPage from './pages/docs/ApiDocsPage'
 import OwnerDashboardPage from './pages/owner/OwnerDashboardPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import StaffDashboardPage from './pages/StaffDashboardPage'
@@ -265,9 +268,11 @@ function App() {
             }>
                 <ErrorBoundary>
                 <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LandingPage showLogin={true} />} />
-                <Route path="/register" element={<LandingPage showRegister={true} />} />
+                <Route path="/" element={<PublicLandingPage />} />
+                <Route path="/login" element={<LegacyLandingPage showLogin={true} />} />
+                <Route path="/register" element={<LegacyLandingPage showRegister={true} />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/docs" element={<ApiDocsPage />} />
                 <Route path="/redirect" element={<RoleRedirect />} />
 
                 {/* [v6.0] added: backward compatible redirects to Creative Hub */}
