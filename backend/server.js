@@ -14,9 +14,13 @@ import { protect } from './middleware/auth.js' // [HOTFIX-2026-08-04] added — 
 import { apiLimiter, omegaChatLimiter, authLoginLimiter, authRegisterLimiter, checkBlockedIP, autoBanMiddleware } from './middleware/rateLimiter.js'  // [v7.0-PART2] rate limiting v2
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import bot from './services/ownerBot.js'
-import { initOwnerBot, sendOwnerAlert } from './services/ownerBot.js'
+import { initOwnerBot, sendOwnerAlert, alertOwner } from './services/ownerBot.js'
 import { initOmegaBot } from './services/omegaBot.js'
 import { getTaxReminder } from './services/financeService.js'
+import ChannelConfig from './models/ChannelConfig.js'
+import { publishToChannel, getChannelStats } from './services/channelPublisher.js'
+import { generateDiscountPost, publishDiscountToChannel } from './services/discountService.js'
+import { publishVideoPromo } from './services/videoPromoService.js'
 import { createNode } from './services/cognitiveMesh.js'
 import { Campaign } from './models/Campaign.js'
 import Ticket from './models/Ticket.js'
@@ -97,6 +101,9 @@ import adRoutes from './routes/ads.js'  // [v6.6] Advertiser ads API
 import creatorRoutes from './routes/creator.js'  // [v6.6-PART2] Creator analytics
 import versionRoutes from './routes/version.js'  // [v6.5.5] added: version API
 import supportRoutes from './routes/support.js'  // [v9.9.2-MASTER-FIX] unified support tickets
+import channelRoutes from './routes/channel.js'  // [v9.9.5-TELEGRAM-UNIFIED]
+import adOrderRoutes from './routes/adOrders.js'  // [v9.9.5-TELEGRAM-UNIFIED]
+import discountRoutes from './routes/discounts.js'  // [v9.9.5-TELEGRAM-UNIFIED]
 import desktopUpdateRoutes from './routes/desktopUpdate.js'  // [v7.0] added: Tauri desktop updater
 import { startBackupCron } from './services/disasterRecovery.js'  // [v7.0-PART2] added: disaster recovery
 import disasterRoutes from './routes/disaster.js'  // [v7.0-PART2] added: disaster recovery API
@@ -241,6 +248,68 @@ startSubscriptionCron()
 // [SOCIAL-v5.1] added: auto-publishing cron
 startAutoPublisher()
 
+// [v9.9.5-TELEGRAM-UNIFIED] Channel auto-posts, discounts, videos, briefing
+if (isConnected) {
+    // Автопубликация контента каждый час
+    cron.schedule('0 * * * *', async () => {
+        const now = new Date()
+        try {
+            const configs = await ChannelConfig.find({ active: true, nextPostAt: { $lte: now } })
+            for (const config of configs) {
+                try {
+                    const res = await publishToChannel(config._id)
+                    if (res.success) alertOwner(`📢 Авто-пост в ${config.channelUsername}\n<b>${res.post.title}</b>`, { parse_mode: 'HTML' })
+                    else alertOwner(`⚠️ Ошибка публикации ${config.channelUsername}: ${res.error}`)
+                } catch (e) { console.error('Channel cron error:', e) }
+            }
+        } catch (e) { console.error('[cron] channel auto-post failed:', e.message) }
+    })
+
+    // Авто-скидки каждые 3 дня в 12:00
+    cron.schedule('0 12 */3 * *', async () => {
+        try {
+            const configs = await ChannelConfig.find({ active: true })
+            for (const c of configs) {
+                try {
+                    const discount = await generateDiscountPost('pro', [20, 30, 50][Math.floor(Math.random() * 3)])
+                    await publishDiscountToChannel(discount._id, c._id)
+                    alertOwner(`💰 Авто-скидка опубликована: ${discount.promoCode}`)
+                } catch (e) { console.error('Discount cron error:', e) }
+            }
+        } catch (e) { console.error('[cron] discount auto-post failed:', e.message) }
+    })
+
+    // Авто-видео по субботам 11:00
+    cron.schedule('0 11 * * 6', async () => {
+        try {
+            const configs = await ChannelConfig.find({ active: true })
+            for (const c of configs) {
+                try {
+                    const topics = ['Как взлететь в TikTok за 7 дней', 'AI vs человек в SMM', 'Топ-5 хуков для Reels', 'Зачем нужен контент-план']
+                    const topic = topics[Math.floor(Math.random() * topics.length)]
+                    await publishVideoPromo(c._id, topic, c.niche)
+                    alertOwner(`🎬 Авто-видео пост: ${topic}`)
+                } catch (e) { console.error('Video cron error:', e) }
+            }
+        } catch (e) { console.error('[cron] video auto-post failed:', e.message) }
+    })
+
+    // Утренний брифинг 09:00
+    cron.schedule('0 9 * * *', async () => {
+        try {
+            const configs = await ChannelConfig.find({ active: true })
+            for (const c of configs) {
+                try {
+                    const stats = await getChannelStats(c._id)
+                    alertOwner(`📊 Утренний брифинг: ${c.channelUsername}\n👥 Подписчики: ${stats?.subscribers || 0}\n📝 Постов за 7д: ${stats?.weekPosts || 0}\n👁 Охват: ${stats?.totalViews?.toLocaleString('ru-RU') || 0}`)
+                } catch (e) { console.error('Briefing cron error:', e) }
+            }
+        } catch (e) { console.error('[cron] morning briefing failed:', e.message) }
+    })
+
+    console.log('📱 Telegram unified channel crons scheduled')
+}
+
 // Seed default OMEGA agents after DB connection
 if (isConnected) {
     try {
@@ -372,6 +441,9 @@ app.use('/api/analytics', analyticsRoutes)
 app.use('/api/scheduler', schedulerRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/support', supportRoutes)  // [v9.9.2-MASTER-FIX] unified support tickets
+app.use('/api/channel', channelRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]
+app.use('/api/ad-orders', adOrderRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]
+app.use('/api/discounts', discountRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]
 app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
 app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API

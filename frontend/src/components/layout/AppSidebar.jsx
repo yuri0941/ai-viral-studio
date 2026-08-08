@@ -10,7 +10,7 @@ import {
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
     Palette, LayoutTemplate, Flame, Cpu, Swords, Zap, Sparkles,
-    Clapperboard, Factory, Telescope, Landmark, Send, MessageCircle,
+    Clapperboard, Factory, Telescope, Landmark, Send, MessageCircle, Radio,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
@@ -154,6 +154,8 @@ const OWNER_GROUPS = [
             { id: 'neuroSales', label: '🧠 Neuro-Sales', icon: Brain, path: '/neuro-sales' },
             { id: 'scout', label: '🔥 Scout', icon: Flame },
             { id: 'telegram', label: '📱 Telegram', icon: Send },
+            { id: 'channelManager', label: '📡 Каналы', icon: Radio },
+            { id: 'adOrders', label: '🛒 Заказы рекламы', icon: Megaphone },
         ],
     },
     {

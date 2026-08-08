@@ -3,6 +3,7 @@ import fs from 'fs'
 import { chatWithAI } from './aiService.js'
 import { isOwner, getOwnerContext } from './ownerContext.js'
 import { createTicket } from './supportService.js'
+import { getAdPricing } from './adPricingService.js'
 
 // [P16-FINAL] singleton to avoid duplicate polling / 409 conflict
 let bot = global.omegaBotInstance || null
@@ -14,6 +15,10 @@ const OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID
 // [v9.9.2-MASTER-FIX] client support state per chat
 const supportState = global.omegaSupportState || new Map()
 global.omegaSupportState = supportState
+
+// [v9.9.5-TELEGRAM-UNIFIED] client video creation state per chat
+const videoState = global.omegaVideoState || new Map()
+global.omegaVideoState = videoState
 
 function createStubBot() {
   return {
@@ -31,11 +36,14 @@ function createStubBot() {
 
 // [HOTFIX-2026-08-08] stringify objects before sendMessage to avoid "[object Object]"
 function sendClientMenu(chatId) {
-  bot.sendMessage(chatId, '👋 <b>AI Viral Studio</b>\n━━━━━━━━━━━━━━\nЧем помочь?', {
+  bot.sendMessage(chatId, `✦ <b>AI Viral Studio</b> ✦\n━━━━━━━━━━━━━━\n<i>OMEGA AI — ваш SMM-отдел</i>\n\nВыберите действие:`, {
     parse_mode: 'HTML',
     reply_markup: {
       inline_keyboard: [
-        [{ text: '💬 Поддержка', callback_data: 'support:start' }, { text: '🚀 В приложение', url: 'https://aiviral-studio.ru' }]
+        [{ text: '🛒 Реклама в канале', callback_data: 'ad:start' }, { text: '💰 Скидки', callback_data: 'discount:list' }],
+        [{ text: '🎬 Видео / Reels', callback_data: 'video:start' }, { text: '💬 Поддержка', callback_data: 'support:start' }],
+        [{ text: '📊 Мои заказы', callback_data: 'ad:myorders' }, { text: '💎 Тарифы', callback_data: 'ad:prices' }],
+        [{ text: '🚀 Перейти в приложение', url: 'https://aiviral-studio.ru' }]
       ]
     }
   })
@@ -82,6 +90,15 @@ export const initOmegaBot = () => {
     const context = await getOwnerContext(chatId);
     const name = context?.name || 'Юрий';
     bot.sendMessage(chatId, `🤖 <b>OMEGA (Owner Mode)</b>\n\nЯ готова к работе, ${name}.\nИспользуйте /menu для навигации.`, { parse_mode: 'HTML' });
+  })
+
+  // [v9.9.5-TELEGRAM-UNIFIED] client ad order command
+  bot.onText(/\/ad (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id
+    const adText = match[1]
+    const ownerBot = new TelegramBot(process.env.TELEGRAM_OWNER_BOT_TOKEN, { polling: false })
+    ownerBot.sendMessage(process.env.OWNER_CHAT_ID, `🛒 <b>Новый заказ рекламы!</b>\n━━━━━━━━━━━━━━\nКлиент: @${msg.from.username || 'unknown'}\nID: ${chatId}\nТекст: ${adText.slice(0, 100)}...`, { parse_mode: 'HTML' })
+    bot.sendMessage(chatId, `✅ <b>Заявка отправлена!</b>\n━━━━━━━━━━━━━━\nВладелец рассмотрит и свяжется с вами.`, { parse_mode: 'HTML' })
   })
 
   bot.onText(/\/help/, (msg) => {
@@ -168,6 +185,13 @@ export const initOmegaBot = () => {
       return
     }
 
+    // [v9.9.5-TELEGRAM-UNIFIED] client video topic collection
+    if (!owner && videoState.get(chatId)?.step === 'awaiting_topic') {
+      bot.sendMessage(chatId, `🎬 <b>Сценарий готов!</b>\n━━━━━━━━━━━━━━\nХук: "Как ${msg.text} за 24 часа?"\n\n👇 Создать видео в приложении:\nhttps://aiviral-studio.ru/video-creator`, { parse_mode: 'HTML' })
+      videoState.delete(chatId)
+      return
+    }
+
     bot.sendChatAction(chatId, 'typing')
 
     try {
@@ -238,6 +262,35 @@ export const initOmegaBot = () => {
         safeSendMessage(chatId, '⚠️ Не удалось обновить обращение.', { parse_mode: 'HTML' })
       }
       return
+    }
+
+    // [v9.9.5-TELEGRAM-UNIFIED] client luxury menu callbacks
+    if (!owner) {
+      if (data === 'ad:start') {
+        const prices = getAdPricing()
+        let text = `🛒 <b>Реклама в канале @aiviralstudio</b>\n━━━━━━━━━━━━━━\n`
+        Object.entries(prices).forEach(([k, v]) => { text += `\n• ${v.description} — ${v.price.toLocaleString('ru-RU')}₽` })
+        text += `\n━━━━━━━━━━━━━━\nНапишите /ad ваш_текст`
+        bot.sendMessage(chatId, text, { parse_mode: 'HTML' })
+        return
+      }
+      if (data === 'discount:list') {
+        bot.sendMessage(chatId, `💰 <b>Активные промокоды</b>\n━━━━━━━━━━━━━━\n🔥 OMEGA20 — скидка 20%\n🔥 OMEGA30 — скидка 30%\n━━━━━━━━━━━━━━\n👇 Применить в приложении:\nhttps://aiviral-studio.ru/signup`, { parse_mode: 'HTML' })
+        return
+      }
+      if (data === 'video:start') {
+        bot.sendMessage(chatId, `🎬 <b>Создание видео</b>\n━━━━━━━━━━━━━━\nНапишите тему (например: "как продвигать кофейню в TikTok")`, { parse_mode: 'HTML' })
+        videoState.set(chatId, { step: 'awaiting_topic' })
+        return
+      }
+      if (data === 'ad:myorders') {
+        bot.sendMessage(chatId, `📊 <b>Ваши заказы</b>\n━━━━━━━━━━━━━━\nУ вас пока нет активных заказов.\nСоздать: /ad`, { parse_mode: 'HTML' })
+        return
+      }
+      if (data === 'ad:prices') {
+        bot.sendMessage(chatId, `💎 <b>Тарифы приложения</b>\n━━━━━━━━━━━━━━\n• Free — 0₽ (10 генераций)\n• Pro — 990₽/мес\n• Agency — 4990₽/мес\n━━━━━━━━━━━━━━\nhttps://aiviral-studio.ru/pricing`, { parse_mode: 'HTML' })
+        return
+      }
     }
 
     if (owner) {

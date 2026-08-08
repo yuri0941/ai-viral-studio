@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => ({
             filename: 'sw.js',
             injectManifest: {
                 injectionPoint: 'self.__WB_MANIFEST',
+                maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
             },
             manifest: {
                 name: 'AI Viral Studio',

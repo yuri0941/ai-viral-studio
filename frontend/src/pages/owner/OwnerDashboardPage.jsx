@@ -73,6 +73,8 @@ import { SandboxPanel } from './components/tabs/SandboxPanel'
 import { SelfOptimizeTab } from './components/tabs/SelfOptimizeTab'
 import TelegramTab from './components/tabs/TelegramTab'
 import { SupportTab } from './components/tabs/SupportTab'
+import { ChannelManagerTab } from './components/tabs/ChannelManagerTab'
+import { AdOrdersTab } from './components/tabs/AdOrdersTab'
 
 const AnalyticsPage = lazy(() => import('../AnalyticsPage'))
 const ProjectFactoryPage = lazy(() => import('../project-factory/ProjectFactoryPage.jsx'))
@@ -109,7 +111,7 @@ import {
     BrainCircuit, Database, Scale, BarChart, BarChart3, Search, Calendar, TrendingUp, Zap,
     X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, Code2, QrCode, Store, Shield, Terminal, Network,
     Wrench, GraduationCap, Microscope, Activity, Cpu, Map, Fingerprint, Moon, Factory, FlaskConical,
-    Telescope, Landmark, Send, MessageCircle
+    Telescope, Landmark, Send, MessageCircle, Radio
 } from 'lucide-react'
 
 const TAB_ICONS = {
@@ -188,6 +190,8 @@ const TAB_ICONS = {
     investment: Landmark,
     telegram: Send,
     support: MessageCircle,
+    channelManager: Radio,
+    adOrders: Megaphone,
 }
 
 // [v6.0] added: count-up hook with requestAnimationFrame
@@ -416,6 +420,8 @@ export default function OwnerDashboardPage() {
             case 'investment': return <InvestmentPanel />
             case 'telegram': return <TelegramTab data={ownerData} />
             case 'support': return <SupportTab data={ownerData} />
+            case 'channelManager': return <ChannelManagerTab data={ownerData} />
+            case 'adOrders': return <AdOrdersTab data={ownerData} />
             case 'omegaFinance': return <OmegaFinanceTab data={ownerData} />
             case 'omegaSkills': return <OmegaSkillsTab data={ownerData} />
             case 'omegaMemory': return <OmegaMemoryTab data={ownerData} />

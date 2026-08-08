@@ -108,8 +108,26 @@ See `backend/.env.example` for the full template. Key variables:
 - `TELEGRAM_OWNER_BOT_TOKEN` — owner bot `@aiviral_alerts_bot`
 - `TELEGRAM_OWNER_CHAT_ID` — owner chat for alerts
 
+## v9.9.5-TELEGRAM-UNIFIED Update (2026-08-08)
+
+### Architecture
+- **Channel**: `@aiviralstudio` — publication target.
+- **Client Bot**: `@aiviral_omega_bot` — luxury menu (ads, discounts, video, support, orders, pricing, app link).
+- **Owner Bot**: `@aiviral_alerts_bot` — owner panel (tickets, ad orders, prices, stats, publish, stop/start, dashboard link) for `@Tvinki013` (ID 2130452126).
+
+### New Backend
+- **Models**: `ChannelConfig`, `AdOrder`, `DiscountPost`.
+- **Services**: `channelContentEngine.js`, `channelPublisher.js`, `discountService.js`, `videoPromoService.js`, `adPricingService.js`.
+- **Routes**: `GET/POST/PATCH /api/channel/*`, `GET/POST/PATCH /api/ad-orders/*`, `GET/POST /api/discounts/*`.
+- **Cron**: hourly auto-posts, every-3-days discounts at 12:00, Saturday videos at 11:00, 09:00 owner briefing.
+
+### New Frontend
+- **ChannelManagerTab**: channel list, add channel, publish now, stats, pause/start.
+- **AdOrdersTab**: orders table, approve/reject, pricing editor, discount creator, video topic button.
+- **SupportWidget**: floating 💬 button, support ticket modal, Telegram link fallback.
+
 ### Build Status
-- `npm run build` — 0 errors.
+- `npm run build` — 0 errors (PWA cache limit raised to 5 MiB).
 - `node --check backend/server.js` — OK.
 
 ### Deployment

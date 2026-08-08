@@ -1,3 +1,22 @@
+## 2026-08-08 — v9.9.5-TELEGRAM-UNIFIED
+- [FEATURE] 2-Bot Architecture: @aiviral_omega_bot (клиенты) + @aiviral_alerts_bot (владелец ID 2130452126)
+- [FEATURE] Channel @aiviralstudio — авто-публикация, обложки, бренд-подпись
+- [FEATURE] ChannelConfig model — ниша, расписание, микс контента, тон
+- [FEATURE] AdOrder model — рекламные заказы через Telegram
+- [FEATURE] DiscountPost model — авто-скидки с промокодами
+- [FEATURE] Channel Content Engine — 4 типа постов, 20+ ниш, AI-генерация
+- [FEATURE] Channel Publisher — sendPhoto с Pollinations.ai, HTML caption
+- [FEATURE] Discount Service — авто-генерация промокодов, публикация в канал
+- [FEATURE] Video Promo Service — TikTok/Reels сценарии, preview, публикация
+- [FEATURE] Ad Pricing Service — владелец меняет цены, клиенты видят сразу
+- [FEATURE] OmegaBot luxury menu: 🛒💰🎬💬📊💎🚀
+- [FEATURE] OwnerBot luxury menu: 📋🛒💰📊📢⏸🌐
+- [FEATURE] Cron: авто-посты каждый час, авто-скидки каждые 3 дня, авто-видео по субботам, утренний брифинг 09:00
+- [FEATURE] API: /api/channel, /api/ad-orders, /api/discounts
+- [FEATURE] Frontend: ChannelManagerTab, AdOrdersTab, SupportWidget
+- [BUILD] npm run build — 0 errors (PWA cache limit raised to 5 MiB)
+- [DEPLOY] Git push + Render Clear Build Cache & Deploy pending
+
 ## 2026-08-08 — v9.9.2-MASTER-FIX (CONTINUED)
 - [CRITICAL FIX] Email Service — Resend API primary + SMTP fallback
 - [CRITICAL FIX] Убраны ВСЕ alert() → Toast + ErrorBoundary

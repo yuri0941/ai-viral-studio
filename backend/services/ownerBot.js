@@ -6,6 +6,9 @@ import { isOwner as isOwnerContext, getOwnerContext, getSmartGreeting } from './
 import { getMenu, trackClick, generateMenuImprovements, applyMenuChanges, addCustomButton, toggleButton } from './telegramMenuService.js'
 import User from '../models/User.js'
 import SupportTicket from '../models/SupportTicket.js'
+import ChannelConfig from '../models/ChannelConfig.js'
+import AdOrder from '../models/AdOrder.js'
+import { getAdPricing, updateAdPricing } from './adPricingService.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -22,6 +25,9 @@ async function getOwnerMongoId() {
   const owner = await User.findOne({ role: 'owner' }).lean()
   return owner?._id?.toString() || null
 }
+
+// [v9.9.5-TELEGRAM-UNIFIED] owner manual post state
+let ownerPostState = null
 
 // [v9.6.1-OMEGA-FIX] Anti-spam cooldown per alert type
 const ALERT_COOLDOWN = new Map()
@@ -151,16 +157,22 @@ export const initOwnerBot = () => {
     { command: 'help', description: '❓ Помощь' }
   ]).catch(() => {})
 
-  bot.onText(/\/start/, async (msg) => {
+  bot.onText(/\/start|\/menu/, async (msg) => {
     const chatId = msg.chat.id;
-    const ownerId = await getOwnerMongoId();
-    const context = await getOwnerContext(chatId);
-    const greeting = await getSmartGreeting(context);
-    const rows = await buildMenuRows(ownerId);
-
-    bot.sendMessage(chatId, greeting.text, {
-      parse_mode: greeting.parse_mode || 'HTML',
-      reply_markup: { inline_keyboard: rows.length ? rows : (greeting.buttons || []) }
+    if (!isOwner(chatId)) {
+      safeSendMessage(chatId, '⛔ Только для владельца.');
+      return;
+    }
+    bot.sendMessage(chatId, `✦ <b>Панель управления</b> ✦\n━━━━━━━━━━━━━━\n<i>Владелец: @Tvinki013</i>\n\nВыберите действие:`, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📋 Тикеты', callback_data: 'owner:tickets' }, { text: '🛒 Заказы рекламы', callback_data: 'owner:adorders' }],
+          [{ text: '💰 Цены рекламы', callback_data: 'owner:prices' }, { text: '📊 Статистика', callback_data: 'owner:stats' }],
+          [{ text: '📢 Опубликовать', callback_data: 'owner:post' }, { text: '⏸ Стоп / ▶️ Старт', callback_data: 'owner:toggle' }],
+          [{ text: '🌐 Dashboard', url: 'https://aiviral-studio.ru/owner' }]
+        ]
+      }
     });
   });
 
@@ -310,6 +322,65 @@ export const initOwnerBot = () => {
     }
   });
 
+  // [v9.9.5-TELEGRAM-UNIFIED] owner ad pricing command
+  bot.onText(/\/adprice (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id; if (!isOwner(chatId)) return;
+    const args = match[1].split(' ');
+    if (args.length < 2) {
+      const prices = getAdPricing();
+      let text = '💰 <b>Текущие цены:</b>\n';
+      Object.entries(prices).forEach(([k, v]) => text += `\n${v.description}: ${v.price.toLocaleString('ru-RU')}₽`);
+      text += '\n\nИзменить: /adprice [slot] [цена]';
+      safeSendMessage(chatId, text, { parse_mode: 'HTML' });
+      return;
+    }
+    const [slot, priceStr] = args;
+    const newPrice = parseInt(priceStr);
+    if (isNaN(newPrice)) { safeSendMessage(chatId, '❌ Цена — число.'); return; }
+    updateAdPricing(slot, newPrice);
+    safeSendMessage(chatId, `✅ Цена "${slot}" = ${newPrice.toLocaleString('ru-RU')} ₽\nКлиенты видят сразу.`, { parse_mode: 'HTML' });
+  });
+
+  // [v9.9.5-TELEGRAM-UNIFIED] owner discount publish command
+  bot.onText(/\/discount (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id; if (!isOwner(chatId)) return;
+    const args = match[1].split(' ');
+    const plan = args[0] || 'pro';
+    const percent = parseInt(args[1]) || 30;
+    const { generateDiscountPost, publishDiscountToChannel } = await import('./discountService.js');
+    const discount = await generateDiscountPost(plan, percent);
+    const config = await ChannelConfig.findOne({ ownerId: process.env.OWNER_USER_ID });
+    if (config) {
+      await publishDiscountToChannel(discount._id, config._id);
+      safeSendMessage(chatId, `✅ Скидка опубликована!\n🎁 Код: ${discount.promoCode}`);
+    } else {
+      safeSendMessage(chatId, `✅ Скидка создана, но канал не настроен.\n🎁 Код: ${discount.promoCode}`);
+    }
+  });
+
+  // [v9.9.5-TELEGRAM-UNIFIED] owner video promo command
+  bot.onText(/\/video (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id; if (!isOwner(chatId)) return;
+    const topic = match[1];
+    const config = await ChannelConfig.findOne({ ownerId: process.env.OWNER_USER_ID });
+    if (!config) { safeSendMessage(chatId, '❌ Канал не настроен.'); return; }
+    safeSendMessage(chatId, '⏳ Генерирую viral-видео пост...');
+    const { publishVideoPromo } = await import('./videoPromoService.js');
+    const result = await publishVideoPromo(config._id, topic, config.niche);
+    if (result.success) safeSendMessage(chatId, `🎬 Видео-пост опубликован!\nТема: ${topic}`);
+    else safeSendMessage(chatId, `⚠️ Ошибка: ${result.error}`);
+  });
+
+  // [v9.9.5-TELEGRAM-UNIFIED] owner ad orders command
+  bot.onText(/\/adorders/, async (msg) => {
+    const chatId = msg.chat.id; if (!isOwner(chatId)) return;
+    const orders = await AdOrder.find({ status: { $in: ['pending', 'paid', 'approved'] } }).sort({ createdAt: -1 }).limit(10);
+    if (!orders.length) { safeSendMessage(chatId, '✅ Нет активных заказов.'); return; }
+    let text = '📋 <b>Активные заказы:</b>\n';
+    orders.forEach(o => { text += `\n${o.status === 'pending' ? '⏳' : '✅'} #${o._id.toString().slice(-6)} — ${o.slotType} — ${o.price.toLocaleString('ru-RU')}₽`; });
+    safeSendMessage(chatId, text, { parse_mode: 'HTML' });
+  });
+
   // OWNER MODE — smart reply
   bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
@@ -325,6 +396,15 @@ export const initOwnerBot = () => {
         parse_mode: 'HTML',
         reply_markup: { inline_keyboard: [[{ text: '🌐 aiviral-studio.ru', url: 'https://aiviral-studio.ru' }]] }
       });
+      return;
+    }
+
+    // [v9.9.5-TELEGRAM-UNIFIED] owner manual channel post
+    if (String(ownerPostState) === String(chatId)) {
+      const omegaBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
+      await omegaBot.sendMessage(process.env.TELEGRAM_CHANNEL, text, { parse_mode: 'HTML' });
+      safeSendMessage(chatId, '✅ Опубликовано в @aiviralstudio');
+      ownerPostState = null;
       return;
     }
 
@@ -381,6 +461,47 @@ export const initOwnerBot = () => {
 
     if (!isOwner(chatId)) {
       bot.answerCallbackQuery(q.id, { text: '❌ Только для владельца' }).catch(() => {});
+      return;
+    }
+
+    // [v9.9.5-TELEGRAM-UNIFIED] owner luxury panel callbacks
+    if (data === 'owner:tickets') {
+      let text = '📋 <b>Тикеты поддержки</b>\n━━━━━━━━━━━━━━\n';
+      try {
+        const tickets = await SupportTicket.find({ status: { $in: ['open', 'needs_owner', 'in_progress'] } }).sort({ createdAt: -1 }).limit(5);
+        if (!tickets.length) text += '✅ Нет открытых обращений.';
+        else tickets.forEach(t => { const e = t.status === 'needs_owner' ? '🔴' : '🟡'; text += `${e} #${t._id.toString().slice(-6)} — ${t.subject}\n`; });
+      } catch (e) { text += '⚠️ Модуль тикетов не подключён.'; }
+      safeSendMessage(chatId, text);
+      return;
+    }
+    if (data === 'owner:adorders') {
+      const orders = await AdOrder.find({ status: { $in: ['pending', 'paid', 'approved'] } }).sort({ createdAt: -1 }).limit(10);
+      if (!orders.length) { safeSendMessage(chatId, '🛒 <b>Заказы рекламы</b>\n━━━━━━━━━━━━━━\nПока нет активных заказов.\nОни будут приходить сюда автоматически.'); return; }
+      let text = '📋 <b>Активные заказы:</b>\n';
+      orders.forEach(o => { text += `\n${o.status === 'pending' ? '⏳' : '✅'} #${o._id.toString().slice(-6)} — ${o.slotType} — ${o.price.toLocaleString('ru-RU')}₽`; });
+      safeSendMessage(chatId, text, { parse_mode: 'HTML' });
+      return;
+    }
+    if (data === 'owner:prices') {
+      const prices = getAdPricing();
+      let text = '💰 <b>Цены рекламы</b>\n━━━━━━━━━━━━━━\n';
+      Object.entries(prices).forEach(([k, v]) => text += `\n• ${v.description} — ${v.price.toLocaleString('ru-RU')}₽`);
+      text += '\n━━━━━━━━━━━━━━\nИзменить: /adprice [формат] [цена]';
+      safeSendMessage(chatId, text);
+      return;
+    }
+    if (data === 'owner:stats') {
+      safeSendMessage(chatId, '📊 <b>Статистика</b>\n━━━━━━━━━━━━━━\nКанал: @aiviralstudio\nПодписчики: загружается...\n━━━━━━━━━━━━━━\nПолная статистика в Dashboard.');
+      return;
+    }
+    if (data === 'owner:post') {
+      safeSendMessage(chatId, '📢 <b>Публикация</b>\n━━━━━━━━━━━━━━\nНапишите текст поста ответным сообщением.\nOMEGA опубликует в @aiviralstudio.');
+      ownerPostState = chatId;
+      return;
+    }
+    if (data === 'owner:toggle') {
+      safeSendMessage(chatId, '⏸ <b>Пауза / Старт</b>\n━━━━━━━━━━━━━━\nАвтопубликация: 🟢 Активна\n━━━━━━━━━━━━━━\nДля остановки напишите /stop');
       return;
     }
 

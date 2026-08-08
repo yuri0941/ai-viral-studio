@@ -231,4 +231,6 @@ export const TAB_LABELS = {
     investment: '💰 Инвестиции',
     selfOptimize: '🧠 Self-Optimize',
     support: '💬 Поддержка',
+    channelManager: '📡 Каналы',
+    adOrders: '🛒 Заказы рекламы',
 }
