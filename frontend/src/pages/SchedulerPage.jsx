@@ -7,7 +7,7 @@ import {
     Youtube, Music, Instagram, Twitter, Send, Globe,
     Film, SquarePlay, Images, Newspaper, BookOpen, Layers,
     Trash, Play, Maximize2, Wand2, Zap, LayoutTemplate,
-    ToggleLeft, ToggleRight, Bot, Loader2, Copy
+    ToggleLeft, ToggleRight, Bot, Loader2, Copy, Clapperboard
 } from 'lucide-react';
 import { omegaApi } from '../services/api';
 import { API_BASE_URL } from '../config.js';
