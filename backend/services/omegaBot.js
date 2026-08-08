@@ -23,13 +23,13 @@ function createStubBot() {
   }
 }
 
-// [MEGA-HOTFIX-2026-08-08] stringify objects before sendMessage to avoid "[object Object]"
+// [HOTFIX-2026-08-08] stringify objects before sendMessage to avoid "[object Object]"
 function safeSendMessage(chatId, data, options = {}) {
   let text
   if (typeof data === 'string') {
     text = data
   } else if (data && typeof data === 'object') {
-    text = data.text || data.message || data.content || data.response || data.result || JSON.stringify(data, null, 2)
+    text = data.text || data.message || data.content || data.response || data.reply || JSON.stringify(data, null, 2)
   } else {
     text = String(data)
   }

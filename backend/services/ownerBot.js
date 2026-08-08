@@ -25,13 +25,13 @@ function createStubBot() {
   }
 }
 
-// [MEGA-HOTFIX-2026-08-08] stringify objects before sendMessage to avoid "[object Object]"
+// [HOTFIX-2026-08-08] stringify objects before sendMessage to avoid "[object Object]"
 function safeSendMessage(chatId, data, options = {}) {
   let text
   if (typeof data === 'string') {
     text = data
   } else if (data && typeof data === 'object') {
-    text = data.text || data.message || data.content || data.response || data.result || JSON.stringify(data, null, 2)
+    text = data.text || data.message || data.content || data.response || data.reply || JSON.stringify(data, null, 2)
   } else {
     text = String(data)
   }
@@ -155,17 +155,18 @@ export const initOwnerBot = () => {
 
   // OWNER MODE — свободный текст
   bot.on('message', async (msg) => {
-    if (msg.text && msg.text.startsWith('/')) return
+    if (msg.text?.startsWith('/')) return
     const chatId = msg.chat.id
     if (!isOwner(chatId)) { safeSendMessage(chatId, '⛔ Только команды'); return }
     const text = msg.text?.trim()
     if (!text || text.length < 3) return
     bot.sendChatAction(chatId, 'typing')
     try {
-      const result = await chatWithAI(text, [], { userRole: 'owner', context: 'telegram_owner_chat' })
-      safeSendMessage(chatId, `🤖 <b>OMEGA (Owner Mode)</b>\n\n${result.text || result}`, { parse_mode: 'HTML' })
+      const aiResult = await chatWithAI(text, [], { userRole: 'owner', context: 'telegram_owner_chat' })
+      const reply = aiResult?.reply || aiResult?.text || aiResult?.content || aiResult?.message || 'Принято, обрабатываю.'
+      safeSendMessage(chatId, `🤖 <b>OMEGA (Owner Mode)</b>\n\n${reply}`, { parse_mode: 'HTML' })
     } catch (e) {
-      safeSendMessage(chatId, `⚠️ ${e.message}`, { parse_mode: 'HTML' })
+      safeSendMessage(chatId, '⚠️ OMEGA временно недоступна. Попробуйте позже.', { parse_mode: 'HTML' })
     }
   })
 
