@@ -1,4 +1,23 @@
-## 2026-08-08 — v8.0-PART1-HOTFIX-2: Convert v8.0 routes/services to ES modules (require→import)
+## 2026-08-08 — v9.1-PERSONALITY: Digital Twin + Voice Clone + Dream Mode v2 + DownloadPage Fix
+- [x] personalityEngine.js: analyzeOwnerStyle, generateInOwnerStyle, shouldChallengeOwner
+- [x] voiceCloneService.js: ElevenLabs voice clone placeholder (mock if key missing)
+- [x] omegaDiary.js: decision log with outcome tracking
+- [x] dreamMode.js: nightShift (00:00-06:00), morningBriefing (08:00)
+- [x] backend/models/PersonalityProfile.js — schema for persistent personality profiles
+- [x] backend/routes/personality.js — /api/omega-supreme/personality/*, /voice/*, /diary/*, /dream/*
+- [x] backend/server.js — personalityRoutes mounted at /api/omega-supreme
+- [x] PersonalityTab.jsx: style analysis, voice clone, diary, challenge mode
+- [x] DreamModeTab.jsx: night shift control, weekly ideas, predictions, morning briefing
+- [x] OwnerDashboardPage.jsx + initialData.js — tabs 'personality' (Fingerprint) and 'dream' (Moon)
+- [x] DownloadPage.jsx: v9.1.0, PWA primary, APK/EXE/DMG build instructions, iOS Safari PWA
+- [x] frontend/src/config/version.js — APP_VERSION '9.1.0'
+- [x] i18n: personality.* + dream.* keys in ru.json + en.json
+- [x] `node --check backend/server.js` OK
+- [x] `npm run build` — 0 errors
+- [x] Git commit/push: выполнен
+- [ ] Render deploy: требует ручного Clear Build Cache & Deploy
+
+
 - [x] `backend/routes/video.js`: `require` → `import`, `module.exports` → `export default`
 - [x] `backend/routes/voice.js`: `require` → `import`, `module.exports` → `export default`
 - [x] `backend/routes/neuroSales.js`: `require` → `import`, `module.exports` → `export default`

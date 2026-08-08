@@ -627,6 +627,13 @@ NODE_ENV=production
 - [ ] Git push: выполнен
 
 
+## Current State (v9.1 — 2026-08-08)
+- v9.1-PERSONALITY: Digital Twin — OMEGA copies owner's writing style, voice clone via ElevenLabs, ethical challenge mode, decision diary, Dream Mode v2 (night shift 00:00-06:00, morning briefing 08:00).
+- DownloadPage: v9.1.0, PWA primary installation for Android/Windows/macOS/iOS, APK/EXE/DMG build instructions accordion.
+- New backend services: personalityEngine.js, voiceCloneService.js, omegaDiary.js, dreamMode.js, PersonalityProfile.js model, personality.js routes mounted at /api/omega-supreme.
+- New frontend tabs: PersonalityTab (style analysis, voice clone, diary, challenge mode), DreamModeTab (night shift control, weekly ideas, predictions, morning briefing).
+- i18n: personality.* and dream.* keys in ru.json + en.json.
+
 ## Current State (v7.0 — 2026-08-07)
 - Статус: Production-ready. Нет demo-режима, нет mock-данных.
 - Скачивание: APK (Android), EXE (Windows), DMG (macOS) с /download

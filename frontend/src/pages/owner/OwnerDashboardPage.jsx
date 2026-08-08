@@ -54,6 +54,8 @@ import OmegaBoardroom from '../../components/omega/OmegaBoardroom.jsx'
 import { OwnerRequisitesTab } from './components/tabs/OwnerRequisitesTab'
 import { LegalSettingsTab } from './components/tabs/LegalSettingsTab'
 import { BrandVoiceTab } from './components/tabs/BrandVoiceTab'
+import PersonalityTab from './components/tabs/PersonalityTab'
+import DreamModeTab from './components/tabs/DreamModeTab'
 import { TemplatesTab } from './components/tabs/TemplatesTab'
 import { ScoutTab } from './components/tabs/ScoutTab'
 import { WhiteLabelTab } from './components/tabs/WhiteLabelTab'
@@ -95,7 +97,7 @@ import {
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
     BrainCircuit, Database, Scale, BarChart, BarChart3, Search, Calendar, TrendingUp, Zap,
     X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, Code2, QrCode, Store, Shield, Terminal, Network,
-    Wrench, GraduationCap, Microscope, Activity, Cpu, Map
+    Wrench, GraduationCap, Microscope, Activity, Cpu, Map, Fingerprint, Moon
 } from 'lucide-react'
 
 const TAB_ICONS = {
@@ -123,6 +125,8 @@ const TAB_ICONS = {
     apiKeys: KeyRound,
     externalKeys: KeyRound,
     supreme: BrainCircuit,
+    personality: Fingerprint,
+    dream: Moon,
     notifications: Bell,
     help: HelpCircle,
     feedback: Heart,
@@ -387,6 +391,8 @@ export default function OwnerDashboardPage() {
             case 'omegaFinance': return <OmegaFinanceTab data={ownerData} />
             case 'omegaSkills': return <OmegaSkillsTab data={ownerData} />
             case 'omegaMemory': return <OmegaMemoryTab data={ownerData} />
+            case 'personality': return <PersonalityTab data={ownerData} />
+            case 'dream': return <DreamModeTab data={ownerData} />
             case 'requisites': return <OwnerRequisitesTab data={ownerData} />
             case 'legalSettings': return <LegalSettingsTab data={ownerData} />
             case 'brandVoice': return <BrandVoiceTab data={ownerData} />

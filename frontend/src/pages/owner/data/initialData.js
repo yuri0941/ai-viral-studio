@@ -184,6 +184,8 @@ export const TAB_LABELS = {
     apiKeys: '🔑 API Keys',
     externalKeys: '🔑 Внешние API',
     supreme: '🧠 OMEGA Supreme',
+    personality: '🎭 Цифровой двойник',
+    dream: '🌙 Dream Mode',
     notifications: '🔔 Уведомления',
     help: '❓ Помощь',
     feedback: '💬 Feedback',
