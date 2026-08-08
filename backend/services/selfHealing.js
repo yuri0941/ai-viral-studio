@@ -1,6 +1,8 @@
 import cron from 'node-cron'
 import axios from 'axios'
-import { getProviderStatuses } from './aiService.js'
+import fs from 'fs/promises'
+import path from 'path'
+import { getProviderStatuses, chatWithAI } from './aiService.js'
 import {
     logRecovery,
     getRecentLogs,
@@ -11,6 +13,7 @@ import {
     checkDatabase,
     isMockMode,
 } from './autoRecovery.js'
+import { createNode } from './cognitiveMesh.js'
 import { alertOwner } from './ownerBot.js'
 import { alertOmega } from './omegaBot.js'
 import { OwnerSettings } from '../models/index.js'
@@ -180,3 +183,31 @@ export async function getPreferredProvider() {
 }
 
 export default { startSelfHealing, stopSelfHealing, getSelfHealingStatus, toggleAutoHeal, runHealingTick, getPreferredProvider }
+
+// === v9.6 SELF-OPTIMIZE additions ===
+const ERROR_LOG = []
+export function recordError(error, context = {}) {
+  ERROR_LOG.push({ timestamp: new Date(), message: error.message, stack: error.stack?.slice(0, 500), status: error.status, path: context.path, file: context.file })
+  if (ERROR_LOG.length > 100) ERROR_LOG.shift()
+}
+
+export async function analyzeErrors(ownerId) {
+  const recent = ERROR_LOG.slice(-20)
+  if (recent.length === 0) return { issues: [], score: 100 }
+  const prompt = `Analyze these errors and suggest fixes. Errors: ${JSON.stringify(recent.map(e => ({ message: e.message, status: e.status, path: e.path })))}. Return JSON: { issues: [{file, line, problem, fix, confidence}], score: 0-100 }`
+  const aiResult = await chatWithAI(prompt, [], 'ru', { system: 'Return ONLY valid JSON.', maxTokens: 2000, temperature: 0.3 })
+  let analysis
+  try { analysis = JSON.parse(aiResult?.reply || aiResult?.text || '{}') } catch (e) { analysis = { issues: [], score: 100 } }
+  await createNode({ type: 'system', content: `Self-healing analysis: ${analysis.issues?.length || 0} issues found`, confidence: 0.9, source: 'self_healing', metadata: { ownerId, issues: analysis.issues, score: analysis.score, type: 'healing_analysis' } })
+  return analysis
+}
+
+export async function generateFix(issue, filePath) {
+  try {
+    const code = await fs.readFile(filePath, 'utf-8')
+    const prompt = `Fix this issue in the code. Issue: ${issue.problem}. File: ${filePath}. Code: ${code.slice(0, 3000)}. Return ONLY the fixed code block (complete file or relevant section).`
+    const aiResult = await chatWithAI(prompt, [], 'ru', { maxTokens: 3000, temperature: 0.2 })
+    return aiResult?.reply || aiResult?.text || null
+  } catch (e) { return null }
+}
+

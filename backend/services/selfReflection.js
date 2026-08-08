@@ -1,6 +1,8 @@
 import cron from 'node-cron'
 import { AuditLog } from '../models/index.js'
 import { alertOwner } from './ownerBot.js'
+import { queryMesh, createNode } from './cognitiveMesh.js'
+import { chatWithAI } from './aiService.js'
 
 let reflectionJob = null
 
@@ -90,4 +92,32 @@ export async function sendMorningReport(ownerId) {
     return { sent: true, report }
 }
 
-export default { analyzeLast24Hours, sendMorningReport }
+export default { analyzeLast24Hours, sendMorningReport, analyzeDailyPerformance, getPromptAdjustments }
+
+// === v9.6 SELF-OPTIMIZE additions ===
+export async function analyzeDailyPerformance(ownerId, date = new Date()) {
+  const startOfDay = new Date(date); startOfDay.setHours(0, 0, 0, 0)
+  const endOfDay = new Date(date); endOfDay.setHours(23, 59, 59, 999)
+  const nodes = await queryMesh(`owner:${ownerId}`, 100, 0.3)
+  const todayNodes = nodes.filter(n => {
+    const d = new Date(n.createdAt || n.timestamp)
+    return d >= startOfDay && d <= endOfDay
+  })
+  const interactions = todayNodes.filter(n => n.type === 'telegram' || n.type === 'chat' || n.type === 'decision')
+  const successful = interactions.filter(n => n.metadata?.outcome === 'success' || n.confidence > 0.8).length
+  const failed = interactions.filter(n => n.metadata?.outcome === 'failure' || n.confidence < 0.4).length
+  const ignored = interactions.length - successful - failed
+  const prompt = `Analyze OMEGA's performance today. Interactions: ${interactions.length}, Successful: ${successful}, Failed: ${failed}, Ignored: ${ignored}. Sample interactions: ${interactions.slice(-5).map(i => i.content.slice(0, 100)).join('; ')}. Return JSON: { score: 0-100, weaknesses: [{issue, severity, suggestion}], strengths: [{area, example}], promptAdjustments: [{target, oldStyle, newStyle}] }`
+  const aiResult = await chatWithAI(prompt, [], 'ru', { system: 'Return ONLY valid JSON.', maxTokens: 2000, temperature: 0.3 })
+  let report
+  try { report = JSON.parse(aiResult?.reply || aiResult?.text || '{}') } catch (e) { report = { score: 70, weaknesses: [], strengths: [], promptAdjustments: [] } }
+  await createNode({ type: 'system', content: `Self-reflection report for ${date.toDateString()}: score ${report.score}`, confidence: 0.95, source: 'self_reflection', metadata: { ownerId, report, date, type: 'daily_reflection' } })
+  return report
+}
+
+export async function getPromptAdjustments(ownerId) {
+  const reflections = await queryMesh(`self_reflection owner:${ownerId}`, 10, 0.8)
+  const adjustments = reflections.flatMap(r => r.metadata?.report?.promptAdjustments || [])
+  return adjustments
+}
+

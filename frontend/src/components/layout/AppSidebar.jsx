@@ -101,6 +101,7 @@ const OWNER_GROUPS = [
         items: [
             { id: 'omega', label: 'Ω OMEGA Core', icon: Brain },
             { id: 'brainviz', label: '🧠 Нейросеть', icon: Brain },
+            { id: 'selfOptimize', label: '🧠 Self-Optimize', icon: Brain },
             { id: 'memory', label: '💾 Память', icon: Database },
             { id: 'devstudio', label: '💻 DevStudio', icon: Code2 },
             { id: 'boardroom', label: '🏛 Совет', icon: Users },

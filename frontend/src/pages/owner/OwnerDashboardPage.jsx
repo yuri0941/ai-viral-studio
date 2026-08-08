@@ -70,6 +70,7 @@ import { FranchiseTab } from './components/tabs/FranchiseTab'
 import { FleetTab } from './components/tabs/FleetTab'
 import { SelfHealingCrisisTab } from './components/tabs/SelfHealingCrisisTab'
 import { SandboxPanel } from './components/tabs/SandboxPanel'
+import { SelfOptimizeTab } from './components/tabs/SelfOptimizeTab'
 import TelegramTab from './components/tabs/TelegramTab'
 
 const AnalyticsPage = lazy(() => import('../AnalyticsPage'))
@@ -165,6 +166,7 @@ const TAB_ICONS = {
     franchise: Store,
     fleet: Rocket,
     selfHealing: Shield,
+    selfOptimize: Brain,
     sandbox: Terminal,
     approvalQueue: Shield,
     neural: Network,
@@ -430,6 +432,7 @@ export default function OwnerDashboardPage() {
             case 'franchise': return <FranchiseTab data={ownerData} />
             case 'fleet': return <FleetTab data={ownerData} />
             case 'selfHealing': return <SelfHealingCrisisTab data={ownerData} />
+            case 'selfOptimize': return <SelfOptimizeTab data={ownerData} />
             case 'sandbox': return <SandboxPanel data={ownerData} />
             case 'approvalQueue': return <OmegaApprovalQueue />
             case 'factory': return <ProjectFactoryPage />

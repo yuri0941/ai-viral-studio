@@ -81,6 +81,7 @@ import businessSpawnerRoutes from './routes/businessSpawner.js'  // ← P14: Bus
 import roadmapRoutes from './routes/roadmap.js'  // ← Public roadmap + voting
 import adminRoutes from './routes/admin.js'  // Admin + emergency stop
 import selfImprovementRoutes from './routes/selfImprovement.js'  // ← P15: Self-improvement + churn + niche intelligence
+import selfOptimizeRoutes from './routes/selfOptimize.js'  // [v9.6-SELF-OPTIMIZE] self-reflection, prompt tuning, healing, performance
 import challengeRoutes from './routes/challenges.js'  // [P20] added: OMEGA Challenge
 import uploadRoutes from './routes/upload.js'  // [P21] added: image upload optimization
 import scheduledPostsRoutes from './routes/scheduledPosts.js'  // [v6.0-fix] added: missing import
@@ -120,7 +121,9 @@ import { startAutopilot } from './services/autoPilot.js'
 import { startAutoReportCron } from './services/autoReportService.js'
 import { startFailoverCron } from './services/failoverService.js'
 import { startSelfHealing } from './services/selfHealing.js'
-import { startSelfReflectionCron } from './services/selfReflection.js'
+import { startSelfReflectionCron, analyzeDailyPerformance } from './services/selfReflection.js'
+import { getPromptStats, tunePrompt } from './services/promptTuner.js'
+import { analyzeErrors } from './services/selfHealing.js'
 import { startReflectionCron as startNeuralReflectionCron } from './ai/omega/selfReflection.js'
 import { startSelfLearningCrons } from './ai/omega/selfLearningEngine.js'
 import { startWebResearchCrons } from './ai/omega/webResearchEngine.js'
@@ -205,6 +208,27 @@ cron.schedule('0 20 * * *', async () => {
         }
     } catch (err) {
         console.error('[cron] tax reminder failed:', err.message)
+    }
+})
+
+// [v9.6-SELF-OPTIMIZE] Auto self-reflection, healing and prompt tuning every 6h
+cron.schedule('0 */6 * * *', async () => {
+    console.log('[SELF-OPTIMIZE] Running auto-reflection...')
+    try {
+        const owner = await User.findOne({ role: 'owner' }).lean()
+        const ownerId = owner?._id?.toString() || process.env.OWNER_USER_ID
+        if (ownerId) {
+            await analyzeDailyPerformance(ownerId)
+            await analyzeErrors(ownerId)
+            const prompts = getPromptStats().filter(p => p.successRate < 0.6)
+            for (const p of prompts.slice(0, 2)) {
+                await tunePrompt(p.name, ownerId)
+            }
+        } else {
+            console.warn('[SELF-OPTIMIZE] No owner found; skipping auto-reflection')
+        }
+    } catch (e) {
+        console.error('[SELF-OPTIMIZE] Auto-reflection failed:', e.message)
     }
 })
 
@@ -384,6 +408,7 @@ app.use('/api/upload', uploadRoutes)  // [P21] added: image upload optimization
 app.use('/api/roadmap', roadmapRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/self-improvement', selfImprovementRoutes)
+app.use('/api/self-optimize', selfOptimizeRoutes)  // [v9.6-SELF-OPTIMIZE] self-optimize API
 app.use('/api/scheduled-posts', scheduledPostsRoutes)
 app.use('/api/approvals', approvalRoutes)  // [v6.5] added: OMEGA approval queue
 app.use('/api/repurposing', repurposingRoutes)  // [v6.5] added: content repurposing engine

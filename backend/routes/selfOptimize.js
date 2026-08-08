@@ -1,0 +1,76 @@
+import { Router } from 'express'
+import { protect, requireRole } from '../middleware/auth.js'
+import { analyzeDailyPerformance, getPromptAdjustments } from '../services/selfReflection.js'
+import { getPromptStats, tunePrompt } from '../services/promptTuner.js'
+import { analyzeErrors } from '../services/selfHealing.js'
+import { generateOptimizationReport } from '../services/performanceMonitor.js'
+
+const router = Router()
+
+function getOwnerId(req) {
+  return req.user?.id || req.user?._id
+}
+
+router.get('/reflection', protect, requireRole('owner', 'admin'), async (req, res) => {
+  try {
+    const ownerId = getOwnerId(req)
+    const report = await analyzeDailyPerformance(ownerId)
+    res.json({ status: 'success', report })
+  } catch (err) {
+    console.error('[selfOptimize/reflection]', err.message)
+    res.status(500).json({ status: 'error', error: err.message })
+  }
+})
+
+router.get('/prompts', protect, requireRole('owner', 'admin'), async (req, res) => {
+  try {
+    const ownerId = getOwnerId(req)
+    res.json({
+      status: 'success',
+      prompts: getPromptStats(),
+      adjustments: await getPromptAdjustments(ownerId),
+    })
+  } catch (err) {
+    console.error('[selfOptimize/prompts]', err.message)
+    res.status(500).json({ status: 'error', error: err.message })
+  }
+})
+
+router.post('/prompts/tune', protect, requireRole('owner', 'admin'), async (req, res) => {
+  try {
+    const ownerId = getOwnerId(req)
+    const { name } = req.body
+    if (!name) {
+      return res.status(400).json({ status: 'error', error: 'Prompt name is required' })
+    }
+    const result = await tunePrompt(name, ownerId)
+    res.json({ status: 'success', tuned: !!result, result })
+  } catch (err) {
+    console.error('[selfOptimize/prompts/tune]', err.message)
+    res.status(500).json({ status: 'error', error: err.message })
+  }
+})
+
+router.get('/healing', protect, requireRole('owner', 'admin'), async (req, res) => {
+  try {
+    const ownerId = getOwnerId(req)
+    const analysis = await analyzeErrors(ownerId)
+    res.json({ status: 'success', analysis })
+  } catch (err) {
+    console.error('[selfOptimize/healing]', err.message)
+    res.status(500).json({ status: 'error', error: err.message })
+  }
+})
+
+router.get('/performance', protect, requireRole('owner', 'admin'), async (req, res) => {
+  try {
+    const ownerId = getOwnerId(req)
+    const report = await generateOptimizationReport(ownerId)
+    res.json({ status: 'success', report })
+  } catch (err) {
+    console.error('[selfOptimize/performance]', err.message)
+    res.status(500).json({ status: 'error', error: err.message })
+  }
+})
+
+export default router

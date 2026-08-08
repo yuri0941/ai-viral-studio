@@ -229,4 +229,5 @@ export const TAB_LABELS = {
     factory: '🏭 Project Factory',
     prediction: '🔮 Разведка',
     investment: '💰 Инвестиции',
+    selfOptimize: '🧠 Self-Optimize',
 }
