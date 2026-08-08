@@ -230,6 +230,18 @@ export function AppSidebar({
 
     const groups = isOwner ? OWNER_GROUPS : [{ id: 'main', title: t('sidebar.menu', 'МЕНЮ'), items: roleMenu.map(item => ({ ...item, path: item.path })) }]
 
+    // [HOTFIX-2026-08-08] remove duplicate sidebar items (e.g. analytics in both overview and client groups)
+    const dedupedGroups = groups.map(group => {
+        const seen = new Set()
+        const items = group.items.filter(item => {
+            const key = item.id || item.path || item.label
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+        })
+        return { ...group, items }
+    })
+
     const isItemActive = (item) => {
         if (item.path) {
             return location.pathname === item.path
@@ -332,7 +344,7 @@ export function AppSidebar({
 
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto p-3 space-y-4">
-                {groups.map(group => (
+                {dedupedGroups.map(group => (
                     <div key={group.id}>
                         {isExpanded ? (
                             <button

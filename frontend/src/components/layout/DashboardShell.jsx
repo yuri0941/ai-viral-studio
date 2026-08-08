@@ -192,6 +192,7 @@ export function DashboardShell({
                 <DashboardHeader
                     title={title}
                     user={user}
+                    notifications={notifications}
                     unreadCount={unreadCount}
                     language={language}
                     onLanguageChange={handleLanguageChange}
@@ -199,6 +200,9 @@ export function DashboardShell({
                     onThemeToggle={handleThemeToggle}
                     onMenuClick={() => setSidebarOpen(true)}
                     onNotificationsClick={() => setMobileNotifOpen(true)}
+                    onMarkNotificationRead={onMarkNotificationRead}
+                    onMarkAllNotificationsRead={onMarkAllNotificationsRead}
+                    onDeleteNotification={onDeleteNotification}
                 />
 
                 <div className={`${viewport.isMobile ? 'px-3 py-4 pb-20' : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>

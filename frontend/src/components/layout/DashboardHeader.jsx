@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Menu, Bell, Search, User, Globe, Shield, Briefcase, Headphones, Megaphone, UserCircle, ChevronDown, Sun, Moon, OctagonAlert, Play, Folder, Check } from 'lucide-react'
@@ -30,6 +30,7 @@ function getAvailableRoles(currentRole) {
 export function DashboardHeader({
     title,
     user,
+    notifications = [],
     unreadCount = 0,
     language = 'ru',
     onLanguageChange,
@@ -37,6 +38,9 @@ export function DashboardHeader({
     onThemeToggle,
     onMenuClick,
     onNotificationsClick,
+    onMarkNotificationRead,
+    onMarkAllNotificationsRead,
+    onDeleteNotification,
     showSearch = true,
 }) {
     const { t } = useTranslation()
@@ -47,6 +51,8 @@ export function DashboardHeader({
     const [emergencyStopped, setEmergencyStopped] = useState(false)
     const [profileOpen, setProfileOpen] = useState(false)
     const [pushSubscribed, setPushSubscribed] = useState(false)
+    const [notifOpen, setNotifOpen] = useState(false)
+    const notifRef = useRef(null)
     const [workspaces, setWorkspaces] = useState([])
     const [activeWorkspace, setActiveWorkspace] = useState(() => {
         try { return JSON.parse(localStorage.getItem('active_workspace')) } catch { return null }
@@ -84,9 +90,20 @@ export function DashboardHeader({
         }
     }, [])
 
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (notifRef.current && !notifRef.current.contains(e.target)) {
+                setNotifOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
     const handleNotificationsClick = async () => {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
             onNotificationsClick?.()
+            setNotifOpen(prev => !prev)
             return
         }
         try {
@@ -118,6 +135,7 @@ export function DashboardHeader({
             console.warn('[Push] Subscribe failed:', e.message)
         }
         onNotificationsClick?.()
+        setNotifOpen(prev => !prev)
     }
 
     function urlBase64ToUint8Array(base64String) {
@@ -301,17 +319,59 @@ export function DashboardHeader({
                         </div>
                     )}
 
-                    <button
-                        onClick={handleNotificationsClick}
-                        className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-                    >
-                        <Bell className={`w-5 h-5 ${pushSubscribed ? 'text-emerald-400' : 'text-gray-300'}`} />
-                        {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
-                                {unreadCount > 9 ? '9+' : unreadCount}
-                            </span>
+                    <div className="relative" ref={notifRef}>
+                        <button
+                            onClick={handleNotificationsClick}
+                            className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                        >
+                            <Bell className={`w-5 h-5 ${pushSubscribed ? 'text-emerald-400' : 'text-gray-300'}`} />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </button>
+                        {notifOpen && (
+                            <div className="hidden lg:block absolute right-0 top-full mt-2 w-80 rounded-xl border border-white/10 shadow-2xl shadow-black/50 z-dropdown bg-[var(--glass)] backdrop-blur-xl p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-sm font-semibold text-[var(--text)]">{t('notifications.title', 'Уведомления')}</h4>
+                                    {unreadCount > 0 && (
+                                        <button onClick={() => { onMarkAllNotificationsRead?.(); setNotifOpen(false) }} className="text-xs text-[var(--primary)] hover:underline">
+                                            {t('notifications.markAllRead', 'Все прочитать')}
+                                        </button>
+                                    )}
+                                </div>
+                                {notifications.length === 0 ? (
+                                    <p className="text-xs text-[var(--text-muted)] py-4 text-center">{t('notifications.empty', 'Нет уведомлений')}</p>
+                                ) : (
+                                    <div className="space-y-1 max-h-80 overflow-y-auto">
+                                        {notifications.map(n => (
+                                            <div
+                                                key={n.id}
+                                                onClick={() => onMarkNotificationRead?.(n.id)}
+                                                className={`p-2.5 rounded-xl cursor-pointer text-xs border ${n.read ? 'opacity-50 bg-white/[0.02] border-white/[0.05]' : 'bg-[var(--primary)]/5 border-[var(--primary)]/20'}`}
+                                            >
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <span className={`font-medium ${n.read ? 'text-gray-300' : 'text-white'}`}>{n.title}</span>
+                                                    {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shrink-0 mt-1" />}
+                                                </div>
+                                                <p className="text-[var(--text-muted)] mt-0.5 line-clamp-2">{n.message}</p>
+                                                <div className="flex items-center justify-between mt-1.5">
+                                                    <span className="text-[10px] text-gray-500">{n.time}</span>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); onDeleteNotification?.(n.id) }}
+                                                        className="text-[10px] text-red-400 hover:underline"
+                                                    >
+                                                        {t('common.delete', 'Удалить')}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         )}
-                    </button>
+                    </div>
 
                     {user?.role === 'owner' && (
                         <button
