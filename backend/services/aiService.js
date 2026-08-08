@@ -29,8 +29,14 @@ export function invalidateApiKeysCache() {
     cachedKeys = null
 }
 
-// [SOCIAL-v5.1] fixed: use stable Groq model
-const GROQ_MODELS = ['llama-3.3-70b-versatile']
+// [HOTFIX-2026-08-08] Groq fallback chain + smaller models to avoid TPD rate limits
+const GROQ_MODELS = [
+    'llama-3.3-70b-versatile',
+    'llama-3.1-70b-versatile',
+    'llama-3.1-8b-instant',
+    'llama-3.2-1b-preview',
+    'mixtral-8x7b-32768'
+]
 
 // [P24] fixed: auto-detect user query language
 function detectLanguage(text) {
@@ -485,18 +491,28 @@ async function chatWithGroq(prompt, ownerId = null) {
     console.log('🚀 Calling Groq...')
     // [P24] fixed: use centralized GROQ_MODELS fallback chain
     const models = [process.env.GROQ_MODEL, ...GROQ_MODELS].filter(Boolean)
+    const maxTokens = Number(process.env.GROQ_MAX_TOKENS) || 1500
     let lastErr
-    for (const model of models) {
+    for (let i = 0; i < models.length; i++) {
+        const model = models[i]
         try {
             const res = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
                 model,
                 messages: [{ role: 'user', content: prompt }],
-                max_tokens: 2048
+                max_tokens: maxTokens
             }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 15000 })
+            console.log(`[Groq] ${model} success`)
             return res.data.choices[0].message.content
         } catch (err) {
             lastErr = err
-            console.log(`[Groq] ${model} failed:`, err.message)
+            const status = err.response?.status
+            console.log(`[Groq] ${model} failed (status ${status || 'N/A'}):`, err.message)
+            // [HOTFIX-2026-08-08] exponential backoff on 429 TPD rate limit
+            if (status === 429 && i < models.length - 1) {
+                const delay = 2000 * (i + 1)
+                console.log(`[Groq] 429 received — retrying next model in ${delay}ms...`)
+                await sleep(delay)
+            }
         }
     }
     throw lastErr
@@ -590,7 +606,8 @@ async function chatWithOpenRouter(prompt, ownerId = null) {
     if (!key) throw new Error('No OpenRouter key')
     console.log('🚀 Calling OpenRouter...')
     const res = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-        model: process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
+        // [HOTFIX-2026-08-08] switch to verified free Gemini model (old flash-lite-preview id removed)
+        model: process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2048
     }, { headers: { 'Authorization': `Bearer ${key}`, 'HTTP-Referer': 'https://ai-viral-studio.ru', 'X-Title': 'AI Viral Studio', 'Content-Type': 'application/json' }, timeout: 20000 })
@@ -625,7 +642,7 @@ async function chatWithGitHubModels(prompt, ownerId = null) {
 // [SOCIAL-v5.1] fixed: only stable providers to avoid 402/401/400 from deprecated endpoints
 const PROVIDER_CHAIN = [
     { id: 'groq', name: 'Groq', handler: chatWithGroq, model: 'llama-3.3-70b-versatile' },
-    { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: 'meta-llama/llama-3.3-70b-instruct:free' },
+    { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: 'google/gemini-2.0-flash-exp:free' },
 ]
 
 const SKIP_STATUSES = [401, 403, 404]

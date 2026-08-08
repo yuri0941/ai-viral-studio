@@ -16,7 +16,7 @@ function createStubBot() {
     startPolling: () => {},
     stopPolling: () => {},
     deleteWebhook: () => Promise.resolve(),
-    setWebHook: () => Promise.resolve(),
+    setWebhook: () => Promise.resolve(),
     setMyCommands: () => Promise.resolve(),
     answerCallbackQuery: () => Promise.resolve(),
   }
@@ -158,7 +158,7 @@ export const initOmegaBot = () => {
 
   // [WEBHOOK-2026-08-05] set webhook instead of polling to avoid 409 conflicts
   const WEBHOOK_URL = (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com') + '/webhook/omega'
-  bot.setWebHook(WEBHOOK_URL).catch(() => {})
+  bot.setWebhook(WEBHOOK_URL).catch(() => {})
   console.log('[OMEGA-BOT] Webhook set to', WEBHOOK_URL)
 }
 
