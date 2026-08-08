@@ -79,13 +79,43 @@ export async function scanForErrors() {
     return results
 }
 
+function safeJSONParse(text, fallback = null) {
+  if (!text) return fallback
+  // Убираем markdown-обёртку ```json ... ```
+  let cleaned = text.trim()
+  if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7)
+  if (cleaned.startsWith('```')) cleaned = cleaned.slice(3)
+  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3)
+  cleaned = cleaned.trim()
+  // Убираем BOM и невидимые символы
+  cleaned = cleaned.replace(/^\uFEFF/, '')
+  try {
+    return JSON.parse(cleaned)
+  } catch (e) {
+    // Пробуем найти первый { и последний }
+    const firstBrace = cleaned.indexOf('{')
+    const lastBrace = cleaned.lastIndexOf('}')
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      try { return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1)) } catch (e2) {}
+    }
+    // Пробуем найти первый [ и последний ]
+    const firstBracket = cleaned.indexOf('[')
+    const lastBracket = cleaned.lastIndexOf(']')
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      try { return JSON.parse(cleaned.slice(firstBracket, lastBracket + 1)) } catch (e3) {}
+    }
+    console.error('[safeJSONParse] Failed to parse:', text.slice(0, 200))
+    return fallback
+  }
+}
+
 export async function analyzeError(error) {
     try {
         const prompt = `Ошибка: ${error.type}\nStack: ${error.stack || ''}\nMetadata: ${error.metadata ? JSON.stringify(error.metadata) : ''}\n\nКак исправить? Верни JSON: {"fix":"код или описание исправления","explanation":"текст"}`
         const ai = await chatWithAI(prompt, [], 'ru', { userRole: 'owner' })
         const reply = ai?.reply || ai?.text || ''
         const match = reply.match(/\{[\s\S]*\}/)
-        const json = match ? JSON.parse(match[0]) : { fix: '', explanation: '' }
+        const json = match ? safeJSONParse(match[0], { fix: '', explanation: '' }) : { fix: '', explanation: '' }
         return { fix: json.fix || '', explanation: json.explanation || '' }
     } catch (err) {
         console.error('[autoFixAgent] analyzeError failed:', err.message)
