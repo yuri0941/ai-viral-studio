@@ -7,6 +7,11 @@ import { API_URL } from '../config.js'
 
 const API_BASE = API_URL
 
+// [HOTFIX-2026-08-08] detect mobile user-agents for retry logic
+const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    typeof navigator !== 'undefined' ? navigator.userAgent : ''
+)
+
 // [v6.4] added: axios instance with Authorization interceptor
 const api = axios.create({
     baseURL: API_BASE,
@@ -21,6 +26,19 @@ api.interceptors.request.use((config) => {
     return config
 })
 
+// [HOTFIX-2026-08-08] mobile retry interceptor (Render cold-start / flaky mobile networks)
+api.interceptors.response.use(
+    response => response,
+    async error => {
+        if (isMobileUA && error.code === 'ERR_NETWORK' && error.config && !error.config.__retryCount) {
+            error.config.__retryCount = 1
+            await new Promise(r => setTimeout(r, 2000))
+            return api(error.config)
+        }
+        return Promise.reject(error)
+    }
+)
+
 function getAuthHeaders() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
     // [HOTFIX-2026-08-04] added — always send Authorization header
@@ -33,14 +51,25 @@ async function request(path, options = {}) {
 
     console.log('[API] Request:', url, options.method || 'GET')
 
-    const res = await fetch(url, {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
-            ...options.headers,
-        },
-    })
+    let res
+    try {
+        res = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && { Authorization: `Bearer ${token}` }),
+                ...options.headers,
+            },
+        })
+    } catch (err) {
+        // [HOTFIX-2026-08-08] retry once on mobile network failures (Render cold start)
+        if (isMobileUA && !options.__retryCount) {
+            console.warn('[API] Mobile fetch failed, retrying once:', err.message)
+            await new Promise(r => setTimeout(r, 2000))
+            return request(path, { ...options, __retryCount: 1 })
+        }
+        throw err
+    }
 
     // 🔴 ЗАЩИТА: если сервер отдал HTML (404/502/503), не пытаемся парсить как JSON
     const contentType = res.headers.get('content-type')

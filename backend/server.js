@@ -216,26 +216,11 @@ if (isConnected) {
 }
 
 // CORS must be first — before any route or body parser
-// CORS: explicit origins + dynamic Cloudflare Pages subdomains
-// [HOTFIX-2026-08-04] added — include aiviral-studio.ru, PATCH, explicit headers
+// [HOTFIX-2026-08-08] temporary: allow all origins for mobile diagnostics
 const corsOptions = {
-    origin: function (origin, callback) {
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'http://localhost:5173',
-            'https://ai-viral-studio.pages.dev',
-            'https://aiviral-studio.ru',
-            process.env.FRONTEND_URL,
-        ].filter(Boolean)
-        // Allow requests with no origin (curl, server-to-server, mobile apps)
-        if (!origin) return callback(null, true)
-        if (allowedOrigins.includes(origin)) return callback(null, true)
-        // Allow any *.pages.dev subdomain
-        if (/^https:\/\/[^/]+\.pages\.dev$/.test(origin)) return callback(null, true)
-        callback(new Error('Not allowed by CORS'))
-    },
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
 }
 
@@ -298,6 +283,17 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         env: process.env.NODE_ENV,
         version: '1.0.0'
+    })
+})
+
+// [HOTFIX-2026-08-08] Mobile-friendly health check under /api
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV || 'production',
+        mobile: true,
+        version: '9.0.0'
     })
 })
 
