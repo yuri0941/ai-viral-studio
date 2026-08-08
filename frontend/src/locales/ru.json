@@ -1371,5 +1371,32 @@
     "errors": "Ошибок",
     "successRate": "Success Rate",
     "recentMessages": "Последние сообщения"
+  },
+  "telegramMenu": {
+    "title": "Аналитика меню",
+    "autoOptimize": "🔄 Авто-оптимизировать",
+    "apply": "Применить",
+    "remove": "Убрать",
+    "add": "Добавить",
+    "reorder": "Порядок",
+    "button": "Кнопка",
+    "clicks": "Клики",
+    "status": "Статус",
+    "active": "Активна",
+    "hidden": "Скрыта",
+    "hide": "Скрыть",
+    "show": "Показать",
+    "addButton": "➕ Добавить кнопку",
+    "textPlaceholder": "Текст кнопки",
+    "callbackPlaceholder": "callback_data",
+    "iconPlaceholder": "Иконка",
+    "fillFields": "Заполните текст и callback_data",
+    "analysisReady": "Анализ меню готов",
+    "analysisError": "Ошибка анализа",
+    "applied": "Изменения применены",
+    "applyError": "Ошибка применения",
+    "buttonAdded": "Кнопка добавлена",
+    "buttonError": "Ошибка добавления",
+    "toggleError": "Ошибка переключения"
   }
 }

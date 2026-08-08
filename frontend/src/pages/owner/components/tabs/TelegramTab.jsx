@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Send, Loader2, Calendar, BarChart3, Bot, MessageSquare,
+  Send, Loader2, Calendar, BarChart3, Bot, MessageSquare, Plus,
   ChevronDown, ChevronUp, Copy, CheckCircle, AlertTriangle,
   Save, Sparkles, Rocket, BookOpen, Settings2, Eye, EyeOff
 } from 'lucide-react';
@@ -58,6 +58,11 @@ export default function TelegramTab({ data }) {
   const [history, setHistory] = useState([]);
   const [copied, setCopied] = useState(false);
 
+  // [v9.6.2-BOT-EVOLUTION] Dynamic menu analytics
+  const [menuButtons, setMenuButtons] = useState([]);
+  const [menuChanges, setMenuChanges] = useState(null);
+  const [newButton, setNewButton] = useState({ text: '', callback_data: '', icon: '🔘' });
+
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('telegram_tab_settings') || '{}');
@@ -67,6 +72,7 @@ export default function TelegramTab({ data }) {
     } catch {}
     fetchStats();
     fetchBotStats();
+    fetchMenu();
   }, []);
 
   const addLog = useCallback((message) => {
@@ -92,6 +98,84 @@ export default function TelegramTab({ data }) {
       if (res?.success) setBotStats(res.stats || { total: 0, errors: 0, successful: 0, successRate: 0, recentMessages: [] });
     } catch (err) {
       console.error('[TelegramTab] bot stats failed', err);
+    }
+  };
+
+  const fetchMenu = async () => {
+    try {
+      const res = await request('/telegram/menu');
+      if (res?.success) setMenuButtons(res.buttons || []);
+    } catch (err) {
+      console.error('[TelegramTab] menu failed', err);
+    }
+  };
+
+  const fetchMenuAnalyze = async () => {
+    setLoading(prev => ({ ...prev, menuAnalyze: true }));
+    try {
+      const res = await request('/telegram/menu/analyze');
+      setMenuChanges(res?.changes || null);
+      showToast?.(t('telegramMenu.analysisReady', 'Анализ меню готов'), 'success');
+    } catch (err) {
+      showToast?.(err.message || t('telegramMenu.analysisError', 'Ошибка анализа'), 'error');
+    } finally {
+      setLoading(prev => ({ ...prev, menuAnalyze: false }));
+    }
+  };
+
+  const applyMenuChanges = async () => {
+    if (!menuChanges) return;
+    setLoading(prev => ({ ...prev, menuApply: true }));
+    try {
+      const res = await request('/telegram/menu/apply', {
+        method: 'POST',
+        body: JSON.stringify(menuChanges),
+      });
+      if (res?.success) {
+        setMenuButtons(res.buttons || []);
+        setMenuChanges(null);
+        showToast?.(t('telegramMenu.applied', 'Изменения применены'), 'success');
+      }
+    } catch (err) {
+      showToast?.(err.message || t('telegramMenu.applyError', 'Ошибка применения'), 'error');
+    } finally {
+      setLoading(prev => ({ ...prev, menuApply: false }));
+    }
+  };
+
+  const handleAddButton = async (e) => {
+    e.preventDefault();
+    if (!newButton.text.trim() || !newButton.callback_data.trim()) {
+      showToast?.(t('telegramMenu.fillFields', 'Заполните текст и callback_data'), 'error');
+      return;
+    }
+    setLoading(prev => ({ ...prev, addButton: true }));
+    try {
+      const res = await request('/telegram/menu/button', {
+        method: 'POST',
+        body: JSON.stringify(newButton),
+      });
+      if (res?.success) {
+        setMenuButtons(res.buttons || []);
+        setNewButton({ text: '', callback_data: '', icon: '🔘' });
+        showToast?.(t('telegramMenu.buttonAdded', 'Кнопка добавлена'), 'success');
+      }
+    } catch (err) {
+      showToast?.(err.message || t('telegramMenu.buttonError', 'Ошибка добавления'), 'error');
+    } finally {
+      setLoading(prev => ({ ...prev, addButton: false }));
+    }
+  };
+
+  const handleToggleButton = async (callbackData, active) => {
+    try {
+      const res = await request(`/telegram/menu/button/${callbackData}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ active }),
+      });
+      if (res?.success) setMenuButtons(res.buttons || []);
+    } catch (err) {
+      showToast?.(err.message || t('telegramMenu.toggleError', 'Ошибка'), 'error');
     }
   };
 
@@ -412,6 +496,112 @@ export default function TelegramTab({ data }) {
             ))}
           </div>
         </div>
+      </Section>
+
+      <Section
+        title={t('telegramMenu.title', 'Аналитика меню')}
+        icon={BarChart3}
+        open={activeSection === 'menuAnalytics'}
+        onToggle={() => setActiveSection(activeSection === 'menuAnalytics' ? '' : 'menuAnalytics')}
+      >
+        <div className="flex flex-wrap gap-3 mt-4">
+          <button
+            onClick={fetchMenuAnalyze}
+            disabled={loading.menuAnalyze}
+            className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 text-white text-sm font-medium flex items-center gap-2"
+          >
+            {loading.menuAnalyze ? <Loader2 size={16} className="animate-spin" /> : <BarChart3 size={16} />}
+            {t('telegramMenu.autoOptimize', '🔄 Авто-оптимизировать')}
+          </button>
+          {menuChanges && (
+            <button
+              onClick={applyMenuChanges}
+              disabled={loading.menuApply}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 text-white text-sm font-medium flex items-center gap-2"
+            >
+              {loading.menuApply ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+              {t('telegramMenu.apply', 'Применить')}
+            </button>
+          )}
+        </div>
+
+        {menuChanges && (
+          <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300 whitespace-pre-wrap">
+            {menuChanges.remove?.length > 0 && <div className="mb-2"><span className="text-rose-400">🗑 {t('telegramMenu.remove', 'Убрать')}:</span> {menuChanges.remove.join(', ')}</div>}
+            {menuChanges.add?.length > 0 && <div className="mb-2"><span className="text-emerald-400">➕ {t('telegramMenu.add', 'Добавить')}:</span> {menuChanges.add.map(a => a.text).join(', ')}</div>}
+            {menuChanges.reorder?.length > 0 && <div><span className="text-blue-400">🔄 {t('telegramMenu.reorder', 'Порядок')}:</span> {menuChanges.reorder.join(' → ')}</div>}
+          </div>
+        )}
+
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-gray-400 border-b border-white/10">
+              <tr>
+                <th className="py-2">{t('telegramMenu.button', 'Кнопка')}</th>
+                <th className="py-2">{t('telegramMenu.clicks', 'Клики')}</th>
+                <th className="py-2">{t('telegramMenu.status', 'Статус')}</th>
+                <th className="py-2">{t('common.actions', 'Действия')}</th>
+              </tr>
+            </thead>
+            <tbody className="text-white">
+              {menuButtons.map((btn, idx) => (
+                <tr key={btn.callback_data || idx} className="border-b border-white/5 last:border-0">
+                  <td className="py-3">{btn.text} <span className="text-xs text-gray-500">({btn.callback_data})</span></td>
+                  <td className="py-3 font-mono">{btn.clickCount || 0}</td>
+                  <td className="py-3">
+                    <span className={`text-xs px-2 py-1 rounded-full border ${btn.active ? 'text-emerald-400 border-emerald-400/30' : 'text-gray-400 border-gray-400/30'}`}>
+                      {btn.active ? t('telegramMenu.active', 'Активна') : t('telegramMenu.hidden', 'Скрыта')}
+                    </span>
+                  </td>
+                  <td className="py-3">
+                    <button
+                      onClick={() => handleToggleButton(btn.callback_data, !btn.active)}
+                      className="text-xs px-2 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-white"
+                    >
+                      {btn.active ? t('telegramMenu.hide', 'Скрыть') : t('telegramMenu.show', 'Показать')}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {menuButtons.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="py-4 text-center text-gray-500">{t('common.noData', 'Нет данных')}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <form onSubmit={handleAddButton} className="mt-5 grid grid-cols-1 md:grid-cols-4 gap-3">
+          <input
+            value={newButton.text}
+            onChange={(e) => setNewButton(prev => ({ ...prev, text: e.target.value }))}
+            placeholder={t('telegramMenu.textPlaceholder', 'Текст кнопки')}
+            className="md:col-span-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm outline-none focus:border-violet-500"
+          />
+          <input
+            value={newButton.callback_data}
+            onChange={(e) => setNewButton(prev => ({ ...prev, callback_data: e.target.value }))}
+            placeholder={t('telegramMenu.callbackPlaceholder', 'callback_data')}
+            className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm outline-none focus:border-violet-500"
+          />
+          <input
+            value={newButton.icon}
+            onChange={(e) => setNewButton(prev => ({ ...prev, icon: e.target.value }))}
+            placeholder={t('telegramMenu.iconPlaceholder', 'Иконка')}
+            className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm outline-none focus:border-violet-500"
+          />
+          <div className="md:col-span-4 flex justify-end">
+            <button
+              type="submit"
+              disabled={loading.addButton}
+              className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 text-white text-sm font-medium flex items-center gap-2"
+            >
+              {loading.addButton ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+              {t('telegramMenu.addButton', '➕ Добавить кнопку')}
+            </button>
+          </div>
+        </form>
       </Section>
 
       <Section

@@ -3,6 +3,8 @@ import fs from 'fs'
 import { chatWithAI } from './aiService.js'
 import { createNode, queryMesh } from './cognitiveMesh.js'
 import { isOwner as isOwnerContext, getOwnerContext, getSmartGreeting } from './ownerContext.js'
+import { getMenu, trackClick, generateMenuImprovements, applyMenuChanges, addCustomButton, toggleButton } from './telegramMenuService.js'
+import User from '../models/User.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -11,6 +13,14 @@ let started = global.ownerBotStarted || false
 
 const OWNER_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID
+
+// [v9.6.2-BOT-EVOLUTION] Resolve owner MongoDB id for menu/personalization
+async function getOwnerMongoId() {
+  const envId = process.env.OWNER_USER_ID
+  if (envId && envId.length === 24) return envId
+  const owner = await User.findOne({ role: 'owner' }).lean()
+  return owner?._id?.toString() || null
+}
 
 // [v9.6.1-OMEGA-FIX] Anti-spam cooldown per alert type
 const ALERT_COOLDOWN = new Map()
@@ -98,7 +108,17 @@ async function getProactiveSuggestion(context) {
   return suggestions[0] || 'задать мне задачу'
 }
 
-// [MASTER-v5.6-CONT] Owner Bot with OMEGA Owner Mode
+async function buildMenuRows(ownerId) {
+  const buttons = await getMenu('main', ownerId)
+  const rows = []
+  for (let i = 0; i < buttons.length; i += 2) {
+    rows.push(buttons.slice(i, i + 2).map(b => {
+      if (b.url) return { text: b.text, url: b.url }
+      return { text: b.text, callback_data: b.callback_data }
+    }))
+  }
+  return rows
+}
 export const initOwnerBot = () => {
   if (started) { console.log('[OWNER-BOT] Already started, skipping'); return }
   started = true
@@ -131,17 +151,15 @@ export const initOwnerBot = () => {
 
   bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
+    const ownerId = await getOwnerMongoId();
     const context = await getOwnerContext(chatId);
     const greeting = await getSmartGreeting(context);
+    const rows = await buildMenuRows(ownerId);
 
-    if (greeting.buttons) {
-      bot.sendMessage(chatId, greeting.text, {
-        parse_mode: greeting.parse_mode || 'HTML',
-        reply_markup: { inline_keyboard: greeting.buttons }
-      });
-    } else {
-      safeSendMessage(chatId, greeting.text, { parse_mode: 'HTML' });
-    }
+    bot.sendMessage(chatId, greeting.text, {
+      parse_mode: greeting.parse_mode || 'HTML',
+      reply_markup: { inline_keyboard: rows.length ? rows : (greeting.buttons || []) }
+    });
   });
 
   bot.onText(/\/status/, (msg) => { if (!isOwner(msg.chat.id)) return; sendStatus(msg.chat.id) })
@@ -165,13 +183,39 @@ export const initOwnerBot = () => {
   // OWNER MODE — главное меню
   bot.onText(/\/menu/, async (msg) => {
     const chatId = msg.chat.id;
+    const ownerId = await getOwnerMongoId();
     const context = await getOwnerContext(chatId);
     if (!context?.isOwner) {
       safeSendMessage(chatId, '❌ Только для владельца.');
       return;
     }
     const greeting = await getSmartGreeting(context);
-    bot.sendMessage(chatId, greeting.text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: greeting.buttons } });
+    const rows = await buildMenuRows(ownerId);
+    bot.sendMessage(chatId, greeting.text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: rows.length ? rows : greeting.buttons } });
+  });
+
+  // OWNER MODE — авто-анализ меню
+  bot.onText(/\/menu-analyze/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    const ownerId = await getOwnerMongoId();
+    if (!ownerId) {
+      safeSendMessage(chatId, '⚠️ Не удалось определить ownerId.');
+      return;
+    }
+    safeSendMessage(chatId, '🔍 Анализирую использование меню...');
+    try {
+      const changes = await generateMenuImprovements(ownerId);
+      let text = '📊 <b>Анализ меню:</b>\n\n';
+      if (changes.remove?.length) text += `🗑 Убрать: ${changes.remove.join(', ')}\n`;
+      if (changes.add?.length) text += `➕ Добавить: ${changes.add.map(a => a.text).join(', ')}\n`;
+      if (changes.reorder?.length) text += `🔄 Новый порядок: ${changes.reorder.join(' → ')}\n`;
+      text += '\nПрименить? Напишите <b>да</b>.';
+      bot.sendMessage(chatId, text, { parse_mode: 'HTML' });
+      global.pendingMenuChanges = changes;
+    } catch (e) {
+      safeSendMessage(chatId, '⚠️ Ошибка анализа: ' + e.message);
+    }
   });
 
   // OWNER MODE — новая фича
@@ -241,6 +285,7 @@ export const initOwnerBot = () => {
   // OWNER MODE — smart reply
   bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
+    const ownerId = await getOwnerMongoId();
     const text = msg.text || '';
     if (text.startsWith('/')) return;
 
@@ -255,6 +300,17 @@ export const initOwnerBot = () => {
       return;
     }
 
+    // Owner confirming pending menu changes
+    if (global.pendingMenuChanges && /^да|yes|y$/i.test(text.trim())) {
+      const ownerId = await getOwnerMongoId();
+      if (ownerId) {
+        await applyMenuChanges(ownerId, global.pendingMenuChanges);
+        global.pendingMenuChanges = null;
+        safeSendMessage(chatId, '✅ Меню обновлено! Напишите /menu чтобы увидеть.');
+      }
+      return;
+    }
+
     // Owner → smart reply with context
     try {
       const cleanProjects = (context.activeProjects || []).join('; ').slice(0, 200)
@@ -265,15 +321,16 @@ export const initOwnerBot = () => {
       reply = reply.replace(/\*\*/g, '').replace(/^\s*\d+\.[\s\S]/g, '')
 
       const isGreeting = /^(привет|здравствуй|хай|hi|hello|hey)/i.test(text);
+      const rows = await buildMenuRows(ownerId);
       if (isGreeting && reply.length < 500) {
         const proactive = await getProactiveSuggestion(context);
-        sendLuxuryMessage(chatId, 'OMEGA', `${reply}\n\n💡 <b>Следующий шаг:</b> ${proactive}`, [
+        sendLuxuryMessage(chatId, 'OMEGA', `${reply}\n\n💡 <b>Следующий шаг:</b> ${proactive}`, rows.length ? rows : [
           [{ text: '🎬 Контент', callback_data: 'quick:content' }, { text: '📊 Аналитика', callback_data: 'quick:analytics' }],
           [{ text: '🏭 Factory', callback_data: 'quick:factory' }, { text: '🔮 Прогнозы', callback_data: 'quick:prediction' }],
           [{ text: '📋 Отчёт', callback_data: 'quick:report' }, { text: '⚡ Ещё', callback_data: 'quick:more' }]
         ]);
       } else {
-        sendLuxuryMessage(chatId, 'OMEGA', reply, [
+        sendLuxuryMessage(chatId, 'OMEGA', reply, rows.length ? rows : [
           [{ text: '🎬 Контент', callback_data: 'quick:content' }, { text: '📊 Аналитика', callback_data: 'quick:analytics' }],
           [{ text: '⚡ Ещё', callback_data: 'quick:more' }]
         ]);
@@ -288,6 +345,11 @@ export const initOwnerBot = () => {
   bot.on('callback_query', async (q) => {
     const chatId = q.message.chat.id;
     const data = q.data;
+    const ownerId = await getOwnerMongoId();
+
+    if (ownerId) {
+      await trackClick('main', data, ownerId).catch(() => {});
+    }
 
     if (!isOwner(chatId)) {
       bot.answerCallbackQuery(q.id, { text: '❌ Только для владельца' }).catch(() => {});
@@ -334,7 +396,8 @@ export const initOwnerBot = () => {
       else if (data === 'action:back') {
         const context = await getOwnerContext(chatId);
         const greeting = await getSmartGreeting(context);
-        bot.sendMessage(chatId, greeting.text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: greeting.buttons } });
+        const rows = ownerId ? await buildMenuRows(ownerId) : (greeting.buttons || []);
+        bot.sendMessage(chatId, greeting.text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: rows } });
       }
       return;
     }

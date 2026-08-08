@@ -1371,5 +1371,32 @@
     "errors": "Errors",
     "successRate": "Success rate",
     "recentMessages": "Recent messages"
+  },
+  "telegramMenu": {
+    "title": "Menu analytics",
+    "autoOptimize": "🔄 Auto-optimize",
+    "apply": "Apply",
+    "remove": "Remove",
+    "add": "Add",
+    "reorder": "Reorder",
+    "button": "Button",
+    "clicks": "Clicks",
+    "status": "Status",
+    "active": "Active",
+    "hidden": "Hidden",
+    "hide": "Hide",
+    "show": "Show",
+    "addButton": "➕ Add button",
+    "textPlaceholder": "Button text",
+    "callbackPlaceholder": "callback_data",
+    "iconPlaceholder": "Icon",
+    "fillFields": "Fill text and callback_data",
+    "analysisReady": "Menu analysis ready",
+    "analysisError": "Analysis error",
+    "applied": "Changes applied",
+    "applyError": "Apply error",
+    "buttonAdded": "Button added",
+    "buttonError": "Add button error",
+    "toggleError": "Toggle error"
   }
 }
