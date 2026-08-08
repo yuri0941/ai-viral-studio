@@ -47,17 +47,23 @@ const userSchema = new mongoose.Schema(
             default: false
         },
         preferences: {
-            language: { type: String, enum: ['ru', 'en'], default: 'ru' },
-            currency: { type: String, enum: ['RUB', 'USD', 'EUR'], default: 'RUB' },
-            theme: { type: String, enum: ['dark', 'light', 'system'], default: 'dark' },
-            notifications: { type: Boolean, default: true },
-            timezone: { type: String, default: 'Europe/Moscow' },
-            voiceSettings: {
-                voiceId: { type: String, default: 'ru-RU-female' },
-                speed: { type: Number, default: 1.0 },
-                pitch: { type: String, enum: ['high', 'low', 'normal'], default: 'normal' },
-                accent: { type: String, enum: ['ru', 'en', 'es', 'zh'], default: 'ru' },
+            type: {
+                language: { type: String, enum: ['ru', 'en'], default: 'ru' },
+                currency: { type: String, enum: ['RUB', 'USD', 'EUR'], default: 'RUB' },
+                theme: { type: String, enum: ['dark', 'light', 'system'], default: 'dark' },
+                notifications: { type: Boolean, default: true },
+                timezone: { type: String, default: 'Europe/Moscow' },
+                voiceSettings: {
+                    type: {
+                        voiceId: { type: String, default: 'ru-RU-female' },
+                        speed: { type: Number, default: 1.0 },
+                        pitch: { type: String, enum: ['high', 'low', 'normal'], default: 'normal' },
+                        accent: { type: String, enum: ['ru', 'en', 'es', 'zh'], default: 'ru' },
+                    },
+                    default: () => ({})
+                },
             },
+            default: () => ({})
         },
         psychotype: {
             primary: { type: String, default: '' },

@@ -47,7 +47,10 @@ router.post('/register', validateRegister, verifyTurnstile, async (req, res) => 
       isVerified: false,
       verificationToken: crypto.randomBytes(32).toString('hex'),
       verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      preferences: { timezone: timezone || 'Europe/Moscow' }
+      preferences: {
+        timezone: timezone || 'Europe/Moscow',
+        voiceSettings: {}
+      }
     })
 
     try {
@@ -109,7 +112,14 @@ router.post('/login', validateLogin, verifyTurnstile, async (req, res) => {
 
     user.lastLogin = new Date()
     if (timezone && typeof timezone === 'string' && (!user.preferences?.timezone || user.preferences.timezone !== timezone)) {
-      user.preferences = { ...user.preferences, timezone }
+      user.preferences = {
+        ...(user.preferences || {}),
+        timezone,
+        voiceSettings: {
+          ...(user.preferences?.voiceSettings || {}),
+          ...(req.body.preferences?.voiceSettings || {})
+        }
+      }
     }
     await user.save()
 
