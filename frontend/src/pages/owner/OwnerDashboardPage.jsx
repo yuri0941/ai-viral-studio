@@ -58,6 +58,8 @@ import PersonalityTab from './components/tabs/PersonalityTab'
 import DreamModeTab from './components/tabs/DreamModeTab'
 import { TemplatesTab } from './components/tabs/TemplatesTab'
 import { ScoutTab } from './components/tabs/ScoutTab'
+import { AutoImprovementTab } from './components/tabs/AutoImprovementTab'
+import { ABTestingTab } from './components/tabs/ABTestingTab'
 import { WhiteLabelTab } from './components/tabs/WhiteLabelTab'
 import { WorkspacesTab } from './components/tabs/WorkspacesTab'
 import { DeveloperTab } from './components/tabs/DeveloperTab'
@@ -68,6 +70,7 @@ import { SelfHealingCrisisTab } from './components/tabs/SelfHealingCrisisTab'
 import { SandboxPanel } from './components/tabs/SandboxPanel'
 
 const AnalyticsPage = lazy(() => import('../AnalyticsPage'))
+const ProjectFactoryPage = lazy(() => import('../project-factory/ProjectFactoryPage.jsx'))
 const AIChatPage = lazy(() => import('../AIChatPage'))
 const ContentAnalyzerPage = lazy(() => import('../ContentAnalyzerPage'))
 const SchedulerPage = lazy(() => import('../SchedulerPage'))
@@ -97,7 +100,7 @@ import {
     CheckSquare, KeyRound, Bell, HelpCircle, Heart, Rocket, Wallet,
     BrainCircuit, Database, Scale, BarChart, BarChart3, Search, Calendar, TrendingUp, Zap,
     X, Palette, LayoutTemplate, Flame, Tag, Folder, Code, Code2, QrCode, Store, Shield, Terminal, Network,
-    Wrench, GraduationCap, Microscope, Activity, Cpu, Map, Fingerprint, Moon
+    Wrench, GraduationCap, Microscope, Activity, Cpu, Map, Fingerprint, Moon, Factory, FlaskConical
 } from 'lucide-react'
 
 const TAB_ICONS = {
@@ -158,14 +161,17 @@ const TAB_ICONS = {
     neural: Network,
     swarm: Bot,
     autofix: Wrench,
+    autoImprove: Wrench,
     learning: GraduationCap,
     research: Microscope,
+    abTest: FlaskConical,
     monitoring: Activity,
     resources: Cpu,
     roadmap: Map,
     brainviz: Brain,
     memory: Database,
     boardroom: Users,
+    factory: Factory,
 }
 
 // [v6.0] added: count-up hook with requestAnimationFrame
@@ -380,6 +386,8 @@ export default function OwnerDashboardPage() {
             case 'devstudio': return <OmegaDevStudio />
             case 'swarm': return <OmegaSwarmDashboard />
             case 'autofix': return <OmegaAutoFixDashboard />
+            case 'autoImprove': return <AutoImprovementTab data={ownerData} />
+            case 'abTest': return <ABTestingTab data={ownerData} />
             case 'learning': return <OmegaLearningDashboard />
             case 'research': return <OmegaResearchDashboard />
             case 'monitoring': return <MonitoringDashboard />
@@ -407,6 +415,7 @@ export default function OwnerDashboardPage() {
             case 'selfHealing': return <SelfHealingCrisisTab data={ownerData} />
             case 'sandbox': return <SandboxPanel data={ownerData} />
             case 'approvalQueue': return <OmegaApprovalQueue />
+            case 'factory': return <ProjectFactoryPage />
             case 'analytics': return <AnalyticsPage />
             case 'aiChat': return <AIChatPage />
             case 'contentAnalyzer': return <ContentAnalyzerPage />

@@ -1,4 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api'
+import fs from 'fs'
 import { chatWithAI } from './aiService.js'
 
 // [P16-FINAL] singleton to avoid duplicate polling / 409 conflict
@@ -47,7 +48,7 @@ export const initOmegaBot = () => {
     const isOwner = String(chatId) === String(OWNER_CHAT_ID)
 
     const welcome = isOwner
-      ? `<b>👋 Привет, Босс!</b>\n\nЯ <b>OMEGA</b> — ваш AI-ассистент.\n\n<b>Owner Mode активирован.</b>\nПишите свободно — я выполню любую задачу.\n\n<b>Команды:</b>\n/exec [задача] — выполнить\n/feature [идея] — новая фича\n/menu [изменение] — изменить меню\n/help — справка`
+      ? `<b>👋 Привет, Босс!</b>\n\nЯ <b>OMEGA</b> — ваш AI-ассистент.\n\n<b>Owner Mode активирован.</b>\nПишите свободно — я выполню любую задачу.\n\n<b>Команды:</b>\n/exec [задача] — выполнить\n/feature [идея] — новая фича\n/menu [изменение] — изменить меню\n/improve — улучшить бота\n/help — справка`
       : `<b>👋 Привет, ${name}!</b>\n\nЯ <b>OMEGA</b> — AI-ассистент AI Viral Studio 🤖\n\n<b>Я умею:</b>\n• ✍️ Создавать посты\n• 🔥 Генерировать хуки\n• 🔍 Анализировать конкурентов\n• 📅 Составлять контент-план\n• 🎨 Генерировать обложки\n\n<i>Выберите действие или просто напишите!</i>`
 
     const keyboard = isOwner ? {
@@ -74,9 +75,33 @@ export const initOmegaBot = () => {
     const chatId = msg.chat.id
     const isOwner = String(chatId) === String(OWNER_CHAT_ID)
     const help = isOwner
-      ? `<b>👑 Owner Commands</b>\n\n/start — Главное меню\n/exec [задача] — Выполнить\n/feature [идея] — ТЗ для новой фичи\n/menu [описание] — Изменить меню\n/help — Эта справка\n\n<i>Свободный текст — OMEGA выполнит как команду</i>`
+      ? `<b>👑 Owner Commands</b>\n\n/start — Главное меню\n/exec [задача] — Выполнить\n/feature [идея] — ТЗ для новой фичи\n/menu [описание] — Изменить меню\n/improve — Улучшить бота\n/help — Эта справка\n\n<i>Свободный текст — OMEGA выполнит как команду</i>`
       : `<b>🤖 OMEGA Help</b>\n\n/create_post — Создать пост\n/hook — Хук для видео\n/analyze — Анализ конкурента\n/plan — Контент-план\n/cover — AI-обложка\n\n<i>Или просто напишите тему!</i>`
     bot.sendMessage(chatId, help, { parse_mode: 'HTML' })
+  })
+
+  // OWNER MODE — авто-улучшение бота
+  bot.onText(/\/improve/, async (msg) => {
+    const chatId = msg.chat.id
+    const isOwner = String(chatId) === String(OWNER_CHAT_ID)
+    if (!isOwner) { bot.sendMessage(chatId, '⛔ Только владелец'); return }
+    bot.sendMessage(chatId, `🔧 <b>Анализирую код бота...</b>\n\n<i>OMEGA ищет, что можно улучшить</i>`, { parse_mode: 'HTML' })
+    try {
+      const code = fs.readFileSync(new URL(import.meta.url), 'utf8')
+      const result = await chatWithAI(`Проанализируй код Telegram-бота и предложи 3 конкретных улучшения (новые команды, ответы, inline keyboard). Код:\n${code.slice(0, 4000)}\n\nВерни краткий список с названием, описанием и примером кода.`, [], { userRole: 'owner' })
+      const text = result.text || result
+      bot.sendMessage(chatId, `🔧 <b>Предлагаю добавить:</b>\n\n${text}`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '✅ Применить', callback_data: 'improve_apply' }, { text: '❌ Отклонить', callback_data: 'improve_reject' }],
+            [{ text: '🔄 Другой вариант', callback_data: 'improve_retry' }]
+          ]
+        }
+      })
+    } catch (e) {
+      bot.sendMessage(chatId, `⚠️ Ошибка: ${e.message}`, { parse_mode: 'HTML' })
+    }
   })
 
   // Главный обработчик — AI для всех
@@ -136,6 +161,9 @@ export const initOmegaBot = () => {
       else if (data === 'owner_refine') bot.sendMessage(chatId, '🔄 Напишите уточнение:', { parse_mode: 'HTML' })
       else if (data === 'owner_tz') bot.sendMessage(chatId, '📝 Скопируйте результат и отправьте в Kimi VS Code.', { parse_mode: 'HTML' })
       else if (data === 'owner_apply') bot.sendMessage(chatId, '⚡ <b>Применение...</b>\n\nФункция в разработке. Скопируйте код вручную.', { parse_mode: 'HTML' })
+      else if (data === 'improve_apply') bot.sendMessage(chatId, '✅ <b>OMEGA редактирует файл бота...</b>\n\n<i>git commit + deploy (placeholder)</i>', { parse_mode: 'HTML' })
+      else if (data === 'improve_reject') bot.sendMessage(chatId, '❌ Улучшение отклонено.', { parse_mode: 'HTML' })
+      else if (data === 'improve_retry') bot.sendMessage(chatId, '🔄 Напишите <code>/improve</code> для другого варианта.', { parse_mode: 'HTML' })
     } else {
       if (data === 'create_post') bot.sendMessage(chatId, '✍️ Напишите тему:', { parse_mode: 'HTML' })
       else if (data === 'generate_hook') bot.sendMessage(chatId, '🔥 Напишите тему видео:', { parse_mode: 'HTML' })
@@ -171,6 +199,7 @@ const updateBotMenu = () => {
     { command: 'analyze', description: '🔍 Анализ' },
     { command: 'plan', description: '📅 План' },
     { command: 'cover', description: '🎨 Обложка' },
+    { command: 'improve', description: '🔧 Улучшить бота' },
     { command: 'help', description: '❓ Помощь' }
   ]
   bot.setMyCommands(commands).catch(() => {})

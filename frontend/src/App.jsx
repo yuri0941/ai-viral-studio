@@ -43,6 +43,7 @@ import CheckoutPage from './pages/CheckoutPage'
 import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/legal/LegalPage'
 import { CookieConsent } from './components/CookieConsent'
 import GDPRPage from './pages/GDPRPage'
+const ProjectFactoryPage = lazy(() => import('./pages/project-factory/ProjectFactoryPage.jsx'))
 import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
@@ -344,6 +345,11 @@ function App() {
                 <Route path="/omega-supreme" element={
                     <ProtectedRoute allowedRoles={['owner', 'admin']}>
                         <SupremeStatusPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/project-factory" element={
+                    <ProtectedRoute allowedRoles={['owner', 'admin']}>
+                        <ProjectFactoryPage />
                     </ProtectedRoute>
                 } />
                 <Route path="/settings" element={

@@ -1,4 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api'
+import fs from 'fs'
 import { chatWithAI } from './aiService.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
@@ -51,6 +52,7 @@ export const initOwnerBot = () => {
     { command: 'exec', description: '⚡ Выполнить' },
     { command: 'menu', description: '📝 Изменить меню' },
     { command: 'feature', description: '✨ Новая фича' },
+    { command: 'improve', description: '🔧 Улучшить бота' },
     { command: 'help', description: '❓ Помощь' }
   ]).catch(() => {})
 
@@ -106,6 +108,29 @@ export const initOwnerBot = () => {
     }
   })
 
+  // OWNER MODE — авто-улучшение бота
+  bot.onText(/\/improve/, async (msg) => {
+    const chatId = msg.chat.id
+    if (!isOwner(chatId)) return
+    bot.sendMessage(chatId, `🔧 <b>Анализирую код бота...</b>\n\n<i>OMEGA ищет, что можно улучшить</i>`, { parse_mode: 'HTML' })
+    try {
+      const code = fs.readFileSync(new URL(import.meta.url), 'utf8')
+      const result = await chatWithAI(`Проанализируй код Telegram-бота и предложи 3 конкретных улучшения (новые команды, ответы, inline keyboard). Код:\n${code.slice(0, 4000)}\n\nВерни краткий список с названием, описанием и примером кода.`, [], { userRole: 'owner' })
+      const text = result.text || result
+      bot.sendMessage(chatId, `🔧 <b>Предлагаю добавить:</b>\n\n${text}`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '✅ Применить', callback_data: 'improve_apply' }, { text: '❌ Отклонить', callback_data: 'improve_reject' }],
+            [{ text: '🔄 Другой вариант', callback_data: 'improve_retry' }]
+          ]
+        }
+      })
+    } catch (e) {
+      bot.sendMessage(chatId, `⚠️ Ошибка: ${e.message}`, { parse_mode: 'HTML' })
+    }
+  })
+
   // OWNER MODE — свободный текст
   bot.on('message', async (msg) => {
     if (msg.text && msg.text.startsWith('/')) return
@@ -132,6 +157,9 @@ export const initOwnerBot = () => {
     else if (data === 'omega') sendOmegaPanel(chatId)
     else if (data === 'emergency_stop') bot.sendMessage(chatId, '🛑 <b>Emergency Stop!</b>\n\nВсе AI остановлены.', { parse_mode: 'HTML' })
     else if (data === 'alert_menu') bot.sendMessage(chatId, '📢 Напишите: <code>/alert текст</code>', { parse_mode: 'HTML' })
+    else if (data === 'improve_apply') bot.sendMessage(chatId, '✅ <b>OMEGA редактирует файл бота...</b>\n\n<i>git commit + deploy (placeholder)</i>', { parse_mode: 'HTML' })
+    else if (data === 'improve_reject') bot.sendMessage(chatId, '❌ Улучшение отклонено.', { parse_mode: 'HTML' })
+    else if (data === 'improve_retry') bot.sendMessage(chatId, '🔄 Напишите <code>/improve</code> для другого варианта.', { parse_mode: 'HTML' })
   })
 
   bot.on('webhook_error', (err) => {

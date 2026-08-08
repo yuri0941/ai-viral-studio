@@ -10,7 +10,7 @@ import {
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
     Palette, LayoutTemplate, Flame, Cpu, Swords, Zap, Sparkles,
-    Clapperboard,
+    Clapperboard, Factory,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
@@ -91,6 +91,7 @@ const OWNER_GROUPS = [
             { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
             { id: 'analytics', label: '📊 Аналитика', icon: BarChart },
+            { path: '/project-factory', label: '🏭 Project Factory', icon: Factory },
         ],
     },
     {

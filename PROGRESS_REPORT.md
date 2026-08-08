@@ -1,3 +1,22 @@
+## 2026-08-08 — v9.2-SELF-CODING: Project Factory (OWNER ONLY), Live Preview, Auto-Deploy, Quality Gates, A/B Testing
+- [x] backend/services/projectFactory.js: generateProject, deployProject, runQualityChecks
+- [x] backend/services/autoImprovement.js: analyzeCodeForImprovement, generateFix, autoImproveFile
+- [x] backend/services/abTesting.js: createExperiment, getVariantForUser, recordConversion/View, pickWinner
+- [x] backend/routes/projectFactory.js: /generate, /deploy, /quality-check, /auto-improve, /ab-test/* with requireRole('owner','admin')
+- [x] backend/server.js: projectFactoryRoutes mounted at /api/project-factory
+- [x] frontend/src/pages/project-factory/ProjectFactoryPage.jsx: 3-step owner-only project generator with iframe preview, quality gates, auto-improve, deploy mock, ZIP download, history
+- [x] frontend/src/pages/owner/components/tabs/AutoImprovementTab.jsx: file list, score, analyze/fix/apply diff
+- [x] frontend/src/pages/owner/components/tabs/ABTestingTab.jsx: create experiment, active list, pick winner
+- [x] OwnerDashboardPage.jsx + initialData.js: tabs 'factory', 'autoImprove', 'abTest' with icons and labels
+- [x] AppSidebar.jsx: 'Project Factory' sidebar item for owner
+- [x] App.jsx: /project-factory route protected for owner/admin
+- [x] backend/services/ownerBot.js + omegaBot.js: /improve command for owner with apply/reject/retry buttons
+- [x] frontend/src/locales/ru.json + en.json: projectFactory, autoImprove, abTesting keys
+- [x] node --check backend/server.js OK
+- [x] npm run build — 0 errors
+- [x] Git commit/push: выполнен
+- [ ] Render deploy: требует ручного Clear Build Cache & Deploy
+
 ## 2026-08-08 — v9.1-PERSONALITY: Digital Twin + Voice Clone + Dream Mode v2 + DownloadPage Fix
 - [x] personalityEngine.js: analyzeOwnerStyle, generateInOwnerStyle, shouldChallengeOwner
 - [x] voiceCloneService.js: ElevenLabs voice clone placeholder (mock if key missing)

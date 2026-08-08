@@ -59,7 +59,8 @@ import videoRoutes from './routes/video.js'  // [v8.0-PART1] AI Video Creator
 import voiceRoutes from './routes/voice.js'  // [v8.0-PART1] TTS/STT
 import neuroSalesRoutes from './routes/neuroSales.js'  // [v8.0-PART1] Neuro-Sales
 import externalApiKeysRoutes from './routes/externalApiKeys.js'  // [v8.1-PART1] External API keys manager
-import omegaSupremeRoutes from './routes/omegaSupreme.js'  // [v9.0-ARCH] OMEGA Supreme: cognitive mesh, swarm, memory, scaler, wallet
+import omegaSupremeRoutes from './routes/omegaSupreme.js'  // [v9.0-ARCH] OMEGA Supreme
+import projectFactoryRoutes from './routes/projectFactory.js'  // [v9.2-SELF-CODING] Project Factory: cognitive mesh, swarm, memory, scaler, wallet
 import personalityRoutes from './routes/personality.js'  // [v9.1-PERSONALITY] Digital Twin, Voice Clone, Dream Mode
 import checkoutRoutes from './routes/checkout.js'  // [PAYMENT-v5.2] added
 import qrRoutes from './routes/qr.js'  // ← P11: QR codes
@@ -331,6 +332,7 @@ app.use('/api/analytics/neuro-sales', neuroSalesRoutes)  // [v8.0-PART1] Neuro-S
 app.use('/api/admin/external-keys', externalApiKeysRoutes)  // [v8.1-PART1] External API keys manager
 app.use('/api/omega-supreme', omegaSupremeRoutes)  // [v9.0-ARCH] OMEGA Supreme
 app.use('/api/omega-supreme', personalityRoutes)  // [v9.1-PERSONALITY] Digital Twin, Voice Clone, Dream Mode
+app.use('/api/project-factory', projectFactoryRoutes)  // [v9.2-SELF-CODING] Project Factory
 app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета
 app.use('/api/owner-requisites', ownerRequisitesRoutes)  // ← P10: Реквизиты
 app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Owner legal info
