@@ -29,6 +29,7 @@ import { OMEGACoreTab } from './components/tabs/OMEGACoreTab'
 
 import { TasksTab } from './components/tabs/TasksTab'
 import { ApiKeysTab } from './components/tabs/ApiKeysTab'
+import ExternalApiKeysTab from './components/tabs/ExternalApiKeysTab'
 import { NotificationsTab } from './components/tabs/NotificationsTab'
 import { HelpTab } from './components/tabs/HelpTab'
 import { FeedbackTab } from './components/tabs/FeedbackTab'
@@ -119,6 +120,7 @@ const TAB_ICONS = {
     omega: Brain,
     tasks: CheckSquare,
     apiKeys: KeyRound,
+    externalKeys: KeyRound,
     notifications: Bell,
     help: HelpCircle,
     feedback: Heart,
@@ -363,6 +365,7 @@ export default function OwnerDashboardPage() {
             case 'neural': return <OmegaBrainViz data={ownerData} />
             case 'tasks': return <TasksTab data={ownerData} />
             case 'apiKeys': return <ApiKeysTab data={ownerData} />
+            case 'externalKeys': return <ExternalApiKeysTab data={ownerData} />
             case 'notifications': return <NotificationsTab data={ownerData} />
             case 'help': return <HelpTab data={ownerData} />
             case 'feedback': return <FeedbackTab data={ownerData} />
@@ -491,7 +494,7 @@ export default function OwnerDashboardPage() {
             </div>
 
             {/* Omega floating chat */}
-            <OmegaChatWidget onOpenApiKeys={() => setActiveTab('apiKeys')} />
+            <OmegaChatWidget onOpenApiKeys={() => setActiveTab('externalKeys')} />
         </div>
     )
 }

@@ -182,6 +182,7 @@ export const TAB_LABELS = {
     neural: '🧠 Neural Graph',
     tasks: '✅ Задачи',
     apiKeys: '🔑 API Keys',
+    externalKeys: '🔑 Внешние API',
     notifications: '🔔 Уведомления',
     help: '❓ Помощь',
     feedback: '💬 Feedback',

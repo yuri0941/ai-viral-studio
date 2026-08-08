@@ -3161,3 +3161,21 @@
 - [x] Сборка frontend: 0 ошибок
 - [x] Backend check: 0 ошибок
 - [x] Git push: выполнен
+
+## 2026-08-08 — v8.1-PART1: Real APIs + Owner API Keys Manager (Replicate, ElevenLabs, Whisper)
+- [x] `backend/models/ExternalApiKey.js` — AES-256 encrypt/decrypt + `setKey` method
+- [x] `backend/services/runtimeConfig.js` — runtime API key cache + `reloadApiKeys`
+- [x] `backend/routes/externalApiKeys.js` — GET / POST / DELETE `/api/admin/external-keys/:provider` with live validation
+- [x] `backend/services/videoService.js` — real Replicate API with mock fallback
+- [x] `backend/services/ttsService.js` — real ElevenLabs API with mock fallback
+- [x] `backend/services/sttService.js` — real OpenAI Whisper API with mock fallback
+- [x] `backend/models/VideoJob.js` + `backend/routes/video.js` + `backend/routes/voice.js` updated
+- [x] `frontend/src/pages/owner/components/tabs/ExternalApiKeysTab.jsx` — owner UI for managing external keys
+- [x] `OwnerDashboardPage.jsx` + `initialData.js` — `externalKeys` tab with `KeyRound` icon
+- [x] `frontend/src/components/video/AIVideoCreator.jsx` — Replicate demo/real badge, polling status, video player
+- [x] `frontend/src/components/omega/OmegaChat.jsx` — ElevenLabs demo indicator, mock toast
+- [x] `frontend/src/services/api.js` — exported `request` helper for custom endpoints
+- [x] `frontend/src/locales/ru.json` + `en.json` — `externalApiKeys`, `aiVideo`, `voice` i18n keys
+- [x] `node --check backend/server.js` — OK
+- [x] `npm run build` — 0 errors
+- [x] Git commit + push to `main`

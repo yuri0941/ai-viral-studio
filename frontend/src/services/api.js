@@ -486,6 +486,8 @@ export const neuroSalesApi = {
 // ============================================
 // Default export (kept for compatibility)
 // ============================================
+export { request }
+
 export default {
     api,
     ownerApi,

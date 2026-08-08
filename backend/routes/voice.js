@@ -1,7 +1,11 @@
 import { Router } from 'express';
+import multer from 'multer';
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 import { protect } from '../middleware/auth.js';
 import User from '../models/User.js';
+import { synthesizeSpeech, VOICE_IDS } from '../services/ttsService.js';
+import { transcribeAudio } from '../services/sttService.js';
 
 const MOCK_VOICES = [
     { id: 'ru-RU-female', name: 'Russian Female', lang: 'ru-RU', gender: 'female' },
@@ -10,13 +14,14 @@ const MOCK_VOICES = [
     { id: 'en-US-male', name: 'English Male', lang: 'en-US', gender: 'male' },
 ];
 
-// Minimal silent MP3 data URI
-const SILENT_MP3 = 'data:audio/mp3;base64,//uQxAAAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//uQxAAAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq';
-
 // GET /api/voice/voices
 router.get('/voices', protect, async (req, res) => {
     try {
-        res.json({ success: true, data: MOCK_VOICES });
+        const voices = Object.entries(VOICE_IDS).map(([id, voiceId]) => {
+            const mock = MOCK_VOICES.find(v => v.id === id) || { id, name: id, lang: 'ru-RU', gender: 'female' };
+            return { ...mock, voiceId };
+        });
+        res.json({ success: true, data: voices });
     } catch (err) {
         console.error('[voice/voices]', err);
         res.status(500).json({ success: false, error: err.message });
@@ -29,22 +34,8 @@ router.post('/speak', protect, async (req, res) => {
         const { text, voice = 'ru-RU-female' } = req.body;
         if (!text) return res.status(400).json({ success: false, error: 'Text required' });
 
-        if (process.env.ELEVENLABS_API_KEY) {
-            // Placeholder: real ElevenLabs integration would go here
-            return res.json({
-                success: true,
-                audioUrl: SILENT_MP3,
-                voice,
-                message: 'TTS preview mode',
-            });
-        }
-
-        res.json({
-            success: true,
-            audioUrl: SILENT_MP3,
-            voice,
-            message: 'TTS preview mode',
-        });
+        const result = await synthesizeSpeech(text, voice);
+        res.json({ success: true, voice, ...result });
     } catch (err) {
         console.error('[voice/speak]', err);
         res.status(500).json({ success: false, error: err.message });
@@ -52,15 +43,14 @@ router.post('/speak', protect, async (req, res) => {
 });
 
 // POST /api/voice/transcribe
-router.post('/transcribe', protect, async (req, res) => {
+router.post('/transcribe', protect, upload.single('audio'), async (req, res) => {
     try {
-        // Placeholder for Whisper API / mobile fallback
-        res.json({
-            success: true,
-            status: 'use_browser_speech_api',
-            message: 'Browser SpeechRecognition recommended',
-            text: '',
-        });
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'Audio file required' });
+        }
+        const { language = 'ru' } = req.body;
+        const result = await transcribeAudio(req.file.buffer, language);
+        res.json({ success: true, ...result });
     } catch (err) {
         console.error('[voice/transcribe]', err);
         res.status(500).json({ success: false, error: err.message });

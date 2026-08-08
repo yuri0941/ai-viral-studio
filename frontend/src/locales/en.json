@@ -338,6 +338,25 @@
     "missing": "Missing",
     "rotate": "Rotate"
   },
+  "externalApiKeys": {
+    "title": "External API Keys",
+    "subtitle": "Manage keys for real APIs (no server restart needed)",
+    "replicate": "Replicate (Video)",
+    "elevenlabs": "ElevenLabs (Voice)",
+    "openai": "OpenAI / Whisper (STT)",
+    "statusActive": "Active",
+    "statusInactive": "Not configured",
+    "placeholder": "Paste key...",
+    "save": "Verify & Save",
+    "update": "Update",
+    "delete": "Delete",
+    "verifySuccess": "✅ Key activated — {{provider}} enabled",
+    "verifyError": "❌ Invalid key or no access",
+    "whereToGet": "Where to get?",
+    "encrypted": "Keys are stored encrypted (AES-256)",
+    "mockMode": "Demo mode",
+    "realMode": "Real API"
+  },
   "advertiser": {
     "title": "Advertiser",
     "subtitle": "Manage ad campaigns",
@@ -677,7 +696,28 @@
     "scenePlaceholder": "Scene",
     "hook": "Hook for",
     "status": "Status",
-    "history": "History"
+    "history": "History",
+    "realBadge": "🎬 Replicate API connected",
+    "mockBadge": "🎬 Demo mode",
+    "configureApi": "⚙️ Configure API"
+  },
+  "aiVideo": {
+    "creating": "Creating video...",
+    "queued": "Queued",
+    "starting": "Starting...",
+    "processing": "Processing {{progress}}%",
+    "succeeded": "Done!",
+    "failed": "Generation failed",
+    "download": "📥 Download",
+    "mockBadge": "🎬 Demo mode",
+    "addToken": "Add key in Owner Dashboard → API Keys"
+  },
+  "voice": {
+    "speaking": "🔊 Speaking...",
+    "mockToast": "Voice demo mode. Add ELEVENLABS_API_KEY in settings.",
+    "addKey": "Add ELEVENLABS_API_KEY",
+    "speed": "Speed",
+    "pitch": "Pitch"
   },
   "voiceMode": {
     "speak": "Speak",

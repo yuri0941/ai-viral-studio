@@ -338,6 +338,25 @@
     "missing": "Не задан",
     "rotate": "Обновить"
   },
+  "externalApiKeys": {
+    "title": "Внешние API-ключи",
+    "subtitle": "Управление ключами для реальных API (без перезапуска сервера)",
+    "replicate": "Replicate (Видео)",
+    "elevenlabs": "ElevenLabs (Озвучка)",
+    "openai": "OpenAI / Whisper (Распознавание)",
+    "statusActive": "Активен",
+    "statusInactive": "Не настроен",
+    "placeholder": "Вставьте ключ...",
+    "save": "Проверить и сохранить",
+    "update": "Обновить",
+    "delete": "Удалить",
+    "verifySuccess": "✅ Ключ активирован — {{provider}} включён",
+    "verifyError": "❌ Неверный ключ или нет доступа",
+    "whereToGet": "Где получить?",
+    "encrypted": "Ключи хранятся в зашифрованном виде (AES-256)",
+    "mockMode": "Демо-режим",
+    "realMode": "Реальный API"
+  },
   "advertiser": {
     "title": "Рекламодатель",
     "subtitle": "Управление рекламными кампаниями",
@@ -677,7 +696,28 @@
     "scenePlaceholder": "Сцена",
     "hook": "Хук для",
     "status": "Статус",
-    "history": "История"
+    "history": "История",
+    "realBadge": "🎬 Replicate API подключён",
+    "mockBadge": "🎬 Демо-режим",
+    "configureApi": "⚙️ Настроить API"
+  },
+  "aiVideo": {
+    "creating": "Создаём видео...",
+    "queued": "В очереди",
+    "starting": "Запускаем...",
+    "processing": "Обрабатываем {{progress}}%",
+    "succeeded": "Готово!",
+    "failed": "Ошибка генерации",
+    "download": "📥 Скачать",
+    "mockBadge": "🎬 Демо-режим",
+    "addToken": "Добавьте ключ в Owner Dashboard → API Keys"
+  },
+  "voice": {
+    "speaking": "🔊 Говорю...",
+    "mockToast": "Демо-режим озвучки. Добавьте ELEVENLABS_API_KEY в настройках.",
+    "addKey": "Добавьте ELEVENLABS_API_KEY",
+    "speed": "Скорость",
+    "pitch": "Тон"
   },
   "voiceMode": {
     "speak": "Озвучить",

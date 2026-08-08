@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
     Clapperboard, Wand2, ChevronRight, ChevronLeft, Sparkles,
     Film, Mic, Download, Share2, Play, Loader2, X, Copy,
-    Lock, Clock, Image as ImageIcon, MonitorPlay, Camera, LayoutGrid
+    Lock, Clock, Image as ImageIcon, MonitorPlay, Camera, LayoutGrid,
+    Settings, CheckCircle
 } from 'lucide-react';
 import { omegaApi, videoApi, request } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -70,9 +72,18 @@ export default function AIVideoCreator({ onClose }) {
     const [progress, setProgress] = useState(0);
     const [history, setHistory] = useState([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [replicateStatus, setReplicateStatus] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadHistory();
+        request('/admin/external-keys')
+            .then(res => {
+                const map = {};
+                (res?.data || []).forEach(k => { map[k.provider] = k; });
+                setReplicateStatus(map['replicate'] || null);
+            })
+            .catch(err => console.warn('[AIVideoCreator] external keys fetch failed', err));
     }, []);
 
     const loadHistory = useCallback(async () => {
@@ -126,15 +137,15 @@ export default function AIVideoCreator({ onClose }) {
 
     useEffect(() => {
         if (!job) return;
-        if (job.status === 'done') return;
+        if (job.status === 'succeeded' || job.status === 'failed') return;
         const interval = setInterval(async () => {
             try {
                 const data = await videoApi.status(job.jobId);
                 setJob(data);
                 if (data.progress !== undefined) setProgress(data.progress);
-                if (data.status === 'done') clearInterval(interval);
+                if (data.status === 'succeeded' || data.status === 'failed') clearInterval(interval);
             } catch (e) { /* ignore polling errors */ }
-        }, 2000);
+        }, 3000);
         return () => clearInterval(interval);
     }, [job]);
 
@@ -159,7 +170,24 @@ export default function AIVideoCreator({ onClose }) {
                         <Clapperboard className="text-violet-400" />
                         <h2 className="text-lg font-bold">{t('aiVideoCreator.title')}</h2>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                    <div className="flex items-center gap-2">
+                        {replicateStatus?.isActive ? (
+                            <span className="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400">
+                                <CheckCircle size={12} /> {t('aiVideoCreator.realBadge')}
+                            </span>
+                        ) : (
+                            <span className="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
+                                <Film size={12} /> {t('aiVideoCreator.mockBadge')}
+                            </span>
+                        )}
+                        <button
+                            onClick={() => navigate('/owner-dashboard?tab=externalKeys')}
+                            className="text-xs px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center gap-1"
+                        >
+                            <Settings size={12} /> {t('aiVideoCreator.configureApi')}
+                        </button>
+                        <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 md:p-6">
@@ -239,19 +267,37 @@ export default function AIVideoCreator({ onClose }) {
                                 <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-white/70">{t('aiVideoCreator.status') || 'Статус'}</span>
-                                        <span className="text-violet-400">{job.status === 'done' ? t('common.success') : t('aiVideoCreator.processing')}</span>
+                                        <span className="text-violet-400">
+                                            {job.status === 'succeeded' ? t('aiVideo.succeeded')
+                                                : job.status === 'failed' ? t('aiVideo.failed')
+                                                : job.mock ? t('aiVideo.mockBadge')
+                                                : t('aiVideoCreator.processing')}
+                                        </span>
                                     </div>
                                     <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                                        <div className="h-full bg-gradient-to-r from-violet-500 to-cyan-500 transition-all" style={{ width: `${progress}%` }} />
+                                        <div className={`h-full transition-all ${progress >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-violet-500 to-cyan-500'}`} style={{ width: `${progress}%` }} />
                                     </div>
-                                    {job.status === 'done' && (
+                                    {job.status === 'succeeded' && (
                                         <div className="space-y-3">
-                                            <PlaceholderPlayer script={{ title: script.slice(0, 40) }} />
+                                            {job.videoUrl ? (
+                                                <video controls src={job.videoUrl} className="w-full rounded-xl aspect-[9/16] max-h-[320px] bg-black" />
+                                            ) : (
+                                                <PlaceholderPlayer script={{ title: script.slice(0, 40) }} />
+                                            )}
                                             <div className="flex gap-2">
-                                                <button className="flex-1 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm flex items-center justify-center gap-2"><Download size={16} /> {t('aiVideoCreator.download')}</button>
+                                                {job.videoUrl && (
+                                                    <a href={job.videoUrl} download className="flex-1 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm flex items-center justify-center gap-2">
+                                                        <Download size={16} /> {t('aiVideo.download')}
+                                                    </a>
+                                                )}
                                                 <button className="flex-1 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm flex items-center justify-center gap-2"><Share2 size={16} /> {t('aiVideoCreator.publish')}</button>
                                                 <button onClick={() => navigator.clipboard.writeText(window.location.href)} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white"><Copy size={16} /></button>
                                             </div>
+                                        </div>
+                                    )}
+                                    {job.mock && (
+                                        <div className="text-xs text-yellow-400 bg-yellow-500/10 rounded-lg p-3">
+                                            {job.message || t('aiVideo.addToken')}
                                         </div>
                                     )}
                                 </div>

@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings } from "lucide-react";
+import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
-import { omegaApi, voiceApi } from "../../services/api.js";
+import { omegaApi, voiceApi, request } from "../../services/api.js";
 import { playSound } from "../../hooks/useSound.js";
 import { useTTS } from "../../hooks/useTTS.js";
 
@@ -208,7 +208,18 @@ export default function OmegaChat({
   const [variantCount, setVariantCount] = useState(3);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [recognitionLang, setRecognitionLang] = useState(() => localStorage.getItem('omega_recognition_lang') || 'ru');
+  const [elevenlabsStatus, setElevenlabsStatus] = useState(null);
   const { speak, stop, playingId, loadingId, settings, setSettings } = useTTS();
+
+  useEffect(() => {
+    request('/admin/external-keys')
+      .then(res => {
+        const map = {};
+        (res?.data || []).forEach(k => { map[k.provider] = k; });
+        setElevenlabsStatus(map['elevenlabs'] || null);
+      })
+      .catch(err => console.warn('[OmegaChat] external keys fetch failed', err));
+  }, []);
 
   const input = externalInput !== undefined ? externalInput : internalInput;
   const setInput = externalSetInput || setInternalInput;
@@ -357,7 +368,13 @@ export default function OmegaChat({
                     type="button"
                     onClick={async () => {
                       const res = await speak(msg.text, msg.id);
-                      if (res?.placeholder) alert(t('voiceMode.placeholder'));
+                      if (res?.placeholder) {
+                        if (res?.mock) {
+                          alert(t('voice.mockToast'));
+                        } else {
+                          alert(t('voiceMode.placeholder'));
+                        }
+                      }
                     }}
                     className={`px-2 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition ${
                       playingId === msg.id
@@ -367,6 +384,9 @@ export default function OmegaChat({
                   >
                     {loadingId === msg.id ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : playingId === msg.id ? <VolumeX size={14} /> : <Volume2 size={14} />}
                     {playingId === msg.id ? t('voiceMode.stop') : t('voiceMode.speak')}
+                    {!elevenlabsStatus?.isActive && (
+                      <span title={t('voice.mockToast')} className="ml-0.5 text-yellow-400"><AlertTriangle size={10} /></span>
+                    )}
                   </button>
                   <button
                     type="button"

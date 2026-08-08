@@ -43,7 +43,7 @@ export function useTTS() {
             const audioUrl = res?.audioUrl || res?.data?.audioUrl;
             if (!audioUrl || audioUrl === 'placeholder') {
                 setLoadingId(null);
-                return { placeholder: true };
+                return { placeholder: true, mock: res?.mock === true };
             }
             const audio = new Audio(audioUrl);
             audio.playbackRate = settings.speed;
