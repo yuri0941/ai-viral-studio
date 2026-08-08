@@ -1,6 +1,7 @@
 import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
 import { chatWithAI } from './aiService.js'
+import { isOwner, getOwnerContext } from './ownerContext.js'
 
 // [P16-FINAL] singleton to avoid duplicate polling / 409 conflict
 let bot = global.omegaBotInstance || null
@@ -56,33 +57,15 @@ export const initOmegaBot = () => {
 
   updateBotMenu()
 
-  bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id
-    const name = msg.from.first_name || 'друг'
-    const isOwner = String(chatId) === String(OWNER_CHAT_ID)
-
-    const welcome = isOwner
-      ? `<b>👋 Привет, Босс!</b>\n\nЯ <b>OMEGA</b> — ваш AI-ассистент.\n\n<b>Owner Mode активирован.</b>\nПишите свободно — я выполню любую задачу.\n\n<b>Команды:</b>\n/exec [задача] — выполнить\n/feature [идея] — новая фича\n/menu [изменение] — изменить меню\n/improve — улучшить бота\n/help — справка`
-      : `<b>👋 Привет, ${name}!</b>\n\nЯ <b>OMEGA</b> — AI-ассистент AI Viral Studio 🤖\n\n<b>Я умею:</b>\n• ✍️ Создавать посты\n• 🔥 Генерировать хуки\n• 🔍 Анализировать конкурентов\n• 📅 Составлять контент-план\n• 🎨 Генерировать обложки\n\n<i>Выберите действие или просто напишите!</i>`
-
-    const keyboard = isOwner ? {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '⚡ Выполнить задачу', callback_data: 'owner_exec' }, { text: '✨ Новая фича', callback_data: 'owner_feature' }],
-          [{ text: '🤖 OMEGA Core', callback_data: 'owner_omega' }, { text: '📊 Статус', callback_data: 'owner_status' }]
-        ]
-      }
-    } : {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '✍️ Создать пост', callback_data: 'create_post' }, { text: '🔥 Хук', callback_data: 'generate_hook' }],
-          [{ text: '🔍 Анализ', callback_data: 'analyze' }, { text: '📅 План', callback_data: 'content_plan' }],
-          [{ text: '🎨 Обложка', callback_data: 'ai_cover' }, { text: '💬 Свободно', callback_data: 'free_chat' }]
-        ]
-      }
+  bot.onText(/\/start/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) {
+      bot.sendMessage(chatId, '🤖 <b>OMEGA Bot</b>\n\nЯ технический бот AI Viral Studio.\nПо вопросам обращайтесь к @owner_username.', { parse_mode: 'HTML' });
+      return;
     }
-
-    safeSendMessage(chatId, welcome, { parse_mode: 'HTML', ...keyboard })
+    const context = await getOwnerContext(chatId);
+    const name = context?.name || 'Юрий';
+    bot.sendMessage(chatId, `🤖 <b>OMEGA (Owner Mode)</b>\n\nЯ готова к работе, ${name}.\nИспользуйте /menu для навигации.`, { parse_mode: 'HTML' });
   })
 
   bot.onText(/\/help/, (msg) => {

@@ -3288,3 +3288,15 @@
 - [x] `node --check backend/server.js` OK
 - [x] `npm run build` — 0 errors
 - [ ] Render deploy: требует ручного Clear Build Cache & Deploy
+
+## 2026-08-08 — HOTFIX: Legal Pages Dynamic Data + Luxury UI + Footer Artifacts + Requisites Auto-Apply
+- [x] `backend/controllers/ownerLegalInfoController.js` — `GET /api/public/legal-info` теперь читает `OwnerRequisites` вместо `OwnerLegalInfo`, не отдаёт банковские реквизиты
+- [x] `frontend/src/pages/legal/TermsPage.jsx` — создана динамическая страница с иконками, градиентами, glassmorphism, `fetch('/api/public/legal-info')`
+- [x] `frontend/src/pages/legal/PrivacyPage.jsx` — создана динамическая страница с иконками и таблицей провайдеров
+- [x] `frontend/src/pages/legal/LegalPage.jsx` — оставлен для `/consent`, убраны `// [P16-CONTINUE] added`, footer очищен
+- [x] `frontend/src/App.jsx` — добавлены роуты `/terms`, `/privacy` → `TermsOfServicePage`, `PrivacyPolicyPage`
+- [x] `frontend/src/pages/owner/components/tabs/OwnerRequisitesTab.jsx` — toast «✅ Реквизиты сохранены. Изменения применены на юридических страницах.»
+- [x] `node --check backend/server.js` OK
+- [x] `npm run build` — 0 errors
+- [x] Git commit/push: выполнен
+- [ ] Render / Cloudflare redeploy: требует ручного действия

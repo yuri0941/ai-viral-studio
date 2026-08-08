@@ -2,6 +2,7 @@ import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
 import { chatWithAI } from './aiService.js'
 import { createNode, queryMesh } from './cognitiveMesh.js'
+import { isOwner as isOwnerContext, getOwnerContext, getSmartGreeting } from './ownerContext.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -71,11 +72,20 @@ export const initOwnerBot = () => {
     { command: 'help', description: '❓ Помощь' }
   ]).catch(() => {})
 
-  bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id
-    if (!isOwner(chatId)) { denyAccess(chatId); return }
-    sendOwnerMenu(chatId)
-  })
+  bot.onText(/\/start/, async (msg) => {
+    const chatId = msg.chat.id;
+    const context = await getOwnerContext(chatId);
+    const greeting = await getSmartGreeting(context);
+
+    if (greeting.buttons) {
+      bot.sendMessage(chatId, greeting.text, {
+        parse_mode: greeting.parse_mode || 'HTML',
+        reply_markup: { inline_keyboard: greeting.buttons }
+      });
+    } else {
+      safeSendMessage(chatId, greeting.text, { parse_mode: 'HTML' });
+    }
+  });
 
   bot.onText(/\/status/, (msg) => { if (!isOwner(msg.chat.id)) return; sendStatus(msg.chat.id) })
   bot.onText(/\/stats/, (msg) => { if (!isOwner(msg.chat.id)) return; sendStats(msg.chat.id) })
@@ -95,19 +105,17 @@ export const initOwnerBot = () => {
     }
   })
 
-  // OWNER MODE — изменение меню
-  bot.onText(/\/menu (.+)/, async (msg, match) => {
-    const chatId = msg.chat.id
-    if (!isOwner(chatId)) return
-    const instruction = match[1].trim()
-    safeSendMessage(chatId, `📝 <b>Изменяю меню:</b> ${instruction}\n\n<i>OMEGA генерирует новое меню...</i>`, { parse_mode: 'HTML' })
-    try {
-      const result = await chatWithAI(`Владелец хочет изменить меню Telegram-бота: ${instruction}. Сгенерируй JSON с новыми командами (command, description) для setMyCommands.`, [], { userRole: 'owner' })
-      safeSendMessage(chatId, `✅ <b>Новое меню сгенерировано:</b>\n\n<pre><code>${JSON.stringify(result, null, 2)}</code></pre>\n\n<i>Примените вручную или через /exec</i>`, { parse_mode: 'HTML' })
-    } catch (e) {
-      safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`, { parse_mode: 'HTML' })
+  // OWNER MODE — главное меню
+  bot.onText(/\/menu/, async (msg) => {
+    const chatId = msg.chat.id;
+    const context = await getOwnerContext(chatId);
+    if (!context?.isOwner) {
+      safeSendMessage(chatId, '❌ Только для владельца.');
+      return;
     }
-  })
+    const greeting = await getSmartGreeting(context);
+    bot.sendMessage(chatId, greeting.text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: greeting.buttons } });
+  });
 
   // OWNER MODE — новая фича
   bot.onText(/\/feature (.+)/, async (msg, match) => {
@@ -173,33 +181,107 @@ export const initOwnerBot = () => {
     }
   });
 
-  // OWNER MODE — свободный текст + auto-reply
+  // OWNER MODE — smart reply
   bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text || '';
     if (text.startsWith('/')) return;
-    const isOwner = chatId.toString() === String(OWNER_CHAT_ID);
-    if (!isOwner) {
-      safeSendMessage(chatId, '👋 Привет! Я бот AI Viral Studio. Свяжитесь с владельцем через сайт: aiviral-studio.ru');
+
+    const context = await getOwnerContext(chatId);
+
+    // Not owner → simple menu
+    if (!context?.isOwner) {
+      bot.sendMessage(chatId, '👋 <b>AI Viral Studio</b>\n\nСвяжитесь с владельцем через сайт:', {
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: [[{ text: '🌐 aiviral-studio.ru', url: 'https://aiviral-studio.ru' }]] }
+      });
       return;
     }
+
+    // Owner → smart reply with context
     try {
-      const context = await queryMesh(`telegram owner:${chatId}`, 10, 0.6);
-      const prompt = `Owner sent via Telegram: "${text}". Context: ${context.map(c => c.content).join('; ').slice(0, 500)}. Reply as OMEGA — concise, helpful, in Russian. If it's a task, confirm and suggest next step.`;
-      const aiResult = await chatWithAI(prompt, [], 'ru', { maxTokens: 800, temperature: 0.7 });
-      const reply = aiResult?.reply || aiResult?.text || aiResult?.content || aiResult?.message || 'Принято, работаю над этим.';
-      safeSendMessage(chatId, `🤖 OMEGA:\n${reply}`, { parse_mode: 'HTML' });
-      await createNode({ type: 'telegram', content: `Owner Telegram: ${text} | OMEGA: ${reply}`, confidence: 0.9, source: 'telegram_bot', metadata: { chatId, ownerMessage: text, omegaReply: reply, type: 'telegram_dialog' } });
-    } catch(e) {
-      safeSendMessage(chatId, '⚠️ OMEGA временно недоступна. Попробуйте позже или напишите на сайте.');
+      const ownerPrompt = `Owner (Юрий) sent: "${text}". His style: ${JSON.stringify(context.style)}. Active projects: ${context.activeProjects?.join('; ').slice(0, 300)}. Recent decisions: ${context.recentDecisions?.join('; ').slice(0, 300)}. Reply as OMEGA — SHORT (max 300 chars), helpful, no generic lists, no "Вот что я умею". If it's a task — confirm and suggest ONE next step. If it's a question — answer directly. Language: Russian.`;
+      const aiResult = await chatWithAI(ownerPrompt, [], 'ru', { maxTokens: 600, temperature: 0.6 });
+      const reply = aiResult?.reply || aiResult?.text || 'Принято, работаю.';
+
+      let formatted = `🤖 <b>OMEGA</b>\n`;
+      formatted += `━━━━━━━━━━━━━━\n`;
+      formatted += `${reply}\n`;
+      formatted += `━━━━━━━━━━━━━━\n`;
+      formatted += `<i>Напишите следующую задачу или используйте /menu</i>`;
+
+      bot.sendMessage(chatId, formatted, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🎬 Контент', callback_data: 'quick:content' }, { text: '📊 Аналитика', callback_data: 'quick:analytics' }],
+            [{ text: '⚡ Ещё', callback_data: 'quick:more' }]
+          ]
+        }
+      });
+
+      await createNode({ type: 'telegram', content: `Owner: ${text} | OMEGA: ${reply}`, confidence: 0.9, source: 'telegram_bot', metadata: { chatId, text, reply, type: 'telegram_dialog' } });
+    } catch (e) {
+      bot.sendMessage(chatId, '⚠️ <b>OMEGA</b> временно недоступна.\nПопробуйте позже.', { parse_mode: 'HTML' });
     }
   });
 
   bot.on('callback_query', async (q) => {
-    const chatId = q.message.chat.id
-    if (!isOwner(chatId)) return
+    const chatId = q.message.chat.id;
+    const data = q.data;
+
+    if (!isOwner(chatId)) {
+      bot.answerCallbackQuery(q.id, { text: '❌ Только для владельца' }).catch(() => {});
+      return;
+    }
+
+    // Luxury inline action handlers
+    if (data.startsWith('action:') || data.startsWith('quick:')) {
+      bot.answerCallbackQuery(q.id, { text: '⏳ Обрабатываю...' }).catch(() => {});
+
+      if (data === 'action:content' || data === 'quick:content') {
+        bot.sendMessage(chatId, '🎬 <b>Создание контента</b>\n\nВыберите тип:', {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: [
+            [{ text: '📝 Пост', callback_data: 'content:post' }, { text: '🎥 Видео-сценарий', callback_data: 'content:video' }],
+            [{ text: '🎨 Картинка', callback_data: 'content:image' }, { text: '🔙 Назад', callback_data: 'action:back' }]
+          ]}
+        });
+      }
+      else if (data === 'action:analytics' || data === 'quick:analytics') {
+        bot.sendMessage(chatId, '📊 <b>Аналитика</b>\n\nПока в разработке.\nИспользуйте Dashboard на сайте.', { parse_mode: 'HTML' });
+      }
+      else if (data === 'action:factory') {
+        bot.sendMessage(chatId, '🏭 <b>Project Factory</b>\n\nПерейдите в Dashboard → Project Factory', {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: [[{ text: '🌐 Открыть сайт', url: 'https://aiviral-studio.ru/project-factory' }]] }
+        });
+      }
+      else if (data === 'action:prediction') {
+        bot.sendMessage(chatId, '🔮 <b>Прогнозы</b>\n\nПерейдите в Dashboard → Разведка', {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: [[{ text: '🌐 Открыть сайт', url: 'https://aiviral-studio.ru/owner?tab=prediction' }]] }
+        });
+      }
+      else if (data === 'action:channel_post') {
+        bot.sendMessage(chatId, '📱 <b>Пост в канал</b>\n\nНапишите тему:', { parse_mode: 'HTML' });
+      }
+      else if (data === 'action:improve') {
+        bot.sendMessage(chatId, '🛠 Запускаю /improve...\nНапишите /improve', { parse_mode: 'HTML' });
+      }
+      else if (data === 'action:command' || data === 'quick:more') {
+        bot.sendMessage(chatId, '⚡ <b>Быстрые команды</b>\n\n/status — статус\n/improve — улучшить бота\n/post [тема] — пост в канал\n/menu — меню\n/help — помощь', { parse_mode: 'HTML' });
+      }
+      else if (data === 'action:back') {
+        const context = await getOwnerContext(chatId);
+        const greeting = await getSmartGreeting(context);
+        bot.sendMessage(chatId, greeting.text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: greeting.buttons } });
+      }
+      return;
+    }
+
+    // Legacy callbacks
     bot.answerCallbackQuery(q.id).catch(() => {})
-    const data = q.data
     if (data === 'status') sendStatus(chatId)
     else if (data === 'stats') sendStats(chatId)
     else if (data === 'omega') sendOmegaPanel(chatId)
