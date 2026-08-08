@@ -1,3 +1,17 @@
+## 2026-08-08 — v9.6.1-OMEGA-FIX
+- [CRITICAL FIX] MissingSchemaError CognitiveNode — импорт модели, сервер не падает при Telegram-сообщениях
+- [CRITICAL FIX] CORS — разрешены запросы с https://aiviral-studio.ru, API работает
+- [FIX] SchedulerPage.jsx — добавлен импорт Clapperboard из lucide-react
+- [FEATURE] Luxury Telegram Bot — inline-кнопки, HTML-форматирование, разделители ━━━, эмодзи
+- [FEATURE] Owner Recognition — бот знает владельца (Юрий), не предлагает лишнего, отвечает по делу
+- [FEATURE] Anti-Spam Alerts — алерты "Error rate >5%" не чаще 1 раза в 15 мин (cooldown)
+- [FEATURE] Self-Optimize Route — backend/routes/selfOptimize.js с защитой requireRole
+- [FEATURE] Self-Optimize Dashboard — вкладка в Owner Dashboard с отчётами, prompt registry, healing, performance
+- [FEATURE] Telegram Stats — статистика диалогов, ошибок, success rate в Dashboard
+- [FEATURE] Markdown→HTML cleaner — ** → <b>, * → <i>, корректный рендер в Telegram
+- [FEATURE] Proactive suggestions — приветствие + статус + следующий шаг автоматически
+- [DEPLOY] Render deploy successful, сервер стабилен
+
 ## 2026-08-08 — HOTFIX: Telegram [object Object] safeSendMessage (ownerBot + omegaBot)
 - [x] backend/services/ownerBot.js: safeSendMessage uses `.text/.message/.content/.response/.reply` + JSON.stringify fallback, message handler extracts `.reply/.text/.content/.message`
 - [x] backend/services/omegaBot.js: safeSendMessage aligned with `.reply` fallback
