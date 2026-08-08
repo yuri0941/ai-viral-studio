@@ -3179,3 +3179,20 @@
 - [x] `node --check backend/server.js` — OK
 - [x] `npm run build` — 0 errors
 - [x] Git commit + push to `main`
+
+## 2026-08-08 — v9.0-ARCH: Cognitive Mesh + Infinite Memory + Agent Swarm + Auto-Scaler
+- [x] `backend/services/cognitiveMesh.js` + `backend/models/CognitiveNode.js` — граф знаний OMEGA (узлы, связи, text search, BFS, prune)
+- [x] `backend/services/infiniteMemory.js` — L1-L5 memory stack, `storeMemory`, `recallMemory`, `compressAndArchive`
+- [x] `backend/services/agentSwarm.js` — WorkerAgent, `spawnWorker`, `orchestrate`, Phoenix Protocol, `getSwarmStatus`
+- [x] `backend/services/autoScaler.js` — `scanServerPrices`, `evaluateMigration`, `autoScaleDecision`
+- [x] `backend/services/cryptoWallet.js` — USDT (Polygon) placeholder, balance, history, auto-pay
+- [x] `backend/routes/omegaSupreme.js` — `/api/omega-supreme/*` endpoints (mesh, swarm, memory, scale, wallet)
+- [x] `backend/server.js` — подключён `omegaSupremeRoutes`
+- [x] `frontend/src/pages/omega-supreme/SupremeStatusPage.jsx` — bento dashboard с polling 30с
+- [x] `frontend/src/App.jsx` — роут `/omega-supreme` (owner/admin)
+- [x] `OwnerDashboardPage.jsx` + `initialData.js` + `AppSidebar.jsx` — вкладка `supreme`
+- [x] `frontend/src/locales/ru.json` + `en.json` — ключи `supreme.*`
+- [x] `node --check backend/server.js` OK
+- [x] `npm run build` — 0 errors
+- [x] Git commit/push: выполнен
+- [ ] Render deploy: требует ручного Clear Build Cache & Deploy

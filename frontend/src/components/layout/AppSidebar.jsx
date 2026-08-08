@@ -109,6 +109,7 @@ const OWNER_GROUPS = [
             { id: 'omegaSkills', label: '🧠 OMEGA Skills', icon: BrainCircuit },
             { id: 'omegaMemory', label: '🗄️ OMEGA Memory', icon: Database },
             { id: 'agents', label: '🤖 AI Агенты', icon: Bot },
+            { id: 'supreme', label: '🧠 OMEGA Supreme', icon: BrainCircuit },
         ],
     },
     {

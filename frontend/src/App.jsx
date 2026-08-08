@@ -31,6 +31,7 @@ const ContentAnalyzerPage = lazy(() => import('./pages/ContentAnalyzerPage'))
 const AIvsHumanPage = lazy(() => import('./pages/owner/AIvsHumanPage'))
 const BoardroomPage = lazy(() => import('./pages/owner/BoardroomPage'))
 const BusinessSpawnerPage = lazy(() => import('./pages/owner/BusinessSpawnerPage'))
+const SupremeStatusPage = lazy(() => import('./pages/omega-supreme/SupremeStatusPage.jsx'))
 const ViralChatPage = lazy(() => import('./pages/ViralChatPage'))
 import LeaderboardPage from './pages/LeaderboardPage'
 import ChallengePage from './pages/ChallengePage'
@@ -338,6 +339,11 @@ function App() {
                 <Route path="/neuro-sales" element={
                     <ProtectedRoute allowedRoles={['advertiser', 'pro', 'agency', 'owner', 'admin']}>
                         <NeuroSalesDashboard />
+                    </ProtectedRoute>
+                } />
+                <Route path="/omega-supreme" element={
+                    <ProtectedRoute allowedRoles={['owner', 'admin']}>
+                        <SupremeStatusPage />
                     </ProtectedRoute>
                 } />
                 <Route path="/settings" element={

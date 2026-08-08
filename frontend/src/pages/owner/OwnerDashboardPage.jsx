@@ -70,6 +70,7 @@ const AIChatPage = lazy(() => import('../AIChatPage'))
 const ContentAnalyzerPage = lazy(() => import('../ContentAnalyzerPage'))
 const SchedulerPage = lazy(() => import('../SchedulerPage'))
 const ViralChatPage = lazy(() => import('../ViralChatPage'))
+const SupremeStatusPage = lazy(() => import('../omega-supreme/SupremeStatusPage.jsx'))
 
 // Modals
 import { AddStaffModal } from './components/modals/AddStaffModal'
@@ -121,6 +122,7 @@ const TAB_ICONS = {
     tasks: CheckSquare,
     apiKeys: KeyRound,
     externalKeys: KeyRound,
+    supreme: BrainCircuit,
     notifications: Bell,
     help: HelpCircle,
     feedback: Heart,
@@ -366,6 +368,7 @@ export default function OwnerDashboardPage() {
             case 'tasks': return <TasksTab data={ownerData} />
             case 'apiKeys': return <ApiKeysTab data={ownerData} />
             case 'externalKeys': return <ExternalApiKeysTab data={ownerData} />
+            case 'supreme': return <SupremeStatusPage />
             case 'notifications': return <NotificationsTab data={ownerData} />
             case 'help': return <HelpTab data={ownerData} />
             case 'feedback': return <FeedbackTab data={ownerData} />

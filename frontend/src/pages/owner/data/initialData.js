@@ -183,6 +183,7 @@ export const TAB_LABELS = {
     tasks: '✅ Задачи',
     apiKeys: '🔑 API Keys',
     externalKeys: '🔑 Внешние API',
+    supreme: '🧠 OMEGA Supreme',
     notifications: '🔔 Уведомления',
     help: '❓ Помощь',
     feedback: '💬 Feedback',
