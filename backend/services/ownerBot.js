@@ -1,6 +1,7 @@
 import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
 import { chatWithAI } from './aiService.js'
+import { createNode, queryMesh } from './cognitiveMesh.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -31,7 +32,7 @@ function safeSendMessage(chatId, data, options = {}) {
   if (typeof data === 'string') {
     text = data
   } else if (data && typeof data === 'object') {
-    text = data.text || data.message || data.content || data.response || data.reply || JSON.stringify(data, null, 2)
+    text = data.text || data.message || data.content || data.response || data.reply || data.result || JSON.stringify(data, null, 2)
   } else {
     text = String(data)
   }
@@ -124,51 +125,75 @@ export const initOwnerBot = () => {
 
   // OWNER MODE — авто-улучшение бота
   bot.onText(/\/improve/, async (msg) => {
-    const chatId = msg.chat.id
-    if (!isOwner(chatId)) return
-    safeSendMessage(chatId, `🔧 <b>Анализирую код бота...</b>\n\n<i>OMEGA ищет, что можно улучшить</i>`, { parse_mode: 'HTML' })
+    const chatId = msg.chat.id;
+    if (chatId.toString() !== String(OWNER_CHAT_ID)) {
+      safeSendMessage(chatId, '❌ Только владелец может использовать эту команду.');
+      return;
+    }
+    safeSendMessage(chatId, '🛠 Анализирую код бота...');
     try {
-      const code = fs.readFileSync(new URL(import.meta.url), 'utf8')
-      const result = await chatWithAI(`Проанализируй код Telegram-бота и предложи 3 конкретных улучшения (новые команды, ответы, inline keyboard). Код:\n${code.slice(0, 4000)}\n\nВерни краткий список с названием, описанием и примером кода.`, [], { userRole: 'owner' })
-      let message = '🔧 <b>Предлагаю добавить:</b>\n\n'
-      const improvements = result.text || result
-      if (Array.isArray(improvements)) {
-        message += improvements.map((imp, i) => `${i + 1}. ${imp.title || imp.name || 'Улучшение'}\n${imp.description || imp.details || JSON.stringify(imp)}`).join('\n\n')
-      } else if (improvements && typeof improvements === 'object') {
-        message += improvements.text || improvements.message || improvements.content || JSON.stringify(improvements, null, 2)
-      } else {
-        message += String(improvements || '')
+      const prompt = `Analyze this Telegram bot code for improvements. Suggest 3 specific enhancements (new commands, better UX, error handling). Return JSON: { improvements: [{title, description, codeSnippet, priority}] }`;
+      const aiResult = await chatWithAI(prompt, [], 'ru', { maxTokens: 2000, temperature: 0.6 });
+      const response = aiResult?.reply || aiResult?.text || '';
+      let improvements;
+      try { improvements = JSON.parse(response).improvements; } catch(e) { improvements = []; }
+      if (improvements.length === 0) {
+        safeSendMessage(chatId, '✅ Код бота в порядке. Улучшений не требуется.');
+        return;
       }
-      safeSendMessage(chatId, message, {
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '✅ Применить', callback_data: 'improve_apply' }, { text: '❌ Отклонить', callback_data: 'improve_reject' }],
-            [{ text: '🔄 Другой вариант', callback_data: 'improve_retry' }]
-          ]
-        }
-      })
-    } catch (e) {
-      safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`, { parse_mode: 'HTML' })
+      let message = '🛠 Предлагаю улучшения:\n\n';
+      improvements.forEach((imp, i) => {
+        message += `${i+1}. <b>${imp.title || 'Улучшение'}</b>\n${imp.description || ''}\nПриоритет: ${imp.priority || 'medium'}\n\n`;
+      });
+      message += 'Нажмите номер улучшения для применения (например, "1") или "Отмена".';
+      safeSendMessage(chatId, message, { parse_mode: 'HTML' });
+      await createNode({ type: 'skill', content: `Bot improvement suggestions: ${improvements.length}`, confidence: 0.85, source: 'telegram_bot', metadata: { chatId, improvements, type: 'bot_improvement' } });
+    } catch(e) {
+      safeSendMessage(chatId, '❌ Ошибка анализа: ' + e.message);
     }
-  })
+  });
 
-  // OWNER MODE — свободный текст
-  bot.on('message', async (msg) => {
-    if (msg.text?.startsWith('/')) return
-    const chatId = msg.chat.id
-    if (!isOwner(chatId)) { safeSendMessage(chatId, '⛔ Только команды'); return }
-    const text = msg.text?.trim()
-    if (!text || text.length < 3) return
-    bot.sendChatAction(chatId, 'typing')
+  // OWNER MODE — publish channel post
+  bot.onText(/\/post (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    if (chatId.toString() !== String(OWNER_CHAT_ID)) return;
+    const topic = match[1];
+    safeSendMessage(chatId, `📝 Генерирую пост на тему: "${topic}"...`);
     try {
-      const aiResult = await chatWithAI(text, [], { userRole: 'owner', context: 'telegram_owner_chat' })
-      const reply = aiResult?.reply || aiResult?.text || aiResult?.content || aiResult?.message || 'Принято, обрабатываю.'
-      safeSendMessage(chatId, `🤖 <b>OMEGA (Owner Mode)</b>\n\n${reply}`, { parse_mode: 'HTML' })
-    } catch (e) {
-      safeSendMessage(chatId, '⚠️ OMEGA временно недоступна. Попробуйте позже.', { parse_mode: 'HTML' })
+      const { generateChannelPost, publishToChannel } = await import('./telegramChannelManager.js');
+      const post = await generateChannelPost(topic);
+      const result = await publishToChannel(post, { pin: false });
+      if (result.success) {
+        safeSendMessage(chatId, `✅ Опубликовано!\n\n<b>${post.title}</b>\n${post.text.slice(0, 200)}...`, { parse_mode: 'HTML' });
+      } else {
+        safeSendMessage(chatId, `⚠️ Mock-режим: пост сгенерирован, но канал не настроен.\n\n<b>${post.title}</b>\n${post.text.slice(0, 300)}...`, { parse_mode: 'HTML' });
+      }
+    } catch(e) {
+      safeSendMessage(chatId, '❌ Ошибка: ' + e.message);
     }
-  })
+  });
+
+  // OWNER MODE — свободный текст + auto-reply
+  bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text || '';
+    if (text.startsWith('/')) return;
+    const isOwner = chatId.toString() === String(OWNER_CHAT_ID);
+    if (!isOwner) {
+      safeSendMessage(chatId, '👋 Привет! Я бот AI Viral Studio. Свяжитесь с владельцем через сайт: aiviral-studio.ru');
+      return;
+    }
+    try {
+      const context = await queryMesh(`telegram owner:${chatId}`, 10, 0.6);
+      const prompt = `Owner sent via Telegram: "${text}". Context: ${context.map(c => c.content).join('; ').slice(0, 500)}. Reply as OMEGA — concise, helpful, in Russian. If it's a task, confirm and suggest next step.`;
+      const aiResult = await chatWithAI(prompt, [], 'ru', { maxTokens: 800, temperature: 0.7 });
+      const reply = aiResult?.reply || aiResult?.text || aiResult?.content || aiResult?.message || 'Принято, работаю над этим.';
+      safeSendMessage(chatId, `🤖 OMEGA:\n${reply}`, { parse_mode: 'HTML' });
+      await createNode({ type: 'telegram', content: `Owner Telegram: ${text} | OMEGA: ${reply}`, confidence: 0.9, source: 'telegram_bot', metadata: { chatId, ownerMessage: text, omegaReply: reply, type: 'telegram_dialog' } });
+    } catch(e) {
+      safeSendMessage(chatId, '⚠️ OMEGA временно недоступна. Попробуйте позже или напишите на сайте.');
+    }
+  });
 
   bot.on('callback_query', async (q) => {
     const chatId = q.message.chat.id

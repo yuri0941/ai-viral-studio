@@ -27,6 +27,11 @@ const ownerSettingsSchema = new mongoose.Schema({
         frequency: { type: String, enum: ['daily', 'weekly'], default: 'daily' },
         channels: [{ type: String, enum: ['in-app', 'telegram', 'email'], default: 'in-app' }],
     },
+    telegramSettings: {
+        channelId: { type: String, default: '' },
+        botToken: { type: String, default: '', select: false },
+        autoReply: { type: Boolean, default: true },
+    },
     lastReport: {
         date: Date,
         mrr: Number,

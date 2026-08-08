@@ -3272,3 +3272,19 @@
 - [x] `npm run build` — 0 errors
 - [x] Git commit/push: выполнен
 - [ ] Render deploy: требует ручного Clear Build Cache & Deploy
+
+## 2026-08-08 — v9.5-TELEGRAM-AUTO: Channel Manager, Auto-Reply, Auto-Improve, Weekly Content Plan, Bot Command Center, safeSendMessage fix
+- [x] `backend/services/telegramChannelManager.js` — generateChannelPost, publishToChannel, getChannelStats, generateWeeklyContentPlan
+- [x] `backend/services/ownerBot.js` — safeSendMessage v2 (data.result), owner auto-reply с createNode/queryMesh, /improve JSON, /post channel publish
+- [x] `backend/services/omegaBot.js` — safeSendMessage v2 (data.result)
+- [x] `backend/routes/telegram.js` — POST /channel/post, GET /channel/stats, POST /channel/plan, POST /channel/publish-plan
+- [x] `backend/server.js` — подключён `telegramRoutes` по `/api/telegram`
+- [x] `backend/models/OwnerSettings.js` + `ownerSettingsController.js` — сохранение `telegramSettings`
+- [x] `frontend/src/pages/owner/components/tabs/TelegramTab.jsx` — быстрый пост, план на неделю, статистика, настройки, управление ботом, история
+- [x] `frontend/src/pages/owner/OwnerDashboardPage.jsx` — вкладка `telegram`, TAB_ICONS Send
+- [x] `frontend/src/components/layout/AppSidebar.jsx` — пункт 📱 Telegram для owner и admin
+- [x] `frontend/src/locales/ru.json` + `en.json` — ключи `telegram.*`
+- [x] `frontend/src/components/omega/OmegaChat.jsx` — 403 guard для /api/admin/external-keys уже реализован
+- [x] `node --check backend/server.js` OK
+- [x] `npm run build` — 0 errors
+- [ ] Render deploy: требует ручного Clear Build Cache & Deploy

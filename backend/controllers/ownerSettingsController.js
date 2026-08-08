@@ -14,6 +14,7 @@ export async function getOwnerSettings(req, res) {
                 features: { autopilot: false, predictive: false, repurposing: false, voice: false },
                 autopilot: { schedule: '*/30 * * * *', platforms: [] },
                 voice: { elevenLabsApiKey: '', elevenLabsVoiceId: '' },
+                telegramSettings: { channelId: '', botToken: '', autoReply: true },
             }
         }
         res.json({ status: 'ok', data: settings })
@@ -29,11 +30,12 @@ export async function updateOwnerSettings(req, res) {
         if (!ownerId) {
             return res.status(401).json({ status: 'error', message: 'Unauthorized' })
         }
-        const { features, autopilot, voice } = req.body
+        const { features, autopilot, voice, telegramSettings } = req.body
         const update = {}
         if (features) update.features = features
         if (autopilot) update.autopilot = autopilot
         if (voice) update.voice = voice
+        if (telegramSettings) update.telegramSettings = telegramSettings
 
         const settings = await OwnerSettings.findOneAndUpdate(
             { ownerId },

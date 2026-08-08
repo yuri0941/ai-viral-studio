@@ -29,7 +29,7 @@ function safeSendMessage(chatId, data, options = {}) {
   if (typeof data === 'string') {
     text = data
   } else if (data && typeof data === 'object') {
-    text = data.text || data.message || data.content || data.response || data.reply || JSON.stringify(data, null, 2)
+    text = data.text || data.message || data.content || data.response || data.reply || data.result || JSON.stringify(data, null, 2)
   } else {
     text = String(data)
   }

@@ -10,7 +10,7 @@ import {
     Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
     Palette, LayoutTemplate, Flame, Cpu, Swords, Zap, Sparkles,
-    Clapperboard, Factory, Telescope, Landmark,
+    Clapperboard, Factory, Telescope, Landmark, Send,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
@@ -35,6 +35,7 @@ const ROLE_MENU = {
         { path: '/ai-vs-human', label: 'AI vs Human', icon: Swords },
         { path: '/viral-chat', label: 'Viral Chat', icon: Zap },
         { path: '/scheduler', label: 'Планировщик', icon: Calendar },
+        { path: '/owner?tab=telegram', label: '📱 Telegram', icon: Send },
         { path: '/settings', label: 'Settings', icon: Settings },
     ],
     staff: [
@@ -149,6 +150,7 @@ const OWNER_GROUPS = [
             { id: 'contentAnalysis', label: '🔍 Анализ контента', icon: Search },
             { id: 'neuroSales', label: '🧠 Neuro-Sales', icon: Brain, path: '/neuro-sales' },
             { id: 'scout', label: '🔥 Scout', icon: Flame },
+            { id: 'telegram', label: '📱 Telegram', icon: Send },
         ],
     },
     {
