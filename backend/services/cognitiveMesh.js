@@ -96,3 +96,39 @@ export async function pruneMesh(olderThanDays = 90, minAccessCount = 1) {
 
   return { archived: oldNodes.length };
 }
+
+export async function addNode({ type, label, data = {}, edges = [], content, confidence = 0.8, source = 'omega', metadata = {}, accessLevel }) {
+  const Node = model('CognitiveNode');
+  const nodeContent = content || label || `[${type}] ${new Date().toISOString()}`;
+  const nodeMetadata = { ...data, ...metadata, accessLevel };
+  const connections = (edges || []).map(e => ({
+    to: e.to,
+    weight: e.weight || 0.5,
+    relation: e.relation || 'related',
+    createdAt: new Date()
+  }));
+  const node = await Node.create({
+    type,
+    content: nodeContent,
+    confidence,
+    source,
+    metadata: nodeMetadata,
+    connections,
+    accessCount: 0,
+    lastAccessed: new Date(),
+    createdAt: new Date()
+  });
+  return node;
+}
+
+export async function findNodes({ type, label, limit = 10 }) {
+  try {
+    const Node = model('CognitiveNode');
+    const query = {};
+    if (type) query.type = type;
+    if (label) query.content = label;
+    return await Node.find(query).sort({ createdAt: -1 }).limit(limit).lean();
+  } catch (e) {
+    return [];
+  }
+}

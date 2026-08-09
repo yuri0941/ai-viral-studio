@@ -5,6 +5,8 @@ import { queryMesh, getRelated, pruneMesh } from '../services/cognitiveMesh.js';
 import { storeMemory, recallMemory, compressAndArchive } from '../services/infiniteMemory.js';
 import { evaluateMigration, autoScaleDecision, scanServerPrices } from '../services/autoScaler.js';
 import { getBalance, getTransactionHistory } from '../services/cryptoWallet.js';
+import { detectIntent } from '../ai/omega/intentEngine.js';
+import { getSkillStatus } from '../ai/omega/learningEngine.js';
 
 const router = Router();
 
@@ -63,6 +65,15 @@ router.get('/wallet/balance', protect, requireRole('owner','admin'), async (req,
 
 router.get('/wallet/history', protect, requireRole('owner','admin'), async (req, res) => {
   res.json(getTransactionHistory());
+});
+
+// [v9.9.13-OMEGA-SUPREME] Intent + Skill API
+router.get('/intent', protect, (req, res) => {
+  res.json(detectIntent(req.query.q || ''));
+});
+
+router.get('/skills/:action', protect, async (req, res) => {
+  res.json(await getSkillStatus(req.params.action));
 });
 
 export default router;

@@ -10,6 +10,9 @@ import SupportTicket from '../models/SupportTicket.js'
 import ChannelConfig from '../models/ChannelConfig.js'
 import AdOrder from '../models/AdOrder.js'
 import { getAdPricing, updateAdPricing } from './adPricingService.js'
+import { detectIntent } from '../ai/omega/intentEngine.js'
+import { executeAction } from '../ai/omega/actionEngine.js'
+import { recordOutcome } from '../ai/omega/learningEngine.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -28,7 +31,8 @@ async function getOwnerMongoId() {
 }
 
 // [v9.9.5-TELEGRAM-UNIFIED] owner manual post state
-let ownerPostState = null
+const ownerPostState = () => global.ownerPostState || null
+global.ownerPostState = global.ownerPostState || null
 
 // [v9.6.1-OMEGA-FIX] Anti-spam cooldown per alert type
 const ALERT_COOLDOWN = new Map()
@@ -431,11 +435,11 @@ export const initOwnerBot = () => {
     }
 
     // [v9.9.5-TELEGRAM-UNIFIED] owner manual channel post
-    if (String(ownerPostState) === String(chatId)) {
+    if (String(global.ownerPostState) === String(chatId)) {
       const omegaBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
       await omegaBot.sendMessage(process.env.TELEGRAM_CHANNEL, text, { parse_mode: 'HTML' });
       safeSendMessage(chatId, '✅ Опубликовано в @aiviralstudio');
-      ownerPostState = null;
+      global.ownerPostState = null;
       return;
     }
 
@@ -450,31 +454,20 @@ export const initOwnerBot = () => {
       return;
     }
 
-    // Owner → smart reply with context
+    // Owner → Action-Oriented Intent Engine
+    const intent = detectIntent(text);
+    if (intent.action !== 'chat') {
+      const result = await executeAction({ intent, text, chatId, userRole: 'owner', bot });
+      await recordOutcome({ userId: chatId, intent: intent.intent, action: intent.action, success: result.success, error: result.error, metadata: result });
+      return;
+    }
+
+    // Owner → AI chat fallback (no menu, no greeting spam)
     try {
-      const cleanProjects = (context.activeProjects || []).join('; ').slice(0, 200)
-      const cleanDecisions = (context.recentDecisions || []).join('; ').slice(0, 200)
-      const ownerPrompt = `Ты — OMEGA, личный AI-ассистент владельца AI Viral Studio (Юрий).\nТы НЕ объясняешь базовые возможности платформы — владелец их знает.\nТы НЕ даёшь нумерованные списки "1. 2. 3." — отвечай коротко, по делу, в свободной форме.\nКонтекст: активные проекты (${cleanProjects}), недавние решения (${cleanDecisions}).\nЕсли владелец пишет "Привет" — отвечай приветствием + краткий статус + предложи следующий шаг.\nЕсли владелец кидает ссылку — проанализируй её кратко.\nЕсли владелец просит отчёт — дай сводку по системе.\nЕсли владелец пишет задачу — подтверди и предложи ОДИН следующий шаг.\nФормат: HTML-теги (<b>жирный</b>, <i>курсив</i>), без markdown **.\nМаксимум 400 символов + кнопки.\nЯзык: Russian.\nСообщение владельца: "${text}"`;
-      const aiResult = await chatWithAI(ownerPrompt, [], 'ru', { maxTokens: 600, temperature: 0.6 });
-      let reply = aiResult?.reply || aiResult?.text || 'Принято, работаю.';
-      reply = reply.replace(/\*\*/g, '').replace(/^\s*\d+\.[\s\S]/g, '')
-
-      const isGreeting = /^(привет|здравствуй|хай|hi|hello|hey)/i.test(text);
-      const rows = await buildMenuRows(ownerId);
-      if (isGreeting && reply.length < 500) {
-        const proactive = await getProactiveSuggestion(context);
-        sendLuxuryMessage(chatId, 'OMEGA', `${reply}\n\n💡 <b>Следующий шаг:</b> ${proactive}`, rows.length ? rows : [
-          [{ text: '🎬 Контент', callback_data: 'quick:content' }, { text: '📊 Аналитика', callback_data: 'quick:analytics' }],
-          [{ text: '🏭 Factory', callback_data: 'quick:factory' }, { text: '🔮 Прогнозы', callback_data: 'quick:prediction' }],
-          [{ text: '📋 Отчёт', callback_data: 'quick:report' }, { text: '⚡ Ещё', callback_data: 'quick:more' }]
-        ]);
-      } else {
-        sendLuxuryMessage(chatId, 'OMEGA', reply, rows.length ? rows : [
-          [{ text: '🎬 Контент', callback_data: 'quick:content' }, { text: '📊 Аналитика', callback_data: 'quick:analytics' }],
-          [{ text: '⚡ Ещё', callback_data: 'quick:more' }]
-        ]);
-      }
-
+      const ownerPrompt = `Ты — OMEGA, личный AI-ассистент владельца AI Viral Studio. Отвечай кратко, по делу, без лишних приветствий и без меню.\nСообщение: "${text}"`;
+      const aiResult = await chatWithAI(ownerPrompt, [], 'ru', { maxTokens: 400, temperature: 0.6 });
+      const reply = (aiResult?.reply || aiResult?.text || 'Принято, работаю.').replace(/\*\*/g, '');
+      safeSendMessage(chatId, `🤖 <b>OMEGA</b>\n\n${reply}`);
       await createNode({ type: 'telegram', content: `Owner: ${text} | OMEGA: ${reply}`, confidence: 0.9, source: 'telegram_bot', metadata: { chatId, text, reply, type: 'telegram_dialog' } });
     } catch (e) {
       bot.sendMessage(chatId, '⚠️ <b>OMEGA</b> временно недоступна.\nПопробуйте позже.', { parse_mode: 'HTML' });
@@ -543,7 +536,7 @@ export const initOwnerBot = () => {
     }
     if (data === 'owner:post') {
       safeSendMessage(chatId, '📢 <b>Публикация</b>\n━━━━━━━━━━━━━━\nНапишите текст поста ответным сообщением.\nOMEGA опубликует в @aiviralstudio.');
-      ownerPostState = chatId;
+      global.ownerPostState = chatId;
       return;
     }
     if (data === 'owner:toggle') {
@@ -551,21 +544,21 @@ export const initOwnerBot = () => {
       return;
     }
 
-    // Owner luxury menu callbacks (v9.9.11)
+    // Owner luxury menu callbacks (v9.9.13)
     if (data === 'owner:content' || data === 'action:content' || data === 'quick:content') {
-      safeSendMessage(chatId, `🎬 <b>Контент</b>\n━━━━━━━━━━━━━━\nСоздай пост:\n/post тема поста\n\nИли открой Dashboard → Контент.`);
+      bot.emit('message', { chat: { id: chatId }, text: '/post', from: { id: chatId } });
       return;
     }
     if (data === 'owner:analytics' || data === 'action:analytics' || data === 'quick:analytics') {
-      safeSendMessage(chatId, `📊 <b>Аналитика</b>\n━━━━━━━━━━━━━━\n/report — отчёт за сегодня\n/status — статус системы\n\nDashboard: https://aiviral-studio.ru/owner?tab=analytics`);
+      bot.emit('message', { chat: { id: chatId }, text: '/report', from: { id: chatId } });
       return;
     }
     if (data === 'owner:factory' || data === 'action:factory') {
-      safeSendMessage(chatId, `🏭 <b>Factory</b>\n━━━━━━━━━━━━━━\n/improve — оптимизировать OMEGA\n\nDashboard: https://aiviral-studio.ru/owner?tab=factory`);
+      bot.emit('message', { chat: { id: chatId }, text: '/improve', from: { id: chatId } });
       return;
     }
     if (data === 'owner:predictions' || data === 'action:prediction' || data === 'quick:prediction') {
-      safeSendMessage(chatId, `🔮 <b>Прогнозы</b>\n━━━━━━━━━━━━━━\nDashboard → Прогнозы: https://aiviral-studio.ru/owner?tab=prediction`);
+      safeSendMessage(chatId, `🔮 <b>Прогнозы</b>\nDashboard: https://aiviral-studio.ru/owner?tab=prediction`);
       return;
     }
     if (data === 'owner:report' || data === 'quick:report') {
@@ -573,7 +566,7 @@ export const initOwnerBot = () => {
       return;
     }
     if (data === 'owner:more' || data === 'quick:more' || data === 'action:command') {
-      safeSendMessage(chatId, `⚡ <b>Быстрые команды</b>\n━━━━━━━━━━━━━━\n/status — статус\n/improve — улучшить\n/post [тема] — пост\n/report — отчёт\n/menu — меню\n/help — помощь`);
+      safeSendMessage(chatId, `⚡ <b>Команды</b>\n/status — статус\n/improve — улучшить\n/post [тема] — пост\n/report — отчёт\n/menu — меню`);
       return;
     }
 

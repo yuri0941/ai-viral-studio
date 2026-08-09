@@ -1,3 +1,18 @@
+## 2026-08-09 — v9.9.13-OMEGA-SUPREME
+- [FIX] i18n: добавлены ключи telegram.* в ru.json/en.json, TelegramTab.jsx читаемый
+- [FIX] ownerBot.js: убраны дубли приветствий и меню при свободном тексте
+- [FEATURE] Intent Engine: OMEGA понимает команды из свободного текста (пост, статус, отчёт, тикет, обучение)
+- [FEATURE] Action Engine: OMEGA ВЫПОЛНЯЕТ команды, а не болтает (публикует, показывает статус, создаёт тикет)
+- [FEATURE] Learning Engine: OMEGA записывает успехи/ошибки в Cognitive Mesh (skill nodes, error lessons)
+- [FEATURE] /post [тема] — реально публикует пост в @aiviralstudio
+- [FEATURE] /status — показывает реальный статус MongoDB, uptime, RAM
+- [FEATURE] /improve — запускает selfReflection.analyzeDailyPerformance()
+- [FEATURE] /report — запускает performanceMonitor.generateOptimizationReport()
+- [FIX] ownerBot callback кнопки: Контент, Аналитика, Factory, Отчёт — эмитируют команды
+- [FIX] omegaBot: клиенты могут создавать тикеты и запрашивать посты из свободного текста
+- [FIX] Убрано дублирование меню при свободном тексте
+- [DEPLOY] Git push + Render Clear Build Cache & Deploy
+
 ## 2026-08-09 — v9.9.11-TELEGRAM-COMMANDS
 - [FIX] i18n: добавлены ключи telegram.* в ru.json/en.json, TelegramTab.jsx читаемый
 - [FEATURE] /post [тема] — реально публикует пост в @aiviralstudio через telegramChannelManager

@@ -1,6 +1,9 @@
 import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
 import { detectIntent, detectClientTone, saveDialogue, findSimilarSuccess, updateDialogueOutcome } from './dialogueLearningService.js';
+import { detectIntent as detectActionIntent } from '../ai/omega/intentEngine.js';
+import { executeAction } from '../ai/omega/actionEngine.js';
+import { recordOutcome } from '../ai/omega/learningEngine.js';
 
 // Контекстная память диалогов клиентов (последние 10 сообщений)
 global.clientDialogues = global.clientDialogues || {};
@@ -350,6 +353,14 @@ export const initOmegaBot = () => {
       bot.sendMessage(chatId, `🎬 <b>Сценарий готов!</b>\n━━━━━━━━━━━━━━\nХук: "Как ${msg.text} за 24 часа?"\n\n👇 Создать видео в приложении:\nhttps://aiviral-studio.ru/video-creator`, { parse_mode: 'HTML' })
       videoState.delete(chatId)
       return
+    }
+
+    // Intent detection for clients
+    const intent = detectActionIntent(text);
+    if (['post', 'ticket', 'image', 'video', 'status', 'report'].includes(intent.action)) {
+      const result = await executeAction({ intent, text, chatId, userRole: 'client', bot });
+      await recordOutcome({ userId: chatId, intent: intent.intent, action: intent.action, success: result.success, error: result.error, metadata: result });
+      return;
     }
 
     if (!owner) {
