@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { API_URL } from '../config'
 import AIVideoCreator from '../components/video/AIVideoCreator.jsx'
+import SupportTab from './creator/components/SupportTab.jsx'
 import {
     LayoutDashboard, Video, Eye, Users, Heart, DollarSign,
     Plus, Calendar, BarChart as BarChartIcon, Bot, TrendingUp, Clock,
@@ -531,6 +532,11 @@ function CreatorDashboardPage() {
                         <p className="text-xs text-[var(--success)]">{t('creator.monetizationTip')}</p>
                     </div>
                 </div>
+            </div>
+
+            {/* Support */}
+            <div className="mt-6">
+                <SupportTab />
             </div>
 
             {/* Activity + AI Tips */}

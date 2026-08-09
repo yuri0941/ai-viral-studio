@@ -1,12 +1,17 @@
-## 2026-08-09 — v9.9.18-FULL-RESTORE (partial — in progress)
+## 2026-08-09 — v9.9.18-FULL-RESTORE (финализация)
 - [FIX] Neural Graph: восстановлен force-directed graph с кластеризацией, drag/zoom/pan, фильтрами, поиском, инфо-панелью
 - [RESTORE] Role System: ROLE_INSTRUCTIONS и ACCESS_MATRIX восстановлены для owner/admin/staff/advertiser/creator/business/client
 - [RESTORE] Privacy Firewall: упрощённая ролевая защита + backward-compatible scan()
 - [RESTORE] Owner Bot: /factory (Project Factory), /stop (Emergency Stop), owner-контекст в свободном тексте, deleteWebhook перед setWebhook
+- [RESTORE] Client Bot: Churn Guard (OMEGACHURN30), Sales Script Engine (CTA), Auto-Escalation при confidence ≤0.6, Context Memory (10 сообщений), webhook cleanup
+- [RESTORE] SupportService: priority detection, source badge, getTicketContext, escalateToOwner, owner alerts
+- [RESTORE] SupportTab (creator): форма тикета, история, кнопка Telegram, адаптивный дизайн
+- [RESTORE] TicketsTab (owner): source badge, priority, status, "Присоединиться к диалогу", full context panel, inline reply, Resolve/In Progress/Escalate/Alert
 - [FEATURE] Project Factory backend: /api/omega/project/generate, /api/omega/project/export, ZIP-архив, 3 варианта
-- [i18n] Добавлены neuralGraph.stats, neuralGraph.search
+- [i18n] Ключи support.*, tickets.*, neuralGraph.stats/search в ru/en.json
 - [BUILD] node --check OK, npm run build OK
-- [STATUS] 🔄 Промежуточный коммит — продолжение в следующем шаге
+- [GIT] Commit: v9.9.18-FINAL: client bot, support, tickets
+- [DEPLOY] Push origin main — готов к Render Clear Build Cache & Deploy
 
 ## 2026-08-09 — v9.9.17-ANTI-FAIL
 - [FIX] Telegram Bots: webhook/polling без конфликтов, авто-fallback на polling если webhook упал

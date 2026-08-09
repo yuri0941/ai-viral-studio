@@ -97,6 +97,8 @@ export const initOmegaBot = () => {
   global.omegaBot = bot
   console.log('[OMEGA-BOT] Created, preparing webhook')
 
+  bot.deleteWebhook({ drop_pending_updates: true }).catch(() => {})
+
   updateBotMenu()
 
   bot.onText(/\/start/, async (msg) => {
@@ -174,6 +176,10 @@ export const initOmegaBot = () => {
     // Определяем intent и тон
     const intent = detectIntent(text);
     const clientTone = detectClientTone(text);
+    const actionIntent = detectActionIntent(text);
+
+    // Auto-Escalation: confidence <0.6 или явно support/churn/pricing
+    const needsEscalationByConfidence = actionIntent && actionIntent.confidence <= 0.6 && actionIntent.intent === 'UNKNOWN_ACTION';
 
     // Churn Guard — агрессивная защита от оттока
     const CHURN_PATTERNS = /удалить аккаунт|отменить подписку|отписаться|не нужен|перестать|возврат денег|удалить профиль/i;
@@ -248,7 +254,7 @@ export const initOmegaBot = () => {
       const lowerReply = reply.toLowerCase();
       const lowerText = text.toLowerCase();
       const keyboard = [];
-      let needsEscalation = reply.includes('ESCALATE');
+      let needsEscalation = reply.includes('ESCALATE') || needsEscalationByConfidence;
 
       if (lowerText.includes('реклам') || lowerReply.includes('реклам') || lowerText.includes('разместить')) {
         keyboard.push([{ text: '🛒 Заказать рекламу', callback_data: 'ad:start' }]);

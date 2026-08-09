@@ -73,6 +73,7 @@ import { SandboxPanel } from './components/tabs/SandboxPanel'
 import { SelfOptimizeTab } from './components/tabs/SelfOptimizeTab'
 import TelegramTab from './components/tabs/TelegramTab'
 import { SupportTab } from './components/tabs/SupportTab'
+import TicketsTab from './components/tabs/TicketsTab.jsx'
 import { ChannelManagerTab } from './components/tabs/ChannelManagerTab'
 import { AdOrdersTab } from './components/tabs/AdOrdersTab'
 import SalesMetricsTab from './components/tabs/SalesMetricsTab.jsx'
@@ -421,7 +422,7 @@ export default function OwnerDashboardPage() {
             case 'prediction': return <PredictionDashboard />
             case 'investment': return <InvestmentPanel />
             case 'telegram': return <TelegramTab data={ownerData} />
-            case 'support': return <SupportTab data={ownerData} />
+            case 'support': return <TicketsTab />
             case 'channelManager': return <ChannelManagerTab data={ownerData} />
             case 'adOrders': return <AdOrdersTab data={ownerData} />
             case 'salesMetrics': return <SalesMetricsTab />

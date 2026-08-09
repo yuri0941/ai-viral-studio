@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { protect, requireRole } from '../middleware/auth.js'
-import { createTicket, addMessage, updateTicketStatus } from '../services/supportService.js'
+import { createTicket, addMessage, updateTicketStatus, getTicketContext, escalateToOwner } from '../services/supportService.js'
 
 const router = Router()
 
@@ -75,6 +75,28 @@ router.post('/:id/messages', protect, async (req, res) => {
     res.json({ status: 'success', data: ticket })
   } catch (err) {
     console.error('[support] add message failed:', err.message)
+    res.status(500).json({ status: 'error', message: err.message })
+  }
+})
+
+router.get('/:id/context', protect, requireRole('owner', 'admin', 'staff'), async (req, res) => {
+  try {
+    const context = await getTicketContext(req.params.id)
+    if (!context) return res.status(404).json({ status: 'error', message: 'Ticket not found' })
+    res.json({ status: 'success', data: context })
+  } catch (err) {
+    console.error('[support] context failed:', err.message)
+    res.status(500).json({ status: 'error', message: err.message })
+  }
+})
+
+router.post('/:id/escalate', protect, requireRole('owner', 'admin', 'staff'), async (req, res) => {
+  try {
+    const ticket = await escalateToOwner(req.params.id, req.body.reason)
+    if (!ticket) return res.status(404).json({ status: 'error', message: 'Ticket not found' })
+    res.json({ status: 'success', data: ticket })
+  } catch (err) {
+    console.error('[support] escalate failed:', err.message)
     res.status(500).json({ status: 'error', message: err.message })
   }
 })
