@@ -3545,3 +3545,15 @@
 - [DEPLOY] ✅ Render live (https://aiviral-backend.onrender.com/api/health)
 - [GIT] Commit: v9.9.18-FINALIZE: client bot, support, tickets, morning reports, youtube, antifail, memory, swarm, i18n
 - [STATUS] 🟢 v9.9.18 ПОЛНОСТЬЮ ГОТОВ. Переходим к v9.9.19.
+
+## 2026-08-10 — v9.9.19-VK-TELEGRAM-VERIFY + HOTFIXES
+- [CREATE] VK OAuth routes: `/api/vk/auth-url`, `/api/vk/callback`, `/api/vk/status`
+- [CREATE] Telegram status route: `/api/telegram/status`
+- [CREATE] UI buttons: `VKConnectButton.jsx`, `TelegramConnectButton.jsx`
+- [HOTFIX] VK env variable: `VK_SECURE_KEY` → `VK_APP_SECRET` (совпадает с Render env)
+- [HOTFIX] VK error guards: 500 ответ вместо crash при отсутствии env
+- [i18n] `common.connected`, `settings.connectVK`, `settings.connectTelegram`
+- [BUILD] node --check OK, npm run build OK
+- [GIT] Commits: v9.9.19-VK-TELEGRAM-VERIFY, HOTFIX: connect vk and telegram routes, HOTFIX: vk env variable name fix
+- [DEPLOY] Telegram endpoint live on Render; VK endpoint requires Clear Build Cache & Deploy to activate
+- [STATUS] 🟡 Роуты готовы. Нужно: Clear Build Cache → Deploy → проверить VK/Telegram.
