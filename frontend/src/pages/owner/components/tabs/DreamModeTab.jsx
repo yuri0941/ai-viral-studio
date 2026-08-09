@@ -51,8 +51,20 @@ export default function DreamModeTab({ data }) {
   const [morningBriefingEnabled, setMorningBriefingEnabled] = useState(false);
   const [lastReport, setLastReport] = useState({ tasks: DEFAULT_REPORT_TASKS, timestamp: null });
   const [briefing, setBriefing] = useState(null);
+  const [dreamStatus, setDreamStatus] = useState(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [loadingBriefing, setLoadingBriefing] = useState(false);
+
+  useEffect(() => {
+    request('/omega-supreme/dream/status')
+      .then(d => {
+        setDreamStatus(d);
+        if (d.lastBriefing) {
+          setBriefing({ summary: d.lastBriefing.summary, date: d.lastBriefing.date });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const runNightShift = useCallback(async () => {
     setLoadingReport(true);
@@ -198,22 +210,29 @@ export default function DreamModeTab({ data }) {
 
       <Card title={t('dream.weeklyIdeas')} icon={Lightbulb}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {WEEKLY_IDEAS.map((idea, i) => (
-            <div key={i} className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-col justify-between">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400 flex-shrink-0">
-                  <Lightbulb size={16} />
+          {(dreamStatus?.ideas?.length ? dreamStatus.ideas : WEEKLY_IDEAS).map((idea, i) => {
+            const text = idea.text || idea;
+            const time = idea.time || null;
+            return (
+              <div key={i} className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-col justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400 flex-shrink-0">
+                    <Lightbulb size={16} />
+                  </div>
+                  <div className="flex-1">
+                    {time && <div className="text-[10px] text-white/40 mb-1">{time}</div>}
+                    <p className="text-sm text-white">{text}</p>
+                  </div>
                 </div>
-                <p className="text-sm text-white">{idea}</p>
+                <button
+                  onClick={() => navigate('/project-factory')}
+                  className="mt-3 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-violet-600 text-white text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                >
+                  {t('dream.createProject')} <ArrowRight size={12} />
+                </button>
               </div>
-              <button
-                onClick={() => navigate('/project-factory')}
-                className="mt-3 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-violet-600 text-white text-xs font-medium flex items-center justify-center gap-1 transition-colors"
-              >
-                {t('dream.createProject')} <ArrowRight size={12} />
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 

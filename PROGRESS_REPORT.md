@@ -1,3 +1,14 @@
+## 2026-08-09 — v9.9.15-REAL (Без заглушек)
+- [FEATURE] ApiKeysTab: владелец вставляет ключи в кабинете → они сохраняются в MongoDB → OMEGA сразу использует (без перезапуска)
+- [FEATURE] DevStudio: реальная генерация кода через AI (Groq/OpenRouter) с preview, approval, сохранение в базу
+- [FEATURE] Dream Mode: реальные данные из backend (идеи, брифинги из БД), не заглушка
+- [FEATURE] Neural Graph: реальные узлы из Cognitive Mesh (50 узлов с координатами), не mock
+- [FEATURE] Voice v2: ElevenLabs API (если ключ в ApiKeysTab) + Web Speech fallback
+- [FEATURE] Auto-Improvement: реальный анализ CTR + авто-архив шаблонов с CTR < 2%
+- [CRITICAL] Всё остальное из v9.9.15-FINAL: Personalization, Smart Support, Owner Join, Alerts, Beta 50, Role Menu, Free Stack
+- [DEPLOY] Git push + Render Clear Build Cache & Deploy
+- [STATUS] 🚀 ГОТОВ К ПЕРВЫМ КЛИЕНТАМ — полноценный продукт без заглушек
+
 ## 2026-08-09 — v9.9.14-OMEGA-AUTONOMY
 - [FIX] Rate Limiter: max увеличен до 10000, 429 устранён
 - [FIX] Health endpoint + self-ping keep-alive: сервер не спит

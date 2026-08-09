@@ -1,5 +1,32 @@
 import { queryMesh, createNode } from './cognitiveMesh.js';
 import { chatWithAI } from './aiService.js';
+import { OmegaMemory } from '../models/index.js';
+
+export async function getDreamStatus() {
+  try {
+    const memory = await OmegaMemory.findOne({ ownerId: { $exists: true } }).sort({ updatedAt: -1 }).lean();
+    let ideas = [];
+    if (memory?.entries) {
+      const dreamEntries = memory.entries.filter(e => e.content?.type === 'dream_ideas').slice(-3);
+      dreamEntries.forEach(e => {
+        if (Array.isArray(e.content.ideas)) {
+          ideas.push(...e.content.ideas.map(i => ({
+            time: new Date(e.content.date || e.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+            text: i.title || i.hook || String(i)
+          })));
+        }
+      });
+    }
+    return {
+      active: true,
+      lastBriefing: memory?.updatedAt ? { summary: 'OMEGA завершила ночную смену. Идеи для клиентов сгенерированы.', date: memory.updatedAt } : null,
+      ideas: ideas.slice(0, 10)
+    };
+  } catch (e) {
+    console.error('[dreamMode] getDreamStatus failed:', e.message);
+    return { active: false, lastBriefing: null, ideas: [], error: e.message };
+  }
+}
 
 export async function nightShift(ownerId) {
   const report = { timestamp: new Date(), tasks: [] };

@@ -29,14 +29,15 @@ export default function NeuralGraphTab() {
       const r = node.type === 'skill' ? 8 : 5;
       ctx.beginPath();
       ctx.arc(x, y, r * zoom, 0, Math.PI * 2);
-      ctx.fillStyle = node.type === 'skill' ? '#8B5CF6' : node.type === 'error_lesson' ? '#EF4444' : '#06B6D4';
+      ctx.fillStyle = node.type === 'skill' ? '#8B5CF6' : node.type === 'error' ? '#EF4444' : '#06B6D4';
       ctx.fill();
       ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle;
       ctx.fill();
       ctx.shadowBlur = 0;
       if (zoom > 0.8) {
         ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif';
-        ctx.fillText(node.label?.slice(0, 20) || '', x + 10, y + 3);
+        const label = (node.content || node.label || node.type || '').slice(0, 20);
+        ctx.fillText(label, x + 10, y + 3);
       }
     });
   }, [nodes, zoom]);

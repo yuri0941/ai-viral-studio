@@ -6,14 +6,15 @@ export default function OmegaDevStudioTab() {
   const { t } = useTranslation();
   const [spec, setSpec] = useState('');
   const [code, setCode] = useState('');
+  const [codeId, setCodeId] = useState('');
   const [status, setStatus] = useState('idle');
   const [logs, setLogs] = useState([]);
 
   const generateCode = async () => {
     setStatus('generating');
-    setLogs(prev => [...prev, `⏳ OMEGA анализирует спецификацию...`]);
+    setLogs(prev => [...prev, `⏳ OMEGA генерирует код...`]);
     try {
-      const res = await fetch('https://aiviral-backend.onrender.com/api/omega-supreme/devstudio/generate', {
+      const res = await fetch('/api/omega-supreme/devstudio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ spec, language: 'javascript' })
@@ -21,6 +22,7 @@ export default function OmegaDevStudioTab() {
       const data = await res.json();
       if (data.code) {
         setCode(data.code);
+        setCodeId(data.id);
         setStatus('reviewing');
         setLogs(prev => [...prev, `✅ Код сгенерирован (${data.code.length} символов)`]);
       } else {
@@ -33,8 +35,19 @@ export default function OmegaDevStudioTab() {
   };
 
   const approveAndDeploy = async () => {
-    setStatus('deployed');
-    setLogs(prev => [...prev, `🚀 Деплой выполнен. Фича активна.`]);
+    if (!codeId) return;
+    setStatus('deploying');
+    try {
+      await fetch('/api/omega-supreme/devstudio/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ id: codeId })
+      });
+      setLogs(prev => [...prev, `🚀 Код одобрен. Скопируйте его в проект через Kimi VS Code.`]);
+      setStatus('deployed');
+    } catch (e) {
+      setLogs(prev => [...prev, `❌ ${e.message}`]);
+    }
   };
 
   return (
@@ -68,7 +81,7 @@ export default function OmegaDevStudioTab() {
             <button onClick={approveAndDeploy} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white text-sm">
               <Play className="w-4 h-4 inline mr-1" /> Одобрить и применить
             </button>
-            <button onClick={() => { setCode(''); setStatus('idle'); }} className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 rounded-lg text-red-400 text-sm">
+            <button onClick={() => { setCode(''); setCodeId(''); setStatus('idle'); }} className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 rounded-lg text-red-400 text-sm">
               Отклонить
             </button>
           </div>

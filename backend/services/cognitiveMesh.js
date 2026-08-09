@@ -121,13 +121,19 @@ export async function addNode({ type, label, data = {}, edges = [], content, con
   return node;
 }
 
-export async function findNodes({ type, label, limit = 10 }) {
+export async function findNodes({ type, label, limit = 50 }) {
   try {
     const Node = model('CognitiveNode');
     const query = {};
     if (type) query.type = type;
-    if (label) query.content = label;
-    return await Node.find(query).sort({ createdAt: -1 }).limit(limit).lean();
+    if (label) query.content = { $regex: label, $options: 'i' };
+    const nodes = await Node.find(query).sort({ createdAt: -1 }).limit(limit).lean();
+    // [v9.9.15-REAL] assign stable layout coordinates if missing
+    return nodes.map((n, i) => ({
+      ...n,
+      x: n.x || (Math.sin(i * 1.5) * 0.4 + 0.5),
+      y: n.y || (Math.cos(i * 2.3) * 0.4 + 0.5)
+    }));
   } catch (e) {
     return [];
   }

@@ -68,6 +68,7 @@ import voiceRoutes from './routes/voice.js'  // [v8.0-PART1] TTS/STT
 import neuroSalesRoutes from './routes/neuroSales.js'  // [v8.0-PART1] Neuro-Sales
 import externalApiKeysRoutes from './routes/externalApiKeys.js'  // [v8.1-PART1] External API keys manager
 import omegaSupremeRoutes from './routes/omegaSupreme.js'  // [v9.0-ARCH] OMEGA Supreme
+import apiKeyRoutes from './routes/apiKeys.js'  // [v9.9.15-REAL] owner API keys
 import projectFactoryRoutes from './routes/projectFactory.js'  // [v9.2-SELF-CODING] Project Factory: cognitive mesh, swarm, memory, scaler, wallet
 import personalityRoutes from './routes/personality.js'  // [v9.1-PERSONALITY] Digital Twin, Voice Clone, Dream Mode
 import predictionRoutes from './routes/prediction.js'  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
@@ -488,6 +489,7 @@ app.use('/api/admin/sales-metrics', salesMetricsRoutes)  // [v9.9.8-SALES-OMEGA]
 app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
 app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API
+app.use('/api/owner/apikeys', apiKeyRoutes)  // [v9.9.15-REAL] owner-managed API keys
 app.use('/api/owner/omega-finance', omegaFinanceRoutes)  // [v7.1-PART2] OMEGA Finance
 app.use('/api/audit', auditRoutes)  // ← v6.6-HOTFIX-EXPORT: audit CSV export
 app.use('/api/omega', omegaRoutes)  // ← НОВОЕ: OMEGA Core API

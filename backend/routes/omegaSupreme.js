@@ -7,6 +7,10 @@ import { evaluateMigration, autoScaleDecision, scanServerPrices } from '../servi
 import { getBalance, getTransactionHistory } from '../services/cryptoWallet.js';
 import { detectIntent } from '../ai/omega/intentEngine.js';
 import { getSkillStatus } from '../ai/omega/learningEngine.js';
+import { chatWithAI } from '../services/aiService.js';
+import { getDreamStatus } from '../services/dreamMode.js';
+import { generateVoice } from '../services/voiceService.js';
+import { GeneratedCode } from '../models/index.js';
 
 const router = Router();
 
@@ -81,6 +85,50 @@ router.get('/intent', protect, (req, res) => {
 
 router.get('/skills/:action', protect, async (req, res) => {
   res.json(await getSkillStatus(req.params.action));
+});
+
+// [v9.9.15-REAL] Voice TTS via ElevenLabs
+router.post('/voice/speak', protect, async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ error: 'text required' });
+    const result = await generateVoice(text);
+    if (result.fallback) return res.json({ fallback: true, message: 'Используйте Web Speech API в браузере' });
+    res.json({ audio: result.audio, format: result.format });
+  } catch (e) {
+    res.status(500).json({ fallback: true, message: e.message });
+  }
+});
+
+// [v9.9.15-REAL] Dream Mode status + real ideas
+router.get('/dream/status', protect, async (req, res) => {
+  try { res.json(await getDreamStatus()); }
+  catch (e) { res.json({ active: false, lastBriefing: null, ideas: [], error: e.message }); }
+});
+
+// [v9.9.15-REAL] OMEGA DevStudio — real AI code generation
+router.post('/devstudio/generate', protect, async (req, res) => {
+  try {
+    const { spec, language = 'javascript' } = req.body;
+    if (!spec) return res.status(400).json({ error: 'spec is required' });
+    const prompt = `Ты senior full-stack разработчик. Напиши production-ready ${language} код для следующей задачи. Используй современный синтаксис, добавь комментарии, обработку ошибок. НЕ используй placeholder или "TODO" — только рабочий код.\n\nЗадача: ${spec}\n\nНапиши полный ${language} код:`;
+    const ai = await chatWithAI(prompt, [], 'ru', { userId: req.user._id });
+    const code = ai?.reply || ai;
+    const saved = await GeneratedCode.create({ ownerId: req.user._id, spec, code, language, status: 'pending' });
+    res.json({ code, id: saved._id, spec });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/devstudio/approve', protect, async (req, res) => {
+  try {
+    const { id } = req.body;
+    await GeneratedCode.findByIdAndUpdate(id, { status: 'approved' });
+    res.json({ success: true, message: 'Код одобрен. Примените вручную через Kimi VS Code или скопируйте в проект.' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 export default router;
