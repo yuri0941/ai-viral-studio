@@ -1033,7 +1033,9 @@
     "title": "Neural Graph",
     "skills": "Skills",
     "memory": "Memory",
-    "errors": "Errors"
+    "errors": "Errors",
+    "stats": "🧠 Neural Graph: {{nodes}} nodes | {{edges}} edges | {{clusters}} clusters",
+    "search": "Search nodes..."
   },
   "devStudio": {
     "title": "OMEGA DevStudio",

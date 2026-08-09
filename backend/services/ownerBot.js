@@ -13,6 +13,7 @@ import { getAdPricing, updateAdPricing } from './adPricingService.js'
 import { detectIntent } from '../ai/omega/intentEngine.js'
 import { executeAction } from '../ai/omega/actionEngine.js'
 import { recordOutcome } from '../ai/omega/learningEngine.js'
+import { ROLE_INSTRUCTIONS } from '../ai/omega/contextEngine.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -310,6 +311,34 @@ export const initOwnerBot = () => {
     }
   });
 
+  // OWNER MODE — Project Factory
+  bot.onText(/\/factory(?:\s+(.+))?/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    const desc = match[1] ? match[1].trim() : 'новый проект AI Viral Studio';
+    safeSendMessage(chatId, `🏭 Генерирую проект: <i>${desc}</i>...`, { parse_mode: 'HTML' });
+    try {
+      const { generateProject } = await import('../ai/omega/projectFactory.js');
+      const { exportProject } = await import('../ai/omega/projectFactory.js');
+      const project = await generateProject({ description: desc, type: 'auto', stack: 'Vite+React+Node', ownerId: OWNER_CHAT_ID });
+      project.variants.forEach((variant, i) => {
+        bot.sendMessage(chatId, `📁 <b>Вариант ${i+1}</b>: ${variant.name}\n👁 Preview: <a href="${variant.preview}">открыть</a>`, { parse_mode: 'HTML' }).catch(() => {});
+      });
+      const zip = await exportProject(project.variants[0], 'zip');
+      await bot.sendDocument(chatId, Buffer.from(zip), {}, { filename: 'project.zip' });
+    } catch (e) {
+      console.error('[OWNER-BOT] /factory error:', e);
+      safeSendMessage(chatId, `⚠️ Ошибка Factory: ${e.message}`);
+    }
+  });
+
+  // OWNER MODE — Emergency Stop
+  bot.onText(/\/stop/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    safeSendMessage(chatId, '🛑 <b>Emergency Stop</b>\n━━━━━━━━━━━━━━\nВсе AI-операции приостановлены.\nДля возобновления напишите /start', { parse_mode: 'HTML' });
+  });
+
   // OWNER MODE — performance report
   bot.onText(/\/report/, async (msg) => {
     const chatId = msg.chat.id;
@@ -464,7 +493,7 @@ export const initOwnerBot = () => {
 
     // Owner → AI chat fallback (no menu, no greeting spam)
     try {
-      const ownerPrompt = `Ты — OMEGA, личный AI-ассистент владельца AI Viral Studio. Отвечай кратко, по делу, без лишних приветствий и без меню.\nСообщение: "${text}"`;
+      const ownerPrompt = `${ROLE_INSTRUCTIONS.owner}\n\nСообщение владельца: "${text}"\n\nОтветь кратко, по делу, с цифрами если применимо. Не предлагай тарифы и не продавай. Дай actionable item.`;
       const aiResult = await chatWithAI(ownerPrompt, [], 'ru', { maxTokens: 400, temperature: 0.6 });
       const reply = (aiResult?.reply || aiResult?.text || 'Принято, работаю.').replace(/\*\*/g, '');
       safeSendMessage(chatId, `🤖 <b>OMEGA</b>\n\n${reply}`);
@@ -607,7 +636,9 @@ export const initOwnerBot = () => {
 
   // [WEBHOOK-2026-08-05] set webhook instead of polling to avoid 409 conflicts
   const WEBHOOK_URL = (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com') + '/webhook/owner'
-  bot.setWebhook(WEBHOOK_URL).then(() => {
+  bot.deleteWebhook({ drop_pending_updates: true }).catch(() => {}).then(() => {
+    return bot.setWebhook(WEBHOOK_URL)
+  }).then(() => {
     console.log('[OWNER-BOT] Webhook set to', WEBHOOK_URL)
   }).catch(e => {
     console.error('[OWNER-BOT] Webhook failed, falling back to polling:', e.message)

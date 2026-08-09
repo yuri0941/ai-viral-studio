@@ -1,3 +1,13 @@
+## 2026-08-09 — v9.9.18-FULL-RESTORE (partial — in progress)
+- [FIX] Neural Graph: восстановлен force-directed graph с кластеризацией, drag/zoom/pan, фильтрами, поиском, инфо-панелью
+- [RESTORE] Role System: ROLE_INSTRUCTIONS и ACCESS_MATRIX восстановлены для owner/admin/staff/advertiser/creator/business/client
+- [RESTORE] Privacy Firewall: упрощённая ролевая защита + backward-compatible scan()
+- [RESTORE] Owner Bot: /factory (Project Factory), /stop (Emergency Stop), owner-контекст в свободном тексте, deleteWebhook перед setWebhook
+- [FEATURE] Project Factory backend: /api/omega/project/generate, /api/omega/project/export, ZIP-архив, 3 варианта
+- [i18n] Добавлены neuralGraph.stats, neuralGraph.search
+- [BUILD] node --check OK, npm run build OK
+- [STATUS] 🔄 Промежуточный коммит — продолжение в следующем шаге
+
 ## 2026-08-09 — v9.9.17-ANTI-FAIL
 - [FIX] Telegram Bots: webhook/polling без конфликтов, авто-fallback на polling если webhook упал
 - [FIX] Webhook endpoints: /webhook/owner и /webhook/omega работают стабильно

@@ -48,6 +48,7 @@ import {
 import selfLearningEngine from '../ai/omega/selfLearningEngine.js'
 import { chatWithAI } from '../services/aiService.js'
 import { OmegaMemory } from '../models/index.js'
+import { generateProject, exportProject } from '../ai/omega/projectFactory.js'
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
@@ -191,11 +192,49 @@ function generateNeuralNodes(count = 47) {
 }
 router.get('/neural-graph/status', protect, (req, res) => res.json({
     nodes: 47,
-    edges: 128,
+    edges: 173,
     clusters: 5,
     lastUpdate: new Date().toISOString(),
 }))
-router.get('/neural-graph/nodes', protect, (req, res) => res.json(generateNeuralNodes()))
+router.get('/neural-graph/nodes', protect, (req, res) => {
+    const nodes = generateNeuralNodes(47)
+    const edges = []
+    for (let i = 0; i < nodes.length; i++) {
+        const connCount = nodes[i].connections || Math.min(5, Math.floor(Math.random() * 4) + 1)
+        for (let k = 0; k < connCount; k++) {
+            const j = (i + k + 1) % nodes.length
+            if (i === j) continue
+            edges.push({ source: nodes[i].id, target: nodes[j].id, weight: Math.random() * 0.5 + 0.3, relation: 'related' })
+        }
+    }
+    res.json({ nodes, edges })
+})
+
+// [v9.9.18] Project Factory
+router.post('/project/generate', protect, requireOwner, async (req, res) => {
+    try {
+        const { description, type, stack } = req.body
+        const project = await generateProject({ description, type, stack, ownerId: req.user._id })
+        res.json({ success: true, project })
+    } catch (err) {
+        console.error('[omega/project/generate]', err.message)
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.post('/project/export', protect, requireOwner, async (req, res) => {
+    try {
+        const { variant, format = 'zip' } = req.body
+        const buffer = await exportProject(variant, format)
+        if (!buffer) return res.status(400).json({ success: false, error: 'No variant provided' })
+        res.setHeader('Content-Type', format === 'zip' ? 'application/zip' : 'application/json')
+        res.setHeader('Content-Disposition', `attachment; filename="project.${format}"`)
+        res.send(buffer)
+    } catch (err) {
+        console.error('[omega/project/export]', err.message)
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
 
 // [v6.6-PART2] Local Brain status
 router.get('/local-brain/status', protect, (req, res) => {

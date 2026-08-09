@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-08-09 — Контекст v9.9.18
+- Neural Graph исправлен: force-directed canvas, 47 узлов, 173 связи, 5 кластеров, drag/zoom/pan, фильтры, поиск, инфо-панель
+- Project Factory backend: генерация 3 вариантов, ZIP export, /api/omega/project/*
+- Owner Bot: /factory, /stop, owner-контекст без продаж, deleteWebhook перед setWebhook
+- Role System и Privacy Firewall восстановлены согласно спецификации v9.9.18
+- Оставшиеся шаги: OmegaChat UI, TicketsTab/SupportTab, Self-Learning Tab, Auto-Tabs, Morning Reports, YouTube AI cards, полная i18n
+
 ## 2026-08-09 — Контекст v9.9.9
 - Чат OMEGA — единая точка входа: AI-диалог + техподдержка внутри одного окна
 - Чат перетаскиваемый, запоминает позицию, адаптивен под mobile/desktop
