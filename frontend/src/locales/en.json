@@ -1029,6 +1029,12 @@
       "emotional": "Emotional"
     }
   },
+  "neuralGraph": {
+    "title": "Neural Graph",
+    "skills": "Skills",
+    "memory": "Memory",
+    "errors": "Errors"
+  },
   "devStudio": {
     "title": "OMEGA DevStudio",
     "subtitle": "OMEGA writes production-ready code from your spec",
@@ -1052,6 +1058,7 @@
     "regenerate": "Regenerate",
     "createdModules": "Created modules",
     "noModules": "No modules created yet.",
+    "logs": "Logs",
     "status": {
       "draft": "draft",
       "approved": "approved",
@@ -1371,12 +1378,17 @@
     "online": "Online",
     "offline": "Offline",
     "testMessage": "Test message",
+    "testMessageSent": "Test message sent",
     "runImprove": "Run /improve",
     "dialogStats": "Dialog stats",
     "autoReply": "OMEGA auto-reply",
     "history": "Post history",
     "noHistory": "No history",
-    "logs": "Logs"
+    "logs": "Logs",
+    "publishError": "Publish error",
+    "planError": "Plan generation error",
+    "settingsUpdated": "Telegram settings updated",
+    "saveError": "Save error"
   },
   "selfOptimize": {
     "title": "Self-Optimize — OMEGA learns by itself",

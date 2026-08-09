@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v7.0-kill-cache-2026';
+const CACHE_NAME = 'v9.9.14';
 
 self.addEventListener('install', e => self.skipWaiting());
 

@@ -57,6 +57,10 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
+        isTestAccount: {
+            type: Boolean,
+            default: false
+        },
         preferences: {
             type: {
                 language: { type: String, enum: ['ru', 'en'], default: 'ru' },

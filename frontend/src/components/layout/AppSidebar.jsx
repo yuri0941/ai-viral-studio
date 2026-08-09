@@ -104,6 +104,7 @@ const OWNER_GROUPS = [
             { id: 'selfOptimize', label: '🧠 Self-Optimize', icon: Brain },
             { id: 'memory', label: '💾 Память', icon: Database },
             { id: 'devstudio', label: '💻 DevStudio', icon: Code2 },
+            { id: 'dream', label: '🌙 Dream Mode', icon: Moon },
             { id: 'boardroom', label: '🏛 Совет', icon: Users },
             { id: 'aiChat', label: '💬 AI Chat', icon: MessageSquare },
             { id: 'viralChat', label: '⚡ Viral Chat', icon: Zap },

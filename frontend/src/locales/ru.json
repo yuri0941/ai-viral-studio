@@ -1077,6 +1077,12 @@
       "emotional": "Эмоциональная"
     }
   },
+  "neuralGraph": {
+    "title": "Neural Graph",
+    "skills": "Навыки",
+    "memory": "Память",
+    "errors": "Ошибки"
+  },
   "devStudio": {
     "title": "OMEGA DevStudio",
     "subtitle": "OMEGA пишет production-ready код по спецификации",
@@ -1100,6 +1106,7 @@
     "regenerate": "Перегенерировать",
     "createdModules": "Созданные модули",
     "noModules": "Пока нет созданных модулей.",
+    "logs": "Логи",
     "status": {
       "draft": "draft",
       "approved": "approved",
@@ -1419,12 +1426,17 @@
     "online": "Online",
     "offline": "Offline",
     "testMessage": "Тестовое сообщение",
+    "testMessageSent": "Тестовое сообщение отправлено",
     "runImprove": "Запустить /improve",
     "dialogStats": "Статистика диалогов",
     "autoReply": "Авто-ответ OMEGA",
     "history": "История постов",
     "noHistory": "История пуста",
-    "logs": "Логи"
+    "logs": "Логи",
+    "publishError": "Ошибка публикации",
+    "planError": "Ошибка генерации плана",
+    "settingsUpdated": "Настройки Telegram обновлены",
+    "saveError": "Ошибка сохранения"
   },
   "selfOptimize": {
     "title": "Self-Optimize — OMEGA учится сама",

@@ -40,8 +40,8 @@ import { OmegaFinanceTab } from './components/tabs/OmegaFinanceTab'
 import { OmegaSkillsTab } from './components/tabs/OmegaSkillsTab'
 import { OmegaMemoryTab } from './components/tabs/OmegaMemoryTab'
 import { OmegaApprovalQueue } from '../../components/omega/OmegaApprovalQueue.jsx'
-import OmegaBrainViz from '../../components/omega/OmegaBrainViz.jsx'
-import OmegaDevStudio from '../../components/omega/OmegaDevStudio.jsx'
+import NeuralGraphTab from './components/tabs/NeuralGraphTab.jsx'
+import OmegaDevStudioTab from './components/tabs/OmegaDevStudioTab.jsx'
 import OmegaSwarmDashboard from '../../components/omega/OmegaSwarmDashboard.jsx'
 import OmegaAutoFixDashboard from '../../components/omega/OmegaAutoFixDashboard.jsx'
 import OmegaLearningDashboard from '../../components/omega/OmegaLearningDashboard.jsx'
@@ -396,7 +396,7 @@ export default function OwnerDashboardPage() {
             case 'agents': return <AgentsTab data={ownerData} />
             case 'chat': return <ChatTab data={ownerData} />
             case 'omega': return <OMEGACoreTab data={ownerData} />
-            case 'neural': return <OmegaBrainViz data={ownerData} />
+            case 'neural': return <NeuralGraphTab />
             case 'tasks': return <TasksTab data={ownerData} />
             case 'apiKeys': return <ApiKeysTab data={ownerData} />
             case 'externalKeys': return <ExternalApiKeysTab data={ownerData} />
@@ -405,7 +405,7 @@ export default function OwnerDashboardPage() {
             case 'help': return <HelpTab data={ownerData} />
             case 'feedback': return <FeedbackTab data={ownerData} />
             case 'devStudio': return <DevStudioTab data={ownerData} />
-            case 'devstudio': return <OmegaDevStudio />
+            case 'devstudio': return <OmegaDevStudioTab data={ownerData} />
             case 'swarm': return <OmegaSwarmDashboard />
             case 'autofix': return <OmegaAutoFixDashboard />
             case 'autoImprove': return <AutoImprovementTab data={ownerData} />
@@ -415,7 +415,7 @@ export default function OwnerDashboardPage() {
             case 'monitoring': return <MonitoringDashboard />
             case 'resources': return <OmegaResourceManager />
             case 'roadmap': return <OmegaRoadmap />
-            case 'brainviz': return <OmegaBrainViz />
+            case 'brainviz': return <NeuralGraphTab />
             case 'memory': return <OmegaMemoryExplorer />
             case 'boardroom': return <BoardroomCommandCenter />
             case 'prediction': return <PredictionDashboard />

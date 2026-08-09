@@ -1,3 +1,17 @@
+## 2026-08-09 — v9.9.14-OMEGA-AUTONOMY
+- [FIX] Rate Limiter: max увеличен до 10000, 429 устранён
+- [FIX] Health endpoint + self-ping keep-alive: сервер не спит
+- [FIX] i18n: дозаполнены ключи telegram.* в ru.json/en.json
+- [FIX] ownerBot.js: убраны дубли приветствий, callback кнопки эмитируют команды
+- [FIX] omegaBot.js: support:start создаёт тикет, свободный текст не дублирует меню
+- [FEATURE] OmegaDevStudioTab.jsx — UI генерации кода с preview, approval flow, логи
+- [FEATURE] DreamModeTab.jsx — индикатор ночной смены, утренний брифинг, идеи для постов
+- [FEATURE] NeuralGraphTab.jsx — Canvas 2D визуализация графа знаний OMEGA (50 узлов)
+- [FEATURE] Voice Mode v2 — Web Speech API STT + TTS в OmegaChat, кнопка микрофона
+- [FEATURE] Auto-Improvement Loop — OMEGA анализирует CTR шаблонов каждые 6 часов
+- [FEATURE] Test Accounts — 5 ролей (staff, admin, creator, business, advertiser) для бета-теста
+- [DEPLOY] Git push + Render Clear Build Cache & Deploy + Cloudflare Pages retry
+
 ## 2026-08-09 — v9.9.13-OMEGA-SUPREME
 - [FIX] i18n: добавлены ключи telegram.* в ru.json/en.json, TelegramTab.jsx читаемый
 - [FIX] ownerBot.js: убраны дубли приветствий и меню при свободном тексте

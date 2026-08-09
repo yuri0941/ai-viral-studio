@@ -206,7 +206,7 @@ export default function TelegramTab({ data }) {
         });
       }
     } catch (err) {
-      showToast?.(err.message || 'Ошибка публикации', 'error');
+      showToast?.(err.message || t('telegram.publishError', 'Ошибка публикации'), 'error');
     }
     setLoading(prev => ({ ...prev, quickPost: false }));
   };
@@ -218,7 +218,7 @@ export default function TelegramTab({ data }) {
       setPlan(res?.plan || []);
       addLog(`Сгенерирован план на ${res?.days || 7} дней`);
     } catch (err) {
-      showToast?.(err.message || 'Ошибка генерации плана', 'error');
+      showToast?.(err.message || t('telegram.planError', 'Ошибка генерации плана'), 'error');
     }
     setLoading(prev => ({ ...prev, plan: false }));
   };
@@ -237,7 +237,7 @@ export default function TelegramTab({ data }) {
         showToast?.(t('telegram.mockMode'), 'warning');
       }
     } catch (err) {
-      showToast?.(err.message || 'Ошибка публикации', 'error');
+      showToast?.(err.message || t('telegram.publishError', 'Ошибка публикации'), 'error');
     }
     setLoading(prev => ({ ...prev, [`day_${dayIndex}`]: false }));
   };
@@ -258,15 +258,15 @@ export default function TelegramTab({ data }) {
       });
       localStorage.setItem('telegram_tab_settings', JSON.stringify(settings));
       showToast?.(t('telegram.saveSettings', 'Настройки сохранены'), 'success');
-      addLog('Настройки Telegram обновлены');
+      addLog(t('telegram.settingsUpdated', 'Настройки Telegram обновлены'));
     } catch (err) {
-      showToast?.(err.message || 'Ошибка сохранения', 'error');
+      showToast?.(err.message || t('telegram.saveError', 'Ошибка сохранения'), 'error');
     }
   };
 
   const handleTestMessage = () => {
-    addLog('Тестовое сообщение отправлено владельцу (placeholder)');
-    showToast?.('Тестовое сообщение отправлено', 'info');
+    addLog(t('telegram.testMessageSent', 'Тестовое сообщение отправлено владельцу (placeholder)'));
+    showToast?.(t('telegram.testMessageSent', 'Тестовое сообщение отправлено'), 'info');
   };
 
   const handleRunImprove = () => {

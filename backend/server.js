@@ -144,6 +144,7 @@ import { resolveABTests } from './services/abAutoLearning.js'
 import { createOmegaBackend } from './ai/omega/index.js'
 import { startSubscriptionCron } from './services/subscriptionCron.js'
 import { startAutoPublisher } from './services/autoPublisher.js'  // [SOCIAL-v5.1] added
+import { runAutoImprovement } from './services/autoImprovement.js'  // [v9.9.14-OMEGA-AUTONOMY]
 
 // Connect to database before starting server
 await connectDB()
@@ -249,6 +250,13 @@ startSubscriptionCron()
 
 // [SOCIAL-v5.1] added: auto-publishing cron
 startAutoPublisher()
+
+// [v9.9.14-OMEGA-AUTONOMY] Auto-improvement loop every 6 hours
+setInterval(() => {
+  runAutoImprovement()
+    .then(r => console.log('[Auto-Improvement]', new Date().toISOString(), r))
+    .catch(e => console.error('[Auto-Improvement]', e.message));
+}, 6 * 60 * 60 * 1000);
 
 // [v9.9.5-TELEGRAM-UNIFIED] Channel auto-posts, discounts, videos, briefing
 if (isConnected) {
@@ -414,11 +422,12 @@ app.use(whiteLabelHeaders)
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({
+    res.status(200).json({
         status: 'ok',
+        service: 'AI Viral Studio API',
+        version: '9.9.14',
         timestamp: new Date().toISOString(),
-        env: process.env.NODE_ENV,
-        version: '1.0.0'
+        uptime: Math.floor(process.uptime()) + 's'
     })
 })
 
@@ -592,6 +601,14 @@ const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
   console.log(`🚀 Server started on port ${PORT}`);
 });
+
+// [v9.9.14-OMEGA-AUTONOMY] self-ping keep-alive for Render free tier
+const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com';
+setInterval(() => {
+  fetch(`${SELF_URL}/health`)
+    .then(r => console.log(`[Keep-Alive] ${new Date().toISOString()} — ${r.status}`))
+    .catch(e => console.error('[Keep-Alive] Failed:', e.message));
+}, 10 * 60 * 1000);
 
 // Graceful shutdown — Render шлёт SIGTERM при деплое
 const gracefulShutdown = (signal) => {
