@@ -29,6 +29,7 @@
         "joi": "^18.2.3",
         "json2csv": "^6.0.0-alpha.2",
         "jsonwebtoken": "^9.0.2",
+        "jszip": "^3.10.1",
         "mongodb": "^7.5.0",
         "mongoose": "^8.5.1",
         "multer": "^2.2.0",
