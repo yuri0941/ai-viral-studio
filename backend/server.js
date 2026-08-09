@@ -515,8 +515,8 @@ app.use('/api/omega-supreme', omegaSupremeRoutes)  // [v9.0-ARCH] OMEGA Supreme
 app.use('/api/omega-supreme', personalityRoutes)  // [v9.1-PERSONALITY] Digital Twin, Voice Clone, Dream Mode
 app.use('/api/project-factory', projectFactoryRoutes)  // [v9.2-SELF-CODING] Project Factory
 app.use('/api/prediction', predictionRoutes)  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
-app.use('/api/telegram', telegramRoutes)  // [v9.5-TELEGRAM-AUTO] Telegram channel manager + bot
-app.use('/api/vk', vkRoutes)  // [v9.9.19] VK OAuth + status
+app.use('/api', telegramRoutes)  // [v9.5-TELEGRAM-AUTO] Telegram channel manager + bot
+app.use('/api', vkRoutes)  // [v9.9.19] VK OAuth + status
 app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета
 app.use('/api/owner-requisites', ownerRequisitesRoutes)  // ← P10: Реквизиты
 app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Owner legal info
