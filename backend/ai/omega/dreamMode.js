@@ -167,6 +167,34 @@ class DreamMode {
 
     async sendMorningBriefing() {
         try {
+            const { alertOwner } = await import('../../services/ownerBot.js')
+            const today = new Date()
+            const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+
+            const [totalUsers, newUsers, openTickets, activeAgents] = await Promise.all([
+                User.countDocuments({}),
+                User.countDocuments({ createdAt: { $gte: yesterday } }),
+                (await import('../../models/index.js')).default?.SupportTicket?.countDocuments({ status: { $in: ['open', 'needs_owner', 'in_progress'] } }).catch(() => 0) || 0,
+                8 // placeholder — агенты из Swarm
+            ])
+
+            // MRR — упрощённый расчёт по платежам за 30 дней
+            let mrr = 0
+            try {
+                const Payment = (await import('../../models/index.js')).default?.Payment
+                if (Payment) {
+                    const payments = await Payment.aggregate([
+                        { $match: { status: 'completed', createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
+                        { $group: { _id: null, total: { $sum: '$amount' } } }
+                    ])
+                    mrr = payments[0]?.total || 0
+                }
+            } catch (e) { console.warn('[DreamMode] MRR calc failed:', e.message) }
+
+            const report = `📊 <b>OMEGA Morning Briefing</b>\n🗓 ${today.toLocaleDateString('ru-RU')}\n\n💰 MRR: ${mrr.toLocaleString('ru-RU')}₽\n👥 Клиентов: ${totalUsers} (+${newUsers} за 24ч)\n🎫 Открытых тикетов: ${openTickets}\n🤖 Агентов: ${activeAgents}/12\n🌙 Ночная смена: трендов ${this.metrics.trendsScanned}, идей ${this.metrics.ideasGenerated}\n\n<i>Хорошего дня, владелец.</i>`
+
+            await alertOwner(report, 'info')
+
             const owners = await User.find({ role: 'owner' }).lean()
             for (const owner of owners) {
                 await Notification.create({
@@ -174,11 +202,10 @@ class DreamMode {
                     ownerId: owner._id,
                     type: 'system',
                     title: 'Breakfast Briefing ready 🍳',
-                    message: `OMEGA завершила ночную смену. Тренды просканированы, идеи для клиентов сгенерированы, прогнозные модели обновлены. Откройте дашборд для деталей.`,
+                    message: `OMEGA завершила ночную смену. MRR: ${mrr.toLocaleString('ru-RU')}₽, клиентов: ${totalUsers}, тикетов: ${openTickets}.`,
                     read: false,
                 })
             }
-            alertOmega(`Dream Mode: утренний брифинг отправлен ${owners.length} владельцам. Трендов: ${this.metrics.trendsScanned}, идей: ${this.metrics.ideasGenerated}.`).catch(() => {})
             console.log('[DreamMode] Morning briefing sent to', owners.length, 'owners')
         } catch (err) {
             console.error('[DreamMode] Briefing failed:', err.message)

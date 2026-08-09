@@ -49,6 +49,12 @@ import selfLearningEngine from '../ai/omega/selfLearningEngine.js'
 import { chatWithAI } from '../services/aiService.js'
 import { OmegaMemory } from '../models/index.js'
 import { generateProject, exportProject } from '../ai/omega/projectFactory.js'
+import {
+    analyzeChannel,
+    generateShortsScript,
+    generateAutoSubtitles,
+    generateTitles,
+} from '../services/youtubeAI.js'
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
@@ -280,6 +286,16 @@ router.post('/analyze-video', analyzeVideo)
 router.get('/youtube/analyze', analyzeYouTube)
 router.post('/youtube/shorts', generateShorts)
 router.post('/youtube/subtitles', generateSubtitles)
+router.post('/youtube/titles', protect, async (req, res) => {
+  try {
+    const { topic, niche, count } = req.body
+    const data = await generateTitles(topic, niche, count)
+    res.json({ success: true, data })
+  } catch (err) {
+    console.error('[omega/youtube/titles]', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
 router.get('/youtube/best-time', recommendPublishTime)
 // [P19] added: voice STT endpoint
 router.post('/voice/stt', protect, upload.single('audio'), async (req, res) => {

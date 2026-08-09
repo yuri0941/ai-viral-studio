@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Key, Check, Trash2, Zap, Globe, Sparkles, Brain, Cpu, Flame, Cloud, MessageSquare, Mic, Mail, CreditCard, X, Github, Smile } from 'lucide-react';
+import { Key, Check, Trash2, Zap, Globe, Sparkles, Brain, Cpu, Flame, Cloud, MessageSquare, Mic, Mail, CreditCard, X, Github, Smile, Youtube } from 'lucide-react';
 
 const PROVIDERS = [
   { id: 'groq', name: 'Groq', note: 'Llama 3.3 70B • $14 credit', icon: Zap, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
@@ -18,6 +18,7 @@ const PROVIDERS = [
   { id: 'elevenlabs', name: 'ElevenLabs', note: 'Voice TTS • paid', icon: Mic, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
   { id: 'resend', name: 'Resend', note: 'Email 3K/day • free', icon: Mail, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
   { id: 'yookassa', name: 'ЮKassa', note: 'Платежи • РФ', icon: CreditCard, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  { id: 'youtube', name: 'YouTube Data API v3', note: 'Analytics • Shorts • Titles', icon: Youtube, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
 ];
 
 export default function ApiKeysTab() {
@@ -125,7 +126,7 @@ export default function ApiKeysTab() {
               type="password"
               value={inputValue}
               onChange={e => setInputValue(e.target.value)}
-              placeholder={activeProvider.id === 'yookassa' ? 'shopId:secretKey' : 'sk-... или gsk-...'}
+              placeholder={activeProvider.id === 'yookassa' ? 'shopId:secretKey' : activeProvider.id === 'youtube' ? 'AIzaSy...' : 'sk-... или gsk-...'}
               className="w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] p-3 text-sm focus:border-purple-500/50 focus:outline-none transition-colors"
             />
             <div className="flex gap-3">

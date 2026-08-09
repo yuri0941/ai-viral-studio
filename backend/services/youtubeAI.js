@@ -95,6 +95,16 @@ export async function generateAutoSubtitles(videoUrl) {
   }
 }
 
+export async function generateTitles(topic, niche, count = 5) {
+  const prompt = `Сгенерируй ${count} цепляющих заголовков YouTube-видео на тему "${topic}" для ниши "${niche}". Верни только нумерованный список без лишнего текста.`
+  try {
+    const result = await chatWithAI(prompt, [], 'ru')
+    return { success: result.success, titles: result.reply, provider: result.provider }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
 export async function recommendBestTime(channelId) {
   // Placeholder: in a real implementation, analyze audience activity via YouTube Analytics API
   return {
@@ -104,4 +114,4 @@ export async function recommendBestTime(channelId) {
   }
 }
 
-export default { analyzeChannel, generateShortsScript, generateAutoSubtitles, recommendBestTime }
+export default { analyzeChannel, generateShortsScript, generateAutoSubtitles, generateTitles, recommendBestTime }

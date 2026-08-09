@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle } from "lucide-react";
+import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import OnboardingTour from "../onboarding/OnboardingTour.jsx";
@@ -220,6 +220,9 @@ export default function OmegaChat({
   const [ticketForm, setTicketForm] = useState({ subject: '', description: '', screenshot: null });
   const [feedbackId, setFeedbackId] = useState(null);
   const [feedbackGiven, setFeedbackGiven] = useState(null);
+  const [previewHtml, setPreviewHtml] = useState(null);
+  const [previewPlatform, setPreviewPlatform] = useState('instagram');
+  const fileInputRef = useRef(null);
   const { speak, stop, playingId, loadingId, settings, setSettings } = useTTS();
 
   const submitFeedback = async (id, rating) => {
@@ -397,13 +400,49 @@ export default function OmegaChat({
     }
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Пожалуйста, выберите изображение');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => setAttachment({ name: file.name, type: file.type, base64: ev.target.result });
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setAttachment({ name: file.name, type: file.type, base64: ev.target.result });
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const openPlatformPreview = (html) => {
+    const htmlMatch = html.match(/<html[\s\S]*?<\/html>|<!DOCTYPE[\s\S]*?<\/html>/i);
+    setPreviewHtml(htmlMatch ? htmlMatch[0] : html);
+  };
+
+  const PLATFORM_STYLES = {
+    instagram: { width: 360, header: 'Instagram', bg: 'bg-white' },
+    tiktok: { width: 360, header: 'TikTok', bg: 'bg-black' },
+    telegram: { width: 400, header: 'Telegram', bg: 'bg-[#1c1c1d]' },
+    youtube: { width: 480, header: 'YouTube', bg: 'bg-white' }
+  };
+
   return (
     <div className={`flex flex-col bg-[#0a0a0f] text-white ${variant === 'fullscreen' ? 'h-[100dvh] md:h-[calc(100vh-80px)]' : 'h-full min-h-0'}`}>
       {!embedded && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-lg font-bold">AI</div>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 flex items-center justify-center animate-pulse shadow-lg shadow-violet-500/30">
+                <Brain className="w-5 h-5 text-white" />
+              </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0a0a0f]"></span>
             </div>
             <div>
@@ -465,6 +504,15 @@ export default function OmegaChat({
                   >
                     <Settings size={14} /> {t('voiceMode.settings')}
                   </button>
+                  {msg.text?.includes('<html') && (
+                    <button
+                      type="button"
+                      onClick={() => openPlatformPreview(msg.text)}
+                      className="px-2 py-1.5 rounded-lg flex items-center gap-1.5 text-xs bg-white/[0.06] text-gray-400 hover:bg-white/[0.1] hover:text-white transition"
+                    >
+                      <Eye size={14} /> {t('chat.preview') || 'Preview'}
+                    </button>
+                  )}
                 </div>
                 <div data-tour="quick-actions" className="flex flex-wrap gap-2 mt-3 max-w-[95%] mx-auto">
                   {UNIQUE_ACTION_BUTTONS.map(action => (
@@ -578,7 +626,40 @@ export default function OmegaChat({
             className="w-12 bg-white/5 rounded-lg text-center text-white border border-white/10 focus:outline-none focus:border-violet-500"
           />
         </div>
+        <div className="flex items-center justify-between gap-2 px-1 mb-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSupportMode(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-xs text-gray-300 hover:text-white transition"
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> {t('chat.support') || 'Поддержка'}
+            </button>
+            <button
+              type="button"
+              onClick={() => window.open('https://t.me/aiviral_omega_bot', '_blank')}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-xs text-gray-300 hover:text-white transition"
+            >
+              <TelegramIcon className="w-3.5 h-3.5" /> {t('chat.telegram') || 'Telegram'}
+            </button>
+          </div>
+        </div>
         <div className="flex items-center gap-2 bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-2xl px-3 py-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.06] transition"
+            title={t('chat.attach') || 'Прикрепить'}
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
           <input
             data-tour="omega-input"
             value={input}
@@ -627,6 +708,13 @@ export default function OmegaChat({
             <Send className="w-5 h-5" />
           </button>
         </div>
+        {attachment && (
+          <div className="flex items-center gap-2 mt-2 px-2">
+            <img src={attachment.base64} alt="preview" className="w-12 h-12 rounded-lg object-cover border border-white/10" />
+            <span className="text-xs text-gray-400 truncate flex-1">{attachment.name}</span>
+            <button onClick={() => setAttachment(null)} className="text-gray-400 hover:text-white text-xs">✕</button>
+          </div>
+        )}
         {isRecording && (
           <p className="text-[10px] text-rose-400 text-center mt-1.5 animate-pulse">
             {t('chat.listening')}
@@ -682,6 +770,30 @@ export default function OmegaChat({
                 try { await voiceApi.saveSettings(settings); } catch (e) { console.error(e); }
                 setShowVoiceSettings(false);
               }} className="w-full py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium">{t('common.save')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {previewHtml && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPreviewHtml(null)}>
+          <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-4xl h-[80vh] flex flex-col p-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold">{t('chat.platformPreview') || 'Platform Preview'}</h3>
+              <button onClick={() => setPreviewHtml(null)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              {Object.keys(PLATFORM_STYLES).map(p => (
+                <button key={p} onClick={() => setPreviewPlatform(p)} className={`px-3 py-1 rounded-lg text-xs capitalize ${previewPlatform === p ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-300'}`}>{p}</button>
+              ))}
+            </div>
+            <div className="flex-1 overflow-hidden rounded-xl bg-black/50 border border-white/10 flex items-center justify-center">
+              <iframe
+                title="platform-preview"
+                srcDoc={previewHtml}
+                sandbox="allow-scripts"
+                className={`h-full ${PLATFORM_STYLES[previewPlatform].bg}`}
+                style={{ width: PLATFORM_STYLES[previewPlatform].width }}
+              />
             </div>
           </div>
         </div>

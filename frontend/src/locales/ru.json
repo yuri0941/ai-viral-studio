@@ -669,6 +669,9 @@
   "tariff.business": "Business",
   "omega.thinking": "OMEGA думает...",
   "omega.ready": "OMEGA готова",
+  "omega.agents": "Агенты",
+  "omega.addAgent": "Добавить",
+  "omega.spawn": "Spawn",
   "error.server": "Сервер временно недоступен",
   "error.retry": "Повторите через 10 сек",
   "ad.create": "Создать рекламу",
@@ -1111,6 +1114,36 @@
     "errors": "Ошибки",
     "stats": "🧠 Neural Graph: {{nodes}} узлов | {{edges}} связей | {{clusters}} кластеров",
     "search": "Поиск узлов..."
+  },
+  "youtube": {
+    "title": "YouTube AI",
+    "channelId": "Channel ID",
+    "analyze": "Аналитика",
+    "subscribers": "Подписчики",
+    "views": "Просмотры",
+    "videos": "Видео",
+    "topic": "Тема",
+    "niche": "Ниша",
+    "shorts": "Shorts",
+    "titles": "Заголовки"
+  },
+  "antifail": {
+    "title": "Anti-Fail",
+    "uptime": "Uptime",
+    "errorRate": "Error Rate",
+    "provider": "AI Provider",
+    "backup": "Last Backup",
+    "selfHeal": "Self-Heal",
+    "alerts": "Алерты"
+  },
+  "swarm": {
+    "title": "Swarm Dashboard",
+    "agents": "Агенты",
+    "spawn": "Spawn",
+    "content": "Content",
+    "analytics": "Analytics",
+    "support": "Support",
+    "trend": "Trend"
   },
   "devStudio": {
     "title": "OMEGA DevStudio",

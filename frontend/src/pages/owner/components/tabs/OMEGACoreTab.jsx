@@ -16,6 +16,8 @@ import { jsPDF } from 'jspdf'
 import { useTranslation } from 'react-i18next'
 import { CodeInterpreter } from '../../../../components/omega/CodeInterpreter.jsx'
 import { VisionUploader } from '../../../../components/omega/VisionUploader.jsx'
+import YouTubeAICard from '../../../../components/omega/YouTubeAICard.jsx'
+import { Headphones, TrendingUp } from 'lucide-react'
 
 const PROVIDERS = [
     { id: 'groq', name: 'Groq', status: 'active' },
@@ -446,17 +448,44 @@ export function OMEGACoreTab({ data }) {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-1">
+                    <YouTubeAICard />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2 luxury-card glass p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
                             <Bot size={16} className="text-[var(--primary)]" /> {t('omega.agents')}
                         </h3>
-                        <button type="button"
-                            onClick={() => showToast('Добавление агента: выберите шаблон в настройках OMEGA')}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-[var(--primary)] text-xs hover:bg-[var(--primary)]/20 transition-colors"
-                        >
-                            <Plus size={14} /> {t('omega.addAgent')}
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-[var(--text-muted)] hidden sm:inline">{t('omega.spawn')}:</span>
+                            <button type="button"
+                                onClick={() => showToast('Spawn Content Agent: запрос отправлен в Swarm')}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs hover:bg-violet-500/20 transition-colors"
+                            >
+                                <FileText size={12} /> Content
+                            </button>
+                            <button type="button"
+                                onClick={() => showToast('Spawn Analytics Agent: запрос отправлен в Swarm')}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs hover:bg-cyan-500/20 transition-colors"
+                            >
+                                <BarChart2 size={12} /> Analytics
+                            </button>
+                            <button type="button"
+                                onClick={() => showToast('Spawn Support Agent: запрос отправлен в Swarm')}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs hover:bg-emerald-500/20 transition-colors"
+                            >
+                                <Headphones size={12} /> Support
+                            </button>
+                            <button type="button"
+                                onClick={() => showToast('Spawn Trend Agent: запрос отправлен в Swarm')}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs hover:bg-amber-500/20 transition-colors"
+                            >
+                                <TrendingUp size={12} /> Trend
+                            </button>
+                        </div>
                     </div>
                     {agents.length === 0 ? (
                         <EmptyState
