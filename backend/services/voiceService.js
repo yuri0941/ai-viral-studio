@@ -16,3 +16,5 @@ export async function generateVoice(text, voiceId = '21m00Tcm4TlvDq8ikWAM') {
     return { error: e.message, fallback: true };
   }
 }
+
+export const synthesizeSpeech = generateVoice;
