@@ -24,7 +24,8 @@
     "light": "Светлая",
     "notifications": "Уведомления",
     "profile": "Профиль",
-    "settings": "Настройки"
+    "settings": "Настройки",
+    "connected": "Подключено"
   },
   "requisites": {
     "contactEmail": "Контактный email для вопросов клиентов",
@@ -285,6 +286,8 @@
     "niche": "Ниша",
     "language": "Язык",
     "timezone": "Часовой пояс",
+    "connectVK": "Подключить VK",
+    "connectTelegram": "Подключить Telegram",
     "saveChanges": "Сохранить изменения",
     "saved": "Сохранено",
     "currentPassword": "Текущий пароль",

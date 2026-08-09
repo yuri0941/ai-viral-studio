@@ -122,6 +122,13 @@ const userSchema = new mongoose.Schema(
         telegram: { type: String, default: '' },
         telegramBotToken: { type: String, default: '' },
         telegramChatId: { type: String, default: '' },
+        telegramId: { type: String, default: '' },
+        telegramUsername: { type: String, default: '' },
+        telegramChannelId: { type: String, default: '' },
+        telegramChannelName: { type: String, default: '' },
+        vkToken: { type: String, default: '', select: false },
+        vkUserId: { type: String, default: '' },
+        vkConnectedAt: Date,
         apiKeys: [{
             name: String,
             key: String,

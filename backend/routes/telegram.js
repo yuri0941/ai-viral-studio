@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { protect, requireRole } from '../middleware/auth.js';
+import User from '../models/User.js';
 import { generateChannelPost, publishToChannel, getChannelStats, generateWeeklyContentPlan } from '../services/telegramChannelManager.js';
 import { getMenu, generateMenuImprovements, applyMenuChanges, addCustomButton, toggleButton } from '../services/telegramMenuService.js';
 
@@ -77,6 +78,15 @@ router.patch('/menu/button/:callbackData', protect, requireRole('owner', 'admin'
   try {
     const buttons = await toggleButton(getOwnerId(req), req.params.callbackData, req.body.active !== false);
     res.json({ success: true, buttons });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get('/status', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('telegramId telegramUsername telegramChannelId telegramChannelName');
+    res.json({ success: true, connected: !!user?.telegramId, userId: user?.telegramId, channelId: user?.telegramChannelId });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

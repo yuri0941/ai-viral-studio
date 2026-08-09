@@ -73,6 +73,7 @@ import projectFactoryRoutes from './routes/projectFactory.js'  // [v9.2-SELF-COD
 import personalityRoutes from './routes/personality.js'  // [v9.1-PERSONALITY] Digital Twin, Voice Clone, Dream Mode
 import predictionRoutes from './routes/prediction.js'  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
 import telegramRoutes from './routes/telegram.js'  // [v9.5-TELEGRAM-AUTO] Telegram channel manager + bot
+import vkRoutes from './routes/vk.js'  // [v9.9.19] VK OAuth + status
 import checkoutRoutes from './routes/checkout.js'  // [PAYMENT-v5.2] added
 import qrRoutes from './routes/qr.js'  // ← P11: QR codes
 import printRoutes from './routes/print.js'  // ← P11: Print orders
@@ -515,6 +516,7 @@ app.use('/api/omega-supreme', personalityRoutes)  // [v9.1-PERSONALITY] Digital 
 app.use('/api/project-factory', projectFactoryRoutes)  // [v9.2-SELF-CODING] Project Factory
 app.use('/api/prediction', predictionRoutes)  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
 app.use('/api/telegram', telegramRoutes)  // [v9.5-TELEGRAM-AUTO] Telegram channel manager + bot
+app.use('/api/vk', vkRoutes)  // [v9.9.19] VK OAuth + status
 app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета
 app.use('/api/owner-requisites', ownerRequisitesRoutes)  // ← P10: Реквизиты
 app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Owner legal info

@@ -24,7 +24,8 @@
     "light": "Light",
     "notifications": "Notifications",
     "profile": "Profile",
-    "settings": "Settings"
+    "settings": "Settings",
+    "connected": "Connected"
   },
   "requisites": {
     "contactEmail": "Contact email for client questions",
@@ -285,6 +286,8 @@
     "niche": "Niche",
     "language": "Language",
     "timezone": "Timezone",
+    "connectVK": "Connect VK",
+    "connectTelegram": "Connect Telegram",
     "saveChanges": "Save changes",
     "saved": "Saved",
     "currentPassword": "Current password",
