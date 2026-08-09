@@ -18,3 +18,13 @@ export async function generateVoice(text, voiceId = '21m00Tcm4TlvDq8ikWAM') {
 }
 
 export const synthesizeSpeech = generateVoice;
+
+export async function speechToText(audioBase64) {
+  // STT обрабатывается на фронтенде через Web Speech API
+  // Этот endpoint — fallback для мобильных/расширений
+  return { 
+    text: 'Голосовой ввод обрабатывается в браузере. Нажмите 🎤 в чате.', 
+    fallback: true,
+    source: 'frontend_webspeech'
+  };
+}
