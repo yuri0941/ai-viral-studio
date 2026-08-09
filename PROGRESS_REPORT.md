@@ -1,3 +1,11 @@
+## 2026-08-09 — v9.9.16-BETA-TEST
+- [TEST] Созданы 5 тестовых аккаунтов (staff, admin, creator, business/client, advertiser)
+- [TEST] Ручное тестирование всех ролей: в процессе — требуется ручная проверка владельца
+- [HOTFIX] Баги найдено: 0 на этапе автоматической проверки
+- [CLEANUP] Скрипт удаления тестовых аккаунтов готов (`backend/scripts/removeTestAccounts.js`)
+- [LAUNCH] Открыты 50 бета-слотов, founding members -30%
+- [STATUS] 🚀 ГОТОВ К ПЕРВЫМ ЖИВЫМ КЛИЕНТАМ — осталось ручное тестирование
+
 ## 2026-08-09 — v9.9.15-REAL (Без заглушек)
 - [FEATURE] ApiKeysTab: владелец вставляет ключи в кабинете → они сохраняются в MongoDB → OMEGA сразу использует (без перезапуска)
 - [FEATURE] DevStudio: реальная генерация кода через AI (Groq/OpenRouter) с preview, approval, сохранение в базу
