@@ -37,6 +37,21 @@ export async function createVideoJob({ script, style, duration, userId }) {
   return { jobId: data.id, status: data.status, urls: data.urls, mock: false };
 }
 
+// [v9.9.6-KEY-AUDIT-v2] image-to-video fallback via Stable Video Diffusion
+export async function generateVideoWithReplicate(prompt) {
+  const token = process.env.REPLICATE_API_TOKEN;
+  if (!token) return { error: 'REPLICATE_API_TOKEN not set' };
+  const res = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: { Authorization: `Token ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      version: 'stability-ai/stable-video-diffusion:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b817243',
+      input: { image: prompt, num_frames: 25 }
+    })
+  });
+  return await res.json();
+}
+
 export async function getVideoStatus(jobId) {
   if (jobId.startsWith('mock-')) {
     const elapsed = Date.now() - parseInt(jobId.split('-')[1]);

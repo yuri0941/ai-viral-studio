@@ -4,7 +4,20 @@
 // If CHROMA_API_KEY, CHROMA_TENANT and CHROMA_DATABASE are set, the system
 // uses Chroma Cloud. Otherwise it keeps vectors in a Node.js Map (limit 1000).
 
-import { CloudClient } from 'chromadb'
+import { CloudClient, ChromaClient } from 'chromadb'
+
+// [v9.9.6-KEY-AUDIT-v2] Chroma Cloud (trychroma.com) client for omega_memory collection
+let chromaCloudClient = null
+if (process.env.CHROMA_API_KEY) {
+  try {
+    chromaCloudClient = new ChromaClient({
+      path: 'https://api.trychroma.com',
+      auth: { provider: 'token', credentials: process.env.CHROMA_API_KEY }
+    })
+  } catch (err) {
+    console.error('[ChromaCloud] init failed:', err.message)
+  }
+}
 
 const API_KEY = process.env.CHROMA_API_KEY
 const TENANT = process.env.CHROMA_TENANT
@@ -44,6 +57,18 @@ export const isChromaConnected = () => !!chromaClient
 
 // Backward-compatible alias
 export const isConfigured = isChromaConnected
+
+// [v9.9.6-KEY-AUDIT-v2] Upsert to Chroma Cloud (trychroma.com)
+export async function upsertToChromaCloud(id, text, metadata = {}) {
+  if (!chromaCloudClient) return { error: 'Chroma Cloud not configured' }
+  try {
+    const collection = await chromaCloudClient.getOrCreateCollection({ name: 'omega_memory' })
+    await collection.add({ ids: [id], documents: [text], metadatas: [metadata] })
+    return { success: true }
+  } catch (e) {
+    return { error: e.message }
+  }
+}
 
 // In-memory fallback
 const memoryFallback = new Map()

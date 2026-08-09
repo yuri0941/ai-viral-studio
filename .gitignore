@@ -5,3 +5,5 @@ frontend/stats.html
 TEST_ACCOUNTS.md
 frontend/dist/
 dist/
+*.env
+backend/.env

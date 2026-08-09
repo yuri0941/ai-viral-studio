@@ -294,7 +294,7 @@ const envMap = {
     cloudflare: 'CLOUDFLARE_API_KEY',
     mistral: 'MISTRAL_API_KEY',
     cohere: 'COHERE_API_KEY',
-    replicate: 'REPLICATE_API_KEY',
+    replicate: 'REPLICATE_API_TOKEN',
     youtube: 'YOUTUBE_API_KEY',
     together: 'TOGETHER_API_KEY',
     fireworks: 'FIREWORKS_API_KEY',

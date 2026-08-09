@@ -212,6 +212,11 @@ export function ApiKeysTab({ data }) {
                                 <div className="flex items-center gap-2">
                                     <span className={`w-2.5 h-2.5 rounded-full ${badgeGlow(badge.status)}`} />
                                     <StatusBadge status={badge.status} label={badge.label} />
+                                    {provider.status === 'active' && (
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                            ✅ Проверен
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
