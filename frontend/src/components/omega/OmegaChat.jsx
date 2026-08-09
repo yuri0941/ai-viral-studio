@@ -218,7 +218,19 @@ export default function OmegaChat({
   const [quota, setQuota] = useState(null);
   const [supportMode, setSupportMode] = useState(false);
   const [ticketForm, setTicketForm] = useState({ subject: '', description: '', screenshot: null });
+  const [feedbackId, setFeedbackId] = useState(null);
+  const [feedbackGiven, setFeedbackGiven] = useState(null);
   const { speak, stop, playingId, loadingId, settings, setSettings } = useTTS();
+
+  const submitFeedback = async (id, rating) => {
+    try {
+      await request(`/api/feedback/${id}/rate`, { method: 'POST', body: { rating } });
+      setFeedbackGiven(rating);
+      toast.success('Спасибо за оценку!', { icon: rating });
+    } catch (e) {
+      console.error('Feedback submit error:', e);
+    }
+  };
 
   useEffect(() => {
     const role = user?.role || JSON.parse(localStorage.getItem('user') || '{}')?.role;
@@ -285,6 +297,9 @@ export default function OmegaChat({
       return;
     }
 
+    setFeedbackId(null);
+    setFeedbackGiven(null);
+
     const userMsg = {
       role: 'user',
       text,
@@ -320,6 +335,15 @@ export default function OmegaChat({
       };
       setInternalMessages(prev => [...prev, aiMsg]);
       playSound('notification');
+
+      // [v9.9.17-ANTI-FAIL] save feedback stub
+      try {
+        const fbRes = await request('/api/feedback', {
+          method: 'POST',
+          body: { message: text, response: aiMsg.text, context: 'web' }
+        });
+        if (fbRes?.id) setFeedbackId(fbRes.id);
+      } catch (e) { console.error('[CHAT] feedback save failed:', e); }
     } catch (err) {
       console.error('[CHAT] Error:', err);
       const status = err?.status || err?.response?.status;
@@ -464,6 +488,18 @@ export default function OmegaChat({
             )}
           </div>
         ))}
+        {feedbackId && !feedbackGiven && (
+          <div className="flex justify-center mt-2">
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/[0.04] border border-white/[0.08]">
+              <span className="text-xs text-gray-400">Оцените ответ:</span>
+              <button onClick={() => submitFeedback(feedbackId, '👍')} className="text-lg hover:scale-110 transition">👍</button>
+              <button onClick={() => submitFeedback(feedbackId, '👎')} className="text-lg hover:scale-110 transition">👎</button>
+            </div>
+          </div>
+        )}
+        {feedbackGiven && (
+          <div className="text-center text-xs text-gray-500 mt-1">Спасибо за оценку! {feedbackGiven}</div>
+        )}
         <div ref={bottomRef} />
       </div>
 

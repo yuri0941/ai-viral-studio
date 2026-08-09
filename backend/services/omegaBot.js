@@ -20,6 +20,7 @@ import { chatWithAI } from './aiService.js'
 import { isOwner, getOwnerContext } from './ownerContext.js'
 import { createTicket } from './supportService.js'
 import { getAdPricing } from './adPricingService.js'
+import { saveFeedback, rateFeedback } from './feedbackService.js'
 
 // [P16-FINAL] singleton to avoid duplicate polling / 409 conflict
 let bot = global.omegaBotInstance || null
@@ -93,6 +94,7 @@ export const initOmegaBot = () => {
 
   bot = new TelegramBot(OMEGA_TOKEN, { polling: false })
   global.omegaBotInstance = bot
+  global.omegaBot = bot
   console.log('[OMEGA-BOT] Created, preparing webhook')
 
   updateBotMenu()
@@ -286,6 +288,17 @@ export const initOmegaBot = () => {
         reply_markup: { inline_keyboard: keyboard }
       });
 
+      // [v9.9.17-ANTI-FAIL] feedback buttons
+      try {
+        const fb = await saveFeedback({ userId: String(chatId), role: 'client', message: text, response: reply, context: 'telegram' });
+        bot.sendMessage(chatId, 'Оцените ответ:', {
+          reply_markup: { inline_keyboard: [[
+            { text: '👍', callback_data: `feedback:up:${fb._id}` },
+            { text: '👎', callback_data: `feedback:down:${fb._id}` }
+          ]]}
+        });
+      } catch (e) { console.error('Feedback save error:', e); }
+
       // Сохраняем диалог для обучения
       try {
         const dialogueMessages = global.clientDialogues[chatId].slice(-6).map(m => ({
@@ -414,6 +427,14 @@ export const initOmegaBot = () => {
       bot.sendMessage(chatId, '💬 <b>Поддержка</b>\nОпишите проблему одним сообщением. OMEGA ответит или передаст оператору.', { parse_mode: 'HTML' })
       return
     }
+    if (data.startsWith('feedback:up:') || data.startsWith('feedback:down:')) {
+      const [, rating, id] = data.split(':');
+      await rateFeedback(id, rating === 'up' ? '👍' : '👎');
+      bot.answerCallbackQuery(q.id, { text: 'Спасибо за оценку!' });
+      bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: q.message.message_id }).catch(() => {});
+      return;
+    }
+
     if (data.startsWith('ticket:')) {
       const parts = data.split(':');
       const ticketId = parts[1];
@@ -503,8 +524,13 @@ export const initOmegaBot = () => {
 
   // [WEBHOOK-2026-08-05] set webhook instead of polling to avoid 409 conflicts
   const WEBHOOK_URL = (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com') + '/webhook/omega'
-  bot.setWebhook(WEBHOOK_URL).catch(() => {})
-  console.log('[OMEGA-BOT] Webhook set to', WEBHOOK_URL)
+  bot.setWebhook(WEBHOOK_URL).then(() => {
+    console.log('[OMEGA-BOT] Webhook set to', WEBHOOK_URL)
+  }).catch(e => {
+    console.error('[OMEGA-BOT] Webhook failed, falling back to polling:', e.message)
+    bot.stopPolling?.()
+    bot.startPolling?.()
+  })
 }
 
 const updateBotMenu = () => {

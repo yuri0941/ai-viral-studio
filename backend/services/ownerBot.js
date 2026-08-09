@@ -607,8 +607,13 @@ export const initOwnerBot = () => {
 
   // [WEBHOOK-2026-08-05] set webhook instead of polling to avoid 409 conflicts
   const WEBHOOK_URL = (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com') + '/webhook/owner'
-  bot.setWebhook(WEBHOOK_URL).catch(() => {})
-  console.log('[OWNER-BOT] Webhook set to', WEBHOOK_URL)
+  bot.setWebhook(WEBHOOK_URL).then(() => {
+    console.log('[OWNER-BOT] Webhook set to', WEBHOOK_URL)
+  }).catch(e => {
+    console.error('[OWNER-BOT] Webhook failed, falling back to polling:', e.message)
+    bot.stopPolling?.()
+    bot.startPolling?.()
+  })
 }
 
 const isOwner = (chatId) => String(chatId) === String(OWNER_CHAT_ID)

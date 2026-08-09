@@ -1,3 +1,14 @@
+## 2026-08-09 — v9.9.17-ANTI-FAIL
+- [FIX] Telegram Bots: webhook/polling без конфликтов, авто-fallback на polling если webhook упал
+- [FIX] Webhook endpoints: /webhook/owner и /webhook/omega работают стабильно
+- [FEATURE] Anti-Fail Mode: health monitor каждую минуту (MongoDB, RAM, боты)
+- [FEATURE] Anti-Fail Alerts: OMEGA сама пишет владельцу если система нестабильна
+- [FEATURE] Feedback System: 👍/👎 после каждого ответа OMEGA (Telegram + Web)
+- [FEATURE] Owner Daily Report: утренний репорт в @aiviral_alerts_bot в 08:00 MSK
+- [FEATURE] Feedback Stats: удовлетворённость клиентов, аналитика по дням
+- [DEPLOY] Git push + Render Clear Build Cache & Deploy
+- [STATUS] 🛡️ СИСТЕМА ЗАЩИЩЕНА ОТ ПАДЕНИЙ — готов к первым живым клиентам
+
 ## 2026-08-09 — v9.9.16-BETA-TEST
 - [TEST] Созданы 5 тестовых аккаунтов (staff, admin, creator, business/client, advertiser)
 - [TEST] Ручное тестирование всех ролей: в процессе — требуется ручная проверка владельца

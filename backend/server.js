@@ -113,6 +113,9 @@ import disasterRoutes from './routes/disaster.js'  // [v7.0-PART2] added: disast
 import { startMonitoringCron, monitoringMiddleware } from './services/monitoringService.js'  // [v7.0-PART2] added: monitoring
 import { startResourceManagerCron } from './services/omegaResourceManager.js'  // [v7.0-PART2] added: resource manager
 import { PROVIDER_CHAIN } from './services/aiService.js'  // [v9.9.15-BETA-LAUNCH] provider status for health
+import { startHealthMonitor } from './services/healthMonitor.js'  // [v9.9.17-ANTI-FAIL]
+import { sendDailyReport } from './services/dailyReport.js'  // [v9.9.17-ANTI-FAIL]
+import feedbackRoutes from './routes/feedback.js'  // [v9.9.17-ANTI-FAIL]
 import fallbackRoutes from './routes/fallbackRoutes.js'  // [v6.0] added: structured fallback routes
 
 // [v6.0-fix] added: fallback routers for expected frontend endpoints without mock data
@@ -490,6 +493,7 @@ app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
 app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API
 app.use('/api/owner/apikeys', apiKeyRoutes)  // [v9.9.15-REAL] owner-managed API keys
+app.use('/api/feedback', feedbackRoutes)  // [v9.9.17-ANTI-FAIL] feedback 👍/👎
 app.use('/api/owner/omega-finance', omegaFinanceRoutes)  // [v7.1-PART2] OMEGA Finance
 app.use('/api/audit', auditRoutes)  // ← v6.6-HOTFIX-EXPORT: audit CSV export
 app.use('/api/omega', omegaRoutes)  // ← НОВОЕ: OMEGA Core API
@@ -616,6 +620,25 @@ const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
   console.log(`🚀 Server started on port ${PORT}`);
 });
+
+// [v9.9.17-ANTI-FAIL] start health monitor + daily report
+startHealthMonitor();
+
+function scheduleDailyReport() {
+  const now = new Date();
+  const msk = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }));
+  const target = new Date(msk);
+  target.setHours(8, 0, 0, 0);
+  if (target <= msk) target.setDate(target.getDate() + 1);
+  const delay = target - msk;
+
+  setTimeout(() => {
+    sendDailyReport();
+    setInterval(sendDailyReport, 24 * 60 * 60 * 1000);
+  }, delay);
+}
+scheduleDailyReport();
+console.log('📊 Daily Report scheduled at 08:00 MSK');
 
 // [v9.9.15-BETA-LAUNCH] self-ping keep-alive for Render free tier + provider count
 const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com';
