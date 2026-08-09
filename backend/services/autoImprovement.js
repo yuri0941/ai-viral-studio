@@ -17,3 +17,5 @@ export async function runAutoImprovement() {
     return { error: e.message };
   }
 }
+
+export const autoImproveFile = runAutoImprovement;
