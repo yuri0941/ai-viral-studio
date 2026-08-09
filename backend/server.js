@@ -111,6 +111,7 @@ import { startBackupCron } from './services/disasterRecovery.js'  // [v7.0-PART2
 import disasterRoutes from './routes/disaster.js'  // [v7.0-PART2] added: disaster recovery API
 import { startMonitoringCron, monitoringMiddleware } from './services/monitoringService.js'  // [v7.0-PART2] added: monitoring
 import { startResourceManagerCron } from './services/omegaResourceManager.js'  // [v7.0-PART2] added: resource manager
+import { PROVIDER_CHAIN } from './services/aiService.js'  // [v9.9.15-BETA-LAUNCH] provider status for health
 import fallbackRoutes from './routes/fallbackRoutes.js'  // [v6.0] added: structured fallback routes
 
 // [v6.0-fix] added: fallback routers for expected frontend endpoints without mock data
@@ -422,23 +423,35 @@ app.use(whiteLabelHeaders)
 
 // Health check
 app.get('/health', (req, res) => {
+    const activeProviders = (PROVIDER_CHAIN || []).filter(p => {
+        if (p.id === 'pollinations') return true
+        return !!process.env[p.id.toUpperCase().replace(/-/g, '_') + '_API_KEY'] ||
+               !!process.env[p.id.toUpperCase() + '_API_KEY']
+    }).map(p => p.id)
     res.status(200).json({
         status: 'ok',
         service: 'AI Viral Studio API',
-        version: '9.9.14',
+        version: '9.9.15',
         timestamp: new Date().toISOString(),
-        uptime: Math.floor(process.uptime()) + 's'
+        uptime: Math.floor(process.uptime()) + 's',
+        providers: activeProviders
     })
 })
 
 // [HOTFIX-2026-08-08] Mobile-friendly health check under /api
 app.get('/api/health', (req, res) => {
+    const activeProviders = (PROVIDER_CHAIN || []).filter(p => {
+        if (p.id === 'pollinations') return true
+        return !!process.env[p.id.toUpperCase().replace(/-/g, '_') + '_API_KEY'] ||
+               !!process.env[p.id.toUpperCase() + '_API_KEY']
+    }).map(p => p.id)
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
         env: process.env.NODE_ENV || 'production',
         mobile: true,
-        version: '9.0.0'
+        version: '9.9.15',
+        providers: activeProviders
     })
 })
 
@@ -602,11 +615,14 @@ server.listen(PORT, () => {
   console.log(`🚀 Server started on port ${PORT}`);
 });
 
-// [v9.9.14-OMEGA-AUTONOMY] self-ping keep-alive for Render free tier
+// [v9.9.15-BETA-LAUNCH] self-ping keep-alive for Render free tier + provider count
 const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com';
 setInterval(() => {
   fetch(`${SELF_URL}/health`)
-    .then(r => console.log(`[Keep-Alive] ${new Date().toISOString()} — ${r.status}`))
+    .then(async r => {
+      const data = await r.json().catch(() => ({}))
+      console.log(`[Keep-Alive] ${new Date().toISOString()} — ${r.status}, providers: ${data.providers?.length || 0}`)
+    })
     .catch(e => console.error('[Keep-Alive] Failed:', e.message));
 }, 10 * 60 * 1000);
 

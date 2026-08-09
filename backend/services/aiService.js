@@ -286,6 +286,7 @@ const getKey = async (provider, ownerId = null) => {
 // [P17] added: explicit provider key resolver with owner-scoped DB keys and env fallback
 const envMap = {
     groq: 'GROQ_API_KEY',
+    openai: 'OPENAI_API_KEY',
     openrouter: 'OPENROUTER_API_KEY',
     deepseek: 'DEEPSEEK_API_KEY',
     gemini: 'GEMINI_API_KEY',
@@ -325,6 +326,7 @@ export async function getProviderKey(providerId, ownerId = null) {
 // Legacy providers are kept for UI compatibility but disabled by default.
 const PROVIDER_META = {
     groq: { name: 'Groq', enabledByDefault: true, requiresKey: true },
+    openai: { name: 'OpenAI', enabledByDefault: true, requiresKey: true },
     mistral: { name: 'Mistral AI', enabledByDefault: true, requiresKey: true },
     cohere: { name: 'Cohere', enabledByDefault: true, requiresKey: true },
     together: { name: 'Together AI', enabledByDefault: true, requiresKey: true },
@@ -334,10 +336,10 @@ const PROVIDER_META = {
     cloudflare: { name: 'Cloudflare Workers AI', enabledByDefault: true, requiresKey: true },
     openrouter: { name: 'OpenRouter', enabledByDefault: true, requiresKey: true },
     github: { name: 'GitHub Models', enabledByDefault: true, requiresKey: true },
+    huggingface: { name: 'HuggingFace', enabledByDefault: true, requiresKey: true },
     pollinations: { name: 'Pollinations AI', enabledByDefault: true, requiresKey: false },
     // Legacy providers (kept for UI/status compatibility, not part of PROVIDER_CHAIN)
     workersai: { name: 'Cloudflare Workers AI (legacy)', enabledByDefault: false, requiresKey: true },
-    huggingface: { name: 'HuggingFace', enabledByDefault: false, requiresKey: true },
     gemini: { name: 'Google Gemini', enabledByDefault: false, requiresKey: true },
 }
 
@@ -638,11 +640,55 @@ async function chatWithGitHubModels(prompt, ownerId = null) {
     return res.data.choices[0].message.content
 }
 
+async function chatWithOpenAI(prompt, ownerId = null) {
+    const key = await getProviderKey('openai', ownerId)
+    if (!key || key.length < 20) {
+        console.log('[OpenAI] No valid key, skipping')
+        throw new Error('No valid OpenAI key')
+    }
+    console.log('🚀 Calling OpenAI...')
+    const res = await axios.post('https://api.openai.com/v1/chat/completions', {
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2048
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
+    return res.data.choices[0].message.content
+}
+
+async function chatWithHuggingFace(prompt, ownerId = null) {
+    const key = await getProviderKey('huggingface', ownerId)
+    if (!key || key.length < 10) {
+        console.log('[HuggingFace] No valid key, skipping')
+        throw new Error('No valid HuggingFace key')
+    }
+    console.log('🚀 Calling HuggingFace...')
+    const model = process.env.HF_MODEL || 'meta-llama/Llama-3.3-70B-Instruct'
+    const res = await axios.post(
+        `https://api-inference.huggingface.co/models/${model}`,
+        { inputs: prompt, parameters: { max_new_tokens: 1024, return_full_text: false } },
+        { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 25000 }
+    )
+    if (Array.isArray(res.data) && res.data[0]?.generated_text) return res.data[0].generated_text
+    if (res.data?.generated_text) return res.data.generated_text
+    throw new Error('Unexpected HuggingFace response format')
+}
+
 // ============ PROVIDER CHAIN ============
-// [SOCIAL-v5.1] fixed: only stable providers to avoid 402/401/400 from deprecated endpoints
+// [v9.9.15-BETA-LAUNCH] all 13 AI providers active with real keys
 const PROVIDER_CHAIN = [
     { id: 'groq', name: 'Groq', handler: chatWithGroq, model: 'llama-3.3-70b-versatile' },
+    { id: 'openai', name: 'OpenAI', handler: chatWithOpenAI, model: 'gpt-4o-mini' },
     { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: 'google/gemini-2.0-flash-exp:free' },
+    { id: 'deepseek', name: 'DeepSeek', handler: chatWithDeepSeek, model: 'deepseek-chat' },
+    { id: 'cerebras', name: 'Cerebras', handler: chatWithCerebras, model: 'llama-3.3-70b' },
+    { id: 'together', name: 'Together AI', handler: chatWithTogether, model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' },
+    { id: 'fireworks', name: 'Fireworks AI', handler: chatWithFireworks, model: 'accounts/fireworks/models/llama-v3p3-70b-instruct' },
+    { id: 'mistral', name: 'Mistral AI', handler: chatWithMistral, model: 'mistral-large-latest' },
+    { id: 'cohere', name: 'Cohere', handler: chatWithCohere, model: 'command-r-plus' },
+    { id: 'cloudflare', name: 'Cloudflare Workers AI', handler: chatWithCloudflare, model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast' },
+    { id: 'github', name: 'GitHub Models', handler: chatWithGitHubModels, model: 'meta-llama-3.1-8b-instruct' },
+    { id: 'huggingface', name: 'HuggingFace', handler: chatWithHuggingFace, model: 'meta-llama/Llama-3.3-70B-Instruct' },
+    { id: 'pollinations', name: 'Pollinations AI', handler: chatWithPollinationsText, model: 'openai' },
 ]
 
 const SKIP_STATUSES = [401, 403, 404]
@@ -701,6 +747,8 @@ const tryProviders = async (messages, ownerId = null) => {
 
 // ============ EXPORTS ============
 import { getJSON, setJSON, cacheKey as redisCacheKey } from '../config/redis.js'
+
+export { PROVIDER_CHAIN }
 
 export const chatWithAI = async (message, history = [], lang = 'ru', options = {}) => {
     if (emergencyStop) {

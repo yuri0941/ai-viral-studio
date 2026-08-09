@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { Sparkles, Bot, BarChart3, Factory, Telescope, Calendar, Check, ChevronDown, ArrowRight, Send, Mail, Menu, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import FeatureMap from '../../components/landing/FeatureMap.jsx'
+import ViralDemo from './ViralDemo.jsx'
+import BetaCounter from './BetaCounter.jsx'
+import WaitlistSection from './WaitlistSection.jsx'
 
 const FEATURES = [
   { icon: Bot, title: 'AI Контент', desc: 'OMEGA генерирует посты, видео и идеи под вашу нишу.' },
@@ -157,7 +160,10 @@ export default function LandingPage() {
           {waitlistStatus?.ok && <p className="text-sm text-emerald-400 mt-3">✅ Вы в waitlist, позиция #{waitlistStatus.position}</p>}
           {waitlistStatus?.ok === false && <p className="text-sm text-red-400 mt-3">Ошибка: {waitlistStatus.error}</p>}
         </div>
+        <BetaCounter />
       </section>
+
+      <ViralDemo />
 
       {/* Features */}
       <section id="features" className="py-20 px-4">
@@ -230,6 +236,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <WaitlistSection />
 
       {/* FAQ */}
       <section id="faq" className="py-20 px-4">
