@@ -86,12 +86,12 @@ export async function toggleButton(ownerId, callbackData, active) {
 async function getDefaultMenu(name, ownerId) {
   const defaults = {
     main: [
-      { text: '🎬 Контент', callback_data: 'quick:content', icon: '🎬', order: 0, active: true, clickCount: 0 },
-      { text: '📊 Аналитика', callback_data: 'quick:analytics', icon: '📊', order: 1, active: true, clickCount: 0 },
-      { text: '🏭 Factory', callback_data: 'quick:factory', icon: '🏭', order: 2, active: true, clickCount: 0 },
-      { text: '🔮 Прогнозы', callback_data: 'quick:prediction', icon: '🔮', order: 3, active: true, clickCount: 0 },
-      { text: '📋 Отчёт', callback_data: 'quick:report', icon: '📋', order: 4, active: true, clickCount: 0 },
-      { text: '⚡ Ещё', callback_data: 'quick:more', icon: '⚡', order: 5, active: true, clickCount: 0 }
+      { text: '🎬 Контент', callback_data: 'owner:content', icon: '🎬', order: 0, active: true, clickCount: 0 },
+      { text: '📊 Аналитика', callback_data: 'owner:analytics', icon: '📊', order: 1, active: true, clickCount: 0 },
+      { text: '🏭 Factory', callback_data: 'owner:factory', icon: '🏭', order: 2, active: true, clickCount: 0 },
+      { text: '🔮 Прогнозы', callback_data: 'owner:predictions', icon: '🔮', order: 3, active: true, clickCount: 0 },
+      { text: '📋 Отчёт', callback_data: 'owner:report', icon: '📋', order: 4, active: true, clickCount: 0 },
+      { text: '⚡ Ещё', callback_data: 'owner:more', icon: '⚡', order: 5, active: true, clickCount: 0 }
     ]
   }
   const menu = await TelegramMenu.create({ name, ownerId, buttons: defaults[name] || [], isDefault: true })

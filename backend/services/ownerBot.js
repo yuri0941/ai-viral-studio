@@ -1,5 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
+import mongoose from 'mongoose'
 import { chatWithAI } from './aiService.js'
 import { createNode, queryMesh } from './cognitiveMesh.js'
 import { isOwner as isOwnerContext, getOwnerContext, getSmartGreeting } from './ownerContext.js'
@@ -176,7 +177,25 @@ export const initOwnerBot = () => {
     });
   });
 
-  bot.onText(/\/status/, (msg) => { if (!isOwner(msg.chat.id)) return; sendStatus(msg.chat.id) })
+  // /status — реальный статус
+  bot.onText(/\/status/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    const mongoStatus = mongoose.connection.readyState === 1 ? '🟢 OK' : '🔴 Нет связи';
+    const uptimeMin = Math.floor(process.uptime() / 60);
+    const memMB = Math.round(process.memoryUsage().rss / 1024 / 1024);
+
+    safeSendMessage(chatId,
+      `📊 <b>Статус AI Viral Studio</b>\n━━━━━━━━━━━━━━\n` +
+      `🗄 MongoDB: ${mongoStatus}\n` +
+      `⏱ Uptime: ${uptimeMin} мин\n` +
+      `🧠 RAM: ${memMB} MB\n` +
+      `🤖 OMEGA: 🟢 Активна\n` +
+      `📢 Канал: @aiviralstudio\n` +
+      `━━━━━━━━━━━━━━\nOMEGA 🤖`
+    );
+  });
+
   bot.onText(/\/stats/, (msg) => { if (!isOwner(msg.chat.id)) return; sendStats(msg.chat.id) })
 
   // [v9.9.2-MASTER-FIX] /tickets — list open support tickets
@@ -272,53 +291,65 @@ export const initOwnerBot = () => {
     }
   })
 
-  // OWNER MODE — авто-улучшение бота
+  // OWNER MODE — self-optimization
   bot.onText(/\/improve/, async (msg) => {
     const chatId = msg.chat.id;
-    if (chatId.toString() !== String(OWNER_CHAT_ID)) {
-      safeSendMessage(chatId, '❌ Только владелец может использовать эту команду.');
-      return;
-    }
-    safeSendMessage(chatId, '🛠 Анализирую код бота...');
+    if (!isOwner(chatId)) return;
+    safeSendMessage(chatId, '⏳ Анализирую производительность...');
     try {
-      const prompt = `Analyze this Telegram bot code for improvements. Suggest 3 specific enhancements (new commands, better UX, error handling). Return JSON: { improvements: [{title, description, codeSnippet, priority}] }`;
-      const aiResult = await chatWithAI(prompt, [], 'ru', { maxTokens: 2000, temperature: 0.6 });
-      const response = aiResult?.reply || aiResult?.text || '';
-      let improvements;
-      try { improvements = JSON.parse(response).improvements; } catch(e) { improvements = []; }
-      if (improvements.length === 0) {
-        safeSendMessage(chatId, '✅ Код бота в порядке. Улучшений не требуется.');
-        return;
-      }
-      let message = '🛠 Предлагаю улучшения:\n\n';
-      improvements.forEach((imp, i) => {
-        message += `${i+1}. <b>${imp.title || 'Улучшение'}</b>\n${imp.description || ''}\nПриоритет: ${imp.priority || 'medium'}\n\n`;
-      });
-      message += 'Нажмите номер улучшения для применения (например, "1") или "Отмена".';
-      safeSendMessage(chatId, message, { parse_mode: 'HTML' });
-      await createNode({ type: 'skill', content: `Bot improvement suggestions: ${improvements.length}`, confidence: 0.85, source: 'telegram_bot', metadata: { chatId, improvements, type: 'bot_improvement' } });
-    } catch(e) {
-      safeSendMessage(chatId, '❌ Ошибка анализа: ' + e.message);
+      const { analyzeDailyPerformance } = await import('./selfReflection.js');
+      const ownerId = await getOwnerMongoId();
+      const report = await analyzeDailyPerformance(ownerId);
+      safeSendMessage(chatId, `🧠 <b>Self-Optimization</b>\n━━━━━━━━━━━━━━\n${report?.summary || 'Анализ выполнен. Параметры обновлены.'}\nOMEGA 🤖`);
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ ${e.message}`);
+    }
+  });
+
+  // OWNER MODE — performance report
+  bot.onText(/\/report/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    safeSendMessage(chatId, '⏳ Формирую отчёт...');
+    try {
+      const { generateOptimizationReport } = await import('./performanceMonitor.js');
+      const ownerId = await getOwnerMongoId();
+      const report = await generateOptimizationReport(ownerId);
+      const shortReport = typeof report === 'string' ? report.slice(0, 800) : JSON.stringify(report, null, 2).slice(0, 800);
+      safeSendMessage(chatId, `📈 <b>Отчёт</b>\n━━━━━━━━━━━━━━\n${shortReport}\n━━━━━━━━━━━━━━\nOMEGA 🤖`);
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ ${e.message}`);
     }
   });
 
   // OWNER MODE — publish channel post
-  bot.onText(/\/post (.+)/, async (msg, match) => {
+  bot.onText(/\/post(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
-    if (chatId.toString() !== String(OWNER_CHAT_ID)) return;
-    const topic = match[1];
-    safeSendMessage(chatId, `📝 Генерирую пост на тему: "${topic}"...`);
+    if (!isOwner(chatId)) return;
+    const topic = match[1] ? match[1].trim() : 'Новость дня';
+
+    safeSendMessage(chatId, '⏳ Генерирую пост...');
+
     try {
       const { generateChannelPost, publishToChannel } = await import('./telegramChannelManager.js');
-      const post = await generateChannelPost(topic);
-      const result = await publishToChannel(post, { pin: false });
-      if (result.success) {
-        safeSendMessage(chatId, `✅ Опубликовано!\n\n<b>${post.title}</b>\n${post.text.slice(0, 200)}...`, { parse_mode: 'HTML' });
-      } else {
-        safeSendMessage(chatId, `⚠️ Mock-режим: пост сгенерирован, но канал не настроен.\n\n<b>${post.title}</b>\n${post.text.slice(0, 300)}...`, { parse_mode: 'HTML' });
-      }
-    } catch(e) {
-      safeSendMessage(chatId, '❌ Ошибка: ' + e.message);
+      const post = await generateChannelPost({ topic, niche: 'general', style: 'viral', language: 'ru' });
+      if (!post || !post.text) throw new Error('Не удалось сгенерировать пост');
+
+      await publishToChannel({
+        text: post.text,
+        imageUrl: post.imageUrl,
+        caption: post.caption || post.text.slice(0, 200)
+      });
+
+      safeSendMessage(chatId,
+        `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
+        `📢 Канал: @aiviralstudio\n` +
+        `📝 Тема: ${topic}\n` +
+        `⏰ ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━\nOMEGA 🤖`
+      );
+    } catch (e) {
+      console.error('/post error:', e);
+      safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}\nПроверь TELEGRAM_CHANNEL в env.`);
     }
   });
 
@@ -520,42 +551,41 @@ export const initOwnerBot = () => {
       return;
     }
 
-    // Luxury inline action handlers
+    // Owner luxury menu callbacks (v9.9.11)
+    if (data === 'owner:content' || data === 'action:content' || data === 'quick:content') {
+      safeSendMessage(chatId, `🎬 <b>Контент</b>\n━━━━━━━━━━━━━━\nСоздай пост:\n/post тема поста\n\nИли открой Dashboard → Контент.`);
+      return;
+    }
+    if (data === 'owner:analytics' || data === 'action:analytics' || data === 'quick:analytics') {
+      safeSendMessage(chatId, `📊 <b>Аналитика</b>\n━━━━━━━━━━━━━━\n/report — отчёт за сегодня\n/status — статус системы\n\nDashboard: https://aiviral-studio.ru/owner?tab=analytics`);
+      return;
+    }
+    if (data === 'owner:factory' || data === 'action:factory') {
+      safeSendMessage(chatId, `🏭 <b>Factory</b>\n━━━━━━━━━━━━━━\n/improve — оптимизировать OMEGA\n\nDashboard: https://aiviral-studio.ru/owner?tab=factory`);
+      return;
+    }
+    if (data === 'owner:predictions' || data === 'action:prediction' || data === 'quick:prediction') {
+      safeSendMessage(chatId, `🔮 <b>Прогнозы</b>\n━━━━━━━━━━━━━━\nDashboard → Прогнозы: https://aiviral-studio.ru/owner?tab=prediction`);
+      return;
+    }
+    if (data === 'owner:report' || data === 'quick:report') {
+      bot.emit('message', { chat: { id: chatId }, text: '/report', from: { id: chatId } });
+      return;
+    }
+    if (data === 'owner:more' || data === 'quick:more' || data === 'action:command') {
+      safeSendMessage(chatId, `⚡ <b>Быстрые команды</b>\n━━━━━━━━━━━━━━\n/status — статус\n/improve — улучшить\n/post [тема] — пост\n/report — отчёт\n/menu — меню\n/help — помощь`);
+      return;
+    }
+
+    // Luxury inline action handlers (legacy)
     if (data.startsWith('action:') || data.startsWith('quick:')) {
       bot.answerCallbackQuery(q.id, { text: '⏳ Обрабатываю...' }).catch(() => {});
 
-      if (data === 'action:content' || data === 'quick:content') {
-        bot.sendMessage(chatId, '🎬 <b>Создание контента</b>\n\nВыберите тип:', {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: [
-            [{ text: '📝 Пост', callback_data: 'content:post' }, { text: '🎥 Видео-сценарий', callback_data: 'content:video' }],
-            [{ text: '🎨 Картинка', callback_data: 'content:image' }, { text: '🔙 Назад', callback_data: 'action:back' }]
-          ]}
-        });
-      }
-      else if (data === 'action:analytics' || data === 'quick:analytics') {
-        bot.sendMessage(chatId, '📊 <b>Аналитика</b>\n\nПока в разработке.\nИспользуйте Dashboard на сайте.', { parse_mode: 'HTML' });
-      }
-      else if (data === 'action:factory') {
-        bot.sendMessage(chatId, '🏭 <b>Project Factory</b>\n\nПерейдите в Dashboard → Project Factory', {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: [[{ text: '🌐 Открыть сайт', url: 'https://aiviral-studio.ru/project-factory' }]] }
-        });
-      }
-      else if (data === 'action:prediction') {
-        bot.sendMessage(chatId, '🔮 <b>Прогнозы</b>\n\nПерейдите в Dashboard → Разведка', {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: [[{ text: '🌐 Открыть сайт', url: 'https://aiviral-studio.ru/owner?tab=prediction' }]] }
-        });
-      }
-      else if (data === 'action:channel_post') {
+      if (data === 'action:channel_post') {
         bot.sendMessage(chatId, '📱 <b>Пост в канал</b>\n\nНапишите тему:', { parse_mode: 'HTML' });
       }
       else if (data === 'action:improve') {
         bot.sendMessage(chatId, '🛠 Запускаю /improve...\nНапишите /improve', { parse_mode: 'HTML' });
-      }
-      else if (data === 'action:command' || data === 'quick:more') {
-        bot.sendMessage(chatId, '⚡ <b>Быстрые команды</b>\n\n/status — статус\n/improve — улучшить бота\n/post [тема] — пост в канал\n/menu — меню\n/help — помощь', { parse_mode: 'HTML' });
       }
       else if (data === 'action:back') {
         const context = await getOwnerContext(chatId);

@@ -1,3 +1,14 @@
+## 2026-08-09 — v9.9.11-TELEGRAM-COMMANDS
+- [FIX] i18n: добавлены ключи telegram.* в ru.json/en.json, TelegramTab.jsx читаемый
+- [FEATURE] /post [тема] — реально публикует пост в @aiviralstudio через telegramChannelManager
+- [FEATURE] /status — показывает реальный статус MongoDB, uptime, RAM
+- [FEATURE] /improve — запускает selfReflection.analyzeDailyPerformance()
+- [FEATURE] /report — запускает performanceMonitor.generateOptimizationReport()
+- [FIX] ownerBot callback кнопки: Контент, Аналитика, Factory, Прогнозы, Отчёт, Ещё — выполняют действия
+- [FIX] Убрано дублирование меню при свободном тексте и нажатии кнопок
+- [FIX] omegaBot: menu:main и support:start корректно обрабатываются
+- [DEPLOY] Git push + Render Clear Build Cache & Deploy
+
 ## 2026-08-09 — v9.9.9-CHAT-UNIFIED
 - [FIX] Убраны дублирующиеся смайлики/иконки в OmegaChat quick actions
 - [FEATURE] Техподдержка объединена внутри OMEGA Chat — кнопка "💬 Поддержка" открывает форму тикета внутри окна чата

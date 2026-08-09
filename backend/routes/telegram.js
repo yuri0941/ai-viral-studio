@@ -10,10 +10,10 @@ function getOwnerId(req) {
 }
 
 router.post('/channel/post', protect, requireRole('owner','admin'), async (req, res) => {
-  const { topic, tone, length, options } = req.body;
-  const post = await generateChannelPost(topic, tone, length);
-  const result = await publishToChannel(post, options || {});
-  res.json({ post, publish: result });
+  const { topic, niche, style, tone, length, options } = req.body;
+  const post = await generateChannelPost({ topic, niche: niche || topic, style: style || tone || 'expert', length, language: 'ru' });
+  const result = await publishToChannel({ text: post.text, imageUrl: post.imageUrl, caption: post.caption }, options || {});
+  res.json({ success: true, post, publish: result });
 });
 
 router.get('/channel/stats', protect, requireRole('owner','admin'), async (req, res) => {

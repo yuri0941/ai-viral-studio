@@ -1,20 +1,31 @@
 import { chatWithAI } from './aiService.js';
 import { createNode } from './cognitiveMesh.js';
 
-const TELEGRAM_BOT_TOKEN = process.env.OMEGA_BOT_TOKEN || process.env.OWNER_BOT_TOKEN;
-const CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_OMEGA_BOT_TOKEN || process.env.OMEGA_BOT_TOKEN || process.env.OWNER_BOT_TOKEN;
+const CHANNEL_ID = process.env.TELEGRAM_CHANNEL || process.env.TELEGRAM_CHANNEL_ID;
 const HAS_TELEGRAM = !!TELEGRAM_BOT_TOKEN && !!CHANNEL_ID;
 
-export async function generateChannelPost(topic = 'AI trends', tone = 'expert', length = 'medium') {
+export async function generateChannelPost(params = {}) {
+  const config = typeof params === 'string' ? { topic: params, tone: 'expert', length: 'medium' } : params;
+  const topic = config.topic || config.niche || 'AI trends';
+  const tone = config.tone || config.style || 'expert';
+  const length = config.length || 'medium';
+  const language = config.language || 'ru';
   const prompt = `Write a Telegram post about ${topic} for AI Viral Studio channel. Tone: ${tone}. Length: ${length} (short=100 words, medium=250, long=500). Include 3-5 relevant hashtags. Add call-to-action: link to aiviral-studio.ru. Return JSON: { title, text, hashtags, cta, suggestedTime }`;
-  const response = await chatWithAI(prompt, [], 'ru', { system: 'Return ONLY valid JSON.', maxTokens: 1500, temperature: 0.7 });
+  const response = await chatWithAI(prompt, [], language, { system: 'Return ONLY valid JSON.', maxTokens: 1500, temperature: 0.7 });
   try { return JSON.parse(response); } catch(e) { return { title: 'AI Update', text: response.slice(0, 1000), hashtags: ['#AI', '#Viral'], cta: 'Check out aiviral-studio.ru', suggestedTime: '09:00', mock: true }; }
 }
 
 export async function publishToChannel(post, options = {}) {
   if (!HAS_TELEGRAM) return { success: false, mock: true, message: 'TELEGRAM_CHANNEL_ID или OMEGA_BOT_TOKEN не настроены. Добавьте в .env' };
   const { pin = false, disableNotification = false } = options;
-  const text = `${post.title}\n\n${post.text}\n\n${post.hashtags?.join(' ') || ''}\n\n${post.cta || ''}`;
+  const title = post.title || '';
+  const body = post.text || post.caption || '';
+  const hashtags = post.hashtags?.join(' ') || '';
+  const cta = post.cta || '';
+  const text = title
+    ? `${title}\n\n${body}\n\n${hashtags}\n\n${cta}`
+    : `${body}${cta ? '\n\n' + cta : ''}`.trim();
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -29,7 +40,7 @@ export async function publishToChannel(post, options = {}) {
         body: JSON.stringify({ chat_id: CHANNEL_ID, message_id: messageId })
       });
     }
-    await createNode({ type: 'content', content: `Telegram post published: ${post.title}`, confidence: 0.9, source: 'telegram_auto', metadata: { messageId, channelId: CHANNEL_ID, post, type: 'telegram_post' } });
+    await createNode({ type: 'content', content: `Telegram post published: ${title || body.slice(0, 50)}`, confidence: 0.9, source: 'telegram_auto', metadata: { messageId, channelId: CHANNEL_ID, post, type: 'telegram_post' } });
     return { success: true, messageId, mock: false };
   } catch(e) { return { success: false, error: e.message, mock: false }; }
 }
