@@ -47,17 +47,31 @@ function tokenPresent(req) {
     return auth && auth.startsWith('Bearer ')
 }
 
+// Публичные роуты, которые не должны лимитироваться при загрузке сайта
+const PUBLIC_API_ROUTES = [
+    '/api/health',
+    '/api/launch',
+    '/api/owner/legal-info/public',
+    '/api/public',
+    '/api/public/legal-info',
+    '/api/plans',
+    '/api/geo/currency',
+]
+
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: (req) => {
         if (isWhitelisted(req)) return 100000
         if (tokenPresent(req)) return 1000
-        return 100
+        return 10000 // [HOTFIX-2026-08-09] было 100 — слишком мало для загрузки страницы
     },
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: getClientIp,
-    skip: (req) => req.path === '/health' || req.path === '/api/health',
+    skip: (req) => {
+        if (req.path === '/health' || req.path === '/api/health') return true
+        return PUBLIC_API_ROUTES.some(route => req.path.startsWith(route))
+    },
     handler: async (req, res, next) => {
         console.warn(`[RateLimit] /api limit exceeded: ${getClientIp(req)} ${req.method} ${req.path}`)
         res.status(429).json({ success: false, error: 'Слишком много запросов. Попробуйте позже.' })
