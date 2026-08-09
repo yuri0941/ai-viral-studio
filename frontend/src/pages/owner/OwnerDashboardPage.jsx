@@ -28,7 +28,7 @@ import { LogsTab } from './components/tabs/LogsTab'
 import { OMEGACoreTab } from './components/tabs/OMEGACoreTab'
 
 import { TasksTab } from './components/tabs/TasksTab'
-import { ApiKeysTab } from './components/tabs/ApiKeysTab'
+import ApiKeysTab from './components/tabs/ApiKeysTab'
 import ExternalApiKeysTab from './components/tabs/ExternalApiKeysTab'
 import { NotificationsTab } from './components/tabs/NotificationsTab'
 import { HelpTab } from './components/tabs/HelpTab'
