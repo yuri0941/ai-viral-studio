@@ -11,6 +11,7 @@ import {
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
     Palette, LayoutTemplate, Flame, Cpu, Swords, Zap, Sparkles,
     Clapperboard, Factory, Telescope, Landmark, Send, MessageCircle, Radio,
+    Moon,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
