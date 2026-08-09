@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, Link } from 'react-router-dom'
 import { Twitter, Youtube, Send, MessageCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -62,6 +63,7 @@ function Confetti() {
 }
 
 function LandingPage() {
+    const { t } = useTranslation()
     const { isAuthenticated, user } = useAuth()
     const [authModalOpen, setAuthModalOpen] = useState(false)
     const [authModalMode, setAuthModalMode] = useState('login')
