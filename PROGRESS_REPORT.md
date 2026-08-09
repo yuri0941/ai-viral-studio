@@ -3529,3 +3529,19 @@
 - [x] `npm run build` — 0 errors
 - [x] Git commit/push: выполнен
 - [ ] Render deploy: требует ручного Clear Build Cache & Deploy
+
+## 2026-08-10 — v9.9.18-FINALIZE
+- [RESTORE] Client Bot: Churn Guard, Sales Script Engine, Auto-Escalation, Context Memory
+- [RESTORE] OmegaChat UI: support button, Telegram button, voice input, platform preview, image upload, orb-avatar
+- [CREATE] SupportTab: форма тикетов, история, Telegram
+- [CREATE] TicketsTab: source badge, priority, join dialog, full context, inline reply
+- [RESTORE] Morning Reports: cron 08:00 MSK, реальные данные из MongoDB
+- [CREATE] YouTube AI: channel analytics, Shorts script, title generator, ApiKeysTab поле
+- [CREATE] Anti-Fail UI: uptime, error rate, provider, backup, alerts
+- [CREATE] OmegaMemoryExplorer: 8 слоёв, поиск
+- [CREATE] Swarm Dashboard: агенты, spawn Content/Analytics/Support/Trend
+- [i18n] Полные ключи ru/en: youtube, antifail, memory, swarm, omega.spawn
+- [BUILD] ✅ node --check OK, npm run build OK
+- [DEPLOY] ✅ Render live (https://aiviral-backend.onrender.com/api/health)
+- [GIT] Commit: v9.9.18-FINALIZE: client bot, support, tickets, morning reports, youtube, antifail, memory, swarm, i18n
+- [STATUS] 🟢 v9.9.18 ПОЛНОСТЬЮ ГОТОВ. Переходим к v9.9.19.
