@@ -433,6 +433,16 @@ app.get('/api/health', (req, res) => {
     })
 })
 
+// Health-check для UptimeRobot, cron-job.org и keep-alive
+app.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        service: 'AI Viral Studio API',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    })
+})
+
 // Public legal info endpoint (for privacy policy, terms, footer)
 app.get('/api/public/legal-info', getPublicLegalInfo)
 
