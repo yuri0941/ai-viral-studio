@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { protect, requireRole } from '../middleware/auth.js';
 import { getSwarmStatus, orchestrate, spawnWorker } from '../services/agentSwarm.js';
-import { queryMesh, getRelated, pruneMesh } from '../services/cognitiveMesh.js';
+import { queryMesh, getRelated, pruneMesh, findNodes } from '../services/cognitiveMesh.js';
 import { storeMemory, recallMemory, compressAndArchive } from '../services/infiniteMemory.js';
 import { evaluateMigration, autoScaleDecision, scanServerPrices } from '../services/autoScaler.js';
 import { getBalance, getTransactionHistory } from '../services/cryptoWallet.js';
@@ -19,6 +19,13 @@ router.get('/mesh/query', protect, async (req, res) => {
 router.get('/mesh/related/:nodeId', protect, async (req, res) => {
   const results = await getRelated(req.params.nodeId, 2);
   res.json({ nodeId: req.params.nodeId, related: results });
+});
+
+// [v9.9.14-OMEGA-AUTONOMY] Neural Graph nodes endpoint
+router.get('/mesh/nodes', protect, async (req, res) => {
+  const { type, label, limit = 50 } = req.query;
+  const nodes = await findNodes({ type, label, limit: parseInt(limit) || 50 });
+  res.json({ nodes, count: nodes.length });
 });
 
 router.get('/swarm/status', protect, requireRole('owner','admin'), async (req, res) => {
