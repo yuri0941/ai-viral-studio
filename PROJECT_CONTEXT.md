@@ -4,12 +4,27 @@
 
 ---
 
-## 2026-08-09 — Контекст v9.9.18
-- Neural Graph исправлен: force-directed canvas, 47 узлов, 173 связи, 5 кластеров, drag/zoom/pan, фильтры, поиск, инфо-панель
-- Project Factory backend: генерация 3 вариантов, ZIP export, /api/omega/project/*
-- Owner Bot: /factory, /stop, owner-контекст без продаж, deleteWebhook перед setWebhook
-- Role System и Privacy Firewall восстановлены согласно спецификации v9.9.18
-- Оставшиеся шаги: OmegaChat UI, TicketsTab/SupportTab, Self-Learning Tab, Auto-Tabs, Morning Reports, YouTube AI cards, полная i18n
+## 2026-08-10 — Контекст v9.9.20
+- Neural Graph: force-directed canvas, 47+ узлов, 173+ связей, 5+ кластеров, drag/zoom/pan, фильтры, поиск, инфо-панель
+- Project Factory: генерация 3 вариантов, ZIP export, live preview, /api/omega/project/*
+- Owner Bot: полный контроль (/menu, /status, /post, /factory, /exec, /improve, /report, /omega, /stop, /channel, /calendar), не продаёт
+- Client Bot: Churn Guard, Sales Script Engine, Auto-Escalation, Context Memory, Smart Routing
+- OmegaChat UI: glass bubbles, orb-avatar, typing, role badge, voice, support, image upload, platform preview
+- SupportTab, TicketsTab: тикеты, Telegram, source badge, priority, inline reply
+- Self-Learning Tab, Auto-Tabs, Morning Reports (08:00 MSK), YouTube AI, Anti-Fail UI, Memory Explorer, Swarm Dashboard
+- VK OAuth + Telegram Connect, Channel Manager (@aiviralstudio), Sales Autopilot, Advertiser Suite, Concierge
+- Growth Loop (рефералы, watermark, leaderboard, challenges), Business Dev, Free→Paid bridge
+- Luxury UI v2: spring/hover/shimmer/glass + звуки + haptic
+- i18n: полные ключи ru/en
+
+## Что уже реализовано (v9.9.20)
+- Channel Manager, Sales Autopilot, Advertiser Suite (/advertise + dashboard), Concierge, Growth Loop, Business Dev, Free→Paid
+- VK/Telegram интеграции, YouTube AI, Morning Reports, Neural Graph, OmegaChat, Owner/Client боты
+- Project Factory, Self-Learning, Auto-Tabs, Memory Explorer, Swarm, Anti-Fail
+- Luxury UI, звуки, haptic, полная i18n
+
+## Что сейчас в работе
+- Следующий этап v9.9.21: Neuro-Sales Dashboard v2, Predictive Engine, Voice Mode full, Fine-tuning, White-Label, Dynamic Pricing, A2A Protocol
 
 ## 2026-08-09 — Контекст v9.9.9
 - Чат OMEGA — единая точка входа: AI-диалог + техподдержка внутри одного окна

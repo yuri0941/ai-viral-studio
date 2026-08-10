@@ -3557,3 +3557,18 @@
 - [GIT] Commits: v9.9.19-VK-TELEGRAM-VERIFY, HOTFIX: connect vk and telegram routes, HOTFIX: vk env variable name fix
 - [DEPLOY] Telegram endpoint live on Render; VK endpoint requires Clear Build Cache & Deploy to activate
 - [STATUS] 🟡 Роуты готовы. Нужно: Clear Build Cache → Deploy → проверить VK/Telegram.
+
+## 2026-08-10 — v9.9.20-GROWTH-ENGINE
+- [FEATURE] Channel Manager: авто-посты @aiviralstudio, календарь, /channel, /calendar
+- [FEATURE] Sales Autopilot: 7-шаг drip, upsell triggers, FOMO, воронка free→paid
+- [FEATURE] Advertiser Suite: /advertise landing, калькулятор, КП за 30 сек, ROI dashboard
+- [FEATURE] Concierge: Booking, Order, Purchase через AI
+- [FEATURE] Luxury UI v2: spring, hover, shimmer, glassmorphism
+- [FEATURE] Sound: 5 звуков, toggle
+- [FEATURE] Haptic: вибрация на мобильных
+- [FEATURE] Growth Loop: рефералы, watermark, leaderboard, challenges
+- [FEATURE] Business Dev: prospects, холодные письма, follow-up
+- [FEATURE] Free→Paid: умные лимиты, grace period 3 дня, upgrade prompt
+- [TEST] ✅ Health, Channel, Build — все PASS
+- [GIT] Commit: v9.9.20-GROWTH-ENGINE
+- [STATUS] 🚀 Готов к привлечению первых 100 клиентов и 10 рекламодателей
