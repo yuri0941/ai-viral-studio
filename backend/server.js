@@ -116,6 +116,7 @@ import adOrderRoutes from './routes/adOrders.js'  // [v9.9.5-TELEGRAM-UNIFIED]
 import discountRoutes from './routes/discounts.js'  // [v9.9.5-TELEGRAM-UNIFIED]
 import salesMetricsRoutes from './routes/salesMetrics.js'  // [v9.9.8-SALES-OMEGA]
 import desktopUpdateRoutes from './routes/desktopUpdate.js'  // [v7.0] added: Tauri desktop updater
+import mediaRoutes from './routes/media.js'  // [v9.9.19.6] media publisher
 import { startBackupCron } from './services/disasterRecovery.js'  // [v7.0-PART2] added: disaster recovery
 import disasterRoutes from './routes/disaster.js'  // [v7.0-PART2] added: disaster recovery API
 import { startMonitoringCron, monitoringMiddleware } from './services/monitoringService.js'  // [v7.0-PART2] added: monitoring
@@ -568,6 +569,7 @@ app.use('/api/approvals', approvalRoutes)  // [v6.5] added: OMEGA approval queue
 app.use('/api/repurposing', repurposingRoutes)  // [v6.5] added: content repurposing engine
 app.use('/api/version', versionRoutes)  // [v6.5.5] added: version API
 app.use('/api/desktop', desktopUpdateRoutes)  // [v7.0] added: Tauri desktop updater
+app.use('/api/media', mediaRoutes)  // [v9.9.19.6] media publisher
 app.use('/api/downloads', downloadsRoutes)  // [v7.0] added: download center
 app.use('/api/admin', disasterRoutes)  // [v7.0-PART2] added: disaster recovery
 app.use('/api/admin', monitoringRoutes)  // [v7.0-PART2] added: monitoring API

@@ -1,10 +1,18 @@
 # OMEGA_CONTEXT — AI Viral Studio
 
-## Версия: v9.9.20
+## Версия: v9.9.19.6
 ## Дата: 2026-08-10
+## Статус: Люкс + адаптив
+
+### Достижения
+- Neural Graph: 47 узлов, 183 связи, 6 кластеров, force-directed, mobile pinch-zoom
+- Telegram: подключение каналов, публикация фото/видео, luxury боты
+- VK: redirect_uri исправлен (без UI)
+- Responsive: iPhone SE → 4K, safe-area, touch targets, drawer
+- Боты: morning reports, media, web search, support — всё в HTML с inline кнопками
 
 ### Архитектура OMEGA
-- 8 слоёв памяти, Neural Graph (47+ узлов, 173+ связей, 5+ кластеров), Context Engine, Privacy Firewall
+- 8 слоёв памяти, Neural Graph (47+ узлов, 183+ связей, 6 кластеров), Context Engine, Privacy Firewall
 - Intent Engine, Action Engine, Learning Engine, Self-Reflection
 - Project Factory: 3 варианта, live preview, ZIP export, Telegram send
 - Self-Learning: Skill Gap Detection, Learning Queue, Agent Delegation
@@ -17,8 +25,8 @@
 
 ### UI Компоненты
 - OmegaChat: glass bubbles, orb-avatar, typing, role badge, voice, support
-- OmegaChatWidget: draggable, adaptive, FAB
-- NeuralGraphTab: force-directed, интерактивный, mobile-friendly
+- OmegaChatWidget: draggable, adaptive, FAB, mobile bottom sheet
+- NeuralGraphTab: force-directed, интерактивный, mobile-friendly, luxury colors
 - DevStudioTab/ProjectFactoryTab: artifacts, preview, files, ZIP
 - OmegaLearningTab: прогресс, очередь, делегация
 - Anti-Fail, Memory Explorer, Swarm Dashboard
@@ -26,7 +34,7 @@
 
 ### Интеграции
 - YouTube AI, Morning Reports (08:00), Unified Support (Web/App↔Telegram)
-- VK OAuth, Telegram Connect
+- VK OAuth, Telegram Connect, Media Publisher, Web Search
 
 ### Стратегия роста
 - Неделя 1-2: Free → drip → 10% конверсия
@@ -35,6 +43,5 @@
 - Неделя 7-8: Challenge + Leaderboard → community
 - Неделя 9-12: Business Dev → B2B, Agency
 
-### Следующий этап: v9.9.21
-- Neuro-Sales Dashboard, Predictive Engine, Voice Mode full
-- Fine-tuning pipeline, White-Label polish, Dynamic Pricing, A2A Protocol
+### Следующий этап: v9.9.20
+- Channel Manager v2, Sales Autopilot v2, Advertiser Suite polish, Concierge v2, Growth Loop v2

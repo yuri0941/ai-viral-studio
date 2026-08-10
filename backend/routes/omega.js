@@ -478,6 +478,19 @@ router.get('/learning/status', protect, (req, res) => {
 })
 
 // [v6.6] Neural Graph endpoints
+router.get('/neural-graph', (req, res) => {
+    const nodes = generateNeuralNodes(47)
+    const edges = []
+    for (let i = 0; i < nodes.length; i++) {
+        const connCount = nodes[i].connections || Math.min(5, Math.floor(Math.random() * 4) + 1)
+        for (let k = 0; k < connCount; k++) {
+            const j = (i + k + 1) % nodes.length
+            if (i === j) continue
+            edges.push({ source: nodes[i].id, target: nodes[j].id, weight: Math.random() * 0.5 + 0.3, relation: 'related' })
+        }
+    }
+    res.json({ nodes, edges, clusters: 6, lastUpdate: new Date().toISOString() })
+})
 router.get('/neural-graph/status', (req, res) => {
     res.json({ nodes: 47, edges: 128, clusters: 5, lastUpdate: new Date().toISOString() })
 })

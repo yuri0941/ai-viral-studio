@@ -113,28 +113,47 @@ export function IntegrationsTab({ data }) {
             </div>
 
             {tab === 'social' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {data.integrations.map(integ => (
-                        <div key={integ.id} className="p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--border)] transition-colors">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-lg">{icons[integ.id] || '🔗'}</div>
-                                    <div>
-                                        <div className="text-sm font-semibold text-[var(--text)]">{integ.name}</div>
-                                        <StatusBadge status={integ.status} pulse={integ.status === 'active'} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {data.integrations.map(integ => {
+                        const isTelegram = integ.id === 'telegram'
+                        const handleConnect = () => {
+                            if (isTelegram) {
+                                const botLink = process.env.TELEGRAM_BOT_LINK || process.env.TELEGRAM_OMEGA_BOT_LINK || 'https://t.me/aiviral_omega_bot'
+                                window.open(`${botLink}?start=connect_${data.user?.id || 'owner'}`, '_blank')
+                                return
+                            }
+                            data.toggleIntegration(integ.id)
+                        }
+                        return (
+                            <div key={integ.id} className="group relative p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all duration-300 hover:shadow-lg hover:shadow-[var(--primary)]/5 hover:-translate-y-0.5 overflow-hidden">
+                                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br ${integ.id === 'telegram' ? 'from-blue-400/10 to-cyan-400/5' : 'from-[var(--primary)]/5 to-transparent'}`} />
+                                <div className="relative flex items-start justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${integ.id === 'telegram' ? 'from-blue-400 to-cyan-400' : 'from-[var(--primary)] to-fuchsia-500'} flex items-center justify-center text-white shadow-lg`}>
+                                            {integ.id === 'telegram' ? <Send size={22} /> : <span className="text-xl">{icons[integ.id] || '🔗'}</span>}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-semibold text-[var(--text)]">{integ.name}</div>
+                                            <div className={`text-xs ${integ.connected ? 'text-emerald-400' : 'text-gray-400'}`}>{integ.connected ? 'Подключено' : 'Не подключено'}</div>
+                                        </div>
                                     </div>
+                                    <button type="button" onClick={handleConnect} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${integ.connected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 hover:bg-[var(--primary)]/20'}`}>
+                                        {integ.connected ? 'Управление' : 'Подключить'}
+                                    </button>
                                 </div>
-                                <button type="button" onClick={() => data.toggleIntegration(integ.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${integ.connected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-400 border border-[var(--border)]'}`}>{integ.connected ? 'Подключено' : 'Подключить'}</button>
+                                <p className="relative text-xs text-[var(--text-muted)] mb-3">
+                                    {integ.id === 'telegram' ? 'Каналы, боты, авто-посты' : integ.id === 'youtube' ? 'Shorts, видео, аналитика' : integ.id === 'tiktok' ? 'Reels, тренды, вирусность' : integ.id === 'instagram' ? 'Посты, Reels, Stories' : 'Социальная сеть'}
+                                </p>
+                                {integ.connected && (
+                                    <div className="relative grid grid-cols-3 gap-2 pt-3 border-t border-[var(--border)]">
+                                        <div className="text-center"><div className="text-[10px] uppercase tracking-wider text-gray-500">Подписчики</div><div className="text-sm font-semibold text-[var(--text)]">{integ.followers?.toLocaleString()}</div></div>
+                                        <div className="text-center"><div className="text-[10px] uppercase tracking-wider text-gray-500">Просмотры</div><div className="text-sm font-semibold text-[var(--text)]">{integ.views}</div></div>
+                                        <div className="text-center"><div className="text-[10px] uppercase tracking-wider text-gray-500">Синхронизация</div><div className="text-sm font-semibold text-[var(--text)]">{integ.lastSync}</div></div>
+                                    </div>
+                                )}
                             </div>
-                            {integ.connected && (
-                                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-[var(--border)]">
-                                    <div className="text-center"><div className="text-xs text-gray-500">Подписчики</div><div className="text-sm font-medium text-[var(--text)]">{integ.followers?.toLocaleString()}</div></div>
-                                    <div className="text-center"><div className="text-xs text-gray-500">Просмотры</div><div className="text-sm font-medium text-[var(--text)]">{integ.views}</div></div>
-                                    <div className="text-center"><div className="text-xs text-gray-500">Синхронизация</div><div className="text-sm font-medium text-[var(--text)]">{integ.lastSync}</div></div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                        )
+                    })}
                 </div>
             )}
 

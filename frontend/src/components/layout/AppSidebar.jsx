@@ -199,6 +199,16 @@ const OWNER_GROUPS = [
 
 const ACTIVE_COLOR = '#8B5CF6'
 
+function useWindowWidth() {
+    const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1440)
+    useEffect(() => {
+        const handle = () => setWidth(window.innerWidth)
+        window.addEventListener('resize', handle)
+        return () => window.removeEventListener('resize', handle)
+    }, [])
+    return width
+}
+
 function useLocalStorage(key, initial) {
     const [value, setValue] = useState(() => {
         try {
@@ -237,7 +247,8 @@ export function AppSidebar({
     })
 
     const isOwner = userRole === 'owner'
-    const isExpanded = isMobile ? true : (expanded || hovered)
+    const windowWidth = useWindowWidth()
+    const isExpanded = isMobile ? true : (windowWidth >= 1440 || (windowWidth >= 1024 && (expanded || hovered)))
 
     const roleMenu = menuItems || ROLE_MENU[userRole] || ROLE_MENU.creator
 

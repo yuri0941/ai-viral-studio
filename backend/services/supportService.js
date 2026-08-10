@@ -64,7 +64,26 @@ export async function createTicket(data) {
   if (ticket.priority === 'urgent' || ticket.priority === 'high' || ticket.aiConfidence < 0.7) {
     try {
       const emoji = ticket.priority === 'urgent' ? '🔴' : '🟠'
-      await alertOwner(`${emoji} <b>Тикет #${ticket._id.toString().slice(-6)} требует внимания!</b>\nТема: ${data.subject}\nПриоритет: ${ticket.priority.toUpperCase()}\nИсточник: ${getSourceBadge(source)}\nAI уверенность: ${Math.round(ticket.aiConfidence * 100)}%\nОтветь в Dashboard → Поддержка.`)
+      const priorityLabel = ticket.priority === 'urgent' ? 'Срочный' : ticket.priority === 'high' ? 'Высокий' : 'Нормальный'
+      await alertOwner([
+        `${emoji} <b>Тикет #${ticket._id.toString().slice(-6)} требует внимания!</b>`,
+        `━━━━━━━━━━━━━━`,
+        `<b>👤 Клиент:</b> ${data.userName || data.userEmail || '—'}`,
+        `<b>📱 Источник:</b> ${getSourceBadge(source)}`,
+        `<b>🎯 Тема:</b> ${data.subject}`,
+        `<b>⚡ Приоритет:</b> ${priorityLabel}`,
+        `<b>💡 AI-анализ:</b> ${Math.round(ticket.aiConfidence * 100)}% — ${ticket.aiSuggestion?.slice(0, 120)}...`,
+        `📝 <i>${(data.description || '').slice(0, 200)}</i>`,
+        `━━━━━━━━━━━━━━`,
+        `<a href="https://aiviral-studio.ru/owner?tab=support">Открыть в Dashboard →</a>`
+      ].join('\n'), {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '👁 Присоединиться', callback_data: `ticket:join:${ticket._id}` }, { text: '✅ Закрыть', callback_data: `ticket:close:${ticket._id}` }],
+            [{ text: '⬆️ Эскалация', callback_data: `ticket:escalate:${ticket._id}` }]
+          ]
+        }
+      })
     } catch (e) {
       console.warn('[supportService] owner alert failed:', e.message)
     }

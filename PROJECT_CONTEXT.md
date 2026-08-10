@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-08-10 — Контекст v9.9.19.6-TELEGRAM-LUXURY-NEURAL
+- VK: redirect_uri исправлен, env guard от падения 503
+- Telegram: карточка подключения в "Мои соцсети", публикация фото/видео через Media Publisher
+- Neural Graph: 47+ узлов, 183+ связей, 6 кластеров, force-directed, адаптивный canvas, pinch-zoom
+- Luxury Bots: Owner/Client боты с HTML-карточками, inline keyboards, typing-эффектом, утренними репортами
+- Responsive: safe-area, breakpoints, touch targets 44px, sidebar drawer, OmegaChat adaptive
+- Web Search, Support Luxury, i18n обновлены
+- Следующий этап: v9.9.20-GROWTH-ENGINE
+
 ## 2026-08-10 — Контекст v9.9.20
 - Neural Graph: force-directed canvas, 47+ узлов, 173+ связей, 5+ кластеров, drag/zoom/pan, фильтры, поиск, инфо-панель
 - Project Factory: генерация 3 вариантов, ZIP export, live preview, /api/omega/project/*

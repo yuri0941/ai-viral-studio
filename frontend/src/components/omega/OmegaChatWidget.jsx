@@ -105,17 +105,20 @@ export default function OmegaChatWidget({ onOpenApiKeys }) {
     );
   }
 
+  const isMobile = window.innerWidth < 768;
+  const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
+
   return (
     <div
       ref={dragRef}
-      className={`fixed z-50 flex flex-col bg-[#0a0a0f] border border-white/10 rounded-2xl shadow-2xl overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-default'}`}
+      className={`fixed z-50 flex flex-col bg-[#0a0a0f] border border-white/10 shadow-2xl overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-default'} ${isMobile ? 'rounded-t-2xl bottom-0 left-0 right-0 w-full' : 'rounded-2xl'}`}
       style={{
-        width: 'clamp(320px, 90vw, 420px)',
-        height: isMinimized ? '56px' : 'clamp(500px, 80vh, 650px)',
-        right: position.x === null ? '24px' : 'auto',
-        bottom: position.y === null ? '24px' : 'auto',
-        left: position.x !== null ? `${position.x}px` : 'auto',
-        top: position.y !== null ? `${position.y}px` : 'auto',
+        width: isMobile ? '100%' : isTablet ? '380px' : '420px',
+        height: isMinimized ? '56px' : (isMobile ? '65vh' : 'clamp(500px, 80vh, 650px)'),
+        right: isMobile ? 0 : (position.x === null ? '24px' : 'auto'),
+        bottom: isMobile ? 0 : (position.y === null ? '24px' : 'auto'),
+        left: isMobile ? 0 : (position.x !== null ? `${position.x}px` : 'auto'),
+        top: isMobile ? 'auto' : (position.y !== null ? `${position.y}px` : 'auto'),
         transition: isDragging ? 'none' : 'height 0.3s ease',
       }}
     >

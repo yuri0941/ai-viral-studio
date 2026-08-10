@@ -578,9 +578,38 @@ html, body, #root {
 }
 
 /* === ADAPTIVE v6.6 === */
-html { overflow-x: hidden; min-width: 320px; }
-body { overflow-x: hidden; touch-action: manipulation; }
+:root {
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
+}
+
+html { overflow-x: hidden; min-width: 320px; font-size: 14px; }
+@media (min-width: 768px) { html { font-size: 15px; } }
+@media (min-width: 1024px) { html { font-size: 16px; } }
+
+body {
+  overflow-x: hidden;
+  touch-action: manipulation;
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
 input, textarea, select { font-size: 16px !important; }
+
+.app-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+@media (min-width: 768px) { .app-container { padding: 0 24px; } }
+@media (min-width: 1024px) { .app-container { padding: 0 32px; } }
+@media (min-width: 1440px) { .app-container { padding: 0 48px; } }
+
+button, a, [role="button"] { min-height: 44px; min-width: 44px; }
 
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }

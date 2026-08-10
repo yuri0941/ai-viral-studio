@@ -127,8 +127,54 @@ export const initOmegaBot = () => {
     const isOwner = String(chatId) === String(OWNER_CHAT_ID)
     const help = isOwner
       ? `<b>👑 Owner Commands</b>\n\n/start — Главное меню\n/exec [задача] — Выполнить\n/feature [идея] — ТЗ для новой фичи\n/menu [описание] — Изменить меню\n/improve — Улучшить бота\n/help — Эта справка\n\n<i>Свободный текст — OMEGA выполнит как команду</i>`
-      : `<b>🤖 OMEGA Help</b>\n\n/create_post — Создать пост\n/hook — Хук для видео\n/analyze — Анализ конкурента\n/plan — Контент-план\n/cover — AI-обложка\n\n<i>Или просто напишите тему!</i>`
+      : `<b>🤖 OMEGA Help</b>\n\n/create_post — Создать пост\n/hook — Хук для видео\n/analyze — Анализ конкурента\n/plan — Контент-план\n/cover — AI-обложка\n/ideas — 3 идеи для контента\n/trends — Тренды ниши\n\n<i>Или просто напишите тему!</i>`
     safeSendMessage(chatId, help, { parse_mode: 'HTML' })
+  })
+
+  // [v9.9.19.6] /ideas — 3 content ideas with cards
+  bot.onText(/\/ideas(?:\s+(.+))?/, async (msg, match) => {
+    const chatId = msg.chat.id
+    const niche = (match[1] || 'smm').trim()
+    try {
+      bot.sendChatAction(chatId, 'typing')
+      const result = await chatWithAI(`Предложи 3 идеи для коротких вирусных постов в нише "${niche}". Ответь строго: 1) ... 2) ... 3) ...`, [], 'ru', { maxTokens: 400 })
+      const text = result?.reply || result?.text || '1) История клиента 2) Тренд дня 3) Челлендж'
+      const ideas = text.split(/\n?\d+\)\s*/).filter(Boolean).slice(0, 3)
+      const lines = ideas.map((idea, i) => `${i + 1}️⃣ <b>Идея ${i + 1}</b>\n${idea.trim()}`).join('\n\n')
+      bot.sendMessage(chatId, `✦ <b>Идеи для ${niche}</b> ✦\n━━━━━━━━━━━━━━\n\n${lines}`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '✅ Выбрать идею 1', callback_data: 'idea:1' }, { text: '✅ Выбрать идею 2', callback_data: 'idea:2' }],
+            [{ text: '✅ Выбрать идею 3', callback_data: 'idea:3' }, { text: '🔄 Ещё', callback_data: 'ideas:more' }]
+          ]
+        }
+      })
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`, { parse_mode: 'HTML' })
+    }
+  })
+
+  // [v9.9.19.6] /trends — web search trends
+  bot.onText(/\/trends(?:\s+(.+))?/, async (msg, match) => {
+    const chatId = msg.chat.id
+    const niche = (match[1] || 'smm').trim()
+    try {
+      bot.sendChatAction(chatId, 'typing')
+      const { getTrendingTopics, formatWebResultsLuxury } = await import('./webSearch.js')
+      const trends = await getTrendingTopics(niche, 5)
+      const lines = trends.map((t, i) => `${i + 1}️⃣ ${t}`).join('\n')
+      bot.sendMessage(chatId, `🔥 <b>Тренды ${niche}</b>\n━━━━━━━━━━━━━━\n\n${lines || 'Тренды временно недоступны'}`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📝 Создать пост по тренду', callback_data: 'trend:post' }, { text: '🔄 Обновить', callback_data: 'trends:refresh' }]
+          ]
+        }
+      })
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`, { parse_mode: 'HTML' })
+    }
   })
 
   // OWNER MODE — авто-улучшение бота
@@ -214,7 +260,15 @@ export const initOmegaBot = () => {
 
     try {
       bot.sendChatAction(chatId, 'typing');
-      const ai = await chatWithAI(systemPrompt, history, 'ru', { maxTokens: 700, temperature: 0.75 });
+      let webContext = ''
+      if (isWebSearchQuery(text)) {
+        try {
+          const { searchWeb, formatWebResultsLuxury } = await import('./webSearch.js')
+          const results = await searchWeb(text, 3)
+          webContext = '\n\n' + formatWebResultsLuxury(results)
+        } catch (e) { console.warn('[omegaBot] web search failed:', e.message) }
+      }
+      const ai = await chatWithAI(systemPrompt + webContext, history, 'ru', { maxTokens: 700, temperature: 0.75 });
       let reply = ai?.reply || ai?.text || 'Извините, я временно недоступна. Попробуйте позже.';
 
       // Privacy Firewall — пост-обработка ответа
@@ -227,8 +281,7 @@ export const initOmegaBot = () => {
 
       // Churn Guard — если клиент хочет уйти
       if (isChurnRisk) {
-        reply = `😔 Жаль, что что-то пошло не так...\n\nЯ подготовила для вас персональное предложение: **OMEGACHURN30** — скидка 30% на 3 месяца + персональный onboarding с нашим экспертом.\n\nИли, если хотите, я подключу специалиста прямо сейчас. Что выберете?`;
-        // Создаём тикет с высоким приоритетом
+        reply = `😔 Мы ценим вас и хотим всё исправить.\n\n<b>OMEGACHURN30</b> — скидка 30% на 3 месяца + персональный onboarding.`;
         try {
           const { createTicket } = await import('./supportService.js');
           await createTicket({
@@ -240,15 +293,15 @@ export const initOmegaBot = () => {
           await updateDialogueOutcome(chatId, 'churn_risk');
         } catch (e) { console.error('Churn ticket failed:', e); }
 
-        await bot.sendMessage(chatId, `🤖 <b>OMEGA</b>\n━━━━━━━━━━━━━━\n${reply}`, {
+        await bot.sendMessage(chatId, `🛡 <b>Churn Guard</b>\n━━━━━━━━━━━━━━\n${reply}`, {
           parse_mode: 'HTML',
           reply_markup: { inline_keyboard: [
-            [{ text: '🎁 Активировать скидку 30%', callback_data: 'discount:churn30' }],
+            [{ text: '🎁 Активировать OMEGACHURN30', callback_data: 'discount:churn30' }],
             [{ text: '💬 Поговорить со специалистом', callback_data: 'support:urgent' }],
             [{ text: '📋 Меню', callback_data: 'menu:main' }]
           ]}
         });
-        return; // Не сохраняем в обычную историю, уже сохранили как churn_risk
+        return;
       }
 
       // Smart Routing — определяем intent для inline keyboard
@@ -290,7 +343,12 @@ export const initOmegaBot = () => {
       // Сохраняем ответ в историю
       global.clientDialogues[chatId].push({ role: 'assistant', content: reply, intent, time: Date.now() });
 
-      await bot.sendMessage(chatId, `🤖 <b>OMEGA</b>\n━━━━━━━━━━━━━━\n${reply}`, {
+      const formattedReply = reply
+        .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+        .replace(/\*(.+?)\*/g, '<i>$1</i>')
+        .replace(/^(\d+)\.\s/gm, '$1️⃣ ')
+
+      await bot.sendMessage(chatId, `✦ <b>OMEGA</b> ✦\n━━━━━━━━━━━━━━\n${formattedReply}`, {
         parse_mode: 'HTML',
         reply_markup: { inline_keyboard: keyboard }
       });
@@ -495,6 +553,22 @@ export const initOmegaBot = () => {
       if (data === 'video:start') {
         bot.sendMessage(chatId, `🎬 <b>Создание видео</b>\n━━━━━━━━━━━━━━\nНапишите тему (например: "как продвигать кофейню в TikTok")`, { parse_mode: 'HTML' })
         videoState.set(chatId, { step: 'awaiting_topic' })
+        return
+      }
+      if (data === 'ideas:more') {
+        bot.emit('message', { chat: { id: chatId }, text: '/ideas', from: { id: chatId } })
+        return
+      }
+      if (data === 'trends:refresh') {
+        bot.emit('message', { chat: { id: chatId }, text: '/trends', from: { id: chatId } })
+        return
+      }
+      if (data.startsWith('idea:')) {
+        const idx = data.split(':')[1]
+        bot.sendMessage(chatId, `✅ <b>Идея ${idx} выбрана</b>\n━━━━━━━━━━━━━━\nНапишите, для какой ниши — и я сгенерирую пост.`, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: [[{ text: '📝 Создать пост', callback_data: 'post:start' }, { text: '📋 Меню', callback_data: 'menu:main' }]] }
+        })
         return
       }
       if (data === 'ad:myorders') {

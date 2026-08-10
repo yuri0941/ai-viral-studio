@@ -1668,5 +1668,43 @@
   "landing": {
     "start": "Start",
     "login": "Login"
+  },
+  "telegramConnect": {
+    "title": "Telegram",
+    "description": "Channels, bots, auto-posts",
+    "connect": "Connect",
+    "connected": "Connected",
+    "channels": "Channels",
+    "bots": "Bots"
+  },
+  "morningReport": {
+    "title": "Morning Report",
+    "mrr": "MRR",
+    "revenue24h": "Revenue 24h",
+    "revenue7d": "Revenue 7d",
+    "subscriptions": "Subscriptions",
+    "tickets": "Tickets",
+    "insight": "OMEGA Insight"
+  },
+  "mediaPublisher": {
+    "title": "Media Publisher",
+    "generateCover": "Generate Cover",
+    "publishPhoto": "Publish Photo",
+    "publishVideo": "Publish Video",
+    "caption": "Caption"
+  },
+  "webSearch": {
+    "title": "Web Search",
+    "trends": "Trends",
+    "sources": "Sources",
+    "search": "Search"
+  },
+  "supportLuxury": {
+    "title": "Support",
+    "ticketCreated": "Ticket created",
+    "priority": "Priority",
+    "join": "Join",
+    "close": "Close",
+    "escalate": "Escalate"
   }
 }

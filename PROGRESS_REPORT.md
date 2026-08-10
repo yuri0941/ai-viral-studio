@@ -3572,3 +3572,18 @@
 - [TEST] ✅ Health, Channel, Build — все PASS
 - [GIT] Commit: v9.9.20-GROWTH-ENGINE
 - [STATUS] 🚀 Готов к привлечению первых 100 клиентов и 10 рекламодателей
+
+## 2026-08-10 — v9.9.19.6-TELEGRAM-LUXURY-NEURAL
+- [FIX] VK redirect_uri: совпадение с настройками приложения, guard от падения
+- [FEATURE] Telegram Connect: карточка в "Мои соцсети", подключение канала через @aiviral_omega_bot
+- [FEATURE] Neural Graph Luxury: force-directed, 47+ узлов, 183+ связей, 6 кластеров, адаптивный canvas, pinch-zoom
+- [FEATURE] Luxury Morning Reports: HTML-разметка, ASCII-графики, inline кнопки
+- [FEATURE] Owner Bot Luxury: typing эффект, HTML-карточки, inline keyboards, dedup алертов
+- [FEATURE] Client Bot Luxury: структурированные блоки, карусель идей, CTA-кнопки
+- [FEATURE] Media Publisher: генерация обложек Pollinations, публикация фото/видео в Telegram
+- [FEATURE] Web Search: SerpAPI + DuckDuckGo, тренды по нише
+- [FEATURE] Support Luxury: HTML-карточки тикетов, inline кнопки для owner
+- [FEATURE] Responsive: safe-area, breakpoints, touch targets 44px, sidebar drawer, OmegaChat adaptive
+- [TEST] Health, Graph, VK auth-url, Build — все PASS
+- [GIT] Commit: v9.9.19.6-TELEGRAM-LUXURY-NEURAL
+- [STATUS] Люкс + адаптив. Готов к v9.9.20.

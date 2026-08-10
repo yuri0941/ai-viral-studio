@@ -8,6 +8,10 @@ const VK_APP_ID = process.env.VK_APP_ID;
 const VK_APP_SECRET = process.env.VK_APP_SECRET;
 const REDIRECT_URI = `${process.env.RENDER_EXTERNAL_URL || process.env.BACKEND_URL || 'https://aiviral-backend.onrender.com'}/api/vk/callback`;
 
+console.log('[VK] Redirect URI:', REDIRECT_URI);
+console.log('[VK] App ID:', VK_APP_ID ? 'OK' : 'MISSING');
+console.log('[VK] App Secret:', VK_APP_SECRET ? 'OK' : 'MISSING');
+
 router.get('/vk/auth-url', protect, (req, res) => {
   if (!VK_APP_ID || !VK_APP_SECRET) {
     console.error('VK ENV MISSING:', { VK_APP_ID: !!VK_APP_ID, VK_APP_SECRET: !!VK_APP_SECRET });

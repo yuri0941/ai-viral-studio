@@ -97,6 +97,13 @@ function safeSendMessage(chatId, data, options = {}) {
   return bot.sendMessage(chatId, text, { parse_mode: 'HTML', disable_web_page_preview: true, ...options })
 }
 
+// [v9.9.19.6] typing effect before AI-heavy replies
+async function withTyping(chatId, fn) {
+  try { await bot.sendChatAction(chatId, 'typing') } catch (e) {}
+  const result = await fn()
+  return result
+}
+
 function sendLuxuryMessage(chatId, title, content, buttons = null) {
   let text = `🤖 <b>${markdownToHtml(title)}</b>\n`
   text += `━━━━━━━━━━━━━━\n`
@@ -183,23 +190,36 @@ export const initOwnerBot = () => {
     });
   });
 
-  // /status — реальный статус
+  // /status — luxury real-time status card
   bot.onText(/\/status/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isOwner(chatId)) return;
-    const mongoStatus = mongoose.connection.readyState === 1 ? '🟢 OK' : '🔴 Нет связи';
+    const mongoStatus = mongoose.connection.readyState === 1 ? '🟢' : '🔴';
     const uptimeMin = Math.floor(process.uptime() / 60);
     const memMB = Math.round(process.memoryUsage().rss / 1024 / 1024);
+    const aiStatus = '🟢';
 
-    safeSendMessage(chatId,
-      `📊 <b>Статус AI Viral Studio</b>\n━━━━━━━━━━━━━━\n` +
-      `🗄 MongoDB: ${mongoStatus}\n` +
-      `⏱ Uptime: ${uptimeMin} мин\n` +
-      `🧠 RAM: ${memMB} MB\n` +
-      `🤖 OMEGA: 🟢 Активна\n` +
-      `📢 Канал: @aiviralstudio\n` +
-      `━━━━━━━━━━━━━━\nOMEGA 🤖`
-    );
+    const text = [
+      `✦ <b>AI Viral Studio — Status</b> ✦`,
+      `<pre><code>`,
+      `🗄  MongoDB    ${mongoStatus} OK`,
+      `⏱  Uptime     ${uptimeMin} min`,
+      `🧠  RAM        ${memMB} MB`,
+      `🤖  OMEGA      ${aiStatus} Active`,
+      `📢  Channel    @aiviralstudio`,
+      `</code></pre>`,
+      `━━━━━━━━━━━━━━`,
+      `<i>OMEGA Command Center</i>`
+    ].join('\n');
+
+    safeSendMessage(chatId, text, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📊 Метрики', callback_data: 'stats' }, { text: '🤖 OMEGA', callback_data: 'omega' }],
+          [{ text: '🌐 Dashboard', url: 'https://aiviral-studio.ru/owner' }]
+        ]
+      }
+    });
   });
 
   bot.onText(/\/stats/, (msg) => { if (!isOwner(msg.chat.id)) return; sendStats(msg.chat.id) })
@@ -236,13 +256,14 @@ export const initOwnerBot = () => {
     const chatId = msg.chat.id
     if (!isOwner(chatId)) return
     const command = match[1].trim()
-    safeSendMessage(chatId, `⚡ <b>Выполняю:</b> <code>${command}</code>\n\n<i>OMEGA обрабатывает...</i>`, { parse_mode: 'HTML' })
-    try {
-      const result = await chatWithAI(`Владелец просит выполнить: ${command}. Ответь кратко, что сделано или что нужно для этого.`, [], { userRole: 'owner', context: 'telegram_owner_exec' })
-      safeSendMessage(chatId, `✅ <b>Результат:</b>\n\n${result.text || result}`, { parse_mode: 'HTML' })
-    } catch (e) {
-      safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`, { parse_mode: 'HTML' })
-    }
+    await withTyping(chatId, async () => {
+      try {
+        const result = await chatWithAI(`Владелец просит выполнить: ${command}. Ответь кратко, что сделано или что нужно для этого.`, [], { userRole: 'owner', context: 'telegram_owner_exec' })
+        safeSendMessage(chatId, `✅ <b>Результат:</b>\n\n${result.text || result}`, { parse_mode: 'HTML' })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`, { parse_mode: 'HTML' })
+      }
+    });
   })
 
   // OWNER MODE — главное меню
@@ -356,35 +377,53 @@ export const initOwnerBot = () => {
     }
   });
 
-  // OWNER MODE — publish channel post
+  // OWNER MODE — publish channel post with AI cover
   bot.onText(/\/post(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
     if (!isOwner(chatId)) return;
     const topic = match[1] ? match[1].trim() : 'Новость дня';
 
-    safeSendMessage(chatId, '⏳ Генерирую пост...');
+    await withTyping(chatId, async () => {
+      try {
+        const { generateChannelPost } = await import('./telegramChannelManager.js');
+        const { generateCover } = await import('./mediaPublisher.js');
+        const post = await generateChannelPost({ topic, niche: 'general', style: 'viral', language: 'ru' });
+        if (!post || !post.text) throw new Error('Не удалось сгенерировать пост');
 
-    try {
-      const { generateChannelPost, publishToChannel } = await import('./telegramChannelManager.js');
-      const post = await generateChannelPost({ topic, niche: 'general', style: 'viral', language: 'ru' });
-      if (!post || !post.text) throw new Error('Не удалось сгенерировать пост');
+        let coverBuffer = null;
+        try {
+          coverBuffer = await generateCover(`luxury viral social media cover about ${topic}, dark violet background, no text`, 1024, 1024);
+        } catch (coverErr) {
+          console.warn('[OWNER-BOT] cover generation failed:', coverErr.message);
+        }
 
-      await publishToChannel({
-        text: post.text,
-        imageUrl: post.imageUrl,
-        caption: post.caption || post.text.slice(0, 200)
-      });
+        const caption = `${post.text.slice(0, 700)}\n\n#AIViralStudio`;
+        const channelId = process.env.TELEGRAM_CHANNEL;
+        if (coverBuffer && channelId) {
+          await bot.sendPhoto(channelId, coverBuffer, { caption, parse_mode: 'HTML' });
+        } else if (channelId) {
+          await bot.sendMessage(channelId, post.text, { parse_mode: 'HTML' });
+        }
 
-      safeSendMessage(chatId,
-        `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
-        `📢 Канал: @aiviralstudio\n` +
-        `📝 Тема: ${topic}\n` +
-        `⏰ ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━\nOMEGA 🤖`
-      );
-    } catch (e) {
-      console.error('/post error:', e);
-      safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}\nПроверь TELEGRAM_CHANNEL в env.`);
-    }
+        safeSendMessage(chatId,
+          `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
+          `📢 Канал: @aiviralstudio\n` +
+          `📝 Тема: ${topic}\n` +
+          `🖼 Обложка: ${coverBuffer ? '✅' : '⚠️'}\n` +
+          `⏰ ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━\nOMEGA 🤖`,
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '✏️ Ещё пост', callback_data: 'owner:post' }, { text: '📊 Статус', callback_data: 'status' }]
+              ]
+            }
+          }
+        );
+      } catch (e) {
+        console.error('/post error:', e);
+        safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}\nПроверь TELEGRAM_CHANNEL в env.`);
+      }
+    });
   });
 
   // [v9.9.20] Channel manager: /channel [type] [topic]

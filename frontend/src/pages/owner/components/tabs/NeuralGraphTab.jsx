@@ -1,26 +1,26 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Network, ZoomIn, ZoomOut, RotateCcw, Search, X, Filter } from 'lucide-react';
+import { Network, ZoomIn, ZoomOut, RotateCcw, Search, X, Filter, Info } from 'lucide-react';
 
 const TYPE_COLORS = {
-  skill: '#8B5CF6',
-  memory: '#06B6D4',
-  error: '#EF4444',
-  idea: '#10B981',
   project: '#F59E0B',
-  client: '#EC4899',
+  client: '#8B5CF6',
+  skill: '#10B981',
+  error: '#EF4444',
+  idea: '#06B6D4',
+  memory: '#06B6D4',
   trend: '#6366F1',
   tech: '#14B8A6',
   default: '#9CA3AF'
 };
 
 const TYPE_LABELS = {
-  skill: 'Навыки',
-  memory: 'Память',
-  error: 'Ошибки',
-  idea: 'Идеи',
   project: 'Проекты',
   client: 'Клиенты',
+  skill: 'Навыки',
+  error: 'Ошибки',
+  idea: 'Идеи',
+  memory: 'Память',
   trend: 'Тренды',
   tech: 'Технологии'
 };
@@ -29,12 +29,23 @@ const FILTERS = [
   { id: 'all', label: 'Все' },
   { id: 'project', label: 'Проекты' },
   { id: 'client', label: 'Клиенты' },
+  { id: 'skill', label: 'Навыки' },
   { id: 'error', label: 'Ошибки' },
   { id: 'idea', label: 'Идеи' },
 ];
 
 function getColor(type) {
   return TYPE_COLORS[type] || TYPE_COLORS.default;
+}
+
+function useWindowWidth() {
+  const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  useEffect(() => {
+    const handle = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handle);
+    return () => window.removeEventListener('resize', handle);
+  }, []);
+  return width;
 }
 
 export default function NeuralGraphTab() {
@@ -53,13 +64,18 @@ export default function NeuralGraphTab() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [draggingNode, setDraggingNode] = useState(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [showMobileInfo, setShowMobileInfo] = useState(false);
   const animationRef = useRef(null);
   const physicsRef = useRef({ nodes: [], edges: [] });
+  const touchRef = useRef({ last: null, pinching: false });
+  const width = useWindowWidth();
+  const isMobile = width < 768;
+  const isTablet = width >= 768 && width < 1024;
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     setLoading(true);
-    fetch('https://aiviral-backend.onrender.com/api/omega/neural-graph/nodes', {
+    fetch(`${import.meta.env.VITE_API_URL || 'https://aiviral-backend.onrender.com'}/api/omega/neural-graph/nodes`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -78,7 +94,6 @@ export default function NeuralGraphTab() {
           vy: 0,
           color: getColor(n.type)
         }));
-        // Build edges from connections if present, else generate clustered edges
         let rawEdges = data.edges || [];
         if (!rawEdges.length) {
           rawEdges = [];
@@ -137,7 +152,6 @@ export default function NeuralGraphTab() {
 
     const step = () => {
       if (!running) return;
-      // Repulsion
       for (let i = 0; i < simNodes.length; i++) {
         for (let j = i + 1; j < simNodes.length; j++) {
           const a = simNodes[i], b = simNodes[j];
@@ -151,7 +165,6 @@ export default function NeuralGraphTab() {
           b.vx -= fx; b.vy -= fy;
         }
       }
-      // Attraction (edges)
       simEdges.forEach(e => {
         const a = simNodes.find(n => n.id === e.source);
         const b = simNodes.find(n => n.id === e.target);
@@ -166,11 +179,9 @@ export default function NeuralGraphTab() {
         a.vx += fx; a.vy += fy;
         b.vx -= fx; b.vy -= fy;
       });
-      // Center gravity
       simNodes.forEach(n => {
         n.vx += (centerX - n.x) * 0.0003;
         n.vy += (centerY - n.y) * 0.0003;
-        // Cluster gravity: same type nodes attract slightly
         simNodes.forEach(m => {
           if (n.id === m.id || n.type !== m.type) return;
           let dx = m.x - n.x;
@@ -181,7 +192,6 @@ export default function NeuralGraphTab() {
           n.vy += (dy / dist) * force;
         });
       });
-      // Apply velocity with damping
       simNodes.forEach(n => {
         if (n.id === draggingNode) return;
         n.vx *= 0.85;
@@ -227,14 +237,12 @@ export default function NeuralGraphTab() {
     const visibleIds = new Set(filteredNodes.map(n => n.id));
     const hoveredId = hoveredNode?.id;
     const selectedId = selectedNode?.id;
-
     const pulse = (Date.now() / 1000) % 1;
 
     ctx.save();
     ctx.translate(pan.x, pan.y);
     ctx.scale(zoom, zoom);
 
-    // Edges
     simEdges.forEach(e => {
       const a = simNodes.find(n => n.id === e.source);
       const b = simNodes.find(n => n.id === e.target);
@@ -258,7 +266,6 @@ export default function NeuralGraphTab() {
       ctx.setLineDash([]);
     });
 
-    // Nodes
     simNodes.forEach(n => {
       const isVisible = visibleIds.has(n.id);
       if (!isVisible) return;
@@ -275,7 +282,6 @@ export default function NeuralGraphTab() {
       ctx.strokeStyle = isSelected ? '#fff' : 'rgba(255,255,255,0.2)';
       ctx.lineWidth = isSelected ? 2 : 1;
       ctx.stroke();
-      // Pulse ring
       if (isSelected || isHovered) {
         ctx.beginPath();
         ctx.arc(n.x, n.y, r + 6 + pulse * 4, 0, Math.PI * 2);
@@ -331,7 +337,6 @@ export default function NeuralGraphTab() {
   };
 
   const handleMouseUp = () => setDraggingNode(null);
-
   const handleMouseLeave = () => setDraggingNode(null);
 
   const handleWheel = (e) => {
@@ -341,15 +346,92 @@ export default function NeuralGraphTab() {
   };
 
   const handleDoubleClick = () => {
-    if (selectedNode) {
-      setFilter(selectedNode.type);
+    if (selectedNode) setFilter(selectedNode.type);
+  };
+
+  const handleTouchStart = (e) => {
+    const touches = e.touches;
+    if (touches.length === 2) {
+      touchRef.current.pinching = true;
+      touchRef.current.last = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+      return;
     }
+    const touch = touches[0];
+    const { x, y } = toWorld(touch.clientX, touch.clientY);
+    const node = findNode(x, y);
+    if (node) { setDraggingNode(node.id); setSelectedNode(node); }
+    else { setDraggingNode('pan'); setSelectedNode(null); }
+  };
+
+  const handleTouchMove = (e) => {
+    e.preventDefault();
+    const touches = e.touches;
+    if (touchRef.current.pinching && touches.length === 2) {
+      const dist = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+      const last = touchRef.current.last || dist;
+      const delta = dist / last;
+      setZoom(z => Math.max(0.3, Math.min(4, z * delta)));
+      touchRef.current.last = dist;
+      return;
+    }
+    const touch = touches[0];
+    const { x, y } = toWorld(touch.clientX, touch.clientY);
+    if (draggingNode) {
+      const n = physicsRef.current.nodes.find(n => n.id === draggingNode);
+      if (n) { n.x = x; n.y = y; n.vx = 0; n.vy = 0; }
+      return;
+    }
+    const node = findNode(x, y);
+    setHoveredNode(node || null);
+  };
+
+  const handleTouchEnd = () => {
+    touchRef.current.pinching = false;
+    touchRef.current.last = null;
+    setDraggingNode(null);
   };
 
   const relatedNodes = useMemo(() => {
     if (!selectedNode) return [];
     return edges.filter(e => e.source.id === selectedNode.id || e.target.id === selectedNode.id).map(e => e.source.id === selectedNode.id ? e.target : e.source);
   }, [selectedNode, edges]);
+
+  const InfoPanel = ({ floating } = {}) => (
+    <>
+      {selectedNode && (
+        <div className={`${floating ? '' : 'absolute top-4 right-4'} w-64 glass-luxury rounded-xl border border-[var(--border)] p-4 z-20`}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm flex items-center gap-2"><span className="w-3 h-3 rounded-full" style={{ background: selectedNode.color }} /> {selectedNode.label}</h3>
+            <button onClick={() => setSelectedNode(null)} className="p-1 rounded hover:bg-white/10"><X className="w-4 h-4" /></button>
+          </div>
+          <div className="space-y-2 text-xs text-[var(--text-muted)]">
+            <p><span className="text-[var(--text)]">Тип:</span> {TYPE_LABELS[selectedNode.type] || selectedNode.type}</p>
+            <p><span className="text-[var(--text)]">Кластер:</span> {selectedNode.cluster}</p>
+            <p><span className="text-[var(--text)]">Связей:</span> {relatedNodes.length}</p>
+            {selectedNode.data?.confidence && <p><span className="text-[var(--text)]">Confidence:</span> {Math.round(selectedNode.data.confidence * 100)}%</p>}
+          </div>
+          {relatedNodes.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-[var(--border)]">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Связанные узлы</p>
+              <div className="space-y-1 max-h-32 overflow-auto">
+                {relatedNodes.map(n => (
+                  <div key={n.id} className="flex items-center gap-2 text-xs"><span className="w-2 h-2 rounded-full" style={{ background: n.color }} /> {n.label}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+
+  const Legend = ({ compact } = {}) => (
+    <div className={`flex flex-wrap gap-3 text-xs text-[var(--text-muted)] bg-black/40 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10 ${compact ? 'justify-center' : ''}`}>
+      {Object.entries(TYPE_LABELS).map(([type, label]) => (
+        <span key={type} className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: getColor(type) }} /> {label}</span>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-4 p-4 md:p-6 h-full flex flex-col" ref={containerRef}>
@@ -376,7 +458,7 @@ export default function NeuralGraphTab() {
         </div>
       </div>
 
-      <div className="flex-1 glass-luxury rounded-xl overflow-hidden relative min-h-[400px]">
+      <div className="flex-1 glass-luxury rounded-xl overflow-hidden relative min-h-[50vh] md:min-h-[60vh] lg:min-h-[70vh]">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center z-10">
             <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]"><RotateCcw className="w-4 h-4 animate-spin" /> Загрузка...</div>
@@ -384,44 +466,46 @@ export default function NeuralGraphTab() {
         )}
         <canvas
           ref={canvasRef}
-          className="w-full h-full cursor-grab active:cursor-grabbing"
+          className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
           onMouseMove={handleMouseMove}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
           onWheel={handleWheel}
           onDoubleClick={handleDoubleClick}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         />
-        {selectedNode && (
-          <div className="absolute top-4 right-4 w-64 glass-luxury rounded-xl border border-[var(--border)] p-4 z-20">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-sm flex items-center gap-2"><span className="w-3 h-3 rounded-full" style={{ background: selectedNode.color }} /> {selectedNode.label}</h3>
-              <button onClick={() => setSelectedNode(null)} className="p-1 rounded hover:bg-white/10"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="space-y-2 text-xs text-[var(--text-muted)]">
-              <p><span className="text-[var(--text)]">Тип:</span> {TYPE_LABELS[selectedNode.type] || selectedNode.type}</p>
-              <p><span className="text-[var(--text)]">Кластер:</span> {selectedNode.cluster}</p>
-              <p><span className="text-[var(--text)]">Связей:</span> {relatedNodes.length}</p>
-              {selectedNode.data?.confidence && <p><span className="text-[var(--text)]">Confidence:</span> {Math.round(selectedNode.data.confidence * 100)}%</p>}
-            </div>
-            {relatedNodes.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-[var(--border)]">
-                <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Связанные узлы</p>
-                <div className="space-y-1 max-h-32 overflow-auto">
-                  {relatedNodes.map(n => (
-                    <div key={n.id} className="flex items-center gap-2 text-xs"><span className="w-2 h-2 rounded-full" style={{ background: n.color }} /> {n.label}</div>
-                  ))}
+        {!isMobile && <InfoPanel />}
+        {(isMobile || isTablet) && (
+          <>
+            <button onClick={() => setShowMobileInfo(true)} className="absolute top-4 right-4 p-2.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border)] shadow-lg z-30" aria-label="Info"><Info className="w-4 h-4 text-[var(--text)]" /></button>
+            {showMobileInfo && (
+              <div className="absolute inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end" onClick={() => setShowMobileInfo(false)}>
+                <div className="w-full bg-[var(--bg-secondary)] rounded-t-2xl border-t border-[var(--border)] p-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-sm">Neural Graph</h3>
+                    <button onClick={() => setShowMobileInfo(false)} className="p-1 rounded hover:bg-white/10"><X className="w-4 h-4" /></button>
+                  </div>
+                  <InfoPanel floating />
+                  <div className="mt-4"><Legend compact /></div>
                 </div>
               </div>
             )}
+          </>
+        )}
+        {!isMobile && (
+          <div className="absolute bottom-4 left-4">
+            <Legend />
           </div>
         )}
-        <div className="absolute bottom-4 left-4 flex flex-wrap gap-3 text-xs text-[var(--text-muted)] bg-black/40 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
-          {Object.entries(TYPE_LABELS).map(([type, label]) => (
-            <span key={type} className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: getColor(type) }} /> {label}</span>
-          ))}
-        </div>
       </div>
+      {isMobile && (
+        <div className="px-1">
+          <Legend compact />
+        </div>
+      )}
     </div>
   );
 }

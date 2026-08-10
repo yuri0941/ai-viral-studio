@@ -47,6 +47,7 @@ export function DashboardShell({
 }) {
     const location = useLocation()
     const viewport = useViewport()
+    const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1024
     const { updateUser } = useAuth()
     const { theme, appliedTheme, setTheme, toggleTheme } = useTheme()
     const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -147,9 +148,20 @@ export function DashboardShell({
                 />
             )}
 
-            {/* Desktop floating dock */}
+            {/* Desktop sidebar: collapsed 1024-1439, full ≥1440 */}
             {!viewport.isMobile && (
-                <SidebarDock userRole={userRole} user={user} onLogout={onLogout} />
+                <aside className="fixed top-0 left-0 h-full z-30 transition-all duration-300">
+                    <AppSidebar
+                        userRole={userRole}
+                        menuItems={menuItems}
+                        cabinets={cabinets}
+                        notifications={notifications}
+                        subscriptions={subscriptions}
+                        user={user}
+                        onLogout={onLogout}
+                        isMobile={false}
+                    />
+                </aside>
             )}
 
             {/* Mobile sidebar drawer */}
@@ -172,7 +184,7 @@ export function DashboardShell({
                         user={user}
                         onLogout={onLogout}
                         onClose={() => setSidebarOpen(false)}
-                        isMobile={viewport.isMobile}
+                        isMobile={true}
                     />
                 </aside>
             )}
@@ -188,7 +200,10 @@ export function DashboardShell({
             />
 
             {/* Main content */}
-            <main className={`flex-1 min-h-screen w-full overflow-x-hidden pt-20 ${!viewport.isMobile ? 'lg:pl-[72px]' : 'pt-16'}`}>
+            <main
+                className={`flex-1 min-h-screen w-full overflow-x-hidden ${!viewport.isMobile ? 'pt-20' : 'pt-16'}`}
+                style={!viewport.isMobile ? { paddingLeft: windowWidth >= 1440 ? '280px' : '72px' } : {}}
+            >
                 <DashboardHeader
                     title={title}
                     user={user}

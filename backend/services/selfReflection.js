@@ -1,14 +1,15 @@
 import cron from 'node-cron'
 import { AuditLog } from '../models/index.js'
-import { alertOwner } from './ownerBot.js'
+import { alertOwner, getOwnerBot } from './ownerBot.js'
 import { queryMesh, createNode } from './cognitiveMesh.js'
 import { chatWithAI } from './aiService.js'
+import { sendMorningReport as sendLuxuryMorningReport } from './morningReport.js'
 
 let reflectionJob = null
 
 export function startSelfReflectionCron() {
     if (reflectionJob) return
-    reflectionJob = cron.schedule('0 9 * * *', async () => {
+    reflectionJob = cron.schedule('0 8 * * *', async () => {
         console.log('[selfReflection] running morning report cron')
         try {
             await sendMorningReport()
@@ -16,7 +17,7 @@ export function startSelfReflectionCron() {
             console.error('[selfReflection] cron failed:', err.message)
         }
     })
-    console.log('[selfReflection] cron started (daily at 09:00)')
+    console.log('[selfReflection] cron started (daily at 08:00)')
 }
 
 export function stopSelfReflectionCron() {
@@ -72,24 +73,31 @@ function aggregateActions(logs) {
 }
 
 export async function sendMorningReport(ownerId) {
-    const report = await analyzeLast24Hours(ownerId)
-    if (report.totalErrors === 0 && report.recommendations.length === 0) {
-        return { sent: false, reason: 'no issues' }
+    const ownerBot = getOwnerBot()
+    const ownerChatId = process.env.TELEGRAM_OWNER_CHAT_ID
+    if (ownerBot && ownerChatId) {
+        try {
+            await sendLuxuryMorningReport(ownerBot, ownerChatId)
+        } catch (e) {
+            console.error('[selfReflection] luxury morning report failed:', e.message)
+        }
     }
 
-    const message = [
-        '📊 <b>OMEGA Self-Reflection: отчёт за 24 часа</b>',
-        `Ошибок: ${report.totalErrors} (AI/API: ${report.apiErrors}, DB: ${report.dbErrors}, другие: ${report.otherErrors})`,
-        '',
-        '<b>Паттерны:</b>',
-        ...report.patterns.map(p => `• ${p}`),
-        '',
-        '<b>Рекомендации:</b>',
-        ...report.recommendations.map(r => `• ${r}`),
-    ].join('\n')
-
-    await alertOwner(message).catch(() => {})
-    return { sent: true, report }
+    const report = await analyzeLast24Hours(ownerId)
+    if (report.totalErrors > 0 || report.recommendations.length > 0) {
+        const message = [
+            '📊 <b>OMEGA Self-Reflection: отчёт за 24 часа</b>',
+            `Ошибок: ${report.totalErrors} (AI/API: ${report.apiErrors}, DB: ${report.dbErrors}, другие: ${report.otherErrors})`,
+            '',
+            '<b>Паттерны:</b>',
+            ...report.patterns.map(p => `• ${p}`),
+            '',
+            '<b>Рекомендации:</b>',
+            ...report.recommendations.map(r => `• ${r}`),
+        ].join('\n')
+        await alertOwner(message).catch(() => {})
+    }
+    return { sent: true }
 }
 
 export default { analyzeLast24Hours, sendMorningReport, analyzeDailyPerformance, getPromptAdjustments }

@@ -1,6 +1,7 @@
 import axios from 'axios'
 
 const DUCKDUCKGO_URL = 'https://html.duckduckgo.com/html/'
+const SERPAPI_URL = 'https://serpapi.com/search'
 
 const FALLBACK_RESULTS = {
     'тренд': [
@@ -17,7 +18,29 @@ export function isWebSearchQuery(query) {
     return /тренд|новост|актуально|сейчас|2026|news|trend|latest|now|google|reddit|tiktok тренд/.test(q)
 }
 
+export async function searchWebSerpAPI(query, limit = 3) {
+    const key = process.env.SERPAPI_KEY
+    if (!key) return null
+    try {
+        const { data } = await axios.get(SERPAPI_URL, {
+            params: { q: query, api_key: key, engine: 'google', num: limit, hl: 'ru' },
+            timeout: 20000
+        })
+        return (data?.organic_results || []).slice(0, limit).map(r => ({
+            title: r.title,
+            url: r.link,
+            snippet: r.snippet || r.title
+        }))
+    } catch (err) {
+        console.warn('[webSearch] SerpAPI failed:', err.message)
+        return null
+    }
+}
+
 export async function searchWeb(query, limit = 3) {
+    const serp = await searchWebSerpAPI(query, limit)
+    if (serp && serp.length) return serp
+
     try {
         const url = `${DUCKDUCKGO_URL}?q=${encodeURIComponent(query)}`
         const { data } = await axios.get(url, {
@@ -26,7 +49,6 @@ export async function searchWeb(query, limit = 3) {
         })
 
         const results = []
-        // DuckDuckGo HTML result blocks
         const regex = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi
         let match
         while ((match = regex.exec(data)) !== null && results.length < limit) {
@@ -38,13 +60,22 @@ export async function searchWeb(query, limit = 3) {
         }
 
         if (results.length > 0) return results
-
-        // fallback: try simple Reddit/TikTok trends mock
         return getMockResults(query, limit)
     } catch (err) {
         console.warn('[webSearch] failed:', err.message)
         return getMockResults(query, limit)
     }
+}
+
+export async function getTrendingTopics(niche = 'smm', limit = 5) {
+    const query = `тренды ${niche} 2026 соцсети`
+    const results = await searchWeb(query, limit)
+    return results.map(r => r.title)
+}
+
+export function formatWebResultsLuxury(results) {
+    if (!results || results.length === 0) return ''
+    return '🔗 <b>Источники:</b>\n' + results.map((r, i) => `${i + 1}. <a href="${r.url}">${r.title}</a>\n<i>${r.snippet?.slice(0, 100)}</i>`).join('\n')
 }
 
 function stripHtml(html) {

@@ -1780,5 +1780,43 @@
   "landing": {
     "start": "Начать",
     "login": "Войти"
+  },
+  "telegramConnect": {
+    "title": "Telegram",
+    "description": "Каналы, боты, авто-посты",
+    "connect": "Подключить",
+    "connected": "Подключено",
+    "channels": "Каналы",
+    "bots": "Боты"
+  },
+  "morningReport": {
+    "title": "Утренний репорт",
+    "mrr": "MRR",
+    "revenue24h": "Выручка 24ч",
+    "revenue7d": "Выручка 7д",
+    "subscriptions": "Подписки",
+    "tickets": "Тикеты",
+    "insight": "OMEGA Insight"
+  },
+  "mediaPublisher": {
+    "title": "Медиа публикации",
+    "generateCover": "Сгенерировать обложку",
+    "publishPhoto": "Опубликовать фото",
+    "publishVideo": "Опубликовать видео",
+    "caption": "Подпись"
+  },
+  "webSearch": {
+    "title": "Поиск в интернете",
+    "trends": "Тренды",
+    "sources": "Источники",
+    "search": "Искать"
+  },
+  "supportLuxury": {
+    "title": "Поддержка",
+    "ticketCreated": "Обращение создано",
+    "priority": "Приоритет",
+    "join": "Присоединиться",
+    "close": "Закрыть",
+    "escalate": "Эскалация"
   }
 }
