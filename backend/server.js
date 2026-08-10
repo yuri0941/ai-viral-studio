@@ -443,7 +443,7 @@ app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'ok',
         service: 'AI Viral Studio API',
-        version: '9.9.15',
+        version: '9.9.20',
         timestamp: new Date().toISOString(),
         uptime: Math.floor(process.uptime()) + 's',
         providers: activeProviders
@@ -462,7 +462,7 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date().toISOString(),
         env: process.env.NODE_ENV || 'production',
         mobile: true,
-        version: '9.9.15',
+        version: '9.9.20',
         providers: activeProviders
     })
 })
