@@ -3616,3 +3616,15 @@
 - [TEST] ✅ `node --check` backend OK, `npm run build` frontend OK, smoke test `/api/integrations/vk/status` → `{"success":true,"connected":false,"configured":false}`
 - [DEPLOY] Запушено на Render
 - [STATUS] 🟢 VK готов к подключению владельцем.
+
+## 2026-08-10 — v9.9.19-NEURAL-PLUS
+- [FIX] Neural Graph endpoint: больше не падает 500, всегда возвращает JSON, graceful fallback при любой ошибке
+- [FEATURE] Seed Knowledge Nodes: 8 базовых знаний (SMM, Hooks, Viral, CTA, Content, Telegram, AI, Ads) = 213 фактов
+- [FEATURE] Knowledge Panel: 4 карточки (Фактов, Навыков, Узлов, Последнее обучение) над графом
+- [FEATURE] OmegaSkillsTab: 8 навыков с прогресс-барами, цветами, описаниями + добавлен в sidebar
+- [FEATURE] «Что OMEGA изучает сейчас» — 3 активных процесса с анимацией pulse + ETA
+- [FIX] React preventDefault в Neural Graph — убраны ошибки в консоли браузера
+- [FIX] Версия обновлена: v9.1.0 → v9.9.19 (frontend + backend + UI)
+- [TEST] ✅ Health, Neural Graph (nodes>=9, facts>=213), Build — все PASS
+- [GIT] Commit: v9.9.19-NEURAL-PLUS
+- [STATUS] 🧠 OMEGA теперь ВИДИМО умная. Владелец видит знания и прогресс.

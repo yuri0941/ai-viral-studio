@@ -783,3 +783,11 @@ NODE_ENV=production
 - Smoke test: `curl /api/integrations/vk/status` возвращает `{"success":true,"connected":false,"configured":false}`.
 - Build: `npm run build` 0 errors, `node --check backend` OK.
 - Deploy: Git push origin main; Render deploy pending.
+
+
+## Current State (v9.9.19-NEURAL-PLUS — 2026-08-10)
+- Neural Graph v2: seed knowledge (8 узлов, 213 фактов), Knowledge Panel (факты/навыки/узлы/обучение), graceful JSON fallback, пустой экран убран.
+- OmegaSkillsTab: 8 навыков с прогресс-барами + 3 активных процесса обучения с ETA, уже в sidebar.
+- Версия проекта: frontend `9.9.19`, backend `9.9.19`, UI `v9.9.19`, build ID `v9.9.19-2026-08-10`.
+- Build: `npm run build` 0 errors, `node --check backend` OK.
+- Smoke test: `/api/omega/neural-graph` → 22 узла, 8 связей, meta.totalFacts=223, seed-smm present.

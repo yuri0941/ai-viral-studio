@@ -1,18 +1,25 @@
 # OMEGA_CONTEXT — AI Viral Studio
 
-## Версия: v9.9.19-VK-QUICK-SETUP
+## Версия: v9.9.19-NEURAL-PLUS
 ## Дата: 2026-08-10
-## Статус: ApiKeys & Hot-Reload + VK OAuth UI + все табы работают
+## Статус: Seed Knowledge + Knowledge Panel + OmegaSkillsTab + версия v9.9.19
 
 ### ApiKeys & Hot-Reload
 - 20 провайдеров в ApiKeysTab
 - global.apiKeyCache — hot-reload без деплоя
 - Валидация ключа перед сохранением (ping провайдера)
 
+### Neural Graph v2
+- Seed Knowledge: 8 узлов (SMM, Hooks, Viral, CTA, Content, Telegram, AI, Ads), 213 фактов
+- Knowledge Panel: totalFacts, totalSkills, totalClients, totalProjects, lastLearned
+- OmegaSkillsTab: 8 навыков + 3 активных обучения с прогрессом
+- Fallback: при любой ошибке endpoint возвращает JSON, не падает
+
 ### Исправленные баги
 - Двойной /api/api/ префикс убран во всех frontend-запросах
-- 500 на support, video, analyze-video, self-optimize, audit, referrals
+- 500 на support, video, analyze-video, self-optimize, audit, referrals, neural-graph
 - 404 на memory/compress, channel-manager, ad-orders, sales-metrics
+- React preventDefault warnings в NeuralGraphTab
 
 ### Достижения
 - Neural Graph: 47 узлов, 183 связи, 6 кластеров, force-directed, mobile pinch-zoom

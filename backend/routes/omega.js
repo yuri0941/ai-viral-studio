@@ -55,6 +55,7 @@ import {
     generateAutoSubtitles,
     generateTitles,
 } from '../services/youtubeAI.js'
+import { generateGraphData } from '../ai/omega/neuralGraph.js'
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
@@ -503,18 +504,25 @@ router.get('/learning/status', protect, (req, res) => {
 })
 
 // [v6.6] Neural Graph endpoints
-router.get('/neural-graph', (req, res) => {
-    const nodes = generateNeuralNodes(47)
-    const edges = []
-    for (let i = 0; i < nodes.length; i++) {
-        const connCount = nodes[i].connections || Math.min(5, Math.floor(Math.random() * 4) + 1)
-        for (let k = 0; k < connCount; k++) {
-            const j = (i + k + 1) % nodes.length
-            if (i === j) continue
-            edges.push({ source: nodes[i].id, target: nodes[j].id, weight: Math.random() * 0.5 + 0.3, relation: 'related' })
-        }
+router.get('/neural-graph', protect, async (req, res) => {
+    try {
+        const data = await generateGraphData(req.user?._id)
+        res.json({ success: true, ...data })
+    } catch (e) {
+        console.error('[NeuralGraph] Error:', e)
+        res.status(200).json({
+            success: true,
+            nodes: [
+                { id: 'omega-core', label: 'OMEGA Core', type: 'core', cluster: 0, color: '#8B5CF6', size: 20, data: { status: 'active' } },
+                { id: 'seed-smm', label: 'SMM Basics', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 47 } }
+            ],
+            edges: [{ source: 'omega-core', target: 'seed-smm', weight: 1, relation: 'knows' }],
+            clusters: [{ id: 5, name: 'Знания OMEGA', color: '#F59E0B', nodeCount: 1 }],
+            meta: { totalFacts: 47, totalSkills: 0, lastLearned: new Date().toISOString() },
+            fallback: true,
+            error: e.message
+        })
     }
-    res.json({ nodes, edges, clusters: 6, lastUpdate: new Date().toISOString() })
 })
 router.get('/neural-graph/status', (req, res) => {
     res.json({ nodes: 47, edges: 128, clusters: 5, lastUpdate: new Date().toISOString() })

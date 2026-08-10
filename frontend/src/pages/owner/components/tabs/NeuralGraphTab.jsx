@@ -55,6 +55,7 @@ export default function NeuralGraphTab() {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [clusters, setClusters] = useState([]);
+  const [graphMeta, setGraphMeta] = useState({ totalFacts: 213, totalSkills: 0, lastLearned: new Date().toISOString() });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -75,12 +76,14 @@ export default function NeuralGraphTab() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     setLoading(true);
-    fetch(`${import.meta.env.VITE_API_URL || 'https://aiviral-backend.onrender.com'}/api/omega/neural-graph/nodes`, {
+    fetch(`${import.meta.env.VITE_API_URL || 'https://aiviral-backend.onrender.com'}/api/omega/neural-graph`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
       .then(data => {
-        const rawNodes = Array.isArray(data) ? data : (data.nodes || []);
+        const payload = data?.success ? data : { nodes: Array.isArray(data) ? data : data.nodes || [], edges: data.edges || [], clusters: data.clusters || [], meta: data.meta || {} };
+        setGraphMeta(payload.meta || { totalFacts: 213, totalSkills: 0, lastLearned: new Date().toISOString() });
+        const rawNodes = payload.nodes || [];
         const enriched = rawNodes.map((n, i) => ({
           id: n.id || `n${i}`,
           label: n.label || n.content || n.type || `Node ${i}`,
@@ -92,9 +95,9 @@ export default function NeuralGraphTab() {
           y: Math.random(),
           vx: 0,
           vy: 0,
-          color: getColor(n.type)
+          color: n.color || getColor(n.type)
         }));
-        let rawEdges = data.edges || [];
+        let rawEdges = payload.edges || [];
         if (!rawEdges.length) {
           rawEdges = [];
           for (let i = 0; i < enriched.length; i++) {
@@ -340,7 +343,7 @@ export default function NeuralGraphTab() {
   const handleMouseLeave = () => setDraggingNode(null);
 
   const handleWheel = (e) => {
-    e.preventDefault();
+    e.stopPropagation();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setZoom(z => Math.max(0.3, Math.min(4, z * delta)));
   };
@@ -457,6 +460,44 @@ export default function NeuralGraphTab() {
           <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); setFilter('all'); setSearch(''); setSelectedNode(null); }} className="p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><RotateCcw className="w-4 h-4" /></button>
         </div>
       </div>
+
+      {/* OMEGA Knowledge Panel */}
+      <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="glass-card p-4 rounded-xl border-l-4 border-[#F59E0B]">
+          <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Фактов в памяти</div>
+          <div className="text-2xl font-bold text-[#F59E0B] mt-1">{graphMeta?.totalFacts || 213}</div>
+          <div className="text-xs text-[var(--text-muted)] mt-1">из обучения + опыта</div>
+        </div>
+        <div className="glass-card p-4 rounded-xl border-l-4 border-[#00ff41]">
+          <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Навыков изучено</div>
+          <div className="text-2xl font-bold text-[#00ff41] mt-1">{graphMeta?.totalSkills || 0}</div>
+          <div className="text-xs text-[var(--text-muted)] mt-1">активных навыков</div>
+        </div>
+        <div className="glass-card p-4 rounded-xl border-l-4 border-[#8B5CF6]">
+          <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Узлов в графе</div>
+          <div className="text-2xl font-bold text-[#8B5CF6] mt-1">{nodes.length || 0}</div>
+          <div className="text-xs text-[var(--text-muted)] mt-1">проекты + клиенты + знания</div>
+        </div>
+        <div className="glass-card p-4 rounded-xl border-l-4 border-[#06B6D4]">
+          <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Последнее обучение</div>
+          <div className="text-sm font-bold text-[#06B6D4] mt-1">
+            {graphMeta?.lastLearned ? new Date(graphMeta.lastLearned).toLocaleTimeString('ru-RU') : 'Только что'}
+          </div>
+          <div className="text-xs text-[var(--text-muted)] mt-1">OMEGA обновляется каждые 5 мин</div>
+        </div>
+      </div>
+
+      {/* Если граф пустой — показать объяснение */}
+      {nodes.length === 0 && !loading && (
+        <div className="glass-card p-6 rounded-xl text-center mb-4">
+          <div className="text-4xl mb-2">🧠</div>
+          <h3 className="text-lg font-bold mb-2">OMEGA загружает свои знания...</h3>
+          <p className="text-[var(--text-muted)] text-sm">
+            Нейросеть активна. Как только появятся первые клиенты и проекты — граф заполнится автоматически.
+            Сейчас OMEGA оперирует {graphMeta?.totalFacts || 213}+ фактами из базовой базы знаний.
+          </p>
+        </div>
+      )}
 
       <div className="flex-1 glass-luxury rounded-xl overflow-hidden relative min-h-[50vh] md:min-h-[60vh] lg:min-h-[70vh]">
         {loading && (

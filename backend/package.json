@@ -1,6 +1,6 @@
 {
     "name": "ai-viral-studio-backend",
-    "version": "0.1.0",
+    "version": "9.9.19",
     "description": "AI Viral Studio API",
     "main": "server.js",
     "type": "module",

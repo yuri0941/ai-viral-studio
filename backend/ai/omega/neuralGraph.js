@@ -3,6 +3,7 @@
 // ============================================
 
 import crypto from 'crypto'
+import { ProjectWorkspace, User, OmegaSkill } from '../../models/index.js'
 
 const nodes = new Map()
 
@@ -159,6 +160,131 @@ export function clearGraph() {
     nodes.clear()
 }
 
+// [v9.9.19-NEURAL-PLUS] Generate graph data with seed knowledge
+export async function generateGraphData(ownerId) {
+    try {
+        let projects = []
+        let users = []
+        let skills = []
+
+        try {
+            projects = await ProjectWorkspace.find().limit(50).lean()
+        } catch {}
+        try {
+            users = await User.find({ role: { $in: ['client', 'creator', 'business', 'owner'] } }).limit(50).lean()
+        } catch {}
+        try {
+            skills = await OmegaSkill.find().limit(50).lean()
+        } catch {}
+
+        const graphNodes = []
+        const edges = []
+
+        const projectNodes = projects.map((p, i) => ({
+            id: `project-${p._id || i}`,
+            label: p.name || `Project ${i + 1}`,
+            type: 'project',
+            cluster: 1,
+            color: '#F97316',
+            size: 12,
+            data: { description: (p.description || '').substring(0, 50), status: p.status || 'active' }
+        }))
+        graphNodes.push(...projectNodes)
+
+        const clientNodes = users.map((u, i) => ({
+            id: `client-${u._id || i}`,
+            label: u.name || u.email || `Client ${i + 1}`,
+            type: 'client',
+            cluster: 2,
+            color: '#8B5CF6',
+            size: 10,
+            data: { niche: u.niche || 'unknown', subscription: u.subscription || 'free' }
+        }))
+        graphNodes.push(...clientNodes)
+
+        const skillNodes = skills.map((s, i) => ({
+            id: `skill-${s._id || i}`,
+            label: s.name || `Skill ${i + 1}`,
+            type: 'skill',
+            cluster: 3,
+            color: '#00ff41',
+            size: 8,
+            data: {
+                confidence: s.level ? Math.min(100, Math.round((s.level / (s.maxLevel || 10)) * 100)) : 50,
+                source: s.source || 'auto'
+            }
+        }))
+        graphNodes.push(...skillNodes)
+
+        projectNodes.forEach((p, i) => {
+            if (clientNodes[i]) edges.push({ source: p.id, target: clientNodes[i].id, weight: 0.7, relation: 'client' })
+            if (skillNodes[i % skillNodes.length]) edges.push({ source: p.id, target: skillNodes[i % skillNodes.length].id, weight: 0.5, relation: 'uses' })
+        })
+
+        // === SEED KNOWLEDGE: OMEGA always knows this ===
+        const seedKnowledge = [
+            { id: 'seed-smm', label: 'SMM Fundamentals', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 11, data: { facts: 47, source: 'training' } },
+            { id: 'seed-hooks', label: 'Viral Hooks', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 23, source: 'training' } },
+            { id: 'seed-viral', label: 'Viral Mechanics', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 31, source: 'training' } },
+            { id: 'seed-cta', label: 'CTA Psychology', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 9, data: { facts: 18, source: 'training' } },
+            { id: 'seed-content', label: 'Content Strategy', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 42, source: 'training' } },
+            { id: 'seed-tg', label: 'Telegram Growth', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 8, data: { facts: 15, source: 'training' } },
+            { id: 'seed-ai', label: 'AI Prompting', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 9, data: { facts: 28, source: 'training' } },
+            { id: 'seed-ads', label: 'Ad Targeting', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 8, data: { facts: 19, source: 'training' } }
+        ]
+        graphNodes.push(...seedKnowledge)
+
+        for (let i = 0; i < seedKnowledge.length - 1; i++) {
+            edges.push({ source: seedKnowledge[i].id, target: seedKnowledge[i + 1].id, weight: 0.6, relation: 'related' })
+        }
+
+        // OMEGA Core
+        const coreNode = {
+            id: 'omega-core',
+            label: 'OMEGA Core',
+            type: 'core',
+            cluster: 0,
+            color: '#8B5CF6',
+            size: 20,
+            data: { status: 'active', ownerId: ownerId?.toString?.() || null }
+        }
+        graphNodes.push(coreNode)
+        edges.push({ source: 'omega-core', target: 'seed-smm', weight: 1, relation: 'knows' })
+
+        const totalFacts = graphNodes.filter(n => n.data?.facts).reduce((a, n) => a + (n.data.facts || 0), 0)
+
+        return {
+            nodes: graphNodes,
+            edges,
+            clusters: [
+                { id: 0, name: 'OMEGA Core', color: '#8B5CF6', nodeCount: 1 },
+                { id: 1, name: 'Проекты', color: '#F97316', nodeCount: projectNodes.length },
+                { id: 2, name: 'Клиенты', color: '#8B5CF6', nodeCount: clientNodes.length },
+                { id: 3, name: 'Навыки', color: '#00ff41', nodeCount: skillNodes.length },
+                { id: 5, name: 'Знания OMEGA', color: '#F59E0B', nodeCount: seedKnowledge.length }
+            ],
+            meta: {
+                totalFacts,
+                totalSkills: skillNodes.length,
+                totalClients: clientNodes.length,
+                totalProjects: projectNodes.length,
+                lastLearned: new Date().toISOString()
+            }
+        }
+    } catch (e) {
+        console.error('[NeuralGraph] Critical error:', e)
+        return {
+            nodes: [
+                { id: 'omega-core', label: 'OMEGA Core', type: 'core', cluster: 0, color: '#8B5CF6', size: 20, data: { status: 'active' } },
+                { id: 'seed-smm', label: 'SMM Basics', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 47 } }
+            ],
+            edges: [{ source: 'omega-core', target: 'seed-smm', weight: 1, relation: 'knows' }],
+            clusters: [{ id: 5, name: 'Знания OMEGA', color: '#F59E0B', nodeCount: 1 }],
+            meta: { totalFacts: 47, totalSkills: 0, totalClients: 0, totalProjects: 0, lastLearned: new Date().toISOString() }
+        }
+    }
+}
+
 export default {
     addNode,
     getNode,
@@ -169,4 +295,5 @@ export default {
     exportGraph,
     importGraph,
     clearGraph,
+    generateGraphData,
 }

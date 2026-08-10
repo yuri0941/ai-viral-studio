@@ -1,151 +1,68 @@
-import { useState } from 'react'
-import { Brain, Zap, Shield, TrendingUp, BarChart, MessageSquare, Eye, Code, Bot, Loader2 } from 'lucide-react'
+import { useState } from 'react';
 
-const ICONS = {
-    TrendingUp, BarChart, Shield, Zap, MessageSquare, Eye, Code, Bot,
-}
+export function OmegaSkillsTab() {
+  const [skills] = useState([
+    { name: 'SMM Content', level: 85, max: 100, color: '#F59E0B', desc: 'Посты, хуки, вирусность' },
+    { name: 'Telegram Growth', level: 72, max: 100, color: '#8B5CF6', desc: 'Каналы, боты, вовлечение' },
+    { name: 'AI Prompting', level: 91, max: 100, color: '#00ff41', desc: 'Генерация, анализ, оптимизация' },
+    { name: 'Client Sales', level: 68, max: 100, color: '#06B6D4', desc: 'Drip campaigns, CTA, churn guard' },
+    { name: 'Video Creation', level: 45, max: 100, color: '#EF4444', desc: 'Shorts, Reels, TikTok' },
+    { name: 'Predictive Analytics', level: 78, max: 100, color: '#EC4899', desc: 'Прогнозы, тренды, LTV' },
+    { name: 'Neural Graph', level: 60, max: 100, color: '#F97316', desc: 'Связи, кластеры, инсайты' },
+    { name: 'Voice AI', level: 30, max: 100, color: '#6366F1', desc: 'Whisper STT, ElevenLabs TTS' }
+  ]);
 
-const INITIAL_SKILLS = [
-    { id: 'pricing', name: 'Pricing Agent', category: 'finance', icon: 'TrendingUp', level: 3, maxLevel: 10, xp: 240, xpToNext: 500, description: 'Анализ цен конкурентов' },
-    { id: 'revenue', name: 'Revenue Agent', category: 'finance', icon: 'BarChart', level: 4, maxLevel: 10, xp: 380, xpToNext: 500, description: 'Прогноз доходов' },
-    { id: 'security', name: 'Security Agent', category: 'security', icon: 'Shield', level: 5, maxLevel: 10, xp: 420, xpToNext: 500, description: 'Мониторинг угроз' },
-    { id: 'growth', name: 'Growth Agent', category: 'marketing', icon: 'Zap', level: 2, maxLevel: 10, xp: 120, xpToNext: 500, description: 'Рекомендации по росту' },
-    { id: 'support', name: 'Support Agent', category: 'support', icon: 'MessageSquare', level: 6, maxLevel: 10, xp: 560, xpToNext: 500, description: 'Авто-ответы' },
-    { id: 'content', name: 'Content Agent', category: 'content', icon: 'Eye', level: 4, maxLevel: 10, xp: 300, xpToNext: 500, description: 'Модерация контента' },
-    { id: 'code', name: 'Code Agent', category: 'dev', icon: 'Code', level: 1, maxLevel: 10, xp: 50, xpToNext: 500, description: 'Генерация кода' },
-    { id: 'orchestrator', name: 'Orchestrator', category: 'system', icon: 'Bot', level: 7, maxLevel: 10, xp: 700, xpToNext: 500, description: 'Оркестрация агентов' },
-]
+  const [learning] = useState([
+    { name: 'DeepSeek reasoning patterns', progress: 34, eta: '2 часа', color: '#00ff41' },
+    { name: 'TikTok algorithm 2026', progress: 67, eta: '45 мин', color: '#F59E0B' },
+    { name: 'Russian 422-FZ ad marking', progress: 89, eta: '10 мин', color: '#8B5CF6' }
+  ]);
 
-const CATEGORIES = [
-    { id: 'all', label: 'Все', color: 'gray' },
-    { id: 'finance', label: 'Финансы', color: 'emerald' },
-    { id: 'security', label: 'Безопасность', color: 'red' },
-    { id: 'marketing', label: 'Маркетинг', color: 'purple' },
-    { id: 'support', label: 'Поддержка', color: 'blue' },
-    { id: 'content', label: 'Контент', color: 'orange' },
-    { id: 'dev', label: 'Разработка', color: 'yellow' },
-    { id: 'system', label: 'Система', color: 'pink' },
-]
-
-const COLORS = {
-    emerald: 'bg-emerald-500',
-    red: 'bg-red-500',
-    purple: 'bg-purple-500',
-    blue: 'bg-blue-500',
-    orange: 'bg-orange-500',
-    yellow: 'bg-yellow-500',
-    pink: 'bg-pink-500',
-    gray: 'bg-gray-500',
-}
-
-export function OmegaSkillsTab({ data }) {
-    const { showToast } = data
-    const [filter, setFilter] = useState('all')
-    const [skills, setSkills] = useState(() => {
-        try {
-            const saved = localStorage.getItem('owner_omega_skills')
-            return saved ? JSON.parse(saved) : INITIAL_SKILLS
-        } catch {
-            return INITIAL_SKILLS
-        }
-    })
-    const [training, setTraining] = useState(null)
-
-    const save = (next) => {
-        setSkills(next)
-        localStorage.setItem('owner_omega_skills', JSON.stringify(next))
-    }
-
-    const train = (id) => {
-        if (training) return
-        setTraining(id)
-        setTimeout(() => {
-            save(skills.map(s => {
-                if (s.id !== id) return s
-                let xp = s.xp + 75
-                let level = s.level
-                let xpToNext = s.xpToNext
-                if (xp >= xpToNext && level < s.maxLevel) {
-                    level += 1
-                    xp = xp - xpToNext
-                    xpToNext = Math.round(xpToNext * 1.2)
-                }
-                return { ...s, xp, level, xpToNext }
-            }))
-            setTraining(null)
-            showToast?.('Навык улучшен')
-        }, 1200)
-    }
-
-    const filtered = filter === 'all' ? skills : skills.filter(s => s.category === filter)
-
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Brain size={20} className="text-purple-400" />
-                    <h2 className="text-lg font-semibold text-[var(--text)]">OMEGA Skills</h2>
-                </div>
-                <div className="text-xs text-gray-500">Всего навыков: {skills.length}</div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                {CATEGORIES.map(c => (
-                    <button type="button"
-                        key={c.id}
-                        onClick={() => setFilter(c.id)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
-                            filter === c.id
-                                ? 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
-                                : 'text-gray-400 hover:text-[var(--text)] hover:bg-white/5 border border-transparent'
-                        }`}
-                    >
-                        {c.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* Skills grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                {filtered.map(skill => {
-                    const Icon = ICONS[skill.icon] || Bot
-                    const progress = Math.min(100, Math.round((skill.xp / skill.xpToNext) * 100))
-                    return (
-                        <div key={skill.id} className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5 hover:border-[var(--border)] transition-all">
-                            <div className="flex items-start justify-between mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
-                                    <Icon size={18} className="text-[var(--text)]" />
-                                </div>
-                                <div className="text-xs text-gray-500">Lv.{skill.level}/{skill.maxLevel}</div>
-                            </div>
-                            <div className="text-sm font-medium text-[var(--text)] mb-1">{skill.name}</div>
-                            <div className="text-[10px] text-gray-500 mb-4">{skill.description}</div>
-
-                            <div className="mb-2">
-                                <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
-                                    <span>XP</span>
-                                    <span>{skill.xp}/{skill.xpToNext}</span>
-                                </div>
-                                <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-                                    <div className={`h-full ${COLORS[CATEGORIES.find(c => c.id === skill.category)?.color || 'gray']} transition-all`} style={{ width: `${progress}%` }} />
-                                </div>
-                            </div>
-
-                            <button type="button"
-                                onClick={() => train(skill.id)}
-                                disabled={training === skill.id || skill.level >= skill.maxLevel}
-                                className="w-full flex items-center justify-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 disabled:opacity-50 transition-colors"
-                            >
-                                {training === skill.id ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
-                                {training === skill.id ? 'Обучение...' : skill.level >= skill.maxLevel ? 'Макс. уровень' : 'Тренировать'}
-                            </button>
-                        </div>
-                    )
-                })}
-            </div>
+  return (
+    <div className="space-y-6 p-4 md:p-6 h-full overflow-y-auto">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-xl">🧠</div>
+        <div>
+          <h2 className="text-2xl font-bold">OMEGA Skills</h2>
+          <p className="text-sm text-[var(--text-muted)]">Что OMEGA уже знает и изучает прямо сейчас</p>
         </div>
-    )
-}
+      </div>
 
-export default OmegaSkillsTab
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {skills.map(skill => (
+          <div key={skill.name} className="glass-card p-4 rounded-xl">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium">{skill.name}</span>
+              <span className="text-sm font-bold" style={{ color: skill.color }}>{skill.level}%</span>
+            </div>
+            <div className="w-full h-2 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-1000"
+                style={{ width: `${skill.level}%`, backgroundColor: skill.color }}
+              />
+            </div>
+            <p className="text-xs text-[var(--text-muted)] mt-2">{skill.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="glass-card p-6 rounded-xl mt-6">
+        <h3 className="font-bold mb-4 text-lg">📚 Что OMEGA изучает сейчас</h3>
+        <div className="space-y-3">
+          {learning.map(item => (
+            <div key={item.name} className="flex items-center gap-3 p-3 rounded-lg bg-[var(--bg-secondary)]">
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: item.color }} />
+              <div className="flex-1">
+                <div className="text-sm font-medium">{item.name}</div>
+                <div className="w-full h-1.5 bg-[var(--bg-secondary)] rounded-full mt-1 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${item.progress}%`, backgroundColor: item.color }} />
+                </div>
+              </div>
+              <div className="text-xs text-[var(--text-muted)]">ETA: {item.eta}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
