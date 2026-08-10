@@ -15,6 +15,16 @@ const router = express.Router()
 let emergencyStop = false
 const EMERGENCY_PIN = process.env.EMERGENCY_PIN || '0000'
 
+// [v9.9.19.3] программный доступ для owner-бота (кнопка Стоп/Старт, /stop)
+export function setEmergencyStop(value) {
+  emergencyStop = !!value
+  console.log(`[EMERGENCY STOP] ${emergencyStop ? 'activated' : 'resumed'} via telegram bot`)
+  return emergencyStop
+}
+export function getEmergencyStop() {
+  return emergencyStop
+}
+
 router.post('/emergency-stop', protect, authorize('owner'), (req, res) => {
   emergencyStop = true
   console.log('[EMERGENCY STOP] activated by', req.user.email)

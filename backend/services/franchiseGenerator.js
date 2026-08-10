@@ -1,5 +1,5 @@
 import { FranchiseKit, Subscription, UsageQuota, ProjectWorkspace } from '../models/index.js'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 import { sendEmail } from './emailService.js'
 
 export async function isReady(userId) {
@@ -54,7 +54,7 @@ export async function generateKit({ userId, projectId, brandName, niche, city, i
 
     let data = {}
     try {
-        const reply = aiResult?.reply || ''
+        const reply = extractText(aiResult)
         const jsonMatch = reply.match(/\{[\s\S]*\}/)
         data = JSON.parse(jsonMatch ? jsonMatch[0] : reply)
     } catch (err) {

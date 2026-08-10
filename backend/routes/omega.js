@@ -46,7 +46,7 @@ import {
     addToApprovalQueue,
 } from '../ai/omega/omegaCoder.js'
 import selfLearningEngine from '../ai/omega/selfLearningEngine.js'
-import { chatWithAI, getProviderKey } from '../services/aiService.js'
+import { chatWithAI, extractText, getProviderKey } from '../services/aiService.js'
 import { OmegaMemory } from '../models/index.js'
 import { generateProject, exportProject } from '../ai/omega/projectFactory.js'
 import {
@@ -302,10 +302,12 @@ router.post('/analyze-video', protect, async (req, res) => {
             })
         }
 
-        const analysis = await chatWithAI(
+        const analysis = extractText(await chatWithAI(
             `Analyze this video URL: ${videoUrl}. Provide: title suggestions, viral potential 0-100, best platform, target audience, 3 hook ideas.`,
+            [],
+            'ru',
             { role: 'owner', userId: req.user?._id?.toString() }
-        )
+        ))
 
         res.json({ success: true, analysis })
     } catch (e) {
@@ -657,7 +659,7 @@ router.post('/generate-template/referral-post', protect, async (req, res) => {
         const { topic, niche } = req.body
         const prompt = `Создай реферальный пост для ниши "${niche || 'SMM'}". Тема: ${topic || 'приглашение друга'}.`
         const result = await chatWithAI(prompt, [], req.body.lang || 'ru', { userRole: req.user?.role || 'guest' })
-        const text = result?.reply || result?.text || result?.message || result
+        const text = extractText(result)
         res.json({ success: true, post: text, template: 'referral', generatedBy: 'OMEGA' })
     } catch (err) {
         console.error('[omega/generate-template/referral-post]', err.message)

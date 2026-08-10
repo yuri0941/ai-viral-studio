@@ -312,6 +312,19 @@ const envMap = {
 // Global in-memory cache for API keys (hot-reload support)
 global.apiKeyCache = global.apiKeyCache || {}
 
+// [v9.9.19.3-TG-BOTS-FIX] Универсально достаёт текст из ответа AI любого формата.
+// chatWithAI() всегда возвращает объект {success, reply, provider, usage} — НИГДЕ не используем его как строку напрямую.
+export function extractText(response) {
+    if (!response) return ''
+    if (typeof response === 'string') return response
+    if (typeof response === 'object') {
+        const t = response.reply || response.response || response.content || response.text || response.message
+        if (typeof t === 'string') return t
+        if (t && typeof t === 'object' && typeof t.content === 'string') return t.content
+    }
+    return String(response)
+}
+
 export async function getProviderKey(providerId, ownerId = null) {
     const envVar = envMap[providerId]
     if (envVar && process.env[envVar]) return process.env[envVar]

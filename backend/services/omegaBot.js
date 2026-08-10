@@ -17,7 +17,7 @@ const CLIENT_PRIVACY_PATTERNS = [
   /другие клиенты|чужой проект|данные клиента|конфиденциальная информация/i,
   /пароль|токен|api.key|env/i,
 ];
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 import { isOwner, getOwnerContext } from './ownerContext.js'
 import { createTicket } from './supportService.js'
 import { getAdPricing } from './adPricingService.js'
@@ -159,7 +159,7 @@ export const initOmegaBot = () => {
     try {
       bot.sendChatAction(chatId, 'typing')
       const result = await chatWithAI(`Предложи 3 идеи для коротких вирусных постов в нише "${niche}". Ответь строго: 1) ... 2) ... 3) ...`, [], 'ru', { maxTokens: 400 })
-      const text = result?.reply || result?.text || '1) История клиента 2) Тренд дня 3) Челлендж'
+      const text = extractText(result) || '1) История клиента 2) Тренд дня 3) Челлендж'
       const ideas = text.split(/\n?\d+\)\s*/).filter(Boolean).slice(0, 3)
       const lines = ideas.map((idea, i) => `${i + 1}️⃣ <b>Идея ${i + 1}</b>\n${idea.trim()}`).join('\n\n')
       bot.sendMessage(chatId, `✦ <b>Идеи для ${niche}</b> ✦\n━━━━━━━━━━━━━━\n\n${lines}`, {
@@ -290,7 +290,7 @@ export const initOmegaBot = () => {
         } catch (e) { console.warn('[omegaBot] web search failed:', e.message) }
       }
       const ai = await chatWithAI(systemPrompt + webContext, history, 'ru', { maxTokens: 700, temperature: 0.75 });
-      let reply = ai?.reply || ai?.text || 'Извините, я временно недоступна. Попробуйте позже.';
+      let reply = extractText(ai) || 'Извините, я временно недоступна. Попробуйте позже.';
 
       // Privacy Firewall — пост-обработка ответа
       for (const pattern of CLIENT_PRIVACY_PATTERNS) {
@@ -513,14 +513,13 @@ export const initOmegaBot = () => {
     bot.sendChatAction(chatId, 'typing')
 
     try {
-      const result = await chatWithAI(text, [], {
+      // [v9.9.19.3] FIX: был options-объект на месте lang + JSON.stringify всего ответа в чат
+      const result = await chatWithAI(text, [], 'ru', {
         userRole: 'owner',
-        language: 'ru',
         context: 'telegram_owner_chat'
       })
 
-      const rawText = result.text || result
-      const textToFormat = typeof rawText === 'string' ? rawText : (rawText && typeof rawText === 'object' ? (rawText.text || rawText.message || rawText.content || JSON.stringify(rawText, null, 2)) : String(rawText))
+      const textToFormat = extractText(result) || 'Принято.'
       const formatted = formatOmegaResponse(textToFormat, owner)
 
       const keyboard = {

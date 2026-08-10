@@ -1,5 +1,5 @@
 import { queryMesh, createNode } from './cognitiveMesh.js';
-import { chatWithAI } from './aiService.js';
+import { chatWithAI, extractText } from './aiService.js';
 import { OmegaMemory } from '../models/index.js';
 
 export async function getDreamStatus() {
@@ -54,7 +54,7 @@ export async function generateMorningBriefing(ownerId) {
 
 async function generateIdeas(ownerId) {
   const prompt = 'Generate 3 business ideas for AI Viral Studio based on current trends. Short, actionable.';
-  const response = await chatWithAI(prompt, { maxTokens: 300 });
+  const response = extractText(await chatWithAI(prompt, [], 'ru', { maxTokens: 300 }));
   return response.split('\n').filter(line => line.trim().length > 10);
 }
 
@@ -64,6 +64,6 @@ async function generateWeeklyContent(ownerId) {
 
 async function generatePredictions(ownerId) {
   const prompt = 'Predict 3 trends for next week in: 1) AI tools, 2) Social media, 3) SaaS pricing.';
-  const response = await chatWithAI(prompt, { maxTokens: 300 });
+  const response = extractText(await chatWithAI(prompt, [], 'ru', { maxTokens: 300 }));
   return response.split('\n').filter(line => line.includes(':'));
 }

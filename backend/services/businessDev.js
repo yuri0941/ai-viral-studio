@@ -1,4 +1,4 @@
-import { chatWithAI } from './aiService.js';
+import { chatWithAI, extractText } from './aiService.js';
 import User from '../models/User.js';
 
 const MOCK_PROSPECTS = [
@@ -22,7 +22,7 @@ export async function generateColdEmail(prospect, niche = 'general') {
 Продукт: AI Viral Studio — AI-платформа для вирусного SMM.
 Тон: уважительный, цепляющий, без спама. CTA: 15-минутная демонстрация.
 `;
-  const body = await chatWithAI(prompt, [], 'ru', { role: 'business' });
+  const body = extractText(await chatWithAI(prompt, [], 'ru', { role: 'business' }));
   return {
     subject: `AI для роста ${prospect.niche || 'вашего бизнеса'} — демо за 15 минут`,
     body: body || ''

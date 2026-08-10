@@ -3,7 +3,7 @@ import { CrisisEvent } from '../models/index.js'
 import { analyzeBatch, analyzeSentiment } from './sentimentAnalysis.js'
 import { alertOwner } from './ownerBot.js'
 import { AuditLog } from '../models/index.js'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 import { setAutopilotEnabled } from './autoPilot.js'
 
 const CRISIS_WINDOW_MS = 15 * 60 * 1000
@@ -55,7 +55,7 @@ export async function analyzeComments({ ownerId, projectId, platform, comments =
     try {
         const prompt = `Напиши короткий, спокойный, профессиональный ответ бренда на волну негативных комментариев. Тип кризиса: ${crisisType}. Не оправдывайся агрессивно, признай проблему, предложи решение. 2-3 предложения.`
         const ai = await chatWithAI(prompt, [], 'ru')
-        suggestedResponse = ai?.reply?.slice(0, 800) || ''
+        suggestedResponse = extractText(ai).slice(0, 800) || ''
     } catch (err) {
         suggestedResponse = 'Спасибо за обратную связь. Мы внимательно изучаем ситуацию и свяжемся с вами в ближайшее время.'
     }

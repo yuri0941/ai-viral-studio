@@ -1,5 +1,6 @@
 import { detectIntent, extractTopic } from './intentEngine.js';
 import { generateChannelPost, publishToChannel } from '../../services/telegramChannelManager.js';
+import { extractText } from '../../services/aiService.js';
 import { createTicket } from '../../services/supportService.js';
 import { analyzeDailyPerformance } from '../../services/selfReflection.js';
 import { generateOptimizationReport } from '../../services/performanceMonitor.js';
@@ -13,12 +14,19 @@ export async function executeAction({ intent, text, chatId, userRole, bot }) {
       safeSend(`⏳ Генерирую пост: "${topic}"...`);
       try {
         const post = await generateChannelPost({ topic, niche: 'general', style: 'viral', language: 'ru' });
-        if (!post?.text) throw new Error('Не сгенерировалось');
-        await publishToChannel({ text: post.text, imageUrl: post.imageUrl, caption: post.caption || post.text.slice(0, 200) });
-        safeSend(`✅ <b>Пост опубликован!</b>\n📢 Канал: @aiviralstudio\n📝 Тема: ${topic}\n⏰ ${new Date().toLocaleString('ru-RU')}`);
-        return { success: true, action: 'post', topic };
+        const postText = extractText(post?.text);
+        if (!postText) throw new Error('Генерация не удалась — попробуйте другую тему');
+        // [v9.9.19.3] проверяем результат публикации + ссылка-доказательство
+        const pub = await publishToChannel({ text: postText.slice(0, 900), imageUrl: post.imageUrl, caption: post.caption || postText.slice(0, 200) });
+        if (!pub?.success) throw new Error(pub?.error || 'Публикация не удалась');
+        safeSend(
+          `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
+          `📢 Канал: ${pub.channel || '@aiviralstudio'}\n📝 Тема: ${topic}\n⏰ ${new Date().toLocaleString('ru-RU')}` +
+          (pub.url ? `\n\n🔗 <a href="${pub.url}">Открыть пост</a>` : `\n\n🔎 Проверьте канал — message_id: ${pub.messageId}`)
+        );
+        return { success: true, action: 'post', topic, messageId: pub.messageId, url: pub.url };
       } catch (e) {
-        safeSend(`⚠️ Ошибка публикации: ${e.message}`);
+        safeSend(`⚠️ ${e.message}`);
         return { success: false, action: 'post', error: e.message };
       }
     }
@@ -45,7 +53,10 @@ export async function executeAction({ intent, text, chatId, userRole, bot }) {
       safeSend('⏳ Формирую отчёт...');
       try {
         const report = await generateOptimizationReport();
-        const short = typeof report === 'string' ? report.slice(0, 800) : JSON.stringify(report, null, 2).slice(0, 800);
+        // [v9.9.19.3] никакого сырого JSON в чат — только человекочитаемый текст
+        const short = typeof report === 'string'
+          ? report.slice(0, 800)
+          : (report?.summary || report?.text || report?.message || '✅ Отчёт сформирован. Полная версия — в Dashboard → Аналитика.');
         safeSend(`📈 <b>Отчёт</b>\n${short}`);
         return { success: true, action: 'report' };
       } catch (e) {

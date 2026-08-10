@@ -1,5 +1,5 @@
 import { Challenge, User } from '../models/index.js'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 import { generateCaseStudy } from './caseStudyGenerator.js'
 
 export async function getCurrentChallenge() {
@@ -38,7 +38,7 @@ export async function createMonthlyChallenge(options = {}) {
 
     try {
         const aiResult = await chatWithAI(aiPrompt, [], 'ru')
-        const text = aiResult.reply || ''
+        const text = extractText(aiResult)
         const jsonMatch = text.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0])
@@ -131,7 +131,7 @@ export async function evaluateSubmission(submissionId) {
 
     try {
         const aiResult = await chatWithAI(prompt, [], 'ru')
-        const text = aiResult.reply || ''
+        const text = extractText(aiResult)
         const jsonMatch = text.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0])

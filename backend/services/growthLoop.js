@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { chatWithAI } from './aiService.js';
+import { chatWithAI, extractText } from './aiService.js';
 import Referral from '../models/Referral.js';
 import User from '../models/User.js';
 
@@ -66,7 +66,7 @@ export async function getLeaderboard(period = 'month') {
 
 export async function startChallenge(theme = 'viral-august') {
   const prompt = `Придумай ежемесячный челлендж для креаторов в AI Viral Studio. Тема: ${theme}. Цель, правила, приз, критерии победы. Кратко, вдохновляюще.`;
-  const description = await chatWithAI(prompt, [], 'ru', { role: 'business' });
+  const description = extractText(await chatWithAI(prompt, [], 'ru', { role: 'business' }));
   return {
     theme,
     title: `Челлендж: ${theme}`,

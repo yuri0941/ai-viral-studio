@@ -1,5 +1,5 @@
 // [P17] added: OMEGA Code Interpreter for CSV analysis and chart generation
-import { chatWithAI } from '../../services/aiService.js'
+import { chatWithAI, extractText } from '../../services/aiService.js'
 
 function parseCSVLine(line) {
     const result = []
@@ -75,7 +75,7 @@ export async function generateInsights(data, niche = '') {
 Пример строк: ${JSON.stringify(data.rows.slice(0, 3))}`
     try {
         const aiResult = await chatWithAI(prompt, [], 'ru')
-        return { insights: aiResult?.reply || '' }
+        return { insights: extractText(aiResult) }
     } catch (err) {
         console.warn('[codeInterpreter] generateInsights failed:', err.message)
         return { insights: '' }

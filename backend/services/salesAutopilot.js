@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { chatWithAI } from './aiService.js';
+import { chatWithAI, extractText } from './aiService.js';
 import User from '../models/User.js';
 import DripLog from '../models/DripLog.js';
 
@@ -33,7 +33,7 @@ async function buildMessage(type, user, options = {}) {
     case: `Расскажи конкретный кейс роста канала с AI Viral Studio. CTA: повторить успех.`,
     last_chance: `Напиши "последний шанс" письмо: скидка 30% заканчивается. CTA: оформить Pro.`
   };
-  const text = await chatWithAI(prompts[type] || prompts.value, [], user.preferences?.language || 'ru', { role: 'business' });
+  const text = extractText(await chatWithAI(prompts[type] || prompts.value, [], user.preferences?.language || 'ru', { role: 'business' }));
   return { type, text, ...options };
 }
 
@@ -83,7 +83,7 @@ export async function checkUpsellTriggers(userId, metrics = {}) {
 export async function activateFOMO(userId) {
   const user = await User.findById(userId);
   if (!canSendTo(user)) return { skipped: true };
-  const text = await chatWithAI('Напиши короткое FOMO-сообщение: предложение ограничено, осталось мало мест. CTA: перейти на Pro.', [], user.preferences?.language || 'ru', { role: 'business' });
+  const text = extractText(await chatWithAI('Напиши короткое FOMO-сообщение: предложение ограничено, осталось мало мест. CTA: перейти на Pro.', [], user.preferences?.language || 'ru', { role: 'business' }));
   return { fomo: true, message: text };
 }
 

@@ -1,5 +1,5 @@
 import ScheduledPost from '../models/ScheduledPost.js'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 import { ApiKey } from '../models/index.js'
 
 async function hasAIProvider() {
@@ -52,9 +52,9 @@ export async function repurposeContent(ownerId, sourceId, options = {}) {
       const ai = await chatWithAI(prompt, [], 'ru')
       let parsed
       try {
-        parsed = JSON.parse(ai.content || '{}')
+        parsed = JSON.parse(extractText(ai) || '{}')
       } catch {
-        parsed = { title: `${format} — ${source.title}`, content: ai.content || '' }
+        parsed = { title: `${format} — ${source.title}`, content: extractText(ai) }
       }
 
       results.push({

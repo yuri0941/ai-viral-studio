@@ -3,7 +3,7 @@ import User from '../models/User.js'
 import Subscription from '../models/Subscription.js'
 import AuditLog from '../models/AuditLog.js'
 import { OwnerSettings } from '../models/OwnerSettings.js'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 import { sendEmail } from './emailService.js'
 import { sendOwnerAlert } from '../integrations/telegram/ownerBot.js'
 import { sendPush } from '../controllers/pushController.js'
@@ -34,7 +34,7 @@ export async function generateDailyReport(ownerId) {
             'ru',
             { userId: ownerId }
         )
-        const text = ai?.reply || ai?.response || ''
+        const text = extractText(ai)
         const match = text.match(/\{[\s\S]*\}/)
         const parsed = match ? JSON.parse(match[0]) : null
         recommendations = parsed?.recommendations || []

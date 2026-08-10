@@ -1,6 +1,6 @@
 import ScheduledPost from '../models/ScheduledPost.js'
 import { User } from '../models/index.js'
-import { chatWithAI, generateContent } from './aiService.js'
+import { chatWithAI, extractText, generateContent } from './aiService.js'
 import { analyzeTemplatePerformance } from './templateEvolution.js'
 
 export async function findEligibleUsers() {
@@ -36,7 +36,7 @@ export async function proposeABTest(userId, post) {
 
     try {
         const res = await chatWithAI(prompt, [], 'ru')
-        const text = res?.reply || res?.content || ''
+        const text = extractText(res)
         const match = text.match(/\{[\s\S]*\}/)
         const parsed = match ? JSON.parse(match[0]) : {}
         const variantB = parsed.variantB || text

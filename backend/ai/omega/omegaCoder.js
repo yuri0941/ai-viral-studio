@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 import { exec, execSync } from 'child_process'
 import os from 'os'
 import { promisify } from 'util'
-import { chatWithAI } from '../../services/aiService.js'
+import { chatWithAI, extractText } from '../../services/aiService.js'
 import { AuditLog } from '../../models/AuditLog.js'
 import OmegaApproval from '../../models/OmegaApproval.js'
 import { Sandbox } from './sandbox.js'
@@ -162,7 +162,7 @@ export async function analyzeCodebase() {
     let aiSummary = ''
     try {
         const ai = await chatWithAI(prompt, [], 'ru', { userId: 'omega' })
-        aiSummary = ai?.reply || ''
+        aiSummary = extractText(ai)
     } catch (err) {
         aiSummary = 'AI-анализ недоступен.'
     }
@@ -212,7 +212,7 @@ export async function generatePatch(filePath, issueHint = '') {
     ].filter(Boolean).join('\n')
 
     const ai = await chatWithAI(prompt, [], 'ru', { userId: 'omega' })
-    const raw = ai?.reply || ai?.text || '{}'
+    const raw = extractText(ai) || '{}'
 
     let parsed
     try {

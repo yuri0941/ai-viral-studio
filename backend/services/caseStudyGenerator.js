@@ -1,5 +1,5 @@
 import { ScheduledPost, User, Payment } from '../models/index.js'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 import { generateCover } from './imageGeneration.js'
 
 async function calculateClientGrowth(userId) {
@@ -83,7 +83,7 @@ export async function generateCaseStudy(userId, options = {}) {
             id: `case-${Date.now()}`,
             client: user,
             growth,
-            content: aiResult.reply || aiResult.content || aiResult.text || '',
+            content: extractText(aiResult),
             coverUrl: cover.url,
             createdAt: new Date().toISOString(),
             status: 'draft',

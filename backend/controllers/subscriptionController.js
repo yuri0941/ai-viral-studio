@@ -1,5 +1,5 @@
 import { Subscription } from '../models/index.js';
-import { chatWithAI } from '../services/aiService.js';
+import { chatWithAI, extractText } from '../services/aiService.js';
 import { adjustPrice } from '../services/dynamicPricing.js';
 import { PLANS, getPlanPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
 
@@ -215,8 +215,9 @@ export const analyzePricing = async (req, res) => {
     const ai = await chatWithAI(prompt, [], 'ru');
     let result = { recommendations: [], marketPosition: 'unknown' };
     try {
-      const match = ai?.reply?.match(/\{[\s\S]*\}/);
-      const parsed = match ? JSON.parse(match[0]) : JSON.parse(ai?.reply || '{}');
+      const reply = extractText(ai);
+      const match = reply.match(/\{[\s\S]*\}/);
+      const parsed = match ? JSON.parse(match[0]) : JSON.parse(reply || '{}');
       if (Array.isArray(parsed.recommendations)) {
         result = { recommendations: parsed.recommendations, marketPosition: parsed.marketPosition || 'unknown' };
       }

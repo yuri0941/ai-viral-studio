@@ -1,6 +1,6 @@
 import { AuditLog } from '../../models/AuditLog.js'
 import { AutoFixLog } from '../../models/AutoFixLog.js'
-import { chatWithAI } from '../../services/aiService.js'
+import { chatWithAI, extractText } from '../../services/aiService.js'
 import { alertOwner } from '../../services/ownerBot.js'
 
 const ERROR_PATTERNS = [
@@ -113,7 +113,7 @@ export async function analyzeError(error) {
     try {
         const prompt = `Ошибка: ${error.type}\nStack: ${error.stack || ''}\nMetadata: ${error.metadata ? JSON.stringify(error.metadata) : ''}\n\nКак исправить? Верни JSON: {"fix":"код или описание исправления","explanation":"текст"}`
         const ai = await chatWithAI(prompt, [], 'ru', { userRole: 'owner' })
-        const reply = ai?.reply || ai?.text || ''
+        const reply = extractText(ai)
         const match = reply.match(/\{[\s\S]*\}/)
         const json = match ? safeJSONParse(match[0], { fix: '', explanation: '' }) : { fix: '', explanation: '' }
         return { fix: json.fix || '', explanation: json.explanation || '' }

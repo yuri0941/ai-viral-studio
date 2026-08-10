@@ -1,4 +1,4 @@
-import { chatWithAI } from './aiService.js';
+import { chatWithAI, extractText } from './aiService.js';
 import { findNiche } from '../data/niches.js';
 
 const TEMPLATES = {
@@ -59,13 +59,14 @@ export async function generatePost(config, forcedType = null) {
   const template = randomPick(TEMPLATES[type]).replace(/{niche}/g, niche);
   const prompt = `Ты — SMM-эксперт Telegram-канала о ${niche}. Стиль: ${config.tone}. Язык: ${config.language}. Задача: напиши пост по теме "${template}". Формат JSON: { title (цепляющий, с эмодзи), body (3-5 коротких абзацев), cta (призыв к действию), hashtags (3-5 штук), emotion (motivational/curiosity/urgency/fun), suggestedMedia (image/video/carousel/poll) }`;
   const ai = await chatWithAI(prompt, [], config.language, { maxTokens: 900, temperature: 0.8 });
+  const aiText = extractText(ai).replace(/```json|```/g, '').trim(); // [v9.9.19.3] FIX: объект → строка + strip markdown
   let post;
   try {
-    post = JSON.parse(ai?.reply || ai?.text || '{}');
+    post = JSON.parse(aiText.match(/\{[\s\S]*\}/)?.[0] || aiText || '{}');
   } catch (e) {
     post = {
       title: template,
-      body: ai?.reply || 'Контент готовится...',
+      body: aiText || 'Контент готовится...',
       cta: 'Подпишись на канал',
       hashtags: `#${niche} #AI`,
       emotion: 'curiosity',

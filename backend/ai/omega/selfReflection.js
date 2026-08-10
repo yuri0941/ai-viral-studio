@@ -4,7 +4,7 @@
 
 import cron from 'node-cron'
 import { AuditLog } from '../../models/index.js'
-import { chatWithAI } from '../../services/aiService.js'
+import { chatWithAI, extractText } from '../../services/aiService.js'
 import * as neuralGraph from './neuralGraph.js'
 
 let reflectionJob = null
@@ -49,7 +49,7 @@ export async function reflectionCycle() {
     let lessons = []
     try {
         const aiResult = await chatWithAI(prompt, [], 'ru')
-        const text = aiResult?.reply || ''
+        const text = extractText(aiResult)
         try {
             const match = text.match(/\{[\s\S]*\}/)
             const parsed = match ? JSON.parse(match[0]) : JSON.parse(text)

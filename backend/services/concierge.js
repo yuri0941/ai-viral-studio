@@ -1,4 +1,4 @@
-import { chatWithAI } from './aiService.js';
+import { chatWithAI, extractText } from './aiService.js';
 import Booking from '../models/Booking.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
@@ -84,6 +84,6 @@ export async function handlePurchase(userId, request, user) {
 }
 
 export async function handleInfo(userId, request, user) {
-  const answer = await chatWithAI(`Пользователь спрашивает: ${request}\nОтветь кратко, по делу, как консьерж AI Viral Studio. Если нужно — предложи связаться с оператором.`, [], user?.preferences?.language || 'ru', { role: 'business' });
+  const answer = extractText(await chatWithAI(`Пользователь спрашивает: ${request}\nОтветь кратко, по делу, как консьерж AI Viral Studio. Если нужно — предложи связаться с оператором.`, [], user?.preferences?.language || 'ru', { role: 'business' }));
   return { intent: 'info', message: answer };
 }

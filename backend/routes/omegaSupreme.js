@@ -7,7 +7,7 @@ import { evaluateMigration, autoScaleDecision, scanServerPrices } from '../servi
 import { getBalance, getTransactionHistory } from '../services/cryptoWallet.js';
 import { detectIntent } from '../ai/omega/intentEngine.js';
 import { getSkillStatus } from '../ai/omega/learningEngine.js';
-import { chatWithAI } from '../services/aiService.js';
+import { chatWithAI, extractText } from '../services/aiService.js';
 import { getDreamStatus } from '../services/dreamMode.js';
 import { generateVoice } from '../services/voiceService.js';
 import { GeneratedCode } from '../models/index.js';
@@ -113,7 +113,7 @@ router.post('/devstudio/generate', protect, async (req, res) => {
     if (!spec) return res.status(400).json({ error: 'spec is required' });
     const prompt = `Ты senior full-stack разработчик. Напиши production-ready ${language} код для следующей задачи. Используй современный синтаксис, добавь комментарии, обработку ошибок. НЕ используй placeholder или "TODO" — только рабочий код.\n\nЗадача: ${spec}\n\nНапиши полный ${language} код:`;
     const ai = await chatWithAI(prompt, [], 'ru', { userId: req.user._id });
-    const code = ai?.reply || ai;
+    const code = extractText(ai);
     const saved = await GeneratedCode.create({ ownerId: req.user._id, spec, code, language, status: 'pending' });
     res.json({ code, id: saved._id, spec });
   } catch (e) {

@@ -3,7 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import cron from 'node-cron'
 import { LearningDataset } from '../../models/LearningDataset.js'
-import { chatWithAI } from '../../services/aiService.js'
+import { chatWithAI, extractText } from '../../services/aiService.js'
 import { analyzeTemplatePerformance } from '../../services/templateEvolution.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -94,7 +94,7 @@ export class SelfLearningEngine {
             try {
                 const prompt = `Вот ${messages.length} успешных ответов OMEGA на тему "${intent}". Создай 3 новых улучшенных шаблона ответов (на русском). Верни JSON массив: [{"text":"...","tags":["..."]}]`
                 const ai = await chatWithAI(`${prompt}\n\n${sample}`, [], 'ru', { userRole: 'owner' })
-                const reply = ai?.reply || ai?.text || ''
+                const reply = extractText(ai)
                 const match = reply.match(/\[[\s\S]*\]/)
                 const arr = match ? JSON.parse(match[0]) : []
                 for (const item of arr) {
@@ -145,7 +145,7 @@ export class SelfLearningEngine {
                 if (t.text) {
                     try {
                         const ai = await chatWithAI(`Улучши этот шаблон, сохранив смысл и сделав его более цепляющим. Верни только строку:\n\n${t.text}`, [], 'ru', { userRole: 'owner' })
-                        const improved = ai?.reply?.trim() || ai?.text?.trim()
+                        const improved = extractText(ai).trim()
                         if (improved && improved.length > 10) t.previewText = improved
                     } catch (err) {
                         console.error('[selfLearningEngine] evolve previewText error:', err.message)

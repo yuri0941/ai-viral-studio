@@ -1,4 +1,4 @@
-import { chatWithAI } from './aiService.js';
+import { chatWithAI, extractText } from './aiService.js';
 
 const FORMATS = {
   post: 'Пост в Telegram-канале @aiviralstudio',
@@ -14,7 +14,7 @@ export async function generateAdProposal({ budget = 50000, niche = 'general', go
 Бюджет: ${budget} ₽. Ниша: ${niche}. Цель: ${goal}. Формат: ${FORMATS[format] || format}.
 Включи: аудиторию, охват, CTR, примерный ROI, сроки, контакты. Тон: деловой, уверенный, с цифрами.
 `;
-  const proposal = await chatWithAI(prompt, [], 'ru', { role: 'business' });
+  const proposal = extractText(await chatWithAI(prompt, [], 'ru', { role: 'business' }));
   return { proposal, budget, niche, goal, format };
 }
 
@@ -23,7 +23,7 @@ export async function generateAdCreatives(niche = 'general', format = 'post') {
 Придумай 3 варианта рекламного креатива для AI Viral Studio. Ниша: ${niche}. Формат: ${FORMATS[format] || format}.
 Каждый вариант: заголовок (до 80 символов), основной текст (до 250 символов), CTA.
 `;
-  const text = await chatWithAI(prompt, [], 'ru', { role: 'business' });
+  const text = extractText(await chatWithAI(prompt, [], 'ru', { role: 'business' }));
   const creatives = [];
   const blocks = text.split(/\n*Вариант \d[:.)]?\n*/i).filter(Boolean);
   blocks.forEach((block, i) => {

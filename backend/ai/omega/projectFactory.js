@@ -1,5 +1,5 @@
 // OMEGA Project Factory — генерация приложений/сайтов/компонентов
-import { chatWithAI } from '../../services/aiService.js';
+import { chatWithAI, extractText } from '../../services/aiService.js';
 import JSZip from 'jszip';
 
 const TYPE_HINTS = {
@@ -25,7 +25,7 @@ export async function generateProject({ description = '', type = 'auto', stack, 
       `Сгенерируй ${resolvedType} (${resolvedStack}) для: ${description}. Вариант ${i+1}. Разбей код на файлы с комментариями "// File: путь". Только код, без лишнего markdown.`,
       [], 'ru', { userRole: 'owner', context: 'project_factory' }
     );
-    const files = parseFiles(code?.reply || code?.text || '');
+    const files = parseFiles(extractText(code));
     variants.push({
       id: `variant-${i+1}`,
       name: `Вариант ${i+1}`,
@@ -34,7 +34,7 @@ export async function generateProject({ description = '', type = 'auto', stack, 
     });
   }
 
-  return { variants, analysis: analysis?.reply || analysis?.text || analysis };
+  return { variants, analysis: extractText(analysis) };
 }
 
 function detectType(description) {

@@ -1,4 +1,4 @@
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 
 const AGENTS = [
     {
@@ -66,7 +66,7 @@ async function generateAgentArgument(agent, question, category, round, history) 
     const prompt = buildPrompt(agent, question, category, round, history)
     try {
         const res = await chatWithAI(prompt, [], 'ru')
-        const text = res?.reply || res?.content || `[${agent.name}] не удалось получить ответ`
+        const text = extractText(res) || `[${agent.name}] не удалось получить ответ`
         return { agent: agent.id, text: text.trim() }
     } catch (err) {
         console.error(`[boardroom] ${agent.name} failed:`, err.message)
@@ -93,7 +93,7 @@ ${finalArguments.map(a => `- ${a.agent}: ${a.text}`).join('\n')}
 Проголосуй: ЗА / ПРОТИВ / ВОЗДЕРЖАЛСЯ. Дай ТОЛЬКО один из этих трёх вариантов.`
         try {
             const res = await chatWithAI(prompt, [], 'ru')
-            const text = res?.reply || res?.content || 'ВОЗДЕРЖАЛСЯ'
+            const text = extractText(res) || 'ВОЗДЕРЖАЛСЯ'
             votes.push({ agent: agent.id, vote: parseVote(text), text: text.trim() })
         } catch (err) {
             votes.push({ agent: agent.id, vote: 'abstain', text: 'ВОЗДЕРЖАЛСЯ' })
@@ -142,7 +142,7 @@ ${finalArguments.map(a => `- ${a.agentName}: ${a.text}`).join('\n')}
     let summary = ''
     try {
         const res = await chatWithAI(summaryPrompt, [], 'ru')
-        summary = res?.reply || res?.content || 'Сводка недоступна'
+        summary = extractText(res) || 'Сводка недоступна'
     } catch (err) {
         summary = 'Сводка недоступна'
     }

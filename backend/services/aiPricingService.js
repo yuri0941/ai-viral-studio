@@ -1,5 +1,5 @@
 import Addon from '../models/Addon.js'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 
 const MARKET_FALLBACK = {
     'AI Дизайнер': { competitors: [299, 490, 990], avg: 590 },
@@ -35,7 +35,7 @@ export async function analyzeAddonMarket(addon, userRole = 'owner') {
 Рекомендуй оптимальную цену в ${addon.currency}, оцени уверенность 0-100 и кратко обоснуй. Верни JSON: { recommendedPrice: number, confidence: number, reasoning: string, competitorPrices: [{price, currency}] }.`
 
         const res = await chatWithAI(prompt, [], 'ru', userRole)
-        const text = res?.text || res?.response || res?.message || ''
+        const text = extractText(res)
         const jsonMatch = text.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0])

@@ -1,4 +1,4 @@
-import { chatWithAI } from './aiService.js';
+import { chatWithAI, extractText } from './aiService.js';
 import { createNode } from './cognitiveMesh.js';
 import { orchestrate } from './agentSwarm.js';
 
@@ -7,7 +7,7 @@ const ROLES = ['CEO', 'CMO', 'CTO', 'CFO', 'CHRO'];
 export async function generateBoardroomTasks(ownerId, context = {}) {
   const prompt = `As a board of directors (CEO, CMO, CTO, CFO, CHRO), analyze this context and generate specific tasks for each role. Context: ${JSON.stringify(context)}. Return JSON: { tasks: [{role, title, priority: 'critical'|'high'|'medium'|'low', description, deadline, expectedOutcome}] }`;
   const aiResult = await chatWithAI(prompt, [], 'ru', { system: 'Return ONLY valid JSON.', maxTokens: 2500, temperature: 0.5 });
-  const response = aiResult?.reply || aiResult?.text || '';
+  const response = extractText(aiResult);
   let tasks;
   try { tasks = JSON.parse(response).tasks; } catch(e) { tasks = []; }
 
@@ -18,7 +18,7 @@ export async function generateBoardroomTasks(ownerId, context = {}) {
 export async function executeBoardroomVote(tasks, ownerId) {
   const votePrompt = `Board vote on these tasks: ${JSON.stringify(tasks)}. Return JSON: { votes: [{role, taskIndex, vote: 'approve'|'reject'|'modify', reasoning}] }`;
   const aiResult = await chatWithAI(votePrompt, [], 'ru', { system: 'Return ONLY valid JSON.', maxTokens: 2000, temperature: 0.4 });
-  const response = aiResult?.reply || aiResult?.text || '';
+  const response = extractText(aiResult);
   let votes;
   try { votes = JSON.parse(response).votes; } catch(e) { votes = tasks.map((_, i) => ({ role: 'CEO', taskIndex: i, vote: 'approve', reasoning: 'Auto-approved' })); }
 
@@ -47,7 +47,7 @@ Return JSON: { vote: "FOR"|"AGAINST"|"ABSTAIN", comment: "...", improvement: "..
     const aiResult = await chatWithAI(prompt, [], 'ru', { system: 'Return ONLY valid JSON.', maxTokens: 400, temperature: 0.7 })
     let voteData
     try {
-      voteData = JSON.parse(aiResult?.reply || aiResult?.text || '{}')
+      voteData = JSON.parse(extractText(aiResult) || '{}')
     } catch (e) {
       voteData = { vote: 'ABSTAIN', comment: 'Воздерживаюсь.', improvement: 'Нет предложений.' }
     }

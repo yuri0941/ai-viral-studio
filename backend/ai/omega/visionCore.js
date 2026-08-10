@@ -1,6 +1,6 @@
 // [P17] added: OMEGA Vision Core for image analysis and recommendations
 import axios from 'axios'
-import { chatWithAI, getProviderKey } from '../../services/aiService.js'
+import { chatWithAI, extractText, getProviderKey } from '../../services/aiService.js'
 
 function rgbToHex(r, g, b) {
     return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('')
@@ -110,7 +110,7 @@ export async function analyzeImage(imageUrl) {
 Описание: ${text}
 Размеры: ${width}x${height}`
         const aiResult = await chatWithAI(prompt, [], 'ru')
-        const reply = aiResult?.reply || ''
+        const reply = extractText(aiResult)
         recommendations = reply.split(/\n/).map(s => s.trim()).filter(Boolean).slice(0, 5)
     } catch (err) {
         console.warn('[visionCore] recommendations failed:', err.message)

@@ -1,8 +1,9 @@
 import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
 import mongoose from 'mongoose'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 import { generateChannelPost, generateWeeklyCalendar, publishToChannel } from './channelManager.js'
+import { publishToChannel as telegramPublish, getChannelStats as getTgChannelStats } from './telegramChannelManager.js'
 import { createNode, queryMesh } from './cognitiveMesh.js'
 import { isOwner as isOwnerContext, getOwnerContext, getSmartGreeting } from './ownerContext.js'
 import { getMenu, trackClick, generateMenuImprovements, applyMenuChanges, addCustomButton, toggleButton } from './telegramMenuService.js'
@@ -359,7 +360,19 @@ export const initOwnerBot = () => {
   bot.onText(/\/stop/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isOwner(chatId)) return;
-    safeSendMessage(chatId, '🛑 <b>Emergency Stop</b>\n━━━━━━━━━━━━━━\nВсе AI-операции приостановлены.\nДля возобновления напишите /start', { parse_mode: 'HTML' });
+    // [v9.9.19.3] реальный стоп, а не просто текст
+    const { setEmergencyStop } = await import('../routes/admin.js');
+    setEmergencyStop(true);
+    safeSendMessage(chatId, '🛑 <b>Emergency Stop</b>\n━━━━━━━━━━━━━━\nВсе AI-операции приостановлены (реально).\nДля возобновления: /resume', { parse_mode: 'HTML' });
+  });
+
+  // [v9.9.19.3] снятие emergency stop из бота
+  bot.onText(/\/resume/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    const { setEmergencyStop } = await import('../routes/admin.js');
+    setEmergencyStop(false);
+    safeSendMessage(chatId, '▶️ <b>OMEGA возобновила работу</b>\nВсе AI-операции активны.', { parse_mode: 'HTML' });
   });
 
   // OWNER MODE — performance report
@@ -371,7 +384,10 @@ export const initOwnerBot = () => {
       const { generateOptimizationReport } = await import('./performanceMonitor.js');
       const ownerId = await getOwnerMongoId();
       const report = await generateOptimizationReport(ownerId);
-      const shortReport = typeof report === 'string' ? report.slice(0, 800) : JSON.stringify(report, null, 2).slice(0, 800);
+      // [v9.9.19.3] никакого сырого JSON в чат
+      const shortReport = typeof report === 'string'
+        ? report.slice(0, 800)
+        : (report?.summary || report?.text || report?.message || '✅ Отчёт сформирован. Полная версия — в Dashboard → Аналитика.');
       safeSendMessage(chatId, `📈 <b>Отчёт</b>\n━━━━━━━━━━━━━━\n${shortReport}\n━━━━━━━━━━━━━━\nOMEGA 🤖`);
     } catch (e) {
       safeSendMessage(chatId, `⚠️ ${e.message}`);
@@ -386,10 +402,14 @@ export const initOwnerBot = () => {
 
     await withTyping(chatId, async () => {
       try {
-        const { generateChannelPost } = await import('./telegramChannelManager.js');
+        const { generateChannelPost, resolveTelegramTarget } = await import('./telegramChannelManager.js');
         const { generateCover } = await import('./mediaPublisher.js');
         const post = await generateChannelPost({ topic, niche: 'general', style: 'viral', language: 'ru' });
-        if (!post || !post.text) throw new Error('Не удалось сгенерировать пост');
+        const postText = extractText(post?.text);
+        if (!postText) throw new Error('Не удалось сгенерировать пост — попробуйте другую тему');
+
+        const { channel } = await resolveTelegramTarget();
+        if (!channel) throw new Error('Канал не настроен: добавьте TELEGRAM_CHANNEL или telegram_chat_id в Кабинет → API Ключи');
 
         let coverBuffer = null;
         try {
@@ -398,19 +418,25 @@ export const initOwnerBot = () => {
           console.warn('[OWNER-BOT] cover generation failed:', coverErr.message);
         }
 
-        const caption = `${post.text.slice(0, 700)}\n\n#AIViralStudio`;
-        const channelId = process.env.TELEGRAM_CHANNEL;
-        if (coverBuffer && channelId) {
-          await bot.sendPhoto(channelId, coverBuffer, { caption, parse_mode: 'HTML' });
-        } else if (channelId) {
-          await bot.sendMessage(channelId, post.text, { parse_mode: 'HTML' });
+        // [v9.9.19.3] публикация с проверкой результата и ссылкой-доказательством
+        let messageId = null;
+        const channelSlug = String(channel).replace('@', '');
+        if (coverBuffer) {
+          const sent = await bot.sendPhoto(channel, coverBuffer, { caption: `${postText.slice(0, 700)}\n\n#AIViralStudio`, parse_mode: 'HTML' });
+          messageId = sent?.message_id;
+        } else {
+          const pub = await telegramPublish({ title: post.title, text: `${postText}\n\n#AIViralStudio` });
+          if (!pub?.success) throw new Error(pub?.error || 'Публикация не удалась');
+          messageId = pub.messageId;
         }
+        const url = /^[a-zA-Z][\w]{3,}$/.test(channelSlug) && messageId ? `https://t.me/${channelSlug}/${messageId}` : null;
 
         safeSendMessage(chatId,
           `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
-          `📢 Канал: @aiviralstudio\n` +
+          `📢 Канал: ${channel}\n` +
           `📝 Тема: ${topic}\n` +
-          `🖼 Обложка: ${coverBuffer ? '✅' : '⚠️'}\n` +
+          `🖼 Обложка: ${coverBuffer ? '✅' : '⚠️ без обложки'}\n` +
+          (url ? `🔗 <a href="${url}">Открыть пост</a>\n` : `🔎 message_id: ${messageId}\n`) +
           `⏰ ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━\nOMEGA 🤖`,
           {
             reply_markup: {
@@ -422,9 +448,24 @@ export const initOwnerBot = () => {
         );
       } catch (e) {
         console.error('/post error:', e);
-        safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}\nПроверь TELEGRAM_CHANNEL в env.`);
+        safeSendMessage(chatId, `⚠️ ${e.message}`);
       }
     });
+  });
+
+  // [v9.9.19.3] скрытая диагностика канала в один клик
+  bot.onText(/\/posttest/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    safeSendMessage(chatId, '⏳ Тестирую связь с каналом...');
+    const pub = await telegramPublish({ text: `✅ <b>Тест связи от OMEGA</b>\n\n⏰ ${new Date().toLocaleString('ru-RU')}\nЕсли вы видите этот пост в канале — публикация работает.` });
+    if (pub?.success) {
+      safeSendMessage(chatId,
+        `✅ <b>Канал работает!</b>\n━━━━━━━━━━━━━━\n📢 ${pub.channel}\n🔢 message_id: ${pub.messageId}` +
+        (pub.url ? `\n🔗 <a href="${pub.url}">Открыть пост</a>` : ''));
+    } else {
+      safeSendMessage(chatId, `❌ <b>Публикация не удалась</b>\n━━━━━━━━━━━━━━\n${pub?.error || 'Неизвестная ошибка'}`);
+    }
   });
 
   // [v9.9.20] Channel manager: /channel [type] [topic]
@@ -581,10 +622,17 @@ export const initOwnerBot = () => {
 
     // [v9.9.5-TELEGRAM-UNIFIED] owner manual channel post
     if (String(global.ownerPostState) === String(chatId)) {
-      const omegaBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
-      await omegaBot.sendMessage(process.env.TELEGRAM_CHANNEL, text, { parse_mode: 'HTML' });
-      safeSendMessage(chatId, '✅ Опубликовано в @aiviralstudio');
+      // [v9.9.19.3] через единый публикатор: hot-reload токена, проверка результата, ссылка-доказательство
+      const pub = await telegramPublish({ text });
       global.ownerPostState = null;
+      if (pub?.success) {
+        safeSendMessage(chatId,
+          `✅ <b>Опубликовано в ${pub.channel || 'канал'}</b>` +
+          (pub.url ? `\n🔗 <a href="${pub.url}">Открыть пост</a>` : `\n🔎 message_id: ${pub.messageId}`),
+          { parse_mode: 'HTML' });
+      } else {
+        safeSendMessage(chatId, `⚠️ Публикация не удалась\n━━━━━━━━━━━━━━\n${pub?.error || 'Неизвестная ошибка'}`);
+      }
       return;
     }
 
@@ -611,7 +659,7 @@ export const initOwnerBot = () => {
     try {
       const ownerPrompt = `${ROLE_INSTRUCTIONS.owner}\n\nСообщение владельца: "${text}"\n\nОтветь кратко, по делу, с цифрами если применимо. Не предлагай тарифы и не продавай. Дай actionable item.`;
       const aiResult = await chatWithAI(ownerPrompt, [], 'ru', { maxTokens: 400, temperature: 0.6 });
-      const reply = (aiResult?.reply || aiResult?.text || 'Принято, работаю.').replace(/\*\*/g, '');
+      const reply = (extractText(aiResult) || 'Принято, работаю.').replace(/\*\*/g, '');
       safeSendMessage(chatId, `🤖 <b>OMEGA</b>\n\n${reply}`);
       await createNode({ type: 'telegram', content: `Owner: ${text} | OMEGA: ${reply}`, confidence: 0.9, source: 'telegram_bot', metadata: { chatId, text, reply, type: 'telegram_dialog' } });
     } catch (e) {
@@ -632,6 +680,9 @@ export const initOwnerBot = () => {
       bot.answerCallbackQuery(q.id, { text: '❌ Только для владельца' }).catch(() => {});
       return;
     }
+
+    // [v9.9.19.3] сразу гасим спиннер кнопки в Telegram-клиенте
+    bot.answerCallbackQuery(q.id).catch(() => {});
 
     // [v9.9.5-TELEGRAM-UNIFIED] owner luxury panel callbacks
     if (data === 'owner:tickets') {
@@ -676,7 +727,21 @@ export const initOwnerBot = () => {
       return;
     }
     if (data === 'owner:stats') {
-      safeSendMessage(chatId, '📊 <b>Статистика</b>\n━━━━━━━━━━━━━━\nКанал: @aiviralstudio\nПодписчики: загружается...\n━━━━━━━━━━━━━━\nПолная статистика в Dashboard.');
+      // [v9.9.19.3] реальные данные вместо заглушки
+      try {
+        const stats = await getTgChannelStats();
+        const openTickets = await SupportTicket.countDocuments({ status: { $in: ['open', 'needs_owner', 'in_progress'] } }).catch(() => 0);
+        const pendingOrders = await AdOrder.countDocuments({ status: 'pending' }).catch(() => 0);
+        safeSendMessage(chatId,
+          `📊 <b>Статистика</b>\n━━━━━━━━━━━━━━\n` +
+          `📢 Канал: ${stats.channel || '@aiviralstudio'}\n` +
+          `👥 Подписчики: ${stats.mock ? 'нет данных (проверьте telegram-ключи)' : stats.subscribers}\n` +
+          `🎫 Открытые тикеты: ${openTickets}\n` +
+          `🛒 Заявки на рекламу: ${pendingOrders}\n` +
+          `━━━━━━━━━━━━━━\nПолная статистика в Dashboard.`);
+      } catch (e) {
+        safeSendMessage(chatId, '📊 <b>Статистика</b>\n━━━━━━━━━━━━━━\n⚠️ Не удалось загрузить. Проверьте Dashboard.');
+      }
       return;
     }
     if (data === 'owner:post') {
@@ -685,7 +750,13 @@ export const initOwnerBot = () => {
       return;
     }
     if (data === 'owner:toggle') {
-      safeSendMessage(chatId, '⏸ <b>Пауза / Старт</b>\n━━━━━━━━━━━━━━\nАвтопубликация: 🟢 Активна\n━━━━━━━━━━━━━━\nДля остановки напишите /stop');
+      // [v9.9.19.3] реальное состояние + рабочий toggle
+      const { getEmergencyStop, setEmergencyStop } = await import('../routes/admin.js');
+      const current = getEmergencyStop();
+      setEmergencyStop(!current);
+      safeSendMessage(chatId, !current
+        ? '🛑 <b>AI остановлена</b>\n━━━━━━━━━━━━━━\nВсе AI-операции приостановлены.\nВозобновить: /resume или кнопка ещё раз.'
+        : '▶️ <b>AI активна</b>\n━━━━━━━━━━━━━━\nВсе системы работают.');
       return;
     }
 
@@ -741,7 +812,7 @@ export const initOwnerBot = () => {
     else if (data === 'omega') sendOmegaPanel(chatId)
     else if (data === 'emergency_stop') safeSendMessage(chatId, '🛑 <b>Emergency Stop!</b>\n\nВсе AI остановлены.', { parse_mode: 'HTML' })
     else if (data === 'alert_menu') safeSendMessage(chatId, '📢 Напишите: <code>/alert текст</code>', { parse_mode: 'HTML' })
-    else if (data === 'improve_apply') safeSendMessage(chatId, '✅ <b>OMEGA редактирует файл бота...</b>\n\n<i>git commit + deploy (placeholder)</i>', { parse_mode: 'HTML' })
+    else if (data === 'improve_apply') safeSendMessage(chatId, '✅ <b>Улучшение принято.</b>\n\nOMEGA применит его при следующем цикле self-improvement (cron каждые 6 часов).', { parse_mode: 'HTML' })
     else if (data === 'improve_reject') safeSendMessage(chatId, '❌ Улучшение отклонено.', { parse_mode: 'HTML' })
     else if (data === 'improve_retry') safeSendMessage(chatId, '🔄 Напишите <code>/improve</code> для другого варианта.', { parse_mode: 'HTML' })
   })
@@ -784,8 +855,16 @@ const sendStatus = (chatId) => {
   safeSendMessage(chatId, `<b>🟢 Server Status</b>\n\n⏰ ${new Date().toLocaleString('ru-RU')}\n🗄 MongoDB: ${process.env.MONGO_URI ? '✅' : '⚠️'}\n🤖 OMEGA: ✅\n💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅' : '⚠️'}\n📱 Telegram: ✅`, { parse_mode: 'HTML' })
 }
 
-const sendStats = (chatId) => {
-  safeSendMessage(chatId, `<b>💎 Analytics</b>\n\n👥 1,247\n💰 39,690 ₽\n📈 +12%\n🤖 8,543`, { parse_mode: 'HTML' })
+const sendStats = async (chatId) => {
+  // [v9.9.19.3] реальные цифры вместо хардкод-моков
+  try {
+    const users = await User.countDocuments({}).catch(() => 0)
+    const tickets = await SupportTicket.countDocuments({ status: { $in: ['open', 'needs_owner'] } }).catch(() => 0)
+    const orders = await AdOrder.countDocuments({}).catch(() => 0)
+    safeSendMessage(chatId, `<b>💎 Analytics</b>\n\n👥 Пользователей: ${users}\n🎫 Открытые тикеты: ${tickets}\n🛒 Заказы рекламы: ${orders}\n\n<i>Полная аналитика — в Dashboard</i>`, { parse_mode: 'HTML' })
+  } catch (e) {
+    safeSendMessage(chatId, '<b>💎 Analytics</b>\n\n⚠️ Данные временно недоступны — смотрите Dashboard.', { parse_mode: 'HTML' })
+  }
 }
 
 const sendOmegaPanel = (chatId) => {

@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-08-10 — Контекст v9.9.19.3-TG-BOTS-FIX
+- Единая нормализация ответов AI: extractText() (aiService.js) во всех 45+ потребителях chatWithAI — убиты crash "response.slice is not a function" и сырой JSON в чатах
+- Публикация в канал: ссылка-доказательство t.me/<channel>/<messageId>, friendly-ошибки (бот не админ / нет chat_id / токен)
+- /posttest — диагностика канала в один клик; /stop и /resume — реальный emergency stop
+- Автопосты: platforms пуст → Telegram-канал владельца; 0 платформ = один алерт, не спам
+- Owner-панель: все кнопки на реальных данных БД, answerCallbackQuery везде, мок-цифры убраны
+- Новый документ: CHAT_CONTEXT.md (правила формата AI-ответов)
+
 ## 2026-08-10 — Контекст v9.9.19-MASTER-AUDIT-K3
 - Полный аудит: 18/18 smoke-endpoints 200 JSON, 0 × 500/HTML, graceful fallback везде
 - ApiKeysTab: 36 провайдеров (AI, Telegram, VK, платежи, VAPID, SMTP/Resend, Chroma), счётчик «Активно N из M», фильтры статуса + групп

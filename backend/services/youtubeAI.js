@@ -1,5 +1,5 @@
 import { google } from 'googleapis'
-import { chatWithAI, getProviderKey } from './aiService.js'
+import { chatWithAI, extractText, getProviderKey } from './aiService.js'
 import axios from 'axios'
 
 // [v9.9.19-MASTER-AUDIT] hot-reload: клиент YouTube создаётся в момент вызова
@@ -71,7 +71,7 @@ export async function generateShortsScript(topic, niche, duration = 30) {
   const prompt = `Создай сценарий YouTube Shorts длительностью ${duration} секунд на тему "${topic}" для ниши "${niche}". Разбей по таймкодам: хук, основная часть, CTA. Ответ на русском.`
   try {
     const result = await chatWithAI(prompt, [], 'ru')
-    return { success: result.success, script: result.reply, provider: result.provider }
+    return { success: result.success, script: extractText(result), provider: result.provider }
   } catch (err) {
     return { success: false, error: err.message }
   }
@@ -103,7 +103,7 @@ export async function generateTitles(topic, niche, count = 5) {
   const prompt = `Сгенерируй ${count} цепляющих заголовков YouTube-видео на тему "${topic}" для ниши "${niche}". Верни только нумерованный список без лишнего текста.`
   try {
     const result = await chatWithAI(prompt, [], 'ru')
-    return { success: result.success, titles: result.reply, provider: result.provider }
+    return { success: result.success, titles: extractText(result), provider: result.provider }
   } catch (err) {
     return { success: false, error: err.message }
   }

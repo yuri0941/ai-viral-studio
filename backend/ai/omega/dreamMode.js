@@ -1,6 +1,6 @@
 import cron from 'node-cron'
 import { getTrends } from '../../services/trendScanner.js'
-import { chatWithAI } from '../../services/aiService.js'
+import { chatWithAI, extractText } from '../../services/aiService.js'
 import { runDailyAnalysis } from './omegaCoder.js'
 import { getDirector } from './swarm/director.js'
 import User from '../../models/User.js'
@@ -117,7 +117,7 @@ class DreamMode {
 [ { "title": "...", "format": "Reels|Stories|Пост|Shorts", "hook": "...", "cta": "..." } ]`
 
         const ai = await chatWithAI(prompt, [], 'ru', { userId: String(user._id) })
-        const raw = ai?.reply || ai?.text || '[]'
+        const raw = extractText(ai) || '[]'
         try {
             const match = raw.match(/\[[\s\S]*\]/) || raw.match(/\{[\s\S]*\}/)
             const json = match ? match[0] : raw

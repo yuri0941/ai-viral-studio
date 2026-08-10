@@ -1,11 +1,11 @@
-import { chatWithAI } from './aiService.js';
+import { chatWithAI, extractText } from './aiService.js';
 import { publishToChannel } from './channelPublisher.js';
 
 export async function generateVideoScript(topic, niche, duration = 30) {
   const prompt = `Ты — viral-продюсер TikTok/Reels. Тема: "${topic}" для ниши "${niche}". Создай сценарий ${duration}-секундного видео: 1. Хук (первые 3 сек) 2. Основная часть (3-4 смены кадра) 3. CTA — призыв перейти в приложение AI Viral Studio. Верни JSON: {hook,scenes:[{time,text,visual}],cta,suggestedAudio:"trending"|"motivational"|"calm"}`;
   const ai = await chatWithAI(prompt, [], 'ru', { maxTokens: 600 });
   try {
-    return JSON.parse(ai?.reply || '{}');
+    return JSON.parse(extractText(ai) || '{}');
   } catch (e) {
     return {
       hook: `Как ${niche} заработал 300K за месяц?`,

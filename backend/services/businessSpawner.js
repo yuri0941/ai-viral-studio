@@ -1,4 +1,4 @@
-import { chatWithAI, generateContent } from './aiService.js'
+import { chatWithAI, extractText, generateContent } from './aiService.js'
 import { runBoardroom } from './boardroom.js'
 
 function randomId() {
@@ -49,7 +49,7 @@ export async function spawnBusiness({ niche, budgetFrom, budgetTo, audience, cit
     try {
         const prompt = `Ты — аналитик рынка. Проведи краткое исследование ниши "${niche}" для города ${city || 'online'} и аудитории "${audience || 'широкая аудитория'}". Опиши тренды, конкурентов, спрос, риски и возможности. Ответь на русском, 5-7 пунктов.`
         const res = await chatWithAI(prompt, [], 'ru')
-        research = res?.reply || res?.content || 'Исследование недоступно'
+        research = extractText(res) || 'Исследование недоступно'
         steps.find(s => s.id === 'research').status = 'done'
         steps.find(s => s.id === 'research').result = research.slice(0, 500)
     } catch (err) {
@@ -63,7 +63,7 @@ export async function spawnBusiness({ niche, budgetFrom, budgetTo, audience, cit
     try {
         const prompt = `Ты — бренд-директор. Придумай название, слоган, цветовую палитру (3 hex-кода) и tone of voice для бизнеса в нише "${niche}" для аудитории "${audience || 'широкая аудитория'}" в городе ${city || 'online'}. Ответь ТОЛЬКО JSON: {name, tagline, colors: [hex1, hex2, hex3], tone, description}.`
         const res = await chatWithAI(prompt, [], 'ru')
-        const text = res?.reply || res?.content || '{}'
+        const text = extractText(res) || '{}'
         const match = text.match(/\{[\s\S]*\}/)
         brand = match ? JSON.parse(match[0]) : {}
         steps.find(s => s.id === 'brand').status = 'done'
@@ -79,7 +79,7 @@ export async function spawnBusiness({ niche, budgetFrom, budgetTo, audience, cit
     try {
         const prompt = `Ты — frontend-разработчик. Создай готовый одностраничный лендинг (HTML + встроенный CSS + небольшой JS) для бизнеса "${brand.name || niche}" в нише "${niche}". Используй цвета ${(brand.colors || []).join(', ')}. Лендинг должен быть адаптивным, современным, с хуком, преимуществами, CTA и контактами. Верни ТОЛЬКО полный HTML-код одной строкой или в виде {html: '...'}.`
         const res = await chatWithAI(prompt, [], 'ru')
-        const text = res?.reply || res?.content || ''
+        const text = extractText(res)
         const htmlMatch = text.match(/<html[\s\S]*<\/html>/i) || text.match(/<![\s\S]*<\/body>/i) || text.match(/<body[\s\S]*<\/body>/i)
         landing.html = htmlMatch ? htmlMatch[0] : `<html><body><h1>${brand.name || niche}</h1><p>${brand.tagline || ''}</p></body></html>`
         landing.description = `Лендинг для ${brand.name || niche}`
@@ -96,7 +96,7 @@ export async function spawnBusiness({ niche, budgetFrom, budgetTo, audience, cit
     try {
         const prompt = `Ты — финансовый консультант. Предложи 3 тарифных плана для бизнеса "${brand.name || niche}" в нише "${niche}" с бюджетом ${budgetFrom || '0'}–${budgetTo || '∞'}. Ответь ТОЛЬКО JSON: {tiers: [{name, price, period, features: []}], note}.`
         const res = await chatWithAI(prompt, [], 'ru')
-        const text = res?.reply || res?.content || '{}'
+        const text = extractText(res) || '{}'
         const match = text.match(/\{[\s\S]*\}/)
         payments = match ? JSON.parse(match[0]) : payments
         payments.note = 'Для приёма платежей подключите ЮKassa/Stripe в настройках проекта.'
@@ -113,7 +113,7 @@ export async function spawnBusiness({ niche, budgetFrom, budgetTo, audience, cit
     try {
         const prompt = `Ты — контент-стратег. Создай первые 10 постов для бизнеса "${brand.name || niche}" в нише "${niche}" для аудитории "${audience || 'широкая аудитория'}". Ответь ТОЛЬКО JSON: [{title, platform, type, hook, cta}].`
         const res = await chatWithAI(prompt, [], 'ru')
-        const text = res?.reply || res?.content || '[]'
+        const text = extractText(res) || '[]'
         const match = text.match(/\[[\s\S]*\]/)
         contentPlan = match ? JSON.parse(match[0]) : []
         steps.find(s => s.id === 'content').status = 'done'

@@ -3665,3 +3665,22 @@
 - [FRONTEND] Адаптив: ClientChatWidget/AdvertisingTab фикс-ширины; 20+ модалок max-h-[90vh] overflow-y-auto; touch targets 44px (CookieConsent, Staff tabs, иконки-кнопки, Modal close); .pb-safe утилита (client-app + owner-app); FAB safe-area ×8; DashboardShell pb-24; NeuralGraphTab preventDefault в passive listener убран; PersonalityTab необработанный промис → try/catch/finally
 - [TEST] Все smoke PASS: 18/18 endpoints 200 JSON, seed-smm в neural-graph, логин 5 ролей, learning/record, telegram-status, build 0 errors
 - [STATUS] 🟢 Проект стабилен. Следующий этап: v9.9.20-FACTORY-REAL
+
+
+## 2026-08-10 — v9.9.19.3-TG-BOTS-FIX
+- [ROOT CAUSE] chatWithAI() возвращает объект {reply, provider, usage}, а обработчики ждали строку → crash "response.slice is not a function", сырой JSON в чатах, посты не уходили в канал
+- [FIX] Единая нормализация: extractText() в aiService.js, применён в 45+ файлах (боты, публикаторы, factory, predictive, repurposing, boardroom, concierge, dreamMode, personalityEngine, salesAutopilot и др.)
+- [FIX] telegramChannelManager.generateChannelPost: JSON.parse(объект) → crash; теперь extractText + strip markdown + regex-извлечение JSON
+- [FIX] channelManager.js: chatWithAI присваивался в строку → [object Object] в постах канала и crash split() в календаре
+- [FIX] omegaBot owner-fallback: JSON.stringify всего ответа уходил в чат ("provider":"groq","usage":null) + options-объект передавался на место lang
+- [FIX] personalityEngine: options вторым аргументом вместо history ×3 + JSON.parse на объекте
+- [FIX] salesAutopilot: объект ответа уходил как текст drip-писем
+- [FEATURE] Публикация в канал со ссылкой-доказательством t.me/<channel>/<messageId> (/post, intent «выложи пост», ручная публикация из панели)
+- [FEATURE] /posttest — скрытая диагностика канала: тестовый пост + ссылка или понятная ошибка (бот не админ / нет chat_id / невалидный токен)
+- [FIX] Понятные ошибки Telegram вместо технических (friendlyTelegramError)
+- [FIX] AUTO-PUBLISH: platforms пуст → пост в Telegram-канал владельца; «0 platforms» = warning + ОДИН алерт владельцу (не спам); логи to=channel result=ok id=
+- [FIX] Owner-панель: owner:stats — реальные подписчики/тикеты/заявки (была заглушка «загружается...»); owner:toggle — реальный emergency toggle; sendStats — реальные цифры БД (были моки 1,247/39,690₽); improve_apply — честный текст вместо placeholder; answerCallbackQuery на всех кнопках (гасит спиннер)
+- [FEATURE] /stop — реальный emergency stop через setEmergencyStop (routes/admin.js), /resume — снятие
+- [CREATE] CHAT_CONTEXT.md — правила формата ответов AI и грабли ботов
+- [TEST] extractText unit 7/7 PASS; server boot OK; health/neural-graph/channel-generate smoke PASS; node --check всех файлов OK
+- [STATUS] 🟢 Боты и канал стабильны. Ручная проверка владельцем: /posttest, «выложи пост про кофе», кнопки панели

@@ -1,6 +1,6 @@
 import PDFDocument from 'pdfkit'
 import { ScheduledPost, User, Campaign } from '../models/index.js'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 
 const PRICING = {
     oneOff: { min: 49, max: 149 },
@@ -92,7 +92,7 @@ async function generateInsights(niche, data) {
 
     try {
         const result = await chatWithAI(prompt, [], 'ru')
-        return result.reply || result.content || ''
+        return extractText(result)
     } catch (err) {
         console.warn('[dataIntelligence] AI insights failed:', err.message)
         return 'Инсайты генерируются OMEGA...'

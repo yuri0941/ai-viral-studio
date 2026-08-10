@@ -1,5 +1,5 @@
 import { searchWithFallback } from './webSearch.js'
-import { chatWithAI } from '../../services/aiService.js'
+import { chatWithAI, extractText } from '../../services/aiService.js'
 import { ResearchLog } from '../../models/ResearchLog.js'
 import * as neuralGraph from './neuralGraph.js'
 import User from '../../models/User.js'
@@ -43,7 +43,7 @@ export class WebResearchEngine {
         let ideas = []
         try {
             const ai = await chatWithAI(`По теме "${topic}" вот источники:\n${unique.map((s, i) => `${i + 1}. ${s.title}`).join('\n')}\n\nСгенерируй 3 идеи постов. Верни JSON массив строк.`, [], 'ru', { userRole: 'owner' })
-            const reply = ai?.reply || ai?.text || ''
+            const reply = extractText(ai)
             const match = reply.match(/\[[\s\S]*\]/)
             ideas = match ? JSON.parse(match[0]) : []
         } catch (err) {

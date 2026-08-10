@@ -1,5 +1,5 @@
 import { DeveloperApiKey, generateApiKey } from '../models/index.js'
-import { chatWithAI, generateContent, getProviderStatuses } from '../services/aiService.js'
+import { chatWithAI, extractText, generateContent, getProviderStatuses } from '../services/aiService.js'
 import crypto from 'crypto'
 
 export async function validateApiKey(req, res, next) {
@@ -64,7 +64,7 @@ export async function postChat(req, res) {
         if (!message || typeof message !== 'string') {
             return res.status(400).json({ status: 'error', message: 'message is required' })
         }
-        const reply = await chatWithAI(message, history, lang)
+        const reply = extractText(await chatWithAI(message, history, lang))
         await incrementUsage(req.apiKey._id)
         res.json({ status: 'success', data: { reply, context } })
     } catch (err) {

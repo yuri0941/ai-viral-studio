@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { chatWithAI, getProviderKey } from './aiService.js'
+import { chatWithAI, extractText, getProviderKey } from './aiService.js'
 
 // [P19] added: AI Video generation service for Shorts/Reels
 
@@ -19,7 +19,7 @@ export async function generateVideoScript(topic, niche = 'general', duration = 1
 
   try {
     const ai = await chatWithAI(prompt, [], 'ru')
-    const raw = ai?.reply || ''
+    const raw = extractText(ai)
     const match = raw.match(/\{[\s\S]*\}/)
     const parsed = match ? JSON.parse(match[0]) : JSON.parse(raw || '{}')
     return {

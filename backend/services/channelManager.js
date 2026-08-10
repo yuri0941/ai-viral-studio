@@ -1,4 +1,4 @@
-import { chatWithAI } from './aiService.js';
+import { chatWithAI, extractText } from './aiService.js';
 import { publishToChannel as telegramPublishToChannel, getChannelStats, generateWeeklyContentPlan } from './telegramChannelManager.js';
 
 const POST_TYPES = {
@@ -14,8 +14,9 @@ export async function generateChannelPost({ type = 'value', topic, niche = 'SMM'
   const prompt = topic
     ? `${promptBase}\n\nТема: ${topic}. Ниша: ${niche}. Стиль: ${style}. Длина: ${length}.`
     : `${promptBase}\n\nНиша: ${niche}. Стиль: ${style}. Длина: ${length}.`;
-  const text = await chatWithAI(prompt, [], language, { role: 'owner' });
-  return { type, text: text || '', niche, style, length, generatedAt: new Date() };
+  const aiResult = await chatWithAI(prompt, [], language, { role: 'owner' });
+  const text = extractText(aiResult); // [v9.9.19.3] FIX: chatWithAI возвращает объект, не строку
+  return { type, text, niche, style, length, generatedAt: new Date() };
 }
 
 export async function publishToChannel(content, scheduledTime = null) {

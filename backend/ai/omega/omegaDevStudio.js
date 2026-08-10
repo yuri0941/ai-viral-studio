@@ -1,4 +1,4 @@
-import { chatWithAI } from '../../services/aiService.js'
+import { chatWithAI, extractText } from '../../services/aiService.js'
 import { GeneratedModule } from '../../models/GeneratedModule.js'
 
 const SYSTEM_PROMPT = `Ты senior fullstack dev для AI Viral Studio. Стек: React 18, Vite, Tailwind 3.4, Node.js, Express, MongoDB, ES modules. Пиши production-ready: mobile-first, CSS-переменные, glassmorphism, error handling, i18n-ready. НЕ используй mock. Верни ТОЛЬКО JSON без markdown: {"frontend":"код","backend":"код","tests":"код"}`
@@ -6,7 +6,7 @@ const SYSTEM_PROMPT = `Ты senior fullstack dev для AI Viral Studio. Сте�
 export async function generateModule(spec, userId = null) {
     const prompt = buildPrompt(spec)
     const ai = await chatWithAI(prompt, [], 'ru', { userRole: 'owner', userId })
-    const reply = ai?.reply || ai?.text || ''
+    const reply = extractText(ai)
     let parsed = { frontend: '', backend: '', tests: '' }
     try {
         const jsonMatch = reply.match(/\{[\s\S]*\}/)

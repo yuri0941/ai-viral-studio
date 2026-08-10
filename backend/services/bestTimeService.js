@@ -1,4 +1,4 @@
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 
 /**
  * Best Time to Post — AI-рекомендации лучшего времени публикации.
@@ -57,7 +57,7 @@ ${historicalPosts.length > 0 ? `Исторические публикации (U
 
     try {
         const result = await chatWithAI(prompt, [], 'ru')
-        const text = result?.reply || ''
+        const text = extractText(result)
         let json = null
         try {
             json = JSON.parse(text)

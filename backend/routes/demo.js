@@ -1,6 +1,6 @@
 import express from 'express'
 import rateLimit from 'express-rate-limit'
-import { chatWithAI } from '../services/aiService.js'
+import { chatWithAI, extractText } from '../services/aiService.js'
 
 const router = express.Router()
 
@@ -60,7 +60,7 @@ router.post('/generate', demoLimiter, async (req, res) => {
 
         // [VALUE-2026-08-04] added: direct AI call instead of HTTP self-request for reliability
         const aiResult = await chatWithAI(prompt, [], 'ru', { userRole: 'guest' })
-        let result = aiResult?.reply
+        let result = extractText(aiResult)
         if (!result) {
             return res.status(502).json({ success: false, message: 'AI не вернул ответ' })
         }

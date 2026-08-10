@@ -1,5 +1,5 @@
 import Subscription from '../models/Subscription.js'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, extractText } from './aiService.js'
 import { sendEmail } from './emailService.js'
 import { alertOwner } from './ownerBot.js'
 
@@ -29,7 +29,7 @@ export async function checkExpiringSubscriptions() {
 
     try {
       const ai = await chatWithAI(prompt, [], user.language || 'ru', { userRole: 'user' })
-      const text = ai?.reply || ai?.text || `Ваша подписка ${sub.plan} истекает через ${daysLeft} дней. Продлите сейчас и получите скидку 10%: PROLONG10`
+      const text = extractText(ai) || `Ваша подписка ${sub.plan} истекает через ${daysLeft} дней. Продлите сейчас и получите скидку 10%: PROLONG10`
 
       await sendEmail({
         to: user.email,
@@ -67,7 +67,7 @@ export async function checkPastDueSubscriptions() {
     const prompt = `Напиши короткое письмо на русском: подписка AI Viral Studio приостановлена из-за неуплаты. Данные сохранены на ${GRACE_PERIOD_DAYS - daysOverdue} дней. Предложи восстановить доступ по ссылке /settings?tab=subscription.`
     try {
       const ai = await chatWithAI(prompt, [], user.language || 'ru', { userRole: 'user' })
-      const text = ai?.reply || ai?.text || `Подписка приостановлена. Данные сохранены на ${GRACE_PERIOD_DAYS - daysOverdue} дней. Восстановите доступ: /settings?tab=subscription`
+      const text = extractText(ai) || `Подписка приостановлена. Данные сохранены на ${GRACE_PERIOD_DAYS - daysOverdue} дней. Восстановите доступ: /settings?tab=subscription`
 
       await sendEmail({
         to: user.email,
