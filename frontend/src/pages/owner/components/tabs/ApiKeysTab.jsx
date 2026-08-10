@@ -3,6 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { Key, Check, Trash2, Zap, Globe, Sparkles, Brain, Cpu, Flame, Cloud, MessageSquare, Mic, Youtube, Search, Bot, Image, Server, RefreshCw, X, Eye, EyeOff } from 'lucide-react';
 import { request } from '../../../../services/api.js';
 
+function VKIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.862-.523-2.049-1.714-1.033-1.033-1.49-1.171-1.744-1.171-.356 0-.458.102-.458.593v1.562c0 .424-.136.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4 8.492 4 8.076c0-.254.102-.491.593-.491h1.744c.44 0 .61.203.779.678.863 2.49 2.303 4.675 2.896 4.675.22 0 .322-.102.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.17-.407.44-.407h2.744c.373 0 .508.203.508.644v3.472c0 .372.17.508.271.508.22 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.27.525.644-.22 1.017-2.354 3.988-2.354 3.988-.186.322-.254.44 0 .78.186.254.796.779 1.203 1.253.745.847 1.32 1.558 1.473 2.049.17.49-.085.745-.576.745z"/>
+    </svg>
+  );
+}
+
 const PROVIDERS = [
   { id: 'groq', name: 'Groq AI', desc: 'Быстрый LLM inference', icon: Zap, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
   { id: 'openrouter', name: 'OpenRouter', desc: 'Доступ к 100+ моделям', icon: Globe, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
@@ -20,6 +28,8 @@ const PROVIDERS = [
   { id: 'github', name: 'GitHub Models', desc: 'GitHub AI', icon: Bot, color: 'text-gray-300', bg: 'bg-gray-500/10', border: 'border-gray-500/20' },
   { id: 'huggingface', name: 'HuggingFace', desc: 'Open models', icon: Server, color: 'text-yellow-300', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
   { id: 'pollinations', name: 'Pollinations', desc: 'Free AI images', icon: Image, color: 'text-emerald-300', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  { id: 'vk', name: 'VK Client ID', desc: 'ID приложения VK (например: 54714375)', placeholder: '54714375', icon: VKIcon, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+  { id: 'vk_secret', name: 'VK Client Secret', desc: 'Защищённый ключ из приложения VK', placeholder: 'Вставьте защищённый ключ', icon: VKIcon, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
 ];
 
 export default function ApiKeysTab() {
@@ -165,7 +175,7 @@ export default function ApiKeysTab() {
                 type={showKey ? 'text' : 'password'}
                 value={inputValue}
                 onChange={e => setInputValue(e.target.value)}
-                placeholder={activeProvider.id === 'youtube' ? 'AIzaSy...' : activeProvider.id === 'gemini' ? 'AIza...' : 'sk-... или gsk-...'}
+                placeholder={activeProvider.placeholder || (activeProvider.id === 'youtube' ? 'AIzaSy...' : activeProvider.id === 'gemini' ? 'AIza...' : 'sk-... или gsk-...')}
                 className="w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] p-3 pr-10 text-sm focus:border-purple-500/50 focus:outline-none transition-colors"
               />
               <button onClick={() => setShowKey(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[var(--text-muted)] hover:text-white transition-colors">

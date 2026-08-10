@@ -1,4 +1,5 @@
 import express from 'express'
+import axios from 'axios'
 import { protect, authorize } from '../middleware/auth.js'
 import {
     getStatus,
@@ -18,6 +19,7 @@ import {
 } from '../controllers/integrationsController.js'
 import Integration from '../models/Integration.js'
 import { encrypt, decrypt } from '../utils/crypto.js'
+import { getProviderKey } from '../services/aiService.js'
 
 const router = express.Router()
 
@@ -88,21 +90,63 @@ router.post('/telegram/connect', protect, async (req, res) => {
     }
 })
 
-// [v5.9] added: real VK OAuth URL using env VK_CLIENT_ID or VK_APP_ID (Render uses VK_APP_ID)
-router.get('/vk/url', protect, (req, res) => {
+// [v5.9] added: real VK OAuth URL using ApiKeys hot-reload (vk + vk_secret)
+router.get('/vk/auth-url', protect, async (req, res) => {
     try {
-        const clientId = process.env.VK_CLIENT_ID || process.env.VK_APP_ID
-        const clientSecret = process.env.VK_CLIENT_SECRET || process.env.VK_APP_SECRET
-        const redirectUri = process.env.VK_REDIRECT_URI || 'https://aiviral-backend.onrender.com/api/integrations/vk/callback'
-        if (!clientId || !clientSecret) {
-            console.error('VK ENV MISSING:', { clientId: !!clientId, clientSecret: !!clientSecret })
+        const clientId = await getProviderKey('vk', req.user._id) || process.env.VK_CLIENT_ID || process.env.VK_APP_ID
+        const redirectUri = `${process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com'}/api/integrations/vk/callback`
+        if (!clientId) {
+            return res.status(400).json({
+                success: false,
+                error: 'VK Client ID не настроен',
+                setupGuide: [
+                    '1. Откройте https://dev.vk.com/apps → ai-viral-studio',
+                    '2. Скопируйте ID приложения (54714375)',
+                    '3. Вставьте в ApiKeysTab → VK Client ID',
+                    '4. Скопируйте Защищённый ключ',
+                    '5. Вставьте в ApiKeysTab → VK Client Secret',
+                    '6. Нажмите «Сохранить и применить»'
+                ]
+            })
+        }
+        const state = req.user.id
+        const scope = 'wall,photos,groups,offline'
+        const authUrl = `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&display=page&scope=${scope}&response_type=code&state=${state}&v=5.199`
+        res.json({ success: true, authUrl })
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
+
+// legacy alias
+router.get('/vk/url', protect, async (req, res) => {
+    try {
+        const clientId = await getProviderKey('vk', req.user._id) || process.env.VK_CLIENT_ID || process.env.VK_APP_ID
+        const redirectUri = `${process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com'}/api/integrations/vk/callback`
+        if (!clientId) {
             return res.status(503).json({ success: false, error: 'VK not configured on server' })
         }
-        const vkAuthUrl = `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=wall,photos,groups&response_type=code&state=${req.user.id}`
-        res.json({ success: true, connected: false, url: vkAuthUrl })
+        const scope = 'wall,photos,groups,offline'
+        const authUrl = `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code&state=${req.user.id}&v=5.199`
+        res.json({ success: true, connected: false, url: authUrl })
     } catch (e) {
-        console.warn('[Integration] vk url failed:', e.message)
-        res.status(200).json({ success: false, connected: false, url: null, error: 'Service temporarily unavailable' })
+        res.status(200).json({ success: false, connected: false, url: null, error: e.message })
+    }
+})
+
+// [VK-QUICK-SETUP] VK status endpoint
+router.get('/vk/status', protect, async (req, res) => {
+    try {
+        const integration = await Integration.findOne({ userId: req.user._id, provider: 'vk' })
+        const hasKeys = !!(await getProviderKey('vk', req.user._id))
+        res.json({
+            success: true,
+            connected: !!integration?.accessToken,
+            configured: hasKeys,
+            userId: integration?.accountId || null
+        })
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message })
     }
 })
 
@@ -137,13 +181,23 @@ router.post('/discord/connect', protect, async (req, res) => {
 
 router.get('/vk/callback', async (req, res) => {
     try {
-        const { code, state: userId } = req.query
-        const clientId = process.env.VK_CLIENT_ID || process.env.VK_APP_ID
-        const clientSecret = process.env.VK_CLIENT_SECRET || process.env.VK_APP_SECRET
-        const redirectUri = process.env.VK_REDIRECT_URI || 'https://aiviral-backend.onrender.com/api/integrations/vk/callback'
+        const { code, state: userId, error, error_description } = req.query
+        if (error) {
+            return res.redirect(`${process.env.FRONTEND_URL}/dashboard/integrations?vk=error&message=${encodeURIComponent(error_description || error)}`)
+        }
+        if (!code || !userId) {
+            return res.redirect(`${process.env.FRONTEND_URL}/dashboard/integrations?vk=error&message=Missing code or state`)
+        }
+        const clientId = await getProviderKey('vk') || process.env.VK_CLIENT_ID || process.env.VK_APP_ID
+        const clientSecret = await getProviderKey('vk_secret') || process.env.VK_CLIENT_SECRET || process.env.VK_APP_SECRET
+        const redirectUri = `${process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com'}/api/integrations/vk/callback`
         if (!clientId || !clientSecret) throw new Error('VK credentials not configured')
-        const tokenRes = await fetch(`https://oauth.vk.com/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`)
-        const data = await tokenRes.json()
+
+        const tokenRes = await axios.get('https://oauth.vk.com/access_token', {
+            params: { client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, code },
+            timeout: 15000
+        })
+        const data = tokenRes.data
         if (data.error) throw new Error(data.error_description || data.error)
 
         await Integration.findOneAndUpdate(
@@ -151,9 +205,10 @@ router.get('/vk/callback', async (req, res) => {
             { userId, provider: 'vk', accessToken: encrypt(data.access_token), accountId: String(data.user_id), accountName: `vk${data.user_id}`, connected: true, status: 'active' },
             { upsert: true, new: true }
         )
-        res.redirect(`${process.env.FRONTEND_URL}/settings?tab=integrations&success=vk`)
+        res.redirect(`${process.env.FRONTEND_URL}/dashboard/integrations?vk=success`)
     } catch (e) {
-        res.redirect(`${process.env.FRONTEND_URL}/settings?tab=integrations&error=vk`)
+        console.error('[VK Callback]', e.response?.data || e.message)
+        res.redirect(`${process.env.FRONTEND_URL}/dashboard/integrations?vk=error&message=${encodeURIComponent(e.message)}`)
     }
 })
 

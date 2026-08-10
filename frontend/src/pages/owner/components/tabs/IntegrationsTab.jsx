@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react'
 import { StatusBadge } from '../common/StatusBadge'
 import { Plug, RefreshCw, Send, MessageCircle, Hash, FileText, CheckSquare, Trello, ShoppingBag, Globe, Webhook, Plus, Trash2, Check, X, ExternalLink } from 'lucide-react'
-import { integrationsApi } from '../../../../services/api'
+import { integrationsApi, request } from '../../../../services/api'
+
+function VKIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.862-.523-2.049-1.714-1.033-1.033-1.49-1.171-1.744-1.171-.356 0-.458.102-.458.593v1.562c0 .424-.136.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4 8.492 4 8.076c0-.254.102-.491.593-.491h1.744c.44 0 .61.203.779.678.863 2.49 2.303 4.675 2.896 4.675.22 0 .322-.102.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.17-.407.44-.407h2.744c.373 0 .508.203.508.644v3.472c0 .372.17.508.271.508.22 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.27.525.644-.22 1.017-2.354 3.988-2.354 3.988-.186.322-.254.44 0 .78.186.254.796.779 1.203 1.253.745.847 1.32 1.558 1.473 2.049.17.49-.085.745-.576.745z"/>
+    </svg>
+  )
+}
 
 const INTEGRATIONS = [
     { id: 'whatsapp', name: 'WhatsApp Business', icon: MessageCircle, color: 'text-emerald-400', setup: ['Meta for Developers', 'Business Account', 'Access Token + Phone Number ID'], env: ['WHATSAPP_API_KEY', 'WHATSAPP_PHONE_NUMBER_ID'] },
@@ -24,6 +32,29 @@ export function IntegrationsTab({ data }) {
     const [webhookForm, setWebhookForm] = useState({ name: '', url: '', events: ['*'], secret: '' })
     const [creatingWebhook, setCreatingWebhook] = useState(false)
     const [tab, setTab] = useState('social')
+    const [vkStatus, setVkStatus] = useState({ configured: false, connected: false })
+
+    const loadVkStatus = async () => {
+        try {
+            const data = await request('/integrations/vk/status')
+            if (data?.success) setVkStatus({ configured: data.configured, connected: data.connected })
+        } catch (err) {
+            console.warn('[IntegrationsTab] vk status failed:', err.message)
+        }
+    }
+
+    const connectVK = async () => {
+        try {
+            const data = await request('/integrations/vk/auth-url')
+            if (data?.success && data.authUrl) {
+                window.open(data.authUrl, '_blank')
+            } else {
+                alert(data?.error || 'VK auth URL generation failed')
+            }
+        } catch (err) {
+            alert(err.message)
+        }
+    }
 
     const load = async () => {
         try {
@@ -39,7 +70,7 @@ export function IntegrationsTab({ data }) {
         }
     }
 
-    useEffect(() => { load() }, [])
+    useEffect(() => { load(); loadVkStatus() }, [])
 
     const test = async (id) => {
         setLoading(id)
@@ -113,8 +144,39 @@ export function IntegrationsTab({ data }) {
             </div>
 
             {tab === 'social' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {data.integrations.map(integ => {
+                <div className="space-y-4">
+                    {/* VK Connect Card */}
+                    <div className="glass-card p-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-[#0077FF] flex items-center justify-center text-white font-bold">
+                                    <VKIcon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-[var(--text)]">ВКонтакте</h3>
+                                    <p className="text-xs text-[var(--text-muted)]">Постинг, фото, группы</p>
+                                </div>
+                            </div>
+                            <div className={`px-3 py-1 rounded-full text-xs font-medium ${vkStatus.connected ? 'bg-emerald-500/20 text-emerald-400' : vkStatus.configured ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                                {vkStatus.connected ? '✅ Подключено' : vkStatus.configured ? '⚡ Готово к подключению' : '❌ Не настроено'}
+                            </div>
+                        </div>
+
+                        {!vkStatus.connected && vkStatus.configured && (
+                            <button onClick={connectVK} className="w-full px-4 py-2 bg-[#0077FF] text-white rounded-lg hover:scale-[1.02] transition flex items-center justify-center gap-2">
+                                <ExternalLink size={16} /> Подключить VK
+                            </button>
+                        )}
+
+                        {!vkStatus.configured && (
+                            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-sm text-[var(--text-muted)]">
+                                Добавьте VK Client ID и VK Client Secret в <a href="/dashboard/api-keys" className="text-[#0077FF] underline">ApiKeysTab</a>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {data.integrations.map(integ => {
                         const isTelegram = integ.id === 'telegram'
                         const handleConnect = () => {
                             if (isTelegram) {
@@ -155,6 +217,7 @@ export function IntegrationsTab({ data }) {
                         )
                     })}
                 </div>
+            </div>
             )}
 
             {tab === 'external' && (
