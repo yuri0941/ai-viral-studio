@@ -3606,3 +3606,13 @@
 - [TEST] ✅ Health, Support, Self-Optimize, Audit, Referrals, Channel, Ad-Orders, Sales-Metrics, Memory-Compress, Build — все PASS
 - [DEPLOY] Запушено на Render
 - [STATUS] 🟢 Все табы владельца работают. ApiKeys hot-reload активен.
+
+## 2026-08-10 — VK-QUICK-SETUP
+- [FEATURE] ApiKeysTab: добавлены поля VK Client ID (`vk`) и VK Client Secret (`vk_secret`) с кнопками «🔄 Проверить» / «💾 Сохранить и применить», статусами, маскированием
+- [FEATURE] backend/routes/integrations.js: VK OAuth роуты — `GET /vk/auth-url`, `GET /vk/url` (legacy), `GET /vk/status`, `GET /vk/callback`
+- [FEATURE] IntegrationsTab: карточка ВКонтакте со статусом (не настроено / готово / подключено) и кнопкой «Подключить VK»
+- [FIX] VK OAuth использует ApiKeys hot-reload (`getProviderKey('vk'/'vk_secret')`) + fallback на env `VK_CLIENT_ID`/`VK_APP_ID`/`VK_CLIENT_SECRET`/`VK_APP_SECRET`
+- [FIX] VK callback: обработка `error`/`error_description`, проверка `code`/`state`, обмен кода на токен через axios, сохранение в `Integration`
+- [TEST] ✅ `node --check` backend OK, `npm run build` frontend OK, smoke test `/api/integrations/vk/status` → `{"success":true,"connected":false,"configured":false}`
+- [DEPLOY] Запушено на Render
+- [STATUS] 🟢 VK готов к подключению владельцем.

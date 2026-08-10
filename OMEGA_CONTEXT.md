@@ -1,8 +1,8 @@
 # OMEGA_CONTEXT — AI Viral Studio
 
-## Версия: v9.9.19-HOTFIX-PROPER
+## Версия: v9.9.19-VK-QUICK-SETUP
 ## Дата: 2026-08-10
-## Статус: ApiKeys & Hot-Reload + все табы работают
+## Статус: ApiKeys & Hot-Reload + VK OAuth UI + все табы работают
 
 ### ApiKeys & Hot-Reload
 - 20 провайдеров в ApiKeysTab
@@ -20,6 +20,12 @@
 - VK: redirect_uri исправлен (без UI)
 - Responsive: iPhone SE → 4K, safe-area, touch targets, drawer
 - Боты: morning reports, media, web search, support — всё в HTML с inline кнопками
+
+### VK-QUICK-SETUP
+- ApiKeysTab: поля VK Client ID (`vk`) и VK Client Secret (`vk_secret`) с hot-reload
+- IntegrationsTab: карточка ВКонтакте + кнопка «Подключить VK»
+- OAuth scope: `wall,photos,groups,offline`, redirect_uri `/api/integrations/vk/callback`
+- Статусы: ❌ Не настроено → ⚡ Готово к подключению → ✅ Подключено
 
 ### Архитектура OMEGA
 - 8 слоёв памяти, Neural Graph (47+ узлов, 183+ связей, 6 кластеров), Context Engine, Privacy Firewall

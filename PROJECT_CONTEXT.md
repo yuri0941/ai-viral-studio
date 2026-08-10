@@ -774,3 +774,12 @@ NODE_ENV=production
 - i18n: support.*, onboarding.*, tutorial.*, chat.limitReached/tokensLeft/infoQueryFree в ru.json.
 - Build: npm run build 0 errors, node --check backend OK.
 - Deploy: Git push origin main; Render Clear Build Cache & Deploy pending.
+
+
+## Current State (v9.9.19-VK-QUICK-SETUP — 2026-08-10)
+- VK-QUICK-SETUP: ApiKeysTab теперь содержит поля VK Client ID и VK Client Secret; при нажатии «💾 Сохранить и применить» ключи попадают в global.apiKeyCache (hot-reload) без деплоя.
+- IntegrationsTab: добавлена карточка «ВКонтакте» с тремя статусами (❌ Не настроено / ⚡ Готово к подключению / ✅ Подключено) и кнопкой «Подключить VK».
+- backend/routes/integrations.js: реализованы VK OAuth эндпоинты `/vk/auth-url`, `/vk/url` (legacy), `/vk/status`, `/vk/callback` с scope `wall,photos,groups,offline`.
+- Smoke test: `curl /api/integrations/vk/status` возвращает `{"success":true,"connected":false,"configured":false}`.
+- Build: `npm run build` 0 errors, `node --check backend` OK.
+- Deploy: Git push origin main; Render deploy pending.
