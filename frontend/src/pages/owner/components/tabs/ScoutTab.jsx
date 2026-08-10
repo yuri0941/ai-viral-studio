@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Flame, RefreshCw, Loader2, Calendar, ThumbsUp, ThumbsDown, Sparkles, TrendingUp } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { omegaApi } from '../../../../services/api'
+import { API_BASE_URL } from '../../../../config.js'
 import { useAuth } from '../../../../context/AuthContext'
 
 export function ScoutTab() {
@@ -32,6 +34,16 @@ export function ScoutTab() {
     useEffect(() => {
         load()
     }, [])
+
+    const sendFeedback = (trend, rating) => {
+        const token = localStorage.getItem('token')
+        fetch(`${API_BASE_URL}/feedback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ''}` },
+            body: JSON.stringify({ message: trend.topic, response: rating, context: { source: 'scout', niche } }),
+        }).catch(() => {})
+        toast.success(rating === 'like' ? 'Спасибо! Учтём' : 'Поняли, покажем меньше такого')
+    }
 
     const createPost = (idea, topic) => {
         const draft = {
@@ -111,8 +123,8 @@ export function ScoutTab() {
                         </div>
 
                         <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <button onClick={() => alert('Спасибо!')} type="button" className="flex items-center gap-1 hover:text-emerald-400"><ThumbsUp size={12} /> Больше</button>
-                            <button onClick={() => alert('Поняли!')} type="button" className="flex items-center gap-1 hover:text-red-400"><ThumbsDown size={12} /> Меньше</button>
+                            <button onClick={() => sendFeedback(trend, 'like')} type="button" className="flex items-center gap-1 hover:text-emerald-400"><ThumbsUp size={12} /> Больше</button>
+                            <button onClick={() => sendFeedback(trend, 'dislike')} type="button" className="flex items-center gap-1 hover:text-red-400"><ThumbsDown size={12} /> Меньше</button>
                             <span className="ml-auto">{trend.source || source}</span>
                         </div>
                     </div>

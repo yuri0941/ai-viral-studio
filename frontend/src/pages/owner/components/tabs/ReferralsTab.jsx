@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react'
 import {
     Share2, Users, DollarSign, Award, Copy, Check, AlertCircle, Loader2,
-    TrendingUp, Download, Mail, FileText, Sparkles, Wallet, CreditCard,
+    TrendingUp, Sparkles, Wallet, CreditCard,
     Instagram, Twitter, Linkedin, Facebook
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { API_BASE_URL } from '../../../../config.js'
 
 const TIERS = [
@@ -169,7 +170,7 @@ export function ReferralsTab() {
         setWithdrawing(true)
         setTimeout(() => {
             setWithdrawing(false)
-            alert('Заявка на вывод создана')
+            toast.success('Заявка на вывод создана')
         }, 1000)
     }
 
@@ -360,15 +361,6 @@ export function ReferralsTab() {
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
                 <div className="text-sm font-semibold text-[var(--text)] mb-4">Маркетинговые материалы</div>
                 <div className="flex flex-wrap gap-3">
-                    <button onClick={() => alert('Скоро')} type="button" className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] text-xs hover:bg-[var(--surface)] transition-colors">
-                        <Download size={14} /> Скачать баннеры
-                    </button>
-                    <button onClick={() => alert('Скоро')} type="button" className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] text-xs hover:bg-[var(--surface)] transition-colors">
-                        <Mail size={14} /> Email-шаблон
-                    </button>
-                    <button onClick={() => alert('Скоро')} type="button" className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] text-xs hover:bg-[var(--surface)] transition-colors">
-                        <FileText size={14} /> Пост для соцсетей
-                    </button>
                     <button type="button"
                         onClick={generateReferralPost}
                         disabled={generatingPost}
@@ -382,7 +374,7 @@ export function ReferralsTab() {
             {/* AI post modal */}
             {postModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setPostModalOpen(false)}>
-                    <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6" onClick={e => e.stopPropagation()}>
+                    <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                             <Sparkles size={18} className="text-[var(--primary)]" /> Реферальный пост
                         </h3>

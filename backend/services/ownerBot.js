@@ -171,7 +171,8 @@ export const initOwnerBot = () => {
     { command: 'help', description: '❓ Помощь' }
   ]).catch(() => {})
 
-  bot.onText(/\/start|\/menu/, async (msg) => {
+  // [v9.9.19-MASTER-AUDIT] только /start — /menu обрабатывается ниже отдельным умным меню (иначе дубль ответа)
+  bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isOwner(chatId)) {
       safeSendMessage(chatId, '⛔ Только для владельца.');
@@ -534,6 +535,30 @@ export const initOwnerBot = () => {
     let text = '📋 <b>Активные заказы:</b>\n';
     orders.forEach(o => { text += `\n${o.status === 'pending' ? '⏳' : '✅'} #${o._id.toString().slice(-6)} — ${o.slotType} — ${o.price.toLocaleString('ru-RU')}₽`; });
     safeSendMessage(chatId, text, { parse_mode: 'HTML' });
+  });
+
+  // [v9.9.19-MASTER-AUDIT] голосовые от владельца → Whisper STT → текстовый поток команд
+  bot.on('voice', async (msg) => {
+    const chatId = msg.chat.id;
+    try {
+      try { await bot.sendChatAction(chatId, 'typing') } catch (e) {}
+      const fileLink = await bot.getFileLink(msg.voice.file_id);
+      const resp = await fetch(fileLink);
+      const buffer = Buffer.from(await resp.arrayBuffer());
+      const { transcribeAudio } = await import('./voiceService.js');
+      const result = await transcribeAudio(buffer, 'voice.ogg', 'audio/ogg');
+      if (!result.text) {
+        safeSendMessage(chatId, result.needsKey
+          ? '🎤 <b>Voice STT не настроен</b>\nДобавьте ключ Groq или OpenAI в Кабинет → API Ключи — голосовые заработают сразу (hot-reload).'
+          : '⚠️ Не удалось распознать голосовое. Попробуйте ещё раз.');
+        return;
+      }
+      safeSendMessage(chatId, `🎤 <i>Распознано:</i> «${result.text.slice(0, 200)}»`, { parse_mode: 'HTML' });
+      bot.emit('message', { ...msg, text: result.text, voice: undefined });
+    } catch (e) {
+      console.error('[OWNER-BOT] voice error:', e.message);
+      safeSendMessage(chatId, '⚠️ Ошибка обработки голосового.');
+    }
   });
 
   // OWNER MODE — smart reply

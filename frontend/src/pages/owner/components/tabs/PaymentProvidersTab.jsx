@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CreditCard, Save, Check, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../../../../config.js';
 
 export function PaymentProvidersTab() {
@@ -61,7 +62,7 @@ export function PaymentProvidersTab() {
       await loadProviders();
     } catch (err) {
       console.error('[PaymentProvidersTab] save failed:', err.message);
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }

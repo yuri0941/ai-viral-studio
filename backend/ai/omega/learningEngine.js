@@ -17,7 +17,7 @@ export async function recordOutcome({ userId, intent, action, success, error, me
         label: `skill:${action}`,
         content: `skill:${action}`,
         data: { proficiency: 'active', lastUsed: timestamp, successCount: 1 },
-        edges: [{ to: `action_${Date.now()}`, relation: 'mastered', weight: 0.95 }]
+        edges: [] // [v9.9.19-MASTER-AUDIT] убран фейковый edge со строковым id — ломал ObjectId-каст
       });
     }
     if (!success && error) {

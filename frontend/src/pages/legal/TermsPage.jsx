@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Shield, FileText, AlertTriangle, CheckCircle, Lock, Scale, Mail, MapPin, User, Phone, MessageCircle } from 'lucide-react';
+import { API_BASE_URL } from '../../config.js';
 
 export default function TermsPage() {
   const [legal, setLegal] = useState(null);
@@ -8,7 +9,7 @@ export default function TermsPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('/api/public/legal-info')
+    fetch(`${API_BASE_URL}/public/legal-info`)
       .then(r => r.json())
       .then(data => { setLegal(data?.legalInfo || null); setLoading(false); })
       .catch(() => { setLoading(false); });

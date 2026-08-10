@@ -57,6 +57,10 @@ export class SelfLearningEngine {
         const norm = Math.sqrt(vector.reduce((s, v) => s + v * v, 0)) || 1
         const normalized = vector.map(v => v / norm)
 
+        // [v9.9.19-MASTER-AUDIT] санитизация source — неизвестные значения не роняют запись
+        const ALLOWED_SOURCES = LearningDataset.schema.path('source').enumValues
+        const source = ALLOWED_SOURCES.includes(metadata.source) ? metadata.source : 'pattern'
+
         return LearningDataset.create({
             userId,
             role: 'omega',
@@ -64,7 +68,7 @@ export class SelfLearningEngine {
             intent,
             sentiment: metadata.sentiment ?? 0,
             engagementScore: metadata.engagementScore ?? 0,
-            source: metadata.source || 'groq',
+            source,
             templateUsed: metadata.templateUsed || '',
             wasHelpful: metadata.wasHelpful ?? false,
             vector: normalized,

@@ -6,6 +6,7 @@ import { useDashboardData } from '../../hooks/useDashboardData'
 import { useNotifications } from '../../hooks/useNotifications'
 import { ownerApi } from '../../services/api'
 import { API_URL } from '../../config'
+import toast from 'react-hot-toast'
 
 export default function OwnerAppPage() {
     const { t } = useTranslation()
@@ -41,7 +42,8 @@ export default function OwnerAppPage() {
         try {
             const res = await fetch(`${API_URL}/admin/emergency-stop`, { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
             if (res.ok) setEmergencyStopped(true)
-            alert(res.ok ? t('ownerApp.emergencyActivated') : t('ownerApp.emergencyError'))
+            if (res.ok) toast.success(t('ownerApp.emergencyActivated'))
+            else toast.error(t('ownerApp.emergencyError'))
         } finally {
             setEmergencyLoading(false)
         }
@@ -61,7 +63,8 @@ export default function OwnerAppPage() {
                 body: JSON.stringify({ pin }),
             })
             if (res.ok) setEmergencyStopped(false)
-            alert(res.ok ? 'Emergency Stop снят' : 'Неверный PIN-код или ошибка сервера')
+            if (res.ok) toast.success('Emergency Stop снят')
+            else toast.error('Неверный PIN-код или ошибка сервера')
         } finally {
             setEmergencyLoading(false)
         }

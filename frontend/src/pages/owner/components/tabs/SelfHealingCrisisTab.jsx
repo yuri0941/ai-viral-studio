@@ -5,6 +5,7 @@ import {
     ChevronDown, ChevronUp, Bell, PauseCircle, PlayCircle
 } from 'lucide-react'
 import { monitoringApi } from '../../../../services/api.js'
+import toast from 'react-hot-toast'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts'
@@ -30,7 +31,7 @@ function Modal({ title, onClose, children }) {
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
-                    <button type="button" onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
+                    <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
                 </div>
                 {children}
             </div>
@@ -82,7 +83,7 @@ export function SelfHealingCrisisTab() {
             const res = await monitoringApi.toggleAutoHeal(!autoHeal)
             setAutoHeal(res.data?.autoHeal)
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setTogglingAutoHeal(false)
         }
@@ -94,7 +95,7 @@ export function SelfHealingCrisisTab() {
             await monitoringApi.triggerSelfHeal()
             await loadAll()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setLoading(false)
         }
@@ -107,7 +108,7 @@ export function SelfHealingCrisisTab() {
             setSelectedCrisis(null)
             loadAll()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setResolving(false)
         }
@@ -120,7 +121,7 @@ export function SelfHealingCrisisTab() {
             setSelectedCrisis(null)
             loadAll()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setRejecting(false)
         }
@@ -144,7 +145,7 @@ export function SelfHealingCrisisTab() {
             await monitoringApi.analyzeCrisis({ platform: 'demo', comments: demo })
             loadAll()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setAnalyzing(false)
         }
@@ -154,9 +155,9 @@ export function SelfHealingCrisisTab() {
         setSendingReport(true)
         try {
             await monitoringApi.sendSelfReflectionReport()
-            alert('Отчёт отправлен в Telegram')
+            toast.success('Отчёт отправлен в Telegram')
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setSendingReport(false)
         }

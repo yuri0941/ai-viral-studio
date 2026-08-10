@@ -379,7 +379,6 @@ export default function NeuralGraphTab() {
   };
 
   const handleTouchMove = (e) => {
-    e.preventDefault();
     const touches = e.touches;
     if (touchRef.current.pinching && touches.length === 2) {
       const dist = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
@@ -417,7 +416,7 @@ export default function NeuralGraphTab() {
         <div className={`${floating ? '' : 'absolute top-4 right-4'} w-64 glass-luxury rounded-xl border border-[var(--border)] p-4 z-20`}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm flex items-center gap-2"><span className="w-3 h-3 rounded-full" style={{ background: selectedNode.color }} /> {selectedNode.label}</h3>
-            <button onClick={() => setSelectedNode(null)} className="p-1 rounded hover:bg-white/10"><X className="w-4 h-4" /></button>
+            <button onClick={() => setSelectedNode(null)} className="p-2 rounded hover:bg-white/10"><X className="w-4 h-4" /></button>
           </div>
           <div className="space-y-2 text-xs text-[var(--text-muted)]">
             <p><span className="text-[var(--text)]">Тип:</span> {TYPE_LABELS[selectedNode.type] || selectedNode.type}</p>

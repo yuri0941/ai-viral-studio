@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getProviderKey } from './aiService.js'
 
 const DUCKDUCKGO_URL = 'https://html.duckduckgo.com/html/'
 const SERPAPI_URL = 'https://serpapi.com/search'
@@ -19,7 +20,7 @@ export function isWebSearchQuery(query) {
 }
 
 export async function searchWebSerpAPI(query, limit = 3) {
-    const key = process.env.SERPAPI_KEY
+    const key = await getProviderKey('serpapi')
     if (!key) return null
     try {
         const { data } = await axios.get(SERPAPI_URL, {

@@ -30,7 +30,7 @@ export async function getOrCreateReferral(userId) {
             code = generateReferralCode()
             attempts++
         }
-        ref = await Referral.create({ userId, referralCode: code })
+        ref = await Referral.create({ userId, code, referralCode: code })
     }
     return ref
 }
@@ -63,7 +63,7 @@ export async function getReferralData(userId) {
 
 export async function registerReferral(newUserId, referralCode) {
     if (!referralCode) return null
-    const referrer = await Referral.findOne({ referralCode: referralCode.toUpperCase() })
+    const referrer = await Referral.findOne({ $or: [{ referralCode: referralCode.toUpperCase() }, { code: referralCode.toUpperCase() }] })
     if (!referrer) return null
     if (String(referrer.userId) === String(newUserId)) return null
 
@@ -74,7 +74,8 @@ export async function registerReferral(newUserId, referralCode) {
             await existing.save()
         }
     } else {
-        await Referral.create({ userId: newUserId, referredBy: referrer.userId, referralCode: generateReferralCode() })
+        const newCode = generateReferralCode()
+        await Referral.create({ userId: newUserId, referredBy: referrer.userId, code: newCode, referralCode: newCode })
     }
 
     referrer.referralCount += 1

@@ -96,7 +96,7 @@ export default function OmegaChatWidget({ onOpenApiKeys }) {
     return (
       <button
         onClick={openChat}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/30 hover:scale-110 transition-transform flex items-center justify-center"
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/30 hover:scale-110 transition-transform flex items-center justify-center"
         style={{ touchAction: 'manipulation' }}
         aria-label="Открыть чат OMEGA"
       >

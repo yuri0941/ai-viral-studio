@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, getProviderKey } from './aiService.js'
 
 // [P19] added: AI Video generation service for Shorts/Reels
 
@@ -115,7 +115,7 @@ export async function createVideoPlaceholder(scenes) {
 }
 
 export async function startReplicateVideo(prompt, duration = 15) {
-  const apiKey = process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY
+  const apiKey = await getProviderKey('replicate') || process.env.REPLICATE_API_KEY
   if (!apiKey) return null
 
   try {
@@ -148,7 +148,7 @@ export async function startReplicateVideo(prompt, duration = 15) {
 }
 
 export async function getReplicateStatus(predictionId) {
-  const apiKey = process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY
+  const apiKey = await getProviderKey('replicate') || process.env.REPLICATE_API_KEY
   if (!apiKey || !predictionId) return null
   try {
     const res = await axios.get(`https://api.replicate.com/v1/predictions/${predictionId}`, {

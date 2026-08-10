@@ -1,10 +1,16 @@
 import axios from 'axios';
 import ChannelConfig from '../models/ChannelConfig.js';
 import { generatePost } from './channelContentEngine.js';
+import { getProviderKey } from './aiService.js';
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+// [v9.9.19-MASTER-AUDIT] hot-reload: токен бота читается в момент вызова (env → cache → MongoDB)
+async function getBotToken() {
+  return await getProviderKey('telegram_bot');
+}
 
 export async function publishToChannel(configId, forcedType = null, customCaption = null, customImage = null) {
+  const BOT_TOKEN = await getBotToken();
+  if (!BOT_TOKEN) return { success: false, error: 'Telegram Bot Token не настроен. Добавьте ключ в Кабинет владельца → API Ключи (telegram_bot)', needsKey: 'telegram_bot' };
   const config = await ChannelConfig.findById(configId);
   if (!config || !config.active) return { error: 'Config not found or inactive' };
 

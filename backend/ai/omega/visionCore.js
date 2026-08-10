@@ -1,6 +1,6 @@
 // [P17] added: OMEGA Vision Core for image analysis and recommendations
 import axios from 'axios'
-import { chatWithAI } from '../../services/aiService.js'
+import { chatWithAI, getProviderKey } from '../../services/aiService.js'
 
 function rgbToHex(r, g, b) {
     return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('')
@@ -57,7 +57,7 @@ function sampleColors(buffer, count = 5) {
 }
 
 async function analyzeWithReplicate(imageUrl) {
-    const key = process.env.REPLICATE_API_KEY
+    const key = await getProviderKey('replicate') || process.env.REPLICATE_API_KEY
     if (!key) return null
     try {
         const res = await axios.post(

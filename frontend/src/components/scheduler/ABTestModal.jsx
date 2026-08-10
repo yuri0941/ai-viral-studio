@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { X, Beaker, Sparkles, Check, RefreshCw, AlertCircle, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { API_BASE_URL } from '../../config.js'
 
 export function ABTestModal({ isOpen, onClose, postParams }) {
@@ -40,10 +41,10 @@ export function ABTestModal({ isOpen, onClose, postParams }) {
             if (json.status === 'success') {
                 setVariants(json.data?.variants || [])
             } else {
-                alert(json.message || 'Ошибка генерации')
+                toast.error(json.message || 'Ошибка генерации')
             }
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setLoading(false)
         }
@@ -73,7 +74,7 @@ export function ABTestModal({ isOpen, onClose, postParams }) {
                 <div className="w-full max-w-md bg-[#0f0f1a] border border-white/10 rounded-2xl p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-white flex items-center gap-2"><Beaker size={18} className="text-purple-400" /> A/B тест</h3>
-                        <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400"><X size={18} /></button>
+                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-gray-400"><X size={18} /></button>
                     </div>
                     <div className="flex items-start gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm">
                         <AlertCircle size={18} />
@@ -92,7 +93,7 @@ export function ABTestModal({ isOpen, onClose, postParams }) {
             <div className="w-full max-w-4xl bg-[#0f0f1a] border border-white/10 rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2"><Beaker size={18} className="text-purple-400" /> A/B тест</h3>
-                    <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400"><X size={18} /></button>
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-gray-400"><X size={18} /></button>
                 </div>
 
                 {variants.length === 0 ? (

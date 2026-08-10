@@ -1,17 +1,20 @@
 import { google } from 'googleapis'
-import { chatWithAI } from './aiService.js'
+import { chatWithAI, getProviderKey } from './aiService.js'
 import axios from 'axios'
 
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY
-const youtube = YOUTUBE_API_KEY ? google.youtube({ version: 'v3', auth: YOUTUBE_API_KEY }) : null
-
-const WHISPER_API_KEY = process.env.OPENAI_API_KEY || process.env.WHISPER_API_KEY
+// [v9.9.19-MASTER-AUDIT] hot-reload: клиент YouTube создаётся в момент вызова
+async function getYouTubeClient() {
+  const key = await getProviderKey('youtube')
+  return key ? google.youtube({ version: 'v3', auth: key }) : null
+}
 
 export async function analyzeChannel(channelId) {
+  const youtube = await getYouTubeClient()
   if (!youtube || !channelId) {
     return {
       success: false,
       error: 'YouTube API key or channelId not configured',
+      needsKey: 'youtube',
       demo: {
         subscribers: 12500,
         views: 2400000,
@@ -75,8 +78,9 @@ export async function generateShortsScript(topic, niche, duration = 30) {
 }
 
 export async function generateAutoSubtitles(videoUrl) {
+  const WHISPER_API_KEY = await getProviderKey('openai') || process.env.WHISPER_API_KEY
   if (!WHISPER_API_KEY) {
-    return { success: false, error: 'Whisper API key not configured', srt: '' }
+    return { success: false, error: 'Whisper API key not configured', needsKey: 'openai', srt: '' }
   }
   try {
     const response = await axios.get(videoUrl, { responseType: 'arraybuffer' })

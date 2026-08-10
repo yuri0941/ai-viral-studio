@@ -14,7 +14,7 @@ export function Modal({ isOpen, onClose, title, children, footer, maxWidth = 'ma
                     <h3 className="text-base font-semibold text-[var(--text)]">{title}</h3>
                     <button
                         onClick={onClose}
-                        className="w-8 h-8 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
+                        className="w-10 h-10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
                         aria-label="Закрыть"
                     >
                         <X size={18} />

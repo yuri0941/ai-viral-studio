@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import TermsPage from './TermsPage.jsx'
 import PrivacyPage from './PrivacyPage.jsx'
+import { API_BASE_URL } from '../../config.js'
 
 const CONSENT_TEXT = `<h1>Согласие на обработку персональных данных</h1>
 <p>Я, заполняя форму регистрации на сайте [SITE_URL], даю согласие Оператору ([OPERATOR_NAME], email: [CONTACT_EMAIL]) на обработку моих персональных данных:</p>
@@ -30,7 +31,7 @@ export function LegalPage({ type }) {
     let cancelled = false
     async function load() {
       try {
-        const res = await fetch('/api/public/legal-info')
+        const res = await fetch(`${API_BASE_URL}/public/legal-info`)
         const data = await res.json()
         if (!cancelled) setInfo(data?.legalInfo || {})
       } catch (err) {

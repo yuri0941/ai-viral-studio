@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, CreditCard, Globe, Bitcoin, Check, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../../config.js';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 
 function getPlanPrice(plan, currency = 'RUB') {
   if (!plan) return 0;
@@ -63,13 +64,13 @@ export default function PaymentMethodSelector({ plan, onClose, userId, email }) 
         return;
       }
       if (data.address) {
-        alert(`${t('payment.cryptoAlert') || 'Send'} ${data.amount} ${data.currency || 'BTC'} ${t('payment.cryptoTo') || 'to'} ${data.address}`);
+        toast(`${t('payment.cryptoAlert') || 'Send'} ${data.amount} ${data.currency || 'BTC'} ${t('payment.cryptoTo') || 'to'} ${data.address}`, { duration: 8000 });
         return;
       }
       throw new Error(data.error || 'Payment session not created');
     } catch (err) {
       console.error('[PaymentMethodSelector] pay error:', err.message);
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -92,7 +93,7 @@ export default function PaymentMethodSelector({ plan, onClose, userId, email }) 
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="glass-luxury w-full max-w-md rounded-2xl p-6 relative animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+      <div className="glass-luxury w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl p-6 relative animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-text-muted hover:text-text transition-colors">
           <X size={20} />
         </button>

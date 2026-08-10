@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FileText, Download, Loader2, AlertCircle, Check } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { API_BASE_URL } from '../../config.js'
 
 const TYPES = [
@@ -55,7 +56,7 @@ export function ReportGenerator() {
             } else {
                 const json = await res.json()
                 console.log('Excel data:', json.data)
-                alert('Данные для Excel подготовлены (см. консоль)')
+                toast('Данные для Excel подготовлены (см. консоль)')
             }
         } catch (err) {
             setError(err.message)

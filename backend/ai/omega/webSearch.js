@@ -1,8 +1,9 @@
 // [P17] added: OMEGA Web Search with provider fallback
 import axios from 'axios'
+import { getProviderKey } from '../../services/aiService.js'
 
 async function searchSerpAPI(query) {
-    const key = process.env.SERPAPI_KEY
+    const key = await getProviderKey('serpapi')
     if (!key) return null
     try {
         const res = await axios.get('https://serpapi.com/search', {

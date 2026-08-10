@@ -9,6 +9,19 @@ router.get('/pricing', (req, res) => {
     res.json({ success: true, pricing: getAdPricing() })
 })
 
+// [v9.9.19-MASTER-AUDIT] GET / — список заказов (owner/admin — все, остальные — свои), graceful fallback
+router.get('/', protect, async (req, res) => {
+    try {
+        const isPrivileged = ['owner', 'admin'].includes(req.user?.role)
+        const query = isPrivileged ? {} : { clientTelegramId: req.user?.telegramId || req.user?.id }
+        const orders = await AdOrder.find(query).sort({ createdAt: -1 }).limit(100)
+        res.json({ success: true, data: orders, orders })
+    } catch (err) {
+        console.error('[adOrders:list]', err.message)
+        res.json({ success: true, data: [], orders: [] })
+    }
+})
+
 router.get('/my-orders', protect, async (req, res) => {
     try {
         const orders = await AdOrder.find({ clientTelegramId: req.user.telegramId || req.user.id }).sort({ createdAt: -1 })

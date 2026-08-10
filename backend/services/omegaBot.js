@@ -102,8 +102,29 @@ export const initOmegaBot = () => {
 
   updateBotMenu()
 
-  bot.onText(/\/start/, async (msg) => {
+  bot.onText(/\/start(?:\s+(\S+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
+    const startParam = match?.[1];
+
+    // [v9.9.19-MASTER-AUDIT] deep-link привязка: t.me/aiviral_omega_bot?start=<user_id>
+    if (startParam && /^[a-f0-9]{24}$/i.test(startParam)) {
+      try {
+        const linked = await User.findByIdAndUpdate(
+          startParam,
+          { telegramId: String(msg.from.id), telegramChatId: String(chatId), telegramUsername: msg.from.username || '' },
+          { new: true }
+        );
+        if (linked) {
+          bot.sendMessage(chatId, `✅ <b>Telegram подключён!</b>\n━━━━━━━━━━━━━━\nАккаунт: <b>${linked.name || linked.email}</b>\n\nТеперь вы будете получать уведомления здесь. Можете писать мне — я отвечу как AI-ассистент 🤖`, { parse_mode: 'HTML' });
+          return;
+        }
+        bot.sendMessage(chatId, `⚠️ Не удалось привязать аккаунт — ссылка устарела. Откройте профиль в приложении и нажмите «Подключить Telegram» ещё раз.`, { parse_mode: 'HTML' });
+        return;
+      } catch (e) {
+        console.error('[OMEGA-BOT] start-link error:', e.message);
+      }
+    }
+
     if (!isOwner(chatId)) {
       sendClientMenu(chatId)
       return;
@@ -382,6 +403,31 @@ export const initOmegaBot = () => {
       });
     }
   }
+
+  // [v9.9.19-MASTER-AUDIT] голосовые сообщения → Whisper STT (Groq/OpenAI) → обычный текстовый поток
+  bot.on('voice', async (msg) => {
+    const chatId = msg.chat.id
+    try {
+      try { await bot.sendChatAction(chatId, 'typing') } catch (e) {}
+      const fileLink = await bot.getFileLink(msg.voice.file_id)
+      const resp = await fetch(fileLink)
+      const buffer = Buffer.from(await resp.arrayBuffer())
+      const { transcribeAudio } = await import('./voiceService.js')
+      const result = await transcribeAudio(buffer, 'voice.ogg', 'audio/ogg')
+      if (!result.text) {
+        bot.sendMessage(chatId, result.needsKey
+          ? '🎤 <b>Голосовые скоро заработают</b>\n━━━━━━━━━━━━━━\nВладельцу нужно добавить ключ OpenAI или Groq в Кабинет → API Ключи.\nПока напишите текстом — я отвечу!'
+          : '⚠️ Не удалось распознать голосовое. Попробуйте ещё раз или напишите текстом.', { parse_mode: 'HTML' })
+        return
+      }
+      bot.sendMessage(chatId, `🎤 <i>Распознано:</i> «${result.text.slice(0, 200)}»`, { parse_mode: 'HTML' })
+      // Дальше — как обычное текстовое сообщение (интенты, concierge, AI-диалог)
+      bot.emit('message', { ...msg, text: result.text, voice: undefined })
+    } catch (e) {
+      console.error('[OMEGA-BOT] voice error:', e.message)
+      bot.sendMessage(chatId, '⚠️ Ошибка обработки голосового. Напишите текстом, пожалуйста.').catch(() => {})
+    }
+  })
 
   // [v9.9.2-MASTER-FIX] client support flow + existing AI handler
   bot.on('message', async (msg) => {

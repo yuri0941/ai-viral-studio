@@ -42,10 +42,10 @@ export function PostPreview({ isOpen, onClose, post }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className={`relative w-full ${platform.width} bg-[#0f0f1a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden`}>
+            <div className={`relative w-full ${platform.width} max-h-[90vh] overflow-y-auto bg-[#0f0f1a] border border-white/10 rounded-2xl shadow-2xl`}>
                 <div className="flex items-center justify-between p-4 border-b border-white/5">
                     <span className="text-sm font-medium text-white">Превью: {platform.name}</span>
-                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400">
+                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-gray-400">
                         <X size={18} />
                     </button>
                 </div>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Type, Image, Square, Wand2, Download, Smartphone, Monitor, Tablet, Layers, ZoomIn, ZoomOut, Move, Trash2, Copy } from 'lucide-react'
+import { API_BASE_URL } from '../../config.js'
 
 const PRESETS = [
     { id: 'instagram', label: 'Instagram 1:1', ratio: '1/1' },
@@ -35,7 +36,7 @@ export function AdStudioTab() {
         setGenerating(true)
         try {
             const token = localStorage.getItem('token')
-            const res = await fetch('/api/omega/generate-cover', {
+            const res = await fetch(`${API_BASE_URL}/omega/generate-cover`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ prompt }),
@@ -54,7 +55,7 @@ export function AdStudioTab() {
         setGenerating(true)
         try {
             const token = localStorage.getItem('token')
-            const res = await fetch('/api/omega/chat', {
+            const res = await fetch(`${API_BASE_URL}/omega/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({

@@ -1,8 +1,19 @@
 # PROJECT CONTEXT — AI Viral Studio (kilo2)
 # ⚠️ Kimi VS Code: прочитай этот файл ПЕРЕД любой задачей. Это единый источник правды.
-# Дата контекста: 2026-08-05 | Версия проекта: v5.9+
+# Дата контекста: 2026-08-10 | Версия проекта: v9.9.19-MASTER-AUDIT-K3
 
 ---
+
+## 2026-08-10 — Контекст v9.9.19-MASTER-AUDIT-K3
+- Полный аудит: 18/18 smoke-endpoints 200 JSON, 0 × 500/HTML, graceful fallback везде
+- ApiKeysTab: 36 провайдеров (AI, Telegram, VK, платежи, VAPID, SMTP/Resend, Chroma), счётчик «Активно N из M», фильтры статуса + групп
+- Hot-reload getProviderKey() для всех сервисов: Replicate, SerpAPI, YouTube, Whisper, ElevenLabs, ЮKassa, Resend/SMTP, VAPID, Telegram token
+- Клиентский Telegram Connect: deep-link ?start=<user_id> → привязка telegramId → статус в Профиле
+- Voice в ботах: Whisper STT (Groq → OpenAI), needsKey-заглушка без ключа
+- Learning Mesh починен (enum CognitiveNode/LearningDataset), Learning Dashboard — реальные данные
+- Роли: 5 тестовых аккаунтов логинятся (seed double-hash исправлен), ROLE_INSTRUCTIONS/ACCESS_MATRIX на месте
+- Frontend: 0 мёртвых кнопок, alert→toast, ~40 хардкод /api fetch → API_BASE_URL, адаптив 375px→4K
+- Следующий этап: v9.9.20-FACTORY-REAL
 
 ## 2026-08-10 — Контекст v9.9.19-HOTFIX-PROPER
 - ApiKeys hot-reload: владелец сохраняет ключ → сразу в global.apiKeyCache, валидация ping провайдера

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Cpu, Database, Wifi, AlertCircle, RefreshCw, Plus, TrendingUp } from 'lucide-react'
 import { API_BASE_URL } from '../../config.js'
 
@@ -27,6 +28,7 @@ function ResourceCard({ icon: Icon, title, value, percent, color, children }) {
 }
 
 export default function OmegaResourceManager() {
+    const navigate = useNavigate()
     const [status, setStatus] = useState(null)
     const [loading, setLoading] = useState(false)
     const [autoUpgrade, setAutoUpgrade] = useState(false)
@@ -115,19 +117,19 @@ export default function OmegaResourceManager() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <ResourceCard icon={Cpu} title="API Credits" value={`${credits.percent || 0}% used`} percent={credits.percent || 0} color="text-blue-400">
                     <div className="text-xs text-[var(--text-muted)]">Баланс: {credits.totalBalance || 0} · Использовано: {credits.totalUsage || 0}</div>
-                    <button type="button" onClick={() => alert('Открыть провайдеры API')} className="mt-2 text-xs btn btn-primary w-full min-h-[44px]">Докупить кредиты</button>
+                    <button type="button" onClick={() => navigate('/owner?tab=apiKeys')} className="mt-2 text-xs btn btn-primary w-full min-h-[44px]">Докупить кредиты</button>
                 </ResourceCard>
                 <ResourceCard icon={Database} title="MongoDB Storage" value={db.sizeHuman || '—'} percent={db.percent || 0} color="text-purple-400">
                     <div className="text-xs text-[var(--text-muted)]">{Math.round(db.size / 1024 / 1024 || 0)} MB</div>
-                    <button type="button" onClick={() => alert('Апгрейд Atlas')} className="mt-2 text-xs btn btn-secondary w-full min-h-[44px]">Апгрейд БД</button>
+                    <button type="button" onClick={() => window.open('https://cloud.mongodb.com', '_blank')} className="mt-2 text-xs btn btn-secondary w-full min-h-[44px]">Апгрейд БД</button>
                 </ResourceCard>
                 <ResourceCard icon={Wifi} title="Bandwidth" value={`${bw.percent || 0}%`} percent={bw.percent || 0} color="text-teal-400">
                     <div className="text-xs text-[var(--text-muted)]">Uptime: {Math.floor((bw.uptimeMinutes || 0) / 60)}h</div>
-                    <button type="button" onClick={() => alert('Render dashboard')} className="mt-2 text-xs btn btn-secondary w-full min-h-[44px]">Проверить Render</button>
+                    <button type="button" onClick={() => window.open('https://dashboard.render.com', '_blank')} className="mt-2 text-xs btn btn-secondary w-full min-h-[44px]">Проверить Render</button>
                 </ResourceCard>
                 <ResourceCard icon={TrendingUp} title="429 Errors" value={status?.errors429 || 0} percent={Math.min(100, (status?.errors429 || 0) / 50 * 100)} color="text-red-400">
                     <div className="text-xs text-[var(--text-muted)]">за последний час</div>
-                    <button type="button" onClick={() => alert('Добавить провайдера')} className="mt-2 text-xs btn btn-secondary w-full min-h-[44px] flex items-center justify-center gap-1"><Plus className="w-3 h-3" /> Добавить провайдера</button>
+                    <button type="button" onClick={() => navigate('/owner?tab=apiKeys')} className="mt-2 text-xs btn btn-secondary w-full min-h-[44px] flex items-center justify-center gap-1"><Plus className="w-3 h-3" /> Добавить провайдера</button>
                 </ResourceCard>
             </div>
 

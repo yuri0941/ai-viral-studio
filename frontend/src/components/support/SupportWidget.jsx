@@ -42,7 +42,7 @@ export default function SupportWidget() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-[100] w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/25 flex items-center justify-center transition-transform hover:scale-110"
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-[100] w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/25 flex items-center justify-center transition-transform hover:scale-110"
         aria-label={t('telegram.support') || 'Поддержка'}
       >
         <MessageCircle className="w-6 h-6" />

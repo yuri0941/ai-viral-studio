@@ -5,7 +5,11 @@ const ApiKeySchema = new mongoose.Schema({
     provider: {
         type: String,
         required: true,
-        enum: ['groq', 'openrouter', 'gemini', 'openai', 'anthropic', 'replicate', 'elevenlabs', 'serpapi', 'youtube', 'cloudflare', 'fireworks', 'mistral', 'cohere', 'deepseek', 'pollinations', 'github', 'huggingface', 'workersai', 'stability', 'azure']
+        enum: ['groq', 'openrouter', 'gemini', 'openai', 'anthropic', 'replicate', 'elevenlabs', 'serpapi', 'youtube', 'cloudflare', 'fireworks', 'mistral', 'cohere', 'deepseek', 'pollinations', 'github', 'huggingface', 'workersai', 'stability', 'azure',
+            'together', 'cerebras', 'vk', 'vk_secret',
+            'telegram_bot', 'telegram_owner_bot', 'telegram_chat_id',
+            'yookassa_shop_id', 'yookassa_secret', 'stripe', 'stripe_webhook', 'paypal_client_id', 'paypal_secret', 'coinbase',
+            'vapid_public', 'vapid_private', 'resend', 'smtp_host', 'smtp_user', 'smtp_pass', 'chroma']
     },
     key: { type: String, required: true },
     // legacy compatibility

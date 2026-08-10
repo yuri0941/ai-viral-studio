@@ -589,7 +589,7 @@ function AdminDashboardPage() {
             {/* Add User Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-md">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold flex items-center gap-2"><Plus size={20} /> {t('admin.addUser')}</h2>
@@ -644,7 +644,7 @@ function AdminDashboardPage() {
             {/* Edit User Modal */}
             {showEditModal && selectedUser && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-md">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold flex items-center gap-2"><Pencil size={20} /> {t('admin.editUser')}</h2>
@@ -690,7 +690,7 @@ function AdminDashboardPage() {
             {/* Delete User Modal */}
             {showDeleteModal && selectedUser && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-sm">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-sm max-h-[90vh] overflow-y-auto">
                         <div className="p-6 text-center">
                             <div className="w-12 h-12 rounded-full bg-[var(--danger)]/10 flex items-center justify-center mx-auto mb-4">
                                 <Trash2 size={24} className="text-[var(--danger)]" />
@@ -926,7 +926,7 @@ function AdminDashboardPage() {
             {/* Finance Modal */}
             {showFinanceModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-lg">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-lg max-h-[90vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold flex items-center gap-2"><TrendingUp size={20} className="text-[var(--accent-warm)]" /> {t('admin.finance')}</h2>

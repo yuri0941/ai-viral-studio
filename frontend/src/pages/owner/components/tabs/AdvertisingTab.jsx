@@ -148,13 +148,13 @@ export function AdvertisingTab({ data }) {
 
             {/* Negotiations Chat Drawer */}
             {activeChat && (
-                <div className="fixed inset-y-0 right-0 w-96 bg-[var(--bg-secondary)] border-l border-[var(--border)] z-50 shadow-2xl flex flex-col">
+                <div className="fixed inset-y-0 right-0 w-96 max-w-[100vw] bg-[var(--bg-secondary)] border-l border-[var(--border)] z-50 shadow-2xl flex flex-col">
                     <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
                         <div>
                             <div className="text-sm font-semibold text-[var(--text)]">{activeChat.name}</div>
                             <div className="text-xs text-gray-500">{activeChat.client}</div>
                         </div>
-                        <button type="button" onClick={() => setActiveChat(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400">
+                        <button type="button" onClick={() => setActiveChat(null)} className="p-2 rounded-lg hover:bg-white/10 text-gray-400">
                             <XCircle size={18} />
                         </button>
                     </div>

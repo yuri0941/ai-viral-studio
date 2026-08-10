@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, Bot, BarChart3, Factory, Telescope, Calendar, Check, ChevronDown, ArrowRight, Send, Mail, Menu, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { API_BASE_URL } from '../../config.js'
 import FeatureMap from '../../components/landing/FeatureMap.jsx'
 import ViralDemo from './ViralDemo.jsx'
 import BetaCounter from './BetaCounter.jsx'
@@ -64,7 +65,7 @@ export default function LandingPage() {
     e.preventDefault()
     if (!waitlistEmail) return
     try {
-      const res = await fetch('/api/public/waitlist', {
+      const res = await fetch(`${API_BASE_URL}/public/waitlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: waitlistEmail, source: 'landing' })
@@ -101,7 +102,7 @@ export default function LandingPage() {
                 <Link to="/signup" className="px-4 py-2 rounded-xl bg-[var(--primary)] text-[var(--text-on-primary)] text-sm font-medium hover:opacity-90">Начать</Link>
               </>
             )}
-            <button className="md:hidden p-2" onClick={() => setMobileMenu(!mobileMenu)}>
+            <button className="md:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center" onClick={() => setMobileMenu(!mobileMenu)}>
               {mobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>

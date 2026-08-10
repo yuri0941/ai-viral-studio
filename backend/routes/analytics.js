@@ -83,7 +83,7 @@ router.get('/referrals', protect, async (req, res) => {
     return res.json({ success: true, data });
   } catch (err) {
     console.error('[analytics:referrals]', err.message);
-    return res.json({ success: true, referrals: [], error: err.message });
+    return res.json({ success: true, referrals: [] });
   }
 });
 

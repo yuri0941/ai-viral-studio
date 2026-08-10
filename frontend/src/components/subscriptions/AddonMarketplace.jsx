@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { API_BASE_URL } from '../../config.js'
 import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import PaymentMethodSelector from '../payments/PaymentMethodSelector.jsx'
 
@@ -143,7 +144,7 @@ export default function AddonMarketplace() {
     const isActive = (id) => myAddons.some(a => a.addonId === id && a.status === 'active' && new Date(a.expiresAt) > new Date())
 
     const handlePurchase = (addon) => {
-        if (!token) return alert(t('common.login'))
+        if (!token) return toast.error(t('common.login'))
         setPaymentAddon({ ...addon, price: displayPrice(addon) })
     }
 
@@ -157,7 +158,7 @@ export default function AddonMarketplace() {
             })
             load()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         }
     }
 
@@ -173,7 +174,7 @@ export default function AddonMarketplace() {
             if (!res.ok) throw new Error('Save failed')
             await load()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setSaving(prev => ({ ...prev, [addon.id]: false }))
         }
@@ -188,7 +189,7 @@ export default function AddonMarketplace() {
             if (!res.ok) throw new Error('Reset failed')
             await load()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         }
     }
 
@@ -204,7 +205,7 @@ export default function AddonMarketplace() {
             setModal({ addon, analysis: data.analysis })
             await load()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setAnalyzing(prev => ({ ...prev, [addon.id]: false }))
         }

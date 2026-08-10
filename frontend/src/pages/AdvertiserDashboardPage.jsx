@@ -1207,7 +1207,7 @@ AI Viral Studio`, {
             {/* Report Export Modal */}
             {showReportModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-[var(--bg-secondary)] border border-[var(--border-strong)] rounded-2xl p-6 w-full max-w-sm">
+                    <div className="bg-[var(--bg-secondary)] border border-[var(--border-strong)] rounded-2xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
                         <h2 className="text-xl font-bold text-[var(--text)] mb-4 flex items-center gap-2">
                             <Download className="w-5 h-5 text-[var(--success)]" />
                             {t('advertiser.reportExportTitle')}

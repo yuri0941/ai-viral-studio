@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
 import { UpgradeNudge } from '../components/shared/UpgradeNudge.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -220,10 +221,10 @@ function CreatorDashboardPage() {
                             {t('creator.nextPostHint', 'Создайте пост, и OMEGA подготовит черновик с хуком, структурой и CTA.')}
                         </p>
                         <div className="flex flex-wrap items-center gap-3">
-                            <button onClick={() => alert(t('creator.publishing'))} className="magnetic-btn inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity">
+                            <button onClick={() => toast(t('creator.publishing'))} className="magnetic-btn inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity">
                                 {t('creator.publish')}
                             </button>
-                            <button onClick={() => alert(t('creator.editing'))} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-full text-[var(--text)] text-sm hover:bg-white/5 transition-colors">
+                            <button onClick={() => toast(t('creator.editing'))} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-full text-[var(--text)] text-sm hover:bg-white/5 transition-colors">
                                 {t('creator.edit')}
                             </button>
                         </div>
@@ -241,7 +242,7 @@ function CreatorDashboardPage() {
                         </div>
                         <p className="text-sm text-[var(--text-muted)] mb-4">{t('creator.omegaTipText', 'Опубликуйте пост в оптимальное время, чтобы повысить охват.')}</p>
                     </div>
-                    <button onClick={() => alert(t('creator.timeApplied'))} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity">
+                    <button onClick={() => toast(t('creator.timeApplied'))} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity">
                         {t('creator.apply')}
                     </button>
                 </div>
@@ -356,10 +357,10 @@ function CreatorDashboardPage() {
                     {t('creator.quickActions')}
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    <QuickAction icon={Plus} label={t('creator.createPost')} color="from-emerald-500 to-emerald-700" onClick={() => {}} />
+                    <QuickAction icon={Plus} label={t('creator.createPost')} color="from-emerald-500 to-emerald-700" onClick={() => navigate('/scheduler')} />
                     <QuickAction icon={Clapperboard} label={t('creator.aiVideo', 'AI Video')} color="from-violet-500 to-cyan-600" onClick={() => setShowAIVideoCreator(true)} />
-                    <QuickAction icon={Calendar} label={t('creator.schedule')} color="from-blue-500 to-blue-700" onClick={() => {}} />
-                    <QuickAction icon={BarChartIcon} label={t('creator.competitorAnalysis')} color="from-purple-500 to-pink-600" onClick={() => {}} />
+                    <QuickAction icon={Calendar} label={t('creator.schedule')} color="from-blue-500 to-blue-700" onClick={() => navigate('/scheduler')} />
+                    <QuickAction icon={BarChartIcon} label={t('creator.competitorAnalysis')} color="from-purple-500 to-pink-600" onClick={() => navigate('/analyzer')} />
                     <QuickAction icon={Bot} label={t('creator.aiChat')} color="from-amber-500 to-orange-600" onClick={() => navigate('/ai-chat')} />
                     {/* [P20] added: leaderboard quick action */}
                     <QuickAction icon={Trophy} label="Leaderboard" color="from-yellow-500 to-orange-600" onClick={() => window.location.href = '/leaderboard'} />
@@ -382,7 +383,7 @@ function CreatorDashboardPage() {
                                 <button
                                     key={p}
                                     onClick={() => setPeriod(p)}
-                                    className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                                    className={`px-3 py-2.5 min-h-[44px] text-xs rounded-md transition-colors ${
                                         period === p
                                             ? 'bg-[var(--success)]/20 text-[var(--success)]'
                                             : 'text-[var(--text-muted)] hover:text-[var(--text)]'

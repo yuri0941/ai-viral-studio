@@ -1,4 +1,5 @@
 // [v6.5.5] offline action queue via IndexedDB
+import { API_BASE_URL } from '../config.js'
 
 const DB_NAME = 'ai_viral_offline'
 const STORE_NAME = 'queue'
@@ -105,7 +106,7 @@ export async function isOnline() {
     if (typeof navigator === 'undefined') return true
     if (!navigator.onLine) return false
     try {
-        const res = await fetch('/api/health', { method: 'HEAD', cache: 'no-store' })
+        const res = await fetch(`${API_BASE_URL}/health`, { method: 'HEAD', cache: 'no-store' })
         return res.ok
     } catch (e) {
         return false

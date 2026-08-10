@@ -223,7 +223,7 @@ function AdminPage() {
             {/* Add User Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md p-6">
+                    <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-xl font-bold">Добавить пользователя</h2>
                             <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-white">✕</button>

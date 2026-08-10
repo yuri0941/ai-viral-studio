@@ -4,6 +4,7 @@ import {
     Loader2, Trash2, ExternalLink, AlertCircle, X, Info
 } from 'lucide-react'
 import QRGenerator from '../../../../components/qr/QRGenerator.jsx'
+import toast from 'react-hot-toast'
 import { physicalApi } from '../../../../services/api.js'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -15,7 +16,7 @@ function Modal({ title, onClose, children }) {
             <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
-                    <button type="button" onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
+                    <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
                 </div>
                 {children}
             </div>
@@ -66,7 +67,7 @@ export function QRPrintTab() {
             await physicalApi.qr.delete(id)
             loadQRs()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         }
     }
 
@@ -88,7 +89,7 @@ export function QRPrintTab() {
             const res = await physicalApi.delivery.deepLink({ address: deliveryAddress, items: ['Кофе', 'Вода'] })
             setDeliveryLink(res.data?.url || '')
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setLoading(false)
         }

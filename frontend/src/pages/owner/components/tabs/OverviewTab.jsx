@@ -12,6 +12,7 @@ import {
 import { formatCurrency } from '../../utils/helpers'
 import '../../../../styles/animations.css'
 import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
 
 import { AutoReportWidget } from '../../../../components/owner/AutoReportWidget.jsx'
 import { UpgradeNudge } from '../../../../components/shared/UpgradeNudge.jsx'
@@ -404,9 +405,9 @@ export function OverviewTab({ data }) {
                                     onClick={async () => {
                                         try {
                                             await selfImprovementApi.churnOffer(u.userId, 1)
-                                            alert(`Бонус отправлен для ${u.name || u.email}`)
+                                            toast.success(`Бонус отправлен для ${u.name || u.email}`)
                                         } catch (err) {
-                                            alert('Ошибка отправки бонуса')
+                                            toast.error('Ошибка отправки бонуса')
                                         }
                                     }}
                                     className="w-full text-xs px-3 py-2 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-colors"

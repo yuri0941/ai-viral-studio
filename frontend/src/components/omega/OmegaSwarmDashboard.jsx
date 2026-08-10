@@ -221,7 +221,7 @@ export default function OmegaSwarmDashboard() {
 
             {modal && (
                 <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="w-full max-w-md rounded-2xl glass-card glow-border p-5">
+                    <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl glass-card glow-border p-5">
                         <h3 className="text-lg font-semibold text-white mb-4">Spawn Agent</h3>
                         <div className="space-y-3 mb-4">
                             <div>

@@ -133,18 +133,23 @@ export default function PersonalityTab({ data }) {
     try {
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const base64 = (reader.result || '').toString().split(',')[1];
-        const res = await request('/omega-supreme/voice/clone', {
-          method: 'POST',
-          body: JSON.stringify({ audioSample: base64, name: 'Owner Voice' }),
-        });
-        if (res?.mock) {
-          showToast?.(res.message || 'Voice clone mock', 'info');
-        } else {
-          showToast?.(t('personality.cloneSuccess'), 'success');
+        try {
+          const base64 = (reader.result || '').toString().split(',')[1];
+          const res = await request('/omega-supreme/voice/clone', {
+            method: 'POST',
+            body: JSON.stringify({ audioSample: base64, name: 'Owner Voice' }),
+          });
+          if (res?.mock) {
+            showToast?.(res.message || 'Voice clone mock', 'info');
+          } else {
+            showToast?.(t('personality.cloneSuccess'), 'success');
+          }
+          fetchClonedVoices();
+        } catch (err) {
+          showToast?.(err.message, 'error');
+        } finally {
+          setCloning(false);
         }
-        fetchClonedVoices();
-        setCloning(false);
       };
       reader.readAsDataURL(audioFile);
     } catch (err) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Users, MessageSquare, ThumbsUp, ThumbsDown, Minus, CheckCircle, Plus, History, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { API_BASE_URL } from '../../config.js'
 
 const VOTE_ICONS = {
@@ -98,7 +99,7 @@ export default function OmegaBoardroom() {
     }
 
     const createTask = (round) => {
-        alert(t('boardroom.taskCreated', { topic: round.topic }))
+        toast.success(t('boardroom.taskCreated', { topic: round.topic }))
     }
 
     return (

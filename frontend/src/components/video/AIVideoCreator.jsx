@@ -152,7 +152,7 @@ export default function AIVideoCreator({ onClose }) {
     if (!canUse) {
         return (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                <div className="bg-[#1a1a24] rounded-2xl border border-white/10 p-8 max-w-md w-full text-center">
+                <div className="bg-[#1a1a24] rounded-2xl border border-white/10 p-8 max-w-md w-full max-h-[90vh] overflow-y-auto text-center">
                     <Lock size={48} className="mx-auto text-violet-400 mb-4" />
                     <h2 className="text-xl font-bold mb-2">{t('aiVideoCreator.title')}</h2>
                     <p className="text-white/60 mb-6">{t('aiVideoCreator.proRequired')}</p>

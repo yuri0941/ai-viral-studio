@@ -4,6 +4,7 @@ import {
     BookOpen, ClipboardList, GraduationCap, TrendingUp, Megaphone, X
 } from 'lucide-react'
 import { franchiseApi } from '../../../../services/api.js'
+import toast from 'react-hot-toast'
 
 const NICHES = ['Кофе', 'Бьюти', 'Авто', 'IT', 'Финансы', 'Недвижимость', 'Здоровье', 'Другое']
 const CITIES = ['Москва', 'Санкт-Петербург', 'Казань', 'Екатеринбург', 'Новосибирск', 'Краснодар', 'Дубай', 'Белград', 'Алматы', 'Тбилиси']
@@ -77,7 +78,7 @@ export function FranchiseTab({ data }) {
             setResult(res.data)
             loadKits()
         } catch (err) {
-            alert(err.message || 'Ошибка генерации')
+            toast.error(err.message || 'Ошибка генерации')
         } finally {
             setLoading(false)
         }
@@ -92,7 +93,7 @@ export function FranchiseTab({ data }) {
             setSendResult(`Отправлено ${res.data?.recipients || 0} кандидатам`)
             setRecipients('')
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setLoading(false)
         }

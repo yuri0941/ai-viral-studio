@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useDashboardData } from '../../hooks/useDashboardData'
 import { useNotifications } from '../../hooks/useNotifications'
-import { ownerApi } from '../../services/api'
+import { ownerApi, request } from '../../services/api'
+import toast from 'react-hot-toast'
 import {
     LayoutDashboard, Brain, Users, CheckCircle, User, Mic,
     FileText, AlertTriangle, Zap, TrendingUp, Activity, Clock,
@@ -101,8 +102,8 @@ export default function OwnerApp() {
             }
             if (t === 1) {
                 if (confirm('Активировать Emergency Stop? Все AI-операции будут остановлены.')) {
-                    fetch('/api/omega/emergency-stop', { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }})
-                    alert('Emergency Stop активирован')
+                    request('/omega/emergency-stop', { method: 'POST' }).catch(() => {})
+                    toast.success('Emergency Stop активирован')
                 }
                 return 0
             }
@@ -118,7 +119,7 @@ export default function OwnerApp() {
 
     const startVoice = () => {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-        if (!SR) return alert('Голосовой ввод не поддерживается')
+        if (!SR) return toast.error('Голосовой ввод не поддерживается')
         const rec = new SR()
         rec.lang = 'ru-RU'
         rec.onstart = () => setListening(true)

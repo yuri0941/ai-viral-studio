@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Ticket, Eye, AlertTriangle, CheckCircle, ArrowUpCircle, Bell, MessageSquare, X, Send, Clock, Filter } from 'lucide-react';
 import { request } from '../../../../services/api.js';
+import toast from 'react-hot-toast';
 
 const STATUS_STYLES = {
   open: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -206,7 +207,7 @@ export default function TicketsTab() {
                 <button onClick={escalate} className="px-3 py-2 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 flex items-center gap-1.5">
                   <ArrowUpCircle className="w-3.5 h-3.5" /> {t('tickets.escalate') || 'Escalate'}
                 </button>
-                <button onClick={() => alert(t('tickets.alertSent') || 'Алерт отправлен')} className="px-3 py-2 rounded-lg text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 flex items-center gap-1.5">
+                <button onClick={() => toast.success(t('tickets.alertSent') || 'Алерт отправлен')} className="px-3 py-2 rounded-lg text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 flex items-center gap-1.5">
                   <Bell className="w-3.5 h-3.5" /> {t('tickets.alert') || 'Alert'}
                 </button>
               </div>

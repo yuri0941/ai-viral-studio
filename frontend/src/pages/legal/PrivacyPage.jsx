@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Shield, Eye, Database, Mail, MapPin, Trash2, Cookie, Server, Scale, Phone, MessageCircle } from 'lucide-react';
+import { API_BASE_URL } from '../../config.js';
 
 export default function PrivacyPage() {
   const [legal, setLegal] = useState(null);
@@ -8,7 +9,7 @@ export default function PrivacyPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('/api/public/legal-info')
+    fetch(`${API_BASE_URL}/public/legal-info`)
       .then(r => r.json())
       .then(data => { setLegal(data?.legalInfo || null); setLoading(false); })
       .catch(() => { setLoading(false); });

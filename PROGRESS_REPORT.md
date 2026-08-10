@@ -3637,3 +3637,31 @@
 - [FIX] backend/ai/omega/neuralGraph.js: seed-данные 8 узлов = 213 фактов (из предыдущего коммита)
 - [TEST] ✅ JSON response, nodes>=9, facts>=213, Build 0 errors — все PASS
 - [DEPLOY] Запушено на Render
+
+
+## 2026-08-10 — v9.9.19-MASTER-AUDIT-K3
+- [AUDIT] Полный аудит: endpoints, роли, клиентский путь, OMEGA, Telegram, frontend (236 jsx), адаптив
+- [FIX] 500 POST /api/omega/project/generate (description undefined → crash в detectType) — валидация 400 JSON + graceful fallback
+- [FIX] 404 GET /api/channel — добавлен статусный handler в channelManager (graceful JSON)
+- [FIX] 404 GET /api/ad-orders — добавлен list handler (owner/admin — все, остальные — свои)
+- [FIX] /api/analytics/referrals — убрана утечка err.message в payload
+- [FIX] Referral: модель не совпадала с referralService (code vs referralCode + 8 полей тиров) — схема расширена, create-пути синхронизированы, рефералка снова работает
+- [FIX] createTestAccounts.js — двойное хеширование пароля (скрипт + pre-save hook) → логин тестовых аккаунтов не работал; теперь reset + verify
+- [FIX] CognitiveNode enum — типы action/system/content/longterm/support/research отсутствовали → записи Learning Mesh молча падали
+- [FIX] learningEngine — фейковый edge со строковым id ломал ObjectId-каст skill-узлов
+- [FIX] LearningDataset source enum — любой провайдер вне 4 значений ронял запись обучения; enum расширен + санитизация с fallback
+- [FIX] /api/omega/learning/status — хардкод-моки 4 агентов → реальные данные Cognitive Mesh + честный empty-state
+- [FIX] OmegaLearningDashboard — убрана фейковая анимация прогресса (Math.random), мёртвая кнопка pause/play → статус-бейдж
+- [FIX] ownerBot — дубль ответа на /menu (два onText совпадали) → /start и /menu разведены
+- [FIX] ApiKeys роуты — 500 → graceful JSON; валидация telegram/vk/платёжных ключей
+- [KEYS] ApiKeysTab: 36 провайдеров (AI 19, Telegram 3, VK 2, платежи 6, Push 2, Email 4), счётчик «Активно: N из M», фильтры Все/Активные/Выключенные + группы
+- [KEYS] envMap расширен на все ключи проекта; hot-reload переведён на getProviderKey: webSearch×2 (SerpAPI), aiVideoService + videoService + visionCore (Replicate), youtubeAI (YouTube+Whisper), voiceService (ElevenLabs), yookassaService, emailService (Resend/SMTP lazy-init), pushController (VAPID), channelPublisher (Telegram token)
+- [FEATURE] Клиентский Telegram Connect: deep-link t.me/aiviral_omega_bot?start=<user_id> → бот привязывает telegramId → статус в профиле (SettingsPage → Профиль), endpoint /api/user/telegram-status
+- [FEATURE] Voice в ботах: voice → Whisper STT (Groq whisper-large-v3-turbo → OpenAI whisper-1) → обычный текстовый поток; без ключа — вежливая заглушка с needsKey
+- [GUARD] needsKey-флаги в videoService/youtubeAI/channelPublisher — фронт может показать карточку «Ключ не добавлен → ApiKeysTab»
+- [FRONTEND] ~40 хардкод-fetch('/api/...') → API_BASE_URL/request (SignupPage, SchedulerPage, owner-app emergency-stop, OMEGACoreTab, VoiceInterface и др.) — на проде они уходили на домен фронта
+- [FRONTEND] Мёртвые кнопки: QuickActions креатора → реальные роуты; ReferralsTab «Скоро» ×3 удалены; OmegaResourceManager → реальные переходы; ScoutTab фидбек → POST /api/feedback; CaseStudyGenerator заглушка удалена; CookieConsent «Настройки» → рабочая панель; LandingPage футер href="#" ×5 → реальные ссылки/удалены; DashboardHeader мёртвый поиск удалён
+- [FRONTEND] alert() → toast (react-hot-toast) в ~30 файлах
+- [FRONTEND] Адаптив: ClientChatWidget/AdvertisingTab фикс-ширины; 20+ модалок max-h-[90vh] overflow-y-auto; touch targets 44px (CookieConsent, Staff tabs, иконки-кнопки, Modal close); .pb-safe утилита (client-app + owner-app); FAB safe-area ×8; DashboardShell pb-24; NeuralGraphTab preventDefault в passive listener убран; PersonalityTab необработанный промис → try/catch/finally
+- [TEST] Все smoke PASS: 18/18 endpoints 200 JSON, seed-smm в neural-graph, логин 5 ролей, learning/record, telegram-status, build 0 errors
+- [STATUS] 🟢 Проект стабилен. Следующий этап: v9.9.20-FACTORY-REAL

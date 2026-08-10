@@ -1,13 +1,25 @@
 # OMEGA_CONTEXT — AI Viral Studio
 
-## Версия: v9.9.19-NEURAL-GRAPH-EMERGENCY
+## Версия: v9.9.19-MASTER-AUDIT-K3
 ## Дата: 2026-08-10
-## Статус: JSON-only Neural Graph + fixed /api/api double prefix
+## Статус: Полный аудит пройден. Все подсистемы проверены, 0 × 500/HTML
+
+### Результаты аудита OMEGA (2026-08-10)
+- Intent/Action/Learning Engines — на месте и вызываются из обоих ботов и web-чата
+- Cognitive Mesh: enum CognitiveNode расширен (action/system/content/longterm/support/research) — записи навыков/ошибок/решений реально создаются
+- LearningDataset: source enum расширен + санитизация — обучение больше не падает на неизвестном провайдере
+- /learning/status — реальные данные из Mesh (тренды/навыки/решения/self-healing) + честный empty-state
+- Neural Graph: seed-smm на месте, graceful JSON fallback, preventDefault-warning убран
+- Crons активны: selfHealing 5мин, selfReflection 08:00+6ч, autoPilot 09:00, morning report 08:00 MSK, failover 30с, backup 03:00
+- Anti-Fail: health monitor, self-ping, owner alerts — активны
+- Voice: Whisper STT (Groq → OpenAI) в ownerBot и omegaBot, needsKey-заглушка
 
 ### ApiKeys & Hot-Reload
-- 20 провайдеров в ApiKeysTab
-- global.apiKeyCache — hot-reload без деплоя
-- Валидация ключа перед сохранением (ping провайдера)
+- 36 провайдеров в ApiKeysTab: AI (19), Telegram (3), VK (2), платежи (6), Push/VAPID (2), Email (4)
+- Счётчик «Активно: N из M» + фильтры Все/Активные/Выключенные + группы
+- global.apiKeyCache — hot-reload без деплоя, валидация ping провайдера
+- getProviderKey() (env → cache → MongoDB) теперь используют: Replicate (video/vision), SerpAPI (webSearch×2), YouTube, Whisper, ElevenLabs, ЮKassa, Resend/SMTP (lazy-init), VAPID, Telegram bot token (channelPublisher)
+- needsKey-ответы вместо 500: фронт показывает карточку «Добавьте ключ → ApiKeysTab»
 
 ### Neural Graph v2
 - Seed Knowledge: 8 узлов (SMM, Hooks, Viral, CTA, Content, Telegram, AI, Ads), 213 фактов

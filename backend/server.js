@@ -497,6 +497,7 @@ app.use('/api/ai', aiRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/scheduler', schedulerRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/user', userRoutes)  // [v9.9.19-MASTER-AUDIT] alias: /api/user/telegram-status для клиентского Telegram Connect
 app.use('/api/support', supportRoutes)  // [v9.9.2-MASTER-FIX] unified support tickets
 app.use('/api/channel', channelRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]
 app.use('/api/ad-orders', adOrderRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]

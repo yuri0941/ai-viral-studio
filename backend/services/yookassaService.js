@@ -1,10 +1,13 @@
+import { getProviderKey } from './aiService.js'
+
 const YOOKASSA_API_URL = 'https://api.yookassa.ru/v3/payments';
 
-function getAuthHeaders() {
-  const shopId = process.env.YOOKASSA_SHOP_ID;
-  const secretKey = process.env.YOOKASSA_SECRET_KEY;
+// [v9.9.19-MASTER-AUDIT] hot-reload: ключи через getProviderKey (env → cache → MongoDB)
+async function getAuthHeaders() {
+  const shopId = await getProviderKey('yookassa_shop_id');
+  const secretKey = await getProviderKey('yookassa_secret');
   if (!shopId || !secretKey) {
-    throw new Error('YOOKASSA_SHOP_ID или YOOKASSA_SECRET_KEY не настроены в .env');
+    throw new Error('Ключи ЮKassa не настроены. Добавьте их в Кабинет владельца → API Ключи (yookassa_shop_id, yookassa_secret)');
   }
   const token = Buffer.from(`${shopId}:${secretKey}`).toString('base64');
   return {
@@ -39,7 +42,7 @@ export async function createPayment({ amount, currency = 'RUB', description, ret
   try {
     const response = await fetch(YOOKASSA_API_URL, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify(body),
     });
 
@@ -72,7 +75,7 @@ export async function checkPayment(paymentId) {
   try {
     const response = await fetch(`${YOOKASSA_API_URL}/${paymentId}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     const data = await response.json().catch(() => ({}));

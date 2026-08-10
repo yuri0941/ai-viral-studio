@@ -439,7 +439,7 @@ export function TasksTab({ data }) {
             </AnimatePresence>
 
             {/* [P16-FIX] added: gradient FAB */}
-            <div className="fixed bottom-6 right-6 z-30">
+            <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-30">
                 <AnimatePresence>
                     {fabOpen && (
                         <div className="absolute bottom-16 right-0 flex flex-col items-end gap-3">

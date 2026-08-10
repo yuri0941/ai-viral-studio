@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Code, Play, Save, GitBranch, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../../../../config.js';
 
 export default function OmegaDevStudioTab() {
   const { t } = useTranslation();
@@ -14,7 +15,7 @@ export default function OmegaDevStudioTab() {
     setStatus('generating');
     setLogs(prev => [...prev, `⏳ OMEGA генерирует код...`]);
     try {
-      const res = await fetch('/api/omega-supreme/devstudio/generate', {
+      const res = await fetch(`${API_BASE_URL}/omega-supreme/devstudio/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ spec, language: 'javascript' })
@@ -38,7 +39,7 @@ export default function OmegaDevStudioTab() {
     if (!codeId) return;
     setStatus('deploying');
     try {
-      await fetch('/api/omega-supreme/devstudio/approve', {
+      await fetch(`${API_BASE_URL}/omega-supreme/devstudio/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ id: codeId })

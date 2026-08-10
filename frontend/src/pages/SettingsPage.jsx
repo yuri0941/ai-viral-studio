@@ -7,6 +7,7 @@ import { PLANS, getPrice } from '../config/plans.js'; // [P24] fixed: unified pl
 import IntegrationsTab from './settings/IntegrationsTab.jsx'; // [SOCIAL-v5.1] added
 import PaymentMethodSelector from '../components/payments/PaymentMethodSelector.jsx'; // [v6.6-HOTFIX-PAYMENTS] multi-payment selector
 import AddonMarketplace from '../components/subscriptions/AddonMarketplace.jsx'; // [v7.0-PART2] addon marketplace
+import TelegramConnectButton from '../components/social/TelegramConnectButton.jsx'; // [v9.9.19-MASTER-AUDIT] клиентский Telegram Connect
 import {
     User, Diamond, Link2, Bell, Shield, Palette, LogOut,
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
@@ -362,6 +363,16 @@ function SettingsPage() {
 
     const renderProfile = () => (
         <div className="space-y-6">
+            {/* [v9.9.19-MASTER-AUDIT] Telegram Connect: deep-link привязка к @aiviral_omega_bot */}
+            <div className="luxury-card glass p-6 mb-4">
+                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    <Send size={18} className="text-sky-400" /> Telegram
+                </h3>
+                <p className="text-sm text-[var(--text-muted)] mb-4">
+                    Подключите Telegram, чтобы получать уведомления и общаться с OMEGA в боте @aiviral_omega_bot.
+                </p>
+                <TelegramConnectButton />
+            </div>
             <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Camera size={18} className="text-[var(--success)]" /> {t('settings.avatar')}

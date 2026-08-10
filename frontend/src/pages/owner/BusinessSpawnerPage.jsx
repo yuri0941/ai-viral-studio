@@ -5,6 +5,7 @@ import {
     Send, Twitter, Linkedin, Calendar, Loader2, Save, CheckCircle, AlertCircle
 } from 'lucide-react'
 import { API_URL } from '../../config.js'
+import toast from 'react-hot-toast'
 
 function getAuthHeaders() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
@@ -184,7 +185,7 @@ export function BusinessSpawnerPage() {
     const saveDraft = () => {
         const draft = { step, selectedNiche, businessName, brandColor, customColor, brandStyle, socials, posts }
         localStorage.setItem('business_spawner_draft', JSON.stringify(draft))
-        alert('Черновик сохранён')
+        toast.success('Черновик сохранён')
     }
 
     const launchBusiness = async () => {

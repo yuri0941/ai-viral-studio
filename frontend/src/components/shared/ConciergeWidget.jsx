@@ -33,7 +33,7 @@ export default function ConciergeWidget() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-purple-500/30 flex items-center justify-center hover:scale-110 transition-transform">
+      <button onClick={() => setOpen(true)} className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-purple-500/30 flex items-center justify-center hover:scale-110 transition-transform">
         <Concierge className="w-6 h-6" />
       </button>
 

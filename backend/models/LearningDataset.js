@@ -7,7 +7,7 @@ const learningDatasetSchema = new mongoose.Schema({
     intent: { type: String, default: '' },
     sentiment: { type: Number, min: -1, max: 1, default: 0 },
     engagementScore: { type: Number, min: 0, max: 100, default: 0 },
-    source: { type: String, enum: ['local_brain', 'groq', 'openrouter', 'pattern'], default: 'pattern' },
+    source: { type: String, enum: ['local_brain', 'groq', 'openrouter', 'pattern', 'openai', 'gemini', 'github', 'huggingface', 'cloudflare', 'workersai', 'mistral', 'cohere', 'deepseek', 'together', 'fireworks', 'cerebras', 'pollinations', 'web_chat', 'telegram', 'api', 'system'], default: 'pattern' },
     templateUsed: { type: String, default: '' },
     wasHelpful: { type: Boolean, default: false },
     vector: { type: [Number], default: [] },

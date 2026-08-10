@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
 import { API_URL } from '../config.js'
 import { Shield, Download, Trash2, AlertTriangle, Check } from 'lucide-react'
 
@@ -26,7 +27,7 @@ export function GDPRPage() {
             a.click()
             window.URL.revokeObjectURL(url)
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setLoadingExport(false)
         }
@@ -43,7 +44,7 @@ export function GDPRPage() {
             if (!res.ok) throw new Error('Delete failed')
             setDeleted(true)
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setLoadingDelete(false)
         }

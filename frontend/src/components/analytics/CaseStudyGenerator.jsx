@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileText, Sparkles, Check, X, Edit3, Trash2, Loader2, AlertCircle, Download } from 'lucide-react'
+import { FileText, Sparkles, Check, X, Trash2, Loader2, AlertCircle, Download } from 'lucide-react'
 import { API_BASE_URL } from '../../config.js'
 
 export function CaseStudyGenerator() {
@@ -131,9 +131,6 @@ export function CaseStudyGenerator() {
                                             <Check size={14} /> Одобрить
                                         </button>
                                     )}
-                                    <button onClick={() => alert('Редактирование в разработке')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-xs transition-colors">
-                                        <Edit3 size={14} /> Редактировать
-                                    </button>
                                     <button onClick={() => remove(study.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-xs transition-colors">
                                         <Trash2 size={14} /> Удалить
                                     </button>

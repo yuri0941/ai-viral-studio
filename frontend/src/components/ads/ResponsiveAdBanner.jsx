@@ -20,7 +20,7 @@ export function ResponsiveAdBanner({ variant = 'auto', className = '' }) {
     if (closed) return null
 
     return (
-        <div className={`fixed bottom-4 right-4 z-40 w-[300px] max-w-[calc(100vw-2rem)] glass-card rounded-xl p-4 shadow-2xl shadow-black/40 transition-opacity duration-300 ${className}`}>
+        <div className={`fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 w-[300px] max-w-[calc(100vw-2rem)] glass-card rounded-xl p-4 shadow-2xl shadow-black/40 transition-opacity duration-300 ${className}`}>
             <button
                 onClick={handleClose}
                 className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs hover:scale-110 transition-transform z-50"

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../../config.js'
-import { GraduationCap, ChevronDown, ChevronUp, Pause, Play } from 'lucide-react'
+import { GraduationCap, ChevronDown, ChevronUp } from 'lucide-react'
 
 const AGENT_META = {
     research: { emoji: '🔍', color: 'from-violet-500/20 to-fuchsia-500/5', bar: 'from-violet-500 to-fuchsia-500' },
@@ -11,6 +11,8 @@ const AGENT_META = {
 
 export default function OmegaLearningDashboard() {
     const [agents, setAgents] = useState([])
+    const [stats, setStats] = useState(null)
+    const [loaded, setLoaded] = useState(false)
     const [expanded, setExpanded] = useState(null)
     const token = localStorage.getItem('token') || ''
 
@@ -21,30 +23,20 @@ export default function OmegaLearningDashboard() {
                     headers: { Authorization: `Bearer ${token}` }
                 })
                 const data = await res.json()
-                if (data.status === 'success') setAgents(data.data || [])
+                if (data.status === 'success') {
+                    setAgents(Array.isArray(data.data) ? data.data : [])
+                    setStats(data.stats || null)
+                }
             } catch (err) {
                 console.warn('[OmegaLearningDashboard] load failed:', err.message)
+            } finally {
+                setLoaded(true)
             }
         }
         load()
     }, [token])
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setAgents(prev => prev.map(a => {
-                if (a.status !== 'active') return a
-                const delta = Math.random() * 2 - 0.5
-                const next = Math.min(100, Math.max(0, a.progress + delta))
-                return { ...a, progress: next }
-            }))
-        }, 1000)
-        return () => clearInterval(interval)
-    }, [])
-
     const toggle = (id) => setExpanded(prev => prev === id ? null : id)
-    const toggleStatus = (id) => {
-        setAgents(prev => prev.map(a => a.id === id ? { ...a, status: a.status === 'active' ? 'paused' : 'active' } : a))
-    }
 
     return (
         <div className="w-full space-y-6">
@@ -55,9 +47,19 @@ export default function OmegaLearningDashboard() {
                     </div>
                     <div>
                         <h2 className="text-lg font-semibold text-white">OMEGA Learning</h2>
-                        <p className="text-xs text-[var(--text-muted)]">4 агента постоянно учатся и улучшают OMEGA</p>
+                        <p className="text-xs text-[var(--text-muted)]">
+                            {stats?.totalInteractions ? `Изучено взаимодействий: ${stats.totalInteractions} · новых шаблонов: ${stats.newTemplatesGenerated || 0}` : 'Агенты обучения OMEGA — реальные данные Cognitive Mesh'}
+                        </p>
                     </div>
                 </div>
+
+                {loaded && agents.length === 0 && (
+                    <div className="rounded-2xl p-6 glass-card border border-white/10 text-center">
+                        <div className="text-3xl mb-2">🌱</div>
+                        <div className="text-sm font-semibold text-white mb-1">Очередь обучения пуста</div>
+                        <p className="text-xs text-[var(--text-muted)]">OMEGA начнёт записывать навыки, тренды и решения после первых реальных действий (посты, исследования, команды владельца).</p>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {agents.map(agent => {
@@ -73,12 +75,11 @@ export default function OmegaLearningDashboard() {
                                             <div className="text-xs text-[var(--text-muted)] line-clamp-1">{agent.task}</div>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => toggleStatus(agent.id)}
-                                        className={`p-1.5 rounded-lg transition-colors ${agent.status === 'active' ? 'bg-white/10 hover:bg-white/20' : 'bg-amber-500/10 hover:bg-amber-500/20'}`}
+                                    <span
+                                        className={`px-2 py-1 rounded-lg text-[10px] uppercase tracking-wide ${agent.status === 'active' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300'}`}
                                     >
-                                        {agent.status === 'active' ? <Pause size={14} className="text-white" /> : <Play size={14} className="text-amber-300" />}
-                                    </button>
+                                        {agent.status === 'active' ? 'active' : 'paused'}
+                                    </span>
                                 </div>
 
                                 <div className="relative h-3 rounded-full bg-white/10 overflow-hidden mb-2">

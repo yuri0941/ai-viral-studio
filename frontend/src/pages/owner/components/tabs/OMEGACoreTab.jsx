@@ -18,6 +18,7 @@ import { CodeInterpreter } from '../../../../components/omega/CodeInterpreter.js
 import { VisionUploader } from '../../../../components/omega/VisionUploader.jsx'
 import YouTubeAICard from '../../../../components/omega/YouTubeAICard.jsx'
 import { Headphones, TrendingUp } from 'lucide-react'
+import { API_BASE_URL } from '../../../../config.js'
 
 const PROVIDERS = [
     { id: 'groq', name: 'Groq', status: 'active' },
@@ -49,14 +50,14 @@ export function OMEGACoreTab({ data }) {
     const [showVision, setShowVision] = useState(false)
 
     useEffect(() => {
-        fetch('/api/omega/self-reflection')
+        fetch(`${API_BASE_URL}/omega/self-reflection`)
             .then(r => r.ok ? r.json() : null)
             .then(json => setReflection(json?.data || { active: false, lessonCount: 0 }))
             .catch(() => {})
     }, [])
 
     useEffect(() => {
-        fetch('/api/owner/settings')
+        fetch(`${API_BASE_URL}/owner/settings`)
             .then(r => r.ok ? r.json() : null)
             .then(json => {
                 if (json?.data?.features) {
@@ -76,19 +77,19 @@ export function OMEGACoreTab({ data }) {
         const next = !current
         setter(next)
         try {
-            let endpoint = '/api/owner/settings'
+            let endpoint = `${API_BASE_URL}/owner/settings`
             let body = JSON.stringify({ features: { [key]: next } })
             if (key === 'autopilot') {
-                endpoint = '/api/omega/autopilot/toggle'
+                endpoint = `${API_BASE_URL}/omega/autopilot/toggle`
                 body = JSON.stringify({ enabled: next })
             } else if (key === 'predictive') {
-                endpoint = '/api/analytics/predictive/enable'
+                endpoint = `${API_BASE_URL}/analytics/predictive/enable`
                 body = JSON.stringify({ enabled: next })
             } else if (key === 'repurposing') {
-                endpoint = '/api/omega/repurposing/enable'
+                endpoint = `${API_BASE_URL}/omega/repurposing/enable`
                 body = JSON.stringify({ enabled: next })
             } else if (key === 'voice') {
-                endpoint = '/api/omega/voice/enable'
+                endpoint = `${API_BASE_URL}/omega/voice/enable`
                 body = JSON.stringify({ enabled: next })
             }
             const res = await fetch(endpoint, {
@@ -199,7 +200,7 @@ export function OMEGACoreTab({ data }) {
         setRecalcLoading(true)
         showToast(t('omega.forecastUpdating'), 'info')
         try {
-            await fetch('/api/omega/predictions/recalculate', {
+            await fetch(`${API_BASE_URL}/omega/predictions/recalculate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             })
@@ -235,7 +236,7 @@ export function OMEGACoreTab({ data }) {
     const handleApplyReflection = useCallback(async () => {
         setReflectionLoading(true)
         try {
-            const res = await fetch('/api/omega/self-reflection', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            const res = await fetch(`${API_BASE_URL}/omega/self-reflection`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
             if (!res.ok) throw new Error()
             const json = await res.json()
             setReflection(prev => ({ ...prev, lessonCount: json?.data?.lessonCount ?? prev.lessonCount }))
@@ -250,7 +251,7 @@ export function OMEGACoreTab({ data }) {
     const handleTestProvider = useCallback(async (providerId) => {
         setTestLoading(providerId)
         try {
-            const res = await fetch(`/api/owner/omega/health?provider=${providerId}`)
+            const res = await fetch(`${API_BASE_URL}/owner/omega/health?provider=${providerId}`)
             const json = await res.json()
             if (json.data?.status === 'ok') {
                 showToast(`${providerId}: API доступен`)

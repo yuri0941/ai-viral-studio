@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { RefreshCcw, RotateCcw, Search, Users, Mail, Megaphone, Download, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../../../../config.js';
 import BroadcastModal from '../../../../components/owner/BroadcastModal.jsx';
 
@@ -59,7 +60,7 @@ export function SubscribersTab() {
       loadSubs();
     } catch (err) {
       console.error('[SubscribersTab:refund]', err.message);
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -77,7 +78,7 @@ export function SubscribersTab() {
       loadSubs();
     } catch (err) {
       console.error('[SubscribersTab:extend]', err.message);
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 

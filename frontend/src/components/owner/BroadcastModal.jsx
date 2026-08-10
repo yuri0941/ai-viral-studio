@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Send, Sparkles, Loader2, Megaphone } from 'lucide-react';
 import { API_BASE_URL } from '../../config.js';
+import toast from 'react-hot-toast';
 
 const SEGMENTS = [
   { value: 'all', label: 'Все подписчики' },
@@ -57,7 +58,7 @@ export default function BroadcastModal({ onClose }) {
       setResult(data);
     } catch (err) {
       console.error('[BroadcastModal:send]', err.message);
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -65,7 +66,7 @@ export default function BroadcastModal({ onClose }) {
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="glass-luxury w-full max-w-lg rounded-2xl p-6 relative animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+      <div className="glass-luxury w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl p-6 relative animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-text-muted hover:text-text transition-colors">
           <X size={20} />
         </button>

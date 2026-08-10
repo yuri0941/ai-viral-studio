@@ -511,7 +511,7 @@ export default function CreativeHub() {
                     <div className="absolute inset-y-0 left-0 w-[280px] bg-[var(--bg-secondary)]/95 backdrop-blur-xl border-r border-white/10 p-4 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-bold text-gray-100">Creative Hub</h2>
-                            <button onClick={() => setMobilePanel(null)} className="p-1.5 rounded-lg bg-white/5 text-gray-300"><X size={18} /></button>
+                            <button onClick={() => setMobilePanel(null)} className="p-2 rounded-lg bg-white/5 text-gray-300"><X size={18} /></button>
                         </div>
                         <SessionsCard />
                         <div className="glass-card p-4 flex-1 overflow-hidden flex flex-col">
@@ -528,7 +528,7 @@ export default function CreativeHub() {
                     <div className="absolute inset-y-0 right-0 w-[260px] bg-[var(--bg-secondary)]/95 backdrop-blur-xl border-l border-white/10 p-4 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-bold text-gray-100">Меню</h2>
-                            <button onClick={() => setMobilePanel(null)} className="p-1.5 rounded-lg bg-white/5 text-gray-300"><X size={18} /></button>
+                            <button onClick={() => setMobilePanel(null)} className="p-2 rounded-lg bg-white/5 text-gray-300"><X size={18} /></button>
                         </div>
                         <div className="glass-card p-4">
                             <div className="text-xs text-gray-400 mb-2">Роль</div>

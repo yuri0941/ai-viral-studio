@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { StatusBadge } from '../common/StatusBadge'
 import { Plug, RefreshCw, Send, MessageCircle, Hash, FileText, CheckSquare, Trello, ShoppingBag, Globe, Webhook, Plus, Trash2, Check, X, ExternalLink } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { integrationsApi, request } from '../../../../services/api'
 
 function VKIcon({ className }) {
@@ -49,10 +50,10 @@ export function IntegrationsTab({ data }) {
             if (data?.success && data.authUrl) {
                 window.open(data.authUrl, '_blank')
             } else {
-                alert(data?.error || 'VK auth URL generation failed')
+                toast.error(data?.error || 'VK auth URL generation failed')
             }
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         }
     }
 
@@ -100,7 +101,7 @@ export function IntegrationsTab({ data }) {
             setWebhookForm({ name: '', url: '', events: '*', secret: '' })
             load()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setCreatingWebhook(false)
         }
@@ -112,7 +113,7 @@ export function IntegrationsTab({ data }) {
             await integrationsApi.deleteWebhook(id)
             load()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         }
     }
 
@@ -121,7 +122,7 @@ export function IntegrationsTab({ data }) {
             await integrationsApi.updateWebhook(wh._id, { isActive: !wh.isActive })
             load()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         }
     }
 
@@ -311,7 +312,7 @@ export function IntegrationsTab({ data }) {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button type="button" onClick={() => toggleWebhook(wh)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400">{wh.isActive ? <X size={14} /> : <Check size={14} />}</button>
-                                    <button type="button" onClick={() => integrationsApi.triggerWebhooks('manual', { test: true }).then(() => alert('Triggered')).catch(e => alert(e.message))} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400"><Send size={14} /></button>
+                                    <button type="button" onClick={() => integrationsApi.triggerWebhooks('manual', { test: true }).then(() => toast.success('Triggered')).catch(e => toast.error(e.message))} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400"><Send size={14} /></button>
                                     <button type="button" onClick={() => deleteWebhook(wh._id)} className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400"><Trash2 size={14} /></button>
                                 </div>
                             </div>

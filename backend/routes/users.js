@@ -121,6 +121,24 @@ router.get('/profile', (req, res) => {
     res.json({ status: 'success', message: 'User profile' })
 })
 
+// [v9.9.19-MASTER-AUDIT] клиентский Telegram Connect: статус + deep-link для привязки
+router.get('/telegram-status', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('telegramId telegramUsername telegramChatId').lean()
+        const userId = String(req.user._id || req.user.id)
+        res.json({
+            success: true,
+            connected: !!user?.telegramId,
+            telegramId: user?.telegramId || null,
+            telegramUsername: user?.telegramUsername || null,
+            botLink: `https://t.me/aiviral_omega_bot?start=${userId}`
+        })
+    } catch (err) {
+        console.error('[users/telegram-status]', err.message)
+        res.json({ success: true, connected: false, botLink: 'https://t.me/aiviral_omega_bot' })
+    }
+})
+
 router.put('/profile', (req, res) => {
     res.json({ status: 'success', message: 'Update profile' })
 })

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { API_URL } from '../config.js'
 import { Rocket, Mail, Twitter, Linkedin, Users, Clock } from 'lucide-react'
 
@@ -50,10 +51,10 @@ export function LaunchPage() {
                 setSuccess(true)
                 setCount(data.total || count + 1)
             } else {
-                alert(data.message || 'Error')
+                toast.error(data.message || 'Error')
             }
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setLoading(false)
         }

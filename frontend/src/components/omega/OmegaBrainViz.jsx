@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { API_BASE_URL } from '../../config.js'
 
 const NODE_TYPES = {
   project: '#8B5CF6',
@@ -88,14 +89,14 @@ export default function OmegaBrainViz({ nodes: propNodes }) {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/omega/neural-graph/nodes')
+        const res = await fetch(`${API_BASE_URL}/omega/neural-graph/nodes`)
         if (!res.ok) throw new Error('network')
         const data = await res.json()
         if (Array.isArray(data) && data.length) {
           setNodes(data)
           setEdges(buildEdges(data))
         }
-        const sres = await fetch('/api/omega/neural-graph/status')
+        const sres = await fetch(`${API_BASE_URL}/omega/neural-graph/status`)
         if (sres.ok) setStatus(await sres.json())
       } catch (err) {
         console.warn('[OmegaBrainViz] using fallback neural nodes:', err.message)

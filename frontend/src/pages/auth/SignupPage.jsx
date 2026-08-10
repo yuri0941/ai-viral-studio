@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Sparkles, ArrowRight, ArrowLeft, Check, Loader2, Bot, BarChart3, Factory, Telescope, Calendar, CreditCard } from 'lucide-react'
+import { API_BASE_URL } from '../../config.js'
 
 const NICHES = ['кофейня', 'бьюти', 'IT', 'одежда', 'еда', 'недвижимость', 'фитнес', 'другое']
 const GOALS = [
@@ -42,7 +43,7 @@ export default function SignupPage() {
   })
 
   useEffect(() => {
-    fetch('/api/public/plans').then(r => r.ok ? r.json() : {}).then(data => setPlans(data.plans || {})).catch(() => {})
+    fetch(`${API_BASE_URL}/public/plans`).then(r => r.ok ? r.json() : {}).then(data => setPlans(data.plans || {})).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -64,7 +65,7 @@ export default function SignupPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email, password: form.password, role: 'creator' })
@@ -86,7 +87,7 @@ export default function SignupPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch('/api/public/subscribe', {
+      const res = await fetch(`${API_BASE_URL}/public/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ planId: form.plan, provider: 'yookassa' })
@@ -94,7 +95,7 @@ export default function SignupPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Payment failed')
       if (json.mock && json.paymentUrl === '#') {
-        await fetch('/api/public/subscribe/activate', {
+        await fetch(`${API_BASE_URL}/public/subscribe/activate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ planId: form.plan })

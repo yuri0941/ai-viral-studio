@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, Eye, Check, Clock, X, Zap } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { API_BASE_URL } from '../../config.js'
 
 const TYPE_ICONS = {
@@ -60,7 +61,7 @@ export default function OmegaPredictiveCard() {
                 headers: { Authorization: `Bearer ${token}` },
             })
             if (!res.ok) throw new Error('Apply failed')
-            alert(t('predictiveCard.applied', { title: p.title }))
+            toast.success(t('predictiveCard.applied', { title: p.title }))
             await load()
         } catch (err) {
             console.error('[OmegaPredictiveCard apply]', err.message)

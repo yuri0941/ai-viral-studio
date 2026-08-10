@@ -86,7 +86,7 @@ export function OneClickPublish({ content, onPublish }) {
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-2xl bg-[#1a1a24] border border-white/10 rounded-2xl p-6">
+                    <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#1a1a24] border border-white/10 rounded-2xl p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-white">Опубликовать везде</h3>
                             <button onClick={close} className="text-gray-400 hover:text-white"><X size={18} /></button>

@@ -271,9 +271,9 @@ export function ClientChatWidget() {
     const progress = Math.max(10, Math.min(100, (stepIndex / (STEPS.length - 1)) * 100))
 
     return (
-        <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
+        <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-[100] flex flex-col items-end gap-3">
             {isOpen && (
-                <div className="w-[380px] h-[600px] rounded-2xl bg-[#0f0f1a] border border-white/10 shadow-2xl shadow-black/50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+                <div className="w-[380px] h-[600px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-6rem)] rounded-2xl bg-[#0f0f1a] border border-white/10 shadow-2xl shadow-black/50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
                     {/* Header */}
                     <div className="p-4 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-blue-500/10">
                         <div className="flex items-center gap-3">

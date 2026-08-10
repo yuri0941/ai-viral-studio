@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ChevronLeft, Award, Wand2, Sparkles, Loader2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { omegaApi, scheduledPostsApi } from '../../services/api'
+import { API_BASE_URL } from '../../config.js'
 import toast from 'react-hot-toast'
 import StepNiche from './StepNiche'
 import StepSocials from './StepSocials'
@@ -99,7 +100,7 @@ function OnboardingWizard() {
         localStorage.setItem(DATA_KEY, JSON.stringify(data))
         const syncBackend = async () => {
             try {
-                await fetch('/api/users/me/onboarding', {
+                await fetch(`${API_BASE_URL}/users/me/onboarding`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ step, data, completed: false }),
@@ -193,7 +194,7 @@ function OnboardingWizard() {
         localStorage.setItem('omega_first_post_badge', 'true')
         await createFirstPost()
         try {
-            await fetch('/api/users/me/onboarding', {
+            await fetch(`${API_BASE_URL}/users/me/onboarding`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ step, data, completed: true }),

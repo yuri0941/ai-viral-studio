@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 import { User } from '../models/index.js';
 import { connectDB } from '../config/database.js';
 
@@ -16,10 +15,18 @@ const TEST_ACCOUNTS = [
 async function createTestAccounts() {
   for (const acc of TEST_ACCOUNTS) {
     const exists = await User.findOne({ email: acc.email });
-    if (exists) { console.log(`⚠️ ${acc.email} уже есть`); continue; }
-    const hashed = await bcrypt.hash(acc.password, 10);
-    await User.create({ ...acc, password: hashed, isTestAccount: true, subscription: 'agency', preferences: { language: 'ru', theme: 'dark' } });
-    console.log(`✅ ${acc.email} | ${acc.password}`);
+    if (exists) {
+      // [v9.9.19-MASTER-AUDIT] сброс пароля: раньше пароль хешировался дважды (скрипт + pre-save hook)
+      exists.password = acc.password;
+      await exists.save();
+      const ok = await exists.comparePassword(acc.password);
+      console.log(`${ok ? '✅' : '❌'} ${acc.email} — пароль сброшен, verify=${ok}`);
+      continue;
+    }
+    // НЕ хешируем вручную — pre-save hook модели User сделает это сам
+    const user = await User.create({ ...acc, isTestAccount: true, subscription: 'agency', preferences: { language: 'ru', theme: 'dark' } });
+    const ok = await user.comparePassword(acc.password);
+    console.log(`${ok ? '✅' : '❌'} ${acc.email} | ${acc.password} | verify=${ok}`);
   }
   console.log('\n🎉 Тестовые аккаунты готовы.');
   await mongoose.disconnect(); process.exit(0);

@@ -425,7 +425,7 @@ export const physicalApi = {
         list: () => request('/qr'),
         generate: (data) => request('/qr/generate', { method: 'POST', body: JSON.stringify(data) }),
         analytics: (id) => request(`/qr/${id}/analytics`),
-        download: (id, format = 'png') => `/api/qr/${id}/download?format=${format}`,
+        download: (id, format = 'png') => `${API_BASE}/qr/${id}/download?format=${format}`,
         delete: (id) => request(`/qr/${id}`, { method: 'DELETE' }),
     },
     print: {
@@ -452,7 +452,7 @@ export const franchiseApi = {
     ready: () => request('/franchise/ready'),
     list: () => request('/franchise'),
     generate: (data) => request('/franchise/generate', { method: 'POST', body: JSON.stringify(data) }),
-    download: (id) => `/api/franchise/${id}/download`,
+    download: (id) => `${API_BASE}/franchise/${id}/download`,
     send: (id, recipients) => request(`/franchise/${id}/send`, { method: 'POST', body: JSON.stringify({ recipients }) }),
 }
 

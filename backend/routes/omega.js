@@ -220,12 +220,16 @@ router.get('/neural-graph/nodes', protect, (req, res) => {
 // [v9.9.18] Project Factory
 router.post('/project/generate', protect, requireOwner, async (req, res) => {
     try {
-        const { description, type, stack } = req.body
-        const project = await generateProject({ description, type, stack, ownerId: req.user._id })
+        const { description, prompt, type, stack } = req.body
+        const desc = description || prompt || ''
+        if (!desc.trim()) {
+            return res.status(400).json({ success: false, error: 'Укажите описание проекта (description)' })
+        }
+        const project = await generateProject({ description: desc, type, stack, ownerId: req.user._id })
         res.json({ success: true, project })
     } catch (err) {
         console.error('[omega/project/generate]', err.message)
-        res.status(500).json({ success: false, error: err.message })
+        res.json({ success: false, error: 'Генерация временно недоступна', project: null })
     }
 })
 
@@ -491,16 +495,57 @@ router.get('/learning/dataset/download', protect, async (req, res) => {
     }
 })
 
-router.get('/learning/status', protect, (req, res) => {
-    res.json({
-        status: 'success',
-        data: [
-            { id: 'research', name: 'Research Agent', emoji: '🔍', task: 'Анализирую тренды TikTok для ниши "Кофейни"', progress: 67, status: 'active', logs: ['Начало анализа', 'Собрано 120 видео', 'Извлечены паттерны'] },
-            { id: 'code', name: 'Code Agent', emoji: '💻', task: 'Оптимизирую OmegaChat.jsx — убираю дубли', progress: 34, status: 'active', logs: ['Сканирование компонента', 'Найдено 3 дубля', 'Рефакторинг'] },
-            { id: 'design', name: 'Design Agent', emoji: '🎨', task: 'Генерирую glassmorphism-тему v7', progress: 12, status: 'active', logs: ['Выбор палитры', 'Генерация CSS-переменных'] },
-            { id: 'data', name: 'Data Agent', emoji: '📊', task: 'Агрегирую CTR по нишам из 50+ постов', progress: 89, status: 'active', logs: ['Загрузка 50 постов', 'Расчёт CTR', 'Финальная агрегация'] },
-        ]
-    })
+// [v9.9.19-MASTER-AUDIT] реальные данные вместо хардкод-моков: Learning Queue из Cognitive Mesh + selfLearning stats
+router.get('/learning/status', protect, async (req, res) => {
+    try {
+        const { findNodes } = await import('../services/cognitiveMesh.js')
+        const [stats, skillNodes, trendNodes, errorNodes, decisionNodes] = await Promise.all([
+            selfLearningEngine.stats().catch(() => null),
+            findNodes({ type: 'skill', limit: 10 }),
+            findNodes({ type: 'trend', limit: 5 }),
+            findNodes({ type: 'error', limit: 5 }),
+            findNodes({ type: 'decision', limit: 5 }),
+        ])
+
+        const agents = []
+        if (trendNodes.length) {
+            agents.push({
+                id: 'research', name: 'Research Agent', emoji: '🔍',
+                task: `Изучено трендов: ${trendNodes.length} (последний: ${new Date(trendNodes[0].createdAt).toLocaleString('ru-RU')})`,
+                progress: 100, status: 'active',
+                logs: trendNodes.slice(0, 3).map(n => String(n.content || '').slice(0, 80))
+            })
+        }
+        if (skillNodes.length) {
+            agents.push({
+                id: 'skills', name: 'Skill Agent', emoji: '🎯',
+                task: `Освоено навыков: ${skillNodes.length}`,
+                progress: Math.min(100, skillNodes.length * 10), status: 'active',
+                logs: skillNodes.slice(0, 3).map(n => String(n.content || '').slice(0, 80))
+            })
+        }
+        if (decisionNodes.length) {
+            agents.push({
+                id: 'decisions', name: 'Decision Agent', emoji: '🧠',
+                task: `Принято решений: ${decisionNodes.length}`,
+                progress: 100, status: 'active',
+                logs: decisionNodes.slice(0, 3).map(n => String(n.content || '').slice(0, 80))
+            })
+        }
+        if (errorNodes.length) {
+            agents.push({
+                id: 'selfheal', name: 'Self-Healing Agent', emoji: '🛠',
+                task: `Разобрано ошибок: ${errorNodes.length}`,
+                progress: 100, status: 'active',
+                logs: errorNodes.slice(0, 3).map(n => String(n.content || '').slice(0, 80))
+            })
+        }
+
+        res.json({ status: 'success', data: agents, stats, empty: agents.length === 0 })
+    } catch (err) {
+        console.error('[omega/learning/status]', err.message)
+        res.json({ status: 'success', data: [], stats: null, empty: true })
+    }
 })
 
 // [v6.6] Neural Graph endpoints

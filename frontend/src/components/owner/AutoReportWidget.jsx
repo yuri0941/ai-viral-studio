@@ -211,7 +211,7 @@ export function AutoReportWidget() {
 
             {settingsOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-                    <div className="glass-card rounded-2xl w-full max-w-md p-6">
+                    <div className="glass-card rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-bold text-white">Настройка отчёта</h3>
                             <button type="button" onClick={() => setSettingsOpen(false)} className="p-2 min-w-[44px] min-h-[44px] rounded-lg hover:bg-white/10 text-gray-400 flex items-center justify-center">

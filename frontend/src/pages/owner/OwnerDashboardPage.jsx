@@ -525,7 +525,7 @@ export default function OwnerDashboardPage() {
             />
 
             {/* Toasts */}
-            <div className="fixed bottom-6 right-6 z-[110] space-y-2">
+            <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-[110] space-y-2">
                 {toasts.map(t => (
                     <div key={t.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg animate-in slide-in-from-right ${
                         t.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'

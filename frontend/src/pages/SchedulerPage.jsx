@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { omegaApi } from '../services/api';
 import { API_BASE_URL } from '../config.js';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import VisualCalendar from '../components/scheduler/VisualCalendar';
 import BestTimePicker from '../components/scheduler/BestTimePicker';
@@ -293,12 +294,12 @@ function SchedulerPage() {
 
     const handleRepurpose = async () => {
         if (!editingPost?._id) {
-            alert('Сначала сохраните пост в базе, чтобы репурпозить его')
+            toast.error('Сначала сохраните пост в базе, чтобы репурпозить его')
             return
         }
         setRepurposingLoading(true)
         try {
-            const res = await fetch(`/api/scheduler/posts/${editingPost._id}/repurpose`, {
+            const res = await fetch(`${API_BASE_URL}/scheduler/posts/${editingPost._id}/repurpose`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ formats: ['reels', 'shorts', 'stories', 'twitter-thread', 'carousel', 'telegram-post'] }),
@@ -310,10 +311,10 @@ function SchedulerPage() {
                     setPosts(prev => [...json.data.scheduled, ...prev])
                 }
             } else {
-                alert(json.message || 'Ошибка репурпозинга')
+                toast.error(json.message || 'Ошибка репурпозинга')
             }
         } catch (err) {
-            alert('Ошибка сети: ' + err.message)
+            toast.error('Ошибка сети: ' + err.message)
         } finally {
             setRepurposingLoading(false)
         }
@@ -342,10 +343,10 @@ function SchedulerPage() {
                     message: json.message,
                 });
             } else {
-                alert(json.message || t('common.error'));
+                toast.error(json.message || t('common.error'));
             }
         } catch (err) {
-            alert(t('common.error') + ': ' + err.message);
+            toast.error(t('common.error') + ': ' + err.message);
         } finally {
             setVideoLoading(false);
         }
@@ -463,10 +464,10 @@ function SchedulerPage() {
             if (!res.ok) {
                 throw new Error(json.message || json.error || `Ошибка ${res.status}`);
             }
-            alert('Опубликовано!');
+            toast.success('Опубликовано!');
             await loadPosts();
         } catch (err) {
-            alert(err.message || 'Ошибка публикации в Telegram');
+            toast.error(err.message || 'Ошибка публикации в Telegram');
             console.error('Failed to publish Telegram post:', err);
         }
     };

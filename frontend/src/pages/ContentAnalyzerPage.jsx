@@ -7,6 +7,7 @@ import {
     Languages, Lightbulb, Wand2, Scissors, Megaphone, Send, Bot, ImageIcon
 } from 'lucide-react'
 import { omegaApi } from '../services/api'
+import { API_BASE_URL } from '../config.js'
 import AICoverGenerator from '../components/content/AICoverGenerator'
 
 const LANGUAGES = [
@@ -156,7 +157,7 @@ function ContentAnalyzerPage() {
     const fetchPrediction = useCallback(async (content) => {
         setPredictionLoading(true)
         try {
-            const res = await fetch('/api/analytics/predict', {
+            const res = await fetch(`${API_BASE_URL}/analytics/predict`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content }),

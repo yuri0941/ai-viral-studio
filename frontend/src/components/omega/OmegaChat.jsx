@@ -730,7 +730,7 @@ export default function OmegaChat({
 
       {showVoiceSettings && (
         <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md p-6">
+          <div className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold">{t('voiceMode.settings')}</h3>
               <button onClick={() => setShowVoiceSettings(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>

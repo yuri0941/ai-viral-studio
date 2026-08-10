@@ -1,24 +1,25 @@
+import { getProviderKey } from '../services/aiService.js'
+
 let subscriptions = []
 
 const FALLBACK_VAPID_PUBLIC_KEY = 'BPneHlBsvXyP8TGOXLjRkywbBff5I1eBX80fCwfRrIjvvwz4Pwd0oVjx5VVJsqKpl2ooN16JqUq_22cU515krIc'
 const FALLBACK_VAPID_PRIVATE_KEY = 'gLJxni0ePesaNnYpfiXbpdnp8n6p69gPQGyHNbFePHs'
 
-let vapidKeys = null
-
-try {
-  vapidKeys = {
-    publicKey: process.env.VAPID_PUBLIC_KEY || FALLBACK_VAPID_PUBLIC_KEY,
-    privateKey: process.env.VAPID_PRIVATE_KEY || FALLBACK_VAPID_PRIVATE_KEY,
+// [v9.9.19-MASTER-AUDIT] hot-reload: VAPID-ключи резолвятся в момент вызова (env → cache → MongoDB → fallback)
+async function resolveVapidKeys() {
+  try {
+    const publicKey = (await getProviderKey('vapid_public')) || FALLBACK_VAPID_PUBLIC_KEY
+    const privateKey = (await getProviderKey('vapid_private')) || FALLBACK_VAPID_PRIVATE_KEY
+    if (!publicKey || !privateKey) return null
+    return { publicKey, privateKey }
+  } catch (e) {
+    console.warn('[push] failed to resolve VAPID keys:', e.message)
+    return { publicKey: FALLBACK_VAPID_PUBLIC_KEY, privateKey: FALLBACK_VAPID_PRIVATE_KEY }
   }
-  if (!vapidKeys.publicKey || !vapidKeys.privateKey) {
-    console.warn('[push] VAPID keys not set; push notifications disabled')
-    vapidKeys = null
-  }
-} catch (e) {
-  console.warn('[push] failed to load VAPID keys:', e.message)
 }
 
-export const getVapidPublicKey = (req, res) => {
+export const getVapidPublicKey = async (req, res) => {
+  const vapidKeys = await resolveVapidKeys()
   if (!vapidKeys?.publicKey) {
     return res.status(503).json({ status: 'error', message: 'Push not configured' })
   }
@@ -43,6 +44,7 @@ export const unsubscribe = (req, res) => {
 }
 
 export async function sendPush({ title, body, url = '/', tag = 'alert', category = 'omega', route = '/' }) {
+  const vapidKeys = await resolveVapidKeys()
   if (!vapidKeys || subscriptions.length === 0) return
   let webPush
   try {

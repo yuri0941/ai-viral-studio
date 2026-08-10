@@ -285,7 +285,28 @@ const envMap = {
     together: 'TOGETHER_API_KEY',
     fireworks: 'FIREWORKS_API_KEY',
     cerebras: 'CEREBRAS_API_KEY',
-    pollinations: null
+    pollinations: null,
+    // [v9.9.19-MASTER-AUDIT] расширенная карта — все ключи проекта через getProviderKey
+    elevenlabs: 'ELEVENLABS_API_KEY',
+    serpapi: 'SERPAPI_KEY',
+    vk: 'VK_CLIENT_ID',
+    vk_secret: 'VK_CLIENT_SECRET',
+    telegram_bot: 'TELEGRAM_BOT_TOKEN',
+    telegram_owner_bot: 'TELEGRAM_OWNER_BOT_TOKEN',
+    telegram_chat_id: 'TELEGRAM_OWNER_CHAT_ID',
+    yookassa_shop_id: 'YOOKASSA_SHOP_ID',
+    yookassa_secret: 'YOOKASSA_SECRET_KEY',
+    stripe: 'STRIPE_SECRET_KEY',
+    stripe_webhook: 'STRIPE_WEBHOOK_SECRET',
+    paypal_client_id: 'PAYPAL_CLIENT_ID',
+    paypal_secret: 'PAYPAL_CLIENT_SECRET',
+    vapid_public: 'VAPID_PUBLIC_KEY',
+    vapid_private: 'VAPID_PRIVATE_KEY',
+    resend: 'RESEND_API_KEY',
+    smtp_host: 'SMTP_HOST',
+    smtp_user: 'SMTP_USER',
+    smtp_pass: 'SMTP_PASS',
+    chroma: 'CHROMA_API_KEY'
 }
 
 // Global in-memory cache for API keys (hot-reload support)

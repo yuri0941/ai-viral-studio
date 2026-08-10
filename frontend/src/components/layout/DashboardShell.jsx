@@ -220,7 +220,7 @@ export function DashboardShell({
                     onDeleteNotification={onDeleteNotification}
                 />
 
-                <div className={`${viewport.isMobile ? 'px-3 py-4 pb-20' : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>
+                <div className={`${viewport.isMobile ? 'px-3 py-4 pb-24' : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>
                     {children}
                 </div>
             </main>

@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Mic, Volume2, Loader2, AlertCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { API_BASE_URL } from '../../config.js'
 
 export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
     const [isListening, setIsListening] = useState(false)
@@ -12,7 +14,7 @@ export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
 
     const checkElevenLabs = useCallback(async () => {
         try {
-            const res = await fetch('/api/omega/voice/speak', {
+            const res = await fetch(`${API_BASE_URL}/omega/voice/speak`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: 'test' }),
@@ -34,7 +36,7 @@ export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
     const startWebSpeechFallback = () => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
         if (!SpeechRecognition) {
-            alert('Голосовой ввод не поддерживается в этом браузере')
+            toast.error('Голосовой ввод не поддерживается в этом браузере')
             return
         }
         const recognition = new SpeechRecognition()
@@ -76,7 +78,7 @@ export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
                     const token = localStorage.getItem('token')
                     const formData = new FormData()
                     formData.append('audio', blob, 'recording.webm')
-                    const res = await fetch('/api/omega/voice/stt', {
+                    const res = await fetch(`${API_BASE_URL}/omega/voice/stt`, {
                         method: 'POST',
                         headers: { Authorization: `Bearer ${token}` },
                         body: formData,
@@ -113,7 +115,7 @@ export function VoiceInterface({ onTranscript, textToSpeak, compact = false }) {
         if (!textToSpeak) return
         setIsSpeaking(true)
         try {
-            const res = await fetch('/api/omega/voice/speak', {
+            const res = await fetch(`${API_BASE_URL}/omega/voice/speak`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: textToSpeak }),

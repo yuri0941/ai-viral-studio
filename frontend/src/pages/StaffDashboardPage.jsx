@@ -564,7 +564,7 @@ function StaffDashboardPage() {
             </div>
 
             {/* [P16-FIX] added: FAB with radial menu */}
-            <div className="fixed bottom-6 right-6 z-40">
+            <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-40">
                 <div className={`relative transition-all duration-300 ${fabOpen ? 'scale-100' : 'scale-0 opacity-0'}`}>
                     {[
                         { icon: Plus, label: t('staff.newTicket', 'Новый тикет'), color: 'bg-[var(--success)]', onClick: () => showToast(t('staff.creatingTicket', 'Создание тикета...')) },
@@ -638,7 +638,7 @@ function StaffDashboardPage() {
                                     {getStatusLabel(selectedTicket.status)}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                                 <select
                                     value={selectedTicket.status}
                                     onChange={e => setTicketStatus(e.target.value)}
@@ -826,7 +826,7 @@ function StaffDashboardPage() {
                                         <button
                                             key={cat.id}
                                             onClick={() => setKbCategory(cat.id)}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${kbCategory === cat.id
+                                            className={`flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] rounded-lg text-xs transition-all ${kbCategory === cat.id
                                                 ? 'bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)]/30'
                                                 : 'bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--border-strong)] border border-transparent'
                                                 }`}
@@ -865,7 +865,7 @@ function StaffDashboardPage() {
             {/* Escalation Modal */}
             {showEscalationModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-md">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold flex items-center gap-2"><Zap size={20} className="text-[var(--accent-warm)]" /> {t('staff.escalation')}</h2>

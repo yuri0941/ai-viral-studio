@@ -22,7 +22,7 @@ export function ModalShell({ isOpen, onClose, title, children, maxWidth = 'max-w
             <div className={`relative w-full ${maxWidth} bg-[#0f0f1a] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
                     <h3 className="text-lg font-semibold text-white">{title}</h3>
-                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
                         <X size={18} />
                     </button>
                 </div>

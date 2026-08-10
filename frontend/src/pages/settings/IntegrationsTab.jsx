@@ -107,8 +107,8 @@ export default function IntegrationsTab() {
 
     if (!modal) return null;
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setModal(null)}>
-        <div className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 w-full max-w-md space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setModal(null)}>
+        <div className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto space-y-4" onClick={e => e.stopPropagation()}>
           {modal === 'telegram' ? (
             <>
               <h4 className="text-lg font-bold text-[var(--text)]">Подключить Telegram</h4>

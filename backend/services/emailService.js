@@ -3,17 +3,38 @@ import nodemailer from 'nodemailer'
 import crypto from 'crypto'
 import User from '../models/User.js'
 import { createNode } from './cognitiveMesh.js'
+import { getProviderKey } from './aiService.js'
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+// [v9.9.19-MASTER-AUDIT] hot-reload: mailers создаются лениво, ключ через getProviderKey (env → cache → MongoDB)
+let resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+let transporter = null
 
-const SMTP_HOST = process.env.SMTP_HOST
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10)
-const SMTP_USER = process.env.SMTP_USER
-const SMTP_PASS = process.env.SMTP_PASS
+async function ensureMailers() {
+    if (resend || transporter) return
+    try {
+        await ensureMailers()
+    if (!resend) {
+            const resendKey = await getProviderKey('resend')
+            if (resendKey) resend = new Resend(resendKey)
+        }
+        if (!transporter) {
+            const host = await getProviderKey('smtp_host')
+            const user = await getProviderKey('smtp_user')
+            const pass = await getProviderKey('smtp_pass')
+            const port = parseInt(process.env.SMTP_PORT || '587', 10)
+            if (host && user && pass) {
+                transporter = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } })
+            }
+        }
+    } catch (e) {
+        console.warn('[email] mailer init failed:', e.message)
+    }
+}
 
-const transporter = (SMTP_HOST && SMTP_USER && SMTP_PASS)
-  ? nodemailer.createTransport({ host: SMTP_HOST, port: SMTP_PORT, secure: SMTP_PORT === 465, auth: { user: SMTP_USER, pass: SMTP_PASS } })
-  : null
+if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const port = parseInt(process.env.SMTP_PORT || '587', 10)
+    transporter = nodemailer.createTransport({ host: process.env.SMTP_HOST, port, secure: port === 465, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } })
+}
 
 const FROM = process.env.EMAIL_FROM || 'AI Viral Studio <noreply@aiviral-studio.ru>'
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000'
@@ -90,6 +111,7 @@ export async function sendVerificationEmail(to, name, token, lang = 'ru') {
             <p><a href="${FRONTEND_URL}/verify?token=${token}" style="padding:10px 16px;background:#00ff41;color:#0a0a0f;text-decoration:none;border-radius:8px;font-weight:bold;">${l.verifyButton}</a></p>
             <p>${l.verifyCopy} ${FRONTEND_URL}/verify?token=${token}</p>
         `
+    await ensureMailers()
     if (!resend) {
         console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
         return { mocked: true }
@@ -112,6 +134,7 @@ export async function sendPasswordReset(to, name, token, lang = 'ru') {
             <p>${l.resetCopy} ${FRONTEND_URL}/reset-password?token=${token}</p>
             <p>${l.resetIgnore}</p>
         `
+    await ensureMailers()
     if (!resend) {
         console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
         return { mocked: true }
@@ -133,6 +156,7 @@ export async function sendPaymentSuccessEmail(to, name, plan, amount, lang = 'ru
             <p>${l.paymentActive}</p>
             <p><a href="${FRONTEND_URL}/dashboard" style="padding:10px 16px;background:#00ff41;color:#0a0a0f;text-decoration:none;border-radius:8px;font-weight:bold;">${l.paymentButton}</a></p>
         `
+    await ensureMailers()
     if (!resend) {
         console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
         return { mocked: true }
@@ -160,6 +184,7 @@ export function getEmailStatus() {
 }
 
 export async function sendEmail({ to, subject, text, html }) {
+    await ensureMailers()
     // 1. Try Resend
     if (resend) {
         try {
@@ -216,6 +241,7 @@ export async function sendTrialEnding(user, subscription = {}, lang = 'ru') {
     const date = subscription.trialEndsAt ? new Date(subscription.trialEndsAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'ru-RU') : 'soon'
     const subject = l.trialSubject
     const html = `<p>${format(l.trialText, { date })}</p>`
+    await ensureMailers()
     if (!resend) {
         console.info(`[EMAIL MOCK] To: ${user.email}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
         return { mocked: true }
@@ -234,6 +260,7 @@ export async function sendSubscriptionCanceled(user, subscription = {}, lang = '
     const date = subscription.endDate ? new Date(subscription.endDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'ru-RU') : '—'
     const subject = l.canceledSubject
     const html = `<p>${format(l.canceledText, { date })}</p>`
+    await ensureMailers()
     if (!resend) {
         console.info(`[EMAIL MOCK] To: ${user.email}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
         return { mocked: true }
@@ -251,6 +278,7 @@ export async function sendRefundRequest(user, reason, lang = 'ru') {
     const l = T[getLang(lang)]
     const subject = l.refundSubject
     const html = `<p>${format(l.refundText, { reason: reason || '—' })}</p>`
+    await ensureMailers()
     if (!resend) {
         console.info(`[EMAIL MOCK] To: ${user.email}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
         return { mocked: true }
@@ -268,6 +296,7 @@ export async function sendNewTicket(user, ticket, lang = 'ru') {
     const l = T[getLang(lang)]
     const subject = l.ticketSubject
     const html = `<p>${format(l.ticketText, { subject: ticket?.subject || '—' })}</p>`
+    await ensureMailers()
     if (!resend) {
         console.info(`[EMAIL MOCK] To: ${user.email}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
         return { mocked: true }
@@ -284,6 +313,7 @@ export async function sendTrialEndingEmail(to, name, daysLeft = 3, lang = 'ru') 
     const l = T[getLang(lang)]
     const subject = l.trialSubject
     const html = `<h1>${format(l.trialTitle || 'Привет, {name}!', { name: name || 'пользователь' })}</h1><p>${format(l.trialText || 'Ваш пробный период заканчивается через {days} дня.', { days: daysLeft })}</p><p>Чтобы не потерять доступ, продлите подписку в настройках.</p>`
+    await ensureMailers()
     if (!resend) {
         console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
         return { mocked: true }
@@ -295,6 +325,7 @@ export async function sendSubscriptionExpiredEmail(to, name, lang = 'ru') {
     const l = T[getLang(lang)]
     const subject = l.canceledSubject
     const html = `<h1>${format(l.canceledTitle || 'Привет, {name}!', { name: name || 'пользователь' })}</h1><p>${l.canceledText || 'Ваша подписка истекла. Вы переведены на бесплатный тариф.'}</p><p>Продлите подписку в настройках, чтобы вернуть полный доступ.</p>`
+    await ensureMailers()
     if (!resend) {
         console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${html.slice(0, 100)}...`)
         return { mocked: true }

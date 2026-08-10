@@ -10,6 +10,7 @@ import { ownerLegalInfoApi } from '../services/api.js'
 import { API_URL } from '../config.js'
 import { PLANS, getPrice } from '../config/plans.js'
 import WaitlistSection from './landing/WaitlistSection'
+import toast from 'react-hot-toast'
 import ViralDemo from './landing/ViralDemo'
 import BetaCounter from '../components/landing/BetaCounter'
 import { OmegaCompetitorRadar } from '../components/omega/OmegaCompetitorRadar.jsx'
@@ -173,11 +174,11 @@ function LandingPage() {
             if (data.paymentUrl) {
                 window.location.href = data.paymentUrl
             } else {
-                alert(data.error || 'Не удалось создать платёж')
+                toast.error(data.error || 'Не удалось создать платёж')
             }
         } catch (err) {
             console.error('[LandingPage:subscribe]', err)
-            alert('Ошибка при создании платежа')
+            toast.error('Ошибка при создании платежа')
         }
     }
 
@@ -395,13 +396,13 @@ function LandingPage() {
                         <div className="inline-flex items-center gap-3 p-1 rounded-full glass border border-[var(--border)]">
                             <button
                                 onClick={() => setBillingCycle('monthly')}
-                                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${billingCycle === 'monthly' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+                                className={`px-5 py-2.5 min-h-[44px] rounded-full text-sm font-medium transition-all ${billingCycle === 'monthly' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
                             >
                                 Месяц
                             </button>
                             <button
                                 onClick={() => setBillingCycle('yearly')}
-                                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${billingCycle === 'yearly' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+                                className={`px-5 py-2.5 min-h-[44px] rounded-full text-sm font-medium transition-all ${billingCycle === 'yearly' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
                             >
                                 Год <span className="text-xs opacity-80">-20%</span>
                             </button>
@@ -564,16 +565,13 @@ function LandingPage() {
                                 <li><Link to="/privacy-policy" className="hover:text-[var(--primary)] transition-colors">Privacy</Link></li>
                                 <li><Link to="/terms-of-service" className="hover:text-[var(--primary)] transition-colors">Terms</Link></li>
                                 <li><Link to="/consent" className="hover:text-[var(--primary)] transition-colors">Consent</Link></li>
-                                <li><a href="#" className="hover:text-[var(--primary)] transition-colors">Контакты</a></li>
+                                <li><a href="https://t.me/aiviral_omega_bot" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--primary)] transition-colors">Контакты</a></li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="font-semibold mb-4 text-[var(--text)]">Ресурсы</h4>
                             <ul className="space-y-3 text-sm text-[var(--text-muted)]">
-                                <li><a href="#" className="hover:text-[var(--primary)] transition-colors">Блог</a></li>
-                                <li><a href="#" className="hover:text-[var(--primary)] transition-colors">Документация</a></li>
-                                <li><a href="#" className="hover:text-[var(--primary)] transition-colors">API</a></li>
-                                <li><a href="#" className="hover:text-[var(--primary)] transition-colors">Статус системы</a></li>
+                                <li><Link to="/docs" className="hover:text-[var(--primary)] transition-colors">Документация</Link></li>
                             </ul>
                         </div>
                     </div>

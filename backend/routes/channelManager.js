@@ -4,6 +4,22 @@ import { generateChannelPost, publishToChannel, generateWeeklyCalendar, analyzeC
 
 const router = Router();
 
+// [v9.9.19-MASTER-AUDIT] GET / — статус канала (graceful, без 500)
+router.get('/', protect, async (req, res) => {
+  try {
+    const growth = await analyzeChannelGrowth().catch(() => null);
+    res.json({
+      success: true,
+      channel: process.env.TELEGRAM_CHANNEL || '@aiviralstudio',
+      configured: Boolean(process.env.TELEGRAM_BOT_TOKEN),
+      growth: growth || { subscribers: 0, views: 0, posts: 0, growthRate: 0 }
+    });
+  } catch (err) {
+    console.error('[channelManager/status]', err.message);
+    res.json({ success: true, channel: '@aiviralstudio', configured: false, growth: null });
+  }
+});
+
 router.post('/generate', protect, requireRole('owner', 'admin'), async (req, res) => {
   try {
     const { type, topic, niche, style, length, language } = req.body;

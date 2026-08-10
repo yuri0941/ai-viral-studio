@@ -10,7 +10,7 @@ const TYPE_HINTS = {
   api: 'Express.js API',
 };
 
-export async function generateProject({ description, type = 'auto', stack, ownerId }) {
+export async function generateProject({ description = '', type = 'auto', stack, ownerId }) {
   const resolvedType = type === 'auto' ? detectType(description) : type;
   const resolvedStack = stack || TYPE_HINTS[resolvedType] || 'Vite+React+Node';
 
@@ -38,7 +38,7 @@ export async function generateProject({ description, type = 'auto', stack, owner
 }
 
 function detectType(description) {
-  const d = description.toLowerCase();
+  const d = (description || '').toLowerCase();
   if (d.includes('бот') || d.includes('bot') || d.includes('telegram')) return 'telegram-bot';
   if (d.includes('landing') || d.includes('лендинг') || d.includes('сайт-визитка')) return 'landing';
   if (d.includes('api') || d.includes('сервер') || d.includes('backend')) return 'api';

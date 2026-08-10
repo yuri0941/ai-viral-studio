@@ -58,7 +58,7 @@ export default function OmegaLocalModeIndicator() {
 
             {modal && (
                 <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="w-full max-w-sm rounded-2xl glass-card glow-border p-5">
+                    <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl glass-card glow-border p-5">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-white">Состояние OMEGA</h3>
                             <button onClick={() => setModal(false)} className="text-gray-400 hover:text-white">×</button>

@@ -1,15 +1,20 @@
 import { getApiKey, hasApiKey } from './runtimeConfig.js';
+import { getProviderKey } from './aiService.js';
 
-const REPLICATE_API_TOKEN = getApiKey('replicate');
-const HAS_REPLICATE = hasApiKey('replicate');
+// [v9.9.19-MASTER-AUDIT] hot-reload: ключ резолвится в момент вызова (env → cache → MongoDB)
+async function resolveReplicateToken() {
+  return (await getProviderKey('replicate')) || getApiKey('replicate') || null;
+}
 
 export async function createVideoJob({ script, style, duration, userId }) {
-  if (!HAS_REPLICATE) {
-    return { 
+  const REPLICATE_API_TOKEN = await resolveReplicateToken();
+  if (!REPLICATE_API_TOKEN) {
+    return {
       jobId: `mock-${Date.now()}`,
       status: 'queued',
       estimatedSeconds: 180,
       mock: true,
+      needsKey: 'replicate',
       message: 'REPLICATE_API_TOKEN не настроен. Видео поставлено в демо-очередь. Добавьте ключ в Owner Dashboard → API Keys.'
     };
   }
@@ -39,8 +44,8 @@ export async function createVideoJob({ script, style, duration, userId }) {
 
 // [v9.9.6-KEY-AUDIT-v2] image-to-video fallback via Stable Video Diffusion
 export async function generateVideoWithReplicate(prompt) {
-  const token = process.env.REPLICATE_API_TOKEN;
-  if (!token) return { error: 'REPLICATE_API_TOKEN not set' };
+  const token = await resolveReplicateToken();
+  if (!token) return { error: 'REPLICATE_API_TOKEN not set', needsKey: 'replicate' };
   const res = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: { Authorization: `Token ${token}`, 'Content-Type': 'application/json' },
@@ -59,7 +64,9 @@ export async function getVideoStatus(jobId) {
     const status = progress >= 100 ? 'succeeded' : progress >= 90 ? 'processing' : 'starting';
     return { status, progress, mock: true, videoUrl: null };
   }
-  
+
+  const REPLICATE_API_TOKEN = await resolveReplicateToken();
+  if (!REPLICATE_API_TOKEN) return { status: 'unknown', progress: 0, mock: true, videoUrl: null, needsKey: 'replicate' };
   const res = await fetch(`https://api.replicate.com/v1/predictions/${jobId}`, {
     headers: { 'Authorization': `Token ${REPLICATE_API_TOKEN}` }
   });

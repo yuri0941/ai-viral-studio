@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../config.js'
+
 export async function requestPushSubscription() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn('[push] not supported')
@@ -7,7 +9,7 @@ export async function requestPushSubscription() {
     const registration = await navigator.serviceWorker.ready
     const existing = await registration.pushManager.getSubscription()
     if (existing) return existing
-    const response = await fetch('/api/push/vapid-public-key')
+    const response = await fetch(`${API_BASE_URL}/push/vapid-public-key`)
     if (!response.ok) throw new Error('Failed to fetch VAPID key')
     const { publicKey } = await response.json()
     // 🔴 GUARD: если VAPID не настроен — не падаем
@@ -19,7 +21,7 @@ export async function requestPushSubscription() {
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     })
-    await fetch('/api/push/subscribe', {
+    await fetch(`${API_BASE_URL}/push/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(subscription),

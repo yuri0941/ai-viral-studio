@@ -246,7 +246,7 @@ export function ClientsTab({ data }) {
 
       {selectedClient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="glass-card rounded-2xl p-6 max-w-lg w-full space-y-4">
+          <div className="glass-card rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold text-[var(--text)] flex items-center gap-2"><User size={20} /> Детали клиента</h3>
               <button onClick={() => setSelectedClient(null)} className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-muted)]"><X size={18} /></button>
@@ -267,7 +267,7 @@ export function ClientsTab({ data }) {
 
       {actionClient && actionType && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="glass-card rounded-2xl p-6 max-w-md w-full space-y-4">
+          <div className="glass-card rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-4">
             <div className="flex items-center gap-3 text-red-400">
               <AlertTriangle />
               <h3 className="text-lg font-bold text-[var(--text)]">

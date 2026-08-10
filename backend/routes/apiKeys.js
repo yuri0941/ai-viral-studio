@@ -13,7 +13,7 @@ router.get('/', protect, requireRole('owner'), async (req, res) => {
     res.json({ success: true, keys })
   } catch (err) {
     console.error('[ApiKeys] GET error:', err.message)
-    res.status(500).json({ success: false, error: err.message })
+    res.json({ success: false, keys: [], error: 'Не удалось загрузить ключи' })
   }
 })
 
@@ -55,7 +55,7 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
     })
   } catch (err) {
     console.error('[ApiKeys] POST error:', err.message)
-    res.status(500).json({ success: false, error: err.message })
+    res.json({ success: false, error: 'Не удалось сохранить ключ' })
   }
 })
 
@@ -67,7 +67,7 @@ router.delete('/:provider', protect, requireRole('owner'), async (req, res) => {
     res.json({ success: true, message: 'Ключ удалён' })
   } catch (err) {
     console.error('[ApiKeys] DELETE error:', err.message)
-    res.status(500).json({ success: false, error: err.message })
+    res.json({ success: false, error: 'Не удалось удалить ключ' })
   }
 })
 
@@ -82,7 +82,7 @@ router.post('/test', protect, requireRole('owner'), async (req, res) => {
     res.json({ success: true, ...result })
   } catch (err) {
     console.error('[ApiKeys] TEST error:', err.message)
-    res.status(500).json({ success: false, error: err.message })
+    res.json({ success: true, valid: false, error: 'Проверка недоступна' })
   }
 })
 
@@ -120,6 +120,32 @@ async function validateApiKey(provider, key) {
       case 'serpapi': {
         const r = await axios.get(`https://serpapi.com/search?q=test&api_key=${key}`, { timeout: 5000 })
         return { valid: r.status === 200, provider }
+      }
+      case 'telegram_bot':
+      case 'telegram_owner_bot': {
+        const r = await axios.get(`https://api.telegram.org/bot${key}/getMe`, { timeout: 5000 })
+        return { valid: r.data?.ok === true, provider, botName: r.data?.result?.username }
+      }
+      case 'telegram_chat_id': {
+        return { valid: /^-?\d+$/.test(String(key).trim()), provider, error: /^-?\d+$/.test(String(key).trim()) ? undefined : 'Chat ID должен быть числом' }
+      }
+      case 'stripe': {
+        const r = await axios.get('https://api.stripe.com/v1/balance', { headers: { Authorization: `Bearer ${key}` }, timeout: 5000 })
+        return { valid: r.status === 200, provider }
+      }
+      case 'yookassa_shop_id':
+      case 'yookassa_secret':
+      case 'paypal_client_id':
+      case 'paypal_secret':
+      case 'vapid_public':
+      case 'vapid_private':
+      case 'smtp_host':
+      case 'smtp_user':
+      case 'smtp_pass':
+      case 'vk':
+      case 'vk_secret': {
+        // Нет безопасного ping-endpoint — считаем валидным при непустом значении
+        return { valid: String(key).trim().length > 3, provider, warning: 'No online validation, assuming valid' }
       }
       default:
         return { valid: true, provider, warning: 'No online validation, assuming valid' }

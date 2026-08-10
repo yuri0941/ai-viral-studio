@@ -9,6 +9,7 @@ import {
     Play, Clock, Users, Target, Zap, BarChart as BarChartIcon, Globe, Award
 } from 'lucide-react'
 import { useSmartData } from '../hooks/useSmartData'
+import toast from 'react-hot-toast'
 import { selfImprovementApi } from '../services/api'
 import { API_BASE_URL } from '../config.js'
 import { ChannelAnalyticsTab } from '../components/analytics/ChannelAnalyticsTab'
@@ -173,7 +174,7 @@ function AnalyticsPage() {
     const handleExport = (format) => {
         setShowExportMenu(false)
         // Мок экспорта
-        alert(`Экспорт в ${format.toUpperCase()} запущен!`)
+        toast.success(`Экспорт в ${format.toUpperCase()} запущен!`)
     }
 
     return (

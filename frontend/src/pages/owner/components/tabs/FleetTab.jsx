@@ -6,14 +6,15 @@ import {
 } from 'lucide-react'
 import { fleetApi, workspaceApi } from '../../../../services/api.js'
 import { API_URL } from '../../../../config.js'
+import toast from 'react-hot-toast'
 
 function Modal({ title, onClose, children }) {
     return (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-md w-full p-6">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
-                    <button type="button" onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
+                    <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-[var(--text)]"><X className="w-5 h-5" /></button>
                 </div>
                 {children}
             </div>
@@ -58,9 +59,9 @@ export function FleetTab() {
         try {
             await fleetApi.emergencyStop()
             setEmergencyStopped(true)
-            alert('Emergency Stop активирован')
+            toast.success('Emergency Stop активирован')
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         }
     }
 
@@ -70,9 +71,9 @@ export function FleetTab() {
         try {
             await fleetApi.emergencyResume(pin)
             setEmergencyStopped(false)
-            alert('Emergency Stop снят')
+            toast.success('Emergency Stop снят')
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         }
     }
 
@@ -91,7 +92,7 @@ export function FleetTab() {
             setForm({ name: '', niche: '', color: '#00ff41' })
             loadFleet()
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setCreating(false)
         }

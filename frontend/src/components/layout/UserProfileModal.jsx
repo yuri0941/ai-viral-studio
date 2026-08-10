@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { X, User, Mail, Phone, MessageCircle, Camera, Globe, Moon, Sun, Monitor } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { API_BASE_URL } from '../../config'
 
 const ROLE_LABELS = {
     owner: { label: 'Owner', color: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30' },
@@ -91,7 +92,7 @@ export function UserProfileModal({ user, isOpen, onClose, onSave }) {
         setError('')
         try {
             const token = localStorage.getItem('token')
-            const res = await fetch('/api/users/me', {
+            const res = await fetch(`${API_BASE_URL}/users/me`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -133,7 +134,7 @@ export function UserProfileModal({ user, isOpen, onClose, onSave }) {
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-xl p-4">
-            <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--glass)] shadow-2xl overflow-hidden">
+            <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--glass)] shadow-2xl">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
                     <h3 className="text-base font-semibold text-[var(--text)] flex items-center gap-2">
                         <User size={18} className="text-[var(--primary)]" /> Профиль пользователя

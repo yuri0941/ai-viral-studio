@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Menu, Bell, Search, User, Globe, Shield, Briefcase, Headphones, Megaphone, UserCircle, ChevronDown, Sun, Moon, OctagonAlert, Play, Folder, Check } from 'lucide-react'
+import { Menu, Bell, User, Globe, Shield, Briefcase, Headphones, Megaphone, UserCircle, ChevronDown, Sun, Moon, OctagonAlert, Play, Folder, Check } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { UserProfileModal } from './UserProfileModal'
-import { workspaceApi } from '../../services/api'
+import { workspaceApi, request } from '../../services/api'
+import toast from 'react-hot-toast'
 
 const ROLE_CONFIG = {
     owner: { label: 'Owner', icon: Shield, color: 'text-yellow-400', route: '/owner' },
@@ -41,7 +42,6 @@ export function DashboardHeader({
     onMarkNotificationRead,
     onMarkAllNotificationsRead,
     onDeleteNotification,
-    showSearch = true,
 }) {
     const { t } = useTranslation()
     const { updateUser } = useAuth()
@@ -58,7 +58,6 @@ export function DashboardHeader({
         try { return JSON.parse(localStorage.getItem('active_workspace')) } catch { return null }
     })
     const [wsOpen, setWsOpen] = useState(false)
-    const [searchQuery, setSearchQuery] = useState('')
 
     useEffect(() => {
         if (['owner', 'admin', 'business'].includes(user?.role)) {
@@ -110,7 +109,7 @@ export function DashboardHeader({
             const reg = await navigator.serviceWorker.ready
             let sub = await reg.pushManager.getSubscription()
             if (!sub) {
-                const publicKey = await fetch('/api/push/vapid-public-key').then(r => r.json()).then(j => j.publicKey).catch(() => null)
+                const publicKey = await request('/push/vapid-public-key').then(j => j.publicKey).catch(() => null)
                 // [v5.7-COMPACT] added: guard invalid/missing VAPID key
                 if (!publicKey || publicKey.length < 20) {
                     console.warn('[Push] VAPID key not configured or invalid');
@@ -124,9 +123,8 @@ export function DashboardHeader({
                     return
                 }
                 sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey }) // [v6.0] added
-                await fetch('/api/push/subscribe', {
+                await request('/push/subscribe', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
                     body: JSON.stringify(sub),
                 })
                 setPushSubscribed(true)
@@ -172,20 +170,12 @@ export function DashboardHeader({
 
     const handleEmergencyToggle = async () => {
         if (!confirm(emergencyStopped ? t('header.emergencyResume') : t('header.emergencyStop'))) return
-        const token = localStorage.getItem('token')
-        const endpoint = emergencyStopped ? '/api/admin/emergency-resume' : '/api/admin/emergency-stop'
+        const endpoint = emergencyStopped ? '/admin/emergency-resume' : '/admin/emergency-stop'
         try {
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            })
-            if (res.ok) {
-                setEmergencyStopped(!emergencyStopped)
-            } else {
-                alert(t('header.emergencyStopError'))
-            }
+            await request(endpoint, { method: 'POST' })
+            setEmergencyStopped(!emergencyStopped)
         } catch (e) {
-            alert(t('header.networkError'))
+            toast.error(e instanceof TypeError ? t('header.networkError') : t('header.emergencyStopError'))
         }
     }
 
@@ -203,20 +193,6 @@ export function DashboardHeader({
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3">
-                    {showSearch && (
-                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
-                            <Search className="w-4 h-4 text-gray-400" />
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); console.log('[Search]', searchQuery) }}}
-                                placeholder={t('header.searchPlaceholder')}
-                                className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-32 lg:w-48"
-                            />
-                        </div>
-                    )}
-
                     <div className="relative">
                         <button
                             onClick={() => setLangOpen(o => !o)}

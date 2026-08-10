@@ -54,8 +54,9 @@ import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
 import { UpdateModal } from './components/shared/UpdateModal.jsx'
-import { Toaster } from 'react-hot-toast'
+import toast, { Toaster } from 'react-hot-toast'
 import { APP_VERSION } from './config/version.js'
+import { API_BASE_URL } from './config.js'
 
 // Version check: warn if backend requires newer frontend
 function VersionCheck() {
@@ -64,12 +65,12 @@ function VersionCheck() {
 
     useEffect(() => {
         let cancelled = false
-        fetch('/api/version')
+        fetch(`${API_BASE_URL}/version`)
             .then(r => r.ok ? r.json() : null)
             .then(data => {
                 if (!data || cancelled) return
                 if (data.requiredFrontend && data.requiredFrontend !== APP_VERSION) {
-                    fetch('/api/version/changelog')
+                    fetch(`${API_BASE_URL}/version/changelog`)
                         .then(r => r.ok ? r.json() : { changelog: [] })
                         .then(cl => {
                             if (cancelled) return
@@ -121,7 +122,7 @@ function DocumentPage() {
     useEffect(() => {
         const ext = (fileName.split('.').pop() || 'txt').toLowerCase()
         setFileType(ext)
-        fetch(`/api/documents/${fileId}`)
+        fetch(`${API_BASE_URL}/documents/${fileId}`)
             .then(async res => {
                 if (!res.ok) throw new Error('Document not found')
                 const text = await res.text()
@@ -142,7 +143,7 @@ function DocumentPage() {
                 fileName={fileName}
                 fileType={fileType}
                 onClose={() => navigate(-1)}
-                onDownload={() => alert('Download: ' + fileName)}
+                onDownload={() => toast('Download: ' + fileName)}
             />
         </div>
     )
