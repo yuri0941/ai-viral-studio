@@ -1,8 +1,18 @@
 # OMEGA_CONTEXT — AI Viral Studio
 
-## Версия: v9.9.19.6
+## Версия: v9.9.19-HOTFIX-PROPER
 ## Дата: 2026-08-10
-## Статус: Люкс + адаптив
+## Статус: ApiKeys & Hot-Reload + все табы работают
+
+### ApiKeys & Hot-Reload
+- 20 провайдеров в ApiKeysTab
+- global.apiKeyCache — hot-reload без деплоя
+- Валидация ключа перед сохранением (ping провайдера)
+
+### Исправленные баги
+- Двойной /api/api/ префикс убран во всех frontend-запросах
+- 500 на support, video, analyze-video, self-optimize, audit, referrals
+- 404 на memory/compress, channel-manager, ad-orders, sales-metrics
 
 ### Достижения
 - Neural Graph: 47 узлов, 183 связи, 6 кластеров, force-directed, mobile pinch-zoom

@@ -3587,3 +3587,22 @@
 - [TEST] Health, Graph, VK auth-url, Build — все PASS
 - [GIT] Commit: v9.9.19.6-TELEGRAM-LUXURY-NEURAL
 - [STATUS] Люкс + адаптив. Готов к v9.9.20.
+
+## 2026-08-10 — v9.9.19-HOTFIX-PROPER
+- [FIX] Двойной префикс /api/api/ — исправлен во всех frontend компонентах (ChannelManagerTab, AdOrdersTab, SalesMetricsTab и остальные)
+- [FIX] ApiKeys HOT-RELOAD: владелец вставляет ключ → нажимает «Сохранить и применить» → ключ сразу в global.apiKeyCache, сервис работает без деплоя
+- [FIX] 500 /api/support — добавлен импорт SupportTicket в роут, расширен enum priority
+- [FIX] 500 /api/video/create — добавлен optional chaining (req.user?._id?.toString()), валидация, fallback на mock с объяснением
+- [FIX] 500 /api/omega/analyze-video — валидация videoUrl, проверка API ключа, информативные ошибки
+- [FIX] 500 /api/self-optimize/performance + /reflection — graceful fallback вместо 500
+- [FIX] 500 /api/audit/export — graceful fallback JSON + CSV с ?download=csv
+- [FIX] 500 /api/analytics/referrals — роут с graceful fallback
+- [FIX] 404 /api/omega-supreme/memory/compress — добавлен endpoint
+- [CREATE/MOUNT] /api/channel-manager — отдельный mount (совместимость с /api/channel)
+- [CREATE] backend/routes/apiKeys.js — полноценный роут с /test, / (POST с hot-reload), /:provider (DELETE)
+- [UPDATE] backend/models/ApiKey.js — 20 провайдеров, hot-reload support, key/keyValue совместимость
+- [UPDATE] backend/services/aiService.js — getProviderKey() читает env → cache → MongoDB, loadApiKeysToMemory(), hotReloadApiKey()
+- [UPDATE] frontend ApiKeysTab — 16 провайдеров, кнопки «🔄 Проверить» и «💾 Сохранить и применить», статусы, маскирование ключа
+- [TEST] ✅ Health, Support, Self-Optimize, Audit, Referrals, Channel, Ad-Orders, Sales-Metrics, Memory-Compress, Build — все PASS
+- [DEPLOY] Запушено на Render
+- [STATUS] 🟢 Все табы владельца работают. ApiKeys hot-reload активен.
