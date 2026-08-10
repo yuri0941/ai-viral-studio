@@ -3,6 +3,7 @@ import fs from 'fs'
 import { detectIntent, detectClientTone, saveDialogue, findSimilarSuccess, updateDialogueOutcome } from './dialogueLearningService.js';
 import { detectIntent as detectActionIntent } from '../ai/omega/intentEngine.js';
 import { executeAction } from '../ai/omega/actionEngine.js';
+import { handleConciergeRequest } from './concierge.js';
 import { recordOutcome } from '../ai/omega/learningEngine.js';
 
 // Контекстная память диалогов клиентов (последние 10 сообщений)
@@ -380,6 +381,19 @@ export const initOmegaBot = () => {
       const result = await executeAction({ intent, text, chatId, userRole: 'client', bot });
       await recordOutcome({ userId: chatId, intent: intent.intent, action: intent.action, success: result.success, error: result.error, metadata: result });
       return;
+    }
+
+    // [v9.9.20] Concierge: booking / order / purchase
+    const conciergeIntent = ['booking', 'order', 'purchase'].includes(intent.action) || /(забронируй|закажи|оплатить|тариф|подписка)/i.test(text);
+    if (conciergeIntent) {
+      try {
+        const user = await User.findOne({ telegramId: String(msg.from.id) });
+        const result = await handleConciergeRequest(user?._id || chatId, text);
+        safeSendMessage(chatId, result.message, { parse_mode: 'HTML' });
+        return;
+      } catch (e) {
+        console.error('[OMEGA-BOT] concierge error:', e.message);
+      }
     }
 
     if (!owner) {

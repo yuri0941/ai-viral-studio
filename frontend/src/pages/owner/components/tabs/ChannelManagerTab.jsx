@@ -1,212 +1,138 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useTranslation } from '../../../../hooks/useTranslation.js'
-import { request } from '../../../../services/api.js'
-import { Radio, Plus, Loader2, RefreshCw, Play, Pause, BarChart3, Megaphone } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Calendar, Send, RefreshCw, BarChart3, Edit3, Clock, Check } from 'lucide-react';
+import { request } from '../../../../services/api.js';
 
-const DEFAULT_MIX = { educational: 40, entertaining: 30, promotional: 20, engagement: 10 }
+const POST_TYPES = ['value', 'promo', 'case', 'viral', 'poll'];
 
 export function ChannelManagerTab() {
-  const { t } = useTranslation()
-  const [channels, setChannels] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [showForm, setShowForm] = useState(false)
-  const [stats, setStats] = useState(null)
-  const [statsId, setStatsId] = useState(null)
-  const [form, setForm] = useState({
-    channelUsername: '@aiviralstudio',
-    niche: 'general',
-    times: '09:00,15:00,19:00',
-    tone: 'professional',
-    autoImage: true,
-  })
+  const { t } = useTranslation();
+  const [calendar, setCalendar] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [type, setType] = useState('value');
+  const [topic, setTopic] = useState('');
+  const [preview, setPreview] = useState(null);
+  const [autoPosts, setAutoPosts] = useState(false);
+  const [growth, setGrowth] = useState(null);
 
-  const fetchChannels = async () => {
-    setLoading(true)
+  const loadCalendar = async () => {
+    setLoading(true);
     try {
-      const res = await request('/api/channel/config')
-      setChannels(res?.data || res || [])
-    } catch (err) {
-      console.error('[ChannelManagerTab] fetch failed', err)
-      toast.error(t('common.error') || 'Ошибка загрузки')
-    } finally {
-      setLoading(false)
-    }
-  }
+      const data = await request('/api/channel-manager/calendar');
+      setCalendar(data.calendar || []);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
 
-  useEffect(() => { fetchChannels() }, [])
-
-  const createChannel = async (e) => {
-    e.preventDefault()
+  const generate = async () => {
+    setLoading(true);
     try {
-      const times = form.times.split(',').map(s => s.trim()).filter(Boolean)
-      await request('/api/channel/config', {
+      const data = await request('/api/channel-manager/generate', {
         method: 'POST',
-        body: JSON.stringify({
-          channelUsername: form.channelUsername,
-          niche: form.niche,
-          postingSchedule: { times },
-          tone: form.tone,
-          autoImage: form.autoImage,
-          contentMix: DEFAULT_MIX,
-        })
-      })
-      toast.success(t('common.saved') || 'Сохранено')
-      setShowForm(false)
-      fetchChannels()
-    } catch (err) {
-      toast.error(err.message || 'Ошибка создания')
-    }
-  }
+        body: JSON.stringify({ type, topic: topic || 'Новость дня' })
+      });
+      setPreview(data.post);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
 
-  const toggleActive = async (channel) => {
+  const publish = async (content) => {
+    setLoading(true);
     try {
-      await request(`/api/channel/config/${channel._id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ active: !channel.active })
-      })
-      toast.success(t('common.saved') || 'Сохранено')
-      fetchChannels()
-    } catch (err) {
-      toast.error(err.message || 'Ошибка')
-    }
-  }
-
-  const publishNow = async (channel) => {
-    try {
-      const res = await request(`/api/channel/publish/${channel._id}`, {
+      await request('/api/channel-manager/publish', {
         method: 'POST',
-        body: JSON.stringify({ type: 'educational' })
-      })
-      if (res.success) toast.success(t('channelManager.publishNow') || 'Опубликовано')
-      else toast.error(res.error || 'Ошибка публикации')
-    } catch (err) {
-      toast.error(err.message || 'Ошибка публикации')
-    }
-  }
+        body: JSON.stringify({ content: { text: content.text || content } })
+      });
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
 
-  const loadStats = async (channel) => {
+  const loadGrowth = async () => {
     try {
-      const res = await request(`/api/channel/stats/${channel._id}`)
-      setStats(res)
-      setStatsId(channel._id)
-    } catch (err) {
-      toast.error(err.message || 'Ошибка статистики')
-    }
-  }
+      const data = await request('/api/channel-manager/growth');
+      setGrowth(data.data);
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => { loadCalendar(); loadGrowth(); }, []);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Radio className="w-5 h-5 text-violet-400" /> {t('channelManager.title') || 'Управление каналами'}
-          </h2>
-          <p className="text-sm text-gray-400 mt-1">@aiviralstudio — авто-посты, скидки, видео</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setShowForm(s => !s)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" /> {t('channelManager.addChannel') || 'Добавить канал'}
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Calendar className="w-6 h-6 text-[var(--primary)]" />
+          {t('channel.title') || 'Channel Manager'}
+        </h2>
+        <div className="flex items-center gap-3">
+          <button onClick={loadCalendar} disabled={loading} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <button
-            onClick={fetchChannels}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 transition-colors"
-            title="Обновить"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-[var(--text-muted)]">{t('channel.autoPosts') || 'Авто-посты'}</span>
+            <button onClick={() => setAutoPosts(!autoPosts)} className={`w-11 h-6 rounded-full transition-colors ${autoPosts ? 'bg-[var(--primary)]' : 'bg-white/10'} relative`}>
+              <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${autoPosts ? 'translate-x-5' : ''}`} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {showForm && (
-        <form onSubmit={createChannel} className="p-5 rounded-2xl border border-white/10 bg-[#0f0f14] space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">{t('channelManager.username') || 'Username'}</label>
-              <input value={form.channelUsername} onChange={e => setForm({ ...form, channelUsername: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-[#15151c] border border-white/10 text-white text-sm outline-none focus:border-violet-500" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">{t('channelManager.niche') || 'Ниша'}</label>
-              <input value={form.niche} onChange={e => setForm({ ...form, niche: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-[#15151c] border border-white/10 text-white text-sm outline-none focus:border-violet-500" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">{t('channelManager.schedule') || 'Расписание (HH:MM,HH:MM)'}</label>
-              <input value={form.times} onChange={e => setForm({ ...form, times: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-[#15151c] border border-white/10 text-white text-sm outline-none focus:border-violet-500" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">{t('channelManager.tone') || 'Тон'}</label>
-              <select value={form.tone} onChange={e => setForm({ ...form, tone: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-[#15151c] border border-white/10 text-white text-sm outline-none focus:border-violet-500">
-                <option value="professional">professional</option>
-                <option value="friendly">friendly</option>
-                <option value="hype">hype</option>
-              </select>
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm text-gray-300">
-            <input type="checkbox" checked={form.autoImage} onChange={e => setForm({ ...form, autoImage: e.target.checked })} className="accent-violet-500" />
-            {t('channelManager.autoImage') || 'Авто-картинки'}
-          </label>
-          <div className="flex gap-2">
-            <button type="submit" className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium">{t('common.save') || 'Сохранить'}</button>
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm">{t('common.cancel') || 'Отмена'}</button>
-          </div>
-        </form>
-      )}
-
-      {loading && !channels.length ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-violet-400 animate-spin" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {channels.map(ch => (
-            <div key={ch._id} className="p-5 rounded-2xl border border-white/10 bg-[#0f0f14] hover:border-white/15 transition-colors">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${ch.active ? 'bg-emerald-400' : 'bg-gray-500'}`} />
-                    <h3 className="text-white font-semibold">{ch.channelUsername}</h3>
-                    <span className="text-xs text-gray-500">{ch.niche}</span>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {t('channelManager.schedule') || 'Расписание'}: {(ch.postingSchedule?.times || []).join(', ') || '—'}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {t('channelManager.contentMix') || 'Микс'}: E{ch.contentMix?.educational} / Ent{ch.contentMix?.entertaining} / P{ch.contentMix?.promotional} / Eng{ch.contentMix?.engagement}
-                  </p>
-                  {statsId === ch._id && stats && (
-                    <div className="mt-3 text-xs text-gray-300 space-y-1">
-                      <p>👥 {stats.subscribers} • 📝 {stats.weekPosts} • 👁 {stats.totalViews?.toLocaleString('ru-RU')}</p>
-                      <p className="text-gray-500">{t('channelManager.nextPost') || 'Следующий пост'}: {stats.nextPost ? new Date(stats.nextPost).toLocaleString('ru-RU') : '—'}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button onClick={() => publishNow(ch)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-xs transition-colors">
-                    <Megaphone className="w-3.5 h-3.5" /> {t('channelManager.publishNow') || 'Опубликовать'}
-                  </button>
-                  <button onClick={() => loadStats(ch)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 text-gray-300 hover:bg-white/10 text-xs transition-colors">
-                    <BarChart3 className="w-3.5 h-3.5" /> {t('channelManager.stats') || 'Статистика'}
-                  </button>
-                  <button onClick={() => toggleActive(ch)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 text-gray-300 hover:bg-white/10 text-xs transition-colors">
-                    {ch.active ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                    {ch.active ? 'Pause' : 'Start'}
-                  </button>
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="glass-luxury rounded-2xl p-6 space-y-4">
+          <h3 className="font-semibold flex items-center gap-2"><Edit3 className="w-4 h-4" /> {t('channel.generate') || 'Сгенерировать пост'}</h3>
+          <select value={type} onChange={e => setType(e.target.value)} className="w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] p-2 text-sm">
+            {POST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <input value={topic} onChange={e => setTopic(e.target.value)} placeholder={t('channel.topicPlaceholder') || 'Тема поста'} className="w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] p-2 text-sm" />
+          <button onClick={generate} disabled={loading} className="w-full py-2 rounded-lg bg-[var(--primary)] text-white text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2">
+            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {t('btn.generate') || 'Сгенерировать'}
+          </button>
+          {preview && (
+            <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] text-sm space-y-3">
+              <p className="whitespace-pre-wrap">{preview.text || preview}</p>
+              <div className="flex gap-2">
+                <button onClick={() => publish(preview)} className="flex-1 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs flex items-center justify-center gap-1"><Send className="w-3 h-3" /> {t('btn.publish') || 'Опубликовать'}</button>
               </div>
-            </div>
-          ))}
-          {!channels.length && (
-            <div className="text-center py-16 text-gray-500 bg-white/[0.02] rounded-2xl border border-white/5">
-              <Radio className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p>{t('channelManager.noChannels') || 'Нет настроенных каналов'}</p>
             </div>
           )}
         </div>
+
+        <div className="lg:col-span-2 glass-luxury rounded-2xl p-6 space-y-4">
+          <h3 className="font-semibold flex items-center gap-2"><Calendar className="w-4 h-4" /> {t('channel.calendar') || 'Календарь на 7 дней'}</h3>
+          <div className="space-y-3">
+            {calendar.map((day, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)]">
+                <div className="text-xs font-bold text-[var(--primary)] w-16">{day.date}</div>
+                <div className="flex-1 text-sm">
+                  <span className="text-xs uppercase tracking-wider text-[var(--text-muted)]">{day.type}</span>
+                  <p className="mt-1 line-clamp-2">{day.title}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10"><Edit3 className="w-4 h-4" /></button>
+                  <button onClick={() => publish(day.text)} className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"><Send className="w-4 h-4" /></button>
+                  <button className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10"><Clock className="w-4 h-4" /></button>
+                </div>
+              </div>
+            ))}
+            {!calendar.length && <p className="text-sm text-[var(--text-muted)]">{t('channel.empty') || 'Нет данных'}</p>}
+          </div>
+        </div>
+      </div>
+
+      {growth && (
+        <div className="glass-luxury rounded-2xl p-6">
+          <h3 className="font-semibold flex items-center gap-2 mb-4"><BarChart3 className="w-4 h-4" /> {t('channel.growth') || 'Рост канала'}</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-[var(--bg-secondary)] text-center"><div className="text-2xl font-bold">{growth.subscribers || 0}</div><div className="text-xs text-[var(--text-muted)]">{t('channel.subscribers') || 'Подписчики'}</div></div>
+            <div className="p-4 rounded-xl bg-[var(--bg-secondary)] text-center"><div className="text-2xl font-bold">{growth.views || 0}</div><div className="text-xs text-[var(--text-muted)]">{t('channel.views') || 'Просмотры'}</div></div>
+            <div className="p-4 rounded-xl bg-[var(--bg-secondary)] text-center"><div className="text-2xl font-bold">{growth.posts || 0}</div><div className="text-xs text-[var(--text-muted)]">{t('channel.posts') || 'Посты'}</div></div>
+            <div className="p-4 rounded-xl bg-[var(--bg-secondary)] text-center"><div className="text-2xl font-bold">{(growth.growthRate || 0).toFixed(2)}</div><div className="text-xs text-[var(--text-muted)]">{t('channel.growthRate') || 'Growth Rate'}</div></div>
+          </div>
+          <p className="mt-4 text-sm text-[var(--text-muted)]">{growth.recommendation}</p>
+        </div>
       )}
     </div>
-  )
+  );
 }
+
+export default ChannelManagerTab;

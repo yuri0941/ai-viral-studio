@@ -2,6 +2,7 @@ import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
 import mongoose from 'mongoose'
 import { chatWithAI } from './aiService.js'
+import { generateChannelPost, generateWeeklyCalendar, publishToChannel } from './channelManager.js'
 import { createNode, queryMesh } from './cognitiveMesh.js'
 import { isOwner as isOwnerContext, getOwnerContext, getSmartGreeting } from './ownerContext.js'
 import { getMenu, trackClick, generateMenuImprovements, applyMenuChanges, addCustomButton, toggleButton } from './telegramMenuService.js'
@@ -383,6 +384,57 @@ export const initOwnerBot = () => {
     } catch (e) {
       console.error('/post error:', e);
       safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}\nПроверь TELEGRAM_CHANNEL в env.`);
+    }
+  });
+
+  // [v9.9.20] Channel manager: /channel [type] [topic]
+  bot.onText(/\/channel(?:\s+(\w+))?(?:\s+(.+))?/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    const type = (match[1] || 'value').toLowerCase();
+    const topic = match[2] ? match[2].trim() : 'Новость дня';
+
+    safeSendMessage(chatId, `⏳ Генерирую пост типа "${type}"...`);
+    try {
+      const post = await generateChannelPost({ type, topic, niche: 'general', style: 'expert', length: 'medium', language: 'ru' });
+      if (!post || !post.text) throw new Error('Не удалось сгенерировать пост');
+
+      await publishToChannel({
+        text: post.text,
+        imageUrl: post.imageUrl,
+        caption: post.text.slice(0, 200)
+      });
+
+      safeSendMessage(chatId,
+        `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
+        `📢 Канал: @aiviralstudio\n` +
+        `📝 Тип: ${type}\n` +
+        `📝 Тема: ${topic}\n` +
+        `⏰ ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━\nOMEGA 🤖`
+      );
+    } catch (e) {
+      console.error('/channel error:', e);
+      safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}\nПроверь TELEGRAM_CHANNEL в env.`);
+    }
+  });
+
+  // [v9.9.20] Weekly calendar: /calendar
+  bot.onText(/\/calendar/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+
+    safeSendMessage(chatId, '⏳ Генерирую календарь на неделю...');
+    try {
+      const calendar = await generateWeeklyCalendar({ niche: 'general', language: 'ru' });
+      let text = '📅 <b>Календарь контента на неделю</b>\n━━━━━━━━━━━━━━\n';
+      calendar.forEach((day, i) => {
+        text += `${i + 1}. ${day.date} · ${day.type.toUpperCase()}\n${day.title}\n\n`;
+      });
+      text += '━━━━━━━━━━━━━━\n<i>OMEGA 🤖</i>';
+      safeSendMessage(chatId, text);
+    } catch (e) {
+      console.error('/calendar error:', e);
+      safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`);
     }
   });
 

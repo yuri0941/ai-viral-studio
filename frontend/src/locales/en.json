@@ -1554,5 +1554,119 @@
     "buttonAdded": "Button added",
     "buttonError": "Add button error",
     "toggleError": "Toggle error"
+  },
+  "channel": {
+    "title": "Channel Manager",
+    "generate": "Generate post",
+    "calendar": "7-day calendar",
+    "autoPosts": "Auto-posts",
+    "topicPlaceholder": "Post topic",
+    "subscribers": "Subscribers",
+    "views": "Views",
+    "posts": "Posts",
+    "growthRate": "Growth Rate",
+    "growth": "Channel growth",
+    "empty": "No data"
+  },
+  "salesAutopilot": {
+    "title": "Sales Autopilot",
+    "funnel": "Free → Paid funnel",
+    "drip": "Drip Campaign",
+    "upsell": "Upsell Triggers",
+    "total": "Total",
+    "sent": "Sent",
+    "opened": "Opened",
+    "conversion": "Conversion"
+  },
+  "advertiser": {
+    "tag": "Advertise",
+    "heroTitle": "Advertise in AI Viral Studio",
+    "heroSubtitle": "50K+ SMM specialists, creators and businesses",
+    "audience": "Audience",
+    "ctr": "Avg CTR",
+    "roi": "ROI",
+    "calculator": "Reach calculator",
+    "name": "Name",
+    "company": "Company",
+    "email": "Email",
+    "phone": "Phone",
+    "niche": "Niche",
+    "budget": "Budget",
+    "goalAwareness": "Awareness",
+    "goalLeads": "Leads",
+    "goalSales": "Sales",
+    "formatPost": "Post",
+    "formatStory": "Story",
+    "formatBanner": "Banner",
+    "formatNewsletter": "Email",
+    "formatVideo": "Video",
+    "cta": "Get proposal",
+    "reach": "Reach",
+    "clicks": "Clicks",
+    "conversions": "Conversions",
+    "proposalReady": "Proposal ready in 30 sec",
+    "dashboardTitle": "Advertiser Dashboard",
+    "requests": "Requests",
+    "campaigns": "Campaigns",
+    "avgRoi": "Avg ROI",
+    "incomingRequests": "Incoming requests",
+    "activeCampaigns": "Active campaigns",
+    "noRequests": "No requests",
+    "noCampaigns": "No active campaigns"
+  },
+  "concierge": {
+    "title": "Concierge",
+    "booking": "Booking",
+    "order": "Order",
+    "purchase": "Purchase",
+    "info": "Info",
+    "placeholder": "e.g. book studio for tomorrow 3pm",
+    "received": "Received"
+  },
+  "growthLoop": {
+    "title": "Viral Growth Loop",
+    "referral": "Referral program",
+    "clicks": "Clicks",
+    "signups": "Signups",
+    "revenue": "Revenue",
+    "watermark": "Watermark",
+    "watermarkLabel": "Made with AI Viral Studio",
+    "watermarkHint": "Auto-added to free and creator content.",
+    "leaderboard": "Leaderboard",
+    "challenge": "Challenge",
+    "prize": "Prize",
+    "emptyLeaderboard": "Empty yet"
+  },
+  "businessDev": {
+    "title": "Business Development",
+    "prospects": "Prospects",
+    "emailsSent": "Emails sent",
+    "responses": "Responses",
+    "meetings": "Meetings",
+    "niche": "Niche",
+    "location": "City",
+    "search": "Search",
+    "generateEmail": "Email",
+    "emailFor": "Email for",
+    "noProspects": "No prospects"
+  },
+  "freeToPaid": {
+    "title": "Low generations left",
+    "banner": "{{remaining}} generations left. Pro — 30% off.",
+    "compare": "Compare plans",
+    "later": "Not now"
+  },
+  "sound": {
+    "enabled": "Sound on",
+    "disabled": "Sound off",
+    "toggle": "Toggle sound"
+  },
+  "haptic": {
+    "enabled": "Haptics on",
+    "disabled": "Haptics off"
+  },
+  "landing": {
+    "start": "Start",
+    "login": "Login"
   }
 }

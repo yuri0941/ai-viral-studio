@@ -1,276 +1,73 @@
-/* ============================================
-   Micro-animations & polish for AI Viral Studio
-   ============================================ */
+/* Luxury UI v2 — animations, springs, haptics, glassmorphism */
 
-/* Spring-physics buttons */
-.spring-button {
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background-color 0.2s ease;
+.btn-spring {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+.btn-spring:active {
+  transform: scale(0.96);
+}
+.btn-spring:hover {
+  box-shadow: 0 0 20px var(--primary-glow, rgba(139, 92, 246, 0.4));
 }
 
-.spring-button:hover {
-    transform: scale(1.04) translateY(-2px);
+.card-hover {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: var(--primary);
+  box-shadow: 0 12px 40px -12px var(--primary-glow, rgba(139, 92, 246, 0.25));
 }
 
-.spring-button:active {
-    transform: scale(0.96) translateY(0);
+.glass-luxury {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Hover lift cards */
-.hover-lift {
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease;
-}
-
-.hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px -10px rgba(139, 92, 246, 0.25);
-    border-color: rgba(139, 92, 246, 0.3);
-}
-
-/* Shimmer skeleton loaders */
-.shimmer {
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.03) 0%,
-        rgba(255, 255, 255, 0.08) 50%,
-        rgba(255, 255, 255, 0.03) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite linear;
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
 }
 
 @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-/* Page transitions: slide + fade */
-.page-transition-enter {
-    opacity: 0;
-    transform: translateY(12px) scale(0.995);
-}
-.page-transition-enter-active {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.page-transition-exit {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-}
-.page-transition-exit-active {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.995);
-    transition: opacity 0.25s ease, transform 0.25s ease;
-}
-
-/* Toast: slide from right + progress bar */
-.toast-slide-in {
-    animation: toastSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes toastSlideIn {
-    from {
-        opacity: 0;
-        transform: translateX(120%);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.toast-progress {
-    height: 3px;
-    background: linear-gradient(90deg, #8B5CF6, #06B6D4);
-    transform-origin: left;
-    animation: toastProgress 5s linear forwards;
-}
-
-@keyframes toastProgress {
-    from { transform: scaleX(1); }
-    to { transform: scaleX(0); }
-}
-
-/* Custom cursor for drag zones */
-.cursor-grab {
-    cursor: grab;
-}
-.cursor-grab:active {
-    cursor: grabbing;
-}
-
-/* Message bubble entrance */
-.message-bubble-enter {
-    animation: messageBubbleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes messageBubbleIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Bento card stagger glow */
-.bento-glow:hover {
-    box-shadow: 0 0 30px -8px rgba(139, 92, 246, 0.4), 0 0 12px -4px rgba(6, 182, 212, 0.2);
-}
-
-/* Pulse dot */
-.pulse-dot {
-    animation: pulseDot 2s infinite;
-}
-
-@keyframes pulseDot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(1.2); }
-}
-
-/* Smooth gradient background */
-.animated-gradient-bg {
-    background: linear-gradient(135deg, #0a0a1f 0%, #111128 50%, #0a0a1f 100%);
-    background-size: 200% 200%;
-    animation: gradientShift 20s ease infinite;
-}
-
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* [P16] Float animation for decorative orbs */
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-.animate-float { animation: float 6s ease-in-out infinite; }
-
-/* [P16] Shimmer overlay */
-.shimmer-overlay {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-}
-
-/* [P16] Pulse glow (primary orb) */
-@keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
-    50% { box-shadow: 0 0 20px 0 rgba(124, 58, 237, 0.2); }
-}
-.pulse-glow { animation: pulse-glow 2s infinite; }
-
-/* [P16] Magnetic button */
-.magnetic-btn {
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
-}
-
-/* [P16] Tilt card base */
-.tilt-card {
-    transform-style: preserve-3d;
-    transition: transform 0.1s ease-out;
-}
-
-/* [P16] Spotlight hover */
-.spotlight {
-    position: relative;
-    overflow: hidden;
-}
-.spotlight::before {
-    content: '';
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(124, 58, 237, 0.15), transparent 70%);
-    border-radius: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    transition: transform 0.4s ease;
-    pointer-events: none;
-}
-.spotlight:hover::before {
-    transform: translate(-50%, -50%) scale(1);
-}
-
-/* [P16] Bounce dot for notifications */
-@keyframes bounce-dot {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-25%); }
-}
-.bounce-dot { animation: bounce-dot 1s infinite; }
-
-/* [P16-FINAL] added: confetti fall for launch celebration */
-@keyframes confetti-fall {
-    0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-}
-.animate-confetti-fall {
-    animation-name: confetti-fall;
-    animation-timing-function: linear;
-    animation-fill-mode: forwards;
-}
-
-/* auto-dismiss progress bar shrink */
-@keyframes shrinkX {
-    from { transform: scaleX(1); }
-    to { transform: scaleX(0); }
-}
-.animate-shrink-x {
-    animation: shrinkX 10s linear forwards;
-    transform-origin: left;
-}
-
-/* [P16-FIX] added: fadeInUp entrance animation */
 @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.fade-in-up {
-    animation: fadeInUp 0.5s ease-out;
-}
+
 .animate-fade-in-up {
-    animation: fadeInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: fadeInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-.slide-in-right {
-    animation: slideInRight 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes slideInRight {
-    from { opacity: 0; transform: translateX(40px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-/* [P16-FIX] added: float animation */
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-}
-.float {
-    animation: float 3s ease-in-out infinite;
-}
-
-/* [P16-FIX] added: pulse glow */
 @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
-    50% { box-shadow: 0 0 0 8px rgba(124, 58, 237, 0); }
-}
-.pulse-glow {
-    animation: pulse-glow 2s infinite;
+  0%, 100% { box-shadow: 0 0 0 0 var(--primary-glow, rgba(139, 92, 246, 0.4)); }
+  50% { box-shadow: 0 0 20px 4px var(--primary-glow, rgba(139, 92, 246, 0.2)); }
 }
 
-/* [P16-FIX] added: shimmer skeleton */
-.shimmer {
-    background: linear-gradient(90deg, var(--card) 25%, var(--card-hover) 50%, var(--card) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
 }
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+
+@keyframes slideUp {
+  from { transform: translate(-50%, 100%); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-spring, .card-hover, .skeleton, .animate-fade-in-up, .animate-pulse-glow, .animate-slide-up {
+    animation: none;
+    transition: none;
+  }
 }

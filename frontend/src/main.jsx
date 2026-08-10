@@ -16,6 +16,7 @@ import './i18n'
 import './index.css'
 import './styles/globals.css'
 import './styles/luxury.css'
+import './styles/animations.css'
 import { initOfflineSync } from './services/offlineSync.js'
 
 initOfflineSync()

@@ -74,6 +74,13 @@ import personalityRoutes from './routes/personality.js'  // [v9.1-PERSONALITY] D
 import predictionRoutes from './routes/prediction.js'  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
 import telegramRoutes from './routes/telegram.js'  // [v9.5-TELEGRAM-AUTO] Telegram channel manager + bot
 import vkRoutes from './routes/vk.js'  // [v9.9.19] VK OAuth + status
+import channelManagerRoutes from './routes/channelManager.js'  // [v9.9.20] Channel manager
+import salesAutopilotRoutes from './routes/salesAutopilot.js'  // [v9.9.20] Sales autopilot
+import advertiserSuiteRoutes from './routes/advertiserSuite.js'  // [v9.9.20] Advertiser suite
+import conciergeRoutes from './routes/concierge.js'  // [v9.9.20] Concierge
+import growthLoopRoutes from './routes/growthLoop.js'  // [v9.9.20] Growth loop
+import businessDevRoutes from './routes/businessDev.js'  // [v9.9.20] Business development
+import freeToPaidRoutes from './routes/freeToPaid.js'  // [v9.9.20] Free to paid bridge
 import checkoutRoutes from './routes/checkout.js'  // [PAYMENT-v5.2] added
 import qrRoutes from './routes/qr.js'  // ← P11: QR codes
 import printRoutes from './routes/print.js'  // ← P11: Print orders
@@ -517,6 +524,13 @@ app.use('/api/project-factory', projectFactoryRoutes)  // [v9.2-SELF-CODING] Pro
 app.use('/api/prediction', predictionRoutes)  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
 app.use('/api', telegramRoutes)  // [v9.5-TELEGRAM-AUTO] Telegram channel manager + bot
 app.use('/api', vkRoutes)  // [v9.9.19] VK OAuth + status
+app.use('/api/channel-manager', channelManagerRoutes)  // [v9.9.20] Channel manager
+app.use('/api/sales-autopilot', salesAutopilotRoutes)  // [v9.9.20] Sales autopilot
+app.use('/api/advertiser-suite', advertiserSuiteRoutes)  // [v9.9.20] Advertiser suite
+app.use('/api/concierge', conciergeRoutes)  // [v9.9.20] Concierge
+app.use('/api/growth-loop', growthLoopRoutes)  // [v9.9.20] Growth loop
+app.use('/api/business-dev', businessDevRoutes)  // [v9.9.20] Business development
+app.use('/api/free-to-paid', freeToPaidRoutes)  // [v9.9.20] Free to paid bridge
 app.use('/api/invoices', invoiceRoutes)  // ← P10: Счета
 app.use('/api/owner-requisites', ownerRequisitesRoutes)  // ← P10: Реквизиты
 app.use('/api/owner/legal-info', ownerLegalInfoRoutes)  // ← Legal Shield: Owner legal info
