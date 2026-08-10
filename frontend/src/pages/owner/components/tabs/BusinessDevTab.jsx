@@ -17,8 +17,8 @@ export default function BusinessDevTab() {
     setLoading(true);
     try {
       const [p, s] = await Promise.all([
-        request(`/api/business-dev/prospects?niche=${encodeURIComponent(niche)}&location=${encodeURIComponent(location)}`),
-        request('/api/business-dev/stats')
+        request(`/business-dev/prospects?niche=${encodeURIComponent(niche)}&location=${encodeURIComponent(location)}`),
+        request('/business-dev/stats')
       ]);
       setProspects(p.data || []);
       setStats(s.data || {});
@@ -28,7 +28,7 @@ export default function BusinessDevTab() {
 
   const generateEmail = async (prospect) => {
     try {
-      const data = await request('/api/business-dev/email', {
+      const data = await request('/business-dev/email', {
         method: 'POST',
         body: JSON.stringify({ prospect, niche })
       });
@@ -39,7 +39,7 @@ export default function BusinessDevTab() {
 
   const schedule = async (prospectId, step) => {
     try {
-      await request('/api/business-dev/follow-up', {
+      await request('/business-dev/follow-up', {
         method: 'POST',
         body: JSON.stringify({ prospectId, step })
       });

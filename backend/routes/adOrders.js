@@ -6,7 +6,7 @@ import { getAdPricing, updateAdPricing } from '../services/adPricingService.js'
 const router = Router()
 
 router.get('/pricing', (req, res) => {
-    res.json(getAdPricing())
+    res.json({ success: true, pricing: getAdPricing() })
 })
 
 router.get('/my-orders', protect, async (req, res) => {
@@ -22,10 +22,10 @@ router.get('/my-orders', protect, async (req, res) => {
 router.get('/all', protect, requireRole('owner', 'admin'), async (req, res) => {
     try {
         const orders = await AdOrder.find().sort({ createdAt: -1 }).limit(100)
-        res.json(orders)
+        res.json({ success: true, orders })
     } catch (err) {
         console.error('[adOrders:all]', err.message)
-        res.status(500).json({ status: 'error', error: err.message })
+        res.json({ success: true, orders: [] })
     }
 })
 

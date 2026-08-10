@@ -13,7 +13,7 @@ export default function AdvertisePage() {
 
   const calculate = async () => {
     try {
-      const data = await request('/api/advertiser-suite/metrics', {
+      const data = await request('/advertiser-suite/metrics', {
         method: 'POST',
         body: JSON.stringify({ budget: form.budget, format: form.format })
       });
@@ -25,7 +25,7 @@ export default function AdvertisePage() {
     setLoading(true);
     try {
       const [prop] = await Promise.all([
-        request('/api/advertiser-suite/proposal', {
+        request('/advertiser-suite/proposal', {
           method: 'POST',
           body: JSON.stringify({ budget: form.budget, niche: form.niche, goal: form.goal, format: form.format })
         }),

@@ -13,8 +13,8 @@ export default function AdvertiserDashboard() {
     setLoading(true);
     try {
       const [reqData, campData] = await Promise.all([
-        request('/api/ad-orders').catch(() => ({ data: [] })),
-        request('/api/advertiser-suite/campaigns').catch(() => ({ data: [] }))
+        request('/ad-orders').catch(() => ({ data: [] })),
+        request('/advertiser-suite/campaigns').catch(() => ({ data: [] }))
       ]);
       setRequests(reqData.data || []);
       setCampaigns(campData.data || []);

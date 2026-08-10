@@ -17,7 +17,7 @@ export default function SupportWidget() {
     if (!subject.trim() || !description.trim()) return
     setSending(true)
     try {
-      await request('/api/support', {
+      await request('/support', {
         method: 'POST',
         body: JSON.stringify({
           subject,

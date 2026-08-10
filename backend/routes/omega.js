@@ -46,7 +46,7 @@ import {
     addToApprovalQueue,
 } from '../ai/omega/omegaCoder.js'
 import selfLearningEngine from '../ai/omega/selfLearningEngine.js'
-import { chatWithAI } from '../services/aiService.js'
+import { chatWithAI, getProviderKey } from '../services/aiService.js'
 import { OmegaMemory } from '../models/index.js'
 import { generateProject, exportProject } from '../ai/omega/projectFactory.js'
 import {
@@ -282,7 +282,32 @@ router.get('/learning/dataset/download', protect, requireOwner, async (req, res)
     }
 })
 // [VALUE-2026-08-04] added: structured video analysis (hook, CTA, viral moments, recommendations)
-router.post('/analyze-video', analyzeVideo)
+router.post('/analyze-video', protect, async (req, res) => {
+    try {
+        const { videoUrl } = req.body
+        if (!videoUrl) {
+            return res.status(400).json({ success: false, error: 'videoUrl is required' })
+        }
+
+        const apiKey = await getProviderKey('openai', req.user?._id)
+        if (!apiKey) {
+            return res.status(400).json({
+                success: false,
+                error: 'OpenAI API key required for video analysis. Add it in ApiKeysTab.'
+            })
+        }
+
+        const analysis = await chatWithAI(
+            `Analyze this video URL: ${videoUrl}. Provide: title suggestions, viral potential 0-100, best platform, target audience, 3 hook ideas.`,
+            { role: 'owner', userId: req.user?._id?.toString() }
+        )
+
+        res.json({ success: true, analysis })
+    } catch (e) {
+        console.error('[Omega] Analyze video error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
 router.get('/youtube/analyze', analyzeYouTube)
 router.post('/youtube/shorts', generateShorts)
 router.post('/youtube/subtitles', generateSubtitles)
@@ -573,17 +598,17 @@ router.post('/analyze-niche', protect, async (req, res) => {
     await omegaGenerate(req, res, 'Проанализируй нишу AI-инструментов для вирусного контента: тренды, конкуренты, аудитория, возможности.')
 })
 
-// FIX 404: referral-post
+// FIX 404/401: referral-post
 router.post('/generate-template/referral-post', protect, async (req, res) => {
     try {
         const { topic, niche } = req.body
         const prompt = `Создай реферальный пост для ниши "${niche || 'SMM'}". Тема: ${topic || 'приглашение друга'}.`
         const result = await chatWithAI(prompt, [], req.body.lang || 'ru', { userRole: req.user?.role || 'guest' })
         const text = result?.reply || result?.text || result?.message || result
-        res.json({ text, template: 'referral', generatedBy: 'OMEGA' })
+        res.json({ success: true, post: text, template: 'referral', generatedBy: 'OMEGA' })
     } catch (err) {
         console.error('[omega/generate-template/referral-post]', err.message)
-        res.status(500).json({ error: err.message })
+        res.status(500).json({ success: false, error: err.message })
     }
 })
 

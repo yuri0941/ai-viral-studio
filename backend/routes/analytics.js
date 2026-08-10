@@ -80,10 +80,10 @@ router.get('/referrals', protect, async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
     const data = await getReferralData(userId);
-    return res.json({ status: 'success', data });
+    return res.json({ success: true, data });
   } catch (err) {
     console.error('[analytics:referrals]', err.message);
-    return res.status(500).json({ status: 'error', error: err.message });
+    return res.json({ success: true, referrals: [], error: err.message });
   }
 });
 

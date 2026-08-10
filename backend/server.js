@@ -16,6 +16,7 @@ import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import bot from './services/ownerBot.js'
 import { initOwnerBot, sendOwnerAlert, alertOwner } from './services/ownerBot.js'
 import { initOmegaBot } from './services/omegaBot.js'
+import { loadApiKeysToMemory } from './services/aiService.js'
 import { getTaxReminder } from './services/financeService.js'
 import ChannelConfig from './models/ChannelConfig.js'
 import { publishToChannel, getChannelStats } from './services/channelPublisher.js'
@@ -163,6 +164,9 @@ import { runAutoImprovement } from './services/autoImprovement.js'  // [v9.9.14-
 // Connect to database before starting server
 await connectDB()
 await connectRedis() // [P24] fixed: connect Redis with in-memory fallback
+
+// [HOTFIX-v9.9.19] load API keys into memory for hot-reload
+loadApiKeysToMemory().catch(err => console.warn('[server] loadApiKeysToMemory failed:', err.message))
 
 // [MASTER-v5.6-CONT] init Telegram bots after DB connect
 initOwnerBot()
@@ -501,7 +505,8 @@ app.use('/api/admin/sales-metrics', salesMetricsRoutes)  // [v9.9.8-SALES-OMEGA]
 app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
 app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API
-app.use('/api/owner/apikeys', apiKeyRoutes)  // [v9.9.15-REAL] owner-managed API keys
+app.use('/api/api-keys', apiKeyRoutes)  // [v9.9.19-HOTFIX] owner-managed API keys (hot-reload)
+app.use('/api/owner/apikeys', apiKeyRoutes)  // [v9.9.15-REAL] legacy owner API keys
 app.use('/api/feedback', feedbackRoutes)  // [v9.9.17-ANTI-FAIL] feedback 👍/👎
 app.use('/api/owner/omega-finance', omegaFinanceRoutes)  // [v7.1-PART2] OMEGA Finance
 app.use('/api/audit', auditRoutes)  // ← v6.6-HOTFIX-EXPORT: audit CSV export
@@ -525,7 +530,8 @@ app.use('/api/project-factory', projectFactoryRoutes)  // [v9.2-SELF-CODING] Pro
 app.use('/api/prediction', predictionRoutes)  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
 app.use('/api', telegramRoutes)  // [v9.5-TELEGRAM-AUTO] Telegram channel manager + bot
 app.use('/api', vkRoutes)  // [v9.9.19] VK OAuth + status
-app.use('/api/channel', channelManagerRoutes)  // [v9.9.20] Channel manager routes: /generate, /publish, /calendar, /growth
+app.use('/api/channel-manager', channelManagerRoutes)  // [v9.9.19-HOTFIX] Channel manager routes
+app.use('/api/channel', channelManagerRoutes)  // [v9.9.20] legacy channel manager routes
 app.use('/api/sales-autopilot', salesAutopilotRoutes)  // [v9.9.20] Sales autopilot
 app.use('/api/advertiser-suite', advertiserSuiteRoutes)  // [v9.9.20] Advertiser suite
 app.use('/api/concierge', conciergeRoutes)  // [v9.9.20] Concierge

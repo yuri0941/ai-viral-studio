@@ -8,7 +8,7 @@ const SupportTicketSchema = new mongoose.Schema({
   description: { type: String, required: true },
   screenshotBase64: { type: String, maxLength: 500000 },
   status: { type: String, enum: ['open','ai_handled','needs_owner','in_progress','resolved','closed'], default: 'open' },
-  priority: { type: String, enum: ['low','medium','high','critical'], default: 'medium' },
+  priority: { type: String, enum: ['low','normal','medium','high','urgent','critical'], default: 'normal' },
   aiSuggestion: String,
   aiConfidence: Number,
   assignedTo: { type: String, default: null },

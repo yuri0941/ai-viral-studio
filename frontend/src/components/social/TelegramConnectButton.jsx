@@ -8,7 +8,7 @@ export default function TelegramConnectButton() {
   const [status, setStatus] = useState({ loading: true, connected: false });
 
   useEffect(() => {
-    request('/api/telegram/status')
+    request('/telegram/status')
       .then(data => setStatus({ loading: false, connected: data.connected, userId: data.userId, channelId: data.channelId }))
       .catch(() => setStatus({ loading: false, connected: false }));
   }, []);

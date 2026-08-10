@@ -12,7 +12,7 @@ export function AuditTab({ data }) {
         setDownloading(true)
         try {
             const token = localStorage.getItem('token')
-            const res = await fetch(`${API_BASE_URL}/audit/export`, {
+            const res = await fetch(`${API_BASE_URL}/audit/export?download=csv`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
             if (!res.ok) throw new Error('Ошибка экспорта')

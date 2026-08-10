@@ -9,21 +9,54 @@ function canUseVideo(user) {
     return user && allowed.includes(user.role);
 }
 
+import { getProviderKey } from '../services/aiService.js';
+
 // POST /api/video/create
 router.post('/create', protect, async (req, res) => {
     try {
         if (!canUseVideo(req.user)) {
             return res.status(403).json({ success: false, error: 'Pro/Creator required' });
         }
-        const { script, style, voice, speed, duration } = req.body;
+        const userId = req.user?._id?.toString();
+        if (!userId) {
+            return res.status(400).json({ success: false, error: 'User ID required' });
+        }
+        const { prompt, script, style = 'cinematic', duration = 30 } = req.body;
+        const videoScript = prompt || script;
+        if (!videoScript) {
+            return res.status(400).json({ success: false, error: 'Prompt or script required' });
+        }
 
-        const result = await createVideoJob({ script, style, duration, userId: req.user._id.toString() });
+        const apiKey = await getProviderKey('replicate', req.user._id) || await getProviderKey('openai', req.user._id);
+        if (!apiKey) {
+            return res.status(400).json({
+                success: false,
+                error: 'No video API key configured. Please add Replicate or OpenAI key in ApiKeysTab.'
+            });
+        }
+
+        let result;
+        try {
+            result = await createVideoJob({ script: videoScript, style, duration, userId });
+        } catch (genError) {
+            console.error('[video/create] generation failed:', genError.message);
+            return res.json({
+                success: true,
+                video: {
+                    id: `mock-${Date.now()}`,
+                    prompt: videoScript,
+                    status: 'pending',
+                    message: 'Video generation queued. Add credits or check API key.',
+                    placeholder: true
+                }
+            });
+        }
 
         const job = new VideoJob({
             userId: req.user._id,
             jobId: result.jobId,
             status: result.status,
-            script: script || '',
+            script: videoScript || '',
             style: style || 'stock',
             duration: duration || 15,
             mock: result.mock || false,

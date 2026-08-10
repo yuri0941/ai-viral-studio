@@ -227,7 +227,7 @@ export default function OmegaChat({
 
   const submitFeedback = async (id, rating) => {
     try {
-      await request(`/api/feedback/${id}/rate`, { method: 'POST', body: { rating } });
+      await request(`/feedback/${id}/rate`, { method: 'POST', body: { rating } });
       setFeedbackGiven(rating);
       toast.success('Спасибо за оценку!', { icon: rating });
     } catch (e) {
@@ -341,7 +341,7 @@ export default function OmegaChat({
 
       // [v9.9.17-ANTI-FAIL] save feedback stub
       try {
-        const fbRes = await request('/api/feedback', {
+        const fbRes = await request('/feedback', {
           method: 'POST',
           body: { message: text, response: aiMsg.text, context: 'web' }
         });
@@ -575,7 +575,7 @@ export default function OmegaChat({
             <button
               onClick={async () => {
                 try {
-                  await request('/api/support', {
+                  await request('/support', {
                     method: 'POST',
                     body: {
                       subject: ticketForm.subject || t('chat.newTicket'),

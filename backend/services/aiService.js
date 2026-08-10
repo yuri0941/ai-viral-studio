@@ -12,22 +12,7 @@ import LocalBrain from '../ai/omega/localBrain.js'
 // ============ HELPERS ============
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
-let cachedKeys = null
-async function loadApiKeys() {
-    if (cachedKeys) return cachedKeys
-    try {
-        const docs = await ApiKey.find({ isActive: true }).lean()
-        cachedKeys = Object.fromEntries(docs.map(d => [d.provider, d.key]))
-    } catch (err) {
-        console.warn('⚠️ Failed to load API keys from DB:', err.message)
-        cachedKeys = {}
-    }
-    return cachedKeys
-}
 
-export function invalidateApiKeysCache() {
-    cachedKeys = null
-}
 
 // [HOTFIX-2026-08-08] Groq fallback chain + smaller models to avoid TPD rate limits
 // [v9.6.2-TELEGRAM-OWNER] removed llama-3.1-70b-versatile (returns 400)
@@ -303,21 +288,64 @@ const envMap = {
     pollinations: null
 }
 
+// Global in-memory cache for API keys (hot-reload support)
+global.apiKeyCache = global.apiKeyCache || {}
+
 export async function getProviderKey(providerId, ownerId = null) {
-    // [P23] fixed: validate ownerId before querying MongoDB to avoid "Cast to ObjectId failed for value 'omega'"
+    const envVar = envMap[providerId]
+    if (envVar && process.env[envVar]) return process.env[envVar]
+
+    if (global.apiKeyCache[providerId]) return global.apiKeyCache[providerId]
+
     if (ownerId && mongoose.Types.ObjectId.isValid(ownerId)) {
         try {
             const doc = await ApiKey.findOne({ ownerId, provider: providerId }).lean()
-            if (doc && (doc.keyValue || doc.key)) {
-                return doc.keyValue || doc.key
+            if (doc && (doc.key || doc.keyValue)) {
+                const value = doc.key || doc.keyValue
+                global.apiKeyCache[providerId] = value
+                return value
             }
         } catch (err) {
             console.warn('[getProviderKey] owner key lookup failed:', err.message)
         }
     }
-    const envVar = envMap[providerId]
-    if (envVar) return process.env[envVar] || null
+
+    try {
+        const doc = await ApiKey.findOne({ provider: providerId, isActive: true }).sort({ updatedAt: -1 }).lean()
+        if (doc && (doc.key || doc.keyValue)) {
+            const value = doc.key || doc.keyValue
+            global.apiKeyCache[providerId] = value
+            return value
+        }
+    } catch (err) {
+        console.warn('[getProviderKey] global key lookup failed:', err.message)
+    }
+
     return null
+}
+
+export async function loadApiKeysToMemory() {
+    try {
+        const keys = await ApiKey.find({ isActive: true })
+        global.apiKeyCache = {}
+        keys.forEach(k => {
+            const value = k.key || k.keyValue
+            if (value) global.apiKeyCache[k.provider] = value
+        })
+        console.log(`[HOT-RELOAD] Loaded ${keys.length} API keys to memory`)
+    } catch (e) {
+        console.error('[HOT-RELOAD] Failed to load keys:', e.message)
+    }
+}
+
+export function hotReloadApiKey(provider, key) {
+    global.apiKeyCache = global.apiKeyCache || {}
+    global.apiKeyCache[provider] = key
+    console.log(`[HOT-RELOAD] Key updated for ${provider}`)
+}
+
+export function invalidateApiKeysCache() {
+    global.apiKeyCache = {}
 }
 
 // ============ PROVIDER REGISTRY & STATUS ============

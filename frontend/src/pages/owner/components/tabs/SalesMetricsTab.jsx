@@ -11,7 +11,7 @@ export default function SalesMetricsTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    request('/api/admin/sales-metrics')
+    request('/admin/sales-metrics')
       .then(d => { setData(d); setLoading(false); })
       .catch((err) => {
         console.error('[SalesMetricsTab] fetch failed', err);

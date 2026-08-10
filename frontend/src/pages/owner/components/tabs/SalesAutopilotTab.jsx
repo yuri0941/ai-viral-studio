@@ -20,11 +20,11 @@ export default function SalesAutopilotTab() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await request('/api/sales-autopilot/stats');
+      const data = await request('/sales-autopilot/stats');
       setStats(data.data || data);
-      const stepsData = await request('/api/sales-autopilot/steps');
+      const stepsData = await request('/sales-autopilot/steps');
       setSteps(stepsData.steps || []);
-      const triggersData = await request('/api/sales-autopilot/triggers');
+      const triggersData = await request('/sales-autopilot/triggers');
       setTriggers(triggersData.triggers || []);
     } catch (e) { console.error(e); }
     setLoading(false);

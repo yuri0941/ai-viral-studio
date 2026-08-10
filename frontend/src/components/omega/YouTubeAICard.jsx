@@ -18,7 +18,7 @@ export default function YouTubeAICard() {
     if (!channelId) return;
     setLoading('analytics');
     try {
-      const data = await request(`/api/omega/youtube/analyze?channelId=${encodeURIComponent(channelId)}`);
+      const data = await request(`/omega/youtube/analyze?channelId=${encodeURIComponent(channelId)}`);
       setAnalytics(data.data || data.demo || {});
     } catch (e) { console.error(e); }
     setLoading('');
@@ -28,7 +28,7 @@ export default function YouTubeAICard() {
     if (!topic) return;
     setLoading('script');
     try {
-      const data = await request('/api/omega/youtube/shorts', {
+      const data = await request('/omega/youtube/shorts', {
         method: 'POST',
         body: JSON.stringify({ topic, niche, duration })
       });
@@ -41,7 +41,7 @@ export default function YouTubeAICard() {
     if (!topic) return;
     setLoading('titles');
     try {
-      const data = await request('/api/omega/youtube/titles', {
+      const data = await request('/omega/youtube/titles', {
         method: 'POST',
         body: JSON.stringify({ topic, niche, count: 5 })
       });

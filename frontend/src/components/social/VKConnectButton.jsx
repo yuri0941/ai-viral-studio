@@ -7,14 +7,14 @@ export default function VKConnectButton() {
   const [status, setStatus] = useState({ loading: true, connected: false });
 
   useEffect(() => {
-    request('/api/vk/status')
+    request('/vk/status')
       .then(data => setStatus({ loading: false, connected: data.connected, userId: data.userId }))
       .catch(() => setStatus({ loading: false, connected: false }));
   }, []);
 
   const connect = async () => {
     try {
-      const data = await request('/api/vk/auth-url');
+      const data = await request('/vk/auth-url');
       if (data.authUrl) window.location.href = data.authUrl;
     } catch (e) {
       console.error('VK auth error', e);

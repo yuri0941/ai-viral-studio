@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { protect, requireRole } from '../middleware/auth.js'
+import SupportTicket from '../models/SupportTicket.js'
 import { createTicket, addMessage, updateTicketStatus, getTicketContext, escalateToOwner } from '../services/supportService.js'
 
 const router = Router()

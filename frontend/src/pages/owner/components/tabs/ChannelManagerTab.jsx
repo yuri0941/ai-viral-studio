@@ -18,7 +18,7 @@ export function ChannelManagerTab() {
   const loadCalendar = async () => {
     setLoading(true);
     try {
-      const data = await request('/api/channel-manager/calendar');
+      const data = await request('/channel-manager/calendar');
       setCalendar(data.calendar || []);
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -27,7 +27,7 @@ export function ChannelManagerTab() {
   const generate = async () => {
     setLoading(true);
     try {
-      const data = await request('/api/channel-manager/generate', {
+      const data = await request('/channel-manager/generate', {
         method: 'POST',
         body: JSON.stringify({ type, topic: topic || 'Новость дня' })
       });
@@ -39,7 +39,7 @@ export function ChannelManagerTab() {
   const publish = async (content) => {
     setLoading(true);
     try {
-      await request('/api/channel-manager/publish', {
+      await request('/channel-manager/publish', {
         method: 'POST',
         body: JSON.stringify({ content: { text: content.text || content } })
       });
@@ -49,7 +49,7 @@ export function ChannelManagerTab() {
 
   const loadGrowth = async () => {
     try {
-      const data = await request('/api/channel-manager/growth');
+      const data = await request('/channel-manager/growth');
       setGrowth(data.data);
     } catch (e) { console.error(e); }
   };

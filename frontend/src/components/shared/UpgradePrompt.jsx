@@ -15,7 +15,7 @@ export default function UpgradePrompt() {
       setHiddenUntil(new Date(stored));
       return;
     }
-    request('/api/free-to-paid/limits')
+    request('/free-to-paid/limits')
       .then(data => {
         const gens = data.limits?.generations;
         if (gens && !gens.allowed && gens.plan === 'free') {

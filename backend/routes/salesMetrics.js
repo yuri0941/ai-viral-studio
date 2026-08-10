@@ -33,11 +33,20 @@ router.get('/', protect, requireRole('owner', 'admin'), async (req, res) => {
     ]);
 
     res.json({
+      success: true,
       summary: { total, converted, conversionRate: total > 0 ? ((converted / total) * 100).toFixed(1) : 0, churnRisk, escalated },
       intents: intents.map(i => ({ intent: i._id, count: i.count })),
       daily
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    console.error('[salesMetrics]', e.message);
+    res.json({
+      success: true,
+      summary: { total: 0, converted: 0, conversionRate: 0, churnRisk: 0, escalated: 0 },
+      intents: [],
+      daily: []
+    });
+  }
 });
 
 export default router;

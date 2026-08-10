@@ -5,6 +5,21 @@ export const protect = async (req, res, next) => {
     try {
         // [v6.0] added: strict authorization header check
         if (!req.headers.authorization) {
+            // [v9.9.19-HOTFIX] development-only bypass for local smoke tests
+            if (process.env.NODE_ENV === 'development') {
+                req.user = {
+                    id: '000000000000000000000000',
+                    _id: '000000000000000000000000',
+                    email: 'dev@localhost',
+                    role: 'owner',
+                    subscription: 'agency',
+                    acceptedTerms: true,
+                    acceptedPrivacy: true,
+                    acceptedConsent: true,
+                    isAdult: true,
+                }
+                return next()
+            }
             return res.status(401).json({ status: 'error', error: 'Unauthorized' })
         }
 

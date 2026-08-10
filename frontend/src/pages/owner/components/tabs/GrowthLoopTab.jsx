@@ -13,11 +13,11 @@ export default function GrowthLoopTab() {
 
   const load = async () => {
     try {
-      const ref = await request('/api/growth-loop/referral');
+      const ref = await request('/growth-loop/referral');
       setReferral(ref);
-      const lb = await request('/api/growth-loop/leaderboard?period=month');
+      const lb = await request('/growth-loop/leaderboard?period=month');
       setLeaderboard(lb.data || []);
-      const ch = await request('/api/growth-loop/challenge?theme=viral-august');
+      const ch = await request('/growth-loop/challenge?theme=viral-august');
       setChallenge(ch.data);
     } catch (e) { console.error(e); }
   };

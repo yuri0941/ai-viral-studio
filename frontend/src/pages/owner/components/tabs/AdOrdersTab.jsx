@@ -27,8 +27,8 @@ export function AdOrdersTab() {
   const fetchOrders = async () => {
     setLoading(true)
     try {
-      const res = await request('/api/ad-orders/all')
-      setOrders(res?.data || res || [])
+      const res = await request('/ad-orders/all')
+      setOrders(res?.orders || res?.data || res || [])
     } catch (err) {
       console.error('[AdOrdersTab] fetch orders failed', err)
       toast.error(t('common.error') || 'Ошибка загрузки заказов')
@@ -39,9 +39,10 @@ export function AdOrdersTab() {
 
   const fetchPricing = async () => {
     try {
-      const res = await request('/api/ad-orders/pricing')
-      setPricing(res)
-      setEditingPrices(Object.fromEntries(Object.entries(res).map(([k, v]) => [k, v.price])))
+      const res = await request('/ad-orders/pricing')
+      const pricing = res?.pricing || res
+      setPricing(pricing)
+      setEditingPrices(Object.fromEntries(Object.entries(pricing).map(([k, v]) => [k, v.price])))
     } catch (err) {
       console.error('[AdOrdersTab] fetch pricing failed', err)
     }
@@ -49,7 +50,7 @@ export function AdOrdersTab() {
 
   const fetchChannels = async () => {
     try {
-      const res = await request('/api/channel/config')
+      const res = await request('/channel/config')
       setChannels(res?.data || res || [])
     } catch (err) {
       console.error('[AdOrdersTab] fetch channels failed', err)
@@ -64,7 +65,7 @@ export function AdOrdersTab() {
 
   const updateStatus = async (id, status) => {
     try {
-      await request(`/api/ad-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
+      await request(`/ad-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
       toast.success(status === 'approved' ? (t('adOrders.approve') || 'Одобрено') : (t('adOrders.reject') || 'Отклонено'))
       fetchOrders()
     } catch (err) {
@@ -75,7 +76,7 @@ export function AdOrdersTab() {
   const updatePrices = async () => {
     try {
       for (const [slotType, price] of Object.entries(editingPrices)) {
-        await request('/api/ad-orders/pricing', { method: 'POST', body: JSON.stringify({ slotType, price: Number(price) }) })
+        await request('/ad-orders/pricing', { method: 'POST', body: JSON.stringify({ slotType, price: Number(price) }) })
       }
       toast.success(t('adOrders.updatePrices') || 'Цены обновлены')
       fetchPricing()
@@ -86,9 +87,9 @@ export function AdOrdersTab() {
 
   const createDiscount = async () => {
     try {
-      const res = await request('/api/discounts', { method: 'POST', body: JSON.stringify(discountForm) })
+      const res = await request('/discounts', { method: 'POST', body: JSON.stringify(discountForm) })
       if (channels[0]) {
-        await request(`/api/discounts/${res._id}/publish`, { method: 'POST', body: JSON.stringify({ configId: channels[0]._id }) })
+        await request(`/discounts/${res._id}/publish`, { method: 'POST', body: JSON.stringify({ configId: channels[0]._id }) })
         toast.success(`Скидка опубликована: ${res.promoCode}`)
       } else {
         toast.success(`Скидка создана: ${res.promoCode}`)

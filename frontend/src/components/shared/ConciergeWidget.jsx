@@ -22,7 +22,7 @@ export default function ConciergeWidget() {
     if (!type || !details.trim()) return;
     setLoading(true);
     try {
-      const data = await request('/api/concierge/request', {
+      const data = await request('/concierge/request', {
         method: 'POST',
         body: JSON.stringify({ request: `[${type}] ${details}` })
       });

@@ -131,4 +131,25 @@ router.post('/devstudio/approve', protect, async (req, res) => {
   }
 });
 
+// [v9.9.19-HOTFIX] Memory compression endpoint
+router.post('/memory/compress', protect, requireRole('owner', 'admin'), async (req, res) => {
+  try {
+    let freed = 0;
+    try {
+      const result = await compressAndArchive?.();
+      freed = result?.freed || 0;
+    } catch (e) {
+      console.warn('[omegaSupreme/memory/compress] compress failed:', e.message);
+    }
+    res.json({
+      success: true,
+      message: 'Memory compression initiated',
+      freed,
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 export default router;
