@@ -791,3 +791,11 @@ NODE_ENV=production
 - Версия проекта: frontend `9.9.19`, backend `9.9.19`, UI `v9.9.19`, build ID `v9.9.19-2026-08-10`.
 - Build: `npm run build` 0 errors, `node --check backend` OK.
 - Smoke test: `/api/omega/neural-graph` → 22 узла, 8 связей, meta.totalFacts=223, seed-smm present.
+
+
+## Current State (v9.9.19-NEURAL-GRAPH-EMERGENCY — 2026-08-10)
+- Neural Graph emergency fix: frontend больше не делает двойной `/api/api/` запрос к `/api/omega/neural-graph`.
+- Используется единый `request('/omega/neural-graph')` из `frontend/src/services/api.js`, который сам обрабатывает HTML-ответы и retry.
+- При сетевой ошибке NeuralGraphTab отрисовывает 8 seed-узлов (213 фактов) из локального fallback.
+- Backend endpoint `/api/omega/neural-graph` по-прежнему возвращает JSON с graceful fallback.
+- Build: `npm run build` 0 errors, `node --check backend` OK.

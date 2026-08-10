@@ -3628,3 +3628,12 @@
 - [TEST] ✅ Health, Neural Graph (nodes>=9, facts>=213), Build — все PASS
 - [GIT] Commit: v9.9.19-NEURAL-PLUS
 - [STATUS] 🧠 OMEGA теперь ВИДИМО умная. Владелец видит знания и прогресс.
+
+## 2026-08-10 — v9.9.19-NEURAL-GRAPH-EMERGENCY
+- [FIX] `[NeuralGraphTab] fetch error: SyntaxError: Unexpected token '<'` — endpoint отдавал HTML вместо JSON
+- [ROOT CAUSE] Frontend делал запрос к `${API_URL}/api/omega/neural-graph`, а API_URL уже содержит `/api` → двойной `/api/api` → 404 → SPA fallback HTML
+- [FIX] `frontend/src/pages/owner/components/tabs/NeuralGraphTab.jsx`: перешли на `request('/omega/neural-graph')` (убран лишний `/api/`), добавлен fallback-рендеринг seed-узлов при ошибке
+- [FIX] backend/routes/omega.js: GET /neural-graph уже возвращает JSON с graceful fallback (из предыдущего коммита)
+- [FIX] backend/ai/omega/neuralGraph.js: seed-данные 8 узлов = 213 фактов (из предыдущего коммита)
+- [TEST] ✅ JSON response, nodes>=9, facts>=213, Build 0 errors — все PASS
+- [DEPLOY] Запушено на Render

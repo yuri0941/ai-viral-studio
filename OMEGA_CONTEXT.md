@@ -1,8 +1,8 @@
 # OMEGA_CONTEXT — AI Viral Studio
 
-## Версия: v9.9.19-NEURAL-PLUS
+## Версия: v9.9.19-NEURAL-GRAPH-EMERGENCY
 ## Дата: 2026-08-10
-## Статус: Seed Knowledge + Knowledge Panel + OmegaSkillsTab + версия v9.9.19
+## Статус: JSON-only Neural Graph + fixed /api/api double prefix
 
 ### ApiKeys & Hot-Reload
 - 20 провайдеров в ApiKeysTab
@@ -14,6 +14,7 @@
 - Knowledge Panel: totalFacts, totalSkills, totalClients, totalProjects, lastLearned
 - OmegaSkillsTab: 8 навыков + 3 активных обучения с прогрессом
 - Fallback: при любой ошибке endpoint возвращает JSON, не падает
+- Emergency fix: frontend делал `/api/api/omega/neural-graph` → теперь `request('/omega/neural-graph')` + HTML-guard + seed fallback
 
 ### Исправленные баги
 - Двойной /api/api/ префикс убран во всех frontend-запросах
