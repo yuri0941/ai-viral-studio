@@ -524,7 +524,7 @@ app.use('/api/project-factory', projectFactoryRoutes)  // [v9.2-SELF-CODING] Pro
 app.use('/api/prediction', predictionRoutes)  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
 app.use('/api', telegramRoutes)  // [v9.5-TELEGRAM-AUTO] Telegram channel manager + bot
 app.use('/api', vkRoutes)  // [v9.9.19] VK OAuth + status
-app.use('/api/channel-manager', channelManagerRoutes)  // [v9.9.20] Channel manager
+app.use('/api/channel', channelManagerRoutes)  // [v9.9.20] Channel manager routes: /generate, /publish, /calendar, /growth
 app.use('/api/sales-autopilot', salesAutopilotRoutes)  // [v9.9.20] Sales autopilot
 app.use('/api/advertiser-suite', advertiserSuiteRoutes)  // [v9.9.20] Advertiser suite
 app.use('/api/concierge', conciergeRoutes)  // [v9.9.20] Concierge
