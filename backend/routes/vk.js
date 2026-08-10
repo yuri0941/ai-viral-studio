@@ -14,7 +14,7 @@ router.get('/vk/auth-url', protect, (req, res) => {
     return res.status(500).json({ success: false, error: 'VK not configured on server' });
   }
   const scope = 'video,wall,groups,offline';
-  const authUrl = `https://oauth.vk.com/authorize?client_id=${VK_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=code&v=5.199&state=${req.user._id}`;
+  const authUrl = `https://oauth.vk.com/authorize?client_id=${VK_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=code&v=5.199&state=${req.user.id}`;
   res.json({ success: true, authUrl });
 });
 
@@ -40,7 +40,7 @@ router.get('/vk/callback', async (req, res) => {
 });
 
 router.get('/vk/status', protect, async (req, res) => {
-  const user = await User.findById(req.user._id).select('vkToken vkUserId');
+  const user = await User.findById(req.user.id).select('vkToken vkUserId');
   res.json({ success: true, connected: !!user?.vkToken, userId: user?.vkUserId });
 });
 

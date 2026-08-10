@@ -88,19 +88,21 @@ router.post('/telegram/connect', protect, async (req, res) => {
     }
 })
 
-// [v5.9] added: real VK OAuth URL using env VK_CLIENT_ID
+// [v5.9] added: real VK OAuth URL using env VK_CLIENT_ID or VK_APP_ID (Render uses VK_APP_ID)
 router.get('/vk/url', protect, (req, res) => {
     try {
-        const VK_CLIENT_ID = process.env.VK_CLIENT_ID
-        const VK_REDIRECT_URI = process.env.VK_REDIRECT_URI || 'https://aiviral-backend.onrender.com/api/integrations/vk/callback'
-        if (!VK_CLIENT_ID) {
-            return res.status(503).json({ error: 'VK not configured' })
+        const clientId = process.env.VK_CLIENT_ID || process.env.VK_APP_ID
+        const clientSecret = process.env.VK_CLIENT_SECRET || process.env.VK_APP_SECRET
+        const redirectUri = process.env.VK_REDIRECT_URI || 'https://aiviral-backend.onrender.com/api/integrations/vk/callback'
+        if (!clientId || !clientSecret) {
+            console.error('VK ENV MISSING:', { clientId: !!clientId, clientSecret: !!clientSecret })
+            return res.status(503).json({ success: false, error: 'VK not configured on server' })
         }
-        const vkAuthUrl = `https://oauth.vk.com/authorize?client_id=${VK_CLIENT_ID}&redirect_uri=${encodeURIComponent(VK_REDIRECT_URI)}&scope=wall,photos,groups&response_type=code&state=${req.user.id}`
-        res.json({ connected: false, url: vkAuthUrl })
+        const vkAuthUrl = `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=wall,photos,groups&response_type=code&state=${req.user.id}`
+        res.json({ success: true, connected: false, url: vkAuthUrl })
     } catch (e) {
         console.warn('[Integration] vk url failed:', e.message)
-        res.status(200).json({ connected: false, url: null, error: 'Service temporarily unavailable' })
+        res.status(200).json({ success: false, connected: false, url: null, error: 'Service temporarily unavailable' })
     }
 })
 
@@ -214,6 +216,10 @@ const getOAuthUrl = (provider, req) => {
         case 'youtube':
             if (!process.env.YOUTUBE_CLIENT_ID) return null
             return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.YOUTUBE_CLIENT_ID}&redirect_uri=${redirectUri}&scope=https://www.googleapis.com/auth/youtube.upload&response_type=code&access_type=offline&state=${req.user.id}`
+        case 'vk':
+            if (!process.env.VK_CLIENT_ID && !process.env.VK_APP_ID) return null
+            const vkRedirectUri = process.env.VK_REDIRECT_URI || 'https://aiviral-backend.onrender.com/api/integrations/vk/callback'
+            return `https://oauth.vk.com/authorize?client_id=${process.env.VK_CLIENT_ID || process.env.VK_APP_ID}&redirect_uri=${encodeURIComponent(vkRedirectUri)}&scope=wall,photos,groups&response_type=code&state=${req.user.id}`
         default: return null
     }
 }
