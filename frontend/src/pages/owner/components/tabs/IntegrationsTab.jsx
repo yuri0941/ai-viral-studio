@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { StatusBadge } from '../common/StatusBadge'
 import { Plug, RefreshCw, Send, MessageCircle, Hash, FileText, CheckSquare, Trello, ShoppingBag, Globe, Webhook, Plus, Trash2, Check, X, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -23,6 +24,7 @@ const INTEGRATIONS = [
 ]
 
 export function IntegrationsTab({ data }) {
+    const { t } = useTranslation()
     const icons = { youtube: '▶️', tiktok: '🎵', instagram: '📷', telegram: '✈️' }
     const [statuses, setStatuses] = useState({})
     const [loading, setLoading] = useState(false)
@@ -34,24 +36,71 @@ export function IntegrationsTab({ data }) {
     const [creatingWebhook, setCreatingWebhook] = useState(false)
     const [tab, setTab] = useState('social')
     const [vkStatus, setVkStatus] = useState({ configured: false, connected: false })
+    const [tgStatus, setTgStatus] = useState({ configured: false, connected: false })
+    const [tgLinkLoading, setTgLinkLoading] = useState(false)
 
     const loadVkStatus = async () => {
         try {
-            const data = await request('/integrations/vk/status')
-            if (data?.success) setVkStatus({ configured: data.configured, connected: data.connected })
+            const data = await request('/vk/status')
+            if (data?.success) setVkStatus({ configured: data.configured, connected: data.connected, accountName: data.accountName, setupGuide: data.setupGuide })
         } catch (err) {
             console.warn('[IntegrationsTab] vk status failed:', err.message)
         }
     }
 
+    const loadTgStatus = async () => {
+        try {
+            const data = await request('/telegram/status')
+            if (data?.success) setTgStatus({ configured: data.configured, connected: data.connected, username: data.username })
+        } catch (err) {
+            console.warn('[IntegrationsTab] telegram status failed:', err.message)
+        }
+    }
+
     const connectVK = async () => {
         try {
-            const data = await request('/integrations/vk/auth-url')
+            const data = await request('/vk/auth-url')
             if (data?.success && data.authUrl) {
                 window.open(data.authUrl, '_blank')
             } else {
-                toast.error(data?.error || 'VK auth URL generation failed')
+                toast.error(data?.error || t('vk.authUrlFailed'))
             }
+        } catch (err) {
+            toast.error(err.message)
+        }
+    }
+
+    const disconnectVK = async () => {
+        try {
+            await request('/vk', { method: 'DELETE' })
+            setVkStatus({ ...vkStatus, connected: false, accountName: null })
+            toast.success(t('vk.disconnectSuccess'))
+        } catch (err) {
+            toast.error(err.message)
+        }
+    }
+
+    const connectTelegram = async () => {
+        setTgLinkLoading(true)
+        try {
+            const data = await request('/telegram/connect-link', { method: 'POST' })
+            if (data?.success && data.url) {
+                window.open(data.url, '_blank')
+            } else {
+                toast.error(data?.error || t('telegram.connectLinkFailed'))
+            }
+        } catch (err) {
+            toast.error(err.message)
+        } finally {
+            setTgLinkLoading(false)
+        }
+    }
+
+    const disconnectTelegram = async () => {
+        try {
+            await request('/integrations/telegram', { method: 'DELETE' })
+            setTgStatus({ configured: tgStatus.configured, connected: false })
+            toast.success(t('telegram.disconnected'))
         } catch (err) {
             toast.error(err.message)
         }
@@ -71,7 +120,7 @@ export function IntegrationsTab({ data }) {
         }
     }
 
-    useEffect(() => { load(); loadVkStatus() }, [])
+    useEffect(() => { load(); loadVkStatus(); loadTgStatus() }, [])
 
     const test = async (id) => {
         setLoading(id)
@@ -131,15 +180,15 @@ export function IntegrationsTab({ data }) {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Plug size={18} className="text-blue-400" />
-                    <h2 className="text-lg font-semibold text-[var(--text)]">Интеграции</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text)]">{t('socials.integrationsTitle')}</h2>
                 </div>
                 <button type="button" onClick={load} disabled={loading === true} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 disabled:opacity-50"><RefreshCw size={16} className={loading === true ? 'animate-spin' : ''} /></button>
             </div>
 
-            <div className="flex gap-2 border-b border-[var(--border)] pb-2">
-                {['social', 'external', 'webhooks'].map(t => (
-                    <button type="button" key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm rounded-t-lg ${tab === t ? 'text-[var(--text)] border-b-2 border-[#8b5cf6] bg-white/5' : 'text-gray-500 hover:text-gray-300'}`}>
-                        {t === 'social' ? 'Соцсети' : t === 'external' ? 'Внешние сервисы' : 'Webhooks / Zapier'}
+            <div className="flex gap-2 border-b border-[var(--border)] pb-2 overflow-x-auto no-scrollbar">
+                {['social', 'external', 'webhooks'].map(tabId => (
+                    <button type="button" key={tabId} onClick={() => setTab(tabId)} className={`shrink-0 px-4 py-2 text-sm rounded-t-lg ${tab === tabId ? 'text-[var(--text)] border-b-2 border-[#8b5cf6] bg-white/5' : 'text-gray-500 hover:text-gray-300'}`}>
+                        {t(`socials.tab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`)}
                     </button>
                 ))}
             </div>
@@ -154,24 +203,30 @@ export function IntegrationsTab({ data }) {
                                     <VKIcon className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-[var(--text)]">ВКонтакте</h3>
-                                    <p className="text-xs text-[var(--text-muted)]">Постинг, фото, группы</p>
+                                    <h3 className="font-bold text-[var(--text)]">{t('vk.title')}</h3>
+                                    <p className="text-xs text-[var(--text-muted)]">{t('vk.description')}</p>
                                 </div>
                             </div>
                             <div className={`px-3 py-1 rounded-full text-xs font-medium ${vkStatus.connected ? 'bg-emerald-500/20 text-emerald-400' : vkStatus.configured ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'}`}>
-                                {vkStatus.connected ? '✅ Подключено' : vkStatus.configured ? '⚡ Готово к подключению' : '❌ Не настроено'}
+                                {vkStatus.connected ? t('vk.connected') : vkStatus.configured ? t('vk.ready') : t('vk.notConfigured')}
                             </div>
                         </div>
 
-                        {!vkStatus.connected && vkStatus.configured && (
-                            <button onClick={connectVK} className="w-full px-4 py-2 bg-[#0077FF] text-white rounded-lg hover:scale-[1.02] transition flex items-center justify-center gap-2">
-                                <ExternalLink size={16} /> Подключить VK
-                            </button>
+                        {vkStatus.connected && vkStatus.accountName && (
+                            <p className="text-sm text-[var(--text-muted)] mb-3">{t('vk.account', { name: vkStatus.accountName })}</p>
                         )}
 
-                        {!vkStatus.configured && (
+                        {vkStatus.connected ? (
+                            <button onClick={disconnectVK} className="w-full px-4 py-2 bg-white/5 text-gray-300 border border-white/10 rounded-lg hover:bg-white/10 transition flex items-center justify-center gap-2">
+                                {t('vk.disconnect')}
+                            </button>
+                        ) : vkStatus.configured ? (
+                            <button onClick={connectVK} className="w-full px-4 py-2 bg-[#0077FF] text-white rounded-lg hover:scale-[1.02] transition flex items-center justify-center gap-2">
+                                <ExternalLink size={16} /> {t('vk.connect')}
+                            </button>
+                        ) : (
                             <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-sm text-[var(--text-muted)]">
-                                Добавьте VK Client ID и VK Client Secret в <a href="/dashboard/api-keys" className="text-[#0077FF] underline">ApiKeysTab</a>
+                                {t('vk.configureHint')}
                             </div>
                         )}
                     </div>
@@ -181,12 +236,14 @@ export function IntegrationsTab({ data }) {
                         const isTelegram = integ.id === 'telegram'
                         const handleConnect = () => {
                             if (isTelegram) {
-                                const botLink = process.env.TELEGRAM_BOT_LINK || process.env.TELEGRAM_OMEGA_BOT_LINK || 'https://t.me/aiviral_omega_bot'
-                                window.open(`${botLink}?start=connect_${data.user?.id || 'owner'}`, '_blank')
+                                connectTelegram()
                                 return
                             }
                             data.toggleIntegration(integ.id)
                         }
+                        const tgConnected = isTelegram ? tgStatus.connected : integ.connected
+                        const tgConfigured = isTelegram ? tgStatus.configured : true
+                        const tgUsername = isTelegram ? tgStatus.username : null
                         return (
                             <div key={integ.id} className="group relative p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all duration-300 hover:shadow-lg hover:shadow-[var(--primary)]/5 hover:-translate-y-0.5 overflow-hidden">
                                 <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br ${integ.id === 'telegram' ? 'from-blue-400/10 to-cyan-400/5' : 'from-[var(--primary)]/5 to-transparent'}`} />
@@ -197,15 +254,27 @@ export function IntegrationsTab({ data }) {
                                         </div>
                                         <div>
                                             <div className="text-sm font-semibold text-[var(--text)]">{integ.name}</div>
-                                            <div className={`text-xs ${integ.connected ? 'text-emerald-400' : 'text-gray-400'}`}>{integ.connected ? 'Подключено' : 'Не подключено'}</div>
+                                            <div className={`text-xs ${tgConnected ? 'text-emerald-400' : 'text-gray-400'}`}>
+                                                {isTelegram
+                                                    ? (tgConnected ? t('telegram.connected') : (tgConfigured ? t('telegram.notConnected') : t('telegram.notConfigured')))
+                                                    : (integ.connected ? t('vk.connected') : t('vk.notConnected'))}
+                                            </div>
                                         </div>
                                     </div>
-                                    <button type="button" onClick={handleConnect} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${integ.connected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 hover:bg-[var(--primary)]/20'}`}>
-                                        {integ.connected ? 'Управление' : 'Подключить'}
-                                    </button>
+                                    {isTelegram && tgConnected ? (
+                                        <button type="button" onClick={disconnectTelegram} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors">
+                                            {t('telegram.disconnect')}
+                                        </button>
+                                    ) : (
+                                        <button type="button" onClick={handleConnect} disabled={isTelegram && !tgConfigured} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${integ.connected || tgConnected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 hover:bg-[var(--primary)]/20'} disabled:opacity-50 disabled:cursor-not-allowed`}>
+                                            {isTelegram && tgLinkLoading ? '...' : (integ.connected || tgConnected ? t('vk.manage') : t('vk.connect'))}
+                                        </button>
+                                    )}
                                 </div>
                                 <p className="relative text-xs text-[var(--text-muted)] mb-3">
-                                    {integ.id === 'telegram' ? 'Каналы, боты, авто-посты' : integ.id === 'youtube' ? 'Shorts, видео, аналитика' : integ.id === 'tiktok' ? 'Reels, тренды, вирусность' : integ.id === 'instagram' ? 'Посты, Reels, Stories' : 'Социальная сеть'}
+                                    {isTelegram
+                                        ? (tgConnected && tgUsername ? t('telegram.account', { username: tgUsername }) : t('telegram.description'))
+                                        : (integ.id === 'youtube' ? 'Shorts, видео, аналитика' : integ.id === 'tiktok' ? 'Reels, тренды, вирусность' : integ.id === 'instagram' ? 'Посты, Reels, Stories' : 'Социальная сеть')}
                                 </p>
                                 {integ.connected && (
                                     <div className="relative grid grid-cols-3 gap-2 pt-3 border-t border-[var(--border)]">

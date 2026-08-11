@@ -1,51 +1,202 @@
 import express from 'express';
+import crypto from 'crypto';
 import axios from 'axios';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
+import { getProviderKey } from '../services/aiService.js';
+import { integrationStatus } from '../utils/integrationStatus.js';
 
 const router = express.Router();
-const VK_APP_ID = process.env.VK_APP_ID;
-const VK_APP_SECRET = process.env.VK_APP_SECRET;
-const REDIRECT_URI = `${process.env.RENDER_EXTERNAL_URL || process.env.BACKEND_URL || 'https://aiviral-backend.onrender.com'}/api/vk/callback`;
 
-console.log('[VK] Redirect URI:', REDIRECT_URI);
-console.log('[VK] App ID:', VK_APP_ID ? 'OK' : 'MISSING');
-console.log('[VK] App Secret:', VK_APP_SECRET ? 'OK' : 'MISSING');
+// PKCE state store: in-memory Map with 10-minute TTL. Single Render instance is fine.
+const stateStore = new Map();
+const STATE_TTL_MS = 10 * 60 * 1000;
 
-router.get('/vk/auth-url', protect, (req, res) => {
-  if (!VK_APP_ID || !VK_APP_SECRET) {
-    console.error('VK ENV MISSING:', { VK_APP_ID: !!VK_APP_ID, VK_APP_SECRET: !!VK_APP_SECRET });
-    return res.status(500).json({ success: false, error: 'VK not configured on server' });
+function cleanExpiredStates() {
+  const now = Date.now();
+  for (const [key, entry] of stateStore) {
+    if (now - entry.createdAt > STATE_TTL_MS) stateStore.delete(key);
   }
-  const scope = 'video,wall,groups,offline';
-  const authUrl = `https://oauth.vk.com/authorize?client_id=${VK_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=code&v=5.199&state=${req.user.id}`;
-  res.json({ success: true, authUrl });
+}
+setInterval(cleanExpiredStates, 60 * 1000);
+
+function base64UrlEncode(buffer) {
+  return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function generateCodeChallenge(verifier) {
+  return base64UrlEncode(crypto.createHash('sha256').update(verifier).digest());
+}
+
+const VK_REDIRECT_URI = process.env.VK_REDIRECT_URI || 'https://aiviral-studio.ru/auth/vk/callback';
+const VK_FRONTEND_URL = process.env.FRONTEND_URL || 'https://aiviral-studio.ru';
+
+async function getVkCreds() {
+  return {
+    clientId: (await getProviderKey('vk')) || process.env.VK_APP_ID || process.env.VK_CLIENT_ID,
+    clientSecret: (await getProviderKey('vk_secret')) || process.env.VK_APP_SECRET || process.env.VK_CLIENT_SECRET,
+  };
+}
+
+router.get('/vk/auth-url', protect, async (req, res) => {
+  try {
+    const status = await integrationStatus('vk', req.user.id);
+    if (!status.configured) {
+      return res.json({
+        success: false,
+        configured: false,
+        error: 'vk_not_configured',
+        setupGuide: [
+          '1. Откройте https://dev.vk.com/apps → ai-viral-studio',
+          '2. Скопируйте ID приложения (54714375)',
+          '3. Вставьте в ApiKeysTab → VK Client ID',
+          '4. Скопируйте Защищённый ключ',
+          '5. Вставьте в ApiKeysTab → VK Client Secret',
+          '6. Нажмите «Сохранить и применить»'
+        ]
+      });
+    }
+
+    const codeVerifier = base64UrlEncode(crypto.randomBytes(32));
+    const state = crypto.randomBytes(16).toString('hex');
+    stateStore.set(state, {
+      codeVerifier,
+      userId: req.user.id,
+      createdAt: Date.now()
+    });
+
+    const authUrl = 'https://id.vk.com/authorize?' + new URLSearchParams({
+      response_type: 'code',
+      client_id: status.clientId,
+      redirect_uri: VK_REDIRECT_URI,
+      state,
+      code_challenge: generateCodeChallenge(codeVerifier),
+      code_challenge_method: 'S256',
+      scope: 'vkid.personal_info'
+    }).toString();
+
+    return res.json({ success: true, configured: true, authUrl, state });
+  } catch (err) {
+    console.error('[VK auth-url] error:', err.message);
+    return res.json({ success: false, error: 'server_error', message: err.message });
+  }
 });
 
-router.get('/vk/callback', async (req, res) => {
+router.post('/vk/callback', protect, async (req, res) => {
   try {
-    const { code, state: userId } = req.query;
-    if (!VK_APP_ID || !VK_APP_SECRET) {
-      console.error('VK ENV MISSING:', { VK_APP_ID: !!VK_APP_ID, VK_APP_SECRET: !!VK_APP_SECRET });
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://aiviral.onrender.com'}/settings?vk=error`);
+    const { code, state, device_id } = req.body || {};
+    if (!code || !state) {
+      return res.status(400).json({ success: false, error: 'missing_params' });
     }
-    const tokenRes = await axios.get('https://oauth.vk.com/access_token', {
-      params: { client_id: VK_APP_ID, client_secret: VK_APP_SECRET, redirect_uri: REDIRECT_URI, code }
+    const stored = stateStore.get(state);
+    if (!stored) {
+      return res.status(400).json({ success: false, error: 'state_expired', message: 'Сессия устарела — начните подключение заново' });
+    }
+    if (Date.now() - stored.createdAt > STATE_TTL_MS) {
+      stateStore.delete(state);
+      return res.status(400).json({ success: false, error: 'state_expired', message: 'Сессия устарела — начните подключение заново' });
+    }
+    if (String(stored.userId) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, error: 'state_mismatch' });
+    }
+
+    const { clientId, clientSecret } = await getVkCreds();
+    if (!clientId || !clientSecret) {
+      return res.json({ success: false, error: 'vk_not_configured' });
+    }
+
+    const tokenParams = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      client_id: clientId,
+      redirect_uri: VK_REDIRECT_URI,
+      state,
+      code_verifier: stored.codeVerifier,
     });
-    await User.findByIdAndUpdate(userId, {
-      vkToken: tokenRes.data.access_token,
-      vkUserId: tokenRes.data.user_id,
-      vkConnectedAt: new Date()
+    if (device_id) tokenParams.append('device_id', device_id);
+
+    const tokenRes = await axios.post('https://id.vk.com/oauth2/token', tokenParams.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      timeout: 15000
     });
-    res.redirect(`${process.env.FRONTEND_URL || 'https://aiviral.onrender.com'}/settings?vk=connected`);
-  } catch (e) {
-    res.redirect(`${process.env.FRONTEND_URL || 'https://aiviral.onrender.com'}/settings?vk=error`);
+    const tokenData = tokenRes.data;
+    if (tokenData.error) {
+      const reason = tokenData.error_description || tokenData.error;
+      console.log('[VK] token error:', reason);
+      return res.status(400).json({ success: false, error: 'vk_token_error', reason });
+    }
+
+    const userRes = await axios.post('https://id.vk.com/oauth2/user_info', new URLSearchParams({
+      client_id: clientId,
+      access_token: tokenData.access_token,
+    }).toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      timeout: 15000
+    });
+    const userInfo = userRes.data;
+    const vkUser = userInfo?.user || {};
+
+    await User.findByIdAndUpdate(req.user.id, {
+      $set: {
+        'socials.vk.userId': String(vkUser.user_id || vkUser.id || ''),
+        'socials.vk.username': [vkUser.first_name, vkUser.last_name].filter(Boolean).join(' ') || `vk${vkUser.user_id || vkUser.id}`,
+        'socials.vk.link': vkUser.user_id || vkUser.id ? `https://vk.com/id${vkUser.user_id || vkUser.id}` : '',
+        'socials.vk.enabled': true,
+        vkToken: tokenData.access_token,
+        vkUserId: String(vkUser.user_id || vkUser.id || ''),
+        vkConnectedAt: new Date(),
+      }
+    });
+
+    stateStore.delete(state);
+    return res.json({ success: true, userId: vkUser.user_id || vkUser.id });
+  } catch (err) {
+    const reason = err.response?.data?.error_description || err.response?.data?.error || err.message;
+    console.error('[VK callback] error:', reason);
+    return res.status(500).json({ success: false, error: 'server_error', reason });
   }
 });
 
 router.get('/vk/status', protect, async (req, res) => {
-  const user = await User.findById(req.user.id).select('vkToken vkUserId');
-  res.json({ success: true, connected: !!user?.vkToken, userId: user?.vkUserId });
+  try {
+    const status = await integrationStatus('vk', req.user.id);
+    const user = await User.findById(req.user.id).select('socials.vk vkUserId').lean();
+    const connected = !!(user?.socials?.vk?.userId || user?.vkUserId);
+    return res.json({
+      success: true,
+      configured: status.configured,
+      connected,
+      userId: user?.socials?.vk?.userId || user?.vkUserId || null,
+      accountName: user?.socials?.vk?.username || null,
+      setupGuide: status.configured ? undefined : [
+        '1. Откройте https://dev.vk.com/apps → ai-viral-studio',
+        '2. Скопируйте ID приложения (54714375)',
+        '3. Вставьте в ApiKeysTab → VK Client ID',
+        '4. Скопируйте Защищённый ключ',
+        '5. Вставьте в ApiKeysTab → VK Client Secret',
+        '6. Нажмите «Сохранить и применить»'
+      ]
+    });
+  } catch (err) {
+    console.error('[VK status] error:', err.message);
+    return res.json({ success: false, configured: false, connected: false });
+  }
+});
+
+router.delete('/vk', protect, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.id, {
+      $set: {
+        'socials.vk': { userId: '', username: '', link: '', enabled: false },
+        vkToken: '',
+        vkUserId: '',
+      }
+    });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[VK disconnect] error:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 export default router;

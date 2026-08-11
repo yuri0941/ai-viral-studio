@@ -3,12 +3,30 @@ import { protect, requireRole } from '../middleware/auth.js';
 import User from '../models/User.js';
 import { generateChannelPost, publishToChannel, getChannelStats, generateWeeklyContentPlan } from '../services/telegramChannelManager.js';
 import { getMenu, generateMenuImprovements, applyMenuChanges, addCustomButton, toggleButton } from '../services/telegramMenuService.js';
+import { integrationStatus } from '../utils/integrationStatus.js';
+import { createConnectToken } from '../utils/telegramConnectStore.js';
 
 const router = Router();
+const BOT_LINK = process.env.TELEGRAM_BOT_LINK || process.env.TELEGRAM_OMEGA_BOT_LINK || 'https://t.me/aiviral_omega_bot';
 
 function getOwnerId(req) {
   return req.user?.id || req.user?._id;
 }
+
+// [v9.9.19.7] Telegram deep-link connect for ANY authenticated user
+router.post('/telegram/connect-link', protect, async (req, res) => {
+  try {
+    const status = await integrationStatus('telegram', req.user?.id || req.user?._id);
+    if (!status.configured) {
+      return res.json({ success: false, configured: false, error: 'telegram_bot_not_configured' });
+    }
+    const token = createConnectToken(req.user?.id || req.user?._id);
+    return res.json({ success: true, configured: true, url: `${BOT_LINK}?start=connect_${token}`, botLink: BOT_LINK });
+  } catch (err) {
+    console.error('[telegram connect-link] error:', err.message);
+    return res.json({ success: false, error: 'server_error' });
+  }
+});
 
 router.post('/telegram/channel/post', protect, requireRole('owner','admin'), async (req, res) => {
   const { topic, niche, style, tone, length, options } = req.body;
@@ -85,8 +103,19 @@ router.patch('/telegram/menu/button/:callbackData', protect, requireRole('owner'
 
 router.get('/telegram/status', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('telegramId telegramUsername telegramChannelId telegramChannelName');
-    res.json({ success: true, connected: !!user?.telegramId, userId: user?.telegramId, channelId: user?.telegramChannelId });
+    const [status, user] = await Promise.all([
+      integrationStatus('telegram', req.user?._id || req.user?.id),
+      User.findById(req.user._id).select('telegramId telegramUsername telegramChannelId telegramChannelName socials.telegram').lean()
+    ]);
+    const connected = !!(user?.telegramId || user?.socials?.telegram?.userId);
+    res.json({
+      success: true,
+      configured: status.configured,
+      connected,
+      userId: user?.telegramId || user?.socials?.telegram?.userId || null,
+      username: user?.telegramUsername || user?.socials?.telegram?.username || null,
+      channelId: user?.telegramChannelId || null,
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

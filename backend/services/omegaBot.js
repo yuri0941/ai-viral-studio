@@ -1,6 +1,8 @@
 import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
 import { wrapBotHtmlSending } from '../utils/telegramHtml.js'
+import User from '../models/User.js'
+import { getConnectUserId } from '../utils/telegramConnectStore.js'
 import { detectIntent, detectClientTone, saveDialogue, findSimilarSuccess, updateDialogueOutcome } from './dialogueLearningService.js';
 import { detectIntent as detectActionIntent } from '../ai/omega/intentEngine.js';
 import { executeAction } from '../ai/omega/actionEngine.js';
@@ -135,16 +137,29 @@ export const initOmegaBot = () => {
     const chatId = msg.chat.id;
     const startParam = match?.[1];
 
-    // [v9.9.19-MASTER-AUDIT] deep-link привязка: t.me/aiviral_omega_bot?start=<user_id>
-    if (startParam && /^[a-f0-9]{24}$/i.test(startParam)) {
+    // [v9.9.19.7-SOCIAL-CONNECT-RESILIENT] deep-link привязка: t.me/aiviral_omega_bot?start=connect_<token>
+    if (startParam && /^connect_[a-f0-9]{24}$/i.test(startParam)) {
       try {
+        const token = startParam.replace(/^connect_/, '');
+        const userId = getConnectUserId(token);
+        if (!userId) {
+          bot.sendMessage(chatId, `⚠️ Не удалось привязать аккаунт — ссылка устарела. Откройте профиль в приложении и нажмите «Подключить Telegram» ещё раз.`, { parse_mode: 'HTML' });
+          return;
+        }
         const linked = await User.findByIdAndUpdate(
-          startParam,
-          { telegramId: String(msg.from.id), telegramChatId: String(chatId), telegramUsername: msg.from.username || '' },
+          userId,
+          {
+            telegramId: String(msg.from.id),
+            telegramChatId: String(chatId),
+            telegramUsername: msg.from.username || '',
+            'socials.telegram.username': msg.from.username || String(msg.from.id),
+            'socials.telegram.userId': String(msg.from.id),
+            'socials.telegram.enabled': true,
+          },
           { new: true }
         );
         if (linked) {
-          bot.sendMessage(chatId, `✅ <b>Telegram подключён!</b>\n━━━━━━━━━━━━━━\nАккаунт: <b>${linked.name || linked.email}</b>\n\nТеперь вы будете получать уведомления здесь. Можете писать мне — я отвечу как AI-ассистент 🤖`, { parse_mode: 'HTML' });
+          bot.sendMessage(chatId, `✅ <b>Telegram подключён к AI Viral Studio!</b>\n━━━━━━━━━━━━━━\nАккаунт: <b>${linked.name || linked.email}</b>\n\nТеперь вы будете получать уведомления здесь. Можете писать мне — я отвечу как AI-ассистент 🤖`, { parse_mode: 'HTML' });
           return;
         }
         bot.sendMessage(chatId, `⚠️ Не удалось привязать аккаунт — ссылка устарела. Откройте профиль в приложении и нажмите «Подключить Telegram» ещё раз.`, { parse_mode: 'HTML' });

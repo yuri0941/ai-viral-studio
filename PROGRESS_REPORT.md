@@ -3808,3 +3808,26 @@
 - [FIX] Сырой ключ `apiKeys.yookassaCardHint` в ApiKeysTab.jsx теперь имеет переводы ru/en; grep по `t('apiKeys.*` и `t('settings.*` — все ключи определены.
 - [TEST] npm run build ✅; ручная сверка всех используемых ключей с ru.json/en.json — ни одного сырого; 375px-разметка оставлена из 19.14.5 (overflow-x-auto, w-full кнопки).
 - [NOTE] Backend-логика оплаты (webhook, активация подписки) не трогалась — согласно промпту, ждёт 19.14.8 после вставки реальных ключей ЮKassa.
+
+
+## 2026-08-11 — v9.9.19.7-SOCIAL-CONNECT-RESILIENT
+- [DIAG] VK Security Error: фронт дергал `/api/integrations/vk/url` → `oauth.vk.com` с `redirect_uri=https://aiviral-backend.onrender.com/api/integrations/vk/callback`, что mismatch домену приложения `aiviral-studio.ru` → `invalid_request: Security Error`. Старый флоу и VK-роуты в `integrations.js` удалены.
+- [FIX] `backend/routes/vk.js` переписан полностью:
+  - `GET /api/vk/auth-url` — PKCE (state + code_verifier + code_challenge S256), `redirect_uri=https://aiviral-studio.ru/auth/vk/callback`, client_id из кабинета/env, JSON-ответ `{authUrl, state}`, ноль 500.
+  - `POST /api/vk/callback` — проверка state (TTL 10 мин, userId), обмен `code` на токен у `id.vk.com/oauth2/token` с `code_verifier`, затем `user_info`, сохраняет `user.socials.vk`, `vkToken`, `vkUserId`.
+  - `GET /api/vk/status`, `DELETE /api/vk` — статус и отключение.
+- [FIX] `frontend/src/pages/VkCallbackPage.jsx` + роут `/auth/vk/callback` в `App.jsx` — принимает `code/state/device_id/error`, POST в backend, человеческий текст ошибок (i18n), редирект в Соцсети при успехе.
+- [FIX] Telegram-привязка для всех пользователей:
+  - `backend/utils/telegramConnectStore.js` — одноразовые токены `connect_<24hex>` с TTL 30 мин.
+  - `backend/routes/telegram.js` — `POST /api/telegram/connect-link` (любой авторизованный), `GET /api/telegram/status` отдаёт `configured` из `integrationStatus`.
+  - `backend/services/omegaBot.js` — `/start connect_<token>` привязывает `chatId/username` к `user.socials.telegram`, отвечает «✅ Telegram подключён к AI Viral Studio».
+- [FIX] `backend/utils/integrationStatus.js` — единый helper для vk/telegram/yookassa: `{configured, healthy, reason, clientId?}`. Без ключей → `configured:false` без ошибок/простыней в логах. Ключ вставлен → `configured:true` сразу (hot-reload `getProviderKey`).
+- [FIX] `backend/routes/integrations.js` — удалены старые VK-эндпоинты (`/vk/callback`, `/vk/url`, `/vk/auth`, `/vk/status`) и vk-case в `getOAuthUrl`; убраны неиспользуемые `axios`/`getProviderKey` импорты.
+- [UI] `IntegrationsTab` в owner- и settings-кабинетах: VK-карточка с бейджами «Не настроено / Подключён / Требует переподключения» + setupGuide; Telegram-карточка с кнопкой «Подключить» (deep-link) и статусом `@username`; убран старый Telegram-модал с botToken/chatId.
+- [i18n] `ru.json`/`en.json` — ключи `vk.*`, `telegram.*`, `socials.*`, `discord.*`, `common.*`; raw-ключей нет.
+- [TEST] `node --check` по `backend/routes/integrations.js`, `vk.js`, `telegram.js`, `utils/integrationStatus.js`, `utils/telegramConnectStore.js`, `services/omegaBot.js` ✅; `npm run build` ✅; `git diff --stat` — только vk, telegram, integrations, omegaBot, frontend соцсети, i18n.
+- [NOTE] Ручная проверка владельцем:
+  1) Соцсети → «Подключить VK» → логин VK ID (НЕ Security Error) → «Подключён».
+  2) «Подключить Telegram» → Start в боте → `@username` в карточке.
+  3) F5 — оба статуса на месте, Отключить работает.
+  4) API Keys и ИИ-бот не пострадали.

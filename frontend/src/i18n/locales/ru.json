@@ -383,6 +383,67 @@
     "yookassaHint": "ЮKassa: shopId (6 цифр) + Secret test_/live_ из кабинета → Интеграция → API",
     "yookassaCardHint": "Тестовая карта: 5555 5555 5555 4477 · срок 12/25 · CVV 000"
   },
+  "vk": {
+    "title": "ВКонтакте",
+    "description": "Постинг, фото, группы",
+    "connected": "Подключено",
+    "notConnected": "Не подключено",
+    "notConfigured": "Не настроено",
+    "ready": "Готово к подключению",
+    "connect": "Подключить VK",
+    "disconnect": "Отключить",
+    "disconnectSuccess": "VK отключён",
+    "manage": "Управление",
+    "account": "Аккаунт: {{name}}",
+    "configureHint": "Добавьте VK Client ID и VK Client Secret в API Keys",
+    "authUrlFailed": "Не удалось получить ссылку VK",
+    "callbackTitle": "Подключение VK",
+    "processing": "Подключаем VK...",
+    "authSuccess": "VK успешно подключён!",
+    "authFailed": "Не удалось подключить VK",
+    "authMissingParams": "Недостаточно данных для подключения VK",
+    "authError": "Ошибка авторизации VK: {{reason}}",
+    "authHint": "Проверьте, что в настройках приложения VK добавлен redirect URI https://aiviral-studio.ru/auth/vk/callback",
+    "goToSettings": "В настройки"
+  },
+  "telegram": {
+    "title": "Telegram",
+    "description": "Каналы, боты, уведомления",
+    "connected": "Подключено",
+    "notConnected": "Не подключено",
+    "notConfigured": "Не настроено",
+    "connect": "Подключить Telegram",
+    "disconnect": "Отключить",
+    "account": "@{{username}}",
+    "configureHint": "Добавьте токен клиентского бота в API Keys",
+    "connectLinkFailed": "Не удалось получить ссылку Telegram",
+    "disconnected": "Telegram отключён",
+    "connectSuccess": "✅ Telegram подключён к AI Viral Studio"
+  },
+  "socials": {
+    "title": "🔗 Мои соцсети",
+    "subtitle": "Подключите аккаунты для автопостинга",
+    "integrationsTitle": "Интеграции",
+    "tabSocial": "Соцсети",
+    "tabExternal": "Внешние сервисы",
+    "tabWebhooks": "Webhooks / Zapier",
+    "connected": "Подключено",
+    "notConnected": "Не подключено",
+    "notConfigured": "Не настроено",
+    "connect": "Подключить",
+    "disconnect": "Отключить",
+    "account": "Аккаунт: {{name}}",
+    "configureHint": "Настройте ключи в разделе API Keys",
+    "connectUnavailable": "Подключение {{provider}} временно недоступно",
+    "connectError": "Ошибка подключения"
+  },
+  "discord": {
+    "connectTitle": "Подключить Discord"
+  },
+  "common": {
+    "cancel": "Отмена",
+    "connect": "Подключить"
+  },
   "advertiser": {
     "title": "Рекламодатель",
     "subtitle": "Управление рекламными кампаниями",

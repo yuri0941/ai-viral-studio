@@ -381,6 +381,67 @@
     "yookassaHint": "YooKassa: shopId (6 digits) + Secret test_/live_ from dashboard → Integration → API",
     "yookassaCardHint": "Test card: 5555 5555 5555 4477 · expiry 12/25 · CVV 000"
   },
+  "vk": {
+    "title": "VKontakte",
+    "description": "Wall posts, photos, groups",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "notConfigured": "Not configured",
+    "ready": "Ready to connect",
+    "connect": "Connect VK",
+    "disconnect": "Disconnect",
+    "disconnectSuccess": "VK disconnected",
+    "manage": "Manage",
+    "account": "Account: {{name}}",
+    "configureHint": "Add VK Client ID and VK Client Secret in API Keys",
+    "authUrlFailed": "Failed to get VK auth URL",
+    "callbackTitle": "VK Connection",
+    "processing": "Connecting VK...",
+    "authSuccess": "VK connected successfully!",
+    "authFailed": "Failed to connect VK",
+    "authMissingParams": "Missing data for VK connection",
+    "authError": "VK authorization error: {{reason}}",
+    "authHint": "Make sure the VK app settings include redirect URI https://aiviral-studio.ru/auth/vk/callback",
+    "goToSettings": "Go to settings"
+  },
+  "telegram": {
+    "title": "Telegram",
+    "description": "Channels, bots, notifications",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "notConfigured": "Not configured",
+    "connect": "Connect Telegram",
+    "disconnect": "Disconnect",
+    "account": "@{{username}}",
+    "configureHint": "Add the client bot token in API Keys",
+    "connectLinkFailed": "Failed to get Telegram link",
+    "disconnected": "Telegram disconnected",
+    "connectSuccess": "✅ Telegram connected to AI Viral Studio"
+  },
+  "socials": {
+    "title": "🔗 My socials",
+    "subtitle": "Connect accounts for auto-posting",
+    "integrationsTitle": "Integrations",
+    "tabSocial": "Socials",
+    "tabExternal": "External services",
+    "tabWebhooks": "Webhooks / Zapier",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "notConfigured": "Not configured",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "account": "Account: {{name}}",
+    "configureHint": "Configure keys in API Keys section",
+    "connectUnavailable": "{{provider}} connection temporarily unavailable",
+    "connectError": "Connection error"
+  },
+  "discord": {
+    "connectTitle": "Connect Discord"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "connect": "Connect"
+  },
   "advertiser": {
     "title": "Advertiser",
     "subtitle": "Manage ad campaigns",

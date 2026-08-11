@@ -29,6 +29,7 @@ const NeuroSalesDashboard = lazy(() => import('./components/analytics/NeuroSales
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
 const SchedulerPage = lazy(() => import('./pages/SchedulerPage'))
 import SettingsPage from './pages/SettingsPage'
+import VkCallbackPage from './pages/VkCallbackPage'
 import DownloadPage from './pages/DownloadPage'
 const ContentAnalyzerPage = lazy(() => import('./pages/ContentAnalyzerPage'))
 const AIvsHumanPage = lazy(() => import('./pages/owner/AIvsHumanPage'))
@@ -382,6 +383,11 @@ function App() {
                 <Route path="/settings" element={
                     <ProtectedRoute>
                         <SettingsPage />
+                    </ProtectedRoute>
+                } />
+                <Route path="/auth/vk/callback" element={
+                    <ProtectedRoute>
+                        <VkCallbackPage />
                     </ProtectedRoute>
                 } />
                 <Route path="/ai-vs-human" element={
