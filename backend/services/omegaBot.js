@@ -56,6 +56,7 @@ import { saveFeedback, rateFeedback } from './feedbackService.js'
 // [P16-FINAL] singleton to avoid duplicate polling / 409 conflict
 let bot = global.omegaBotInstance || null
 let started = global.omegaBotStarted || false
+let initPromise = global.omegaBotInitPromise || null
 
 const OMEGA_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_OMEGA_BOT_TOKEN
 const OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID
@@ -112,16 +113,18 @@ function safeSendMessage(chatId, data, options = {}) {
 
 // [MASTER-v5.6-CONT] OMEGA Bot with Owner Mode & Auto-Features
 export const initOmegaBot = () => {
-  if (started) { console.debug('[OMEGA-BOT] Already started, skipping'); return }
-  started = true
-  global.omegaBotStarted = true
+  if (initPromise) return initPromise
+  initPromise = (async () => {
+    if (started) { console.debug('[OMEGA-BOT] Already started, skipping'); return }
+    started = true
+    global.omegaBotStarted = true
 
-  if (!OMEGA_TOKEN) {
-    console.warn('[OMEGA-BOT] Skip: TELEGRAM_BOT_TOKEN / TELEGRAM_OMEGA_BOT_TOKEN missing')
-    bot = createStubBot()
-    global.omegaBotInstance = bot
-    return
-  }
+    if (!OMEGA_TOKEN) {
+      console.warn('[OMEGA-BOT] Skip: TELEGRAM_BOT_TOKEN / TELEGRAM_OMEGA_BOT_TOKEN missing')
+      bot = createStubBot()
+      global.omegaBotInstance = bot
+      return
+    }
 
   bot = new TelegramBot(OMEGA_TOKEN, { polling: false })
   wrapBotHtmlSending(bot, 'omega') // [v9.9.19.14] HTML валидация + plain fallback на всех sendMessage
@@ -838,13 +841,52 @@ export const initOmegaBot = () => {
 
   // [WEBHOOK-2026-08-05] set webhook instead of polling to avoid 409 conflicts
   const WEBHOOK_URL = (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com') + '/webhook/omega'
-  bot.setWebhook(WEBHOOK_URL).then(() => {
-    console.log('[OMEGA-BOT] Webhook set to', WEBHOOK_URL)
-  }).catch(e => {
-    console.error('[OMEGA-BOT] Webhook failed, falling back to polling:', e.message)
-    bot.stopPolling?.()
-    bot.startPolling?.()
+
+  async function trySetWebhook(attempt = 1) {
+    try {
+      await bot.deleteWebhook({ drop_pending_updates: true })
+      await bot.setWebhook(WEBHOOK_URL)
+      console.log('[OMEGA-BOT] Webhook set to', WEBHOOK_URL)
+      return true
+    } catch (e) {
+      if (String(e.message).includes('409') && attempt < 3) {
+        console.warn(`[OMEGA-BOT] Webhook 409 conflict, retry ${attempt}/3 in 20s`)
+        await new Promise(r => setTimeout(r, 20000))
+        return trySetWebhook(attempt + 1)
+      }
+      console.error('[OMEGA-BOT] Webhook failed, falling back to polling:', e.message)
+      bot.stopPolling?.()
+      bot.startPolling?.()
+      scheduleWebhookRestore()
+      return false
+    }
+  }
+
+  function scheduleWebhookRestore() {
+    if (global.omegaWebhookRestoreCron) return
+    import('node-cron').then(({ default: cron }) => {
+      global.omegaWebhookRestoreCron = cron.schedule('*/30 * * * *', async () => {
+        console.log('[OMEGA-BOT] cron: retrying webhook from polling fallback')
+        try {
+          await bot.deleteWebhook({ drop_pending_updates: true })
+          await bot.setWebhook(WEBHOOK_URL)
+          console.log('[OMEGA-BOT] Webhook restored from polling')
+          bot.stopPolling?.()
+          global.omegaWebhookRestoreCron.stop?.()
+          global.omegaWebhookRestoreCron = null
+        } catch (e) {
+          console.warn('[OMEGA-BOT] cron: webhook restore failed:', e.message)
+        }
+      })
+    }).catch(() => {})
+  }
+
+  trySetWebhook()
+  })().catch(e => {
+    console.error('[OMEGA-BOT] init error:', e.message)
   })
+  global.omegaBotInitPromise = initPromise
+  return initPromise
 }
 
 const updateBotMenu = () => {

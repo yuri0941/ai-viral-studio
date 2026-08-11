@@ -5,7 +5,7 @@ let connectRedisPromise = null;
 const inMemoryCache = new Map();
 
 function getRedisUrl() {
-  return process.env.REDIS_URL || process.env.REDISCLOUD_URL || null;
+  return process.env.REDIS_URL || process.env.REDISCLOUD_URL || process.env.UPSTASH_REDIS_URL || null;
 }
 
 export async function connectRedis() {
@@ -17,7 +17,11 @@ export async function connectRedis() {
       return false;
     }
     try {
-      redis = new Redis(url, { maxRetriesPerRequest: 3, connectTimeout: 10000 });
+      redis = new Redis(url, {
+        maxRetriesPerRequest: 3,
+        connectTimeout: 10000,
+        retryStrategy: (times) => Math.min(times * 100, 2000),
+      });
       await redis.ping();
       console.log('✅ Redis connected');
       return true;
@@ -31,13 +35,26 @@ export async function connectRedis() {
 }
 
 export function getCache() {
-  if (redis) return redis;
+  if (redis) {
+    return {
+      get: (key) => redis.get(key),
+      set: (key, val, ttlSeconds) => redis.setex(key, ttlSeconds, val),
+      del: (key) => redis.del(key),
+      flushall: () => redis.flushall(),
+    };
+  }
   return {
     async get(key) {
-      return inMemoryCache.get(key) || null;
+      const entry = inMemoryCache.get(key);
+      if (!entry) return null;
+      if (Date.now() > entry.expiresAt) {
+        inMemoryCache.delete(key);
+        return null;
+      }
+      return entry.value;
     },
-    async set(key, val, ttl) {
-      inMemoryCache.set(key, val);
+    async set(key, val, ttlSeconds) {
+      inMemoryCache.set(key, { value: val, expiresAt: Date.now() + ttlSeconds * 1000 });
       return 'OK';
     },
     async del(key) {

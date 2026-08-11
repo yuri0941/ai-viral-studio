@@ -20,8 +20,12 @@ const PERMANENT_ERROR_CODES = [
   'not_connected',
   'needs_scope',
   'no_chat',
-  'no_token'
+  'no_token',
+  'scope_denied'
 ]
+
+// [v9.9.19.16.1] log each permanent skip only once per process
+const permanentSkipLogged = new Set()
 
 function isPermanentError(result) {
   const text = String(result?.error || result?.result?.error || result?.result?.hint || result?.errorMessage || '').toLowerCase()
@@ -107,7 +111,13 @@ export const startAutoPublisher = () => {
             post.publishedAt = new Date()
             if (publishedCount === 0) {
                 post.errorMessage = results.map(r => `${r.platform}: ${r.error || r.result?.error || 'failed'}`).join('; ')
-                console.warn(`[AUTO-PUBLISH] skipped: post ${post._id} — 0 platforms published (${results.map(r => `${r.platform}:${r.status}`).join(', ')})`)
+                // [v9.9.19.16.1] prevent permanent-failed posts from being re-selected every 5 minutes
+                post.retriedAt = new Date()
+                const skipKey = `${post._id}:${post.errorMessage}`
+                if (!permanentSkipLogged.has(skipKey)) {
+                    permanentSkipLogged.add(skipKey)
+                    console.warn(`[AUTO-PUBLISH] skipped: post ${post._id} — 0 platforms published (${results.map(r => `${r.platform}:${r.status}`).join(', ')})`)
+                }
                 if (!noPlatformAlerted.has(String(post._id))) {
                     noPlatformAlerted.add(String(post._id))
                     try {

@@ -261,3 +261,10 @@
 - Deprecation `path`/`auth` у ChromaClient устранён новым синтаксисом.
 - KEY/cache/keep-alive/bot-skip шум переведён на debug/однократный лог; safeJSONParse — компактная одна строка.
 - VK retry: новые коды причин `not_connected`/`needs_scope`/`no_token`/`no_chat` = перманентный failed без retry.
+
+
+### v9.9.19.16.1 — startup webhook autofix final
+- Двойной init ботов/кэша: promise-guard в owner/omega bot, `redis.js` делегирует в единый `redisClient.js` → один лог `[Cache]`.
+- OMEGA-бот: при 409 на setWebhook ретрай до 3 раз с 20с; fallback в polling + cron каждые 30 мин на возврат webhook.
+- autoFixAgent: `AuditLog.processed` — обработанные записи не пересканируются, цикл молчит о старых ошибках.
+- autoPublisher: permanent-failed посты получают `retriedAt` и не логируются повторно; добавлен `scope_denied` в перманентные коды.

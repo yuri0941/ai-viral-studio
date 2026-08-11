@@ -24,6 +24,7 @@ import { wrapBotHtmlSending } from '../utils/telegramHtml.js'
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
 let bot = global.ownerBotInstance || null
 let started = global.ownerBotStarted || false
+let initPromise = global.ownerBotInitPromise || null
 
 const OWNER_TOKEN = process.env.TELEGRAM_OWNER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN
 const OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID || process.env.OWNER_CHAT_ID || process.env.OWNER_USER_ID
@@ -145,9 +146,11 @@ async function buildMenuRows(ownerId) {
   return rows
 }
 export const initOwnerBot = () => {
-  if (started) { console.debug('[OWNER-BOT] Already started, skipping'); return }
-  started = true
-  global.ownerBotStarted = true
+  if (initPromise) return initPromise
+  initPromise = (async () => {
+    if (started) { console.debug('[OWNER-BOT] Already started, skipping'); return }
+    started = true
+    global.ownerBotStarted = true
 
   if (!OWNER_TOKEN || !OWNER_CHAT_ID) {
     console.warn('[OWNER-BOT] Skip: TELEGRAM_OWNER_BOT_TOKEN or TELEGRAM_OWNER_CHAT_ID missing')
@@ -937,6 +940,11 @@ export const initOwnerBot = () => {
     bot.stopPolling?.()
     bot.startPolling?.()
   })
+  })().catch(e => {
+    console.error('[OWNER-BOT] init error:', e.message)
+  })
+  global.ownerBotInitPromise = initPromise
+  return initPromise
 }
 
 const isOwner = (chatId) => String(chatId) === String(OWNER_CHAT_ID)

@@ -17,6 +17,8 @@ const CRITICAL_TYPES = ['500 Server Error', 'Database Error', 'crash']
 async function loadRecentAuditLogs(limit = 100) {
     try {
         return await AuditLog.find({
+            processed: { $ne: true },
+            timestamp: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
             $or: [
                 { severity: { $in: ['high', 'critical'] } },
                 { action: { $regex: /error|failed|exception|crash|timeout/i } },
@@ -54,19 +56,29 @@ export async function scanForErrors() {
 
     const results = []
     for (const [type, group] of Object.entries(grouped)) {
-        const representative = group.logs[0]
-        const isCritical = CRITICAL_TYPES.includes(type) || group.priority === 'critical'
-        const fix = await analyzeError({ type, stack: representative.action, metadata: representative.metadata })
-        const proposal = await createFixProposal({ type, stack: representative.action, metadata: representative.metadata }, fix, group.priority, group.module)
-        results.push({ type, count: group.count, proposal, critical: isCritical })
+        try {
+            const representative = group.logs[0]
+            const isCritical = CRITICAL_TYPES.includes(type) || group.priority === 'critical'
+            const fix = await analyzeError({ type, stack: representative.action, metadata: representative.metadata })
+            const proposal = await createFixProposal({ type, stack: representative.action, metadata: representative.metadata }, fix, group.priority, group.module)
+            results.push({ type, count: group.count, proposal, critical: isCritical })
 
-        if (isCritical) {
-            console.warn(`[autoFixAgent] CRITICAL error detected: ${type}. Proposal id ${proposal._id}. Owner alert required.`)
-            try {
-                await alertOwner(`🚨 AutoFix: критическая ошибка ${type}\nМодуль: ${group.module}\nПредложение: ${proposal._id}\n\n${fix.explanation?.slice(0, 200) || ''}`, 'error')
-            } catch (e) {
-                console.warn('[autoFixAgent] telegram alert failed:', e.message)
+            if (isCritical) {
+                console.warn(`[autoFixAgent] CRITICAL error detected: ${type}. Proposal id ${proposal._id}. Owner alert required.`)
+                try {
+                    await alertOwner(`🚨 AutoFix: критическая ошибка ${type}\nМодуль: ${group.module}\nПредложение: ${proposal._id}\n\n${fix.explanation?.slice(0, 200) || ''}`, 'error')
+                } catch (e) {
+                    console.warn('[autoFixAgent] telegram alert failed:', e.message)
+                }
             }
+
+            // Mark audit logs as processed so they are not re-scanned
+            await AuditLog.updateMany(
+                { _id: { $in: group.logs.map(l => l._id) } },
+                { $set: { processed: true } }
+            )
+        } catch (e) {
+            console.warn(`[autoFixAgent] failed to process group ${type}:`, e.message)
         }
     }
 

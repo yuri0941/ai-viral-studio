@@ -33,6 +33,10 @@ const auditLogSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,
         default: {},
     },
+    processed: {
+        type: Boolean,
+        default: false,
+    },
     timestamp: {
         type: Date,
         default: Date.now,

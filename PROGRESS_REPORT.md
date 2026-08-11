@@ -3962,3 +3962,28 @@
   1) Render → Logs после деплоя: старт без ⚠️-простыни, боты Created один раз, одна строка `[payments]`, одна `[HOT-RELOAD]`.
   2) Через 30 мин: ноль KEY-строк, ноль vk retry.
   3) Боту «привет» → отвечает; канал постит; ключи после F5 на месте.
+
+
+## 2026-08-12 — v9.9.19.16.1-STARTUP-WEBHOOK-AUTOFIX-FINAL
+- [DIAG] После 19.16 в Render-логах осталось: `[Cache] Redis not configured ×2`, `[OWNER-BOT]/[OMEGA-BOT] Created + Already started`, `[OMEGA-BOT] Webhook failed, falling back to polling` (409), autoFixAgent каждые 15 мин сканирует одну и ту же ошибку, skipped-посты логируются повторно.
+- [TABLE] Источники и действия:
+  | Строка | Файл | Причина | Действие |
+  |---|---|---|---|
+  | `[Cache] Redis not configured ×2` | `backend/config/redis.js` + `backend/config/redisClient.js` | Два независимых модуля кэша инициализируются при старте | `redis.js` делегирует в `redisClient.js`, одно подключение/один лог |
+  | `[OWNER-BOT]/[OMEGA-BOT] Created + Already started` | `backend/services/ownerBot.js`, `backend/services/omegaBot.js` | Второй вызов `initOwnerBot`/`initOmegaBot` внутри одного процесса | Promise-guard: повторный вызов ждёт/пропускает, без повторного лога |
+  | `[OMEGA-BOT] Webhook failed ... polling` | `backend/services/omegaBot.js` | 409 Conflict при setWebhook (старый процесс ещё жив) → fallback навсегда | Ретрай setWebhook до 3 раз с 20с; fallback + cron 30 мин на возврат webhook |
+  | autoFixAgent повторяет одну ошибку | `backend/ai/omega/autoFixAgent.js` | `AuditLog` не помечается как обработанный | Фильтр `processed: { $ne: true }` + пометка после обработки |
+  | skipped-пост каждый цикл | `backend/services/autoPublisher.js` | permanent-failed посты без `retriedAt` попадают в выборку снова | `retriedAt` при permanent-failed + dedupe Set |
+- [FIX] `backend/config/redisClient.js`: единый idempotent `connectRedis` + `UPSTASH_REDIS_URL` + `retryStrategy` + TTL in-memory fallback.
+- [FIX] `backend/config/redis.js`: полностью делегирует в `redisClient.js`, убран дублирующий лог и второе подключение.
+- [FIX] `backend/services/ownerBot.js`: `initOwnerBot` защищён `global.ownerBotInitPromise` — повторный вызов ждёт/пропускает, без дублирующего лога.
+- [FIX] `backend/services/omegaBot.js`: аналогичный promise-guard; retry `setWebhook` до 3 раз при 409 с 20с интервалом; fallback в polling + cron 30 мин на возврат webhook.
+- [FIX] `backend/models/AuditLog.js`: добавлен `processed: Boolean` (default false).
+- [FIX] `backend/ai/omega/autoFixAgent.js`: сканер берёт только `processed: { $ne: true }` за 7 дней и помечает обработанные записи — старые ошибки не сканируются повторно.
+- [FIX] `backend/services/autoPublisher.js`: permanent-failed посты получают `retriedAt` (не попадают в выборку снова); dedupe-Set для лога; добавлен `scope_denied`.
+- [TEST] `node --check` по ownerBot.js, omegaBot.js, redis.js, redisClient.js, autoFixAgent.js, autoPublisher.js, AuditLog.js ✅; `npm run build` ✅; `git diff --stat` — только init/кэш/webhook/autoFix/autoPublisher + документы.
+- [NOTE] Источник строки «Cannot use import statement outside a module» — не файл кода (grep по backend не находит), а старая запись в `AuditLog`; после пометки `processed` повторные сканы прекратятся.
+- [NOTE] Ручная проверка владельцем:
+  1) Render → Logs после деплоя: `[Cache]` одна строка; `[OWNER-BOT]`/`[OMEGA-BOT]` Created по одному разу; оба webhook set.
+  2) Боту «привет» сразу и через 10 мин → отвечает.
+  3) 15 мин лога: нет повторов skipped/autoFix по тем же причинам.
