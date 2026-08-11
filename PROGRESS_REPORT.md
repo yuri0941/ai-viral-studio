@@ -3733,3 +3733,12 @@
 - [BUILD] index.html BUILD больше не хардкод 'v7.0-2026-08-07': Vite подставляет %APP_BUILD% = v<pkg.version>-<дата> из package.json (transformIndexHtml), dev-guard против reload-цикла
 - [TEST] telegramHtml 9/9 PASS; persistence: запись semantic → kill процесса → рестарт → "[OMEGA] Memory restored: semantic=1" ✅ (реальный рестарт); neural-graph содержит sem-узлы из памяти ✅; memory-status/test-yookassa с admin → 403 JSON (не 500) ✅; npm run build ✅
 - [NOTE] CHAT_CONTEXT.md — пробел в имени был исправлен ещё в v9.9.19.2-v4. Живые проверки владельцем: «изучи тест» → рост записей; рестарт Render → данные на месте; /posttest без прав → честная инструкция; 🧪 Проверить ЮKassa с тестовой картой
+
+## 2026-08-11 — v9.9.19.14.2-SHORTTERM-CAST-FIX
+- [SYMPTOM] Render-логи: "[Memory] write-through failed (short_term): Cast to [string] failed ... at path entries.0" ×2 на каждую запись, дамп ~900 строк в лог
+- [ROOT CAUSE — найден экспериментально] В схеме OmegaMemoryLayer поле поддокумента называлось `type: String` — mongoose трактует ключ `type` как type-объявление и компилировал entries как [String] (caster=SchemaString, проверено introspection схемы). ЛЮБАЯ запись объекта в entries падала с CastError → short_term не персистился вообще. Диагноз «строка в БД» из промпта оказался следствием: в БД документы чистые (inspect-скриптом подтверждено), битой была компиляция схемы
+- [FIX] Модель: `type: { type: String, default: 'fact' }` — вложенная форма для поля с именем type; caster стал subdocument (проверено)
+- [FIX] Write-through type guards (memoryLayerService): normalizeEntries — строка → JSON.parse/[] с warning, не-объекты отбрасываются, plain objects с гарантированными полями; getRam/upsertLayer никогда не отдают и не сохраняют строку; self-heal при restore (sanitize + перезапись, если в БД мусор)
+- [FIX] Логи: logMemoryError — одна строка, [CastError] + layer + entries.length, message обрезан до 200 символов; все catch в memoryLayerService переведены
+- [SCRIPTS] inspectMemoryLayers.js (таблица типов по 12 слоям), repairMemoryEntries.js (идемпотентный ремонт: строка → JSON/corruptedDump, фильтр не-объектов), inspectLegacyMemory.js, test_shortterm_write.mjs
+- [TEST] Реальный прогон: CastError воспроизведён локально до фикса → после фикса write-through записал объект (DB: last-type=object) → kill процесса → рестарт → "[OMEGA] Memory restored: short_term=1" — факт пережил рестарт; repair-скрипт идемпотентен (повторный запуск — все слои clean); node --check всех файлов ✅

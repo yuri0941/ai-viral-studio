@@ -37,9 +37,54 @@ const LAYER_TTL_MS = {
 const state = new Map(); // layer -> entries[] (RAM-кэш)
 const dirtyLayers = new Set(); // слои, не записавшиеся в БД (для saveAllLayers)
 
+// [v9.9.19.14.2] однострочный лог ошибки: CastError дампит весь массив в message (~900 строк) — режем
+function logMemoryError(prefix, err, extra = '') {
+  const kind = err?.name === 'CastError' ? 'CastError' : 'Error';
+  const msg = String(err?.message || err).replace(/\s+/g, ' ').slice(0, 200);
+  console.warn(`${prefix} [${kind}]${extra} ${msg}`);
+}
+
+// [v9.9.19.14.2] 3.1 защита типов: entries — ВСЕГДА массив plain-объектов.
+// Строка (сериализованный массив из повреждённого документа) → JSON.parse или []; не-объекты отбрасываются.
+function normalizeEntries(raw, layer = '?') {
+  let arr = raw;
+  if (typeof arr === 'string') {
+    try {
+      const parsed = JSON.parse(arr);
+      arr = Array.isArray(parsed) ? parsed : [];
+      console.warn(`[Memory] layer=${layer} entries был строкой — восстановлено из JSON (${arr.length})`);
+    } catch {
+      console.warn(`[Memory] layer=${layer} entries повреждены (непарсируемая строка ${arr.length} chars) — слой начат с []`);
+      arr = [];
+    }
+  }
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .filter(e => e && typeof e === 'object' && !Array.isArray(e))
+    .map(e => {
+      const plain = JSON.parse(JSON.stringify(e));
+      return {
+        id: String(plain.id || `${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`),
+        type: String(plain.type || 'fact'),
+        content: plain.content ?? '',
+        tags: Array.isArray(plain.tags) ? plain.tags.map(String).slice(0, 10) : [],
+        createdAt: plain.createdAt ? new Date(plain.createdAt) : new Date(),
+        updatedAt: plain.updatedAt ? new Date(plain.updatedAt) : new Date(),
+        accessCount: Number.isFinite(plain.accessCount) ? plain.accessCount : 0,
+      };
+    });
+}
+
 function getRam(layer) {
   if (!state.has(layer)) state.set(layer, []);
-  return state.get(layer);
+  const ram = state.get(layer);
+  // [v9.9.19.14.2] RAM не должен содержать строку/не-массив ни при каких условиях
+  if (!Array.isArray(ram)) {
+    const fixed = normalizeEntries(ram, layer);
+    state.set(layer, fixed);
+    return fixed;
+  }
+  return ram;
 }
 
 function contentKey(content) {
@@ -47,16 +92,19 @@ function contentKey(content) {
 }
 
 async function upsertLayer(layer) {
+  // [v9.9.19.14.2] 3.1 перед save: полная замена нормализованным массивом plain-объектов — строка невозможна
+  const safe = normalizeEntries(getRam(layer), layer);
+  state.set(layer, safe);
   await OmegaMemoryLayer.updateOne(
     { layer },
-    { $set: { entries: getRam(layer), lastUpdated: new Date() }, $inc: { version: 1 } },
+    { $set: { entries: safe, lastUpdated: new Date() }, $inc: { version: 1 } },
     { upsert: true }
   );
   dirtyLayers.delete(layer);
 }
 
 // [1.4] Единая точка записи: RAM + немедленный upsert в MongoDB.
-// Ошибка БД → warning + 1 retry; RAM-операция не падает никогда.
+// Ошибка БД → warning (одна строка) + 1 retry; RAM-операция не падает никогда.
 export async function addMemoryEntry(layer, { id, type = 'fact', content, tags = [] } = {}) {
   if (!LAYERS.includes(layer) || content == null) return null;
   const ram = getRam(layer);
@@ -76,12 +124,13 @@ export async function addMemoryEntry(layer, { id, type = 'fact', content, tags =
   try {
     await upsertLayer(layer);
   } catch (e) {
-    console.warn(`[Memory] write-through failed (${layer}), retry once:`, e.message);
+    // [v9.9.19.14.2] 3.2/4.1 CastError логируем отдельно и ОДНОЙ строкой — без дампа массива
+    logMemoryError(`[Memory] write-through failed (${layer}), retry once:`, e, ` entries=${ram.length}`);
     try {
       await upsertLayer(layer);
     } catch (e2) {
       dirtyLayers.add(layer);
-      console.warn(`[Memory] write-through retry failed (${layer}):`, e2.message);
+      logMemoryError(`[Memory] write-through retry failed (${layer}):`, e2, ` entries=${ram.length}`);
     }
   }
   return entry;
@@ -121,7 +170,7 @@ async function migrateLegacyOmegaMemory() {
     }
     if (migrated) console.log(`[OMEGA] Legacy memory migrated: ${migrated} entries`);
   } catch (e) {
-    console.warn('[OMEGA] Legacy memory migration failed:', e.message);
+    logMemoryError('[OMEGA] Legacy memory migration failed:', e);
   }
 }
 
@@ -130,7 +179,17 @@ async function migrateLegacyOmegaMemory() {
 export async function restoreMemoryLayers() {
   try {
     const docs = await OmegaMemoryLayer.find({ layer: { $in: LAYERS } }).lean();
-    const byLayer = Object.fromEntries(docs.map(d => [d.layer, d.entries || []]));
+    // [v9.9.19.14.2] self-heal при старте: строка/мусор в entries → нормализация + перезапись чистым массивом
+    const byLayer = {};
+    for (const d of docs) {
+      const cleaned = normalizeEntries(d.entries || [], d.layer);
+      const rawLen = Array.isArray(d.entries) ? d.entries.length : -1;
+      if (rawLen !== cleaned.length) {
+        OmegaMemoryLayer.updateOne({ layer: d.layer }, { $set: { entries: cleaned, lastUpdated: new Date() } }).catch(() => {});
+        console.warn(`[Memory] layer=${d.layer} sanitized at restore (${rawLen === -1 ? 'string' : rawLen} → ${cleaned.length})`);
+      }
+      byLayer[d.layer] = cleaned;
+    }
 
     // [7.3] здоровая структура: отсутствующие слои создаём пустыми
     for (const l of LAYERS) {
@@ -183,7 +242,7 @@ export async function restoreMemoryLayers() {
     await migrateLegacyOmegaMemory();
     return totalCount;
   } catch (e) {
-    console.warn('[OMEGA] Memory restore failed:', e.message);
+    logMemoryError('[OMEGA] Memory restore failed:', e);
     return 0;
   }
 }
@@ -210,7 +269,7 @@ export async function backupMemoryLayers() {
     console.log(`[OMEGA] Memory backup saved (checksum ${checksum.slice(0, 8)})`);
     return true;
   } catch (e) {
-    console.warn('[OMEGA] Memory backup failed:', e.message);
+    logMemoryError('[OMEGA] Memory backup failed:', e);
     return false;
   }
 }
@@ -256,7 +315,7 @@ export async function memorySelfDiagnosis() {
     }
     return getLayerCounts();
   } catch (e) {
-    console.warn('[OMEGA] Self-diagnosis failed:', e.message);
+    logMemoryError('[OMEGA] Self-diagnosis failed:', e);
     return null;
   }
 }

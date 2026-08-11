@@ -13,7 +13,9 @@ const OmegaMemoryLayerSchema = new mongoose.Schema({
   },
   entries: [{
     id: String,
-    type: String,           // fact | skill | event | command | profile | pattern | ...
+    // [v9.9.19.14.2] поле с именем "type" требует вложенной формы — иначе mongoose
+    // трактует весь поддокумент как type-объявление и компилирует entries как [String] (CastError на записи)
+    type: { type: String, default: 'fact' }, // fact | skill | event | command | profile | pattern | ...
     content: mongoose.Schema.Types.Mixed,
     tags: [String],
     createdAt: Date,

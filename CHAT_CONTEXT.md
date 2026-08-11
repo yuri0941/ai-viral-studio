@@ -101,6 +101,8 @@
 
 **Дальше по плану:** 19.4-AUTH-401-FIX (частично закрыт здесь), 19.7-VK-PKCE-FIX, 19.8-KEY-HEALTH-UI (частично закрыт: статус invalid в ApiKeysTab)
 
+**v9.9.19.14.2-SHORTTERM-CAST-FIX — выполнен** (2026-08-11): корень — поле `type: String` в поддокументе entries компилировалось mongoose как [String] → CastError на каждой записи. Фикс: вложенная форма `type: { type: String }`, type guards в write-through, self-heal sanitize при restore, однострочные логи. Repair-скрипт идемпотентен (backend/scripts/repairMemoryEntries.js).
+
 ---
 
 ## ⏳ ОЧЕРЕДЬ ФИКСОВ (P0 — критично)
