@@ -18,5 +18,7 @@ const ClientDialogueSchema = new mongoose.Schema({
 
 ClientDialogueSchema.index({ telegramChatId: 1, updatedAt: -1 });
 ClientDialogueSchema.index({ outcome: 1, intent: 1 });
+// [v9.9.19.6] TTL: контекст диалога живёт 7 дней с последнего сообщения
+ClientDialogueSchema.index({ updatedAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
 
 export default mongoose.model('ClientDialogue', ClientDialogueSchema);

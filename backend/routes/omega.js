@@ -574,6 +574,32 @@ router.get('/neural-graph', protect, async (req, res) => {
 router.get('/neural-graph/status', (req, res) => {
     res.json({ nodes: 47, edges: 128, clusters: 5, lastUpdate: new Date().toISOString() })
 })
+
+// [v9.9.19.6] Реальные изученные навыки OMEGA (SkillNode) для OmegaSkillsTab — никаких моков
+router.get('/skill-nodes', protect, async (req, res) => {
+    try {
+        const { default: SkillNode } = await import('../models/SkillNode.js')
+        const skills = await SkillNode.find().sort({ learnedAt: -1 }).limit(100).lean()
+        res.json({
+            success: true,
+            total: skills.length,
+            skills: skills.map(s => ({
+                id: s._id,
+                name: s.name,
+                summary: s.summary,
+                factsCount: s.facts?.length || 0,
+                facts: (s.facts || []).slice(0, 3),
+                source: s.source,
+                learnedAt: s.learnedAt,
+                appliedCount: s.appliedCount || 0,
+                lastAppliedAt: s.lastAppliedAt,
+            })),
+        })
+    } catch (e) {
+        console.error('[omega/skill-nodes]', e.message)
+        res.json({ success: true, total: 0, skills: [], empty: true })
+    }
+})
 router.get('/neural-graph/nodes', (req, res) => {
     const nodes = [
         { id: 'n1', label: 'ContentAI', type: 'project', x: 0.2, y: 0.3, connections: 5 },

@@ -160,6 +160,25 @@ export function clearGraph() {
     nodes.clear()
 }
 
+// [v9.9.19.6] Восстановление in-memory графа из MongoDB при старте.
+// In-memory Map — только кэш; источник истины — CognitiveNode в MongoDB.
+export async function hydrateFromDB(limit = 300) {
+    try {
+        const { default: CognitiveNode } = await import('../../models/CognitiveNode.js')
+        const docs = await CognitiveNode.find({ archived: { $ne: true } }).sort({ _id: -1 }).limit(limit).lean()
+        let count = 0
+        for (const d of docs) {
+            addNode(d.type, String(d.content || '').slice(0, 120), { source: d.source, confidence: d.confidence }, [], { id: `cog-${d._id}` })
+            count++
+        }
+        console.log(`[NeuralGraph] Hydrated ${count} nodes from MongoDB`)
+        return count
+    } catch (e) {
+        console.warn('[NeuralGraph] hydrate failed:', e.message)
+        return 0
+    }
+}
+
 // [v9.9.19-NEURAL-PLUS] Generate graph data with seed knowledge
 export async function generateGraphData(ownerId) {
     try {
@@ -221,21 +240,43 @@ export async function generateGraphData(ownerId) {
             if (skillNodes[i % skillNodes.length]) edges.push({ source: p.id, target: skillNodes[i % skillNodes.length].id, weight: 0.5, relation: 'uses' })
         })
 
-        // === SEED KNOWLEDGE: OMEGA always knows this ===
-        const seedKnowledge = [
-            { id: 'seed-smm', label: 'SMM Fundamentals', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 11, data: { facts: 47, source: 'training' } },
-            { id: 'seed-hooks', label: 'Viral Hooks', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 23, source: 'training' } },
-            { id: 'seed-viral', label: 'Viral Mechanics', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 31, source: 'training' } },
-            { id: 'seed-cta', label: 'CTA Psychology', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 9, data: { facts: 18, source: 'training' } },
-            { id: 'seed-content', label: 'Content Strategy', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 42, source: 'training' } },
-            { id: 'seed-tg', label: 'Telegram Growth', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 8, data: { facts: 15, source: 'training' } },
-            { id: 'seed-ai', label: 'AI Prompting', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 9, data: { facts: 28, source: 'training' } },
-            { id: 'seed-ads', label: 'Ad Targeting', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 8, data: { facts: 19, source: 'training' } }
-        ]
-        graphNodes.push(...seedKnowledge)
+        // === [v9.9.19.6] ЗНАНИЯ OMEGA: реальные изученные навыки (SkillNode), seed — только fallback ===
+        let learnedSkills = []
+        try {
+            const { default: SkillNode } = await import('../../models/SkillNode.js')
+            learnedSkills = await SkillNode.find().sort({ learnedAt: -1 }).limit(50).lean()
+        } catch {}
 
-        for (let i = 0; i < seedKnowledge.length - 1; i++) {
-            edges.push({ source: seedKnowledge[i].id, target: seedKnowledge[i + 1].id, weight: 0.6, relation: 'related' })
+        const knowledgeNodes = learnedSkills.length
+            ? learnedSkills.map((s, i) => ({
+                id: `kn-${s._id}`,
+                label: s.name,
+                type: 'knowledge',
+                cluster: 5,
+                color: '#F59E0B',
+                size: Math.min(14, 8 + (s.facts?.length || 0)),
+                data: {
+                    facts: s.facts?.length || 0,
+                    summary: (s.summary || '').substring(0, 120),
+                    source: s.source || 'ai',
+                    learnedAt: s.learnedAt,
+                    appliedCount: s.appliedCount || 0
+                }
+            }))
+            : [
+                { id: 'seed-smm', label: 'SMM Fundamentals', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 11, data: { facts: 47, source: 'training' } },
+                { id: 'seed-hooks', label: 'Viral Hooks', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 23, source: 'training' } },
+                { id: 'seed-viral', label: 'Viral Mechanics', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 31, source: 'training' } },
+                { id: 'seed-cta', label: 'CTA Psychology', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 9, data: { facts: 18, source: 'training' } },
+                { id: 'seed-content', label: 'Content Strategy', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 42, source: 'training' } },
+                { id: 'seed-tg', label: 'Telegram Growth', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 8, data: { facts: 15, source: 'training' } },
+                { id: 'seed-ai', label: 'AI Prompting', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 9, data: { facts: 28, source: 'training' } },
+                { id: 'seed-ads', label: 'Ad Targeting', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 8, data: { facts: 19, source: 'training' } }
+            ]
+        graphNodes.push(...knowledgeNodes)
+
+        for (let i = 0; i < knowledgeNodes.length - 1; i++) {
+            edges.push({ source: knowledgeNodes[i].id, target: knowledgeNodes[i + 1].id, weight: 0.6, relation: 'related' })
         }
 
         // OMEGA Core
@@ -249,7 +290,7 @@ export async function generateGraphData(ownerId) {
             data: { status: 'active', ownerId: ownerId?.toString?.() || null }
         }
         graphNodes.push(coreNode)
-        edges.push({ source: 'omega-core', target: 'seed-smm', weight: 1, relation: 'knows' })
+        if (knowledgeNodes[0]) edges.push({ source: 'omega-core', target: knowledgeNodes[0].id, weight: 1, relation: 'knows' })
 
         const totalFacts = graphNodes.filter(n => n.data?.facts).reduce((a, n) => a + (n.data.facts || 0), 0)
 
@@ -261,14 +302,15 @@ export async function generateGraphData(ownerId) {
                 { id: 1, name: 'Проекты', color: '#F97316', nodeCount: projectNodes.length },
                 { id: 2, name: 'Клиенты', color: '#8B5CF6', nodeCount: clientNodes.length },
                 { id: 3, name: 'Навыки', color: '#00ff41', nodeCount: skillNodes.length },
-                { id: 5, name: 'Знания OMEGA', color: '#F59E0B', nodeCount: seedKnowledge.length }
+                { id: 5, name: 'Знания OMEGA', color: '#F59E0B', nodeCount: knowledgeNodes.length }
             ],
             meta: {
                 totalFacts,
                 totalSkills: skillNodes.length,
+                learnedSkills: learnedSkills.length,
                 totalClients: clientNodes.length,
                 totalProjects: projectNodes.length,
-                lastLearned: new Date().toISOString()
+                lastLearned: learnedSkills[0]?.learnedAt || new Date().toISOString()
             }
         }
     } catch (e) {
@@ -296,4 +338,5 @@ export default {
     importGraph,
     clearGraph,
     generateGraphData,
+    hydrateFromDB,
 }

@@ -1,6 +1,14 @@
 # CHAT_CONTEXT — AI Viral Studio (чаты, боты, формат ответов AI)
 
-## Версия: v9.9.19.3-TG-BOTS-FIX | Дата: 2026-08-10
+## Версия: v9.9.19.6-OMEGA-AUTONOMY-LUXE | Дата: 2026-08-11
+
+## ⚠️ НОВОЕ (v9.9.19.6): поток команд владельца
+Любое свободное сообщение владельца в ownerBot → `submitOwnerCommand()` (services/commandExecutor.js):
+1. Запись в OmegaCommand (MongoDB, статус queued) → 2. Мгновенный «⚡ Взяла в работу» → 3. Выполнение (известный intent → actionEngine; «изучи X» → skillService; неизвестное → AI-планировщик с инструментами ai_text/web_search/publish_post/learn_topic/db_stats) → 4. «✅ Сделано + verification» или «❌ причина / нужно от вас / могу вместо».
+- `/commands` — журнал из OmegaCommand (последние 20, проценты только из модели).
+- Посты канала — ТОЛЬКО через `postBuilder.publishLuxuryPost()` (HTML без **, обложка Pollinations, whitelist-ссылки из linkGuard, Self-Audit ≤900 симв.).
+- Тексты канала — через `linkGuard.prepareChannelText()` (markdown→HTML + замена мёртвых ссылок).
+- Навыки — `SkillNode` (MongoDB): facts[5-10], appliedCount++ при реальном использовании в постах.
 
 ## ⚠️ ГЛАВНОЕ ПРАВИЛО: chatWithAI() возвращает ОБЪЕКТ
 `chatWithAI(message, history, lang, options)` → `{ success, reply, provider, usage, ... }` — НИКОГДА строку.

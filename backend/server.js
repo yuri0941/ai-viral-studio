@@ -363,6 +363,27 @@ if (isConnected) {
     } catch (err) {
         console.warn('[server] OMEGA core init failed:', err.message)
     }
+
+    // [v9.9.19.6] Dream Mode: ночное самообучение (02:00-06:00) + утренний отчёт (08:00) — всегда активен
+    try {
+        const { default: dreamMode } = await import('./ai/omega/dreamMode.js')
+        dreamMode.start()
+    } catch (err) {
+        console.warn('[server] Dream Mode start failed:', err.message)
+    }
+
+    // [v9.9.19.6] Восстановление состояния из MongoDB: навыки, команды, очередь, нейрограф
+    try {
+        const { recoverCommandsOnBoot } = await import('./services/commandExecutor.js')
+        const { default: SkillNode } = await import('./models/SkillNode.js')
+        const { hydrateFromDB } = await import('./ai/omega/neuralGraph.js')
+        const rec = await recoverCommandsOnBoot()
+        const skillsCount = await SkillNode.countDocuments()
+        await hydrateFromDB()
+        console.log(`[OMEGA] State restored: ${skillsCount} skills, ${rec.total} commands, ${rec.queued} queued`)
+    } catch (err) {
+        console.warn('[server] OMEGA state restore failed:', err.message)
+    }
 }
 
 const ALLOWED_ORIGINS = [

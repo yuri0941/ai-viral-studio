@@ -8,10 +8,24 @@ import { OmegaMemory } from '../../models/index.js'
 import { PredictionStats } from '../../models/index.js'
 import { Notification } from '../../models/index.js'
 import { alertOmega } from '../../services/omegaBot.js'
+import SkillNode from '../../models/SkillNode.js'
+import OmegaCommand from '../../models/OmegaCommand.js'
+import LearningState from '../../models/LearningState.js'
+import { learnTopic } from '../../services/skillService.js'
 
 const DREAM_START_HOUR = 2
 const DREAM_END_HOUR = 6
 const BRIEFING_HOUR = 8
+
+// [v9.9.19.6] Темы ночного самообучения, если тренды недоступны
+const NIGHT_STUDY_POOL = [
+    'тренды Telegram SMM 2026',
+    'виральные хуки для Reels и Shorts',
+    'психология CTA в Telegram-постах',
+    'алгоритмы рекомендаций соцсетей 2026',
+    'MCP-паттерны и AI-агенты: лучшие практики',
+    'монетизация Telegram-каналов',
+]
 
 /**
  * OMEGA Dream Mode — autonomous night shift.
@@ -31,6 +45,46 @@ class DreamMode {
             predictionsUpdated: 0,
         }
         this.cronJobs = []
+        this.lastNightLearning = [] // [{name, summary}] — для утреннего отчёта
+    }
+
+    // [v9.9.19.6] Персист состояния в MongoDB — метрики переживают рестарт/редеплой
+    async loadState() {
+        try {
+            const doc = await LearningState.findOne({ key: 'dreamMode' }).lean()
+            if (doc?.value) {
+                Object.assign(this.metrics, doc.value.metrics || {})
+                this.lastRun = doc.value.lastRun || null
+                this.lastNightLearning = doc.value.lastNightLearning || []
+            }
+        } catch (err) { console.warn('[DreamMode] state load failed:', err.message) }
+    }
+
+    async saveState() {
+        try {
+            await LearningState.findOneAndUpdate(
+                { key: 'dreamMode' },
+                { value: { metrics: this.metrics, lastRun: this.lastRun, lastNightLearning: this.lastNightLearning } },
+                { upsert: true }
+            )
+        } catch (err) { console.warn('[DreamMode] state save failed:', err.message) }
+    }
+
+    // [v9.9.19.6] Ночная смена: изучаем 1-2 новые темы → skill-узлы → сразу применяются в постах
+    async runNightLearning(trends) {
+        const trendTopics = (trends || []).map(t => t.topic || t.title || '').filter(Boolean).slice(0, 2)
+        const topics = trendTopics.length ? trendTopics : NIGHT_STUDY_POOL.sort(() => Math.random() - 0.5).slice(0, 2)
+        this.lastNightLearning = []
+        for (const topic of topics) {
+            try {
+                const r = await learnTopic(String(topic).slice(0, 120), { source: 'dream_mode' })
+                if (!r.already) {
+                    this.lastNightLearning.push({ name: r.skill.name, summary: r.skill.summary })
+                    console.log(`[DreamMode] 🧠 Learned new skill: ${r.skill.name} (${r.skill.facts.length} facts)`)
+                }
+            } catch (err) { console.warn('[DreamMode] night learning failed:', err.message) }
+        }
+        return this.lastNightLearning
     }
 
     isNightShiftWindow() {
@@ -52,6 +106,9 @@ class DreamMode {
             // 1. Scan 50+ trend sources (aggregated via getTrends)
             const trends = await getTrends('', 50)
             this.metrics.trendsScanned += trends.length || 0
+
+            // 1.5 [v9.9.19.6] Непрерывное самообучение: 1-2 темы за ночь → skill-узлы в MongoDB
+            await this.runNightLearning(trends)
 
             // 2. Generate 10 post ideas for each active client
             const users = await User.find({ role: 'client', status: { $ne: 'inactive' } }).limit(100).lean()
@@ -99,6 +156,7 @@ class DreamMode {
             }
 
             this.lastRun = new Date().toISOString()
+            await this.saveState()
             console.log(`[DreamMode] Night shift finished in ${Date.now() - start}ms`)
             return { status: 'completed', metrics: { ...this.metrics } }
         } catch (err) {
@@ -191,7 +249,24 @@ class DreamMode {
                 }
             } catch (e) { console.warn('[DreamMode] MRR calc failed:', e.message) }
 
-            const report = `📊 <b>OMEGA Morning Briefing</b>\n🗓 ${today.toLocaleDateString('ru-RU')}\n\n💰 MRR: ${mrr.toLocaleString('ru-RU')}₽\n👥 Клиентов: ${totalUsers} (+${newUsers} за 24ч)\n🎫 Открытых тикетов: ${openTickets}\n🤖 Агентов: ${activeAgents}/12\n🌙 Ночная смена: трендов ${this.metrics.trendsScanned}, идей ${this.metrics.ideasGenerated}\n\n<i>Хорошего дня, владелец.</i>`
+            // [v9.9.19.6] Секция самообучения: что изучено за ночь, команды вчера, всего навыков
+            let learningSection = ''
+            try {
+                const [nightSkills, totalSkills, cmdsYesterday, cmdsDoneYesterday] = await Promise.all([
+                    SkillNode.find({ learnedAt: { $gte: yesterday } }).sort({ learnedAt: -1 }).limit(3).lean(),
+                    SkillNode.countDocuments(),
+                    OmegaCommand.countDocuments({ createdAt: { $gte: yesterday } }),
+                    OmegaCommand.countDocuments({ createdAt: { $gte: yesterday }, status: 'done' }),
+                ])
+                const learned = nightSkills.length
+                    ? nightSkills.map(s => `• ${s.name}: ${(s.summary || '').slice(0, 90)}`).join('\n')
+                    : (this.lastNightLearning.length
+                        ? this.lastNightLearning.map(s => `• ${s.name}: ${(s.summary || '').slice(0, 90)}`).join('\n')
+                        : '• Новых тем не было — углубляла существующие навыки')
+                learningSection = `\n🧠 <b>За ночь изучено:</b>\n${learned}\n📎 Применяется в: постах канала и ответах AI\n📨 Команд вчера: ${cmdsYesterday}, выполнено: ${cmdsDoneYesterday}\n🎓 Навыков всего: ${totalSkills}\n`
+            } catch (e) { console.warn('[DreamMode] learning section failed:', e.message) }
+
+            const report = `📊 <b>OMEGA Morning Briefing</b>\n🗓 ${today.toLocaleDateString('ru-RU')}\n\n💰 MRR: ${mrr.toLocaleString('ru-RU')}₽\n👥 Клиентов: ${totalUsers} (+${newUsers} за 24ч)\n🎫 Открытых тикетов: ${openTickets}\n🤖 Агентов: ${activeAgents}/12\n🌙 Ночная смена: трендов ${this.metrics.trendsScanned}, идей ${this.metrics.ideasGenerated}\n${learningSection}\n<i>Хорошего дня, владелец.</i>`
 
             await alertOwner(report, 'info')
 
@@ -214,6 +289,8 @@ class DreamMode {
 
     start() {
         if (this.cronJobs.length) return
+
+        this.loadState() // [v9.9.19.6] восстановление метрик из MongoDB
 
         // Every hour during night: run shift if inside 02:00-06:00
         this.cronJobs.push(cron.schedule('0 2-5 * * *', async () => {

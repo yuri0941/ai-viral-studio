@@ -16,6 +16,7 @@ import { detectIntent } from '../ai/omega/intentEngine.js'
 import { executeAction } from '../ai/omega/actionEngine.js'
 import { recordOutcome } from '../ai/omega/learningEngine.js'
 import { ROLE_INSTRUCTIONS } from '../ai/omega/contextEngine.js'
+import { submitOwnerCommand, getCommandsLog } from './commandExecutor.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -402,41 +403,18 @@ export const initOwnerBot = () => {
 
     await withTyping(chatId, async () => {
       try {
-        const { generateChannelPost, resolveTelegramTarget } = await import('./telegramChannelManager.js');
-        const { generateCover } = await import('./mediaPublisher.js');
-        const post = await generateChannelPost({ topic, niche: 'general', style: 'viral', language: 'ru' });
-        const postText = extractText(post?.text);
-        if (!postText) throw new Error('Не удалось сгенерировать пост — попробуйте другую тему');
-
-        const { channel } = await resolveTelegramTarget();
-        if (!channel) throw new Error('Канал не настроен: добавьте TELEGRAM_CHANNEL или telegram_chat_id в Кабинет → API Ключи');
-
-        let coverBuffer = null;
-        try {
-          coverBuffer = await generateCover(`luxury viral social media cover about ${topic}, dark violet background, no text`, 1024, 1024);
-        } catch (coverErr) {
-          console.warn('[OWNER-BOT] cover generation failed:', coverErr.message);
-        }
-
-        // [v9.9.19.3] публикация с проверкой результата и ссылкой-доказательством
-        let messageId = null;
-        const channelSlug = String(channel).replace('@', '');
-        if (coverBuffer) {
-          const sent = await bot.sendPhoto(channel, coverBuffer, { caption: `${postText.slice(0, 700)}\n\n#AIViralStudio`, parse_mode: 'HTML' });
-          messageId = sent?.message_id;
-        } else {
-          const pub = await telegramPublish({ title: post.title, text: `${postText}\n\n#AIViralStudio` });
-          if (!pub?.success) throw new Error(pub?.error || 'Публикация не удалась');
-          messageId = pub.messageId;
-        }
-        const url = /^[a-zA-Z][\w]{3,}$/.test(channelSlug) && messageId ? `https://t.me/${channelSlug}/${messageId}` : null;
+        // [v9.9.19.6] люкс-пост через postBuilder: HTML без **, обложка, whitelist-ссылки, self-audit
+        const { publishLuxuryPost } = await import('./postBuilder.js');
+        const pub = await publishLuxuryPost({ topic, niche: 'general', tone: 'уверенный экспертный' });
+        if (!pub?.success) throw new Error(pub?.error || 'Публикация не удалась');
 
         safeSendMessage(chatId,
           `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
-          `📢 Канал: ${channel}\n` +
+          `📢 Канал: ${pub.channel}\n` +
           `📝 Тема: ${topic}\n` +
-          `🖼 Обложка: ${coverBuffer ? '✅' : '⚠️ без обложки'}\n` +
-          (url ? `🔗 <a href="${url}">Открыть пост</a>\n` : `🔎 message_id: ${messageId}\n`) +
+          `🖼 Медиа: ${pub.mediaType}\n` +
+          (pub.appliedSkills?.length ? `🧠 Навыки: ${pub.appliedSkills.join(', ')}\n` : '') +
+          (pub.url ? `🔗 <a href="${pub.url}">Открыть пост</a>\n` : `🔎 message_id: ${pub.messageId}\n`) +
           `⏰ ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━\nOMEGA 🤖`,
           {
             reply_markup: {
@@ -475,22 +453,19 @@ export const initOwnerBot = () => {
     const type = (match[1] || 'value').toLowerCase();
     const topic = match[2] ? match[2].trim() : 'Новость дня';
 
-    safeSendMessage(chatId, `⏳ Генерирую пост типа "${type}"...`);
+    safeSendMessage(chatId, `⏳ Собираю люкс-пост типа "${type}"...`);
     try {
-      const post = await generateChannelPost({ type, topic, niche: 'general', style: 'expert', length: 'medium', language: 'ru' });
-      if (!post || !post.text) throw new Error('Не удалось сгенерировать пост');
-
-      await publishToChannel({
-        text: post.text,
-        imageUrl: post.imageUrl,
-        caption: post.text.slice(0, 200)
-      });
+      // [v9.9.19.6] через postBuilder: HTML, обложка, рабочие ссылки
+      const { publishLuxuryPost } = await import('./postBuilder.js');
+      const pub = await publishLuxuryPost({ topic, tone: type === 'promo' ? 'продающий' : 'уверенный экспертный' });
+      if (!pub?.success) throw new Error(pub?.error || 'Не удалось опубликовать пост');
 
       safeSendMessage(chatId,
         `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
-        `📢 Канал: @aiviralstudio\n` +
+        `📢 Канал: ${pub.channel || '@aiviralstudio'}\n` +
         `📝 Тип: ${type}\n` +
         `📝 Тема: ${topic}\n` +
+        (pub.url ? `🔗 <a href="${pub.url}">Открыть пост</a>\n` : '') +
         `⏰ ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━\nOMEGA 🤖`
       );
     } catch (e) {
@@ -578,6 +553,27 @@ export const initOwnerBot = () => {
     safeSendMessage(chatId, text, { parse_mode: 'HTML' });
   });
 
+  // [v9.9.19.6] /commands — реальный журнал команд из OmegaCommand (MongoDB)
+  bot.onText(/\/commands/, async (msg) => {
+    const chatId = msg.chat.id; if (!isOwner(chatId)) return;
+    try {
+      const { cmds, total, done, rate } = await getCommandsLog(chatId, 20);
+      if (!cmds.length) { safeSendMessage(chatId, '📜 <b>Журнал команд пуст</b>\nОтправьте любую команду — я выполню и запишу результат.'); return; }
+      const statusEmoji = { queued: '⏳', running: '⚙️', done: '✅', failed: '❌' };
+      let text = `📜 <b>Журнал команд</b> (последние ${cmds.length})\n━━━━━━━━━━━━━━\n`;
+      cmds.forEach(c => {
+        const t = new Date(c.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        text += `${statusEmoji[c.status] || '❔'} <i>${t}</i> — ${c.text.slice(0, 45)}${c.text.length > 45 ? '…' : ''}\n`;
+        if (c.status === 'done' && c.verification) text += `   🔎 ${c.verification.slice(0, 70)}\n`;
+        if (c.status === 'failed' && c.error) text += `   ⚠️ ${c.error.slice(0, 70)}\n`;
+      });
+      text += `━━━━━━━━━━━━━━\n📊 Всего: ${total} · Выполнено: ${done} (<b>${rate}%</b>)`;
+      safeSendMessage(chatId, text, { parse_mode: 'HTML' });
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ Журнал временно недоступен: ${e.message}`);
+    }
+  });
+
   // [v9.9.19-MASTER-AUDIT] голосовые от владельца → Whisper STT → текстовый поток команд
   bot.on('voice', async (msg) => {
     const chatId = msg.chat.id;
@@ -647,22 +643,12 @@ export const initOwnerBot = () => {
       return;
     }
 
-    // Owner → Action-Oriented Intent Engine
-    const intent = detectIntent(text);
-    if (intent.action !== 'chat') {
-      const result = await executeAction({ intent, text, chatId, userRole: 'owner', bot });
-      await recordOutcome({ userId: chatId, intent: intent.intent, action: intent.action, success: result.success, error: result.error, metadata: result });
-      return;
-    }
-
-    // Owner → AI chat fallback (no menu, no greeting spam)
+    // [v9.9.19.6] ЛЮБОЕ сообщение владельца → очередь команд: мгновенный акцепт → выполнение → отчёт с verification.
+    // В CHAT без попытки выполнения — никогда (универсальный исполнитель разбирает любой запрос).
     try {
-      const ownerPrompt = `${ROLE_INSTRUCTIONS.owner}\n\nСообщение владельца: "${text}"\n\nОтветь кратко, по делу, с цифрами если применимо. Не предлагай тарифы и не продавай. Дай actionable item.`;
-      const aiResult = await chatWithAI(ownerPrompt, [], 'ru', { maxTokens: 400, temperature: 0.6 });
-      const reply = (extractText(aiResult) || 'Принято, работаю.').replace(/\*\*/g, '');
-      safeSendMessage(chatId, `🤖 <b>OMEGA</b>\n\n${reply}`);
-      await createNode({ type: 'telegram', content: `Owner: ${text} | OMEGA: ${reply}`, confidence: 0.9, source: 'telegram_bot', metadata: { chatId, text, reply, type: 'telegram_dialog' } });
+      await submitOwnerCommand({ chatId, text, bot });
     } catch (e) {
+      console.error('[OWNER-BOT] command submit error:', e.message);
       bot.sendMessage(chatId, '⚠️ <b>OMEGA</b> временно недоступна.\nПопробуйте позже.', { parse_mode: 'HTML' });
     }
   });

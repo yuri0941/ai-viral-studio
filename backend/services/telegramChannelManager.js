@@ -1,5 +1,6 @@
 import { chatWithAI, extractText, getProviderKey } from './aiService.js';
 import { createNode } from './cognitiveMesh.js';
+import { prepareChannelText, getWhitelistPrompt } from './linkGuard.js';
 
 // [v9.9.19.3] hot-reload: токен/канал резолвятся в момент вызова (env → cache → MongoDB)
 export async function resolveTelegramTarget() {
@@ -31,7 +32,7 @@ export async function generateChannelPost(params = {}) {
   const tone = config.tone || config.style || 'expert';
   const length = config.length || 'medium';
   const language = config.language || 'ru';
-  const prompt = `Write a Telegram post about ${topic} for AI Viral Studio channel. Tone: ${tone}. Length: ${length} (short=100 words, medium=250, long=500). Include 3-5 relevant hashtags. Add call-to-action: link to aiviral-studio.ru. Return JSON: { title, text, hashtags, cta, suggestedTime }`;
+  const prompt = `Write a Telegram post about ${topic} for AI Viral Studio channel. Tone: ${tone}. Length: ${length} (short=100 words, medium=250, long=500). Include 3-5 relevant hashtags. Add call-to-action: link to aiviral-studio.ru. NO markdown (no **, no *, no _) — plain text only. Use ONLY these links, others are forbidden: ${getWhitelistPrompt()}. Return JSON: { title, text, hashtags, cta, suggestedTime }`;
   const response = await chatWithAI(prompt, [], language, { system: 'Return ONLY valid JSON.', maxTokens: 1500, temperature: 0.7 });
   // [v9.9.19.3] FIX: response — объект {reply, provider}; сначала extractText, иначе JSON.parse/slice падали
   const raw = extractText(response).replace(/```json|```/g, '').trim();
@@ -52,9 +53,11 @@ export async function publishToChannel(post, options = {}) {
   const body = extractText(post.text || post.caption || '');
   const hashtags = Array.isArray(post.hashtags) ? post.hashtags.join(' ') : extractText(post.hashtags || '');
   const cta = extractText(post.cta || '');
-  const text = (title
+  const rawText = (title
     ? `${title}\n\n${body}\n\n${hashtags}\n\n${cta}`
     : `${body}${cta ? '\n\n' + cta : ''}`).trim();
+  // [v9.9.19.6] markdown → HTML + проверка ссылок: никаких ** и мёртвых URL в канале
+  const text = await prepareChannelText(rawText, 4000);
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

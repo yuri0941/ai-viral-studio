@@ -1,6 +1,5 @@
 import { detectIntent, extractTopic } from './intentEngine.js';
-import { generateChannelPost, publishToChannel } from '../../services/telegramChannelManager.js';
-import { extractText } from '../../services/aiService.js';
+import { publishLuxuryPost } from '../../services/postBuilder.js';
 import { createTicket } from '../../services/supportService.js';
 import { analyzeDailyPerformance } from '../../services/selfReflection.js';
 import { generateOptimizationReport } from '../../services/performanceMonitor.js';
@@ -11,17 +10,15 @@ export async function executeAction({ intent, text, chatId, userRole, bot }) {
   switch (intent.action) {
     case 'post': {
       const topic = extractTopic(text, intent);
-      safeSend(`⏳ Генерирую пост: "${topic}"...`);
+      safeSend(`⏳ Собираю люкс-пост: "${topic}" (текст + обложка)...`);
       try {
-        const post = await generateChannelPost({ topic, niche: 'general', style: 'viral', language: 'ru' });
-        const postText = extractText(post?.text);
-        if (!postText) throw new Error('Генерация не удалась — попробуйте другую тему');
-        // [v9.9.19.3] проверяем результат публикации + ссылка-доказательство
-        const pub = await publishToChannel({ text: postText.slice(0, 900), imageUrl: post.imageUrl, caption: post.caption || postText.slice(0, 200) });
+        // [v9.9.19.6] весь постинг — через postBuilder: HTML без **, обложка, whitelist-ссылки, self-audit
+        const pub = await publishLuxuryPost({ topic, niche: 'general', tone: 'уверенный экспертный' });
         if (!pub?.success) throw new Error(pub?.error || 'Публикация не удалась');
         safeSend(
           `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
-          `📢 Канал: ${pub.channel || '@aiviralstudio'}\n📝 Тема: ${topic}\n⏰ ${new Date().toLocaleString('ru-RU')}` +
+          `📢 Канал: ${pub.channel || '@aiviralstudio'}\n📝 Тема: ${topic}\n🖼 Медиа: ${pub.mediaType || 'text'}\n⏰ ${new Date().toLocaleString('ru-RU')}` +
+          (pub.appliedSkills?.length ? `\n🧠 Применены навыки: ${pub.appliedSkills.join(', ')}` : '') +
           (pub.url ? `\n\n🔗 <a href="${pub.url}">Открыть пост</a>` : `\n\n🔎 Проверьте канал — message_id: ${pub.messageId}`)
         );
         return { success: true, action: 'post', topic, messageId: pub.messageId, url: pub.url };
@@ -80,6 +77,14 @@ export async function executeAction({ intent, text, chatId, userRole, bot }) {
       }
     }
     case 'menu': {
+      safeSend(
+        `🤖 <b>OMEGA — что я умею</b>\n━━━━━━━━━━━━━━\n` +
+        `• «опубликуй пост про X» — люкс-пост в канал (обложка, ссылки)\n` +
+        `• «изучи X» — исследую тему, сохраню навык, применю в постах\n` +
+        `• «статус» / «отчёт» — реальные цифры системы\n` +
+        `• /commands — журнал всех команд с результатами\n` +
+        `• Любая другая команда — разобью на шаги и выполню доступными инструментами`
+      );
       return { success: true, action: 'menu' };
     }
     default: {

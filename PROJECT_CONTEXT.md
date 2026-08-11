@@ -1,8 +1,16 @@
 # PROJECT CONTEXT — AI Viral Studio (kilo2)
 # ⚠️ Kimi VS Code: прочитай этот файл ПЕРЕД любой задачей. Это единый источник правды.
-# Дата контекста: 2026-08-10 | Версия проекта: v9.9.19-MASTER-AUDIT-K3
+# Дата контекста: 2026-08-11 | Версия проекта: v9.9.19.6-OMEGA-AUTONOMY-LUXE
 
 ---
+
+## 2026-08-11 — Контекст v9.9.19.6-OMEGA-AUTONOMY-LUXE
+- Execution Engine: любая команда владельца → акцепт → OmegaCommand (MongoDB) → результат с verification или ❌-шаблон; /commands журнал
+- postBuilder: люкс-посты (HTML, обложка Pollinations, whitelist-ссылки, Self-Audit); весь постинг (команды, /post, /channel, cron channelPublisher) через него; сырой markdown убит linkGuard'ом
+- skillService: «изучи X» → SkillNode (facts, appliedCount); навыки реально применяются в постах; OmegaSkillsTab — реальные данные из /omega/skill-nodes
+- Dream Mode: автостарт, ночное самообучение (1-2 темы), утренний отчёт с секцией обучения; метрики в LearningState
+- Память без обнуления: диалоги → ClientDialogue (TTL 7д), нейрограф → hydrateFromDB при старте, «[OMEGA] State restored»
+- Neural Graph mobile: монохром, fitToView, круговая начальная раскладка, одно поле поиска, реальное «Навыков изучено»
 
 ## 2026-08-10 — Контекст v9.9.19.3-TG-BOTS-FIX
 - Единая нормализация ответов AI: extractText() (aiService.js) во всех 45+ потребителях chatWithAI — убиты crash "response.slice is not a function" и сырой JSON в чатах

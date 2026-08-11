@@ -1,8 +1,16 @@
 # OMEGA_CONTEXT — AI Viral Studio
 
-## Версия: v9.9.19.3-TG-BOTS-FIX
-## Дата: 2026-08-10
-## Статус: Единый формат AI-ответов (extractText), канал с доказательством публикации, owner-панель на реальных данных
+## Версия: v9.9.19.6-OMEGA-AUTONOMY-LUXE
+## Дата: 2026-08-11
+## Статус: Универсальное выполнение команд с доказательством, люкс-посты, живые навыки, память в MongoDB, ночное самообучение
+
+### v9.9.19.6 — OMEGA Autonomy Luxe
+- commandExecutor: акцепт «⚡ Взяла в работу» → очередь OmegaCommand → ✅ verification / ❌ причина+альтернатива; /commands журнал
+- postBuilder + linkGuard: HTML-посты без **, обложка Pollinations/Replicate, только whitelist-ссылки (aiviral-studio.ru, t.me/aiviralstudio, t.me/aiviral_omega_bot, FRONTEND_URL), Self-Audit с перегенерацией
+- skillService + SkillNode: изучение тем (web/AI), appliedCount при применении в постах, дедуп «Уже знаю…»
+- Dream Mode: автостарт в server.js, ночное обучение 1-2 темы, Morning Briefing с секцией 🧠; метрики в LearningState (переживают редеплой)
+- Персист: ClientDialogue (TTL 7д) вместо global.clientDialogues; нейрограф hydrateFromDB из CognitiveNode; «[OMEGA] State restored: N skills, M commands, K queued»
+- Neural Graph: knowledge-узлы = реальные SkillNode; фронт — монохром + fitToView + мобильная панель
 
 ### v9.9.19.3 — TG Bots Fix
 - extractText() — единая нормализация ответов chatWithAI во всех потребителях (45+ файлов)

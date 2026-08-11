@@ -1,4 +1,3 @@
-import { chatWithAI, extractText } from './aiService.js';
 import { findNiche } from '../data/niches.js';
 
 const TEMPLATES = {
@@ -57,21 +56,20 @@ export async function generatePost(config, forcedType = null) {
     config.contentMix.engagement
   ]);
   const template = randomPick(TEMPLATES[type]).replace(/{niche}/g, niche);
-  const prompt = `Ты — SMM-эксперт Telegram-канала о ${niche}. Стиль: ${config.tone}. Язык: ${config.language}. Задача: напиши пост по теме "${template}". Формат JSON: { title (цепляющий, с эмодзи), body (3-5 коротких абзацев), cta (призыв к действию), hashtags (3-5 штук), emotion (motivational/curiosity/urgency/fun), suggestedMedia (image/video/carousel/poll) }`;
-  const ai = await chatWithAI(prompt, [], config.language, { maxTokens: 900, temperature: 0.8 });
-  const aiText = extractText(ai).replace(/```json|```/g, '').trim(); // [v9.9.19.3] FIX: объект → строка + strip markdown
-  let post;
-  try {
-    post = JSON.parse(aiText.match(/\{[\s\S]*\}/)?.[0] || aiText || '{}');
-  } catch (e) {
-    post = {
-      title: template,
-      body: aiText || 'Контент готовится...',
-      cta: 'Подпишись на канал',
-      hashtags: `#${niche} #AI`,
-      emotion: 'curiosity',
-      suggestedMedia: 'image'
-    };
-  }
-  return { ...post, type, niche, generatedAt: new Date() };
+  // [v9.9.19.6] люкс-пост через postBuilder: HTML без ** и простыней, whitelist-ссылки,
+  // факты изученных навыков подмешиваются автоматически (appliedCount++)
+  const { buildLuxuryPost } = await import('./postBuilder.js');
+  const built = await buildLuxuryPost({ topic: template, tone: config.tone, language: config.language });
+  return {
+    title: built.topic,
+    body: built.text,
+    cta: '',
+    hashtags: '',
+    html: built.text,
+    emotion: 'curiosity',
+    suggestedMedia: 'image',
+    type,
+    niche,
+    generatedAt: new Date()
+  };
 }

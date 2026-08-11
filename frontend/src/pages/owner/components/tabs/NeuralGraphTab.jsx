@@ -4,18 +4,22 @@ import { Network, ZoomIn, ZoomOut, RotateCcw, Search, X, Filter, Info } from 'lu
 import { request } from '../../../../services/api.js';
 
 const TYPE_COLORS = {
-  project: '#F59E0B',
-  client: '#8B5CF6',
-  skill: '#10B981',
-  error: '#EF4444',
-  idea: '#06B6D4',
-  memory: '#06B6D4',
-  trend: '#6366F1',
-  tech: '#14B8A6',
+  core: '#FFFFFF',
+  knowledge: '#E5E7EB',
+  skill: '#D1D5DB',
+  project: '#9CA3AF',
+  client: '#6B7280',
+  error: '#4B5563',
+  idea: '#D1D5DB',
+  memory: '#E5E7EB',
+  trend: '#9CA3AF',
+  tech: '#D1D5DB',
   default: '#9CA3AF'
 };
 
 const TYPE_LABELS = {
+  core: 'Ядро',
+  knowledge: 'Знания',
   project: 'Проекты',
   client: 'Клиенты',
   skill: 'Навыки',
@@ -28,11 +32,12 @@ const TYPE_LABELS = {
 
 const FILTERS = [
   { id: 'all', label: 'Все' },
+  { id: 'core', label: 'Ядро' },
+  { id: 'knowledge', label: 'Знания' },
   { id: 'project', label: 'Проекты' },
   { id: 'client', label: 'Клиенты' },
   { id: 'skill', label: 'Навыки' },
   { id: 'error', label: 'Ошибки' },
-  { id: 'idea', label: 'Идеи' },
 ];
 
 function getColor(type) {
@@ -165,6 +170,18 @@ export default function NeuralGraphTab() {
     const centerX = size.w / 2;
     const centerY = size.h / 2;
 
+    // Начальная раскладка: узлы без валидных пиксельных координат расставляем кругом вокруг центра
+    const layoutRadius = Math.min(size.w, size.h) * 0.35;
+    simNodes.forEach((n, i) => {
+      if (Number.isFinite(n.x) && Number.isFinite(n.y) && (Math.abs(n.x) > 2 || Math.abs(n.y) > 2)) return;
+      const angle = (i / Math.max(1, simNodes.length)) * Math.PI * 2;
+      const ring = 0.5 + 0.5 * ((i % 4) / 3);
+      n.x = centerX + Math.cos(angle) * layoutRadius * ring;
+      n.y = centerY + Math.sin(angle) * layoutRadius * ring;
+      n.vx = 0;
+      n.vy = 0;
+    });
+
     const step = () => {
       if (!running) return;
       for (let i = 0; i < simNodes.length; i++) {
@@ -225,6 +242,37 @@ export default function NeuralGraphTab() {
     return () => { running = false; cancelAnimationFrame(animationRef.current); };
   }, [nodes.length, edges.length, size.w, size.h, draggingNode]);
 
+  // Подгонка камеры: весь граф в кадре с отступом ~40px
+  const fitToView = () => {
+    const list = physicsRef.current.nodes?.length ? physicsRef.current.nodes : nodes;
+    if (!list.length || !size.w || !size.h) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    list.forEach(n => {
+      if (!Number.isFinite(n.x) || !Number.isFinite(n.y)) return;
+      minX = Math.min(minX, n.x);
+      minY = Math.min(minY, n.y);
+      maxX = Math.max(maxX, n.x);
+      maxY = Math.max(maxY, n.y);
+    });
+    if (!Number.isFinite(minX)) return;
+    const pad = 40;
+    const bw = Math.max(1, maxX - minX);
+    const bh = Math.max(1, maxY - minY);
+    const z = Math.max(0.3, Math.min(2, Math.min((size.w - pad * 2) / bw, (size.h - pad * 2) / bh)));
+    setZoom(z);
+    setPan({
+      x: (size.w - bw * z) / 2 - minX * z,
+      y: (size.h - bh * z) / 2 - minY * z
+    });
+  };
+
+  // fitToView после загрузки данных и после каждой смены фильтра (с задержкой, чтобы физика разошлась)
+  useEffect(() => {
+    if (!nodes.length || !size.w || !size.h) return;
+    const t = setTimeout(fitToView, 400);
+    return () => clearTimeout(t);
+  }, [nodes, filter, size.w, size.h]);
+
   const filteredNodes = useMemo(() => {
     let list = physicsRef.current.nodes || nodes;
     if (filter !== 'all') list = list.filter(n => n.type === filter || n.cluster === filter);
@@ -269,7 +317,7 @@ export default function NeuralGraphTab() {
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
-      ctx.strokeStyle = isHighlighted || isSelected ? 'rgba(139,92,246,0.8)' : 'rgba(255,255,255,0.12)';
+      ctx.strokeStyle = isHighlighted || isSelected ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.12)';
       ctx.lineWidth = isHighlighted || isSelected ? 1.5 : 0.8;
       if (isHighlighted) {
         ctx.setLineDash([4, 4]);
@@ -289,9 +337,10 @@ export default function NeuralGraphTab() {
       const r = n.size * (isSelected ? 1.4 : isHovered ? 1.2 : 1);
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = n.color;
-      ctx.shadowBlur = isHovered || isSelected ? 20 : 8;
-      ctx.shadowColor = n.color;
+      const nodeColor = getColor(n.type);
+      ctx.fillStyle = nodeColor;
+      ctx.shadowBlur = isHovered || isSelected ? 20 : (n.type === 'core' ? 16 : 8);
+      ctx.shadowColor = nodeColor;
       ctx.fill();
       ctx.shadowBlur = 0;
       ctx.strokeStyle = isSelected ? '#fff' : 'rgba(255,255,255,0.2)';
@@ -304,7 +353,7 @@ export default function NeuralGraphTab() {
         ctx.lineWidth = 1;
         ctx.stroke();
       }
-      if (zoom > 0.6 || isHovered || isSelected) {
+      if (isHovered || isSelected) {
         ctx.fillStyle = '#fff';
         ctx.font = '10px sans-serif';
         ctx.fillText((n.label || '').slice(0, 18), n.x + r + 4, n.y + 3);
@@ -415,7 +464,7 @@ export default function NeuralGraphTab() {
       {selectedNode && (
         <div className={`${floating ? '' : 'absolute top-4 right-4'} w-64 glass-luxury rounded-xl border border-[var(--border)] p-4 z-20`}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm flex items-center gap-2"><span className="w-3 h-3 rounded-full" style={{ background: selectedNode.color }} /> {selectedNode.label}</h3>
+            <h3 className="font-semibold text-sm flex items-center gap-2"><span className="w-3 h-3 rounded-full" style={{ background: getColor(selectedNode.type) }} /> {selectedNode.label}</h3>
             <button onClick={() => setSelectedNode(null)} className="p-2 rounded hover:bg-white/10"><X className="w-4 h-4" /></button>
           </div>
           <div className="space-y-2 text-xs text-[var(--text-muted)]">
@@ -429,7 +478,7 @@ export default function NeuralGraphTab() {
               <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Связанные узлы</p>
               <div className="space-y-1 max-h-32 overflow-auto">
                 {relatedNodes.map(n => (
-                  <div key={n.id} className="flex items-center gap-2 text-xs"><span className="w-2 h-2 rounded-full" style={{ background: n.color }} /> {n.label}</div>
+                  <div key={n.id} className="flex items-center gap-2 text-xs"><span className="w-2 h-2 rounded-full" style={{ background: getColor(n.type) }} /> {n.label}</div>
                 ))}
               </div>
             </div>
@@ -452,23 +501,23 @@ export default function NeuralGraphTab() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2"><Network className="w-6 h-6 text-cyan-400" /> {t('neuralGraph.title') || 'Neural Graph'}</h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            {t('neuralGraph.stats', { nodes: nodes.length, edges: edges.length, clusters: clusters.length }) || `🧠 Neural Graph: ${nodes.length} узлов | ${edges.length} связей | ${clusters.length} кластеров`}
+          <p className="text-sm text-[var(--text-muted)] mt-1 whitespace-nowrap overflow-x-auto no-scrollbar">
+            {t('neuralGraph.stats', { nodes: nodes.length, edges: edges.length, clusters: clusters.length }) || `🧠 Neural Graph: ${nodes.length} узлов | ${edges.length} связей | ${clusters.length} кластеров`} | Навыков изучено: {graphMeta?.learnedSkills ?? graphMeta?.totalSkills ?? 0}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-nowrap md:flex-wrap items-center gap-2 overflow-x-auto no-scrollbar">
           {FILTERS.map(f => (
-            <button key={f.id} onClick={() => setFilter(f.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filter === f.id ? 'bg-purple-600 text-white border-purple-500' : 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-muted)] hover:border-purple-500/30'}`}>
+            <button key={f.id} onClick={() => setFilter(f.id)} className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filter === f.id ? 'bg-purple-600 text-white border-purple-500' : 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-muted)] hover:border-purple-500/30'}`}>
               {f.label}
             </button>
           ))}
-          <div className="relative">
+          <div className="relative flex-1 min-w-0 md:flex-none md:w-44">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('neuralGraph.search') || 'Поиск...'} className="pl-7 pr-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-xs focus:border-purple-500/50 focus:outline-none w-32 md:w-44" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('neuralGraph.search') || 'Поиск узла'} className="w-full min-w-0 flex-1 text-sm pl-7 pr-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] focus:border-purple-500/50 focus:outline-none" />
           </div>
-          <button onClick={() => { setZoom(z => Math.min(3, z + 0.2)); }} className="p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><ZoomIn className="w-4 h-4" /></button>
-          <button onClick={() => { setZoom(z => Math.max(0.4, z - 0.2)); }} className="p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><ZoomOut className="w-4 h-4" /></button>
-          <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); setFilter('all'); setSearch(''); setSelectedNode(null); }} className="p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><RotateCcw className="w-4 h-4" /></button>
+          <button onClick={() => { setZoom(z => Math.min(3, z + 0.2)); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><ZoomIn className="w-4 h-4" /></button>
+          <button onClick={() => { setZoom(z => Math.max(0.4, z - 0.2)); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><ZoomOut className="w-4 h-4" /></button>
+          <button onClick={() => { setFilter('all'); setSearch(''); setSelectedNode(null); fitToView(); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><RotateCcw className="w-4 h-4" /></button>
         </div>
       </div>
 
@@ -481,7 +530,7 @@ export default function NeuralGraphTab() {
         </div>
         <div className="glass-card p-4 rounded-xl border-l-4 border-[#00ff41]">
           <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Навыков изучено</div>
-          <div className="text-2xl font-bold text-[#00ff41] mt-1">{graphMeta?.totalSkills || 0}</div>
+          <div className="text-2xl font-bold text-[#00ff41] mt-1">{graphMeta?.learnedSkills ?? graphMeta?.totalSkills ?? 0}</div>
           <div className="text-xs text-[var(--text-muted)] mt-1">активных навыков</div>
         </div>
         <div className="glass-card p-4 rounded-xl border-l-4 border-[#8B5CF6]">
@@ -553,11 +602,6 @@ export default function NeuralGraphTab() {
           </div>
         )}
       </div>
-      {isMobile && (
-        <div className="px-1">
-          <Legend compact />
-        </div>
-      )}
     </div>
   );
 }

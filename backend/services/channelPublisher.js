@@ -2,6 +2,7 @@ import axios from 'axios';
 import ChannelConfig from '../models/ChannelConfig.js';
 import { generatePost } from './channelContentEngine.js';
 import { getProviderKey } from './aiService.js';
+import { prepareChannelText } from './linkGuard.js';
 
 // [v9.9.19-MASTER-AUDIT] hot-reload: токен бота читается в момент вызова (env → cache → MongoDB)
 async function getBotToken() {
@@ -18,11 +19,15 @@ export async function publishToChannel(configId, forcedType = null, customCaptio
 
   let imageUrl = customImage;
   if (!imageUrl && config.autoImage) {
-    const imgPrompt = `Professional social media visual about ${post.niche}, ${post.emotion}, modern minimalist design, high quality, no text on image, cinematic lighting`;
+    // [v9.9.19.6] стиль канала: тёмный неон, минимализм
+    const imgPrompt = `dark luxury minimalist poster about ${post.niche}, deep black background, glowing white neon lines, premium tech aesthetic, no text`;
     imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imgPrompt)}?width=1024&height=1024&seed=${Date.now()}&nologo=true`;
   }
 
-  let caption = customCaption || `<b>${post.title}</b>\n\n${post.body}\n\n<i>${post.cta}</i>${config.brandSignature || ''}\n\n${post.hashtags || ''}`;
+  // [v9.9.19.6] люкс-HTML из postBuilder; legacy-кастом — через санитайзер (никаких ** и мёртвых ссылок)
+  let caption = customCaption
+    ? await prepareChannelText(customCaption, 1024)
+    : (post.html || `<b>${post.title}</b>\n\n${post.body}\n\n<i>${post.cta}</i>`) + (config.brandSignature || '');
 
   let result;
   try {

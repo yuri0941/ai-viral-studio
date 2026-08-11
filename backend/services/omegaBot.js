@@ -7,7 +7,34 @@ import { handleConciergeRequest } from './concierge.js';
 import { recordOutcome } from '../ai/omega/learningEngine.js';
 
 // Контекстная память диалогов клиентов (последние 10 сообщений)
+// [v9.9.19.6] хранится в MongoDB (ClientDialogue) — переживает рестарт; global — только кэш
 global.clientDialogues = global.clientDialogues || {};
+
+async function getDialogueContext(chatId) {
+  if (global.clientDialogues[chatId]) return global.clientDialogues[chatId];
+  try {
+    const { default: ClientDialogue } = await import('../models/ClientDialogue.js');
+    const doc = await ClientDialogue.findOne({ telegramChatId: String(chatId) }).sort({ updatedAt: -1 }).lean();
+    global.clientDialogues[chatId] = (doc?.messages || []).slice(-10)
+      .map(m => ({ role: m.role, content: m.content, time: new Date(m.timestamp || Date.now()).getTime() }));
+  } catch (e) {
+    global.clientDialogues[chatId] = [];
+  }
+  return global.clientDialogues[chatId];
+}
+
+async function persistDialogueContext(chatId) {
+  try {
+    const { default: ClientDialogue } = await import('../models/ClientDialogue.js');
+    const messages = (global.clientDialogues[chatId] || []).slice(-10)
+      .map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content).slice(0, 2000), intent: 'other', timestamp: new Date(m.time || Date.now()) }));
+    await ClientDialogue.findOneAndUpdate(
+      { telegramChatId: String(chatId) },
+      { $set: { messages, updatedAt: new Date() } },
+      { upsert: true, setDefaultsOnInsert: true }
+    );
+  } catch (e) { console.warn('[omegaBot] dialogue persist failed:', e.message); }
+}
 
 // Privacy Firewall — запрещённые паттерны для ответов клиентам
 const CLIENT_PRIVACY_PATTERNS = [
@@ -232,14 +259,13 @@ export const initOmegaBot = () => {
 
   // [v9.9.7-BOT-CONVERSATION] AI chat with privacy firewall, context memory, smart routing, escalation
   async function handleFreeText(chatId, text, username) {
-    // Инициализируем историю
-    global.clientDialogues[chatId] = global.clientDialogues[chatId] || [];
-    global.clientDialogues[chatId].push({ role: 'user', content: text, time: Date.now() });
-    if (global.clientDialogues[chatId].length > 10) {
-      global.clientDialogues[chatId] = global.clientDialogues[chatId].slice(-10);
-    }
+    // [v9.9.19.6] контекст из MongoDB (переживает рестарт), кэш в global
+    const dialogue = await getDialogueContext(chatId);
+    dialogue.push({ role: 'user', content: text, time: Date.now() });
+    if (dialogue.length > 10) dialogue.splice(0, dialogue.length - 10);
+    persistDialogueContext(chatId); // не блокируем ответ
 
-    const history = global.clientDialogues[chatId].map(m => m.content);
+    const history = dialogue.map(m => m.content);
 
     // Определяем intent и тон
     const intent = detectIntent(text);
@@ -361,8 +387,9 @@ export const initOmegaBot = () => {
 
       keyboard.push([{ text: '📋 Главное меню', callback_data: 'menu:main' }]);
 
-      // Сохраняем ответ в историю
+      // Сохраняем ответ в историю (+ персист в MongoDB)
       global.clientDialogues[chatId].push({ role: 'assistant', content: reply, intent, time: Date.now() });
+      persistDialogueContext(chatId);
 
       const formattedReply = reply
         .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')

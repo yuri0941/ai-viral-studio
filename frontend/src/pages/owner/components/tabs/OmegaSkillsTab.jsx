@@ -1,22 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { request } from '../../../../services/api.js';
 
+// [v9.9.19.6] Реальные изученные навыки OMEGA из MongoDB (SkillNode) — никаких моков
 export function OmegaSkillsTab() {
-  const [skills] = useState([
-    { name: 'SMM Content', level: 85, max: 100, color: '#F59E0B', desc: 'Посты, хуки, вирусность' },
-    { name: 'Telegram Growth', level: 72, max: 100, color: '#8B5CF6', desc: 'Каналы, боты, вовлечение' },
-    { name: 'AI Prompting', level: 91, max: 100, color: '#00ff41', desc: 'Генерация, анализ, оптимизация' },
-    { name: 'Client Sales', level: 68, max: 100, color: '#06B6D4', desc: 'Drip campaigns, CTA, churn guard' },
-    { name: 'Video Creation', level: 45, max: 100, color: '#EF4444', desc: 'Shorts, Reels, TikTok' },
-    { name: 'Predictive Analytics', level: 78, max: 100, color: '#EC4899', desc: 'Прогнозы, тренды, LTV' },
-    { name: 'Neural Graph', level: 60, max: 100, color: '#F97316', desc: 'Связи, кластеры, инсайты' },
-    { name: 'Voice AI', level: 30, max: 100, color: '#6366F1', desc: 'Whisper STT, ElevenLabs TTS' }
-  ]);
+  const [skills, setSkills] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [learning] = useState([
-    { name: 'DeepSeek reasoning patterns', progress: 34, eta: '2 часа', color: '#00ff41' },
-    { name: 'TikTok algorithm 2026', progress: 67, eta: '45 мин', color: '#F59E0B' },
-    { name: 'Russian 422-FZ ad marking', progress: 89, eta: '10 мин', color: '#8B5CF6' }
-  ]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await request('/omega/skill-nodes');
+        if (alive) setSkills(res?.skills || []);
+      } catch (e) {
+        if (alive) setError(e.message);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const totalApplied = skills.reduce((a, s) => a + (s.appliedCount || 0), 0);
+  const maxApplied = Math.max(1, ...skills.map(s => s.appliedCount || 0));
 
   return (
     <div className="space-y-6 p-4 md:p-6 h-full overflow-y-auto">
@@ -24,44 +31,71 @@ export function OmegaSkillsTab() {
         <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-xl">🧠</div>
         <div>
           <h2 className="text-2xl font-bold">OMEGA Skills</h2>
-          <p className="text-sm text-[var(--text-muted)]">Что OMEGA уже знает и изучает прямо сейчас</p>
+          <p className="text-sm text-[var(--text-muted)]">
+            {skills.length
+              ? `Изучено навыков: ${skills.length} · Применений в постах и ответах: ${totalApplied}`
+              : 'Что OMEGA реально изучила и применяет'}
+          </p>
         </div>
       </div>
+
+      {loading && (
+        <div className="glass-card p-6 rounded-xl text-sm text-[var(--text-muted)] animate-pulse">
+          Загружаю навыки из базы…
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="glass-card p-6 rounded-xl text-sm text-[var(--text-muted)]">
+          ⚠️ Не удалось загрузить навыки: {error}
+        </div>
+      )}
+
+      {!loading && !error && skills.length === 0 && (
+        <div className="glass-card p-6 rounded-xl">
+          <h3 className="font-bold mb-2 text-lg">🌱 Навыков пока нет</h3>
+          <p className="text-sm text-[var(--text-muted)]">
+            OMEGA начнёт обучение с первой команды. Напишите владельцу-боту: «изучи ведение канала» —
+            и навык появится здесь с конспектом, датой и счётчиком применений.
+            Ночью OMEGA также учится сама (Dream Mode, 02:00–06:00).
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {skills.map(skill => (
-          <div key={skill.name} className="glass-card p-4 rounded-xl">
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">{skill.name}</span>
-              <span className="text-sm font-bold" style={{ color: skill.color }}>{skill.level}%</span>
+          <div key={skill.id} className="glass-card p-4 rounded-xl">
+            <div className="flex justify-between items-center mb-2 gap-2">
+              <span className="font-medium truncate">{skill.name}</span>
+              <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">
+                {skill.learnedAt ? new Date(skill.learnedAt).toLocaleDateString('ru-RU') : ''}
+              </span>
+            </div>
+            {skill.summary && (
+              <p className="text-xs text-[var(--text-muted)] mb-2 line-clamp-2">{skill.summary}</p>
+            )}
+            {skill.facts?.length > 0 && (
+              <ul className="text-xs space-y-1 mb-3">
+                {skill.facts.map((f, i) => (
+                  <li key={i} className="flex gap-1.5">
+                    <span className="text-[#8B5CF6]">•</span>
+                    <span className="flex-1">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex justify-between items-center text-xs mb-1">
+              <span className="text-[var(--text-muted)]">Применений: <b className="text-[var(--text-primary)]">{skill.appliedCount || 0}</b></span>
+              <span className="text-[var(--text-muted)]">{skill.factsCount} фактов · {skill.source === 'dream_mode' ? '🌙 ночная смена' : skill.source === 'web' ? '🌐 веб' : '🤖 AI'}</span>
             </div>
             <div className="w-full h-2 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-1000"
-                style={{ width: `${skill.level}%`, backgroundColor: skill.color }}
+                className="h-full rounded-full bg-[#8B5CF6] transition-all duration-1000"
+                style={{ width: `${Math.min(100, Math.round(((skill.appliedCount || 0) / maxApplied) * 100))}%` }}
               />
             </div>
-            <p className="text-xs text-[var(--text-muted)] mt-2">{skill.desc}</p>
           </div>
         ))}
-      </div>
-
-      <div className="glass-card p-6 rounded-xl mt-6">
-        <h3 className="font-bold mb-4 text-lg">📚 Что OMEGA изучает сейчас</h3>
-        <div className="space-y-3">
-          {learning.map(item => (
-            <div key={item.name} className="flex items-center gap-3 p-3 rounded-lg bg-[var(--bg-secondary)]">
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: item.color }} />
-              <div className="flex-1">
-                <div className="text-sm font-medium">{item.name}</div>
-                <div className="w-full h-1.5 bg-[var(--bg-secondary)] rounded-full mt-1 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${item.progress}%`, backgroundColor: item.color }} />
-                </div>
-              </div>
-              <div className="text-xs text-[var(--text-muted)]">ETA: {item.eta}</div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
