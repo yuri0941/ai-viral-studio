@@ -251,6 +251,10 @@
     "pay": "Pay",
     "payWithCrypto": "Crypto (USDT/BTC/ETH)",
     "payWithPayPal": "PayPal",
+    "payWith_yookassa": "Pay with YooKassa",
+    "payWith_stripe": "Pay by card (Stripe)",
+    "payWith_paypal": "Pay with PayPal",
+    "payWith_crypto": "Pay with crypto",
     "notifyEmail": "Email notifications",
     "notifyEmailDesc": "Receive notifications by email",
     "notifyPush": "Push notifications",
@@ -262,6 +266,14 @@
     "paymentSuccess": "Payment successful! Subscription activated.",
     "paymentCancelled": "Payment cancelled.",
     "paymentError": "Payment creation error",
+    "paymentMethodUnavailable": "Select a configured payment method",
+    "paymentMethodNotReady": "Payment method is being set up",
+    "paymentNoUrl": "Payment URL not received",
+    "paymentMethodDisabled": "Connect {{method}} in Dashboard → API Keys",
+    "paymentMethodsTitle": "💳 Payment methods",
+    "paymentMethodActive": "Active",
+    "paymentMethodInactive": "Not configured by administrator",
+    "paymentMethodsNotConfigured": "Payment systems are not configured. Contact the platform owner to activate payments.",
     "loading": "Loading...",
     "saving": "Saving...",
     "socialsSaved": "Socials saved",
@@ -301,6 +313,12 @@
     "positionCenter": "Center",
     "supportContact": "Telegram: @ai_viral_support",
     "writeSupport": "Contact support"
+  },
+  "paymentMethods": {
+    "yookassaName": "YooKassa (YooMoney)",
+    "yookassaDescription": "Bank cards, SBP, e-wallet",
+    "stripeName": "Stripe",
+    "stripeDescription": "International cards, Apple Pay, Google Pay"
   },
   "subscriptions": {
     "title": "Subscriptions",
@@ -351,7 +369,17 @@
     "statusMissing": "Missing",
     "keyValue": "Key",
     "missing": "Missing",
-    "rotate": "Rotate"
+    "rotate": "Rotate",
+    "keySaved": "Key saved",
+    "keyWorks": "✅ Key works",
+    "keyWorksWarning": "✅ Key works. {{warning}}",
+    "keyError": "❌ Error: {{error}}",
+    "keyEmpty": "❌ Key is empty after trimming spaces",
+    "testYookassa": "🧪 Test YooKassa",
+    "checkStatus": "Check status",
+    "yookassaOk": "🟢 YooKassa works! You can accept payments",
+    "yookassaHint": "YooKassa: shopId (6 digits) + Secret test_/live_ from dashboard → Integration → API",
+    "yookassaCardHint": "Test card: 5555 5555 5555 4477 · expiry 12/25 · CVV 000"
   },
   "advertiser": {
     "title": "Advertiser",

@@ -236,13 +236,7 @@ function SettingsPage() {
         const key = `settings.payWith_${method}`;
         const direct = t(key);
         if (direct && direct !== key) return direct;
-        const fallback = {
-            yookassa: 'Оплатить через ЮKassa',
-            stripe: 'Оплатить картой (Stripe)',
-            paypal: 'Оплатить PayPal',
-            crypto: 'Оплатить криптой'
-        };
-        return fallback[method] || t('settings.pay');
+        return t('settings.pay');
     };
 
     const handlePayment = (plan) => {
@@ -802,55 +796,44 @@ function SettingsPage() {
 
             {/* [v6.3] Payment methods status */}
             {(() => {
-                const yookassaEnabled = paymentMethods.some(m => m.id === 'yookassa');
-                const stripeEnabled = paymentMethods.some(m => m.id === 'stripe');
+                const yookassaEnabled = paymentMethods.some(m => m.id === 'yookassa' && m.enabled);
+                const stripeEnabled = paymentMethods.some(m => m.id === 'stripe' && m.enabled);
                 return (
                     <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6">
-                        <h3 className="text-lg font-semibold text-white mb-4">💳 Способы оплаты</h3>
+                        <h3 className="text-lg font-semibold text-white mb-4">{t('settings.paymentMethodsTitle')}</h3>
                         <div className="space-y-3">
                             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/5">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs">YK</div>
                                     <div>
-                                        <div className="text-sm text-white font-medium">ЮKassa (ЮMoney)</div>
-                                        <div className="text-xs text-gray-500">Банковские карты, SBP, кошелёк</div>
+                                        <div className="text-sm text-white font-medium">{t('paymentMethods.yookassaName') || 'ЮKassa (ЮMoney)'}</div>
+                                        <div className="text-xs text-gray-500">{t('paymentMethods.yookassaDescription') || 'Банковские карты, SBP, кошелёк'}</div>
                                     </div>
                                 </div>
                                 {yookassaEnabled ? (
-                                    <span className="text-xs text-emerald-400 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> Активно</span>
+                                    <span className="text-xs text-emerald-400 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> {t('settings.paymentMethodActive')}</span>
                                 ) : (
-                                    <span className="text-xs text-gray-500">Не настроено администратором</span>
+                                    <span className="text-xs text-gray-500">{t('settings.paymentMethodInactive')}</span>
                                 )}
                             </div>
                             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/5">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-purple-600 flex items-center justify-center text-white font-bold text-xs">ST</div>
                                     <div>
-                                        <div className="text-sm text-white font-medium">Stripe</div>
-                                        <div className="text-xs text-gray-500">Международные карты, Apple Pay, Google Pay</div>
+                                        <div className="text-sm text-white font-medium">{t('paymentMethods.stripeName') || 'Stripe'}</div>
+                                        <div className="text-xs text-gray-500">{t('paymentMethods.stripeDescription') || 'Международные карты, Apple Pay, Google Pay'}</div>
                                     </div>
                                 </div>
                                 {stripeEnabled ? (
-                                    <span className="text-xs text-emerald-400 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> Активно</span>
+                                    <span className="text-xs text-emerald-400 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> {t('settings.paymentMethodActive')}</span>
                                 ) : (
-                                    <span className="text-xs text-gray-500">Не настроено администратором</span>
+                                    <span className="text-xs text-gray-500">{t('settings.paymentMethodInactive')}</span>
                                 )}
                             </div>
                         </div>
                         {(!yookassaEnabled && !stripeEnabled) && (
                             <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                                <p className="text-xs text-amber-400">💡 Платёжные системы не настроены. Обратитесь к владельцу платформы для активации оплаты.</p>
-                            </div>
-                        )}
-                        {!stripeEnabled && (
-                            <div className="glass-luxury rounded-xl p-4 mt-4">
-                                <p className="text-[var(--text-muted)] text-sm">💳 {t('stripe.unavailable') || 'Оплата Stripe временно недоступна. Используйте бесплатный тариф или свяжитесь с поддержкой.'}</p>
-                                <button
-                                    className="mt-2 text-[var(--primary)] text-sm hover:underline"
-                                    onClick={() => showToast(t('settings.supportContact') || 'Telegram: @your_support', 'info')}
-                                >
-                                    {t('settings.writeSupport') || 'Написать в поддержку'}
-                                </button>
+                                <p className="text-xs text-amber-400">💡 {t('settings.paymentMethodsNotConfigured')}</p>
                             </div>
                         )}
                     </div>

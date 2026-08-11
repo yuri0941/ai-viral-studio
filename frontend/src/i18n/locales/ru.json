@@ -253,6 +253,10 @@
     "pay": "Оплатить",
     "payWithCrypto": "Крипта (USDT/BTC/ETH)",
     "payWithPayPal": "PayPal",
+    "payWith_yookassa": "Оплатить через ЮKassa",
+    "payWith_stripe": "Оплатить картой (Stripe)",
+    "payWith_paypal": "Оплатить PayPal",
+    "payWith_crypto": "Оплатить криптой",
     "notifyEmail": "Email-уведомления",
     "notifyEmailDesc": "Получать уведомления на email",
     "notifyPush": "Push-уведомления",
@@ -264,6 +268,14 @@
     "paymentSuccess": "Оплата прошла успешно! Подписка активирована.",
     "paymentCancelled": "Оплата отменена.",
     "paymentError": "Ошибка создания платежа",
+    "paymentMethodUnavailable": "Выберите настроенный способ оплаты",
+    "paymentMethodNotReady": "Метод оплаты в процессе настройки",
+    "paymentNoUrl": "Не получен URL оплаты",
+    "paymentMethodDisabled": "Подключите {{method}} в Кабинет → API Ключи",
+    "paymentMethodsTitle": "💳 Способы оплаты",
+    "paymentMethodActive": "Активно",
+    "paymentMethodInactive": "Не настроено администратором",
+    "paymentMethodsNotConfigured": "Платёжные системы не настроены. Обратитесь к владельцу платформы для активации оплаты.",
     "loading": "Загрузка...",
     "saving": "Сохранение...",
     "socialsSaved": "Соцсети сохранены",
@@ -303,6 +315,12 @@
     "positionCenter": "Центр",
     "supportContact": "Telegram: @ai_viral_support",
     "writeSupport": "Написать в поддержку"
+  },
+  "paymentMethods": {
+    "yookassaName": "ЮKassa (ЮMoney)",
+    "yookassaDescription": "Банковские карты, SBP, кошелёк",
+    "stripeName": "Stripe",
+    "stripeDescription": "Международные карты, Apple Pay, Google Pay"
   },
   "subscriptions": {
     "title": "Подписки",
@@ -353,7 +371,17 @@
     "statusMissing": "Не задан",
     "keyValue": "Ключ",
     "missing": "Не задан",
-    "rotate": "Обновить"
+    "rotate": "Обновить",
+    "keySaved": "Ключ сохранён",
+    "keyWorks": "✅ Ключ работает",
+    "keyWorksWarning": "✅ Ключ работает. {{warning}}",
+    "keyError": "❌ Ошибка: {{error}}",
+    "keyEmpty": "❌ Ключ пустой после удаления пробелов",
+    "testYookassa": "🧪 Проверить ЮKassa",
+    "checkStatus": "Проверить статус",
+    "yookassaOk": "🟢 ЮKassa работает! Можно принимать платежи",
+    "yookassaHint": "ЮKassa: shopId (6 цифр) + Secret test_/live_ из кабинета → Интеграция → API",
+    "yookassaCardHint": "Тестовая карта: 5555 5555 5555 4477 · срок 12/25 · CVV 000"
   },
   "advertiser": {
     "title": "Рекламодатель",

@@ -3796,3 +3796,15 @@
 - [FIX] backend/scripts/repairApiKeyOwners.js идемпотентно дописывает ownerId владельца (role='owner') в документы без ownerId; значения ключей не трогаются; лог: [REPAIR] assigned ownerId to N keys (skipped M already owned)
 - [TEST] node --check backend/utils/keyScope.js backend/routes/apiKeys.js backend/services/aiService.js backend/scripts/repairApiKeyOwners.js ✅; npm run build ✅; diagnose → все 5 ключей с ownerId; GET /api/api-keys (owner-токен) возвращает все 5 ключей с maskedKey; roundtrip yookassa_secret и ИИ-ключа сохраняется после F5; E11000 не воспроизводится
 - [NOTE] Урок: правки owner-scope — только согласованно GET+POST+DELETE+hot-reload одним helper. Скрипт repairApiKeyOwners.js можно запускать повторно при миграциях.
+
+## 2026-08-11 — v9.9.19.14.7-SUBSCRIPTION-METHOD-UI
+- [DIAG] Страница Подписки (SettingsPage.jsx): валюта и метод оплаты уже связаны — pickDefaultMethod выбирает yookassa для RUB и первый enabled для остальных; табы controlled-state с localStorage; кнопка тарифа = selectedMethod через getPayButtonLabel. Рабочее 19.14.5 НЕ перезаписано.
+- [FIX] Убран хардкод текста кнопок в getPayButtonLabel: fallback-объект на русском удалён, теперь только i18n `settings.payWith_${method}` + `settings.pay`.
+- [FIX] Блок «💳 Способы оплаты» под тарифами переведён на i18n (`settings.paymentMethodsTitle`, `paymentMethods.yookassaName`, `paymentMethods.stripeName`, `settings.paymentMethodActive/Inactive/NotConfigured`); убран дублирующий fallback Stripe-support, оставлен только единый not-configured hint.
+- [FIX] Добавлены отсутствовавшие i18n-ключи:
+  - settings: payWith_yookassa, payWith_stripe, payWith_paypal, payWith_crypto, paymentMethodUnavailable, paymentMethodNotReady, paymentNoUrl, paymentMethodDisabled, paymentMethodsTitle, paymentMethodActive, paymentMethodInactive, paymentMethodsNotConfigured;
+  - paymentMethods: yookassaName, yookassaDescription, stripeName, stripeDescription;
+  - apiKeys: keySaved, keyWorks, keyWorksWarning, keyError, keyEmpty, testYookassa, checkStatus, yookassaOk, yookassaHint, yookassaCardHint (RU + EN).
+- [FIX] Сырой ключ `apiKeys.yookassaCardHint` в ApiKeysTab.jsx теперь имеет переводы ru/en; grep по `t('apiKeys.*` и `t('settings.*` — все ключи определены.
+- [TEST] npm run build ✅; ручная сверка всех используемых ключей с ru.json/en.json — ни одного сырого; 375px-разметка оставлена из 19.14.5 (overflow-x-auto, w-full кнопки).
+- [NOTE] Backend-логика оплаты (webhook, активация подписки) не трогалась — согласно промпту, ждёт 19.14.8 после вставки реальных ключей ЮKassa.
