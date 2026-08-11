@@ -55,6 +55,19 @@ router.get('/', protect, async (req, res) => {
   }
 })
 
+// [v9.9.19.15.1] creator SupportTab calls /support/my
+router.get('/my', protect, async (req, res) => {
+  try {
+    const tickets = await SupportTicket.find({ userId: req.user.id || req.user._id })
+      .sort({ updatedAt: -1 })
+      .limit(100)
+    res.json({ status: 'success', tickets })
+  } catch (err) {
+    console.error('[support] my tickets failed:', err.message)
+    res.status(500).json({ status: 'error', message: err.message })
+  }
+})
+
 router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), async (req, res) => {
   try {
     const ticket = await updateTicketStatus(req.params.id, req.body.status, req.body.resolution)

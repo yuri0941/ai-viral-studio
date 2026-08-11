@@ -524,6 +524,17 @@ app.get('/api/health', (req, res) => {
     })
 })
 
+// [v9.9.19.15.1] telemetry sink: avoids 404 from frontend/health pings
+app.post('/api/telemetry', (req, res) => {
+    try {
+        const { event, payload, screen, error } = req.body || {}
+        console.log('[telemetry]', JSON.stringify({ event, screen, error: error?.message || error, timestamp: new Date().toISOString() }))
+        res.json({ ok: true })
+    } catch (err) {
+        res.status(400).json({ ok: false, error: 'invalid_payload' })
+    }
+})
+
 // Health-check для UptimeRobot, cron-job.org и keep-alive
 app.get('/', (req, res) => {
     res.status(200).json({

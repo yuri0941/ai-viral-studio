@@ -36,6 +36,7 @@ async function ensureFreshToken(user) {
 }
 
 export async function publishToVKWall(user, { text, link } = {}) {
+  console.log(`[vk:publish] user=${user?._id || user?.id}, enabled=${user?.socials?.vk?.enabled}, hasToken=${!!user?.vkToken}, vkUserId=${user?.vkUserId}, needsScope=${user?.socials?.vk?.needsScope}`)
   if (!user?.socials?.vk?.enabled || !user.vkToken || !user.vkUserId) {
     return { success: false, error: 'vk_not_connected', hint: 'Подключите VK в Соцсетях' }
   }

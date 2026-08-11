@@ -238,3 +238,8 @@
 - Композер определяет подключённые соцсети по `user.socials` (VK/Telegram).
 - Добавлены реальные i18n-ключи `socials.*`, `vk.*`, `telegram.*`, `discord.*`.
 - Владелец/OWNER_EMAIL обходит плановые лимиты через `utils/canUse.js`.
+
+### v9.9.19.15.1 — support tickets 404, telemetry 404, VK scheduler source fix
+- Добавлен `GET /api/support/my` для creator SupportTab; `POST /api/telemetry` — sink для телеметрии (200 JSON).
+- Планировщик/ручная публикация явно выбирает `+vkUserId`; retry только для временных ошибок, перманентные (`vk_not_connected`, `vk_needs_wall_scope` и др.) → `failed` без бесконечных ретраев.
+- Добавлен диагностический лог `[vk:publish]` с деталями подключения VK.

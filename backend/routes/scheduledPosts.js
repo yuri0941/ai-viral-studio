@@ -133,7 +133,7 @@ router.post('/:id/publish', protect, async (req, res) => {
         if (!post) return res.status(404).json({ status: 'error', error: 'Post not found' })
 
         const user = await User.findById(userId)
-            .select('+vkToken +vkRefreshToken telegramBotToken telegramChatId telegramId socials.vk')
+            .select('+vkToken +vkRefreshToken +vkUserId telegramBotToken telegramChatId telegramId socials.vk')
         if (!user) return res.status(404).json({ status: 'error', error: 'User not found' })
 
         const platforms = req.body.platforms || post.platforms || []

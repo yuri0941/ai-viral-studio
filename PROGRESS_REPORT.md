@@ -3865,3 +3865,18 @@
   2) Композер → тест-пост → «Опубликовать сейчас» → пост на стене VK.
   3) Планировщик → пост через 2 мин → появился на стене.
   4) Все тексты на русском, сырых ключей нет.
+
+## 2026-08-11 — v9.9.19.15.1-SUPPORT-TELEMETRY-404-AND-VK-SCHEDULER-FIX
+- [DIAG] SupportTab tickets 404: `frontend/src/pages/owner/components/tabs/SupportTab.jsx`/`TicketsTab.jsx`/`creator/SupportTab.jsx` дёргали `/support`, `/support/my`; backend роут `backend/routes/support.js` не имел `GET /my`, поэтому creator SupportTab получал 404 «Endpoint not found» из fallback; owner TicketsTab `/support` работал локально, но в Render-логах 404 уходили на fallback.
+- [DIAG] telemetry 404: frontend/сторонние пинги слали на `/api/telemetry`, эндпоинта не было — 404 попадал в логи.
+- [DIAG] AUTO-PUBLISH `vk_not_connected`: `publishToVKWall` требовал `user.socials.vk.enabled`, `user.vkToken`, `user.vkUserId`; планировщик выбирал `+vkToken +vkRefreshToken socials.vk`, но не `+vkUserId` (оно не `select: false`, но явное включение безопаснее); при `needsScope=true` или отсутствии токена публиковался статус `failed`, но затем бесконечный retry через 5 мин давал `vk_not_connected` в логах.
+- [FIX] `backend/routes/support.js`: добавлен `GET /my` — возвращает тикеты текущего пользователя (`{status:'success', tickets}`).
+- [FIX] `backend/server.js`: добавлен `POST /api/telemetry` — логирует JSON одной строкой и возвращает `{ok:true}`.
+- [FIX] `backend/services/autoPublisher.js`: `.select()` дополнен `+vkUserId`; добавлен список перманентных ошибок (`vk_not_connected`, `vk_needs_wall_scope`, `vk_permission_denied`, `refresh_failed`, `empty_text`, `no_post_id`, `not connected`, `telegram bot token`, `chat id не настроены`); retry через 5 мин выполняется только при временных ошибках, перманентные → `failed` без повторов.
+- [FIX] `backend/routes/scheduledPosts.js`: `.select()` дополнен `+vkUserId` для ручной публикации по расписанию.
+- [FIX] `backend/services/vkPublishService.js`: однострочный лог `[vk:publish] user=..., enabled=..., hasToken=..., vkUserId=..., needsScope=...` для диагностики.
+- [TEST] `node --check` по `support.js`, `server.js`, `autoPublisher.js`, `scheduledPosts.js`, `vkPublishService.js` ✅; `npm run build` ✅; `git diff --stat` — только support, telemetry, scheduler/vk-источник.
+- [NOTE] Ручная проверка владельцем:
+  1) Поддержка → тикеты грузятся, тест-тикет создаётся.
+  2) Консоль браузера: ноль 404 (support + telemetry).
+  3) Планировщик → пост через 2 мин на VK → на стене (или статус «разрешите публикацию» → Соцсети → VK → Разрешить).

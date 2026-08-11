@@ -5,6 +5,24 @@ import { publishToPlatform } from './platformPublisher.js'
 // [v9.9.19.3] алерт владельцу о постах без платформ — один раз на пост, без спама
 const noPlatformAlerted = new Set()
 
+// [v9.9.19.15.1] retry only for transient failures; permission/setup errors are permanent
+const PERMANENT_ERROR_CODES = [
+  'vk_not_connected',
+  'vk_needs_wall_scope',
+  'vk_permission_denied',
+  'refresh_failed',
+  'empty_text',
+  'no_post_id',
+  'not connected',
+  'telegram bot token',
+  'chat id не настроены'
+]
+
+function isPermanentError(result) {
+  const text = String(result?.error || result?.result?.error || result?.result?.hint || result?.errorMessage || '').toLowerCase()
+  return PERMANENT_ERROR_CODES.some(code => text.includes(code.toLowerCase()))
+}
+
 export const startAutoPublisher = () => {
     setInterval(async () => {
         const now = new Date()
@@ -28,7 +46,7 @@ export const startAutoPublisher = () => {
             }
 
             const user = await User.findById(post.userId)
-                .select('+vkToken +vkRefreshToken telegramBotToken telegramChatId telegramId socials.vk')
+                .select('+vkToken +vkRefreshToken +vkUserId telegramBotToken telegramChatId telegramId socials.vk')
             if (!user) {
                 console.warn(`[AUTO-PUBLISH] skipped: user not found (post ${post._id})`)
                 post.status = 'failed'
@@ -49,9 +67,10 @@ export const startAutoPublisher = () => {
             }
 
             const publishedCount = results.filter(r => r.status === 'published').length
+            const allErrorsPermanent = publishedCount === 0 && results.length > 0 && results.every(r => r.status === 'error' && isPermanentError(r))
 
-            // [v9.9.19.15] retry once after 5 minutes if no platform published
-            if (publishedCount === 0 && !post.retriedAt) {
+            // [v9.9.19.15.1] retry once after 5 minutes only for transient failures
+            if (publishedCount === 0 && !post.retriedAt && !allErrorsPermanent) {
                 post.status = 'scheduled'
                 post.scheduledAt = new Date(Date.now() + 5 * 60 * 1000)
                 post.retriedAt = new Date()
