@@ -31,7 +31,8 @@ export default function VkCallbackPage() {
 
     request('/vk/callback', {
       method: 'POST',
-      body: JSON.stringify({ code, state, device_id: deviceId })
+      body: JSON.stringify({ code, state, device_id: deviceId }),
+      noRetry: true
     })
       .then(data => {
         if (data?.success) {
@@ -72,9 +73,14 @@ export default function VkCallbackPage() {
             <XCircle className="w-10 h-10 text-red-400" />
             <p className="text-red-400">{message}</p>
             <p className="text-xs text-[var(--text-muted)]">{t('vk.authHint')}</p>
-            <Link to="/settings" className="mt-2 px-4 py-2 rounded-lg bg-white/10 text-[var(--text)] text-sm font-medium hover:bg-white/15">
-              {t('vk.goToSettings')}
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
+              <Link to="/settings" className="flex-1 px-4 py-2 rounded-lg bg-white/10 text-[var(--text)] text-sm font-medium hover:bg-white/15 text-center">
+                {t('vk.goToSettings')}
+              </Link>
+              <Link to="/settings?tab=integrations" className="flex-1 px-4 py-2 rounded-lg bg-[var(--primary)] text-[var(--text-inverse)] text-sm font-medium hover:opacity-90 text-center">
+                {t('vk.connectAgain')}
+              </Link>
+            </div>
           </div>
         )}
       </div>

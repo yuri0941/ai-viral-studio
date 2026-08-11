@@ -3831,3 +3831,22 @@
   2) «Подключить Telegram» → Start в боте → `@username` в карточке.
   3) F5 — оба статуса на месте, Отключить работает.
   4) API Keys и ИИ-бот не пострадали.
+
+## 2026-08-11 — v9.9.19.7.1-VK-CALLBACK-AND-UI-COMBO
+- [DIAG] VK callback 500: backend POST `/api/vk/callback` использовал несуществующий `id.vk.com/oauth2/token`; правильный endpoint VK ID — `id.vk.ru/oauth2/auth` (PKCE, без `client_secret`); catch возвращал 500 на любую ошибку.
+- [FIX] `backend/routes/vk.js`: token exchange → `https://${VK_TOKEN_HOST}/oauth2/auth` (env `VK_TOKEN_HOST`, default `id.vk.ru`); device_id проброшен; любая ошибка VK/сети/state → JSON `{success:false, error, reason, hint}` с HTTP 400; лог одной строкой без code/tokens/secret; state_expired с понятным сообщением; успех сохраняет `socials.vk`/`vkToken`.
+- [FIX] `frontend/src/services/api.js`: опция `noRetry` для `request()` — отключает retry network/5xx (одноразовые коды, webhook и т.п.); `/vk/callback` вызывается с `noRetry: true`.
+- [FIX] `frontend/src/pages/VkCallbackPage.jsx`: `noRetry: true`, при ошибке показаны две кнопки — «В настройки» и «Подключить снова» (i18n `vk.connectAgain`).
+- [FIX] i18n: добавлены `common.connected`, `settings.connectVK`, `settings.recommended`, `vk.connectAgain` в `ru.json`/`en.json`; убраны сырые ключи (`settings.recommended` был в `payment.recommended`, VKConnectButton использовал `common.connected`/`settings.connectVK`).
+- [FIX] `frontend/src/pages/SettingsPage.jsx`:
+  - валютный маппинг методов: RUB → `[yookassa]`, USD/EUR/UAH/KZT → `[stripe, paypal]`; `pickDefaultMethod` не выбирает Stripe для RUB;
+  - `processPayment` фильтрует метод по валюте и `enabled`; RUB → только `/yookassa/pay/subscription`, Stripe → `/stripe/pay/subscription` (не `/payments/create-checkout-session`);
+  - inline-ошибка под кнопкой `paymentError` + `showToast`; при смене валюты/метода ошибка сбрасывается;
+  - кнопка disabled, если метод не доступен для валюты или не `enabled`.
+- [TEST] `node --check` backend (vk.js, telegram.js, integrationStatus.js, telegramConnectStore.js, omegaBot.js) ✅; `npm run build` ✅; i18n JSON валидны.
+- [NOTE] Ручная проверка владельцем:
+  1) VK: «Подключить» → логин VK → callback → «Подключён» (не 500, не зависание).
+  2) Если ошибка — текст причины + «Подключить снова».
+  3) Подписка RUB → кнопка «Оплатить через ЮKassa» → запрос к `/yookassa/pay/subscription`; ошибки видны текстом.
+  4) Соцсети/Подписка — все тексты переведены, сырых ключей нет.
+- [NOTE] ЮKassa: если пар ключей не вставлен — таб disabled молча; после вставки `integrationStatus`/`getProviderKey` обновляется без рестарта.

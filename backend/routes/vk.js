@@ -30,6 +30,7 @@ function generateCodeChallenge(verifier) {
 
 const VK_REDIRECT_URI = process.env.VK_REDIRECT_URI || 'https://aiviral-studio.ru/auth/vk/callback';
 const VK_FRONTEND_URL = process.env.FRONTEND_URL || 'https://aiviral-studio.ru';
+const VK_TOKEN_HOST = process.env.VK_TOKEN_HOST || 'id.vk.ru';
 
 async function getVkCreds() {
   return {
@@ -115,20 +116,45 @@ router.post('/vk/callback', protect, async (req, res) => {
     });
     if (device_id) tokenParams.append('device_id', device_id);
 
-    const tokenRes = await axios.post('https://id.vk.com/oauth2/token', tokenParams.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      timeout: 15000
-    });
-    const tokenData = tokenRes.data;
-    if (tokenData.error) {
-      const reason = tokenData.error_description || tokenData.error;
-      console.log('[VK] token error:', reason);
-      return res.status(400).json({ success: false, error: 'vk_token_error', reason });
+    let tokenData;
+    try {
+      const tokenRes = await axios.post(`https://${VK_TOKEN_HOST}/oauth2/auth`, tokenParams.toString(), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 15000
+      });
+      tokenData = tokenRes.data;
+    } catch (exchangeErr) {
+      const vkErr = exchangeErr.response?.data || {};
+      const reason = vkErr.error_description || vkErr.error || exchangeErr.message;
+      const safeError = vkErr.error || 'vk_exchange_failed';
+      console.log('[VK callback] exchange failed:', safeError);
+      return res.status(400).json({
+        success: false,
+        error: safeError,
+        reason,
+        hint: 'Проверьте redirect URI в настройках VK ID и попробуйте подключить заново'
+      });
     }
 
-    const userRes = await axios.post('https://id.vk.com/oauth2/user_info', new URLSearchParams({
+    if (tokenData.error) {
+      const reason = tokenData.error_description || tokenData.error;
+      console.log('[VK callback] token error:', tokenData.error);
+      return res.status(400).json({
+        success: false,
+        error: tokenData.error,
+        reason,
+        hint: 'Проверьте redirect URI в настройках VK ID и попробуйте подключить заново'
+      });
+    }
+
+    const accessToken = tokenData.access_token;
+    if (!accessToken) {
+      return res.status(400).json({ success: false, error: 'no_access_token', reason: 'VK не вернул токен доступа' });
+    }
+
+    const userRes = await axios.post(`https://${VK_TOKEN_HOST}/oauth2/user_info`, new URLSearchParams({
       client_id: clientId,
-      access_token: tokenData.access_token,
+      access_token: accessToken,
     }).toString(), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       timeout: 15000
@@ -142,7 +168,7 @@ router.post('/vk/callback', protect, async (req, res) => {
         'socials.vk.username': [vkUser.first_name, vkUser.last_name].filter(Boolean).join(' ') || `vk${vkUser.user_id || vkUser.id}`,
         'socials.vk.link': vkUser.user_id || vkUser.id ? `https://vk.com/id${vkUser.user_id || vkUser.id}` : '',
         'socials.vk.enabled': true,
-        vkToken: tokenData.access_token,
+        vkToken: accessToken,
         vkUserId: String(vkUser.user_id || vkUser.id || ''),
         vkConnectedAt: new Date(),
       }
@@ -153,7 +179,7 @@ router.post('/vk/callback', protect, async (req, res) => {
   } catch (err) {
     const reason = err.response?.data?.error_description || err.response?.data?.error || err.message;
     console.error('[VK callback] error:', reason);
-    return res.status(500).json({ success: false, error: 'server_error', reason });
+    return res.status(400).json({ success: false, error: 'server_error', reason, hint: 'Попробуйте подключить VK ещё раз' });
   }
 });
 

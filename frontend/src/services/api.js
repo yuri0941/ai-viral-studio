@@ -60,6 +60,7 @@ function getAuthHeaders() {
 async function request(path, options = {}) {
     const url = `${API_BASE}${path}`
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const { noRetry = false, ...fetchOptions } = options
     const retryCount = options.__retryCount || 0
     const MAX_RETRY = 5
 
@@ -68,7 +69,7 @@ async function request(path, options = {}) {
     let res
     try {
         res = await fetch(url, {
-            ...options,
+            ...fetchOptions,
             headers: {
                 'Content-Type': 'application/json',
                 ...(token && { Authorization: `Bearer ${token}` }),
@@ -77,7 +78,7 @@ async function request(path, options = {}) {
         })
     } catch (err) {
         // [MEGA-HOTFIX-2026-08-08] retry network failures with exponential backoff
-        if (retryCount < MAX_RETRY) {
+        if (!noRetry && retryCount < MAX_RETRY) {
             const delay = Math.min(2000 * Math.pow(2, retryCount), 30000)
             console.warn(`[API] Network error on ${path}, retry ${retryCount + 1}/${MAX_RETRY} in ${delay}ms:`, err.message)
             await new Promise(r => setTimeout(r, delay))
@@ -87,7 +88,8 @@ async function request(path, options = {}) {
     }
 
     // [MEGA-HOTFIX-2026-08-08] retry 429 / 5xx before parsing body
-    const isRetryable = res.status === 429 || (res.status >= 500 && res.status < 600)
+    // [v9.9.19.7.1] one-time code endpoints (e.g. VK callback) must never retry
+    const isRetryable = !noRetry && (res.status === 429 || (res.status >= 500 && res.status < 600))
     if (isRetryable && retryCount < MAX_RETRY) {
         const delay = Math.min(2000 * Math.pow(2, retryCount), 30000)
         console.warn(`[API] ${res.status} on ${path}, retry ${retryCount + 1}/${MAX_RETRY} in ${delay}ms`)

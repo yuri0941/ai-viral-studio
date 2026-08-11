@@ -9,6 +9,7 @@
     "loading": "Загрузка...",
     "error": "Ошибка",
     "success": "Успешно",
+    "connected": "Подключено",
     "close": "Закрыть",
     "open": "Открыть",
     "logout": "Выйти",
@@ -251,6 +252,8 @@
     "popular": "Популярный",
     "choosePlan": "Выбрать",
     "pay": "Оплатить",
+    "connectVK": "Подключить VK",
+    "recommended": "Рекомендуем",
     "payWithCrypto": "Крипта (USDT/BTC/ETH)",
     "payWithPayPal": "PayPal",
     "payWith_yookassa": "Оплатить через ЮKassa",
@@ -404,7 +407,8 @@
     "authMissingParams": "Недостаточно данных для подключения VK",
     "authError": "Ошибка авторизации VK: {{reason}}",
     "authHint": "Проверьте, что в настройках приложения VK добавлен redirect URI https://aiviral-studio.ru/auth/vk/callback",
-    "goToSettings": "В настройки"
+    "goToSettings": "В настройки",
+    "connectAgain": "Подключить снова"
   },
   "telegram": {
     "title": "Telegram",

@@ -163,6 +163,7 @@ function SettingsPage() {
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(() => {
         try { return localStorage.getItem('selected_payment_method') || 'yookassa'; } catch { return 'yookassa'; }
     });
+    const [paymentError, setPaymentError] = useState(null);
     // [PLANS-SYNC] added: load plans from backend API
     const [plans, setPlans] = useState([]);
 
@@ -199,9 +200,16 @@ function SettingsPage() {
     };
 
     const pickDefaultMethod = (methods, currency, prev) => {
-        const enabled = methods.filter(m => m.enabled);
+        const currencyMap = {
+            RUB: ['yookassa'],
+            USD: ['stripe', 'paypal'],
+            EUR: ['stripe', 'paypal'],
+            UAH: ['stripe', 'paypal'],
+            KZT: ['stripe', 'paypal'],
+        };
+        const allowed = currencyMap[currency] || ['stripe', 'paypal'];
+        const enabled = methods.filter(m => m.enabled && allowed.includes(m.id));
         if (!enabled.length) return null;
-        if (currency === 'RUB' && enabled.find(m => m.id === 'yookassa')) return 'yookassa';
         if (prev && enabled.find(m => m.id === prev)) return prev;
         return enabled[0].id;
     };
@@ -247,20 +255,35 @@ function SettingsPage() {
         processPayment(plan);
     };
 
+    const getAllowedMethods = (currency) => {
+        const map = {
+            RUB: ['yookassa'],
+            USD: ['stripe', 'paypal'],
+            EUR: ['stripe', 'paypal'],
+            UAH: ['stripe', 'paypal'],
+            KZT: ['stripe', 'paypal'],
+        };
+        return map[currency] || ['stripe', 'paypal'];
+    };
+
     const processPayment = async (plan) => {
-        const method = paymentMethods.find(m => m.id === selectedPaymentMethod && m.enabled)?.id;
-        if (!method) {
-            showToast(t('settings.paymentMethodUnavailable') || 'Выберите настроенный способ оплаты', 'error');
+        const allowed = getAllowedMethods(subscriptionCurrency);
+        const methodObj = paymentMethods.find(m => m.id === selectedPaymentMethod && m.enabled && allowed.includes(m.id));
+        if (!methodObj) {
+            const msg = t('settings.paymentMethodUnavailable') || 'Выберите настроенный способ оплаты';
+            setPaymentError(msg);
+            showToast(msg, 'error');
             return;
         }
+        const method = methodObj.id;
         const loadingKey = `${plan.id}-${method}`;
+        setPaymentError(null);
         setPaymentLoading(prev => ({ ...prev, [loadingKey]: true }));
         try {
             const token = localStorage.getItem('token') || '';
             const isYearlyPlan = isYearly;
             const interval = isYearlyPlan ? 'year' : 'month';
             let url = null;
-            let errorMsg = null;
 
             if (method === 'yookassa') {
                 const res = await fetch(`${API_BASE_URL}/yookassa/pay/subscription`, {
@@ -269,16 +292,16 @@ function SettingsPage() {
                     body: JSON.stringify({ plan: plan.id, interval, currency: subscriptionCurrency })
                 });
                 const data = await res.json().catch(() => ({ error: 'Invalid response' }));
-                if (!res.ok) throw new Error(data.error || data.message || 'YooKassa payment failed');
-                url = data.paymentUrl || data.url;
+                if (!res.ok) throw new Error(data.error || data.message || data.reason || 'YooKassa payment failed');
+                url = data.paymentUrl || data.url || data.confirmationUrl;
             } else if (method === 'stripe') {
-                const res = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
+                const res = await fetch(`${API_BASE_URL}/stripe/pay/subscription`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({ provider: 'stripe', priceId: plan.id, userId: user?._id || '', plan: plan.id, email: user?.email || '', price: getCurrentPrice(plan), currency: subscriptionCurrency })
                 });
                 const data = await res.json().catch(() => ({ error: 'Invalid response' }));
-                if (!res.ok) throw new Error(data.error || data.message || 'Stripe payment failed');
+                if (!res.ok) throw new Error(data.error || data.message || data.reason || 'Stripe payment failed');
                 url = data.url;
             } else if (method === 'paypal') {
                 const res = await fetch(`${API_BASE_URL}/paypal/create-order`, {
@@ -287,7 +310,7 @@ function SettingsPage() {
                     body: JSON.stringify({ planId: plan.id, interval, currency: subscriptionCurrency })
                 });
                 const data = await res.json().catch(() => ({ error: 'Invalid response' }));
-                if (!res.ok) throw new Error(data.error || data.message || 'PayPal payment failed');
+                if (!res.ok) throw new Error(data.error || data.message || data.reason || 'PayPal payment failed');
                 url = data.url || data.approvalUrl;
             } else if (method === 'crypto') {
                 const res = await fetch(`${API_BASE_URL}/payments/crypto-charge`, {
@@ -296,7 +319,7 @@ function SettingsPage() {
                     body: JSON.stringify({ name: `Подписка ${plan.name}`, description: `Подписка ${plan.name} (${interval})`, price: getCurrentPrice(plan), currency: subscriptionCurrency })
                 });
                 const data = await res.json().catch(() => ({ error: 'Invalid response' }));
-                if (!res.ok) throw new Error(data.error || data.message || 'Crypto payment failed');
+                if (!res.ok) throw new Error(data.error || data.message || data.reason || 'Crypto payment failed');
                 url = data.hosted_url;
             } else {
                 throw new Error(t('settings.paymentMethodNotReady') || 'Метод оплаты в процессе настройки');
@@ -309,7 +332,9 @@ function SettingsPage() {
             }
         } catch (err) {
             console.error('[SettingsPage:processPayment]', err);
-            showToast(err.message || t('settings.paymentError'), 'error');
+            const msg = err.message || t('settings.paymentError') || 'Ошибка создания платежа';
+            setPaymentError(msg);
+            showToast(msg, 'error');
         } finally {
             setPaymentLoading(prev => ({ ...prev, [loadingKey]: false }));
         }
@@ -650,6 +675,7 @@ function SettingsPage() {
                     onChange={e => {
                         const currency = e.target.value;
                         setSubscriptionCurrency(currency);
+                        setPaymentError(null);
                         const defaultMethod = pickDefaultMethod(paymentMethods, currency, selectedPaymentMethod);
                         if (defaultMethod && defaultMethod !== selectedPaymentMethod) {
                             setSelectedPaymentMethod(defaultMethod);
@@ -682,6 +708,7 @@ function SettingsPage() {
                                         onChange={() => {
                                             if (disabled) return;
                                             setSelectedPaymentMethod(method.id);
+                                            setPaymentError(null);
                                             try { localStorage.setItem('selected_payment_method', method.id); } catch {}
                                         }}
                                         disabled={disabled}
@@ -745,14 +772,19 @@ function SettingsPage() {
                             </ul>
 
                             {!isFree && !subscribed ? (
-                                <button
-                                    onClick={() => handlePayment(plan)}
-                                    disabled={isLoading || !paymentMethods.find(m => m.id === selectedPaymentMethod && m.enabled)}
-                                    className="w-full mt-4 py-2 rounded-xl font-medium transition-all bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25 disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
-                                >
-                                    {isLoading ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
-                                    {isLoading ? t('settings.loading') : getPayButtonLabel(selectedPaymentMethod)}
-                                </button>
+                                <div className="mt-4 space-y-2">
+                                    <button
+                                        onClick={() => handlePayment(plan)}
+                                        disabled={isLoading || !paymentMethods.find(m => m.id === selectedPaymentMethod && m.enabled && getAllowedMethods(subscriptionCurrency).includes(m.id))}
+                                        className="w-full py-2 rounded-xl font-medium transition-all bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25 disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
+                                    >
+                                        {isLoading ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
+                                        {isLoading ? t('settings.loading') : getPayButtonLabel(selectedPaymentMethod)}
+                                    </button>
+                                    {paymentError && (
+                                        <p className="text-xs text-red-400 text-center">{paymentError}</p>
+                                    )}
+                                </div>
                             ) : (
                                 <button
                                     onClick={() => !subscribed && handleSubscribe(plan)}
