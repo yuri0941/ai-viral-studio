@@ -6,11 +6,18 @@ import { hotReloadApiKey } from '../services/aiService.js'
 
 const router = express.Router()
 
-// GET /api/api-keys — list saved keys (without value)
+// GET /api/api-keys — list saved keys (masked value only)
 router.get('/', protect, requireRole('owner'), async (req, res) => {
   try {
-    const keys = await ApiKey.find({ ownerId: req.user._id }).select('-key -keyValue').lean()
-    res.json({ success: true, keys })
+    const ownerId = req.user.id || req.user._id
+    const keys = await ApiKey.find({ ownerId }).lean()
+    const masked = keys.map(k => ({
+      ...k,
+      key: undefined,
+      keyValue: undefined,
+      maskedKey: k.key ? `${String(k.key).slice(0, 6)}••••${String(k.key).slice(-4)}` : null,
+    }))
+    res.json({ success: true, keys: masked })
   } catch (err) {
     console.error('[ApiKeys] GET error:', err.message)
     res.json({ success: false, keys: [], error: 'Не удалось загрузить ключи' })
@@ -20,6 +27,10 @@ router.get('/', protect, requireRole('owner'), async (req, res) => {
 // POST /api/api-keys — save/update key + hot-reload
 router.post('/', protect, requireRole('owner'), async (req, res) => {
   try {
+    const ownerId = req.user.id || req.user._id
+    if (!ownerId) {
+      return res.status(400).json({ success: false, error: 'Owner not resolved' })
+    }
     const { provider } = req.body
     const rawKey = req.body?.key
     if (!provider || rawKey === undefined || rawKey === null || rawKey === '') {
@@ -42,9 +53,9 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
     }
 
     const apiKey = await ApiKey.findOneAndUpdate(
-      { ownerId: req.user._id, provider },
+      { ownerId, provider },
       {
-        ownerId: req.user._id,
+        ownerId,
         provider,
         key,
         keyValue: key,
@@ -77,7 +88,8 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
 // DELETE /api/api-keys/:provider
 router.delete('/:provider', protect, requireRole('owner'), async (req, res) => {
   try {
-    await ApiKey.deleteOne({ ownerId: req.user._id, provider: req.params.provider })
+    const ownerId = req.user.id || req.user._id
+    await ApiKey.deleteOne({ ownerId, provider: req.params.provider })
     if (global.apiKeyCache) delete global.apiKeyCache[req.params.provider]
     res.json({ success: true, message: 'Ключ удалён' })
   } catch (err) {
@@ -216,8 +228,8 @@ async function validateApiKey(provider, key) {
       case 'smtp_pass':
       case 'vk':
       case 'vk_secret': {
-        // Нет безопасного ping-endpoint — считаем валидным при непустом значении
-        return { valid: String(key).trim().length > 3, provider, warning: 'No online validation, assuming valid' }
+        // [v9.9.19.14.5] no safe ping endpoint — mark as saved, not working; real check is via 🧪 button
+        return { valid: false, provider, warning: 'Ключ сохранён. Реальная проверка — через 🧪 Проверить ЮKassa' }
       }
       default:
         return { valid: true, provider, warning: 'No online validation, assuming valid' }

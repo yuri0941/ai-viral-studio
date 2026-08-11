@@ -71,6 +71,7 @@ export default function ApiKeysTab() {
   const { t } = useTranslation();
   const [saved, setSaved] = useState({});
   const [keyReasons, setKeyReasons] = useState({});
+  const [keyMasked, setKeyMasked] = useState({});
   const [loading, setLoading] = useState({});
   const [modalOpen, setModalOpen] = useState(false);
   const [activeProvider, setActiveProvider] = useState(null);
@@ -96,13 +97,16 @@ export default function ApiKeysTab() {
       const data = await request('/api-keys');
       const map = {};
       const reasons = {};
+      const masked = {};
       // [v9.9.19.14] показываем статус из Key Health Monitor (invalid — ключ протух)
       (data.keys || []).forEach(k => {
         map[k.provider] = k.status === 'invalid' ? 'invalid' : (k.isValid ? 'valid' : 'saved');
         if (k.lastError) reasons[k.provider] = k.lastError;
+        if (k.maskedKey) masked[k.provider] = k.maskedKey;
       });
       setSaved(map);
       setKeyReasons(reasons);
+      setKeyMasked(masked);
     } catch (e) {
       console.error('[ApiKeysTab] load failed:', e.message);
     }
@@ -150,10 +154,12 @@ export default function ApiKeysTab() {
         method: 'POST',
         body: JSON.stringify({ provider: activeProvider.id, key })
       });
-      setSaved(prev => ({ ...prev, [activeProvider.id]: data.isValid ? 'valid' : (data.warning ? 'saved' : 'saved') }));
+      setSaved(prev => ({ ...prev, [activeProvider.id]: data.isValid ? 'valid' : 'saved' }));
       if (data.isValid) {
         if (data.warning) toast.success(data.message || `✅ ${data.warning}`);
         else toast.success(data.message || '✅ Ключ сохранён и активирован!');
+      } else if (data.warning) {
+        toast(data.warning || (t('apiKeys.keySaved') || 'Ключ сохранён'), { icon: '⚠️' });
       } else {
         toast.error(data.message || '❌ Ключ сохранён, но не проверен');
       }
@@ -179,8 +185,8 @@ export default function ApiKeysTab() {
     const state = saved[id];
     const reason = keyReasons[id];
     if (state === 'valid') return { label: '✅ Работает', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', dot: 'bg-emerald-400', active: true, reason };
-    if (state === 'saved') return { label: '⚠️ Не проверен', cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30', dot: 'bg-yellow-400', active: true, reason };
-    if (state === 'invalid') return { label: '🔴 Невалиден', cls: 'bg-red-500/15 text-red-400 border-red-500/30', dot: 'bg-red-400', active: true, reason };
+    if (state === 'saved') return { label: '📥 Сохранён', cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30', dot: 'bg-yellow-400', active: true, reason };
+    if (state === 'invalid') return { label: '🔴 Ошибка', cls: 'bg-red-500/15 text-red-400 border-red-500/30', dot: 'bg-red-400', active: true, reason };
     return { label: 'Не подключен', cls: 'bg-gray-500/10 text-gray-400 border-gray-500/20', dot: 'bg-gray-500', active: false, reason };
   };
 
@@ -195,9 +201,15 @@ export default function ApiKeysTab() {
       setYookassaTest({ loading: false, paymentId: data.paymentId, testUrl: data.testUrl, result: null });
       if (data.testUrl) window.open(data.testUrl, '_blank');
       toast.success('Тестовый платёж 1.00 ₽ создан');
+      // [v9.9.19.14.5] after successful real test mark keys as working
+      setSaved(prev => ({ ...prev, yookassa_shop_id: 'valid', yookassa_secret: 'valid' }));
     } catch (e) {
-      setYookassaTest({ loading: false, paymentId: null, testUrl: null, result: `🔴 ${e.message}` });
+      let result = `🔴 ${e.message}`;
+      // request() already surfaces error text; append hint if backend sent one
+      if (e.hint) result += `\n💡 ${e.hint}`;
+      setYookassaTest({ loading: false, paymentId: null, testUrl: null, result });
       toast.error('ЮKassa: ' + e.message);
+      setSaved(prev => ({ ...prev, yookassa_shop_id: 'invalid', yookassa_secret: 'invalid' }));
     }
   };
 
@@ -267,7 +279,10 @@ export default function ApiKeysTab() {
                 </div>
               </div>
               <h3 className="font-semibold text-base mb-0.5 relative z-10">{p.name}</h3>
-              <p className="text-xs text-[var(--text-muted)] mb-5 relative z-10">{p.desc}</p>
+              <p className="text-xs text-[var(--text-muted)] mb-1 relative z-10">{p.desc}</p>
+              {keyMasked[p.id] && (
+                <p className="text-xs text-[var(--text-muted)] mb-4 relative z-10 font-mono truncate" title={keyMasked[p.id]}>{keyMasked[p.id]}</p>
+              )}
               <div className="flex items-center gap-2 relative z-10">
                 {status.active ? (
                   <>

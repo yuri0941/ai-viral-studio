@@ -108,6 +108,11 @@ async function request(path, options = {}) {
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Unknown error' }))
         const message = err.error || `HTTP ${res.status}`
+        const error = new Error(message)
+        error.status = res.status
+        error.details = err.details || null
+        error.hint = err.hint || null
+        error.missing = err.missing || null
         // [v6.6-PART2] added: redirect to login on 401 to stop infinite loops
         if (res.status === 401 || /401|Unauthorized|TOKEN_EXPIRED/i.test(message)) {
             console.warn('[API] 401 Unauthorized — redirecting to login')
@@ -118,7 +123,7 @@ async function request(path, options = {}) {
                 window.location.href = '/login'
             }
         }
-        throw new Error(message)
+        throw error
     }
 
     return res.json()

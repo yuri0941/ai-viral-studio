@@ -121,13 +121,42 @@ router.post('/test-yookassa', protect, requireOwner, async (req, res) => {
             returnUrl: `${(process.env.FRONTEND_URL || 'https://aiviral-studio.ru').replace(/\/$/, '')}/payment/success?test=1`,
             metadata: { test: 'api_keys_tab' },
         })
+        // [v9.9.19.14.5] mark yookassa keys as valid after successful real test
+        try {
+            const ownerId = req.user.id || req.user._id
+            const { ApiKey } = await import('../models/index.js')
+            await ApiKey.updateMany(
+                { ownerId, provider: { $in: ['yookassa_shop_id', 'yookassa_secret'] } },
+                { $set: { status: 'active', isValid: true, lastError: null, lastUsed: new Date() } }
+            )
+        } catch (e) {
+            console.warn('[YOOKASSA] key health update failed:', e.message)
+        }
         res.json({ success: true, testUrl: payment.confirmationUrl, paymentId: payment.paymentId })
     } catch (err) {
         console.error('[YOOKASSA]', err.message)
         // [v9.9.19.14.4] 400/422 from YooKassa must reach the UI with the real reason
         const status = err.status || err.response?.status || (err.message?.includes('400') ? 400 : 502)
         const code = status >= 400 && status < 500 ? 400 : 502
-        res.status(code).json({ success: false, error: err.message || 'Платёж не создан', details: err.details || err.raw || null })
+        const raw = err.raw || err.details || null
+        let hint = null
+        const rawCode = raw?.code || ''
+        const rawDesc = String(raw?.description || err.message || '').toLowerCase()
+        if (rawCode === 'invalid_credentials' || rawDesc.includes('authentication type is not allowed')) {
+            hint = 'Похоже, вставлен ключ от ВЫПЛАТ (AgentID). Нужны ключи МАГАЗИНА: кабинет ЮKassa → ваш магазин → Настройки → Ключи API — shopId числом + secret с test_/live_'
+        }
+        // [v9.9.19.14.5] mark yookassa keys as invalid after failed real test
+        try {
+            const ownerId = req.user.id || req.user._id
+            const { ApiKey } = await import('../models/index.js')
+            await ApiKey.updateMany(
+                { ownerId, provider: { $in: ['yookassa_shop_id', 'yookassa_secret'] } },
+                { $set: { status: 'invalid', isValid: false, lastError: err.message || 'YooKassa test failed', lastUsed: new Date() } }
+            )
+        } catch (e) {
+            console.warn('[YOOKASSA] key health update failed:', e.message)
+        }
+        res.status(code).json({ success: false, error: err.message || 'Платёж не создан', details: raw, hint })
     }
 })
 
