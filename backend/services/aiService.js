@@ -5,6 +5,7 @@ import path from 'path'
 import mongoose from 'mongoose'
 import { fileURLToPath } from 'url'
 import { ApiKey, AIProviderSetting } from '../models/index.js'
+import { getOwnerScope, getDefaultOwnerId } from '../utils/keyScope.js'
 import { emergencyStop } from '../routes/admin.js'
 import { searchVectorMemory, addToVectorMemory } from './vectorStore.js'
 import LocalBrain from '../ai/omega/localBrain.js'
@@ -378,14 +379,18 @@ export async function getProviderKey(providerId, ownerId = null) {
 
 export async function loadApiKeysToMemory() {
     try {
-        const keys = await ApiKey.find({ isActive: true })
+        // [v9.9.19.14.6] unified owner scope: load keys for the default owner
+        // plus orphan legacy keys (no ownerId). Single-owner project.
+        const ownerId = await getDefaultOwnerId()
+        const scope = getOwnerScope(ownerId)
+        const keys = await ApiKey.find({ ...scope, isActive: true })
         global.apiKeyCache = {}
         global.apiKeyMissCache = {}
         keys.forEach(k => {
             const value = k.key || k.keyValue
             if (value) global.apiKeyCache[k.provider] = value
         })
-        console.log(`[HOT-RELOAD] Loaded ${keys.length} API keys to memory`)
+        console.log(`[HOT-RELOAD] Loaded ${keys.length} API keys to memory (ownerId=${ownerId || 'none'})`)
     } catch (e) {
         console.error('[HOT-RELOAD] Failed to load keys:', e.message)
     }

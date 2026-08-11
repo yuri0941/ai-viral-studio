@@ -3,14 +3,15 @@ import axios from 'axios'
 import { protect, requireRole } from '../middleware/auth.js'
 import { ApiKey } from '../models/index.js'
 import { hotReloadApiKey } from '../services/aiService.js'
+import { getOwnerKeyScope } from '../utils/keyScope.js'
 
 const router = express.Router()
 
 // GET /api/api-keys — list saved keys (masked value only)
 router.get('/', protect, requireRole('owner'), async (req, res) => {
   try {
-    const ownerId = req.user.id || req.user._id
-    const keys = await ApiKey.find({ ownerId }).lean()
+    const scope = getOwnerKeyScope(req)
+    const keys = await ApiKey.find(scope).lean()
     const masked = keys.map(k => ({
       ...k,
       key: undefined,
@@ -31,6 +32,7 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
     if (!ownerId) {
       return res.status(400).json({ success: false, error: 'Owner not resolved' })
     }
+    const scope = getOwnerKeyScope(req)
     const { provider } = req.body
     const rawKey = req.body?.key
     if (!provider || rawKey === undefined || rawKey === null || rawKey === '') {
@@ -52,8 +54,11 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
       validation.error = formatCheck.error
     }
 
+    // [v9.9.19.14.6] unified scope: finds owned keys AND orphan legacy keys.
+    // upsert by provider within the owner's scope — never duplicates because of
+    // the { ownerId, provider } unique index once orphan keys are repaired.
     const apiKey = await ApiKey.findOneAndUpdate(
-      { ownerId, provider },
+      { ...scope, provider },
       {
         ownerId,
         provider,
@@ -81,15 +86,15 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
     })
   } catch (err) {
     console.error('[ApiKeys] POST error:', err.message)
-    res.status(500).json({ success: false, error: 'Не удалось сохранить ключ' })
+    res.json({ success: false, error: 'Не удалось сохранить ключ' })
   }
 })
 
 // DELETE /api/api-keys/:provider
 router.delete('/:provider', protect, requireRole('owner'), async (req, res) => {
   try {
-    const ownerId = req.user.id || req.user._id
-    await ApiKey.deleteOne({ ownerId, provider: req.params.provider })
+    const scope = getOwnerKeyScope(req)
+    await ApiKey.deleteOne({ ...scope, provider: req.params.provider })
     if (global.apiKeyCache) delete global.apiKeyCache[req.params.provider]
     res.json({ success: true, message: 'Ключ удалён' })
   } catch (err) {
