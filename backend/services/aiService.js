@@ -393,9 +393,12 @@ export async function loadApiKeysToMemory() {
 
 export function hotReloadApiKey(provider, key) {
     global.apiKeyCache = global.apiKeyCache || {}
-    global.apiKeyCache[provider] = key
+    global.apiKeyCache[provider] = key?.trim?.() || key
     if (global.apiKeyMissCache) delete global.apiKeyMissCache[provider]
     keyAlertSent.delete(provider)
+    // [v9.9.19.14.4] reset cooldown/state so the provider is retried immediately
+    resetKeyHealth(provider)
+    setProviderStatus(provider, 'missing', '')
     console.log(`[HOT-RELOAD] key=${provider} source=mongodb`)
     // [v9.9.19.14] write-through в instrumental-слой (как пользоваться инструментами/ключами)
     import('./memoryLayerService.js')
@@ -436,9 +439,11 @@ export async function reportKeyFailure(providerId, status, error) {
         import('./memoryLayerService.js')
             .then(m => m.addMemoryEntry('instrumental', { type: 'pattern', content: `Ключ ${keyProvider} невалиден (${shortError.slice(0, 80)}) — fallback на следующего провайдера`, tags: ['key', keyProvider, 'invalid'] }))
             .catch(() => {})
+        // [v9.9.19.14.4] cooldown: one alert per 30 min per provider
+        setCooldown(keyProvider)
+        setKeyHealthState(keyProvider, 'invalid', shortError)
         if (keyAlertSent.has(keyProvider)) return
         keyAlertSent.add(keyProvider)
-        console.warn(`[KEY-HEALTH] provider=${keyProvider} status=invalid error=${shortError}`)
         const { alertOwner } = await import('./ownerBot.js')
         alertOwner?.(`🔑 Ключ ${keyProvider} невалиден: ${shortError}\nFallback-цепочка продолжает работать.\nОбновите ключ в Кабинет → API Ключи.`)
     } catch (e) {
@@ -535,6 +540,8 @@ export async function getProviderStatuses() {
                 status = 'disabled'
             } else if (!key && meta.requiresKey) {
                 status = 'missing'
+            } else if (isOnCooldown(id) || getKeyHealthState(id) === 'invalid') {
+                status = 'invalid'
             } else if (status === 'missing') {
                 // Key exists (or provider doesn't need one) but not tested yet
                 status = 'active'
@@ -714,7 +721,8 @@ async function chatWithFireworks(prompt, ownerId = null) {
     if (!key) throw new Error('No Fireworks key')
     console.log('🚀 Calling Fireworks...')
     const res = await axios.post('https://api.fireworks.ai/inference/v1/chat/completions', {
-        model: process.env.FIREWORKS_MODEL || 'accounts/fireworks/models/llama-v3p3-70b-instruct',
+        // [v9.9.19.14.4] centralized model id (see MODEL_IDS)
+        model: process.env.FIREWORKS_MODEL || MODEL_IDS.fireworks,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2048
     }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
@@ -750,8 +758,8 @@ async function chatWithOpenRouter(prompt, ownerId = null) {
     if (!key) throw new Error('No OpenRouter key')
     console.log('🚀 Calling OpenRouter...')
     const res = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-        // [HOTFIX-2026-08-08] switch to verified free Gemini model (old flash-lite-preview id removed)
-        model: process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free',
+        // [v9.9.19.14.4] centralized model id (see MODEL_IDS)
+        model: process.env.OPENROUTER_MODEL || MODEL_IDS.openrouter,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2048
     }, { headers: { 'Authorization': `Bearer ${key}`, 'HTTP-Referer': 'https://ai-viral-studio.ru', 'X-Title': 'AI Viral Studio', 'Content-Type': 'application/json' }, timeout: 20000 })
@@ -815,25 +823,111 @@ async function chatWithHuggingFace(prompt, ownerId = null) {
     throw new Error('Unexpected HuggingFace response format')
 }
 
+// ============ PROVIDER REGISTRY ============
+// [v9.9.19.14.4] centralized model IDs and key URLs — single source of truth
+const AI_PROVIDER_URLS = {
+    groq: 'https://console.groq.com/keys',
+    openrouter: 'https://openrouter.ai/keys',
+    openai: 'https://platform.openai.com/api-keys',
+    deepseek: 'https://platform.deepseek.com/api_keys',
+    cerebras: 'https://cloud.cerebras.ai/platform/#overview',
+    together: 'https://api.together.ai/settings/api-keys',
+    fireworks: 'https://fireworks.ai/account/api-keys',
+    mistral: 'https://console.mistral.ai/api-keys',
+    cohere: 'https://dashboard.cohere.com/api-keys',
+    cloudflare: 'https://dash.cloudflare.com/profile/api-tokens',
+    github: 'https://github.com/settings/tokens',
+    huggingface: 'https://huggingface.co/settings/tokens',
+}
+
+const MODEL_IDS = {
+    groq: 'llama-3.3-70b-versatile',
+    groq_lite: 'llama-3.1-8b-instant',
+    deepseek: 'deepseek-chat',
+    openai: 'gpt-4o-mini',
+    // [v9.9.19.14.4] OpenRouter free model id updated 2026-08-11
+    openrouter: 'google/gemini-2.0-flash-001',
+    cerebras: 'llama-3.3-70b',
+    together: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+    // [v9.9.19.14.4] Fireworks deployed id updated 2026-08-11
+    fireworks: 'accounts/fireworks/models/llama-v3p3-70b-instruct',
+    mistral: 'mistral-large-latest',
+    cohere: 'command-r-plus',
+    cloudflare: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+    github: 'meta-llama-3.1-8b-instruct',
+    huggingface: 'meta-llama/Llama-3.3-70B-Instruct',
+    pollinations: 'openai',
+}
+
+// [v9.9.19.14.4] Key Health cooldown: 30 min after 401/403/invalid format
+const KEY_HEALTH_COOLDOWN_MS = 30 * 60 * 1000
+global.keyHealthCooldown = global.keyHealthCooldown || new Map()
+global.keyHealthLastState = global.keyHealthLastState || new Map()
+
+function getKeyHealthState(providerId) {
+    return global.keyHealthLastState.get(providerId) || 'unknown'
+}
+
+function setKeyHealthState(providerId, state, reason = '') {
+    const prev = getKeyHealthState(providerId)
+    global.keyHealthLastState.set(providerId, state)
+    if (prev !== state) {
+        const reasonShort = String(reason).slice(0, 80)
+        console.log(`[KEY-HEALTH] ${providerId}: ${prev}→${state}${reasonShort ? ` (${reasonShort})` : ''}`)
+    }
+}
+
+function isKeyFormatValid(providerId, key) {
+    if (!key || typeof key !== 'string') return false
+    const trimmed = key.trim()
+    if (trimmed.length < 10) return false
+    // provider-specific minimal checks
+    if (providerId === 'groq' && !trimmed.startsWith('gsk_')) return false
+    if (providerId === 'openai' && !trimmed.startsWith('sk-')) return false
+    if (providerId === 'deepseek' && !trimmed.startsWith('sk-')) return false
+    if (providerId === 'together' && !trimmed.startsWith('tf_')) return false
+    if (providerId === 'cerebras' && !trimmed.startsWith('csk-')) return false
+    return true
+}
+
+function isOnCooldown(providerId) {
+    const until = global.keyHealthCooldown.get(providerId)
+    if (!until) return false
+    if (Date.now() >= until) {
+        global.keyHealthCooldown.delete(providerId)
+        return false
+    }
+    return true
+}
+
+function setCooldown(providerId, ms = KEY_HEALTH_COOLDOWN_MS) {
+    global.keyHealthCooldown.set(providerId, Date.now() + ms)
+}
+
+function resetKeyHealth(providerId) {
+    global.keyHealthCooldown.delete(providerId)
+    global.keyHealthLastState.delete(providerId)
+}
+
 // ============ PROVIDER CHAIN ============
 // [v9.9.15-BETA-LAUNCH] all 13 AI providers active with real keys
 // [v9.9.19.2-UX-HOTFIX-v4] при 429/ошибке llama-3.3-70b-versatile: deepseek → openai → остальные сильные →
 // groq llama-3.1-8b-instant (ПОСЛЕДНИЙ, только если всё умерло) → pollinations
 const PROVIDER_CHAIN = [
-    { id: 'groq', name: 'Groq', handler: chatWithGroq, model: 'llama-3.3-70b-versatile' },
-    { id: 'deepseek', name: 'DeepSeek', handler: chatWithDeepSeek, model: 'deepseek-chat' },
-    { id: 'openai', name: 'OpenAI', handler: chatWithOpenAI, model: 'gpt-4o-mini' },
-    { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: 'google/gemini-2.0-flash-exp:free' },
-    { id: 'cerebras', name: 'Cerebras', handler: chatWithCerebras, model: 'llama-3.3-70b' },
-    { id: 'together', name: 'Together AI', handler: chatWithTogether, model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' },
-    { id: 'fireworks', name: 'Fireworks AI', handler: chatWithFireworks, model: 'accounts/fireworks/models/llama-v3p3-70b-instruct' },
-    { id: 'mistral', name: 'Mistral AI', handler: chatWithMistral, model: 'mistral-large-latest' },
-    { id: 'cohere', name: 'Cohere', handler: chatWithCohere, model: 'command-r-plus' },
-    { id: 'cloudflare', name: 'Cloudflare Workers AI', handler: chatWithCloudflare, model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast' },
-    { id: 'github', name: 'GitHub Models', handler: chatWithGitHubModels, model: 'meta-llama-3.1-8b-instruct' },
-    { id: 'huggingface', name: 'HuggingFace', handler: chatWithHuggingFace, model: 'meta-llama/Llama-3.3-70B-Instruct' },
-    { id: 'groq_lite', name: 'Groq 8b (last resort)', handler: chatWithGroqLite, model: 'llama-3.1-8b-instant' },
-    { id: 'pollinations', name: 'Pollinations AI', handler: chatWithPollinationsText, model: 'openai' },
+    { id: 'groq', name: 'Groq', handler: chatWithGroq, model: MODEL_IDS.groq },
+    { id: 'deepseek', name: 'DeepSeek', handler: chatWithDeepSeek, model: MODEL_IDS.deepseek },
+    { id: 'openai', name: 'OpenAI', handler: chatWithOpenAI, model: MODEL_IDS.openai },
+    { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: MODEL_IDS.openrouter },
+    { id: 'cerebras', name: 'Cerebras', handler: chatWithCerebras, model: MODEL_IDS.cerebras },
+    { id: 'together', name: 'Together AI', handler: chatWithTogether, model: MODEL_IDS.together },
+    { id: 'fireworks', name: 'Fireworks AI', handler: chatWithFireworks, model: MODEL_IDS.fireworks },
+    { id: 'mistral', name: 'Mistral AI', handler: chatWithMistral, model: MODEL_IDS.mistral },
+    { id: 'cohere', name: 'Cohere', handler: chatWithCohere, model: MODEL_IDS.cohere },
+    { id: 'cloudflare', name: 'Cloudflare Workers AI', handler: chatWithCloudflare, model: MODEL_IDS.cloudflare },
+    { id: 'github', name: 'GitHub Models', handler: chatWithGitHubModels, model: MODEL_IDS.github },
+    { id: 'huggingface', name: 'HuggingFace', handler: chatWithHuggingFace, model: MODEL_IDS.huggingface },
+    { id: 'groq_lite', name: 'Groq 8b (last resort)', handler: chatWithGroqLite, model: MODEL_IDS.groq_lite },
+    { id: 'pollinations', name: 'Pollinations AI', handler: chatWithPollinationsText, model: MODEL_IDS.pollinations },
 ]
 
 const SKIP_STATUSES = [401, 403, 404]
@@ -843,33 +937,50 @@ const tryProviders = async (messages, ownerId = null) => {
     const prompt = buildPrompt(messages)
 
     for (const provider of PROVIDER_CHAIN) {
+        // [v9.9.19.14.4] pre-flight checks: disabled, missing key, invalid format, or cooldown
+        const meta = PROVIDER_META[provider.id] || { requiresKey: true }
+        const keyId = meta.keyProvider || provider.id
+        const rawKey = await getKey(keyId, ownerId).catch(() => null)
+        const keyValid = meta.requiresKey === false || isKeyFormatValid(keyId, rawKey)
+
+        if (!keyValid) {
+            if (rawKey) setKeyHealthState(provider.id, 'invalid', 'format')
+            continue // silent skip: no key or bad format
+        }
+        if (isOnCooldown(provider.id)) {
+            continue // silent skip: cooling down after invalid key
+        }
+
         const enabled = await isEnabled(provider.id, ownerId)
         if (!enabled) {
-            console.log(`⏭️ ${provider.name} skipped (disabled or no key)`)
             setProviderStatus(provider.id, 'disabled', '')
             continue
         }
+
         try {
+            // [v9.9.19.14.4] log only when actually trying a live provider
             console.log(`🤖 Trying ${provider.name}...`)
             const text = await provider.handler(prompt, ownerId)
             if (!text || !String(text).trim()) throw new Error('Empty response')
             // [v9.9.19.2] владелец видит, какая модель ответила
             console.log(`[AI] provider=${provider.id} model=${provider.model}`)
             setProviderStatus(provider.id, 'active', '')
+            setKeyHealthState(provider.id, 'ok')
             return { reply: String(text).trim(), provider: provider.id, usage: null }
         } catch (error) {
             const status = error.response?.status
-            console.error(`❌ ${provider.name} failed (status ${status || 'N/A'}):`, error.message)
-            if (error.response?.data) {
-                console.error(`   Data:`, JSON.stringify(error.response.data).substring(0, 300))
+            const isKeyErr = isInvalidKeyError(status, error)
+            // [v9.9.19.14.4] silent skip for dead/missing keys: one-line debug only
+            if (isKeyErr || status === 404) {
+                setKeyHealthState(provider.id, 'invalid', error?.response?.data?.error?.message || error.message)
+                if (isKeyErr) setCooldown(provider.id)
             }
-            setProviderStatus(provider.id, 'error', status || error.message)
+            // [v9.9.19.14.4] log provider failure compactly, no full dump
+            console.log(`⏭️ ${provider.name} failed (status ${status || 'N/A'}): ${error.message}`)
+            setProviderStatus(provider.id, isKeyErr ? 'invalid' : 'error', status || error.message)
             // [v9.9.19.2] Key Health Monitor: невалидный ключ → status=invalid + один алерт владельцу
             reportKeyFailure(provider.id, status, error).catch(() => {})
             errors.push(`${provider.name}: ${error.message}`)
-            if (SKIP_STATUSES.includes(status)) {
-                console.log(`⏭️ ${provider.name} skipped`)
-            }
             await sleep(200)
         }
     }
@@ -896,7 +1007,21 @@ const tryProviders = async (messages, ownerId = null) => {
 // ============ EXPORTS ============
 import { getJSON, setJSON, cacheKey as redisCacheKey } from '../config/redis.js'
 
-export { PROVIDER_CHAIN }
+export { PROVIDER_CHAIN, AI_PROVIDER_URLS, MODEL_IDS }
+
+export function getKeyHealthSummary() {
+    const summary = []
+    for (const id of Object.keys(PROVIDER_META)) {
+        if (id === 'groq_lite' || id === 'workersai') continue
+        summary.push({
+            id,
+            name: PROVIDER_META[id]?.name || id,
+            state: getKeyHealthState(id),
+            cooldown: isOnCooldown(id),
+        })
+    }
+    return summary
+}
 
 export const chatWithAI = async (message, history = [], lang = 'ru', options = {}) => {
     if (emergencyStop) {

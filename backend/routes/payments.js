@@ -107,8 +107,11 @@ router.post('/test-yookassa', protect, requireOwner, async (req, res) => {
         const { getProviderKey } = await import('../services/aiService.js')
         const shopId = await getProviderKey('yookassa_shop_id')
         const secret = await getProviderKey('yookassa_secret')
-        if (!shopId || !secret) {
-            return res.status(400).json({ success: false, error: 'ЮKassa не настроена. Кабинет → API Ключи → yookassa' })
+        const missing = []
+        if (!shopId) missing.push('yookassa_shop_id')
+        if (!secret) missing.push('yookassa_secret')
+        if (missing.length) {
+            return res.status(400).json({ success: false, error: `Не заполнено поле: ${missing.join(', ')}`, missing })
         }
         const { createPayment } = await import('../services/yookassaService.js')
         const payment = await createPayment({
@@ -121,7 +124,10 @@ router.post('/test-yookassa', protect, requireOwner, async (req, res) => {
         res.json({ success: true, testUrl: payment.confirmationUrl, paymentId: payment.paymentId })
     } catch (err) {
         console.error('[YOOKASSA]', err.message)
-        res.status(502).json({ success: false, error: 'Платёж не создан', details: err.message })
+        // [v9.9.19.14.4] 400/422 from YooKassa must reach the UI with the real reason
+        const status = err.status || err.response?.status || (err.message?.includes('400') ? 400 : 502)
+        const code = status >= 400 && status < 500 ? 400 : 502
+        res.status(code).json({ success: false, error: err.message || 'Платёж не создан', details: err.details || err.raw || null })
     }
 })
 

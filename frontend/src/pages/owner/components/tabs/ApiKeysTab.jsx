@@ -70,6 +70,7 @@ const GROUPS = [
 export default function ApiKeysTab() {
   const { t } = useTranslation();
   const [saved, setSaved] = useState({});
+  const [keyReasons, setKeyReasons] = useState({});
   const [loading, setLoading] = useState({});
   const [modalOpen, setModalOpen] = useState(false);
   const [activeProvider, setActiveProvider] = useState(null);
@@ -94,9 +95,14 @@ export default function ApiKeysTab() {
     try {
       const data = await request('/api-keys');
       const map = {};
+      const reasons = {};
       // [v9.9.19.14] показываем статус из Key Health Monitor (invalid — ключ протух)
-      (data.keys || []).forEach(k => { map[k.provider] = k.status === 'invalid' ? 'invalid' : (k.isValid ? 'valid' : 'saved'); });
+      (data.keys || []).forEach(k => {
+        map[k.provider] = k.status === 'invalid' ? 'invalid' : (k.isValid ? 'valid' : 'saved');
+        if (k.lastError) reasons[k.provider] = k.lastError;
+      });
       setSaved(map);
+      setKeyReasons(reasons);
     } catch (e) {
       console.error('[ApiKeysTab] load failed:', e.message);
     }
@@ -107,14 +113,23 @@ export default function ApiKeysTab() {
 
   const testKey = async () => {
     if (!inputValue || !activeProvider) return;
+    const key = inputValue.trim();
+    if (!key) {
+      toast.error(t('apiKeys.keyEmpty') || '❌ Ключ пустой после удаления пробелов');
+      return;
+    }
     setLoading(prev => ({ ...prev, [activeProvider.id]: 'test' }));
     try {
       const data = await request('/api-keys/test', {
         method: 'POST',
-        body: JSON.stringify({ provider: activeProvider.id, key: inputValue })
+        body: JSON.stringify({ provider: activeProvider.id, key })
       });
-      if (data.valid) toast.success('✅ Ключ работает');
-      else toast.error(`❌ Ошибка: ${data.error || 'unknown'}`);
+      if (data.valid) {
+        if (data.warning) toast.success(t('apiKeys.keyWorksWarning')?.replace('{{warning}}', data.warning) || `✅ Ключ работает. ${data.warning}`);
+        else toast.success(t('apiKeys.keyWorks') || '✅ Ключ работает');
+      } else {
+        toast.error((t('apiKeys.keyError') || '❌ Ошибка: {{error}}').replace('{{error}}', data.error || 'unknown'));
+      }
     } catch (e) {
       toast.error('❌ Проверка не удалась: ' + e.message);
     } finally {
@@ -124,15 +139,24 @@ export default function ApiKeysTab() {
 
   const saveKey = async () => {
     if (!inputValue || !activeProvider) return;
+    const key = inputValue.trim();
+    if (!key) {
+      toast.error(t('apiKeys.keyEmpty') || '❌ Ключ пустой после удаления пробелов');
+      return;
+    }
     setLoading(prev => ({ ...prev, [activeProvider.id]: 'save' }));
     try {
       const data = await request('/api-keys', {
         method: 'POST',
-        body: JSON.stringify({ provider: activeProvider.id, key: inputValue })
+        body: JSON.stringify({ provider: activeProvider.id, key })
       });
-      setSaved(prev => ({ ...prev, [activeProvider.id]: data.isValid ? 'valid' : 'saved' }));
-      if (data.isValid) toast.success(data.message || '✅ Ключ сохранён и активирован!');
-      else toast(data.message || '⚠️ Ключ сохранён, но не проверен', { icon: '⚠️' });
+      setSaved(prev => ({ ...prev, [activeProvider.id]: data.isValid ? 'valid' : (data.warning ? 'saved' : 'saved') }));
+      if (data.isValid) {
+        if (data.warning) toast.success(data.message || `✅ ${data.warning}`);
+        else toast.success(data.message || '✅ Ключ сохранён и активирован!');
+      } else {
+        toast.error(data.message || '❌ Ключ сохранён, но не проверен');
+      }
       closeModal();
     } catch (e) {
       toast.error('❌ Сохранение не удалось: ' + e.message);
@@ -153,10 +177,11 @@ export default function ApiKeysTab() {
 
   const getStatus = (id) => {
     const state = saved[id];
-    if (state === 'valid') return { label: '✅ Работает', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', dot: 'bg-emerald-400', active: true };
-    if (state === 'saved') return { label: '⚠️ Не проверен', cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30', dot: 'bg-yellow-400', active: true };
-    if (state === 'invalid') return { label: '🔴 Невалиден', cls: 'bg-red-500/15 text-red-400 border-red-500/30', dot: 'bg-red-400', active: true };
-    return { label: 'Не подключен', cls: 'bg-gray-500/10 text-gray-400 border-gray-500/20', dot: 'bg-gray-500', active: false };
+    const reason = keyReasons[id];
+    if (state === 'valid') return { label: '✅ Работает', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', dot: 'bg-emerald-400', active: true, reason };
+    if (state === 'saved') return { label: '⚠️ Не проверен', cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30', dot: 'bg-yellow-400', active: true, reason };
+    if (state === 'invalid') return { label: '🔴 Невалиден', cls: 'bg-red-500/15 text-red-400 border-red-500/30', dot: 'bg-red-400', active: true, reason };
+    return { label: 'Не подключен', cls: 'bg-gray-500/10 text-gray-400 border-gray-500/20', dot: 'bg-gray-500', active: false, reason };
   };
 
   // [v9.9.19.14] 3.5 тест ЮKassa: платёж 1.00 ₽ → оплата тестовой картой → проверка статуса
@@ -236,9 +261,9 @@ export default function ApiKeysTab() {
                 <div className={`w-11 h-11 rounded-xl ${p.bg} ${p.border} border flex items-center justify-center`}>
                   <Icon className={`w-5 h-5 ${p.color}`} />
                 </div>
-                <div className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${status.cls} flex items-center gap-1.5`}>
+                <div title={status.reason || status.label} className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${status.cls} flex items-center gap-1.5 max-w-full truncate`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${status.dot} ${status.active ? 'animate-pulse' : ''}`} />
-                  {status.label}
+                  <span className="truncate">{status.label}</span>
                 </div>
               </div>
               <h3 className="font-semibold text-base mb-0.5 relative z-10">{p.name}</h3>
@@ -267,7 +292,7 @@ export default function ApiKeysTab() {
                   </button>
                   {(yookassaTest.testUrl || yookassaTest.result) && (
                     <div className="p-3 rounded-lg bg-white/5 border border-[var(--border)] text-xs flex flex-col gap-2">
-                      <p className="text-[var(--text-muted)] break-words">{t('apiKeys.yookassaHint') || 'Тестовая карта: 5555 5555 5555 4477 · срок 12/25 · CVV 000'}</p>
+                      <p className="text-[var(--text-muted)] break-words">{t('apiKeys.yookassaCardHint') || 'Тестовая карта: 5555 5555 5555 4477 · срок 12/25 · CVV 000'}</p>
                       {yookassaTest.paymentId && (
                         <button onClick={checkYookassaStatus} className="w-full px-3 py-2 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">
                           {t('apiKeys.checkStatus') || 'Проверить статус'}
@@ -296,6 +321,11 @@ export default function ApiKeysTab() {
               <button onClick={closeModal} className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"><X className="w-5 h-5" /></button>
             </div>
             <p className="text-sm text-[var(--text-muted)]">Вставьте API-ключ для {activeProvider.name}. OMEGA сразу начнёт его использовать.</p>
+            {(activeProvider.id === 'yookassa_shop_id' || activeProvider.id === 'yookassa_secret') && (
+              <p className="text-xs text-violet-300 bg-violet-500/10 border border-violet-500/20 rounded-lg p-2.5">
+                {t('apiKeys.yookassaHint') || 'ЮKassa: shopId (6 цифр) + Secret test_/live_ из кабинета → Интеграция → API'}
+              </p>
+            )}
             <div className="relative">
               <input
                 type={showKey ? 'text' : 'password'}

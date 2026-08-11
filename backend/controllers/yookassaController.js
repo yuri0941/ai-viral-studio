@@ -120,7 +120,8 @@ export const createSubscriptionPayment = async (req, res) => {
   } catch (err) {
     // [v9.9.19.14] 3.1 ошибка API ЮKassa → 502 JSON с деталями, НЕ 500
     console.error('[YOOKASSA]', err.message);
-    return res.status(502).json({ success: false, error: 'Платёж не создан', details: err.message });
+    const code = err.status >= 400 && err.status < 500 ? 400 : 502
+    return res.status(code).json({ success: false, error: err.message || 'Платёж не создан', details: err.raw || err.message });
   }
 };
 

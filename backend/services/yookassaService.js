@@ -53,7 +53,10 @@ export async function createPayment({ amount, currency = 'RUB', description, ret
 
     if (!response.ok) {
       console.error('[yookassaService:createPayment] Error:', data);
-      throw new Error(data?.description || `YooKassa HTTP ${response.status}`);
+      const err = new Error(data?.description || data?.message || `YooKassa HTTP ${response.status}`)
+      err.status = response.status
+      err.raw = data
+      throw err;
     }
 
     return {
@@ -85,7 +88,10 @@ export async function checkPayment(paymentId) {
 
     if (!response.ok) {
       console.error('[yookassaService:checkPayment] Error:', data);
-      throw new Error(data?.description || `YooKassa HTTP ${response.status}`);
+      const err = new Error(data?.description || data?.message || `YooKassa HTTP ${response.status}`)
+      err.status = response.status
+      err.raw = data
+      throw err;
     }
 
     return {

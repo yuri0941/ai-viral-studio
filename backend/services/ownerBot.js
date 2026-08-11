@@ -4,6 +4,7 @@ import mongoose from 'mongoose'
 import { chatWithAI, extractText } from './aiService.js'
 import { generateChannelPost, generateWeeklyCalendar, publishToChannel } from './channelManager.js'
 import { publishToChannel as telegramPublish, getChannelStats as getTgChannelStats } from './telegramChannelManager.js'
+import { buildKeyDigest } from './dailyReport.js'
 import { createNode, queryMesh } from './cognitiveMesh.js'
 import { isOwner as isOwnerContext, getOwnerContext, getSmartGreeting } from './ownerContext.js'
 import { getMenu, trackClick, generateMenuImprovements, applyMenuChanges, addCustomButton, toggleButton } from './telegramMenuService.js'
@@ -168,6 +169,7 @@ export const initOwnerBot = () => {
     { command: 'stats', description: '💎 Метрики' },
     { command: 'tickets', description: '🎫 Обращения' },
     { command: 'omega', description: '🤖 OMEGA' },
+    { command: 'keystatus', description: '🔑 Ключи ИИ' },
     { command: 'exec', description: '⚡ Выполнить' },
     { command: 'menu', description: '📝 Изменить меню' },
     { command: 'feature', description: '✨ Новая фича' },
@@ -228,6 +230,19 @@ export const initOwnerBot = () => {
   });
 
   bot.onText(/\/stats/, (msg) => { if (!isOwner(msg.chat.id)) return; sendStats(msg.chat.id) })
+
+  // [v9.9.19.14.4] /keystatus — AI keys digest on demand
+  bot.onText(/\/keystatus/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    try {
+      const section = await buildKeyDigest();
+      safeSendMessage(chatId, `🔑 <b>Статус ключей ИИ</b>${section || '\n⚠️ Не удалось построить сводку'}`, { parse_mode: 'HTML' });
+    } catch (e) {
+      console.error('[OWNER-BOT] /keystatus failed:', e.message);
+      safeSendMessage(chatId, '⚠️ Не удалось загрузить статус ключей.', { parse_mode: 'HTML' });
+    }
+  })
 
   // [v9.9.2-MASTER-FIX] /tickets — list open support tickets
   bot.onText(/\/tickets/, async (msg) => {
