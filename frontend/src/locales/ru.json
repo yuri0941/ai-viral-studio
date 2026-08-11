@@ -1110,7 +1110,8 @@
     "details": "Подробнее",
     "created": "Создан",
     "relatedFacts": "Связанные факты",
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "statsShort": "🧠 {{nodes}} | {{edges}} | {{clusters}}"
   },
   "youtube": {
     "title": "YouTube AI",

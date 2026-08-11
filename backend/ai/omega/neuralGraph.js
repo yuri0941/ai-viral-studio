@@ -321,6 +321,30 @@ export async function generateGraphData(ownerId) {
             console.warn('[NeuralGraph] memory layers nodes failed:', e.message)
         }
 
+        // === [v9.9.19.14.3] цепочка счётчиков: CognitiveNode (сотни в БД) тоже попадают в граф ===
+        try {
+            const { default: CognitiveNode } = await import('../../models/CognitiveNode.js')
+            const cogs = await CognitiveNode.find({ archived: { $ne: true } }).sort({ _id: -1 }).limit(80).lean()
+            const COG_TYPE_MAP = { error: 'error', skill: 'skill', content: 'knowledge', action: 'memory', system: 'tech', research: 'knowledge', support: 'memory', longterm: 'memory' }
+            const existingCog = new Set(graphNodes.map(n => n.id))
+            for (const c of cogs) {
+                const id = `cog-${c._id}`
+                if (existingCog.has(id)) continue
+                const type = COG_TYPE_MAP[c.type] || 'memory'
+                graphNodes.push({
+                    id,
+                    label: String(c.content || c.type || 'node').slice(0, 40),
+                    type,
+                    cluster: 6,
+                    size: 6,
+                    data: { source: c.source || 'cognitive', confidence: c.confidence, createdAt: c.createdAt }
+                })
+                edges.push({ source: 'omega-core', target: id, weight: 0.3, relation: 'memory' })
+            }
+        } catch (e) {
+            console.warn('[NeuralGraph] cognitive nodes failed:', e.message)
+        }
+
         // === [v9.9.19.14] 2.1 персистентные координаты: узлы с сохранённой позицией получают nx/ny ===
         try {
             const { default: GraphNodePosition } = await import('../../models/GraphNodePosition.js')
@@ -337,6 +361,17 @@ export async function generateGraphData(ownerId) {
             console.warn('[NeuralGraph] positions load failed:', e.message)
         }
 
+        // === [v9.9.19.14.3] 2.3 каждому узлу валидные nx/ny (никаких null в ответе):
+        // детерминированная golden-angle спираль по индексу для узлов без сохранённой позиции ===
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5))
+        graphNodes.forEach((n, i) => {
+            if (Number.isFinite(n.nx) && Number.isFinite(n.ny) && n.nx >= 0 && n.nx <= 1 && n.ny >= 0 && n.ny <= 1) return
+            const r = graphNodes.length > 1 ? 0.38 * Math.sqrt((i + 0.5) / graphNodes.length) : 0
+            const theta = i * goldenAngle
+            n.nx = Math.min(0.95, Math.max(0.05, 0.5 + r * Math.cos(theta)))
+            n.ny = Math.min(0.95, Math.max(0.05, 0.5 + r * Math.sin(theta)))
+        })
+
         for (let i = 0; i < knowledgeNodes.length - 1; i++) {
             edges.push({ source: knowledgeNodes[i].id, target: knowledgeNodes[i + 1].id, weight: 0.6, relation: 'related' })
         }
@@ -349,6 +384,9 @@ export async function generateGraphData(ownerId) {
             cluster: 0,
             color: '#8B5CF6',
             size: 20,
+            // [v9.9.19.14.3] ядро — всегда валидный центр (создаётся после golden-angle прохода)
+            nx: 0.5,
+            ny: 0.5,
             data: { status: 'active', ownerId: ownerId?.toString?.() || null }
         }
         graphNodes.push(coreNode)

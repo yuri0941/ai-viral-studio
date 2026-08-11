@@ -103,6 +103,8 @@
 
 **v9.9.19.14.2-SHORTTERM-CAST-FIX — выполнен** (2026-08-11): корень — поле `type: String` в поддокументе entries компилировалось mongoose как [String] → CastError на каждой записи. Фикс: вложенная форма `type: { type: String }`, type guards в write-through, self-heal sanitize при restore, однострочные логи. Repair-скрипт идемпотентен (backend/scripts/repairMemoryEntries.js).
 
+**v9.9.19.14.3-GRAPH-RENDER-FIX — выполнен** (2026-08-11): граф рендерит все узлы. Корни: (A) endpoint не читал CognitiveNode — 300 узлов БД терялись; (B) размер мерялся с внешней панели вместо канваса — узлы рисовались вне видимой области; (C) nx/ny были null — теперь golden-angle спираль на backend. Единый FILTER_GROUPS (типы не выпадают), статистика = видимому массиву, дубли луп убраны, 375px панель в одну строку.
+
 ---
 
 ## ⏳ ОЧЕРЕДЬ ФИКСОВ (P0 — критично)

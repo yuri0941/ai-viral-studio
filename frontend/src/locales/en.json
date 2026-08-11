@@ -1111,7 +1111,8 @@
     "details": "Details",
     "created": "Created",
     "relatedFacts": "Related facts",
-    "close": "Close"
+    "close": "Close",
+    "statsShort": "🧠 {{nodes}} | {{edges}} | {{clusters}}"
   },
   "youtube": {
     "title": "YouTube AI",

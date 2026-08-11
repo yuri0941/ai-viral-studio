@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Network, ZoomIn, ZoomOut, RotateCcw, RefreshCw, Search, X, Filter, Info } from 'lucide-react';
+import { Network, RotateCcw, RefreshCw, Search, X, Info } from 'lucide-react';
 import { request } from '../../../../services/api.js';
 
 const TYPE_COLORS = {
@@ -30,6 +30,18 @@ const TYPE_LABELS = {
   tech: 'Технологии'
 };
 
+// [v9.9.19.14.3] единый TYPE_MAP: чип фильтра → ВСЕ реальные типы backend (включая memory/tech из 19.14).
+// Неизвестный тип не исчезает: «Все» = без фильтрации, fallback-группа по id чипа.
+const FILTER_GROUPS = {
+  core: ['core'],
+  knowledge: ['knowledge', 'memory'],
+  project: ['project'],
+  client: ['client'],
+  skill: ['skill', 'tech'],
+  error: ['error'],
+  idea: ['idea', 'trend'],
+};
+
 const FILTERS = [
   { id: 'all', label: 'Все' },
   { id: 'core', label: 'Ядро' },
@@ -38,6 +50,7 @@ const FILTERS = [
   { id: 'client', label: 'Клиенты' },
   { id: 'skill', label: 'Навыки' },
   { id: 'error', label: 'Ошибки' },
+  { id: 'idea', label: 'Идеи' },
 ];
 
 function getColor(type) {
@@ -58,6 +71,7 @@ export default function NeuralGraphTab() {
   const { t } = useTranslation();
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const graphRef = useRef(null); // [v9.9.19.14.3] размер КАНВАСА, не всей панели — иначе узлы рисуются за пределами видимой области
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [clusters, setClusters] = useState([]);
@@ -147,6 +161,13 @@ export default function NeuralGraphTab() {
           clusterMap[n.cluster].nodeCount++;
         });
         setClusters(Object.values(clusterMap));
+        // [v9.9.19.14.3] встроенная сигнализация: ни один тип не должен выпадать из выборки
+        const typeCount = {};
+        enriched.forEach(n => { typeCount[n.type] = (typeCount[n.type] || 0) + 1; });
+        const knownTypes = new Set(['core', ...Object.values(FILTER_GROUPS).flat()]);
+        const droppedTypes = Object.keys(typeCount).filter(tp => !knownTypes.has(tp));
+        console.log(`[GRAPH] total=${enriched.length} rendered=${enriched.length} types=${JSON.stringify(typeCount)}`);
+        if (droppedTypes.length) console.error(`[GRAPH] Типы выпадают из фильтров: ${droppedTypes.join(', ')}`);
       })
       .catch(err => {
         console.error('[NeuralGraphTab] fetch error:', err);
@@ -161,7 +182,8 @@ export default function NeuralGraphTab() {
   useEffect(() => { loadGraph(); }, []);
 
   useEffect(() => {
-    const el = containerRef.current;
+    // [v9.9.19.14.3] меряем обёртку канваса (graphRef), а не всю панель — корень пустого канваса
+    const el = graphRef.current;
     if (!el) return;
     const ro = new ResizeObserver(entries => {
       const cr = entries[0].contentRect;
@@ -271,9 +293,16 @@ export default function NeuralGraphTab() {
   }, [nodes.length, edges.length, size.w, size.h, draggingNode]);
 
   // Подгонка камеры: весь граф в кадре с отступом ~40px
+  const fitRetryRef = useRef(0);
   const fitToView = () => {
+    // [v9.9.19.14.3] контейнер 0px (первый рендер/мобильный) → rAF-повтор до 60 кадров, НЕ пропуск
+    if (!size.w || !size.h) {
+      if (fitRetryRef.current++ < 60) requestAnimationFrame(fitToView);
+      return;
+    }
+    fitRetryRef.current = 0;
     const list = physicsRef.current.nodes?.length ? physicsRef.current.nodes : nodes;
-    if (!list.length || !size.w || !size.h) return;
+    if (!list.length) return;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     list.forEach(n => {
       if (!Number.isFinite(n.x) || !Number.isFinite(n.y)) return;
@@ -316,14 +345,27 @@ export default function NeuralGraphTab() {
   }, [search]);
 
   const filteredNodes = useMemo(() => {
-    let list = physicsRef.current.nodes || nodes;
-    if (filter !== 'all') list = list.filter(n => n.type === filter || n.cluster === filter);
+    // [v9.9.19.14.3] пустой physicsRef ([] truthy) не должен гасить выборку до старта симуляции
+    let list = physicsRef.current.nodes?.length ? physicsRef.current.nodes : nodes;
+    // «Все» = БЕЗ фильтрации; чип → группа типов из единого TYPE_MAP
+    if (filter !== 'all') {
+      const group = FILTER_GROUPS[filter] || [filter];
+      list = list.filter(n => group.includes(n.type) || n.cluster === filter);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(n => (n.label || '').toLowerCase().includes(q));
     }
     return list;
   }, [nodes, filter, search, physicsRef.current.nodes]);
+
+  // [v9.9.19.14.3] шапка и карточка считаются из ТОГО ЖЕ массива, который рендерится
+  const visibleStats = useMemo(() => {
+    const ids = new Set(filteredNodes.map(n => n.id));
+    const visEdges = edges.filter(e => ids.has(e.source.id) && ids.has(e.target.id)).length;
+    const visClusters = new Set(filteredNodes.map(n => n.cluster)).size;
+    return { nodes: filteredNodes.length, edges: visEdges, clusters: visClusters };
+  }, [filteredNodes, edges]);
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -561,7 +603,9 @@ export default function NeuralGraphTab() {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2"><Network className="w-6 h-6 text-cyan-400" /> {t('neuralGraph.title') || 'Neural Graph'}</h2>
           <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1 whitespace-nowrap overflow-x-auto no-scrollbar">
-            {t('neuralGraph.stats', { nodes: nodes.length, edges: edges.length, clusters: clusters.length }) || `🧠 Neural Graph: ${nodes.length} узлов | ${edges.length} связей | ${clusters.length} кластеров`} | Навыков изучено: {skillsCount}
+            {isMobile
+              ? (t('neuralGraph.statsShort', { nodes: visibleStats.nodes, edges: visibleStats.edges, clusters: visibleStats.clusters }) || `${visibleStats.nodes} | ${visibleStats.edges} | ${visibleStats.clusters}`)
+              : (t('neuralGraph.stats', { nodes: visibleStats.nodes, edges: visibleStats.edges, clusters: visibleStats.clusters }) || `🧠 Neural Graph: ${visibleStats.nodes} узлов | ${visibleStats.edges} связей | ${visibleStats.clusters} кластеров`)} | Навыков изучено: {skillsCount}
           </p>
         </div>
         {/* [v9.9.19.2] мобильная панель: поиск одной строкой (поле + ⟳), фильтры — отдельной скролл-строкой */}
@@ -579,8 +623,7 @@ export default function NeuralGraphTab() {
                 {f.label}
               </button>
             ))}
-            <button onClick={() => { setZoom(z => Math.min(3, z + 0.2)); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><ZoomIn className="w-4 h-4" /></button>
-            <button onClick={() => { setZoom(z => Math.max(0.4, z - 0.2)); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><ZoomOut className="w-4 h-4" /></button>
+            {/* [v9.9.19.14.3] кнопки-«лупы» ZoomIn/ZoomOut удалены (путались с поиском); зум — колесом/пинчем; остался сброс+fit */}
             <button onClick={() => { setFilter('all'); setSearch(''); setSelectedNode(null); fitToView(); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><RotateCcw className="w-4 h-4" /></button>
           </div>
         </div>
@@ -600,7 +643,7 @@ export default function NeuralGraphTab() {
         </div>
         <div className="glass-card p-4 rounded-xl border-l-4 border-white/25">
           <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Узлов в графе</div>
-          <div className="text-2xl font-bold text-white mt-1">{nodes.length || 0}</div>
+          <div className="text-2xl font-bold text-white mt-1">{visibleStats.nodes}</div>
           <div className="text-xs text-[var(--text-muted)] mt-1">проекты + клиенты + знания</div>
         </div>
         <div className="glass-card p-4 rounded-xl border-l-4 border-white/25">
@@ -624,7 +667,7 @@ export default function NeuralGraphTab() {
         </div>
       )}
 
-      <div className="flex-1 glass-luxury rounded-xl overflow-hidden relative min-h-[50vh] md:min-h-[60vh] lg:min-h-[70vh]">
+      <div ref={graphRef} className="flex-1 glass-luxury rounded-xl overflow-hidden relative min-h-[50vh] md:min-h-[60vh] lg:min-h-[70vh]">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center z-10">
             <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]"><RotateCcw className="w-4 h-4 animate-spin" /> Загрузка...</div>

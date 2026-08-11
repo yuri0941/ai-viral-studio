@@ -3742,3 +3742,14 @@
 - [FIX] Логи: logMemoryError — одна строка, [CastError] + layer + entries.length, message обрезан до 200 символов; все catch в memoryLayerService переведены
 - [SCRIPTS] inspectMemoryLayers.js (таблица типов по 12 слоям), repairMemoryEntries.js (идемпотентный ремонт: строка → JSON/corruptedDump, фильтр не-объектов), inspectLegacyMemory.js, test_shortterm_write.mjs
 - [TEST] Реальный прогон: CastError воспроизведён локально до фикса → после фикса write-through записал объект (DB: last-type=object) → kill процесса → рестарт → "[OMEGA] Memory restored: short_term=1" — факт пережил рестарт; repair-скрипт идемпотентен (повторный запуск — все слои clean); node --check всех файлов ✅
+
+## 2026-08-11 — v9.9.19.14.3-GRAPH-RENDER-FIX
+- [DIAG] Цепочка счётчиков (локальная БД): MongoDB CognitiveNode=3 (прод: 300 по логу hydrate) → endpoint 15 узлов (типы client 13 / knowledge 1 / core 1, ВСЕ координаты null, nx/ny=0) → state фронта 15 → канвас 0. Таблица: БД 3/300 → endpoint 15 → фронт 15 → рендер 0
+- [ROOT A] Endpoint вообще не читал CognitiveNode — 300 узлов БД терялись до API. FIX: generateGraphData включает до 80 CognitiveNode с маппингом типов (error→error, skill→skill, content→knowledge, action→memory, system→tech, ...) + связь с ядром
+- [ROOT B] Главный рендер-баг: ResizeObserver мерял ВНЕШНИЙ контейнер панели (шапка+карточки+канвас), а canvas.width/height и раскладка считались в его координатах → узлы рисовались за пределами видимой области канваса. FIX: graphRef на обёртке канваса, размер от него
+- [ROOT C] Координаты: backend не гарантировал nx/ny (все null). FIX: golden-angle спираль по индексу (детерминированно, [0.05..0.95]), omega-core = центр 0.5/0.5; сохранённые позиции из 19.14 приоритетны; fitToView с rAF-повтором до 60 кадров при 0px контейнере
+- [FIX] Единый FILTER_GROUPS (TYPE_MAP): Знания=knowledge+memory, Навыки=skill+tech, Идеи=idea+trend; «Все» = без фильтрации; console-assert «[GRAPH] total=N rendered=N types={...}» + error с выпавшими типами; пустой physicsRef ([] truthy) больше не гасит выборку до старта симуляции
+- [FIX] Панель: кнопки ZoomIn/ZoomOut (визуальные дубли лупы) удалены — зум колесом/пинчем; одна лупа внутри поля поиска; 375px — фильтры скролл-строкой, статистика коротким форматом «N | M | K» (i18n statsShort), nowrap
+- [FIX] Статистика = рендеру: шапка и карточка «Узлов в графе» считаются из filteredNodes (видимое после фильтра), связи — только между видимыми узлами
+- [TEST] endpoint: 19 узлов, bad coords = 0 (ранее 15/15 null), типы client/knowledge/tech/skill/core — ни один не выпадает; node --check ✅; npm run build ✅
+- [NOTE] Ручная проверка владельцем: десктоп — все узлы в кадре, цифры шапки = канвасу; фильтры по кругу; 375px инкогнито; тап → bottom sheet; «Пересоздать из БД» → узлы в кадре
