@@ -3880,3 +3880,24 @@
   1) Поддержка → тикеты грузятся, тест-тикет создаётся.
   2) Консоль браузера: ноль 404 (support + telemetry).
   3) Планировщик → пост через 2 мин на VK → на стене (или статус «разрешите публикацию» → Соцсети → VK → Разрешить).
+
+## 2026-08-12 — v9.9.19.15.2-UNIFIED-PLATFORM-CHECK-AND-ALERTS-FIX
+- [DIAG] После 19.15.1 владельцу пришёл алерт: «Автопост не опубликован: ни одна платформа не подключена. Пост: 🎬 Обзор Август. Подключите соцсети в Integrations.» — VK был подключён. Причина: при `publishedCount===0` `autoPublisher.js` всегда говорил «Integrations», не разбирая реальную причину по `user.socials`.
+- [TABLE] Пути публикации и источники проверки:
+  | Путь | Файл | Источник (было) | Источник (стало) |
+  |---|---|---|---|
+  | ScheduledPost авто | `services/autoPublisher.js` | `publishToPlatform` читал user.socials, но алерт без деталей | `getConnectedSocials` до публикации; честные причины; алерт без «Integrations» |
+  | ScheduledPost ручной | `routes/scheduledPosts.js` `/publish` | `publishToPlatform` | `getConnectedSocials` до публикации |
+  | VK прямой | `routes/vk.js` `/vk/publish` | `publishToVKWall` (user.socials) | без изменений, уже user.socials |
+  | Telegram ручной | `routes/scheduledPosts.js` | user.telegramBotToken/chatId | без изменений |
+  | Telegram канал (CHANNEL-AUTO) | `services/channelPublisher.js`, `services/telegramChannelManager.js` | getProviderKey('telegram_bot') / env (owner-level канал) | не изменялось — не user.socials |
+  | Legacy platforms | `services/publishers/index.js` | Integration collection | оставлено для legacy |
+- [FIX] `backend/utils/connectedSocials.js` — единый helper `getConnectedSocials(userOrId)`; источник только `user.socials` (+ vkToken, telegramBotToken); возвращает `{connected, hasToken, hasUserId, needsScope, reason}` для VK и `{connected, hasToken, hasChatId, reason}` для Telegram; `formatPlatformReasons` с локализацией `ru`/`en` без слова «Integrations».
+- [FIX] `backend/services/autoPublisher.js`: вызывает `getConnectedSocials` перед публикацией; для неподключённой платформы сразу `error` с кодом причины, без лишнего вызова VK API; retry через 5 мин только для временных ошибок; алерт владельцу содержит честные причины по каждой платформе (VK — «требуется разрешение на публикацию» / «не подключён» и т.д.) и ссылку на Соцсети.
+- [FIX] `backend/routes/scheduledPosts.js` `/publish`: вызывает `getConnectedSocials` перед публикацией; неподключённые платформы возвращают `error` с понятной `hint`.
+- [FIX] `backend/scripts/requeueVkFailedPosts.js`: разовый скрипт для постов, убитых старым багом `vk_not_connected` за последние 7 дней. По умолчанию dry-run; с `--apply` переводит в `scheduled` (due=now+5min), если `getConnectedSocials(user).vk.connected`. Без delete/drop.
+- [TEST] `node --check` по `connectedSocials.js`, `autoPublisher.js`, `scheduledPosts.js`, `requeueVkFailedPosts.js` ✅; `npm run build` ✅; `git diff --stat` — только publish-пути/алерты/helper/скрипт.
+- [NOTE] Ручная проверка владельцем:
+  1) Новый пост в планировщике на +2 мин (цель VK) → published + postUrl, пост на стене; алертов «не подключена» нет.
+  2) Запустить `node backend/scripts/requeueVkFailedPosts.js --apply` → старые «Обзор Август» переочередены → доходят до стены или получают честный failed.
+  3) Telegram-канал постит по расписанию как раньше; композер работает; боту «привет» → отвечает; ключи после F5.

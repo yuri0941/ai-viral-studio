@@ -243,3 +243,9 @@
 - Добавлен `GET /api/support/my` для creator SupportTab; `POST /api/telemetry` — sink для телеметрии (200 JSON).
 - Планировщик/ручная публикация явно выбирает `+vkUserId`; retry только для временных ошибок, перманентные (`vk_not_connected`, `vk_needs_wall_scope` и др.) → `failed` без бесконечных ретраев.
 - Добавлен диагностический лог `[vk:publish]` с деталями подключения VK.
+
+### v9.9.19.15.2 — unified platform check and honest alerts
+- Проверка подключённых соцсетей унифицирована в `utils/connectedSocials.js` (источник — `user.socials`).
+- `autoPublisher` и `scheduledPosts/:id/publish` используют helper и сообщают честные причины отказа по каждой платформе.
+- Алерты владельцу больше не содержат «Integrations» и указывают на страницу Соцсетей / конкретную причину (needs_scope, not_connected и т.д.).
+- Добавлен `backend/scripts/requeueVkFailedPosts.js` для разового восстановления постов, убитых багом `vk_not_connected`.

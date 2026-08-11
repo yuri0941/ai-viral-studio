@@ -1,6 +1,7 @@
 import ScheduledPost from '../models/ScheduledPost.js'
 import User from '../models/User.js'
 import { publishToPlatform } from './platformPublisher.js'
+import { getConnectedSocials, formatPlatformReasons } from '../utils/connectedSocials.js'
 
 // [v9.9.19.3] алерт владельцу о постах без платформ — один раз на пост, без спама
 const noPlatformAlerted = new Set()
@@ -15,7 +16,10 @@ const PERMANENT_ERROR_CODES = [
   'no_post_id',
   'not connected',
   'telegram bot token',
-  'chat id не настроены'
+  'chat id не настроены',
+  'needs_scope',
+  'no_chat',
+  'no_token'
 ]
 
 function isPermanentError(result) {
@@ -46,7 +50,7 @@ export const startAutoPublisher = () => {
             }
 
             const user = await User.findById(post.userId)
-                .select('+vkToken +vkRefreshToken +vkUserId telegramBotToken telegramChatId telegramId socials.vk')
+                .select('+vkToken +vkRefreshToken +vkUserId telegramBotToken telegramChatId telegramId socials.vk preferences.language')
             if (!user) {
                 console.warn(`[AUTO-PUBLISH] skipped: user not found (post ${post._id})`)
                 post.status = 'failed'
@@ -55,9 +59,25 @@ export const startAutoPublisher = () => {
                 continue
             }
 
+            // [v9.9.19.15.2] единый источник правды о подключённых соцсетях
+            const socialStatus = await getConnectedSocials(user)
+            console.log(`[AUTO-PUBLISH] post=${post._id} user=${post.userId} vk=${JSON.stringify(socialStatus.vk)} telegram=${JSON.stringify(socialStatus.telegram)}`)
+
             const results = []
 
             for (const platform of platforms) {
+                // Проверяем подключение ДО вызова публикатора
+                const status = socialStatus[platform]
+                if (status && !status.connected) {
+                    results.push({
+                        platform,
+                        status: 'error',
+                        error: status.reason,
+                        result: { success: false, error: `${platform}_not_connected`, reason: status.reason, hint: formatPlatformReasons({ [platform]: status }, socialStatus.language) }
+                    })
+                    continue
+                }
+
                 try {
                     const result = await publishToPlatform(user, platform, post)
                     results.push({ platform, status: result.success !== false ? 'published' : 'error', result })
@@ -91,7 +111,11 @@ export const startAutoPublisher = () => {
                     noPlatformAlerted.add(String(post._id))
                     try {
                         const { alertOwner } = await import('./ownerBot.js')
-                        alertOwner?.(`⚠️ Автопост не опубликован: ни одна платформа не подключена.\nПост: ${(post.title || '').slice(0, 60)}\nПодключите соцсети в Integrations.`)
+                        const reasons = formatPlatformReasons(socialStatus, socialStatus.language)
+                        const action = socialStatus.language === 'ru'
+                            ? `Проверьте статус в Соцсетях.`
+                            : `Check status in Socials.`
+                        alertOwner?.(`⚠️ ${socialStatus.language === 'ru' ? 'Автопост не опубликован' : 'Auto-post not published'}: ${(post.title || '').slice(0, 60)}\n${reasons}\n${action}`)
                     } catch { /* алерт не критичен */ }
                 }
             } else {

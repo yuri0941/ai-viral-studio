@@ -4,6 +4,7 @@ import ScheduledPost from '../models/ScheduledPost.js'
 import User from '../models/User.js'
 import { publishToTelegram } from '../services/telegramPublish.js'
 import { publishToPlatform } from '../services/platformPublisher.js'
+import { getConnectedSocials, formatPlatformReasons } from '../utils/connectedSocials.js'
 
 const router = express.Router()
 
@@ -133,13 +134,31 @@ router.post('/:id/publish', protect, async (req, res) => {
         if (!post) return res.status(404).json({ status: 'error', error: 'Post not found' })
 
         const user = await User.findById(userId)
-            .select('+vkToken +vkRefreshToken +vkUserId telegramBotToken telegramChatId telegramId socials.vk')
+            .select('+vkToken +vkRefreshToken +vkUserId telegramBotToken telegramChatId telegramId socials.vk preferences.language')
         if (!user) return res.status(404).json({ status: 'error', error: 'User not found' })
 
+        // [v9.9.19.15.2] единый источник правды о подключённых соцсетях
+        const socialStatus = await getConnectedSocials(user)
         const platforms = req.body.platforms || post.platforms || []
         const results = []
 
         for (const platform of platforms) {
+            const status = socialStatus[platform]
+            if (status && !status.connected) {
+                results.push({
+                    platform,
+                    status: 'error',
+                    error: status.reason,
+                    result: {
+                        success: false,
+                        error: `${platform}_not_connected`,
+                        reason: status.reason,
+                        hint: formatPlatformReasons({ [platform]: status }, socialStatus.language)
+                    }
+                })
+                continue
+            }
+
             try {
                 const result = await publishToPlatform(user, platform, post)
                 results.push({ platform, status: result.success !== false ? 'published' : 'error', result })
