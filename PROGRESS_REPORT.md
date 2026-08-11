@@ -3753,3 +3753,18 @@
 - [FIX] Статистика = рендеру: шапка и карточка «Узлов в графе» считаются из filteredNodes (видимое после фильтра), связи — только между видимыми узлами
 - [TEST] endpoint: 19 узлов, bad coords = 0 (ранее 15/15 null), типы client/knowledge/tech/skill/core — ни один не выпадает; node --check ✅; npm run build ✅
 - [NOTE] Ручная проверка владельцем: десктоп — все узлы в кадре, цифры шапки = канвасу; фильтры по кругу; 375px инкогнито; тап → bottom sheet; «Пересоздать из БД» → узлы в кадре
+
+## 2026-08-11 — v9.9.19.14.4-KEYS-COMPLETE-FIX
+- [DIAG] Имена полей ЮKassa совпадают между кабинетом и backend: yookassa_shop_id / yookassa_secret (проверено grep по backend/ frontend/src/)
+- [FIX] ЮKassa: любой 400/422 возвращает причину в UI через общий request() → toast с текстом ошибки; backend /payments/test-yookassa отдаёт {success:false, error, missing: [...]} когда не заполнено одно из полей; yookassaService/createPayment пробрасывает raw-ответ API в err.raw; createSubscriptionPayment отдаёт 400/502 в зависимости от статуса
+- [FIX] ЮKassa trim + валидация формата: apiKeys.js обрезает пробелы, пустой ключ → 400; checkKeyFormat выдаёт warning если shop_id не 4–8 цифр или secret не test_/live_; подсказка в модалке ApiKeysTab и i18n (ru/en)
+- [FIX] AI-провайдеры — тихий skip: tryProviders фильтрует провайдера до вызова (нет ключа / disabled / невалидный формат / cooldown) → continue без error-дампа; лог только одной строкой при реальной попытке или смене состояния
+- [FIX] AI cooldown 30 мин: 401/403/invalid-api-key → setCooldown(30m); повторный запрос в течение 30 мин не дёргает API; cooldown сбрасывается в hotReloadApiKey при обновлении ключа
+- [FIX] AI key format guard: isKeyFormatValid отбрасывает пустые, <10 символов и ключи неправильного префикса (gsk_, sk-, tf_, csk- и др.) → status invalid reason 'format'
+- [FIX] Авто-включение: ApiKeys POST сохраняет isActive=true; aiService.isEnabled оставляет провайдер выключенным только если владелец ЯВНО выключил в AIProviderSetting (выключен = запрет приоритетнее)
+- [FIX] Актуальные model IDs: MODEL_IDS — единый реестр с комментарием даты; OpenRouter обновлён на google/gemini-2.0-flash-001 (был google/gemini-2.0-flash-exp:free, возвращал 404); Fireworks оставлен accounts/fireworks/models/llama-v3p3-70b-instruct
+- [FEATURE] Daily Report: секция 🔑 Ключи ИИ с разделами ✅ Активны / ❌ Невалидны / ➕ Не добавлены (со ссылками console.groq.com/keys и др.) + футер «Вставьте любой в Кабинет → API Ключи — включится автоматически»
+- [FEATURE] Owner-бот: команда /keystatus — та же сводка по запросу; добавлена в setMyCommands
+- [UI] ApiKeysTab: trim на save/test, бейдж с title/pричиной и truncate, модалка с подсказкой формата ЮKassa; i18n ru/en расширен ключами apiKeys.keyEmpty/keyWorks/keyWorksWarning/keyError/testYookassa/checkStatus/yookassaOk/yookassaKeyHint/yookassaCardHint
+- [TEST] node --check всех затронутых backend-файлов ✅; npm run build ✅; сервер стартует без ошибок; /api/health ✅; 403 на /payments/test-yookassa с invalid-токеном (не 500) ✅
+- [NOTE] Ручная проверка владельцем: вставить ключ ЮKassa → если 400 причина видна; оба поля → 🧪 Проверить ЮKassa → 🟢; Render Logs — AI-запросы без простыней 401; новый ИИ-ключ → бейдж ✅; /keystatus → сводка
