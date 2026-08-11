@@ -3933,3 +3933,32 @@
   1) Render → Logs после деплоя: старт без ⚠️-простыни, одна строка `[payments]`.
   2) Через 30 мин: нет KEY-спама от пингов.
   3) Боту «привет» → отвечает; канал постит по расписанию.
+
+## 2026-08-12 — v9.9.19.16-FINAL-FIX-ALL-RENDER-ERRORS
+- [DIAG] Полная инвентаризация Render-лога (347 строк): двойной init ботов/кэша, stripe в цикле ИИ-ключей, warnings платёжек, KEY-спам, deprecation, safeJSONParse.
+- [TABLE] Источники и действия:
+  | Строка | Файл | Действие |
+  |---|---|---|
+  | `[OWNER-BOT] Created...` и тут же `[OWNER-BOT] Already started, skipping` | `backend/services/ownerBot.js` + `backend/server.js` | Убран auto-init при импорте; `initOwnerBot()` только из `server.js` |
+  | `[OMEGA-BOT] Created...` и тут же `[OMEGA-BOT] Already started, skipping` | `backend/services/omegaBot.js` + `backend/server.js` | Убран auto-init при импорте; `initOmegaBot()` только из `server.js` |
+  | `[Cache] Redis not configured` ×2 | `backend/config/redis.js` + `backend/config/redisClient.js` | `redis.js` переведён на lazy init; `redisClient.js` idempotent |
+  | `[KEY] provider=stripe source=env` при логине | `backend/services/aiService.js` `loadApiKeysToMemory` | Платёжные провайдеры исключены из hot-reload цикла; сводка одной строкой |
+  | `[HOT-RELOAD] Loaded 0 API keys` / платёжные warnings | `backend/config/env.js`, `backend/services/aiService.js` | Одна info-строка `[payments]` + `[HOT-RELOAD] providers: N (env: E, db: D)` |
+  | Deprecation `path`/`auth` | `backend/services/vectorStore.js` | `ChromaClient({ path, auth })` → `{ ssl, host, port, headers }` |
+  | `[KEY] provider=... source=env` спам | `backend/services/aiService.js` | `global.apiKeyEnvLogged` — один раз |
+  | `♻️ Returning local/Redis cached response`, `[Keep-Alive] 200` | `backend/services/aiService.js`, `backend/server.js` | `console.log` → `console.debug` |
+  | `[OWNER-BOT]/[OMEGA-BOT] Already started, skipping` | `ownerBot.js` / `omegaBot.js` | `console.log` → `console.debug` |
+  | `[safeJSONParse] Failed to parse` многострочник | `backend/ai/omega/autoFixAgent.js` | Whitespace свёрнут, ≤200 символов, warn |
+  | `[autoFixAgent] scanning for errors` | `backend/ai/omega/autoFixAgent.js` | `console.log` → `console.debug` |
+  | VK retry `not_connected`/`needs_scope` | `backend/services/autoPublisher.js` | Коды helper добавлены в PERMANENT_ERROR_CODES |
+- [FIX] `backend/services/ownerBot.js`: убран `getOwnerBot()` при загрузке модуля; default export — объект с API; `initOwnerBot()` — единая точка входа из `server.js`.
+- [FIX] `backend/services/omegaBot.js`: убран `getOmegaBot()` при загрузке модуля; default export — объект с API; `initOmegaBot()` — единая точка входа из `server.js`.
+- [FIX] `backend/server.js`: удалён неиспользуемый default import `bot from './services/ownerBot.js'`.
+- [FIX] `backend/config/redis.js`: lazy init при первом `get/set/del`; нет top-level подключения при импорте.
+- [FIX] `backend/config/redisClient.js`: idempotent `connectRedis()` через `connectRedisPromise`.
+- [FIX] `backend/services/aiService.js`: `PAYMENT_PROVIDERS` исключены из `loadApiKeysToMemory`; сводка `providers: N (env: E, db: D, ownerId=...)`.
+- [TEST] `node --check` по ownerBot.js, omegaBot.js, server.js, redis.js, redisClient.js, aiService.js ✅; `npm run build` ✅; `git diff --stat` — только init/логирование/retry-список.
+- [NOTE] Ручная проверка владельцем:
+  1) Render → Logs после деплоя: старт без ⚠️-простыни, боты Created один раз, одна строка `[payments]`, одна `[HOT-RELOAD]`.
+  2) Через 30 мин: ноль KEY-строк, ноль vk retry.
+  3) Боту «привет» → отвечает; канал постит; ключи после F5 на месте.

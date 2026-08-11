@@ -1005,6 +1005,6 @@ export function getOwnerBot() {
   return bot || createStubBot()
 }
 
-const ownerBot = getOwnerBot()
+const ownerBot = null
 export { ownerBot }
-export default ownerBot
+export default { initOwnerBot, getOwnerBot, sendOwnerAlert, alertOwner, alertNewUser, alertPayment, alertError }

@@ -13,7 +13,6 @@ import { errorHandler } from './middleware/errorHandler.js'
 import { protect } from './middleware/auth.js' // [HOTFIX-2026-08-04] added — protect for fallback routes
 import { apiLimiter, omegaChatLimiter, authLoginLimiter, authRegisterLimiter, checkBlockedIP, autoBanMiddleware } from './middleware/rateLimiter.js'  // [v7.0-PART2] rate limiting v2
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
-import bot from './services/ownerBot.js'
 import { initOwnerBot, sendOwnerAlert, alertOwner } from './services/ownerBot.js'
 import { initOmegaBot } from './services/omegaBot.js'
 import { loadApiKeysToMemory } from './services/aiService.js'

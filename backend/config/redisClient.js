@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 
 let redis = null;
+let connectRedisPromise = null;
 const inMemoryCache = new Map();
 
 function getRedisUrl() {
@@ -8,21 +9,25 @@ function getRedisUrl() {
 }
 
 export async function connectRedis() {
-  const url = getRedisUrl();
-  if (!url) {
-    console.info('[Cache] Redis not configured — using in-memory fallback. This is OK for free tier. Data resets on server restart.');
-    return false;
-  }
-  try {
-    redis = new Redis(url, { maxRetriesPerRequest: 3, connectTimeout: 10000 });
-    await redis.ping();
-    console.log('✅ Redis connected');
-    return true;
-  } catch (err) {
-    console.error('❌ Redis connection failed:', err.message);
-    redis = null;
-    return false;
-  }
+  if (connectRedisPromise) return connectRedisPromise;
+  connectRedisPromise = (async () => {
+    const url = getRedisUrl();
+    if (!url) {
+      console.info('[Cache] Redis not configured — using in-memory fallback. This is OK for free tier. Data resets on server restart.');
+      return false;
+    }
+    try {
+      redis = new Redis(url, { maxRetriesPerRequest: 3, connectTimeout: 10000 });
+      await redis.ping();
+      console.log('✅ Redis connected');
+      return true;
+    } catch (err) {
+      console.error('❌ Redis connection failed:', err.message);
+      redis = null;
+      return false;
+    }
+  })();
+  return connectRedisPromise;
 }
 
 export function getCache() {

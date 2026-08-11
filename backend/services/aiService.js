@@ -381,20 +381,32 @@ export async function getProviderKey(providerId, ownerId = null) {
     return null
 }
 
+// [v9.9.19.16] платёжные провайдеры не входят в ИИ-цикл hot-reload
+const PAYMENT_PROVIDERS = new Set([
+    'stripe', 'stripe_webhook',
+    'yookassa_shop_id', 'yookassa_secret',
+    'paypal_client_id', 'paypal_secret',
+    'coinbase'
+])
+const isPaymentProvider = (provider) => PAYMENT_PROVIDERS.has(provider)
+
 export async function loadApiKeysToMemory() {
     try {
-        // [v9.9.19.14.6] unified owner scope: load keys for the default owner
-        // plus orphan legacy keys (no ownerId). Single-owner project.
+        // [v9.9.19.14.6] unified owner scope: keys for the default owner + orphan legacy keys
         const ownerId = await getDefaultOwnerId()
         const scope = getOwnerScope(ownerId)
         const keys = await ApiKey.find({ ...scope, isActive: true })
         global.apiKeyCache = {}
         global.apiKeyMissCache = {}
-        keys.forEach(k => {
+        const dbKeys = keys.filter(k => !isPaymentProvider(k.provider))
+        dbKeys.forEach(k => {
             const value = k.key || k.keyValue
             if (value) global.apiKeyCache[k.provider] = value
         })
-        console.log(`[HOT-RELOAD] Loaded ${keys.length} API keys to memory (ownerId=${ownerId || 'none'})`)
+        const envCount = Object.entries(envMap).filter(([provider, envVar]) =>
+            !isPaymentProvider(provider) && envVar && process.env[envVar]
+        ).length
+        console.log(`[HOT-RELOAD] providers: ${dbKeys.length + envCount} (env: ${envCount}, db: ${dbKeys.length}, ownerId=${ownerId || 'none'})`)
     } catch (e) {
         console.error('[HOT-RELOAD] Failed to load keys:', e.message)
     }

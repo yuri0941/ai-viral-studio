@@ -894,6 +894,6 @@ export async function alertOmega(message) {
   }
 }
 
-const omegaBot = getOmegaBot()
+const omegaBot = null
 export { omegaBot }
 export default { alertOmega, getOmegaBot, omegaBot }

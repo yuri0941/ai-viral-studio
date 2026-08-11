@@ -1,29 +1,39 @@
 import Redis from 'ioredis'
 
 let redis = null
+let connectPromise = null
 const memoryCache = new Map()
 
 function isRedisEnabled() {
   return !!process.env.REDIS_URL || !!process.env.UPSTASH_REDIS_URL
 }
 
-if (isRedisEnabled()) {
-  try {
-    redis = new Redis(process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL, {
-      maxRetriesPerRequest: 3,
-      retryStrategy: (times) => Math.min(times * 100, 2000),
-    })
-    redis.on('error', (err) => {
-      console.warn('[redis] connection error:', err.message)
+async function connect() {
+  if (connectPromise) return connectPromise
+  connectPromise = (async () => {
+    if (!isRedisEnabled()) {
+      console.info('[Cache] Redis not configured — using in-memory fallback. This is OK for free tier. Data resets on server restart.')
+      return false
+    }
+    try {
+      redis = new Redis(process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL, {
+        maxRetriesPerRequest: 3,
+        retryStrategy: (times) => Math.min(times * 100, 2000),
+      })
+      redis.on('error', (err) => {
+        console.warn('[redis] connection error:', err.message)
+        redis = null
+      })
+      await redis.ping()
+      console.log('✅ Redis connected')
+      return true
+    } catch (err) {
+      console.warn('[redis] failed to connect:', err.message)
       redis = null
-    })
-    console.log('✅ Redis connected')
-  } catch (err) {
-    console.warn('[redis] failed to connect:', err.message)
-    redis = null
-  }
-} else {
-  console.info('[Cache] Redis not configured — using in-memory fallback. This is OK for free tier. Data resets on server restart.')
+      return false
+    }
+  })()
+  return connectPromise
 }
 
 function memoryKey(key) {
@@ -31,6 +41,7 @@ function memoryKey(key) {
 }
 
 export async function get(key) {
+  await connect()
   if (redis) {
     try {
       return await redis.get(key)
@@ -48,6 +59,7 @@ export async function get(key) {
 }
 
 export async function set(key, value, ttlSeconds = 300) {
+  await connect()
   if (redis) {
     try {
       await redis.setex(key, ttlSeconds, value)
@@ -60,6 +72,7 @@ export async function set(key, value, ttlSeconds = 300) {
 }
 
 export async function del(key) {
+  await connect()
   if (redis) {
     try {
       await redis.del(key)

@@ -254,3 +254,10 @@
 - Старт сервера: платёжки — одна info-строка вместо ⚠️-спама; ChromaClient — deprecation `path`/`auth` убран.
 - KEY/cache/keep-alive/bot-skip логи переведены на debug или однократны; safeJSONParse — компактная одна строка.
 - VK retry: новые коды причин `not_connected`/`needs_scope`/`no_token`/`no_chat` считаются перманентными → failed без retry.
+
+### v9.9.19.16-FINAL — all Render errors/noise fixed
+- Убран двойной init ботов и кэша: owner/omega bot init только из server.js, redis-клиенты lazy/idempotent.
+- Платёжные ключи исключены из цикла hot-reload ИИ-провайдеров; старт выводит compact summary.
+- Deprecation `path`/`auth` у ChromaClient устранён новым синтаксисом.
+- KEY/cache/keep-alive/bot-skip шум переведён на debug/однократный лог; safeJSONParse — компактная одна строка.
+- VK retry: новые коды причин `not_connected`/`needs_scope`/`no_token`/`no_chat` = перманентный failed без retry.
