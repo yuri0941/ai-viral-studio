@@ -52,7 +52,18 @@
     "theme": "Theme",
     "dark": "Dark",
     "light": "Light",
-    "system": "System"
+    "system": "System",
+    "recommended": "Recommended",
+    "payWith_yookassa": "Pay with YooKassa",
+    "payWith_stripe": "Pay by card (Stripe)",
+    "payWith_paypal": "Pay with PayPal",
+    "payWith_crypto": "Pay with crypto",
+    "paymentMethodUnavailable": "Please select a configured payment method",
+    "paymentMethodNotReady": "Payment method is being configured",
+    "paymentNoUrl": "Payment URL not received",
+    "paymentSuccess": "Payment successful",
+    "paymentCancelled": "Payment cancelled",
+    "paymentError": "Payment error"
   },
   "apiKeys": {
     "title": "API Keys",

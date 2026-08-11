@@ -48,7 +48,7 @@ router.get('/config', async (req, res) => {
     const ip = String(rawIp).split(',')[0].trim();
     const country = ip && (ip === '127.0.0.1' || ip === '::1') ? 'RU' : null;
     const currency = detectCurrencyByIP(ip);
-    const paymentMethods = getPaymentMethods(country, currency);
+    const paymentMethods = await getPaymentMethods(country, currency);
     return res.json({ success: true, currency, country, paymentMethods });
   } catch (err) {
     console.error('[subscriptions:config]', err.message);

@@ -52,7 +52,18 @@
     "theme": "Тема оформления",
     "dark": "Тёмная",
     "light": "Светлая",
-    "system": "Система"
+    "system": "Система",
+    "recommended": "Рекомендуем",
+    "payWith_yookassa": "Оплатить через ЮKassa",
+    "payWith_stripe": "Оплатить картой (Stripe)",
+    "payWith_paypal": "Оплатить PayPal",
+    "payWith_crypto": "Оплатить криптой",
+    "paymentMethodUnavailable": "Выберите настроенный способ оплаты",
+    "paymentMethodNotReady": "Метод оплаты в процессе настройки",
+    "paymentNoUrl": "Не получен URL оплаты",
+    "paymentSuccess": "Оплата прошла успешно",
+    "paymentCancelled": "Оплата отменена",
+    "paymentError": "Ошибка оплаты"
   },
   "apiKeys": {
     "title": "API Keys",
