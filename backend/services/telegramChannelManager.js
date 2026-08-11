@@ -1,24 +1,67 @@
 import { chatWithAI, extractText, getProviderKey } from './aiService.js';
 import { createNode } from './cognitiveMesh.js';
 import { prepareChannelText, getWhitelistPrompt } from './linkGuard.js';
+import { validateTelegramHTML, stripHtml, isParseEntitiesError } from '../utils/telegramHtml.js';
 
 // [v9.9.19.3] hot-reload: токен/канал резолвятся в момент вызова (env → cache → MongoDB)
+let channelTargetLogged = false;
 export async function resolveTelegramTarget() {
   const token = await getProviderKey('telegram_bot')
     || process.env.TELEGRAM_OMEGA_BOT_TOKEN || process.env.OMEGA_BOT_TOKEN || process.env.OWNER_BOT_TOKEN || null;
   const channel = process.env.TELEGRAM_CHANNEL || process.env.TELEGRAM_CHANNEL_ID
     || await getProviderKey('telegram_chat_id') || null;
+  // [v9.9.19.14] 5.2 лог источника chat_id один раз (getProviderKey логирует source=mongodb|env отдельно)
+  if (!channelTargetLogged && channel) {
+    channelTargetLogged = true;
+    const src = (process.env.TELEGRAM_CHANNEL || process.env.TELEGRAM_CHANNEL_ID) ? 'env' : 'mongodb';
+    console.log(`[CHANNEL] chat_id=${channel} source=${src}`);
+  }
   return { token, channel };
 }
 
+// [v9.9.19.14] 5.1 проверка прав бота в канале ПЕРЕД публикацией (getChatMember, кэш 5 минут)
+let rightsCache = { at: 0, value: null };
+export async function checkChannelRights(force = false) {
+  const { token, channel } = await resolveTelegramTarget();
+  if (!token || !channel) return { ok: false, reason: 'no_config' };
+  if (!force && rightsCache.value && Date.now() - rightsCache.at < 5 * 60 * 1000) return rightsCache.value;
+  try {
+    const botId = token.split(':')[0];
+    const res = await fetch(`https://api.telegram.org/bot${token}/getChatMember?chat_id=${encodeURIComponent(channel)}&user_id=${botId}`);
+    const data = await res.json();
+    const member = data.result;
+    const ok = data.ok && member?.status === 'administrator' && member?.can_post_messages !== false;
+    const value = ok ? { ok: true } : { ok: false, reason: 'no_rights' };
+    rightsCache = { at: Date.now(), value };
+    return value;
+  } catch (e) {
+    return { ok: false, reason: 'check_failed', error: e.message };
+  }
+}
+
+// [v9.9.19.14] 5.3 алерт о нехватке прав — не чаще раза в час
+let noRightsAlertedAt = 0;
+async function alertNoRights(channel) {
+  if (Date.now() - noRightsAlertedAt < 3600 * 1000) return;
+  noRightsAlertedAt = Date.now();
+  try {
+    const { alertOwner } = await import('./ownerBot.js');
+    alertOwner?.(`📢 Не могу опубликовать: бот не админ ${channel} или нет права «Публикация сообщений».\nКанал → Управление → Администраторы → @aiviral_omega_bot → включить «Публикация сообщений» ✅\nПосле включения напишите /posttest`);
+  } catch { /* не критично */ }
+}
+
 // [v9.9.19.3] понятные ошибки вместо технических текстов Telegram API
+// [v9.9.19.14] 4.4 типы ошибок различаются: 400 parse / 403 права / chat not found — не общая заглушка
 function friendlyTelegramError(desc = '') {
   const d = String(desc).toLowerCase();
-  if (d.includes('not a member') || d.includes('not enough rights') || d.includes('administrator') || d.includes('kicked')) {
+  if (d.includes("can't parse entities")) {
+    return `Ошибка HTML-разметки поста (400 can't parse entities) — проверьте теги. Детали: ${desc}`;
+  }
+  if (d.includes('forbidden') || d.includes('not a member') || d.includes('not enough rights') || d.includes('administrator') || d.includes('kicked')) {
     return 'Бот не админ канала — добавьте бота в администраторы @aiviralstudio с правом публикации.';
   }
   if (d.includes('chat not found') || d.includes('chat_id is empty')) {
-    return 'Канал не найден — проверьте TELEGRAM_CHANNEL (например @aiviralstudio) в ApiKeysTab/env.';
+    return 'Канал не найден (chat not found) — проверьте telegram_chat_id в ApiKeysTab или TELEGRAM_CHANNEL (например @aiviralstudio) в env.';
   }
   if (d.includes('unauthorized') || d.includes('401')) {
     return 'Токен бота невалиден — обновите telegram_bot в Кабинет → API Ключи.';
@@ -48,7 +91,7 @@ export async function publishToChannel(post, options = {}) {
   if (!token || !channel) {
     return { success: false, mock: true, needsKey: 'telegram_bot', error: 'Telegram не настроен: добавьте telegram_bot и telegram_chat_id (или TELEGRAM_CHANNEL) в Кабинет → API Ключи' };
   }
-  const { pin = false, disableNotification = false } = options;
+  const { pin = false, disableNotification = false, skipRightsCheck = false } = options;
   const title = extractText(post.title || '');
   const body = extractText(post.text || post.caption || '');
   const hashtags = Array.isArray(post.hashtags) ? post.hashtags.join(' ') : extractText(post.hashtags || '');
@@ -57,13 +100,40 @@ export async function publishToChannel(post, options = {}) {
     ? `${title}\n\n${body}\n\n${hashtags}\n\n${cta}`
     : `${body}${cta ? '\n\n' + cta : ''}`).trim();
   // [v9.9.19.6] markdown → HTML + проверка ссылок: никаких ** и мёртвых URL в канале
-  const text = await prepareChannelText(rawText, 4000);
+  const prepared = await prepareChannelText(rawText, 4000);
+  // [v9.9.19.14] валидация Telegram HTML: незакрытые <a> и пересечения чинятся до отправки
+  const v = validateTelegramHTML(prepared);
+  if (!v.ok) console.warn(`[TG-HTML] channel post auto-fixed (${v.errors.join('; ')})`);
+  const text = v.fixed;
+
+  // [v9.9.19.14] 5.1/5.3 права бота ДО отправки — пост не теряется, причина честная
+  if (!skipRightsCheck) {
+    const rights = await checkChannelRights();
+    if (!rights.ok && rights.reason === 'no_rights') {
+      await alertNoRights(channel);
+      return { success: false, reason: 'no_rights', error: `Бот не админ ${channel} или нет права «Публикация сообщений». Канал → Управление → Администраторы → @aiviral_omega_bot → включить «Публикация сообщений». После включения — /posttest`, mock: false };
+    }
+  }
+
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: channel, text, parse_mode: 'HTML', disable_notification: disableNotification })
     });
-    const data = await res.json();
+    let data = await res.json();
+    // [v9.9.19.14] 4.3 400 parse после auto-fix → тот же пост plain text БЕЗ parse_mode
+    if (!data.ok && isParseEntitiesError({ message: data.description })) {
+      console.warn('[TG-HTML] channel: 400 parse after fix → plain text fallback');
+      const res2 = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: channel, text: stripHtml(text), disable_notification: disableNotification })
+      });
+      data = await res2.json();
+      try {
+        const { alertOwner } = await import('./ownerBot.js');
+        alertOwner?.(`⚠️ Пост отправлен без форматирования: Telegram 400 can't parse entities. Причина: ${String(data.description || '').slice(0, 150) || 'auto-fix не спас'}`);
+      } catch { /* не критично */ }
+    }
     if (!data.ok) throw new Error(data.description);
     const messageId = data.result.message_id;
     if (pin) {

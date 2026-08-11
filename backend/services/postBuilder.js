@@ -7,6 +7,7 @@ import { resolveTelegramTarget } from './telegramChannelManager.js';
 import { createNode } from './cognitiveMesh.js';
 import { getWhitelist, getWhitelistPrompt, sanitizeLinks, escapeHtml } from './linkGuard.js';
 import { getSkillFactsForContext } from './skillService.js';
+import { validateTelegramHTML, stripHtml } from '../utils/telegramHtml.js';
 
 const CHANNEL_SIGNATURE = '⚡️ <a href="https://t.me/aiviralstudio">@aiviralstudio</a> · <a href="https://aiviral-studio.ru">aiviral-studio.ru</a>';
 const MAX_POST_LEN = 900;
@@ -123,10 +124,35 @@ async function buildCover(topic) {
 }
 
 async function tgApi(token, method, payload) {
+  // [v9.9.19.14] валидация HTML (text и caption) + plain-text fallback на 400 parse
+  const body = { ...payload };
+  if (body.parse_mode === 'HTML') {
+    for (const field of ['text', 'caption']) {
+      if (typeof body[field] === 'string') {
+        const v = validateTelegramHTML(body[field]);
+        body[field] = v.fixed;
+        if (!v.ok) console.warn(`[TG-HTML] postBuilder ${method}.${field} auto-fixed (${v.errors.join('; ')})`);
+      }
+    }
+  }
   const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   });
   const data = await res.json();
+  if (!data.ok && body.parse_mode && /can't parse entities/i.test(data.description || '')) {
+    console.warn(`[TG-HTML] postBuilder ${method}: 400 parse after fix → plain text fallback`);
+    const plain = { ...body };
+    delete plain.parse_mode;
+    for (const field of ['text', 'caption']) {
+      if (typeof plain[field] === 'string') plain[field] = stripHtml(plain[field]);
+    }
+    const res2 = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(plain),
+    });
+    const data2 = await res2.json();
+    if (!data2.ok) throw new Error(data2.description || `Telegram ${method} failed`);
+    return data2.result;
+  }
   if (!data.ok) throw new Error(data.description || `Telegram ${method} failed`);
   return data.result;
 }

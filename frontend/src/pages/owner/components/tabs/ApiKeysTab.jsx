@@ -94,7 +94,8 @@ export default function ApiKeysTab() {
     try {
       const data = await request('/api-keys');
       const map = {};
-      (data.keys || []).forEach(k => { map[k.provider] = k.isValid ? 'valid' : 'saved'; });
+      // [v9.9.19.14] показываем статус из Key Health Monitor (invalid — ключ протух)
+      (data.keys || []).forEach(k => { map[k.provider] = k.status === 'invalid' ? 'invalid' : (k.isValid ? 'valid' : 'saved'); });
       setSaved(map);
     } catch (e) {
       console.error('[ApiKeysTab] load failed:', e.message);
@@ -154,7 +155,39 @@ export default function ApiKeysTab() {
     const state = saved[id];
     if (state === 'valid') return { label: '✅ Работает', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', dot: 'bg-emerald-400', active: true };
     if (state === 'saved') return { label: '⚠️ Не проверен', cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30', dot: 'bg-yellow-400', active: true };
+    if (state === 'invalid') return { label: '🔴 Невалиден', cls: 'bg-red-500/15 text-red-400 border-red-500/30', dot: 'bg-red-400', active: true };
     return { label: 'Не подключен', cls: 'bg-gray-500/10 text-gray-400 border-gray-500/20', dot: 'bg-gray-500', active: false };
+  };
+
+  // [v9.9.19.14] 3.5 тест ЮKassa: платёж 1.00 ₽ → оплата тестовой картой → проверка статуса
+  const [yookassaTest, setYookassaTest] = useState({ loading: false, paymentId: null, testUrl: null, result: null });
+
+  const testYookassa = async () => {
+    setYookassaTest({ loading: true, paymentId: null, testUrl: null, result: null });
+    try {
+      const data = await request('/payments/test-yookassa', { method: 'POST', body: '{}' });
+      if (!data?.success) throw new Error(data?.error || 'Платёж не создан');
+      setYookassaTest({ loading: false, paymentId: data.paymentId, testUrl: data.testUrl, result: null });
+      if (data.testUrl) window.open(data.testUrl, '_blank');
+      toast.success('Тестовый платёж 1.00 ₽ создан');
+    } catch (e) {
+      setYookassaTest({ loading: false, paymentId: null, testUrl: null, result: `🔴 ${e.message}` });
+      toast.error('ЮKassa: ' + e.message);
+    }
+  };
+
+  const checkYookassaStatus = async () => {
+    if (!yookassaTest.paymentId) return;
+    try {
+      const data = await request(`/payments/status/${yookassaTest.paymentId}`);
+      if (data?.status === 'succeeded') {
+        setYookassaTest(prev => ({ ...prev, result: t('apiKeys.yookassaOk') || '🟢 ЮKassa работает! Можно принимать платежи' }));
+      } else {
+        setYookassaTest(prev => ({ ...prev, result: `🟡 Статус: ${data?.status || 'unknown'} — оплатите тестовой картой и проверьте снова` }));
+      }
+    } catch (e) {
+      setYookassaTest(prev => ({ ...prev, result: `🔴 ${e.message}` }));
+    }
   };
 
   return (
@@ -226,6 +259,25 @@ export default function ApiKeysTab() {
                   </button>
                 )}
               </div>
+              {/* [v9.9.19.14] 3.5 🧪 Проверить ЮKassa — end-to-end тест платежа 1.00 ₽ (на 375px кнопки в одну колонку) */}
+              {(p.id === 'yookassa_shop_id' || p.id === 'yookassa_secret') && (
+                <div className="mt-3 relative z-10 flex flex-col gap-2">
+                  <button onClick={testYookassa} disabled={yookassaTest.loading} className="w-full px-3 py-2 rounded-lg bg-violet-500/15 text-violet-300 text-xs font-medium hover:bg-violet-500/25 border border-violet-500/20 transition-colors disabled:opacity-50">
+                    {yookassaTest.loading ? '⏳ Создаю тестовый платёж...' : (t('apiKeys.testYookassa') || '🧪 Проверить ЮKassa')}
+                  </button>
+                  {(yookassaTest.testUrl || yookassaTest.result) && (
+                    <div className="p-3 rounded-lg bg-white/5 border border-[var(--border)] text-xs flex flex-col gap-2">
+                      <p className="text-[var(--text-muted)] break-words">{t('apiKeys.yookassaHint') || 'Тестовая карта: 5555 5555 5555 4477 · срок 12/25 · CVV 000'}</p>
+                      {yookassaTest.paymentId && (
+                        <button onClick={checkYookassaStatus} className="w-full px-3 py-2 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">
+                          {t('apiKeys.checkStatus') || 'Проверить статус'}
+                        </button>
+                      )}
+                      {yookassaTest.result && <p className="break-words">{yookassaTest.result}</p>}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

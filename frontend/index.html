@@ -5,7 +5,9 @@
     <meta charset="UTF-8" />
     <script>
       (function(){
-        const BUILD='v7.0-2026-08-07';
+        const BUILD='%APP_BUILD%';
+        // [v9.9.19.14] dev-mode guard: placeholder not replaced by Vite -> skip, no reload loop
+        if(BUILD.indexOf('%')===0) return;
         const stored=localStorage.getItem('app_build');
         if(stored!==BUILD){
           localStorage.setItem('app_build',BUILD);

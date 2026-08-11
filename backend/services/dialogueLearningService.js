@@ -18,6 +18,10 @@ export async function saveDialogue(telegramChatId, messages, outcome = 'pending'
       metadata: { type: 'dialogue', telegramChatId, outcome, niche, date: new Date() },
       userId: telegramChatId || 'global'
     });
+    // [v9.9.19.14] write-through в social-слой (сжатый конспект диалога с клиентом)
+    import('./memoryLayerService.js')
+      .then(m => m.addMemoryEntry('social', { type: 'event', content: `Диалог tg:${telegramChatId} (${niche}, ${outcome}): ${summary.slice(0, 300)}`, tags: ['dialogue', niche, outcome] }))
+      .catch(() => {});
     return dialogue;
   } catch (e) {
     console.error('Save dialogue error:', e.message);

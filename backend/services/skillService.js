@@ -81,6 +81,11 @@ export async function learnTopic(rawName, { force = false, source = 'command' } 
     });
   } catch (e) { console.warn('[skillService] cognitive mirror failed:', e.message); }
 
+  // [v9.9.19.14] write-through в procedural-слой (навыки переживают рестарт)
+  import('./memoryLayerService.js')
+    .then(m => m.addMemoryEntry('procedural', { type: 'skill', content: `Навык: ${name} — ${facts.length} фактов. ${summary}`.slice(0, 500), tags: ['skill', skill.source] }))
+    .catch(() => {});
+
   return { already: false, skill };
 }
 

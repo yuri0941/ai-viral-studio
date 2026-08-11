@@ -32,15 +32,8 @@
     "contactEmailHint": "This email will be listed in the offer agreement and privacy policy for customer contact"
   },
   "landing": {
-    "heroTitle": "AI Viral Studio — Automate viral content with OMEGA",
-    "heroSubtitle": "AI creates, publishes and analyzes content for you",
-    "joinBeta": "🚀 Join beta",
-    "forBusiness": "💼 For business",
-    "features": "Features",
-    "pricing": "Pricing",
-    "howItWorks": "How it works",
-    "testimonials": "Testimonials",
-    "faq": "FAQ"
+    "start": "Start",
+    "login": "Login"
   },
   "signup": {
     "title": "Sign up",
@@ -440,7 +433,11 @@
     "statusMissing": "Missing",
     "keyValue": "Key",
     "missing": "Missing",
-    "rotate": "Rotate"
+    "rotate": "Rotate",
+    "testYookassa": "🧪 Test YooKassa",
+    "yookassaHint": "Test card: 5555 5555 5555 4477 · exp 12/25 · CVV 000",
+    "checkStatus": "Check status",
+    "yookassaOk": "🟢 YooKassa works! Ready to accept payments"
   },
   "externalApiKeys": {
     "title": "External API Keys",
@@ -462,19 +459,40 @@
     "realMode": "Real API"
   },
   "advertiser": {
-    "title": "Advertiser",
-    "subtitle": "Manage ad campaigns",
-    "totalBudget": "Total Budget",
-    "newCampaign": "New Campaign",
-    "adStudio": "Ad Studio",
+    "tag": "Advertise",
+    "heroTitle": "Advertise in AI Viral Studio",
+    "heroSubtitle": "50K+ SMM specialists, creators and businesses",
+    "audience": "Audience",
+    "ctr": "Avg CTR",
+    "roi": "ROI",
+    "calculator": "Reach calculator",
+    "name": "Name",
+    "company": "Company",
+    "email": "Email",
+    "phone": "Phone",
+    "niche": "Niche",
+    "budget": "Budget",
+    "goalAwareness": "Awareness",
+    "goalLeads": "Leads",
+    "goalSales": "Sales",
+    "formatPost": "Post",
+    "formatStory": "Story",
+    "formatBanner": "Banner",
+    "formatNewsletter": "Email",
+    "formatVideo": "Video",
+    "cta": "Get proposal",
+    "reach": "Reach",
+    "clicks": "Clicks",
+    "conversions": "Conversions",
+    "proposalReady": "Proposal ready in 30 sec",
+    "dashboardTitle": "Advertiser Dashboard",
+    "requests": "Requests",
     "campaigns": "Campaigns",
-    "calendar": "Calendar",
-    "chat": "Chat",
-    "reports": "Reports",
-    "tariffs": "Tariffs",
-    "calendarTitle": "Campaign Calendar",
-    "chatSubtitle": "Campaign negotiations",
-    "reportsTitle": "Campaign Reports"
+    "avgRoi": "Avg ROI",
+    "incomingRequests": "Incoming requests",
+    "activeCampaigns": "Active campaigns",
+    "noRequests": "No requests",
+    "noCampaigns": "No active campaigns"
   },
   "admin": {
     "title": "Administrator",
@@ -863,15 +881,22 @@
     "configureApi": "⚙️ Configure API"
   },
   "aiVideo": {
-    "creating": "Creating video...",
-    "queued": "Queued",
-    "starting": "Starting...",
-    "processing": "Processing {{progress}}%",
-    "succeeded": "Done!",
-    "failed": "Generation failed",
-    "download": "📥 Download",
-    "mockBadge": "🎬 Demo mode",
-    "addToken": "Add key in Owner Dashboard → API Keys"
+    "title": "AI Video",
+    "createReels": "Create Reels/Shorts",
+    "topic": "Video topic",
+    "niche": "Niche",
+    "duration": "Duration",
+    "style": "Style",
+    "generate": "🎬 Generate",
+    "processing": "Video is being generated...",
+    "seconds": "s",
+    "copyScript": "📋 Copy script",
+    "styles": {
+      "dynamic": "Dynamic",
+      "calm": "Calm",
+      "motivational": "Motivational",
+      "humorous": "Humorous"
+    }
   },
   "voice": {
     "speaking": "🔊 Speaking...",
@@ -1020,24 +1045,6 @@
     "referral": "Referral",
     "foundingMember": "Founding Member"
   },
-  "aiVideo": {
-    "title": "AI Video",
-    "createReels": "Create Reels/Shorts",
-    "topic": "Video topic",
-    "niche": "Niche",
-    "duration": "Duration",
-    "style": "Style",
-    "generate": "🎬 Generate",
-    "processing": "Video is being generated...",
-    "seconds": "s",
-    "copyScript": "📋 Copy script",
-    "styles": {
-      "dynamic": "Dynamic",
-      "calm": "Calm",
-      "motivational": "Motivational",
-      "humorous": "Humorous"
-    }
-  },
   "launchPage": {
     "title": "AI Viral Studio — Launch 2026",
     "subtitle": "AI platform for viral content",
@@ -1071,7 +1078,7 @@
   },
   "memoryExplorer": {
     "title": "OMEGA Memory Explorer",
-    "subtitle": "8 memory layers · {{count}} records",
+    "subtitle": "12 memory layers · {{count}} records",
     "searchPlaceholder": "Search memory...",
     "records": "{{count}} records",
     "noRecords": "No records",
@@ -1086,7 +1093,11 @@
       "procedural": "Procedural",
       "episodic": "Episodic",
       "owner_profile": "Owner profile",
-      "emotional": "Emotional"
+      "emotional": "Emotional",
+      "prospective": "Prospective",
+      "metacognitive": "Metacognitive",
+      "social": "Social",
+      "instrumental": "Instrumental"
     }
   },
   "neuralGraph": {
@@ -1095,7 +1106,12 @@
     "memory": "Memory",
     "errors": "Errors",
     "stats": "🧠 Neural Graph: {{nodes}} nodes | {{edges}} edges | {{clusters}} clusters",
-    "search": "Search nodes..."
+    "search": "Search nodes...",
+    "rebuild": "Rebuild from DB",
+    "details": "Details",
+    "created": "Created",
+    "relatedFacts": "Related facts",
+    "close": "Close"
   },
   "youtube": {
     "title": "YouTube AI",
@@ -1158,30 +1174,30 @@
     }
   },
   "boardroom": {
-    "title": "AI Boardroom",
-    "subtitle": "5 AI directors discuss strategy",
-    "hideHistory": "Hide",
-    "showHistory": "History",
-    "historyTitle": "Round history",
-    "emptyHistory": "History is empty",
-    "topicPlaceholder": "Topic: launch new plan, integration, budget...",
-    "startRound": "Start round",
-    "agents": {
-      "ceo": { "name": "Alex CEO", "role": "CEO", "stance": "strategy" },
-      "cmo": { "name": "Maria CMO", "role": "CMO", "stance": "marketing" },
-      "cto": { "name": "Ivan CTO", "role": "CTO", "stance": "technology" },
-      "cfo": { "name": "Dmitry CFO", "role": "CFO", "stance": "finance" },
-      "chro": { "name": "Elena CHRO", "role": "CHRO", "stance": "people" }
-    },
-    "defaultArgument": "Ready to discuss details.",
-    "votes": {
-      "for": "FOR",
-      "against": "AGAINST",
-      "abstain": "Abstain"
-    },
-    "approved": "Decision approved ({{count}}/5)",
-    "createTask": "Create task",
-    "taskCreated": "Task created: {{topic}}"
+    "title": "🏢 Boardroom — Board of Directors (Auto-Task)",
+    "context": "Context for the board",
+    "placeholder": "MRR dropped 20%, competitor launched a new feature...",
+    "runMeeting": "Run board meeting",
+    "tasks": "Tasks",
+    "role": "Role",
+    "priority": "Priority",
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "deadline": "Deadline",
+    "expectedOutcome": "Expected outcome",
+    "vote": "Voting",
+    "approve": "Approved",
+    "reject": "Rejected",
+    "modify": "Modify",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "autoExecute": "Auto-execute approved",
+    "history": "Meeting history",
+    "noHistory": "No history",
+    "reasoning": "Reasoning",
+    "error": "Error"
   },
   "predictiveCard": {
     "title": "OMEGA has prepared",
@@ -1190,9 +1206,18 @@
     "collapse": "Hide",
     "applied": "OMEGA applied: {{title}}",
     "types": {
-      "post": { "title": "Post for tomorrow", "action": "Create post" },
-      "competitor": { "title": "Competitor analysis", "action": "Analyze" },
-      "pricing": { "title": "Plan optimization", "action": "Apply" }
+      "post": {
+        "title": "Post for tomorrow",
+        "action": "Create post"
+      },
+      "competitor": {
+        "title": "Competitor analysis",
+        "action": "Analyze"
+      },
+      "pricing": {
+        "title": "Plan optimization",
+        "action": "Apply"
+      }
     }
   },
   "viralDemo": {
@@ -1405,32 +1430,6 @@
     "noData": "No data",
     "error": "Error"
   },
-  "boardroom": {
-    "title": "🏢 Boardroom — Board of Directors (Auto-Task)",
-    "context": "Context for the board",
-    "placeholder": "MRR dropped 20%, competitor launched a new feature...",
-    "runMeeting": "Run board meeting",
-    "tasks": "Tasks",
-    "role": "Role",
-    "priority": "Priority",
-    "critical": "Critical",
-    "high": "High",
-    "medium": "Medium",
-    "low": "Low",
-    "deadline": "Deadline",
-    "expectedOutcome": "Expected outcome",
-    "vote": "Voting",
-    "approve": "Approved",
-    "reject": "Rejected",
-    "modify": "Modify",
-    "approved": "Approved",
-    "rejected": "Rejected",
-    "autoExecute": "Auto-execute approved",
-    "history": "Meeting history",
-    "noHistory": "No history",
-    "reasoning": "Reasoning",
-    "error": "Error"
-  },
   "telegram": {
     "title": "Telegram — Auto Posts & Bot",
     "subtitle": "Auto posts, weekly plan, and bot control center",
@@ -1578,42 +1577,6 @@
     "opened": "Opened",
     "conversion": "Conversion"
   },
-  "advertiser": {
-    "tag": "Advertise",
-    "heroTitle": "Advertise in AI Viral Studio",
-    "heroSubtitle": "50K+ SMM specialists, creators and businesses",
-    "audience": "Audience",
-    "ctr": "Avg CTR",
-    "roi": "ROI",
-    "calculator": "Reach calculator",
-    "name": "Name",
-    "company": "Company",
-    "email": "Email",
-    "phone": "Phone",
-    "niche": "Niche",
-    "budget": "Budget",
-    "goalAwareness": "Awareness",
-    "goalLeads": "Leads",
-    "goalSales": "Sales",
-    "formatPost": "Post",
-    "formatStory": "Story",
-    "formatBanner": "Banner",
-    "formatNewsletter": "Email",
-    "formatVideo": "Video",
-    "cta": "Get proposal",
-    "reach": "Reach",
-    "clicks": "Clicks",
-    "conversions": "Conversions",
-    "proposalReady": "Proposal ready in 30 sec",
-    "dashboardTitle": "Advertiser Dashboard",
-    "requests": "Requests",
-    "campaigns": "Campaigns",
-    "avgRoi": "Avg ROI",
-    "incomingRequests": "Incoming requests",
-    "activeCampaigns": "Active campaigns",
-    "noRequests": "No requests",
-    "noCampaigns": "No active campaigns"
-  },
   "concierge": {
     "title": "Concierge",
     "booking": "Booking",
@@ -1664,10 +1627,6 @@
   "haptic": {
     "enabled": "Haptics on",
     "disabled": "Haptics off"
-  },
-  "landing": {
-    "start": "Start",
-    "login": "Login"
   },
   "telegramConnect": {
     "title": "Telegram",

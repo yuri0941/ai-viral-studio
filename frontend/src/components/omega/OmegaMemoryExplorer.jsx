@@ -27,6 +27,11 @@ export default function OmegaMemoryExplorer() {
         { id: 'episodic', label: t('memoryExplorer.layers.episodic'), color: '#6366f1', icon: Database },
         { id: 'owner_profile', label: t('memoryExplorer.layers.owner_profile'), color: '#14b8a6', icon: Brain },
         { id: 'emotional', label: t('memoryExplorer.layers.emotional'), color: '#F97316', icon: Layers },
+        // [v9.9.19.14] 4 новых слоя (8 существующих сохранены без изменений)
+        { id: 'prospective', label: t('memoryExplorer.layers.prospective'), color: '#A78BFA', icon: Brain },
+        { id: 'metacognitive', label: t('memoryExplorer.layers.metacognitive'), color: '#22D3EE', icon: Layers },
+        { id: 'social', label: t('memoryExplorer.layers.social'), color: '#34D399', icon: Database },
+        { id: 'instrumental', label: t('memoryExplorer.layers.instrumental'), color: '#FBBF24', icon: Layers },
     ], [t])
     const [layers, setLayers] = useState([])
     const [loading, setLoading] = useState(false)

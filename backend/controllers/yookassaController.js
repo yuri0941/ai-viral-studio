@@ -3,12 +3,21 @@ import { Subscription, Invoice, User } from '../models/index.js';
 import { sendPaymentSuccessEmail } from '../services/emailService.js';
 import { PLANS } from '../config/plans.js';
 
-const RETURN_URL = process.env.FRONTEND_URL || process.env.YOOKASSA_RETURN_URL || 'http://localhost:3000';
+// [v9.9.19.14] return_url — строго HTTPS, собирается из FRONTEND_URL + '/payment/success'
+const RETURN_URL = (process.env.FRONTEND_URL || 'https://aiviral-studio.ru').replace(/\/$/, '');
 
 export const createSubscriptionPayment = async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    // [v9.9.19.14] 3.1 ключи проверяются ДО вызова API — никогда не 500 на «нет ключей»
+    const { getProviderKey } = await import('../services/aiService.js');
+    const shopId = await getProviderKey('yookassa_shop_id');
+    const secret = await getProviderKey('yookassa_secret');
+    if (!shopId || !secret) {
+      return res.status(400).json({ success: false, error: 'ЮKassa не настроена. Кабинет → API Ключи → yookassa' });
+    }
 
     const { plan, interval, currency = 'RUB' } = req.body || {};
     const planId = plan || 'creator';
@@ -79,7 +88,7 @@ export const createSubscriptionPayment = async (req, res) => {
       amount,
       currency,
       description: `Подписка ${planId}`,
-      returnUrl: `${RETURN_URL}/payment-success?plan=${planId}&subscription=${subscription._id}`,
+      returnUrl: `${RETURN_URL}/payment/success?plan=${planId}&subscription=${subscription._id}`,
       metadata: {
         userId: userId.toString(),
         subscriptionId: subscription._id.toString(),
@@ -109,8 +118,9 @@ export const createSubscriptionPayment = async (req, res) => {
       currency,
     });
   } catch (err) {
-    console.error('[yookassaController:createSubscriptionPayment]', err.message);
-    return res.status(500).json({ success: false, error: err.message });
+    // [v9.9.19.14] 3.1 ошибка API ЮKassa → 502 JSON с деталями, НЕ 500
+    console.error('[YOOKASSA]', err.message);
+    return res.status(502).json({ success: false, error: 'Платёж не создан', details: err.message });
   }
 };
 
@@ -168,14 +178,34 @@ export const checkPaymentStatus = async (req, res) => {
 
 export const yookassaWebhook = async (req, res) => {
   try {
-    const result = handleWebhook(req.body);
+    // [v9.9.19.14] express.raw отдаёт Buffer — парсим; всегда отвечаем 200 после обработки (иначе ЮKassa ретраит)
+    let payload = req.body;
+    if (Buffer.isBuffer(payload)) {
+      try { payload = JSON.parse(payload.toString('utf8')); } catch { payload = null; }
+    }
+    const result = handleWebhook(payload);
     if (!result.success) {
-      return res.status(400).json(result);
+      return res.status(200).json({ success: true, ignored: true });
     }
 
     const { paymentId, action, metadata } = result;
+    console.log(`[YOOKASSA-WEBHOOK] payment=${paymentId} status=${result.status}`);
 
     if (action === 'mark_paid') {
+      // [v9.9.19.14] идемпотентность: повторная доставка не создаёт дубль
+      if (metadata?.invoiceId) {
+        const existing = await Invoice.findById(metadata.invoiceId).lean();
+        if (existing?.status === 'paid') {
+          return res.status(200).json({ success: true, idempotent: true });
+        }
+      }
+      if (metadata?.subscriptionId) {
+        const existingSub = await Subscription.findById(metadata.subscriptionId).lean();
+        if (existingSub?.status === 'active' && existingSub?.providerPaymentId === paymentId) {
+          return res.status(200).json({ success: true, idempotent: true });
+        }
+      }
+
       // Update invoice
       if (metadata?.invoiceId) {
         await Invoice.findByIdAndUpdate(metadata.invoiceId, {
@@ -236,7 +266,8 @@ export const yookassaWebhook = async (req, res) => {
 
     return res.status(200).json(result);
   } catch (err) {
+    // [v9.9.19.14] даже на ошибке обработки отвечаем 200 — ЮKassa не должна ретраить битый payload
     console.error('[yookassaController:yookassaWebhook]', err.message);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(200).json({ success: false, error: err.message });
   }
 };

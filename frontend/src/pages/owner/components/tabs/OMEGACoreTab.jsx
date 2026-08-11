@@ -19,6 +19,7 @@ import { VisionUploader } from '../../../../components/omega/VisionUploader.jsx'
 import YouTubeAICard from '../../../../components/omega/YouTubeAICard.jsx'
 import { Headphones, TrendingUp } from 'lucide-react'
 import { API_BASE_URL } from '../../../../config.js'
+import { request } from '../../../../services/api.js' // [v9.9.19.14] 6.1 единый API-клиент с Bearer-токеном — никаких 401 на owner-эндпоинтах
 
 const PROVIDERS = [
     { id: 'groq', name: 'Groq', status: 'active' },
@@ -50,15 +51,14 @@ export function OMEGACoreTab({ data }) {
     const [showVision, setShowVision] = useState(false)
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/omega/self-reflection`)
-            .then(r => r.ok ? r.json() : null)
+        // [v9.9.19.14] 6.2 один 401 → тихий fallback, без повторов и красных ошибок
+        request('/omega/self-reflection')
             .then(json => setReflection(json?.data || { active: false, lessonCount: 0 }))
             .catch(() => {})
     }, [])
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/owner/settings`)
-            .then(r => r.ok ? r.json() : null)
+        request('/owner/settings')
             .then(json => {
                 if (json?.data?.features) {
                     const f = json.data.features
@@ -77,27 +77,22 @@ export function OMEGACoreTab({ data }) {
         const next = !current
         setter(next)
         try {
-            let endpoint = `${API_BASE_URL}/owner/settings`
+            let endpoint = `/owner/settings`
             let body = JSON.stringify({ features: { [key]: next } })
             if (key === 'autopilot') {
-                endpoint = `${API_BASE_URL}/omega/autopilot/toggle`
+                endpoint = `/omega/autopilot/toggle`
                 body = JSON.stringify({ enabled: next })
             } else if (key === 'predictive') {
-                endpoint = `${API_BASE_URL}/analytics/predictive/enable`
+                endpoint = `/analytics/predictive/enable`
                 body = JSON.stringify({ enabled: next })
             } else if (key === 'repurposing') {
-                endpoint = `${API_BASE_URL}/omega/repurposing/enable`
+                endpoint = `/omega/repurposing/enable`
                 body = JSON.stringify({ enabled: next })
             } else if (key === 'voice') {
-                endpoint = `${API_BASE_URL}/omega/voice/enable`
+                endpoint = `/omega/voice/enable`
                 body = JSON.stringify({ enabled: next })
             }
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body,
-            })
-            if (!res.ok) throw new Error()
+            await request(endpoint, { method: 'POST', body })
             showToast(`${key} ${next ? 'включён' : 'выключен'}`)
         } catch {
             // [P23] fixed: revert toggle on API error
@@ -200,10 +195,7 @@ export function OMEGACoreTab({ data }) {
         setRecalcLoading(true)
         showToast(t('omega.forecastUpdating'), 'info')
         try {
-            await fetch(`${API_BASE_URL}/omega/predictions/recalculate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            })
+            await request('/omega/predictions/recalculate', { method: 'POST' })
             showToast(t('omega.forecastUpdated'), 'success')
         } catch {
             showToast(t('omega.forecastError'), 'error')
@@ -236,9 +228,7 @@ export function OMEGACoreTab({ data }) {
     const handleApplyReflection = useCallback(async () => {
         setReflectionLoading(true)
         try {
-            const res = await fetch(`${API_BASE_URL}/omega/self-reflection`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-            if (!res.ok) throw new Error()
-            const json = await res.json()
+            const json = await request('/omega/self-reflection', { method: 'POST' })
             setReflection(prev => ({ ...prev, lessonCount: json?.data?.lessonCount ?? prev.lessonCount }))
             showToast('Корректировка Self-Reflection применена', 'success')
         } catch {

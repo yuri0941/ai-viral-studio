@@ -1,5 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api'
 import fs from 'fs'
+import { wrapBotHtmlSending } from '../utils/telegramHtml.js'
 import { detectIntent, detectClientTone, saveDialogue, findSimilarSuccess, updateDialogueOutcome } from './dialogueLearningService.js';
 import { detectIntent as detectActionIntent } from '../ai/omega/intentEngine.js';
 import { executeAction } from '../ai/omega/actionEngine.js';
@@ -121,6 +122,7 @@ export const initOmegaBot = () => {
   }
 
   bot = new TelegramBot(OMEGA_TOKEN, { polling: false })
+  wrapBotHtmlSending(bot, 'omega') // [v9.9.19.14] HTML валидация + plain fallback на всех sendMessage
   global.omegaBotInstance = bot
   global.omegaBot = bot
   console.log('[OMEGA-BOT] Created, preparing webhook')

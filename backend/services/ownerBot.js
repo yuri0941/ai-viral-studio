@@ -17,6 +17,7 @@ import { executeAction } from '../ai/omega/actionEngine.js'
 import { recordOutcome } from '../ai/omega/learningEngine.js'
 import { ROLE_INSTRUCTIONS } from '../ai/omega/contextEngine.js'
 import { submitOwnerCommand, getCommandsLog } from './commandExecutor.js'
+import { wrapBotHtmlSending } from '../utils/telegramHtml.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -156,6 +157,7 @@ export const initOwnerBot = () => {
   }
 
   bot = new TelegramBot(OWNER_TOKEN, { polling: false })
+  wrapBotHtmlSending(bot, 'owner') // [v9.9.19.14] HTML валидация + plain fallback на всех sendMessage
   global.ownerBotInstance = bot
   global.ownerBot = bot
   console.log('[OWNER-BOT] Created, preparing webhook')
@@ -434,14 +436,29 @@ export const initOwnerBot = () => {
   });
 
   // [v9.9.19.3] скрытая диагностика канала в один клик
+  // [v9.9.19.14] 5.4 end-to-end: права (getChatMember, force) → HTML → доставка; ответ — точная причина
   bot.onText(/\/posttest/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isOwner(chatId)) return;
     safeSendMessage(chatId, '⏳ Тестирую связь с каналом...');
-    const pub = await telegramPublish({ text: `✅ <b>Тест связи от OMEGA</b>\n\n⏰ ${new Date().toLocaleString('ru-RU')}\nЕсли вы видите этот пост в канале — публикация работает.` });
+    try {
+      const { checkChannelRights } = await import('./telegramChannelManager.js');
+      const rights = await checkChannelRights(true);
+      if (!rights.ok && rights.reason === 'no_rights') {
+        safeSendMessage(chatId, '❌ <b>Нет прав на публикацию</b>\n━━━━━━━━━━━━━━\nБот не админ канала или нет права «Публикация сообщений».\nКанал → Управление → Администраторы → @aiviral_omega_bot → включить «Публикация сообщений» ✅\nПосле включения напишите /posttest');
+        return;
+      }
+      if (!rights.ok && rights.reason === 'no_config') {
+        safeSendMessage(chatId, '❌ <b>Канал не настроен</b>\n━━━━━━━━━━━━━━\nДобавьте telegram_bot и telegram_chat_id в Кабинет → API Ключи.');
+        return;
+      }
+    } catch (e) {
+      console.warn('/posttest rights check failed:', e.message);
+    }
+    const pub = await telegramPublish({ text: `✅ <b>Тест связи от OMEGA</b>\n\n⏰ ${new Date().toLocaleString('ru-RU')}\nЕсли вы видите этот пост в канале — публикация работает.` }, { skipRightsCheck: true });
     if (pub?.success) {
       safeSendMessage(chatId,
-        `✅ <b>Канал работает!</b>\n━━━━━━━━━━━━━━\n📢 ${pub.channel}\n🔢 message_id: ${pub.messageId}` +
+        `✅ <b>Пост доставлен!</b>\n━━━━━━━━━━━━━━\n📢 ${pub.channel}\n🔢 message_id: ${pub.messageId}` +
         (pub.url ? `\n🔗 <a href="${pub.url}">Открыть пост</a>` : ''));
     } else {
       safeSendMessage(chatId, `❌ <b>Публикация не удалась</b>\n━━━━━━━━━━━━━━\n${pub?.error || 'Неизвестная ошибка'}`);

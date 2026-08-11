@@ -223,6 +223,23 @@ if (isConnected) {
         } catch (err) {
             console.error('[cron] abAutoLearning failed:', err.message)
         }
+        // [v9.9.19.14] 1.7 backup всех 12 слоёв памяти раз в 6 часов (существующий cron, не новый файл)
+        try {
+            const { backupMemoryLayers } = await import('./services/memoryLayerService.js')
+            await backupMemoryLayers()
+        } catch (err) {
+            console.error('[cron] memory backup failed:', err.message)
+        }
+    })
+
+    // [v9.9.19.14] 7.3 self-diagnosis памяти раз в час: восстановление из бэкапа, здоровая структура 12 слоёв
+    cron.schedule('17 * * * *', async () => {
+        try {
+            const { memorySelfDiagnosis } = await import('./services/memoryLayerService.js')
+            await memorySelfDiagnosis()
+        } catch (err) {
+            console.error('[cron] memory self-diagnosis failed:', err.message)
+        }
     })
 
     console.log('🧠 Self-improvement crons scheduled')
@@ -389,6 +406,14 @@ if (isConnected) {
         console.log(`[OMEGA] State restored: ${skillsCount} skills, ${rec.total} commands, ${rec.queued} queued`)
     } catch (err) {
         console.warn('[server] OMEGA state restore failed:', err.message)
+    }
+
+    // [v9.9.19.14] Восстановление 12 слоёв памяти из MongoDB (лог "[OMEGA] Memory restored: ...")
+    try {
+        const { restoreMemoryLayers } = await import('./services/memoryLayerService.js')
+        await restoreMemoryLayers()
+    } catch (err) {
+        console.warn('[server] Memory layers restore failed:', err.message)
     }
 }
 
@@ -706,17 +731,23 @@ setInterval(() => {
 // Graceful shutdown — Render шлёт SIGTERM при деплое
 const gracefulShutdown = (signal) => {
   console.log(`${signal} received. Closing server...`);
-  server.close(() => {
-    console.log('Server closed');
-    if (global.ownerBot && typeof global.ownerBot.stopPolling === 'function') {
-      global.ownerBot.stopPolling();
-      console.log('Telegram polling stopped');
-    }
-    mongoose.connection.close(false, () => {
-      console.log('MongoDB connection closed');
-      process.exit(0);
+  // [v9.9.19.14] 1.6 Render шлёт SIGTERM при каждом деплое — слои памяти обязаны сохраниться
+  import('./services/memoryLayerService.js')
+    .then(m => m.saveAllLayers())
+    .catch(() => {})
+    .finally(() => {
+      server.close(() => {
+        console.log('Server closed');
+        if (global.ownerBot && typeof global.ownerBot.stopPolling === 'function') {
+          global.ownerBot.stopPolling();
+          console.log('Telegram polling stopped');
+        }
+        mongoose.connection.close(false, () => {
+          console.log('MongoDB connection closed');
+          process.exit(0);
+        });
+      });
     });
-  });
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

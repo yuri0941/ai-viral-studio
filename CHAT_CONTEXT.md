@@ -1,7 +1,7 @@
 # CHAT_CONTEXT.md — Текущее состояние проекта AIVIRAL
 
-> Версия контекста: v9.9.19.2-v4-ctx
-> Дата: 2026-08-11 (обновлено после CHANNEL-AUTO)
+> Версия контекста: v9.9.19.14-ctx
+> Дата: 2026-08-11 (обновлено после MEMORY-GRAPH-PAYMENT-FIX)
 > Мастер-план: @file D:\kilo2\MASTER_PLAN_v9.9.20.md
 > ⚠️ Файл называется CHAT_CONTEXT.md (без пробела) — вариант «CHAT_CONTEXT .md» был случайным rename, исправлен.
 
@@ -91,14 +91,15 @@
 
 ## 🔄 ЧТО В РАБОТЕ ПРЯМО СЕЙЧАС
 
-**v9.9.19.2-v4-CHANNEL-AUTO — ЗАВЕРШЁН и запушен** (2026-08-11)
-- Модалка обновления не блокирует (15 сек watchdog), /api/version = реальная 9.9.19
-- Neural Graph: раскладка+fitToView, монохром, мобильная панель, поиск с наведением камеры
-- AI fallback: 70b → DeepSeek → OpenAI → 8b последний; кэш по userId+message+lang
-- Ключи: Кабинет > env, выключен в кабинете = запрет; Key Health Monitor с алертом в owner-бот
-- OMEGA ведёт канал: автопосты 08/14/20 MSK, голосования раз в 3 дня (+пост-победитель через 24ч), модерация (/moderation), join requests, ответы в комментариях (лимит 10/ч), FAQ из Learning Graph, аналитика канала в Daily Report
-- Новые команды owner-бота: /autoposttest, /polltest, /moderation
-- Требуется ручная проверка владельцем (чек-лист в конце PROGRESS_REPORT v9.9.19.2-v4)
+**v9.9.19.14-MEMORY-GRAPH-PAYMENT-FIX — ЗАВЕРШЁН и запушен** (2026-08-11)
+- 12 слоёв памяти с write-through MongoDB (8 старых + 4 новых), restore/backup/self-diagnosis, лог "[OMEGA] Memory restored"
+- Neural Graph: узлы из памяти, позиции в БД (стабильная раскладка), «Пересоздать из БД», drawer с фактами
+- ЮKassa: 500 убран (400/502 JSON), тест-кнопка в ApiKeysTab, идемпотентный webhook
+- Telegram: validateTelegramHTML (9/9 тестов), plain-fallback на 400 parse, проверка прав getChatMember, честные причины ошибок
+- OMEGACoreTab на общем API-клиенте (401-спам убран); BUILD в index.html из package.json (не v7.0)
+- Ручная проверка: 8 пунктов в конце PROGRESS_REPORT v9.9.19.14
+
+**Дальше по плану:** 19.4-AUTH-401-FIX (частично закрыт здесь), 19.7-VK-PKCE-FIX, 19.8-KEY-HEALTH-UI (частично закрыт: статус invalid в ApiKeysTab)
 
 ---
 

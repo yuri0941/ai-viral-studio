@@ -275,6 +275,68 @@ export async function generateGraphData(ownerId) {
             ]
         graphNodes.push(...knowledgeNodes)
 
+        // === [v9.9.19.14] 2.4 узлы из 12 слоёв памяти: semantic → knowledge, episodic → memory,
+        // instrumental → tech, prospective → idea. Граф строится из памяти, не только из SkillNode ===
+        try {
+            const { getLayerEntries } = await import('../../services/memoryLayerService.js')
+            const existingIds = new Set(graphNodes.map(n => n.id))
+
+            const semanticEntries = getLayerEntries('semantic', 20)
+            semanticEntries.forEach((e, i) => {
+                const id = `sem-${e.id || i}`
+                if (existingIds.has(id)) return
+                const label = String(typeof e.content === 'string' ? e.content : JSON.stringify(e.content)).slice(0, 40)
+                graphNodes.push({ id, label, type: 'knowledge', cluster: 5, size: 7, data: { source: 'memory_semantic', createdAt: e.createdAt } })
+                existingIds.add(id)
+            })
+
+            const episodicEntries = getLayerEntries('episodic', 12)
+            episodicEntries.forEach((e, i) => {
+                const id = `ep-${e.id || i}`
+                const label = String(typeof e.content === 'string' ? e.content : JSON.stringify(e.content)).slice(0, 40)
+                graphNodes.push({ id, label, type: 'memory', cluster: 6, size: 6, data: { source: 'memory_episodic', createdAt: e.createdAt } })
+            })
+
+            const instrumentalEntries = getLayerEntries('instrumental', 10)
+            instrumentalEntries.forEach((e, i) => {
+                const id = `ins-${e.id || i}`
+                const label = String(typeof e.content === 'string' ? e.content : JSON.stringify(e.content)).slice(0, 40)
+                graphNodes.push({ id, label, type: 'tech', cluster: 7, size: 6, data: { source: 'memory_instrumental', createdAt: e.createdAt } })
+            })
+
+            const prospectiveEntries = getLayerEntries('prospective', 10)
+            prospectiveEntries.forEach((e, i) => {
+                const id = `pro-${e.id || i}`
+                const label = String(typeof e.content === 'string' ? e.content : JSON.stringify(e.content)).slice(0, 40)
+                graphNodes.push({ id, label, type: 'idea', cluster: 8, size: 6, data: { source: 'memory_prospective', createdAt: e.createdAt } })
+            })
+
+            // Связи новых узлов с ядром — граф не распадается на изолированные точки
+            for (const n of graphNodes) {
+                if (['memory', 'tech', 'idea'].includes(n.type)) {
+                    edges.push({ source: 'omega-core', target: n.id, weight: 0.4, relation: 'memory' })
+                }
+            }
+        } catch (e) {
+            console.warn('[NeuralGraph] memory layers nodes failed:', e.message)
+        }
+
+        // === [v9.9.19.14] 2.1 персистентные координаты: узлы с сохранённой позицией получают nx/ny ===
+        try {
+            const { default: GraphNodePosition } = await import('../../models/GraphNodePosition.js')
+            const positions = await GraphNodePosition.find({}).lean()
+            const posMap = Object.fromEntries(positions.map(p => [p.nodeId, p]))
+            for (const n of graphNodes) {
+                const p = posMap[n.id]
+                if (p && Number.isFinite(p.nx) && Number.isFinite(p.ny)) {
+                    n.nx = p.nx
+                    n.ny = p.ny
+                }
+            }
+        } catch (e) {
+            console.warn('[NeuralGraph] positions load failed:', e.message)
+        }
+
         for (let i = 0; i < knowledgeNodes.length - 1; i++) {
             edges.push({ source: knowledgeNodes[i].id, target: knowledgeNodes[i + 1].id, weight: 0.6, relation: 'related' })
         }
@@ -294,16 +356,25 @@ export async function generateGraphData(ownerId) {
 
         const totalFacts = graphNodes.filter(n => n.data?.facts).reduce((a, n) => a + (n.data.facts || 0), 0)
 
+        // [v9.9.19.14] кластеры считаем по факту — новые типы (memory/tech/idea) не выпадают из выборки
+        const clusterDefs = [
+            { id: 0, name: 'OMEGA Core', types: ['core'] },
+            { id: 1, name: 'Проекты', types: ['project'] },
+            { id: 2, name: 'Клиенты', types: ['client'] },
+            { id: 3, name: 'Навыки', types: ['skill'] },
+            { id: 5, name: 'Знания OMEGA', types: ['knowledge'] },
+            { id: 6, name: 'Память', types: ['memory'] },
+            { id: 7, name: 'Инструменты', types: ['tech'] },
+            { id: 8, name: 'Идеи', types: ['idea'] },
+        ]
+        const clusters = clusterDefs
+            .map(c => ({ id: c.id, name: c.name, nodeCount: graphNodes.filter(n => c.types.includes(n.type)).length }))
+            .filter(c => c.nodeCount > 0)
+
         return {
             nodes: graphNodes,
             edges,
-            clusters: [
-                { id: 0, name: 'OMEGA Core', color: '#8B5CF6', nodeCount: 1 },
-                { id: 1, name: 'Проекты', color: '#F97316', nodeCount: projectNodes.length },
-                { id: 2, name: 'Клиенты', color: '#8B5CF6', nodeCount: clientNodes.length },
-                { id: 3, name: 'Навыки', color: '#00ff41', nodeCount: skillNodes.length },
-                { id: 5, name: 'Знания OMEGA', color: '#F59E0B', nodeCount: knowledgeNodes.length }
-            ],
+            clusters,
             meta: {
                 totalFacts,
                 totalSkills: skillNodes.length,

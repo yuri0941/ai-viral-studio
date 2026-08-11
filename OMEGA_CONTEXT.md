@@ -1,8 +1,14 @@
 # OMEGA_CONTEXT — AI Viral Studio
 
-## Версия: v9.9.19.2-v4-CHANNEL-AUTO
+## Версия: v9.9.19.14-MEMORY-GRAPH-PAYMENT-FIX
 ## Дата: 2026-08-11
-## Статус: OMEGA ведёт канал сама — автопосты, голосования, модерация, комментарии, аналитика
+## Статус: 12 слоёв памяти в MongoDB (write-through + restore + backup), граф из памяти со стабильной раскладкой, ЮKassa без 500, Telegram HTML валиден
+
+### v9.9.19.14 — Memory/Graph/Payment Fix
+- memoryLayerService: 12 слоёв (8 legacy + prospective/metacognitive/social/instrumental), write-through upsert, дедуп по контенту, TTL short_term 7д/episodic 90д; restore «[OMEGA] Memory restored: ... total=N»; backup в OmegaMemoryBackup (6ч cron) + self-diagnosis hourly; SIGTERM → saveAllLayers
+- Граф строится из памяти: semantic→knowledge, episodic→memory, instrumental→tech, prospective→idea; позиции в GraphNodePosition (nx/ny 0..1)
+- telegramHtml.js: validateTelegramHTML + wrapBotHtmlSending (monkey-patch sendMessage обоих ботов) + plain fallback на 400 parse; getChatMember до публикации (кэш 5 мин)
+- ЮKassa: 400/502 вместо 500, идемпотентный webhook (всегда 200), test-yookassa 1.00₽ из ApiKeysTab
 
 ### v9.9.19.2-v4 — Channel Autonomy
 - startChannelAutonomy (telegramChannelManager): тик 1 мин, слоты MSK (UTC+3); автопосты 08/14/20, тема из Learning Graph (мин. appliedCount) → SerpAPI трендов → ротации рубрик (без повтора 2 дня); пост = postBuilder.publishLuxuryPost; markManualChannelPost сдвигает авто на 2ч

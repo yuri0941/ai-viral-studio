@@ -2,10 +2,23 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { visualizer } from 'rollup-plugin-visualizer'
+import { createRequire } from 'module'
+
+// [v9.9.19.14] 6.5 единый источник правды версии сборки: package.json + дата билда.
+// index.html использует %APP_BUILD% — никакого хардкода 'v7.0-2026-08-07'.
+const require = createRequire(import.meta.url)
+const pkg = require('./package.json')
+const APP_BUILD = `v${pkg.version}-${new Date().toISOString().slice(0, 10)}`
 
 export default defineConfig(({ mode }) => ({
     base: '/',
     plugins: [
+        {
+            name: 'app-build-version',
+            transformIndexHtml(html) {
+                return html.replaceAll('%APP_BUILD%', APP_BUILD)
+            },
+        },
         react(),
         VitePWA({
             registerType: 'autoUpdate',

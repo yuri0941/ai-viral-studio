@@ -1,8 +1,16 @@
 # PROJECT CONTEXT — AI Viral Studio (kilo2)
 # ⚠️ Kimi VS Code: прочитай этот файл ПЕРЕД любой задачей. Это единый источник правды.
-# Дата контекста: 2026-08-11 | Версия проекта: v9.9.19.2-v4-CHANNEL-AUTO
+# Дата контекста: 2026-08-11 | Версия проекта: v9.9.19.14-MEMORY-GRAPH-PAYMENT-FIX
 
 ---
+
+## 2026-08-11 — Контекст v9.9.19.14-MEMORY-GRAPH-PAYMENT-FIX
+- 12 слоёв памяти: OmegaMemoryLayer + memoryLayerService (write-through upsert на каждое изменение, retry×1, RAM не падает); хуки во всех производителях (saveMemory, learnTopic, recordOutcome, submitOwnerCommand, selfReflection, saveDialogue, hotReloadApiKey/reportKeyFailure); restore при старте с логом «[OMEGA] Memory restored: ...»; SIGTERM/SIGINT → saveAllLayers; backup 6ч + self-diagnosis hourly (восстановление из бэкапа + структура 12 слоёв); TTL short_term 7д / episodic 90д
+- /api/omega/memory-status (owner): 12 счётчиков + lastBackup + isHealthy; Memory Explorer — 12 карточек (i18n)
+- Neural Graph: узлы из слоёв памяти (semantic/episodic/instrumental/prospective), кластеры по факту, позиции персистятся (GraphNodePosition nx/ny + POST /omega/neural-graph/positions), «Пересоздать из БД», drawer с датой/фактами/«Подробнее»
+- ЮKassa: ключи проверяются до вызова (400 не 500), ошибки API → 502, amount "100.00", randomUUID idempotence, поле test удалено; /payments/test-yookassa + /payments/status/:id (owner) + идемпотентный /payments/webhook/yookassa (всегда 200); ApiKeysTab «🧪 Проверить ЮKassa»
+- Telegram: utils/telegramHtml.js (validateTelegramHTML, 9/9 тестов), wrapBotHtmlSending на обоих ботах, tgApi/publishToChannel валидация + plain fallback на 400 parse; getChatMember до публикации (кэш 5 мин), no_rights → алерт-инструкция; /posttest end-to-end
+- OMEGACoreTab: raw fetch → request() (401-спам убран); index.html BUILD из package.json через Vite %APP_BUILD% (не хардкод v7.0)
 
 ## 2026-08-11 — Контекст v9.9.19.2-v4-CHANNEL-AUTO
 - /api/version — реальная версия из package.json (хардкод 7.0.0 удалён); UpdateModal не блокирует: PWA update = caches.delete + reload (3 сек), watchdog 15 сек → «отложено» + автозакрытие

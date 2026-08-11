@@ -98,6 +98,45 @@ router.post('/create', protect, createYookassaPayment)
 router.post('/webhook', yookassaWebhookHandler)
 router.get('/status', protect, getPaymentStatus)
 
+// [v9.9.19.14] 3.4 webhook ЮKassa (алиас с идемпотентностью, всегда 200 после обработки)
+router.post('/webhook/yookassa', express.raw({ type: 'application/json' }), yookassaWebhookHandler)
+
+// [v9.9.19.14] 3.2 тест ЮKassa из ApiKeysTab: платёж 1.00 RUB (owner-only)
+router.post('/test-yookassa', protect, requireOwner, async (req, res) => {
+    try {
+        const { getProviderKey } = await import('../services/aiService.js')
+        const shopId = await getProviderKey('yookassa_shop_id')
+        const secret = await getProviderKey('yookassa_secret')
+        if (!shopId || !secret) {
+            return res.status(400).json({ success: false, error: 'ЮKassa не настроена. Кабинет → API Ключи → yookassa' })
+        }
+        const { createPayment } = await import('../services/yookassaService.js')
+        const payment = await createPayment({
+            amount: 1,
+            currency: 'RUB',
+            description: 'Тест ApiKeysTab',
+            returnUrl: `${(process.env.FRONTEND_URL || 'https://aiviral-studio.ru').replace(/\/$/, '')}/payment/success?test=1`,
+            metadata: { test: 'api_keys_tab' },
+        })
+        res.json({ success: true, testUrl: payment.confirmationUrl, paymentId: payment.paymentId })
+    } catch (err) {
+        console.error('[YOOKASSA]', err.message)
+        res.status(502).json({ success: false, error: 'Платёж не создан', details: err.message })
+    }
+})
+
+// [v9.9.19.14] 3.3 статус платежа (owner-only): pending | succeeded | canceled
+router.get('/status/:paymentId', protect, requireOwner, async (req, res) => {
+    try {
+        const { checkPayment } = await import('../services/yookassaService.js')
+        const payment = await checkPayment(req.params.paymentId)
+        res.json({ success: true, status: payment.status, paid: payment.paid })
+    } catch (err) {
+        console.error('[YOOKASSA]', err.message)
+        res.status(502).json({ success: false, error: 'Статус недоступен', details: err.message })
+    }
+})
+
 // ============ CRYPTO ============
 router.post('/crypto-charge', async (req, res) => {
     try {

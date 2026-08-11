@@ -230,6 +230,11 @@ export async function submitOwnerCommand({ chatId, text, bot }) {
     status: 'queued',
   });
 
+  // [v9.9.19.14] write-through в prospective-слой (планы/цели владельца)
+  import('./memoryLayerService.js')
+    .then(m => m.addMemoryEntry('prospective', { type: 'command', content: `Команда владельца: ${String(text).slice(0, 200)}`, tags: ['command', intent.action || 'chat'] }))
+    .catch(() => {});
+
   // Мгновенный акцепт — владелец сразу видит, что услышан
   const actionLabel = intent.action === 'chat' ? 'разбираю запрос' : `команда «${intent.intent}»`;
   bot.sendMessage(chatId, `⚡ <b>Взяла в работу</b>: «${String(text).slice(0, 120)}»\n<i>${actionLabel} · в очереди #${String(cmd._id).slice(-4)}</i>`, { parse_mode: 'HTML' }).catch(() => {});

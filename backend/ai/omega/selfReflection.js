@@ -74,6 +74,10 @@ export async function reflectionCycle() {
                 source: 'self_reflection',
                 reflectedAt: new Date().toISOString(),
             }, [], { accessLevel: 'owner' })
+            // [v9.9.19.14] write-through в metacognitive-слой (что OMEGA знает о своём знании)
+            import('../../services/memoryLayerService.js')
+                .then(m => m.addMemoryEntry('metacognitive', { type: 'pattern', content: `Урок (${lesson.category || 'general'}): ${lesson.lesson || lesson.prevention}`.slice(0, 400), tags: ['lesson', lesson.category || 'general'] }))
+                .catch(() => {})
         } catch (nodeErr) {
             console.warn('[selfReflection] graph node failed:', nodeErr.message)
         }

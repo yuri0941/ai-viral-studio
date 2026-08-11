@@ -397,6 +397,10 @@ export function hotReloadApiKey(provider, key) {
     if (global.apiKeyMissCache) delete global.apiKeyMissCache[provider]
     keyAlertSent.delete(provider)
     console.log(`[HOT-RELOAD] key=${provider} source=mongodb`)
+    // [v9.9.19.14] write-through в instrumental-слой (как пользоваться инструментами/ключами)
+    import('./memoryLayerService.js')
+        .then(m => m.addMemoryEntry('instrumental', { type: 'pattern', content: `Ключ ${provider} обновлён через Кабинет (hot-reload, source=mongodb)`, tags: ['key', provider] }))
+        .catch(() => {})
 }
 
 export function invalidateApiKeysCache() {
@@ -428,6 +432,10 @@ export async function reportKeyFailure(providerId, status, error) {
             { sort: { updatedAt: -1 }, new: true }
         ).lean()
         if (!doc) return // ключа нет в кабинете — нечего помечать
+        // [v9.9.19.14] instrumental-слой: ключ протух — fallback-цепочка берёт следующего провайдера
+        import('./memoryLayerService.js')
+            .then(m => m.addMemoryEntry('instrumental', { type: 'pattern', content: `Ключ ${keyProvider} невалиден (${shortError.slice(0, 80)}) — fallback на следующего провайдера`, tags: ['key', keyProvider, 'invalid'] }))
+            .catch(() => {})
         if (keyAlertSent.has(keyProvider)) return
         keyAlertSent.add(keyProvider)
         console.warn(`[KEY-HEALTH] provider=${keyProvider} status=invalid error=${shortError}`)

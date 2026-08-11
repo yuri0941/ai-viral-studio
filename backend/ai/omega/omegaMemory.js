@@ -136,6 +136,11 @@ export async function saveMemory(userId, level, content, tags = [], weight = 1) 
             { upsert: true, new: true }
         )
 
+        // [v9.9.19.14] write-through в 12-слойную память (глобальный мозг OMEGA)
+        import('../../services/memoryLayerService.js')
+            .then(m => m.addMemoryEntry(level, { type: 'fact', content, tags }))
+            .catch(() => {})
+
         return doc
     } catch (err) {
         console.warn('[omegaMemory] saveMemory failed:', err.message)

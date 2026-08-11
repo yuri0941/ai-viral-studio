@@ -112,6 +112,9 @@ export default function NeuralGraphTab() {
           // [v9.9.19.2] не назначаем случайные координаты — узлы без x/y расставит начальная круговая раскладка в симуляции
           x: Number.isFinite(n.x) ? n.x : undefined,
           y: Number.isFinite(n.y) ? n.y : undefined,
+          // [v9.9.19.14] персистентные нормализованные координаты из MongoDB — стабильная раскладка
+          nx: Number.isFinite(n.nx) ? n.nx : undefined,
+          ny: Number.isFinite(n.ny) ? n.ny : undefined,
           vx: 0,
           vy: 0,
           color: n.color || getColor(n.type)
@@ -181,6 +184,14 @@ export default function NeuralGraphTab() {
     // Начальная раскладка: узлы без валидных пиксельных координат расставляем кругом вокруг центра
     const layoutRadius = Math.min(size.w, size.h) * 0.35;
     simNodes.forEach((n, i) => {
+      // [v9.9.19.14] сохранённая в MongoDB позиция (нормализованная 0..1) — раскладка стабильна между визитами
+      if (Number.isFinite(n.nx) && Number.isFinite(n.ny)) {
+        n.x = n.nx * size.w;
+        n.y = n.ny * size.h;
+        n.vx = 0;
+        n.vy = 0;
+        return;
+      }
       if (Number.isFinite(n.x) && Number.isFinite(n.y) && (Math.abs(n.x) > 2 || Math.abs(n.y) > 2)) return;
       const angle = (i / Math.max(1, simNodes.length)) * Math.PI * 2;
       const ring = 0.5 + 0.5 * ((i % 4) / 3);
@@ -247,7 +258,16 @@ export default function NeuralGraphTab() {
       animationRef.current = requestAnimationFrame(step);
     };
     animationRef.current = requestAnimationFrame(step);
-    return () => { running = false; cancelAnimationFrame(animationRef.current); };
+    // [v9.9.19.14] после стабилизации раскладки (~4 сек) сохраняем позиции в MongoDB
+    const saveTimer = setTimeout(() => {
+      const list = physicsRef.current.nodes || [];
+      if (!list.length || !size.w || !size.h) return;
+      const positions = list
+        .filter(n => Number.isFinite(n.x) && Number.isFinite(n.y))
+        .map(n => ({ id: n.id, nx: n.x / size.w, ny: n.y / size.h }));
+      request('/omega/neural-graph/positions', { method: 'POST', body: JSON.stringify({ positions }) }).catch(() => {});
+    }, 4000);
+    return () => { running = false; cancelAnimationFrame(animationRef.current); clearTimeout(saveTimer); };
   }, [nodes.length, edges.length, size.w, size.h, draggingNode]);
 
   // Подгонка камеры: весь граф в кадре с отступом ~40px
@@ -483,6 +503,10 @@ export default function NeuralGraphTab() {
     return edges.filter(e => e.source.id === selectedNode.id || e.target.id === selectedNode.id).map(e => e.source.id === selectedNode.id ? e.target : e.source);
   }, [selectedNode, edges]);
 
+  // [v9.9.19.14] drawer «Подробнее» — сворачивается при смене узла
+  const [nodeDetailsOpen, setNodeDetailsOpen] = useState(false);
+  useEffect(() => { setNodeDetailsOpen(false); }, [selectedNode?.id]);
+
   const InfoPanel = ({ floating } = {}) => (
     <>
       {selectedNode && (
@@ -494,18 +518,29 @@ export default function NeuralGraphTab() {
           <div className="space-y-2 text-xs text-[var(--text-muted)]">
             <p><span className="text-[var(--text)]">Тип:</span> {TYPE_LABELS[selectedNode.type] || selectedNode.type}</p>
             <p><span className="text-[var(--text)]">Кластер:</span> {selectedNode.cluster}</p>
+            {(selectedNode.data?.learnedAt || selectedNode.data?.createdAt) && (
+              <p><span className="text-[var(--text)]">{t('neuralGraph.created') || 'Создан'}:</span> {new Date(selectedNode.data.learnedAt || selectedNode.data.createdAt).toLocaleDateString('ru-RU')}</p>
+            )}
             <p><span className="text-[var(--text)]">Связей:</span> {relatedNodes.length}</p>
             {selectedNode.data?.confidence && <p><span className="text-[var(--text)]">Confidence:</span> {Math.round(selectedNode.data.confidence * 100)}%</p>}
           </div>
           {relatedNodes.length > 0 && (
             <div className="mt-3 pt-3 border-t border-[var(--border)]">
-              <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Связанные узлы</p>
+              <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">{t('neuralGraph.relatedFacts') || 'Связанные факты'}</p>
               <div className="space-y-1 max-h-32 overflow-auto">
-                {relatedNodes.map(n => (
+                {relatedNodes.slice(0, 5).map(n => (
                   <div key={n.id} className="flex items-center gap-2 text-xs"><span className="w-2 h-2 rounded-full" style={{ background: getColor(n.type) }} /> {n.label}</div>
                 ))}
               </div>
             </div>
+          )}
+          <button onClick={() => setNodeDetailsOpen(v => !v)} className="mt-3 w-full px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs transition-colors">
+            {t('neuralGraph.details') || 'Подробнее'}
+          </button>
+          {nodeDetailsOpen && (
+            <p className="mt-2 text-xs text-[var(--text-muted)] break-words max-h-32 overflow-auto">
+              {selectedNode.data?.summary || JSON.stringify(selectedNode.data || {}, null, 1).slice(0, 400)}
+            </p>
           )}
         </div>
       )}
@@ -525,7 +560,7 @@ export default function NeuralGraphTab() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2"><Network className="w-6 h-6 text-cyan-400" /> {t('neuralGraph.title') || 'Neural Graph'}</h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1 whitespace-nowrap overflow-x-auto no-scrollbar">
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1 whitespace-nowrap overflow-x-auto no-scrollbar">
             {t('neuralGraph.stats', { nodes: nodes.length, edges: edges.length, clusters: clusters.length }) || `🧠 Neural Graph: ${nodes.length} узлов | ${edges.length} связей | ${clusters.length} кластеров`} | Навыков изучено: {skillsCount}
           </p>
         </div>
@@ -536,7 +571,7 @@ export default function NeuralGraphTab() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('neuralGraph.search') || 'Поиск узла'} className="w-full min-w-0 flex-1 text-sm pl-9 pr-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] focus:border-purple-500/50 focus:outline-none" />
             </div>
-            <button onClick={loadGraph} title="Обновить граф" aria-label="Обновить граф" className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><RefreshCw className="w-4 h-4" /></button>
+            <button onClick={loadGraph} title={t('neuralGraph.rebuild') || 'Пересоздать из БД'} aria-label={t('neuralGraph.rebuild') || 'Пересоздать из БД'} className="shrink-0 flex items-center gap-1.5 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><RefreshCw className="w-4 h-4" /><span className="hidden md:inline text-xs whitespace-nowrap">{t('neuralGraph.rebuild') || 'Пересоздать из БД'}</span></button>
           </div>
           <div className="flex flex-nowrap items-center gap-2 overflow-x-auto no-scrollbar">
             {FILTERS.map(f => (

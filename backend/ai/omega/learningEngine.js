@@ -1,6 +1,10 @@
 // Learning Engine — OMEGA оценивает свои ответы и пишет в Cognitive Mesh
 export async function recordOutcome({ userId, intent, action, success, error, metadata = {} }) {
   const timestamp = new Date().toISOString();
+  // [v9.9.19.14] write-through в episodic-слой (события переживают рестарт)
+  import('../../services/memoryLayerService.js')
+    .then(m => m.addMemoryEntry('episodic', { type: 'event', content: `${action} → ${success ? 'успех' : `ошибка: ${String(error || '').slice(0, 120)}`}`, tags: ['outcome', action || 'unknown'] }))
+    .catch(() => {});
   try {
     const { addNode } = await import('../../services/cognitiveMesh.js');
     await addNode({

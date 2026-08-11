@@ -32,15 +32,8 @@
     "contactEmailHint": "Этот email будет указан в договоре оферте и политике конфиденциальности"
   },
   "landing": {
-    "heroTitle": "AI Viral Studio — Автоматизируй вирусный контент с OMEGA",
-    "heroSubtitle": "ИИ создаёт, публикует и анализирует контент за вас",
-    "joinBeta": "🚀 Записаться в бета",
-    "forBusiness": "💼 Для бизнеса",
-    "features": "Возможности",
-    "pricing": "Тарифы",
-    "howItWorks": "Как это работает",
-    "testimonials": "Отзывы",
-    "faq": "FAQ"
+    "start": "Начать",
+    "login": "Войти"
   },
   "signup": {
     "title": "Регистрация",
@@ -440,7 +433,11 @@
     "statusMissing": "Не задан",
     "keyValue": "Ключ",
     "missing": "Не задан",
-    "rotate": "Обновить"
+    "rotate": "Обновить",
+    "testYookassa": "🧪 Проверить ЮKassa",
+    "yookassaHint": "Тестовая карта: 5555 5555 5555 4477 · срок 12/25 · CVV 000",
+    "checkStatus": "Проверить статус",
+    "yookassaOk": "🟢 ЮKassa работает! Можно принимать платежи"
   },
   "externalApiKeys": {
     "title": "Внешние API-ключи",
@@ -462,19 +459,40 @@
     "realMode": "Реальный API"
   },
   "advertiser": {
-    "title": "Рекламодатель",
-    "subtitle": "Управление рекламными кампаниями",
-    "totalBudget": "Общий бюджет",
-    "newCampaign": "Новая кампания",
-    "adStudio": "Ad Studio",
+    "tag": "Реклама",
+    "heroTitle": "Рекламируйтесь в AI Viral Studio",
+    "heroSubtitle": "50K+ SMM-специалистов, креаторов и бизнесов",
+    "audience": "Аудитория",
+    "ctr": "Средний CTR",
+    "roi": "ROI",
+    "calculator": "Калькулятор охвата",
+    "name": "Имя",
+    "company": "Компания",
+    "email": "Email",
+    "phone": "Телефон",
+    "niche": "Ниша",
+    "budget": "Бюджет",
+    "goalAwareness": "Охват",
+    "goalLeads": "Лиды",
+    "goalSales": "Продажи",
+    "formatPost": "Пост",
+    "formatStory": "Сторис",
+    "formatBanner": "Баннер",
+    "formatNewsletter": "Email",
+    "formatVideo": "Видео",
+    "cta": "Получить предложение",
+    "reach": "Охват",
+    "clicks": "Клики",
+    "conversions": "Конверсии",
+    "proposalReady": "КП готово за 30 сек",
+    "dashboardTitle": "Advertiser Dashboard",
+    "requests": "Заявки",
     "campaigns": "Кампании",
-    "calendar": "Календарь",
-    "chat": "Чат",
-    "reports": "Отчёты",
-    "tariffs": "Тарифы",
-    "calendarTitle": "Календарь кампаний",
-    "chatSubtitle": "Переговоры по рекламной кампании",
-    "reportsTitle": "Отчёты по кампаниям"
+    "avgRoi": "Средний ROI",
+    "incomingRequests": "Входящие заявки",
+    "activeCampaigns": "Активные кампании",
+    "noRequests": "Нет заявок",
+    "noCampaigns": "Нет активных кампаний"
   },
   "admin": {
     "title": "Администратор",
@@ -750,37 +768,15 @@
     "cancelConfirm": "Отключить аддон?"
   },
   "chat": {
-    "serverUnavailable": "OMEGA временно недоступна. Повторите через 10 сек.",
-    "placeholder": "Спросите OMEGA...",
-    "privacy": "Ваши данные защищены. OMEGA не раскрывает чужие проекты.",
-    "action": {
-      "hook": "🪝 Хук",
-      "script": "📝 Сценарий",
-      "code": "💻 Код",
-      "site": "🌐 Сайт",
-      "adVariants": "📢 Реклама",
-      "niche": "🎯 Ниша"
-    },
-    "variants": "Вариантов",
-    "thinking": "OMEGA думает...",
+    "support": "Поддержка",
+    "newTicket": "Новое обращение",
+    "subject": "Тема",
+    "description": "Опишите проблему",
     "send": "Отправить",
-    "voice": "Голосовой ввод",
-    "voiceMode": "Голосовой ввод",
-    "listening": "OMEGA слушает...",
-    "recording": "Идёт запись...",
-    "mic": "Голосовой ввод",
-    "micNotSupported": "Микрофон не поддерживается браузером",
-    "reasoningTitle": "🧠 Как OMEGA думает?",
-    "step": "Шаг {{number}}",
-    "copy": "Скопировано!",
-    "copyCode": "Копировать",
-    "copied": "Скопировано",
-    "error": "Ошибка соединения. Повторите.",
-    "empty": "Начните диалог с OMEGA",
-    "section": "Раздел",
-    "limitReached": "⚡️ Лимит генераций исчерпан. Перейдите на платный тариф.",
-    "tokensLeft": "Осталось генераций",
-    "infoQueryFree": "Справка и навигация — бесплатно"
+    "cancel": "Отмена",
+    "ticketSent": "Обращение отправлено! Мы ответим в ближайшее время.",
+    "orTelegram": "Или напишите в",
+    "dragHint": "Перетащите за заголовок"
   },
   "support": {
     "title": "Поддержка",
@@ -884,15 +880,22 @@
     "configureApi": "⚙️ Настроить API"
   },
   "aiVideo": {
-    "creating": "Создаём видео...",
-    "queued": "В очереди",
-    "starting": "Запускаем...",
-    "processing": "Обрабатываем {{progress}}%",
-    "succeeded": "Готово!",
-    "failed": "Ошибка генерации",
-    "download": "📥 Скачать",
-    "mockBadge": "🎬 Демо-режим",
-    "addToken": "Добавьте ключ в Owner Dashboard → API Keys"
+    "title": "AI Видео",
+    "createReels": "Создать Reels/Shorts",
+    "topic": "Тема видео",
+    "niche": "Ниша",
+    "duration": "Длительность",
+    "style": "Стиль",
+    "generate": "🎬 Сгенерировать",
+    "processing": "Видео генерируется...",
+    "seconds": "сек",
+    "copyScript": "📋 Скопировать сценарий",
+    "styles": {
+      "dynamic": "Динамичный",
+      "calm": "Спокойный",
+      "motivational": "Мотивационный",
+      "humorous": "Юмористический"
+    }
   },
   "voice": {
     "speaking": "🔊 Говорю...",
@@ -1041,24 +1044,6 @@
     "referral": "Реферал",
     "foundingMember": "Founding Member"
   },
-  "aiVideo": {
-    "title": "AI Видео",
-    "createReels": "Создать Reels/Shorts",
-    "topic": "Тема видео",
-    "niche": "Ниша",
-    "duration": "Длительность",
-    "style": "Стиль",
-    "generate": "🎬 Сгенерировать",
-    "processing": "Видео генерируется...",
-    "seconds": "сек",
-    "copyScript": "📋 Скопировать сценарий",
-    "styles": {
-      "dynamic": "Динамичный",
-      "calm": "Спокойный",
-      "motivational": "Мотивационный",
-      "humorous": "Юмористический"
-    }
-  },
   "launchPage": {
     "title": "AI Viral Studio — запуск 2026",
     "subtitle": "AI-платформа для вирусного контента",
@@ -1092,7 +1077,7 @@
   },
   "memoryExplorer": {
     "title": "OMEGA Memory Explorer",
-    "subtitle": "8 слоёв памяти · {{count}} записей",
+    "subtitle": "12 слоёв памяти · {{count}} записей",
     "searchPlaceholder": "Поиск по памяти...",
     "records": "{{count}} записей",
     "noRecords": "Нет записей",
@@ -1107,7 +1092,11 @@
       "procedural": "Процедурная",
       "episodic": "Эпизодическая",
       "owner_profile": "Профиль владельца",
-      "emotional": "Эмоциональная"
+      "emotional": "Эмоциональная",
+      "prospective": "Проспективная",
+      "metacognitive": "Метакогнитивная",
+      "social": "Социальная",
+      "instrumental": "Инструментальная"
     }
   },
   "neuralGraph": {
@@ -1116,7 +1105,12 @@
     "memory": "Память",
     "errors": "Ошибки",
     "stats": "🧠 Neural Graph: {{nodes}} узлов | {{edges}} связей | {{clusters}} кластеров",
-    "search": "Поиск узлов..."
+    "search": "Поиск узлов...",
+    "rebuild": "Пересоздать из БД",
+    "details": "Подробнее",
+    "created": "Создан",
+    "relatedFacts": "Связанные факты",
+    "close": "Закрыть"
   },
   "youtube": {
     "title": "YouTube AI",
@@ -1179,30 +1173,30 @@
     }
   },
   "boardroom": {
-    "title": "AI Boardroom",
-    "subtitle": "5 AI-директоров обсуждают стратегию",
-    "hideHistory": "Скрыть",
-    "showHistory": "История",
-    "historyTitle": "История раундов",
-    "emptyHistory": "История пуста",
-    "topicPlaceholder": "Тема для обсуждения: запуск нового тарифа, интеграция, бюджет...",
-    "startRound": "Начать раунд",
-    "agents": {
-      "ceo": { "name": "Alex CEO", "role": "CEO", "stance": "стратегия" },
-      "cmo": { "name": "Maria CMO", "role": "CMO", "stance": "маркетинг" },
-      "cto": { "name": "Ivan CTO", "role": "CTO", "stance": "технологии" },
-      "cfo": { "name": "Dmitry CFO", "role": "CFO", "stance": "финансы" },
-      "chro": { "name": "Elena CHRO", "role": "CHRO", "stance": "люди" }
-    },
-    "defaultArgument": "Готов обсудить детали.",
-    "votes": {
-      "for": "ЗА",
-      "against": "ПРОТИВ",
-      "abstain": "Воздержался"
-    },
-    "approved": "Решение принято ({{count}}/5)",
-    "createTask": "Создать задачу",
-    "taskCreated": "Создана задача: {{topic}}"
+    "title": "🏢 Boardroom — Совет Директоров (Auto-Task)",
+    "context": "Контекст для совета",
+    "placeholder": "MRR упал на 20%, конкурент запустил новую фичу...",
+    "runMeeting": "Запустить заседание совета",
+    "tasks": "Задачи",
+    "role": "Роль",
+    "priority": "Приоритет",
+    "critical": "Критический",
+    "high": "Высокий",
+    "medium": "Средний",
+    "low": "Низкий",
+    "deadline": "Дедлайн",
+    "expectedOutcome": "Результат",
+    "vote": "Голосование",
+    "approve": "Одобрено",
+    "reject": "Отклонено",
+    "modify": "Изменить",
+    "approved": "Одобрено",
+    "rejected": "Отклонено",
+    "autoExecute": "Авто-выполнить одобренные",
+    "history": "История заседаний",
+    "noHistory": "Нет истории",
+    "reasoning": "Обоснование",
+    "error": "Ошибка"
   },
   "predictiveCard": {
     "title": "OMEGA уже подготовил",
@@ -1211,9 +1205,18 @@
     "collapse": "Свернуть",
     "applied": "OMEGA применил: {{title}}",
     "types": {
-      "post": { "title": "Пост на завтра", "action": "Создать пост" },
-      "competitor": { "title": "Анализ конкурента", "action": "Проанализировать" },
-      "pricing": { "title": "Оптимизация тарифа", "action": "Применить" }
+      "post": {
+        "title": "Пост на завтра",
+        "action": "Создать пост"
+      },
+      "competitor": {
+        "title": "Анализ конкурента",
+        "action": "Проанализировать"
+      },
+      "pricing": {
+        "title": "Оптимизация тарифа",
+        "action": "Применить"
+      }
     }
   },
   "viralDemo": {
@@ -1426,82 +1429,30 @@
     "noData": "Нет данных",
     "error": "Ошибка"
   },
-  "boardroom": {
-    "title": "🏢 Boardroom — Совет Директоров (Auto-Task)",
-    "context": "Контекст для совета",
-    "placeholder": "MRR упал на 20%, конкурент запустил новую фичу...",
-    "runMeeting": "Запустить заседание совета",
-    "tasks": "Задачи",
-    "role": "Роль",
-    "priority": "Приоритет",
-    "critical": "Критический",
-    "high": "Высокий",
-    "medium": "Средний",
-    "low": "Низкий",
-    "deadline": "Дедлайн",
-    "expectedOutcome": "Результат",
-    "vote": "Голосование",
-    "approve": "Одобрено",
-    "reject": "Отклонено",
-    "modify": "Изменить",
-    "approved": "Одобрено",
-    "rejected": "Отклонено",
-    "autoExecute": "Авто-выполнить одобренные",
-    "history": "История заседаний",
-    "noHistory": "Нет истории",
-    "reasoning": "Обоснование",
-    "error": "Ошибка"
-  },
   "telegram": {
-    "title": "Telegram — Авто-посты и Бот",
-    "subtitle": "Авто-посты, план на неделю и управление ботом",
-    "quickPost": "Быстрый пост",
-    "topic": "Тема поста",
-    "topicRequired": "Укажите тему поста",
-    "tone": "Тон",
-    "expert": "Экспертный",
-    "energetic": "Энергичный",
-    "funny": "Юмористический",
-    "length": "Длина",
-    "short": "Короткий",
-    "medium": "Средний",
-    "long": "Длинный",
-    "generateAndPublish": "Сгенерировать и опубликовать",
-    "published": "Опубликовано",
-    "mockMode": "Mock-режим",
-    "weeklyPlan": "План на неделю",
-    "generatePlan": "Сгенерировать план",
-    "day": "День",
-    "scheduledTime": "Время публикации",
-    "publishNow": "Опубликовать сейчас",
-    "copyPlan": "Копировать план",
+    "clientMenu": "Чем помочь?",
+    "adOrder": "Реклама",
+    "discounts": "Скидки",
+    "video": "Видео / Reels",
+    "support": "Поддержка",
+    "toApp": "В приложение",
+    "myOrders": "Мои заказы",
+    "prices": "Тарифы",
+    "discountCode": "Промокод",
+    "validUntil": "Действует до",
+    "videoScript": "Сценарий видео",
+    "adApproved": "Заказ одобрен",
+    "adRejected": "Заказ отклонён",
+    "newAdOrder": "Новый заказ рекламы",
+    "ownerPanel": "Панель управления",
+    "tickets": "Тикеты",
+    "adPrices": "Цены рекламы",
     "stats": "Статистика",
-    "statistics": "Статистика",
-    "analyticsMenu": "Аналитика меню",
-    "subscribers": "Подписчики",
-    "channelId": "ID канала",
-    "botToken": "Токен бота",
-    "saveSettings": "Сохранить настройки",
-    "settings": "Настройки канала",
-    "botControl": "Управление ботом",
-    "botSettings": "Настройки бота",
-    "botStatus": "Статус бота",
-    "botStats": "Статистика бота",
-    "channelStats": "Статистика канала",
-    "online": "Online",
-    "offline": "Offline",
-    "testMessage": "Тестовое сообщение",
-    "testMessageSent": "Тестовое сообщение отправлено",
-    "runImprove": "Запустить /improve",
-    "dialogStats": "Статистика диалогов",
-    "autoReply": "Авто-ответ OMEGA",
-    "history": "История постов",
-    "noHistory": "История пуста",
-    "logs": "Логи",
-    "publishError": "Ошибка публикации",
-    "planError": "Ошибка генерации плана",
-    "settingsUpdated": "Настройки Telegram обновлены",
-    "saveError": "Ошибка сохранения"
+    "publishToChannel": "Опубликовать в канал",
+    "stopStart": "Стоп / Старт",
+    "openDashboard": "Открыть Dashboard",
+    "supportSent": "Обращение отправлено",
+    "writeInTelegram": "Написать в Telegram"
   },
   "selfOptimize": {
     "title": "Self-Optimize — OMEGA учится сама",
@@ -1606,31 +1557,6 @@
     "updatePrices": "Обновить цены",
     "noOrders": "Нет заказов"
   },
-  "telegram": {
-    "clientMenu": "Чем помочь?",
-    "adOrder": "Реклама",
-    "discounts": "Скидки",
-    "video": "Видео / Reels",
-    "support": "Поддержка",
-    "toApp": "В приложение",
-    "myOrders": "Мои заказы",
-    "prices": "Тарифы",
-    "discountCode": "Промокод",
-    "validUntil": "Действует до",
-    "videoScript": "Сценарий видео",
-    "adApproved": "Заказ одобрен",
-    "adRejected": "Заказ отклонён",
-    "newAdOrder": "Новый заказ рекламы",
-    "ownerPanel": "Панель управления",
-    "tickets": "Тикеты",
-    "adPrices": "Цены рекламы",
-    "stats": "Статистика",
-    "publishToChannel": "Опубликовать в канал",
-    "stopStart": "Стоп / Старт",
-    "openDashboard": "Открыть Dashboard",
-    "supportSent": "Обращение отправлено",
-    "writeInTelegram": "Написать в Telegram"
-  },
   "clientChat": {
     "greeting": "Привет! Я OMEGA 🤖 Чем могу помочь с вашим SMM сегодня?",
     "escalate": "Передаю оператора...",
@@ -1656,17 +1582,6 @@
     "intent": "Интент",
     "count": "Количество"
   },
-  "chat": {
-    "support": "Поддержка",
-    "newTicket": "Новое обращение",
-    "subject": "Тема",
-    "description": "Опишите проблему",
-    "send": "Отправить",
-    "cancel": "Отмена",
-    "ticketSent": "Обращение отправлено! Мы ответим в ближайшее время.",
-    "orTelegram": "Или напишите в",
-    "dragHint": "Перетащите за заголовок"
-  },
   "channel": {
     "title": "Channel Manager",
     "generate": "Сгенерировать пост",
@@ -1689,42 +1604,6 @@
     "sent": "Отправлено",
     "opened": "Открыто",
     "conversion": "Конверсия"
-  },
-  "advertiser": {
-    "tag": "Реклама",
-    "heroTitle": "Рекламируйтесь в AI Viral Studio",
-    "heroSubtitle": "50K+ SMM-специалистов, креаторов и бизнесов",
-    "audience": "Аудитория",
-    "ctr": "Средний CTR",
-    "roi": "ROI",
-    "calculator": "Калькулятор охвата",
-    "name": "Имя",
-    "company": "Компания",
-    "email": "Email",
-    "phone": "Телефон",
-    "niche": "Ниша",
-    "budget": "Бюджет",
-    "goalAwareness": "Охват",
-    "goalLeads": "Лиды",
-    "goalSales": "Продажи",
-    "formatPost": "Пост",
-    "formatStory": "Сторис",
-    "formatBanner": "Баннер",
-    "formatNewsletter": "Email",
-    "formatVideo": "Видео",
-    "cta": "Получить предложение",
-    "reach": "Охват",
-    "clicks": "Клики",
-    "conversions": "Конверсии",
-    "proposalReady": "КП готово за 30 сек",
-    "dashboardTitle": "Advertiser Dashboard",
-    "requests": "Заявки",
-    "campaigns": "Кампании",
-    "avgRoi": "Средний ROI",
-    "incomingRequests": "Входящие заявки",
-    "activeCampaigns": "Активные кампании",
-    "noRequests": "Нет заявок",
-    "noCampaigns": "Нет активных кампаний"
   },
   "concierge": {
     "title": "Concierge",
@@ -1776,10 +1655,6 @@
   "haptic": {
     "enabled": "Вибрация включена",
     "disabled": "Вибрация выключена"
-  },
-  "landing": {
-    "start": "Начать",
-    "login": "Войти"
   },
   "telegramConnect": {
     "title": "Telegram",

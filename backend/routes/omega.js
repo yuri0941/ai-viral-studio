@@ -75,7 +75,7 @@ router.get('/memory', getMemory)
 router.post('/memory', createMemory)
 
 // [v7.1-PART1] Memory layers for OmegaMemoryExplorer
-const MEMORY_LAYER_IDS = ['short_term', 'working', 'long_term', 'semantic', 'procedural', 'episodic', 'owner_profile', 'emotional']
+// [v9.9.19.14] 12 слоёв: 8 существующих СОХРАНЕНЫ + 4 новых; источник — OmegaMemoryLayer (write-through MongoDB)
 const MEMORY_LAYER_LABELS = {
     short_term: 'Кратковременная',
     working: 'Рабочая',
@@ -85,20 +85,28 @@ const MEMORY_LAYER_LABELS = {
     episodic: 'Эпизодическая',
     owner_profile: 'Профиль владельца',
     emotional: 'Эмоциональная',
+    prospective: 'Проспективная',
+    metacognitive: 'Метакогнитивная',
+    social: 'Социальная',
+    instrumental: 'Инструментальная',
 }
 router.get('/memory/layers', protect, async (req, res) => {
     try {
+        const { LAYERS, getLayerEntries, getLayerCounts } = await import('../services/memoryLayerService.js')
+        const counts = getLayerCounts()
+        // legacy per-user записи (OmegaMemory) мерджим в счётчики — старые данные не теряются
         const mem = await OmegaMemory.findOne({ ownerId: req.user.id }).lean()
-        const entries = mem?.entries || []
-        const layers = MEMORY_LAYER_IDS.map(id => {
-            const layerEntries = entries.filter(e => e.level === id)
-            const count = layerEntries.length
+        const legacyEntries = mem?.entries || []
+        const layers = LAYERS.map(id => {
+            const layerEntries = getLayerEntries(id, 10)
+            const legacyCount = legacyEntries.filter(e => e.level === id).length
+            const count = counts[id] + legacyCount
             return {
                 id,
                 label: MEMORY_LAYER_LABELS[id],
                 count,
                 fill: Math.min(1, count / 50),
-                entries: layerEntries.slice(-10).reverse(),
+                entries: layerEntries,
             }
         })
         res.json({ status: 'success', data: { layers } })
@@ -117,6 +125,28 @@ router.post('/memory/layers/:id/clear', protect, requireOwner, async (req, res) 
     } catch (err) {
         console.error('[omega/memory/layers/clear]', err.message)
         res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+// [v9.9.19.14] 7.1 статус 12 слоёв памяти (owner): счётчики, последний бэкап, здоровье
+let memoryHealthAlerted = false
+router.get('/memory-status', protect, requireOwner, async (req, res) => {
+    try {
+        const { getLayerCounts, getLastBackupAt } = await import('../services/memoryLayerService.js')
+        const layers = getLayerCounts()
+        const lastBackup = await getLastBackupAt()
+        const backupStale = !lastBackup || (Date.now() - new Date(lastBackup).getTime()) > 12 * 3600 * 1000
+        const isHealthy = layers.semantic >= 10 && !backupStale
+        if (!isHealthy && !memoryHealthAlerted) {
+            memoryHealthAlerted = true
+            const { alertOwner } = await import('../services/ownerBot.js')
+            alertOwner?.(`⚠️ Память OMEGA: status=warning (semantic=${layers.semantic}, backup=${lastBackup ? new Date(lastBackup).toLocaleString('ru-RU') : 'нет'})`)
+        }
+        if (isHealthy) memoryHealthAlerted = false
+        res.json({ success: true, layers, lastBackup, isHealthy, status: isHealthy ? 'ok' : 'warning' })
+    } catch (err) {
+        console.error('[omega/memory-status]', err.message)
+        res.json({ success: false, layers: {}, lastBackup: null, isHealthy: false, error: 'memory status unavailable' })
     }
 })
 
@@ -555,8 +585,7 @@ router.get('/neural-graph', protect, async (req, res) => {
     try {
         const data = await generateGraphData(req.user?._id)
         res.json({ success: true, ...data })
-    } catch (e) {
-        console.error('[NeuralGraph] Error:', e)
+    } catch (e) {        console.error('[NeuralGraph] Error:', e)
         res.status(200).json({
             success: true,
             nodes: [
@@ -573,6 +602,28 @@ router.get('/neural-graph', protect, async (req, res) => {
 })
 router.get('/neural-graph/status', (req, res) => {
     res.json({ nodes: 47, edges: 128, clusters: 5, lastUpdate: new Date().toISOString() })
+})
+
+// [v9.9.19.14] 2.1 сохранение раскладки графа (нормализованные координаты 0..1) — стабильная раскладка между визитами
+router.post('/neural-graph/positions', protect, requireOwner, async (req, res) => {
+    try {
+        const positions = Array.isArray(req.body?.positions) ? req.body.positions.slice(0, 500) : []
+        const { default: GraphNodePosition } = await import('../models/GraphNodePosition.js')
+        const ops = positions
+            .filter(p => p && p.id && Number.isFinite(p.nx) && Number.isFinite(p.ny))
+            .map(p => ({
+                updateOne: {
+                    filter: { nodeId: String(p.id).slice(0, 80) },
+                    update: { $set: { nx: Math.max(0, Math.min(1, p.nx)), ny: Math.max(0, Math.min(1, p.ny)) } },
+                    upsert: true,
+                },
+            }))
+        if (ops.length) await GraphNodePosition.bulkWrite(ops)
+        res.json({ success: true, saved: ops.length })
+    } catch (e) {
+        console.error('[NeuralGraph] positions save failed:', e.message)
+        res.json({ success: false, saved: 0 })
+    }
 })
 
 // [v9.9.19.6] Реальные изученные навыки OMEGA (SkillNode) для OmegaSkillsTab — никаких моков

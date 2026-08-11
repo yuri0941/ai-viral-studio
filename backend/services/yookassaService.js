@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { getProviderKey } from './aiService.js'
 
 const YOOKASSA_API_URL = 'https://api.yookassa.ru/v3/payments';
@@ -13,11 +14,13 @@ async function getAuthHeaders() {
   return {
     Authorization: `Basic ${token}`,
     'Content-Type': 'application/json',
-    'Idempotence-Key': `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
+    // [v9.9.19.14] новый uuid на каждое создание платежа
+    'Idempotence-Key': crypto.randomUUID(),
   };
 }
 
 export async function createPayment({ amount, currency = 'RUB', description, returnUrl, metadata = {} }) {
+  // [v9.9.19.14] amount.value — СТРОКА с двумя знаками: "100.00"
   const rubAmount = Number(amount).toFixed(2);
 
   const body = {
@@ -28,7 +31,7 @@ export async function createPayment({ amount, currency = 'RUB', description, ret
     capture: true,
     confirmation: {
       type: 'redirect',
-      return_url: returnUrl || process.env.YOOKASSA_RETURN_URL || 'http://localhost:3000/dashboard/finance',
+      return_url: returnUrl || `${(process.env.FRONTEND_URL || 'https://aiviral-studio.ru').replace(/\/$/, '')}/payment/success`,
     },
     description: description || 'Подписка AI Viral Studio',
     metadata: {
@@ -36,7 +39,7 @@ export async function createPayment({ amount, currency = 'RUB', description, ret
       source: 'ai_viral_studio',
       env: process.env.NODE_ENV || 'development',
     },
-    test: process.env.NODE_ENV !== 'production', // Включаем тестовый режим вне продакшена
+    // [v9.9.19.14] поле test удалено: неизвестные параметры → 400 от API ЮKassa; тестовый режим определяется ключами магазина
   };
 
   try {
