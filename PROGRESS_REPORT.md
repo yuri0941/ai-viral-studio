@@ -3901,3 +3901,35 @@
   1) Новый пост в планировщике на +2 мин (цель VK) → published + postUrl, пост на стене; алертов «не подключена» нет.
   2) Запустить `node backend/scripts/requeueVkFailedPosts.js --apply` → старые «Обзор Август» переочередены → доходят до стены или получают честный failed.
   3) Telegram-канал постит по расписанию как раньше; композер работает; боту «привет» → отвечает; ключи после F5.
+
+## 2026-08-12 — v9.9.19.16-LOG-HYGIENE-ZERO-WARNINGS
+- [DIAG] После 19.15.2 настоящих ошибок (Error/500/E11000/CastError/Unhandled) нет, но в Render-логах много шума: warnings платёжек, deprecation `path`/`auth`, повторы `[KEY] source=env`, кэш-строки, safeJSONParse-многострочники.
+- [TABLE] Инвентаризация шума:
+  | Строка | Файл | Действие |
+  |---|---|---|
+  | `⚠️ STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET / COINBASE_API_KEY not found` | `backend/config/env.js` | Убраны warnings; одна info-строка `[payments] yookassa=..., stripe=..., coinbase=...` |
+  | `💳 Stripe disabled` | `backend/config/stripe.js` | Убрана дублирующая строка |
+  | `The 'path' argument is deprecated` / `The 'auth' argument is deprecated` | `backend/services/vectorStore.js` (ChromaClient) | `path`/`auth` → `ssl`/`host`/`port`/`headers` |
+  | `[KEY] provider=... source=env` повторяется | `backend/services/aiService.js` | Лог один раз через `global.apiKeyEnvLogged` |
+  | `♻️ Returning local/Redis cached response` | `backend/services/aiService.js` | `console.log` → `console.debug` |
+  | `[OWNER-BOT] Already started, skipping` | `backend/services/ownerBot.js` | `console.log` → `console.debug` |
+  | `[OMEGA-BOT] Already started, skipping` | `backend/services/omegaBot.js` | `console.log` → `console.debug` |
+  | `[RuntimeConfig] Loaded 0 external API keys` | `backend/services/runtimeConfig.js` | Текст заменён на `external keys loaded: N (cabinet keys via hot-reload in aiService)` |
+  | `[Keep-Alive] 200 ...` | `backend/server.js` | `console.log` → `console.debug` |
+  | `[safeJSONParse] Failed to parse` + многострочник | `backend/ai/omega/autoFixAgent.js` | Одна строка ≤200 символов, whitespaces свёрнуты |
+  | `[autoFixAgent] scanning for errors` | `backend/ai/omega/autoFixAgent.js` | `console.log` → `console.debug`; batch-лог компактнее |
+  | retry `vk_not_connected` каждые 5 мин | `backend/services/autoPublisher.js` | Добавлены коды `not_connected`, `needs_scope`, `no_token`, `no_chat` в перманентные (failed без retry) |
+- [FIX] `backend/config/env.js`: убраны три `⚠️` про Stripe/Coinbase; одна `console.info('[payments] yookassa=..., stripe=..., coinbase=...')`.
+- [FIX] `backend/config/stripe.js`: убрана строка `Stripe disabled` (дублирует info из env.js).
+- [FIX] `backend/services/vectorStore.js`: `new ChromaClient({ path, auth })` → `{ ssl: true, host: 'api.trychroma.com', port: 443, headers: { 'X-Chroma-Token': ... } }` — deprecation warnings устранены.
+- [FIX] `backend/services/aiService.js`: `global.apiKeyEnvLogged` — env-источник ключа логируется один раз; cached response → `console.debug`.
+- [FIX] `backend/services/ownerBot.js`, `backend/services/omegaBot.js`: `Already started, skipping` → `console.debug`.
+- [FIX] `backend/services/runtimeConfig.js`: текст лога заменён на непугающий.
+- [FIX] `backend/server.js`: keep-alive log → `console.debug`.
+- [FIX] `backend/ai/omega/autoFixAgent.js`: `safeJSONParse` — compact log ≤200 символов; `[autoFixAgent] scanning for errors` → debug.
+- [FIX] `backend/services/autoPublisher.js`: PERMANENT_ERROR_CODES дополнен кодами helper из 19.15.2 (`not_connected`, `needs_scope`, `no_token`, `no_chat`) — retry только для временных ошибок.
+- [TEST] `node --check` по env.js, stripe.js, vectorStore.js, aiService.js, ownerBot.js, omegaBot.js, runtimeConfig.js, server.js, autoFixAgent.js, autoPublisher.js ✅; `npm run build` ✅; импорт `vectorStore.js` не выдаёт deprecation ✅; `git diff --stat` — только логирование/конфиги/retry-список.
+- [NOTE] Ручная проверка владельцем:
+  1) Render → Logs после деплоя: старт без ⚠️-простыни, одна строка `[payments]`.
+  2) Через 30 мин: нет KEY-спама от пингов.
+  3) Боту «привет» → отвечает; канал постит по расписанию.

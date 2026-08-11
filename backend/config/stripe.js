@@ -5,7 +5,6 @@ let stripeInstance = null
 export const getStripe = () => {
   if (stripeInstance) return stripeInstance
   if (process.env.STRIPE_ENABLED !== 'true' || !process.env.STRIPE_SECRET_KEY) {
-    console.log('💳 Stripe disabled. Set STRIPE_ENABLED=true and STRIPE_SECRET_KEY')
     return null
   }
   try {

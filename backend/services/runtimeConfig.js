@@ -13,7 +13,7 @@ export async function reloadApiKeys() {
   for (const k of keys) {
     try { runtimeCache[k.provider] = k.getDecryptedKey(); } catch(e) { console.error(`[RuntimeConfig] Failed to decrypt ${k.provider}`); }
   }
-  console.log(`[RuntimeConfig] Loaded ${keys.length} external API keys`);
+  console.log(`[RuntimeConfig] external keys loaded: ${keys.length} (cabinet keys via hot-reload in aiService)`);
   return runtimeCache;
 }
 

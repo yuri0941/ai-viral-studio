@@ -41,24 +41,29 @@ if (!process.env.YOUTUBE_API_KEY) {
     process.env.YOUTUBE_API_KEY = 'AIzaSyD1SH9WizR4zgi7JUshXfTuzHsJagmu4zU'
 }
 
+// Stripe/Coinbase fallbacks — без warning-спама; статус выводим одной info-строкой ниже
 if (!process.env.STRIPE_SECRET_KEY) {
-    console.log('⚠️  STRIPE_SECRET_KEY not found in .env, using fallback (test mode)')
     process.env.STRIPE_SECRET_KEY = 'sk_test_51O00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 }
-
 if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.log('⚠️  STRIPE_WEBHOOK_SECRET not found in .env, webhook disabled')
     process.env.STRIPE_WEBHOOK_SECRET = ''
 }
-
 if (!process.env.COINBASE_API_KEY) {
-    console.log('⚠️  COINBASE_API_KEY not found in .env, crypto payments disabled')
     process.env.COINBASE_API_KEY = ''
 }
 
 // Payment settings
 process.env.STRIPE_ENABLED = process.env.STRIPE_ENABLED || 'true'
 process.env.COINBASE_ENABLED = process.env.COINBASE_ENABLED || 'true'
+
+const stripeSource = process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_live_')
+    ? 'live'
+    : (process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.startsWith('sk_test_51O0'))
+        ? 'test'
+        : 'disabled (19.13)'
+const coinbaseSource = process.env.COINBASE_API_KEY ? 'env' : 'disabled (19.13)'
+const yookassaSource = process.env.YOOKASSA_SHOP_ID && process.env.YOOKASSA_SECRET_KEY ? 'env' : 'db_or_disabled'
+console.info(`[payments] yookassa=${yookassaSource}, stripe=${stripeSource}, coinbase=${coinbaseSource}`)
 
 // AI providers
 process.env.AGNES_ENABLED = process.env.AGNES_ENABLED || 'false'

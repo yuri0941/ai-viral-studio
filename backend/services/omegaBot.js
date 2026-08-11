@@ -112,7 +112,7 @@ function safeSendMessage(chatId, data, options = {}) {
 
 // [MASTER-v5.6-CONT] OMEGA Bot with Owner Mode & Auto-Features
 export const initOmegaBot = () => {
-  if (started) { console.log('[OMEGA-BOT] Already started, skipping'); return }
+  if (started) { console.debug('[OMEGA-BOT] Already started, skipping'); return }
   started = true
   global.omegaBotStarted = true
 

@@ -145,7 +145,7 @@ async function buildMenuRows(ownerId) {
   return rows
 }
 export const initOwnerBot = () => {
-  if (started) { console.log('[OWNER-BOT] Already started, skipping'); return }
+  if (started) { console.debug('[OWNER-BOT] Already started, skipping'); return }
   started = true
   global.ownerBotStarted = true
 

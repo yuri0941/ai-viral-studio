@@ -734,7 +734,7 @@ setInterval(() => {
   fetch(`${SELF_URL}/health`)
     .then(async r => {
       const data = await r.json().catch(() => ({}))
-      console.log(`[Keep-Alive] ${new Date().toISOString()} — ${r.status}, providers: ${data.providers?.length || 0}`)
+      console.debug(`[Keep-Alive] ${new Date().toISOString()} — ${r.status}, providers: ${data.providers?.length || 0}`)
     })
     .catch(e => console.error('[Keep-Alive] Failed:', e.message));
 }, 10 * 60 * 1000);

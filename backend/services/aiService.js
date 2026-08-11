@@ -334,6 +334,7 @@ export function extractText(response) {
 // env НЕ используем, возвращаем null (сервис показывает «ключ выключен в кабинете»).
 const KEY_DISABLED = '__disabled_in_cabinet__'
 global.apiKeyMissCache = global.apiKeyMissCache || {}
+global.apiKeyEnvLogged = global.apiKeyEnvLogged || new Set()
 
 export async function getProviderKey(providerId, ownerId = null) {
     const cached = global.apiKeyCache[providerId]
@@ -371,7 +372,10 @@ export async function getProviderKey(providerId, ownerId = null) {
     // env — запасной вариант (bootstrap-ключи MONGODB_URI/JWT_SECRET/PORT/FRONTEND_URL сюда не входят)
     const envVar = envMap[providerId]
     if (envVar && process.env[envVar]) {
-        console.log(`[KEY] provider=${providerId} source=env`)
+        if (!global.apiKeyEnvLogged.has(providerId)) {
+            global.apiKeyEnvLogged.add(providerId)
+            console.log(`[KEY] provider=${providerId} source=env (logged once)`)
+        }
         return process.env[envVar]
     }
     return null
@@ -1037,7 +1041,7 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
 
     const localCached = getCached(message, lang, userId)
     if (localCached) {
-        console.log('♻️ Returning local cached response')
+        console.debug('♻️ Returning local cached response')
         return { success: true, ...localCached, cached: true }
     }
 
@@ -1045,7 +1049,7 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
         const redisKey = redisCacheKey('ai:response', { userId: userId || 'anon', message, lang, historyHash: JSON.stringify(history).slice(0, 200) })
         const redisCached = await getJSON(redisKey)
         if (redisCached) {
-            console.log('♻️ Returning Redis cached response')
+            console.debug('♻️ Returning Redis cached response')
             setCached(message, lang, redisCached, userId)
             return { success: true, ...redisCached, cached: true, source: 'redis' }
         }

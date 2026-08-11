@@ -6,7 +6,7 @@ import { getConnectedSocials, formatPlatformReasons } from '../utils/connectedSo
 // [v9.9.19.3] алерт владельцу о постах без платформ — один раз на пост, без спама
 const noPlatformAlerted = new Set()
 
-// [v9.9.19.15.1] retry only for transient failures; permission/setup errors are permanent
+// [v9.9.19.16] retry only for transient failures; permission/setup errors are permanent
 const PERMANENT_ERROR_CODES = [
   'vk_not_connected',
   'vk_needs_wall_scope',
@@ -17,6 +17,7 @@ const PERMANENT_ERROR_CODES = [
   'not connected',
   'telegram bot token',
   'chat id не настроены',
+  'not_connected',
   'needs_scope',
   'no_chat',
   'no_token'

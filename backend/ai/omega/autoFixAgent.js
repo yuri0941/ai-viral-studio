@@ -73,7 +73,7 @@ export async function scanForErrors() {
     // Batch non-critical if >=5
     const nonCritical = Object.entries(grouped).filter(([_, g]) => g.priority !== 'critical' && g.count >= 5)
     if (nonCritical.length) {
-        console.log(`[autoFixAgent] batch non-critical proposals: ${nonCritical.length} groups`)
+        console.log(`[autoFixAgent] scan complete: ${nonCritical.length} non-critical groups batched`)
     }
 
     return results
@@ -104,7 +104,8 @@ function safeJSONParse(text, fallback = null) {
     if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
       try { return JSON.parse(cleaned.slice(firstBracket, lastBracket + 1)) } catch (e3) {}
     }
-    console.error('[safeJSONParse] Failed to parse:', text.slice(0, 200))
+    const snippet = String(text).replace(/\s+/g, ' ').slice(0, 200)
+    console.warn(`[safeJSONParse] non-JSON skipped: ${snippet}`)
     return fallback
   }
 }
@@ -166,7 +167,7 @@ export async function rejectFix(id) {
 if (process.env.NODE_ENV !== 'test') {
     import('node-cron').then(({ default: cron }) => {
         cron.schedule('*/15 * * * *', () => {
-            console.log('[autoFixAgent] scanning for errors')
+            console.debug('[autoFixAgent] scanning for errors')
             scanForErrors().catch(err => console.error('[autoFixAgent] cron error:', err.message))
         })
     }).catch(() => {})

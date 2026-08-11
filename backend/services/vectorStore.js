@@ -11,8 +11,10 @@ let chromaCloudClient = null
 if (process.env.CHROMA_API_KEY) {
   try {
     chromaCloudClient = new ChromaClient({
-      path: 'https://api.trychroma.com',
-      auth: { provider: 'token', credentials: process.env.CHROMA_API_KEY }
+      ssl: true,
+      host: 'api.trychroma.com',
+      port: 443,
+      headers: { 'X-Chroma-Token': process.env.CHROMA_API_KEY }
     })
   } catch (err) {
     console.error('[ChromaCloud] init failed:', err.message)
