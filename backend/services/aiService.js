@@ -16,11 +16,10 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 // [HOTFIX-2026-08-08] Groq fallback chain + smaller models to avoid TPD rate limits
 // [v9.6.2-TELEGRAM-OWNER] removed llama-3.1-70b-versatile (returns 400)
+// [v9.9.19.2-UX-HOTFIX-v4] только сильная модель в основном слоте Groq;
+// llama-3.1-8b-instant — ПОСЛЕДНИЙ fallback (groq_lite), не деградируем до слабой модели раньше времени
 const GROQ_MODELS = [
     'llama-3.3-70b-versatile',  // рабочая — первая
-    'llama-3.1-8b-instant',
-    'llama-3.2-1b-preview',
-    'mixtral-8x7b-32768',
 ]
 
 // [P24] fixed: auto-detect user query language
@@ -43,12 +42,14 @@ function hashString(str) {
     return (h >>> 0).toString(36)
 }
 
-function cacheKey(message, lang = 'ru') {
-    return `${lang}:${hashString(message.trim().toLowerCase())}`
+// [v9.9.19.2-UX-HOTFIX-v4] ключ кэша = hash(userId + message + lang) —
+// ответ на чужой вопрос/другого пользователя не должен попадать в кэш-хит
+function cacheKey(message, lang = 'ru', userId = '') {
+    return `${userId || 'anon'}:${lang}:${hashString(message.trim().toLowerCase())}`
 }
 
-function getCached(message, lang) {
-    const key = cacheKey(message, lang)
+function getCached(message, lang, userId = '') {
+    const key = cacheKey(message, lang, userId)
     const entry = responseCache.get(key)
     if (!entry) return null
     if (Date.now() > entry.expiresAt) {
@@ -58,8 +59,8 @@ function getCached(message, lang) {
     return entry.value
 }
 
-function setCached(message, lang, value) {
-    const key = cacheKey(message, lang)
+function setCached(message, lang, value, userId = '') {
+    const key = cacheKey(message, lang, userId)
     responseCache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS })
 }
 
@@ -325,36 +326,53 @@ export function extractText(response) {
     return String(response)
 }
 
+// [v9.9.19.2-UX-HOTFIX-v4] Приоритет источников ключей:
+// 1) MongoDB (Кабинет → API Ключи, включённые) — ГЛАВНЫЙ источник
+// 2) process.env — запасной вариант, ТОЛЬКО когда ключа в кабинете нет вообще
+// Ключ, существующий в кабинете, но ВЫКЛЮЧЕННЫЙ (isActive=false) = явный запрет владельца:
+// env НЕ используем, возвращаем null (сервис показывает «ключ выключен в кабинете»).
+const KEY_DISABLED = '__disabled_in_cabinet__'
+global.apiKeyMissCache = global.apiKeyMissCache || {}
+
 export async function getProviderKey(providerId, ownerId = null) {
-    const envVar = envMap[providerId]
-    if (envVar && process.env[envVar]) return process.env[envVar]
+    const cached = global.apiKeyCache[providerId]
+    if (cached === KEY_DISABLED) return null
+    if (cached) return cached
 
-    if (global.apiKeyCache[providerId]) return global.apiKeyCache[providerId]
-
-    if (ownerId && mongoose.Types.ObjectId.isValid(ownerId)) {
+    // Отрицательный кэш (60 сек): не дёргаем MongoDB на каждый вызов для env-only провайдеров
+    const missedAt = global.apiKeyMissCache[providerId] || 0
+    if (Date.now() - missedAt >= 60000) {
         try {
-            const doc = await ApiKey.findOne({ ownerId, provider: providerId }).lean()
-            if (doc && (doc.key || doc.keyValue)) {
-                const value = doc.key || doc.keyValue
-                global.apiKeyCache[providerId] = value
-                return value
+            let doc = null
+            if (ownerId && mongoose.Types.ObjectId.isValid(ownerId)) {
+                doc = await ApiKey.findOne({ ownerId, provider: providerId }).lean()
             }
+            if (!doc) doc = await ApiKey.findOne({ provider: providerId }).sort({ updatedAt: -1 }).lean()
+            if (doc) {
+                if (doc.isActive === false) {
+                    global.apiKeyCache[providerId] = KEY_DISABLED
+                    console.log(`[KEY] provider=${providerId} source=mongodb status=disabled — ключ выключен в кабинете, env не используется`)
+                    return null
+                }
+                const value = doc.key || doc.keyValue
+                if (value) {
+                    global.apiKeyCache[providerId] = value
+                    console.log(`[KEY] provider=${providerId} source=mongodb`)
+                    return value
+                }
+            }
+            global.apiKeyMissCache[providerId] = Date.now()
         } catch (err) {
-            console.warn('[getProviderKey] owner key lookup failed:', err.message)
+            console.warn('[getProviderKey] MongoDB lookup failed:', err.message)
         }
     }
 
-    try {
-        const doc = await ApiKey.findOne({ provider: providerId, isActive: true }).sort({ updatedAt: -1 }).lean()
-        if (doc && (doc.key || doc.keyValue)) {
-            const value = doc.key || doc.keyValue
-            global.apiKeyCache[providerId] = value
-            return value
-        }
-    } catch (err) {
-        console.warn('[getProviderKey] global key lookup failed:', err.message)
+    // env — запасной вариант (bootstrap-ключи MONGODB_URI/JWT_SECRET/PORT/FRONTEND_URL сюда не входят)
+    const envVar = envMap[providerId]
+    if (envVar && process.env[envVar]) {
+        console.log(`[KEY] provider=${providerId} source=env`)
+        return process.env[envVar]
     }
-
     return null
 }
 
@@ -362,6 +380,7 @@ export async function loadApiKeysToMemory() {
     try {
         const keys = await ApiKey.find({ isActive: true })
         global.apiKeyCache = {}
+        global.apiKeyMissCache = {}
         keys.forEach(k => {
             const value = k.key || k.keyValue
             if (value) global.apiKeyCache[k.provider] = value
@@ -375,11 +394,48 @@ export async function loadApiKeysToMemory() {
 export function hotReloadApiKey(provider, key) {
     global.apiKeyCache = global.apiKeyCache || {}
     global.apiKeyCache[provider] = key
-    console.log(`[HOT-RELOAD] Key updated for ${provider}`)
+    if (global.apiKeyMissCache) delete global.apiKeyMissCache[provider]
+    keyAlertSent.delete(provider)
+    console.log(`[HOT-RELOAD] key=${provider} source=mongodb`)
 }
 
 export function invalidateApiKeysCache() {
     global.apiKeyCache = {}
+    global.apiKeyMissCache = {}
+}
+
+// ============ KEY HEALTH MONITOR ============
+// [v9.9.19.2-UX-HOTFIX-v4] невалидный ключ (401/403, invalid api key, insufficient_quota) при любом вызове:
+// ApiKey status='invalid' + lastError + дата, ОДИН алерт владельцу в owner-бот.
+// Fallback-цепочка продолжает работать — приложение НЕ падает.
+const keyAlertSent = new Set()
+
+function isInvalidKeyError(status, error) {
+    if (status === 401 || status === 403) return true
+    const msg = `${error?.message || ''} ${JSON.stringify(error?.response?.data || '')}`.toLowerCase()
+    return msg.includes('invalid api key') || msg.includes('invalid_api_key') || msg.includes('incorrect api key')
+        || msg.includes('insufficient_quota') || msg.includes('authentication failed') || msg.includes('unauthorized')
+}
+
+export async function reportKeyFailure(providerId, status, error) {
+    const keyProvider = providerId === 'groq_lite' ? 'groq' : providerId
+    if (!isInvalidKeyError(status, error)) return
+    try {
+        const shortError = String(error?.response?.data?.error?.message || error?.message || 'invalid key').slice(0, 200)
+        const doc = await ApiKey.findOneAndUpdate(
+            { provider: keyProvider },
+            { status: 'invalid', isValid: false, lastError: shortError, lastUsed: new Date() },
+            { sort: { updatedAt: -1 }, new: true }
+        ).lean()
+        if (!doc) return // ключа нет в кабинете — нечего помечать
+        if (keyAlertSent.has(keyProvider)) return
+        keyAlertSent.add(keyProvider)
+        console.warn(`[KEY-HEALTH] provider=${keyProvider} status=invalid error=${shortError}`)
+        const { alertOwner } = await import('./ownerBot.js')
+        alertOwner?.(`🔑 Ключ ${keyProvider} невалиден: ${shortError}\nFallback-цепочка продолжает работать.\nОбновите ключ в Кабинет → API Ключи.`)
+    } catch (e) {
+        console.warn('[KEY-HEALTH] report failed:', e.message)
+    }
 }
 
 // ============ PROVIDER REGISTRY & STATUS ============
@@ -388,6 +444,8 @@ export function invalidateApiKeysCache() {
 // Legacy providers are kept for UI compatibility but disabled by default.
 const PROVIDER_META = {
     groq: { name: 'Groq', enabledByDefault: true, requiresKey: true },
+    // [v9.9.19.2] последний fallback на слабой модели — только если всё умерло
+    groq_lite: { name: 'Groq 8b (last resort)', enabledByDefault: true, requiresKey: true, keyProvider: 'groq' },
     openai: { name: 'OpenAI', enabledByDefault: true, requiresKey: true },
     mistral: { name: 'Mistral AI', enabledByDefault: true, requiresKey: true },
     cohere: { name: 'Cohere', enabledByDefault: true, requiresKey: true },
@@ -429,13 +487,14 @@ const isEnabled = async (provider, ownerId = null) => {
     if (provider === 'pollinations') return true
 
     const meta = PROVIDER_META[provider] || { enabledByDefault: false, requiresKey: true }
+    const keyId = meta.keyProvider || provider
     try {
         const setting = await AIProviderSetting.findOne({ provider }).lean()
         if (setting && setting.enabled === false) return false
         if (setting && setting.enabled === true) {
             // If explicitly enabled, also require a key when needed
             if (meta.requiresKey) {
-                const key = await getKey(provider, ownerId)
+                const key = await getKey(keyId, ownerId)
                 return !!key
             }
             return true
@@ -446,7 +505,7 @@ const isEnabled = async (provider, ownerId = null) => {
     // No explicit setting: use default
     if (!meta.enabledByDefault) return false
     if (meta.requiresKey) {
-        const key = await getKey(provider, ownerId)
+        const key = await getKey(keyId, ownerId)
         return !!key
     }
     return true
@@ -458,7 +517,7 @@ export async function getProviderStatuses() {
         const settingsMap = Object.fromEntries(settings.map(s => [s.provider, s]))
         const result = []
         for (const [id, meta] of Object.entries(PROVIDER_META)) {
-            const key = await getKey(id)
+            const key = await getKey(meta.keyProvider || id)
             const setting = settingsMap[id]
             const statusEntry = providerStatusMap.get(id) || { status: 'missing', lastError: '', lastCheckedAt: null }
             let status = statusEntry.status
@@ -580,6 +639,19 @@ async function chatWithGroq(prompt, ownerId = null) {
         }
     }
     throw lastErr
+}
+
+// [v9.9.19.2-UX-HOTFIX-v4] Groq 8b — ПОСЛЕДНИЙ резерв, только если все сильные модели умерли
+async function chatWithGroqLite(prompt, ownerId = null) {
+    const key = await getProviderKey('groq', ownerId)
+    if (!key || key.length < 20) throw new Error('No valid Groq key')
+    console.log('🚀 Calling Groq 8b (last resort)...')
+    const res = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+        model: process.env.GROQ_LITE_MODEL || 'llama-3.1-8b-instant',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1024
+    }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 15000 })
+    return res.data.choices[0].message.content
 }
 
 async function chatWithMistral(prompt, ownerId = null) {
@@ -737,11 +809,13 @@ async function chatWithHuggingFace(prompt, ownerId = null) {
 
 // ============ PROVIDER CHAIN ============
 // [v9.9.15-BETA-LAUNCH] all 13 AI providers active with real keys
+// [v9.9.19.2-UX-HOTFIX-v4] при 429/ошибке llama-3.3-70b-versatile: deepseek → openai → остальные сильные →
+// groq llama-3.1-8b-instant (ПОСЛЕДНИЙ, только если всё умерло) → pollinations
 const PROVIDER_CHAIN = [
     { id: 'groq', name: 'Groq', handler: chatWithGroq, model: 'llama-3.3-70b-versatile' },
+    { id: 'deepseek', name: 'DeepSeek', handler: chatWithDeepSeek, model: 'deepseek-chat' },
     { id: 'openai', name: 'OpenAI', handler: chatWithOpenAI, model: 'gpt-4o-mini' },
     { id: 'openrouter', name: 'OpenRouter', handler: chatWithOpenRouter, model: 'google/gemini-2.0-flash-exp:free' },
-    { id: 'deepseek', name: 'DeepSeek', handler: chatWithDeepSeek, model: 'deepseek-chat' },
     { id: 'cerebras', name: 'Cerebras', handler: chatWithCerebras, model: 'llama-3.3-70b' },
     { id: 'together', name: 'Together AI', handler: chatWithTogether, model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' },
     { id: 'fireworks', name: 'Fireworks AI', handler: chatWithFireworks, model: 'accounts/fireworks/models/llama-v3p3-70b-instruct' },
@@ -750,6 +824,7 @@ const PROVIDER_CHAIN = [
     { id: 'cloudflare', name: 'Cloudflare Workers AI', handler: chatWithCloudflare, model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast' },
     { id: 'github', name: 'GitHub Models', handler: chatWithGitHubModels, model: 'meta-llama-3.1-8b-instruct' },
     { id: 'huggingface', name: 'HuggingFace', handler: chatWithHuggingFace, model: 'meta-llama/Llama-3.3-70B-Instruct' },
+    { id: 'groq_lite', name: 'Groq 8b (last resort)', handler: chatWithGroqLite, model: 'llama-3.1-8b-instant' },
     { id: 'pollinations', name: 'Pollinations AI', handler: chatWithPollinationsText, model: 'openai' },
 ]
 
@@ -770,7 +845,8 @@ const tryProviders = async (messages, ownerId = null) => {
             console.log(`🤖 Trying ${provider.name}...`)
             const text = await provider.handler(prompt, ownerId)
             if (!text || !String(text).trim()) throw new Error('Empty response')
-            console.log(`✅ ${provider.name} success!`)
+            // [v9.9.19.2] владелец видит, какая модель ответила
+            console.log(`[AI] provider=${provider.id} model=${provider.model}`)
             setProviderStatus(provider.id, 'active', '')
             return { reply: String(text).trim(), provider: provider.id, usage: null }
         } catch (error) {
@@ -780,6 +856,8 @@ const tryProviders = async (messages, ownerId = null) => {
                 console.error(`   Data:`, JSON.stringify(error.response.data).substring(0, 300))
             }
             setProviderStatus(provider.id, 'error', status || error.message)
+            // [v9.9.19.2] Key Health Monitor: невалидный ключ → status=invalid + один алерт владельцу
+            reportKeyFailure(provider.id, status, error).catch(() => {})
             errors.push(`${provider.name}: ${error.message}`)
             if (SKIP_STATUSES.includes(status)) {
                 console.log(`⏭️ ${provider.name} skipped`)
@@ -819,18 +897,18 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
 
     const { userId } = options
 
-    const localCached = getCached(message, lang)
+    const localCached = getCached(message, lang, userId)
     if (localCached) {
         console.log('♻️ Returning local cached response')
         return { success: true, ...localCached, cached: true }
     }
 
     try {
-        const redisKey = redisCacheKey('ai:response', { message, lang, historyHash: JSON.stringify(history).slice(0, 200) })
+        const redisKey = redisCacheKey('ai:response', { userId: userId || 'anon', message, lang, historyHash: JSON.stringify(history).slice(0, 200) })
         const redisCached = await getJSON(redisKey)
         if (redisCached) {
             console.log('♻️ Returning Redis cached response')
-            setCached(message, lang, redisCached)
+            setCached(message, lang, redisCached, userId)
             return { success: true, ...redisCached, cached: true, source: 'redis' }
         }
 
@@ -862,7 +940,7 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
         ]
         const result = await tryProviders(messages, options.ownerId || options.userId || null)
         const value = { reply: result.reply, provider: result.provider, usage: result.usage }
-        setCached(message, lang, value)
+        setCached(message, lang, value, userId)
         await setJSON(redisKey, value, 3600)
 
         // Persist conversation turn for future RAG lookups

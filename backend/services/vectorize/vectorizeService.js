@@ -9,6 +9,20 @@ export function isVectorizeConfigured() {
     return !!(ACCOUNT_ID && API_KEY)
 }
 
+// [v9.9.19.2-UX-HOTFIX-v4] невалидный ключ (code 10001 / 401 / 403) → ОДИН warning, дальше молча in-memory
+let vectorizeKeyInvalid = false
+
+function markInvalidIfKeyError(err) {
+    const codes = err?.response?.data?.errors || []
+    const isKeyError = err?.response?.status === 401 || err?.response?.status === 403
+        || codes.some(e => e.code === 10001 || /invalid|unauthorized|authentication/i.test(e.message || ''))
+    if (isKeyError && !vectorizeKeyInvalid) {
+        vectorizeKeyInvalid = true
+        console.warn('[Vector] Vectorize key invalid — memory in RAM')
+    }
+    return isKeyError
+}
+
 function getHeaders() {
     return {
         Authorization: `Bearer ${API_KEY}`,
@@ -46,7 +60,7 @@ export async function ensureIndex() {
 }
 
 export async function upsertMemory(id, text, metadata = {}) {
-    if (!isVectorizeConfigured()) {
+    if (!isVectorizeConfigured() || vectorizeKeyInvalid) {
         await vectorStore.addDocument({ id, text, userId: metadata.userId, metadata })
         return { id, text }
     }
@@ -59,14 +73,14 @@ export async function upsertMemory(id, text, metadata = {}) {
         )
         return { id, text }
     } catch (err) {
-        console.warn('[vectorizeService] upsert failed:', err.response?.data?.errors || err.message)
+        if (!markInvalidIfKeyError(err)) console.warn('[vectorizeService] upsert failed:', err.response?.data?.errors || err.message)
         await vectorStore.addDocument({ id, text, userId: metadata.userId, metadata }).catch(() => {})
         return { id, text }
     }
 }
 
 export async function searchMemory(query, limit = 5, userId = null) {
-    if (!isVectorizeConfigured()) {
+    if (!isVectorizeConfigured() || vectorizeKeyInvalid) {
         return vectorStore.searchSimilar({ query, userId, limit })
     }
     try {
@@ -83,7 +97,7 @@ export async function searchMemory(query, limit = 5, userId = null) {
             metadata: m.metadata,
         })) || []
     } catch (err) {
-        console.warn('[vectorizeService] search failed:', err.response?.data?.errors || err.message)
+        if (!markInvalidIfKeyError(err)) console.warn('[vectorizeService] search failed:', err.response?.data?.errors || err.message)
         return vectorStore.searchSimilar({ query, userId, limit })
     }
 }

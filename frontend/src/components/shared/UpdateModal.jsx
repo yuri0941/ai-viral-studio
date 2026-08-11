@@ -1,26 +1,27 @@
 import { useState, useEffect } from 'react'
 import { X, Download, RefreshCw, CheckCircle } from 'lucide-react'
 
+// [v9.9.19.2-UX-HOTFIX-v4] модалка НИКОГДА не блокирует работу:
+// - нет фейкового прогресс-бара скачивания (PWA update = caches.delete + reload в onUpdate)
+// - 15 сек без результата → "Обновление отложено" + автозакрытие
+// - "Напомнить позже" активна всегда
+const UPDATE_TIMEOUT_MS = 15000
+
 export function UpdateModal({ version, changelog = [], onUpdate, onRemind, onSkip }) {
-    const [progress, setProgress] = useState(0)
     const [updating, setUpdating] = useState(false)
-    const [done, setDone] = useState(false)
+    const [stalled, setStalled] = useState(false)
 
     useEffect(() => {
-        if (!updating) return
-        const interval = setInterval(() => {
-            setProgress(p => {
-                if (p >= 100) {
-                    clearInterval(interval)
-                    setDone(true)
-                    setTimeout(() => onUpdate?.(), 800)
-                    return 100
-                }
-                return p + 10
-            })
-        }, 250)
-        return () => clearInterval(interval)
-    }, [updating, onUpdate])
+        if (!updating || stalled) return
+        const timer = setTimeout(() => setStalled(true), UPDATE_TIMEOUT_MS)
+        return () => clearTimeout(timer)
+    }, [updating, stalled])
+
+    useEffect(() => {
+        if (!stalled) return
+        const timer = setTimeout(() => onRemind?.(), 2500)
+        return () => clearTimeout(timer)
+    }, [stalled, onRemind])
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -45,13 +46,15 @@ export function UpdateModal({ version, changelog = [], onUpdate, onRemind, onSki
                 </div>
 
                 {updating && (
-                    <div className="mb-5">
-                        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] transition-all" style={{ width: `${progress}%` }} />
-                        </div>
-                        <p className="text-xs text-gray-400 mt-2 text-center">
-                            {done ? 'Перезагрузка...' : `Загрузка обновления ${progress}%`}
-                        </p>
+                    <div className="mb-5 flex items-center justify-center gap-2 text-sm text-gray-400">
+                        {stalled ? (
+                            <p className="text-center">Обновление отложено, применится при следующем визите</p>
+                        ) : (
+                            <>
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                <p>Обновление...</p>
+                            </>
+                        )}
                     </div>
                 )}
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Network, ZoomIn, ZoomOut, RotateCcw, Search, X, Filter, Info } from 'lucide-react';
+import { Network, ZoomIn, ZoomOut, RotateCcw, RefreshCw, Search, X, Filter, Info } from 'lucide-react';
 import { request } from '../../../../services/api.js';
 
 const TYPE_COLORS = {
@@ -67,6 +67,7 @@ export default function NeuralGraphTab() {
   const [search, setSearch] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [hoveredNode, setHoveredNode] = useState(null);
+  const [searchHit, setSearchHit] = useState(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [draggingNode, setDraggingNode] = useState(null);
@@ -78,19 +79,23 @@ export default function NeuralGraphTab() {
   const width = useWindowWidth();
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
+  const zoomRef = useRef(1);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  const skillsCount = graphMeta?.learnedSkills ?? graphMeta?.totalSkills ?? 0;
 
+  // [v9.9.19.2] монохром: никаких оранжевых/кислотных цветов даже в fallback-наборе
   const fallbackNodes = [
-    { id: 'seed-smm', label: 'SMM Fundamentals', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 11, data: { facts: 47 } },
-    { id: 'seed-hooks', label: 'Viral Hooks', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 23 } },
-    { id: 'seed-viral', label: 'Viral Mechanics', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 31 } },
-    { id: 'seed-cta', label: 'CTA Psychology', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 9, data: { facts: 18 } },
-    { id: 'seed-content', label: 'Content Strategy', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 10, data: { facts: 42 } },
-    { id: 'seed-tg', label: 'Telegram Growth', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 8, data: { facts: 15 } },
-    { id: 'seed-ai', label: 'AI Prompting', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 9, data: { facts: 28 } },
-    { id: 'seed-ads', label: 'Ad Targeting', type: 'knowledge', cluster: 5, color: '#F59E0B', size: 8, data: { facts: 19 } }
+    { id: 'seed-smm', label: 'SMM Fundamentals', type: 'knowledge', cluster: 5, color: '#E5E7EB', size: 11, data: { facts: 47 } },
+    { id: 'seed-hooks', label: 'Viral Hooks', type: 'knowledge', cluster: 5, color: '#E5E7EB', size: 10, data: { facts: 23 } },
+    { id: 'seed-viral', label: 'Viral Mechanics', type: 'knowledge', cluster: 5, color: '#E5E7EB', size: 10, data: { facts: 31 } },
+    { id: 'seed-cta', label: 'CTA Psychology', type: 'knowledge', cluster: 5, color: '#E5E7EB', size: 9, data: { facts: 18 } },
+    { id: 'seed-content', label: 'Content Strategy', type: 'knowledge', cluster: 5, color: '#E5E7EB', size: 10, data: { facts: 42 } },
+    { id: 'seed-tg', label: 'Telegram Growth', type: 'knowledge', cluster: 5, color: '#E5E7EB', size: 8, data: { facts: 15 } },
+    { id: 'seed-ai', label: 'AI Prompting', type: 'knowledge', cluster: 5, color: '#E5E7EB', size: 9, data: { facts: 28 } },
+    { id: 'seed-ads', label: 'Ad Targeting', type: 'knowledge', cluster: 5, color: '#E5E7EB', size: 8, data: { facts: 19 } }
   ];
 
-  useEffect(() => {
+  const loadGraph = () => {
     setLoading(true);
     request('/omega/neural-graph')
       .then(data => {
@@ -104,8 +109,9 @@ export default function NeuralGraphTab() {
           cluster: n.cluster || n.type || 'skill',
           size: n.size || (n.type === 'skill' ? 8 : 5),
           data: n.data || n,
-          x: Math.random(),
-          y: Math.random(),
+          // [v9.9.19.2] не назначаем случайные координаты — узлы без x/y расставит начальная круговая раскладка в симуляции
+          x: Number.isFinite(n.x) ? n.x : undefined,
+          y: Number.isFinite(n.y) ? n.y : undefined,
           vx: 0,
           vy: 0,
           color: n.color || getColor(n.type)
@@ -141,13 +147,15 @@ export default function NeuralGraphTab() {
       })
       .catch(err => {
         console.error('[NeuralGraphTab] fetch error:', err);
-        setNodes(fallbackNodes.map(n => ({ ...n, x: Math.random(), y: Math.random(), vx: 0, vy: 0 })));
+        setNodes(fallbackNodes.map(n => ({ ...n, vx: 0, vy: 0 })));
         setEdges([]);
-        setClusters([{ id: 5, name: 'Знания OMEGA', color: '#F59E0B', nodeCount: fallbackNodes.length }]);
+        setClusters([{ id: 5, name: 'Знания OMEGA', color: '#9CA3AF', nodeCount: fallbackNodes.length }]);
         setGraphMeta({ totalFacts: 213, totalSkills: 0, lastLearned: new Date().toISOString() });
       })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadGraph(); }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -273,6 +281,20 @@ export default function NeuralGraphTab() {
     return () => clearTimeout(t);
   }, [nodes, filter, size.w, size.h]);
 
+  // [v9.9.19.2] результат поиска: подсветить найденный узел и навести на него камеру
+  useEffect(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) { setSearchHit(null); return; }
+    const list = physicsRef.current.nodes?.length ? physicsRef.current.nodes : nodes;
+    const hit = list.find(n => (n.label || '').toLowerCase().includes(q));
+    setSearchHit(hit || null);
+    if (hit && Number.isFinite(hit.x) && Number.isFinite(hit.y) && size.w && size.h) {
+      const z = Math.max(zoomRef.current, 1.2);
+      setZoom(z);
+      setPan({ x: size.w / 2 - hit.x * z, y: size.h / 2 - hit.y * z });
+    }
+  }, [search]);
+
   const filteredNodes = useMemo(() => {
     let list = physicsRef.current.nodes || nodes;
     if (filter !== 'all') list = list.filter(n => n.type === filter || n.cluster === filter);
@@ -332,7 +354,9 @@ export default function NeuralGraphTab() {
     simNodes.forEach(n => {
       const isVisible = visibleIds.has(n.id);
       if (!isVisible) return;
-      const isHovered = n.id === hoveredId;
+      // [v9.9.19.2] найденный поиском узел подсвечивается как hover
+      const isSearchHit = n.id === searchHit?.id;
+      const isHovered = n.id === hoveredId || isSearchHit;
       const isSelected = n.id === selectedId;
       const r = n.size * (isSelected ? 1.4 : isHovered ? 1.2 : 1);
       ctx.beginPath();
@@ -363,7 +387,7 @@ export default function NeuralGraphTab() {
     ctx.restore();
   };
 
-  useEffect(() => { draw(); }, [zoom, pan, hoveredNode, selectedNode, filter, search]);
+  useEffect(() => { draw(); }, [zoom, pan, hoveredNode, selectedNode, filter, search, searchHit]);
 
   const toWorld = (clientX, clientY) => {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -502,45 +526,51 @@ export default function NeuralGraphTab() {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2"><Network className="w-6 h-6 text-cyan-400" /> {t('neuralGraph.title') || 'Neural Graph'}</h2>
           <p className="text-sm text-[var(--text-muted)] mt-1 whitespace-nowrap overflow-x-auto no-scrollbar">
-            {t('neuralGraph.stats', { nodes: nodes.length, edges: edges.length, clusters: clusters.length }) || `🧠 Neural Graph: ${nodes.length} узлов | ${edges.length} связей | ${clusters.length} кластеров`} | Навыков изучено: {graphMeta?.learnedSkills ?? graphMeta?.totalSkills ?? 0}
+            {t('neuralGraph.stats', { nodes: nodes.length, edges: edges.length, clusters: clusters.length }) || `🧠 Neural Graph: ${nodes.length} узлов | ${edges.length} связей | ${clusters.length} кластеров`} | Навыков изучено: {skillsCount}
           </p>
         </div>
-        <div className="flex flex-nowrap md:flex-wrap items-center gap-2 overflow-x-auto no-scrollbar">
-          {FILTERS.map(f => (
-            <button key={f.id} onClick={() => setFilter(f.id)} className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filter === f.id ? 'bg-purple-600 text-white border-purple-500' : 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-muted)] hover:border-purple-500/30'}`}>
-              {f.label}
-            </button>
-          ))}
-          <div className="relative flex-1 min-w-0 md:flex-none md:w-44">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('neuralGraph.search') || 'Поиск узла'} className="w-full min-w-0 flex-1 text-sm pl-7 pr-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] focus:border-purple-500/50 focus:outline-none" />
+        {/* [v9.9.19.2] мобильная панель: поиск одной строкой (поле + ⟳), фильтры — отдельной скролл-строкой */}
+        <div className="flex flex-col gap-2 w-full md:w-auto md:items-end">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="relative flex-1 min-w-0 md:flex-none md:w-52">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('neuralGraph.search') || 'Поиск узла'} className="w-full min-w-0 flex-1 text-sm pl-9 pr-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] focus:border-purple-500/50 focus:outline-none" />
+            </div>
+            <button onClick={loadGraph} title="Обновить граф" aria-label="Обновить граф" className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><RefreshCw className="w-4 h-4" /></button>
           </div>
-          <button onClick={() => { setZoom(z => Math.min(3, z + 0.2)); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><ZoomIn className="w-4 h-4" /></button>
-          <button onClick={() => { setZoom(z => Math.max(0.4, z - 0.2)); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><ZoomOut className="w-4 h-4" /></button>
-          <button onClick={() => { setFilter('all'); setSearch(''); setSelectedNode(null); fitToView(); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><RotateCcw className="w-4 h-4" /></button>
+          <div className="flex flex-nowrap items-center gap-2 overflow-x-auto no-scrollbar">
+            {FILTERS.map(f => (
+              <button key={f.id} onClick={() => setFilter(f.id)} className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filter === f.id ? 'bg-purple-600 text-white border-purple-500' : 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-muted)] hover:border-purple-500/30'}`}>
+                {f.label}
+              </button>
+            ))}
+            <button onClick={() => { setZoom(z => Math.min(3, z + 0.2)); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><ZoomIn className="w-4 h-4" /></button>
+            <button onClick={() => { setZoom(z => Math.max(0.4, z - 0.2)); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><ZoomOut className="w-4 h-4" /></button>
+            <button onClick={() => { setFilter('all'); setSearch(''); setSelectedNode(null); fitToView(); }} className="shrink-0 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]"><RotateCcw className="w-4 h-4" /></button>
+          </div>
         </div>
       </div>
 
-      {/* OMEGA Knowledge Panel */}
+      {/* OMEGA Knowledge Panel — [v9.9.19.2] монохром, без оранжевых/кислотных акцентов */}
       <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="glass-card p-4 rounded-xl border-l-4 border-[#F59E0B]">
+        <div className="glass-card p-4 rounded-xl border-l-4 border-white/25">
           <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Фактов в памяти</div>
-          <div className="text-2xl font-bold text-[#F59E0B] mt-1">{graphMeta?.totalFacts || 213}</div>
+          <div className="text-2xl font-bold text-white mt-1">{graphMeta?.totalFacts || 213}</div>
           <div className="text-xs text-[var(--text-muted)] mt-1">из обучения + опыта</div>
         </div>
-        <div className="glass-card p-4 rounded-xl border-l-4 border-[#00ff41]">
+        <div className="glass-card p-4 rounded-xl border-l-4 border-white/25">
           <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Навыков изучено</div>
-          <div className="text-2xl font-bold text-[#00ff41] mt-1">{graphMeta?.learnedSkills ?? graphMeta?.totalSkills ?? 0}</div>
-          <div className="text-xs text-[var(--text-muted)] mt-1">активных навыков</div>
+          <div className="text-2xl font-bold text-white mt-1">{skillsCount}</div>
+          <div className="text-xs text-[var(--text-muted)] mt-1">{skillsCount > 0 ? 'активных навыков' : 'OMEGA начнёт обучение после первых задач'}</div>
         </div>
-        <div className="glass-card p-4 rounded-xl border-l-4 border-[#8B5CF6]">
+        <div className="glass-card p-4 rounded-xl border-l-4 border-white/25">
           <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Узлов в графе</div>
-          <div className="text-2xl font-bold text-[#8B5CF6] mt-1">{nodes.length || 0}</div>
+          <div className="text-2xl font-bold text-white mt-1">{nodes.length || 0}</div>
           <div className="text-xs text-[var(--text-muted)] mt-1">проекты + клиенты + знания</div>
         </div>
-        <div className="glass-card p-4 rounded-xl border-l-4 border-[#06B6D4]">
+        <div className="glass-card p-4 rounded-xl border-l-4 border-white/25">
           <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Последнее обучение</div>
-          <div className="text-sm font-bold text-[#06B6D4] mt-1">
+          <div className="text-sm font-bold text-white mt-1">
             {graphMeta?.lastLearned ? new Date(graphMeta.lastLearned).toLocaleTimeString('ru-RU') : 'Только что'}
           </div>
           <div className="text-xs text-[var(--text-muted)] mt-1">OMEGA обновляется каждые 5 мин</div>

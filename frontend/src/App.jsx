@@ -89,10 +89,16 @@ function VersionCheck() {
 
     if (!update) return null
 
+    // [v9.9.19.2-UX-HOTFIX-v4] PWA update = очистка кэшей + reload, без скачивания пакета.
+    // Жёсткий таймаут 3 сек: даже если caches API зависнет, reload всё равно случится.
     const handleUpdate = () => {
         const token = localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('jwt')
         if (token) localStorage.setItem('pending_auth_token', token)
-        window.location.reload(true)
+        const clearCaches = ('caches' in window)
+            ? caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {})
+            : Promise.resolve()
+        Promise.race([clearCaches, new Promise(r => setTimeout(r, 3000))])
+            .finally(() => window.location.reload(true))
     }
 
     return (

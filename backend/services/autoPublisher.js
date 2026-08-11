@@ -13,29 +13,12 @@ export const startAutoPublisher = () => {
         for (const post of posts) {
             let platforms = post.platforms || []
 
-            // [v9.9.19.3] если платформы не выбраны — цель по умолчанию: Telegram-канал владельца
+            // [v9.9.19.2-UX-HOTFIX-v4] platforms пуст → пропуск с понятным логом (НЕ «published to 0 platforms» как успех).
+            // Telegram-канал владельца ведёт отдельный автопостер канала (telegramChannelManager, cron 08/14/20 MSK).
             if (platforms.length === 0) {
-                try {
-                    const { publishToChannel } = await import('./telegramChannelManager.js')
-                    const text = [post.title, post.content].filter(Boolean).join('\n\n')
-                    const pub = await publishToChannel({ text: text || 'Пост без текста' })
-                    if (pub?.success) {
-                        post.status = 'published'
-                        post.publishResults = [{ platform: 'telegram_channel', status: 'published', messageId: pub.messageId, url: pub.url }]
-                        post.publishedAt = new Date()
-                        await post.save()
-                        console.log(`[AUTO-PUBLISH] to=channel result=ok id=${pub.messageId}`)
-                    } else {
-                        post.status = 'failed'
-                        post.publishResults = [{ platform: 'telegram_channel', status: 'error', error: pub?.error }]
-                        await post.save()
-                        console.warn(`[AUTO-PUBLISH] to=channel result=fail: ${pub?.error}`)
-                    }
-                } catch (e) {
-                    post.status = 'failed'
-                    post.publishResults = [{ platform: 'telegram_channel', status: 'error', error: e.message }]
-                    await post.save()
-                    console.warn(`[AUTO-PUBLISH] to=channel result=fail: ${e.message}`)
+                if (!noPlatformAlerted.has(String(post._id))) {
+                    noPlatformAlerted.add(String(post._id))
+                    console.warn(`[AUTO-PUBLISH] skipped: no platforms connected (post ${post._id})`)
                 }
                 continue
             }
