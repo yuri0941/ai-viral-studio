@@ -1,8 +1,18 @@
 # OMEGA_CONTEXT — AI Viral Studio
 
-## Версия: v9.9.19.6-OMEGA-AUTONOMY-LUXE
+## Версия: v9.9.19.2-v4-CHANNEL-AUTO
 ## Дата: 2026-08-11
-## Статус: Универсальное выполнение команд с доказательством, люкс-посты, живые навыки, память в MongoDB, ночное самообучение
+## Статус: OMEGA ведёт канал сама — автопосты, голосования, модерация, комментарии, аналитика
+
+### v9.9.19.2-v4 — Channel Autonomy
+- startChannelAutonomy (telegramChannelManager): тик 1 мин, слоты MSK (UTC+3); автопосты 08/14/20, тема из Learning Graph (мин. appliedCount) → SerpAPI трендов → ротации рубрик (без повтора 2 дня); пост = postBuilder.publishLuxuryPost; markManualChannelPost сдвигает авто на 2ч
+- Голосования: sendChannelPoll (4 варианта из SkillNode/трендов, native poll) раз в 3 дня; finalizeChannelPoll через 24ч (stopPoll → пост-победитель); состояние в ChannelState
+- Модерация (moderationService): bannedWords с regex-обходами [^\p{L}]* (флаги iu — НЕ \W, он ломает кириллицу), warn×2→ban(until_date=muteDurationHours), журнал ModerationLog; /moderation add/del/threshold/log
+- Join requests: auto-approve, спам-эвристики (пустой/цифровой username); Bot API не отдаёт возраст аккаунта
+- Комментарии: handleGroupMessage в omegaBot — вопросы/@aiviral_omega_bot → ответ из SkillNode + 5 последних постов, лимит 10/ч; цены/сотрудничество/жалобы → тикет + alertOwner
+- FAQ в ЛС: цена/тариф/подключение/поддержка → ответ из фактов Learning Graph, сложное → эскалация
+- Аналитика: recordChannelStats (08 MSK) → ChannelStats → секция канала в Daily Report
+- AI: fallback 70b→DeepSeek→OpenAI→8b (last); ключи Кабинет>env (выключен=запрет); Key Health Monitor с алертом
 
 ### v9.9.19.6 — OMEGA Autonomy Luxe
 - commandExecutor: акцепт «⚡ Взяла в работу» → очередь OmegaCommand → ✅ verification / ❌ причина+альтернатива; /commands журнал

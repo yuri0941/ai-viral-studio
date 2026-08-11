@@ -3697,3 +3697,24 @@
 - [FEATURE] Neural Graph: knowledge-узлы = реальные SkillNode (seed — только fallback); meta.learnedSkills; NeuralGraphTab — монохром (core #FFFFFF glow, связи rgba(255,255,255,0.12)), начальная круговая раскладка, fitToView после загрузки и каждого фильтра, подписи только по hover, одно поле поиска (min-w-0 flex-1 text-sm), фильтры одной скролл-строкой, дубль легенды убран, «Навыков изучено: N» реальное
 - [TEST] learnTopic (9 фактов, дедуп OK) + buildLuxuryPost (749 симв., audit чист, ссылка whitelist) + linkGuard (markdown→HTML, мёртвая ссылка заменена) — ALL PASS; server boot OK; health ✅, learning/status JSON ✅, neural-graph JSON ✅; node --check всех файлов ✅; npm run build ✅
 - [STATUS] 🟢 Ручная проверка владельцем: 3 команды подряд → акцепт+доказательство; «опубликуй пост про кофе» → обложка/HTML/ссылка; «изучи ведение канала» → навык в табе и стиль постов; рестарт Render → /commands и навыки на месте; телефон → граф в кадре
+
+## 2026-08-11 — v9.9.19.2-v4-CHANNEL-AUTO (UX-HOTFIX + OMEGA ведёт канал)
+- [FIX] /api/version отдаёт реальную версию из package.json (9.9.19) вместо хардкода 7.0.0 — ложная модалка обновления убита
+- [FIX] UpdateModal не блокирует приложение: фейковый прогресс-бар убран, PWA update = caches.delete + reload (таймаут 3 сек), watchdog 15 сек → «Обновление отложено, применится при следующем визите» + автозакрытие; «Напомнить позже» всегда активна
+- [FIX] Neural Graph: узлы без координат → круговая раскладка (рандомные x/y больше не назначаются), fitToView после загрузки/фильтра, поиск подсвечивает узел и наводит камеру; монохром добит (fallback-узлы и карточки без оранжевого/кислотного); «Навыков изучено: 0» → «OMEGA начнёт обучение после первых задач»; мобильная панель: поиск одной строкой (поле+⟳), фильтры скролл-строкой, статистика в одну строку
+- [FIX] AI fallback без деградации: Groq llama-3.3-70b → DeepSeek → OpenAI → остальные сильные → Groq 8b (ПОСЛЕДНИЙ) → Pollinations; лог [AI] provider=X model=Y
+- [FIX] Кэш AI-ответов: ключ = hash(userId + message + lang) — чужие ответы не попадают в кэш-хит
+- [KEYS] getProviderKey: приоритет MongoDB (Кабинет) → env; ключ выключенный в кабинете = явный запрет (env НЕ используется, null); лог [KEY] provider=X source=mongodb|env, [HOT-RELOAD] key=X source=mongodb; отрицательный кэш 60 сек против спама запросов
+- [KEYS] Key Health Monitor: 401/403/invalid api key/insufficient_quota → ApiKey status='invalid' + lastError + ОДИН алерт владельцу в owner-бот; fallback-цепочка продолжает работать
+- [LOGS] vectorizeService: невалидный ключ (code 10001/401/403) → ОДИН warning «[Vector] Vectorize key invalid — memory in RAM», дальше молча in-memory
+- [LOGS] AUTO-PUBLISH: platforms пуст → «skipped: no platforms connected» + пропуск (не «published to 0 platforms» как успех); канал ведёт отдельный автопостер
+- [FEATURE] OMEGA ведёт канал сама (startChannelAutonomy, тик 1 мин, слоты по MSK): автопосты 08:00/14:00/20:00; тема: Learning Graph (наименее применённый навык) → SerpAPI тренды → ротация рубрик (кейс/факт/опрос/лайфхак/тренд, без повтора 2 дня); пост через postBuilder (HTML + обложка Pollinations, видео при активном Replicate); ручной пост владельца сдвигает авто на 2ч (markManualChannelPost)
+- [FEATURE] Голосования: раз в 3 дня native poll «Какую тему разберём завтра?» (4 варианта из навыков/трендов), через 24ч stopPoll → пост-победитель; /polltest — форс
+- [FEATURE] Модерация: ModerationConfig (bannedWords, banThreshold=3, muteDurationHours=24) + ModerationLog в MongoDB; regex ловит обходы через цифры/символы («спа*м», «с п а м»); санкции warn → warn → ban (until_date); исключения — владелец; /moderation в owner-боте (add/del/threshold/log)
+- [FEATURE] Join requests: auto-approve живых, decline спам-ботов (пустой/цифровой username — Bot API не отдаёт дату регистрации), приветствие в ЛС
+- [FEATURE] Комментарии (дискуссионная группа): OMEGA отвечает на вопросы/@упоминания из Learning Graph + контекста последних постов, лимит 10 ответов/час; цены/сотрудничество/жалобы → тикет + алерт владельцу
+- [FEATURE] FAQ в ЛС бота: цена/тариф/как подключить/поддержка → ответ из изученных фактов Learning Graph, сложное → эскалация
+- [FEATURE] Аналитика канала в Daily Report: подписчики (дельта), нарушения/баны, победитель голосования (ChannelStats, запись 08:xx MSK)
+- [CMD] owner-бот: /autoposttest (форс автопоста), /polltest (форс голосования), /moderation
+- [TEST] node --check всех файлов ✅; server boot ✅; health ✅; /api/version → 9.9.19 ✅; neural-graph JSON ✅; moderation regex unit (9 кейсов, обходы + без ложных срабатываний) ✅; npm run build ✅
+- [NOTE] Живые проверки владельцем: /posttest, /autoposttest, /polltest, /moderation add тестбан, авто-пост в 08/14/20 MSK, комментарий-вопрос в дискуссии (бот должен быть в группе обсуждений с правами удаления/бана)

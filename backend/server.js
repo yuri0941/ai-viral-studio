@@ -337,6 +337,12 @@ if (isConnected) {
 
     console.log('📱 Telegram unified channel crons scheduled')
 
+    // [v9.9.19.2-v4-CHANNEL-AUTO] OMEGA ведёт канал сама: автопосты 08/14/20 MSK, голосования, статистика
+    try {
+        const { startChannelAutonomy } = await import('./services/telegramChannelManager.js')
+        startChannelAutonomy()
+    } catch (e) { console.warn('[CHANNEL-AUTO] start failed:', e.message) }
+
     // [v9.9.8-SALES-OMEGA] Retention: реактивация inactive клиентов каждые 3 дня в 14:00
     cron.schedule('0 14 */3 * *', async () => {
         try { await checkInactiveClients(); }

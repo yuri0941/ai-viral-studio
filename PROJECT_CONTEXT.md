@@ -1,8 +1,22 @@
 # PROJECT CONTEXT — AI Viral Studio (kilo2)
 # ⚠️ Kimi VS Code: прочитай этот файл ПЕРЕД любой задачей. Это единый источник правды.
-# Дата контекста: 2026-08-11 | Версия проекта: v9.9.19.6-OMEGA-AUTONOMY-LUXE
+# Дата контекста: 2026-08-11 | Версия проекта: v9.9.19.2-v4-CHANNEL-AUTO
 
 ---
+
+## 2026-08-11 — Контекст v9.9.19.2-v4-CHANNEL-AUTO
+- /api/version — реальная версия из package.json (хардкод 7.0.0 удалён); UpdateModal не блокирует: PWA update = caches.delete + reload (3 сек), watchdog 15 сек → «отложено» + автозакрытие
+- Neural Graph: узлы без координат → круговая раскладка, fitToView после загрузки/фильтра, поиск → подсветка + камера на узел, полный монохром, мобильная панель (поиск+⟳ строкой, фильтры скроллом)
+- AI fallback: Groq 70b → DeepSeek → OpenAI → сильные → Groq 8b (last resort, groq_lite с keyProvider groq) → Pollinations; лог [AI] provider/model; кэш = hash(userId+message+lang)
+- getProviderKey: MongoDB (Кабинет) > env; isActive=false = явный запрет (env запрещён, KEY_DISABLED); [KEY] source=mongodb|env; negative cache 60 сек
+- Key Health Monitor (reportKeyFailure): 401/403/invalid/quota → ApiKey status='invalid' + lastError + один алерт владельцу
+- Логи: vectorize code 10001 → один warning «memory in RAM»; AUTO-PUBLISH platforms пуст → skipped (не «0 platforms» успех)
+- CHANNEL-AUTO (telegramChannelManager.startChannelAutonomy, тик 1 мин по MSK=UTC+3): автопосты 08/14/20 (тема: Learning Graph → SerpAPI → рубрики), poll раз в 3 дня + stopPoll через 24ч → пост-победитель, recordChannelStats ежедневно
+- Модерация: moderationService + ModerationConfig/ModerationLog; regex [^\p{L}]* (iu) ловит обходы; warn→warn→ban(until_date); /moderation в owner-боте
+- omegaBot: chat_join_request (approve/decline по эвристикам + приветствие), handleGroupMessage (модерация + ответы на вопросы из SkillNode, лимит 10/ч, эскалация цен/жалоб), FAQ в ЛС из Learning Graph
+- ownerBot: /autoposttest, /polltest, /moderation; /post и /channel помечают markManualChannelPost (авто сдвигается на 2ч)
+- Daily Report: секция канала (подписчики/дельта, нарушения/баны, победитель poll) из ChannelStats
+- Новые модели: ChannelState (singleton), ChannelStats, ModerationConfig, ModerationLog
 
 ## 2026-08-11 — Контекст v9.9.19.6-OMEGA-AUTONOMY-LUXE
 - Execution Engine: любая команда владельца → акцепт → OmegaCommand (MongoDB) → результат с verification или ❌-шаблон; /commands журнал

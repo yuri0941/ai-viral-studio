@@ -1,58 +1,224 @@
-# CHAT_CONTEXT — AI Viral Studio (чаты, боты, формат ответов AI)
+# CHAT_CONTEXT.md — Текущее состояние проекта AIVIRAL
 
-## Версия: v9.9.19.6-OMEGA-AUTONOMY-LUXE | Дата: 2026-08-11
+> Версия контекста: v9.9.19.2-v4-ctx
+> Дата: 2026-08-11 (обновлено после CHANNEL-AUTO)
+> Мастер-план: @file D:\kilo2\MASTER_PLAN_v9.9.20.md
+> ⚠️ Файл называется CHAT_CONTEXT.md (без пробела) — вариант «CHAT_CONTEXT .md» был случайным rename, исправлен.
 
-## ⚠️ НОВОЕ (v9.9.19.6): поток команд владельца
-Любое свободное сообщение владельца в ownerBot → `submitOwnerCommand()` (services/commandExecutor.js):
-1. Запись в OmegaCommand (MongoDB, статус queued) → 2. Мгновенный «⚡ Взяла в работу» → 3. Выполнение (известный intent → actionEngine; «изучи X» → skillService; неизвестное → AI-планировщик с инструментами ai_text/web_search/publish_post/learn_topic/db_stats) → 4. «✅ Сделано + verification» или «❌ причина / нужно от вас / могу вместо».
-- `/commands` — журнал из OmegaCommand (последние 20, проценты только из модели).
-- Посты канала — ТОЛЬКО через `postBuilder.publishLuxuryPost()` (HTML без **, обложка Pollinations, whitelist-ссылки из linkGuard, Self-Audit ≤900 симв.).
-- Тексты канала — через `linkGuard.prepareChannelText()` (markdown→HTML + замена мёртвых ссылок).
-- Навыки — `SkillNode` (MongoDB): facts[5-10], appliedCount++ при реальном использовании в постах.
+---
 
-## ⚠️ ГЛАВНОЕ ПРАВИЛО: chatWithAI() возвращает ОБЪЕКТ
-`chatWithAI(message, history, lang, options)` → `{ success, reply, provider, usage, ... }` — НИКОГДА строку.
-Любое использование результата как строки без извлечения = crash (`slice is not a function`) или сырой JSON в чате.
+## 📦 ПРОЕКТ
 
-### Решение: extractText()
-`backend/services/aiService.js` экспортирует `extractText(response)`:
-- строка → как есть
-- объект → `reply || response || content || text || message` (включая nested `content.content`)
-- null/undefined → `''`
+- **Название:** AIVIRAL / OMEGA AI Assistant
+- **Backend:** Node.js + Express + MongoDB (ES modules)
+- **Frontend:** React 18 + Vite + Tailwind CSS
+- **Deploy:** Render (backend), Cloudflare Pages (frontend)
+- **Репозиторий:** GitHub main
+- **Канал:** @aiviralstudio
+- **Боты:** @aiviral_omega_bot (owner), клиентский бот (deep-link)
 
-**Правило:** любой текст от chatWithAI — только через `extractText()`. Покрыто 45+ файлов (боты, публикаторы, factory, predictive, repurposing, boardroom, concierge и т.д.).
+---
 
-## Telegram-боты
+## 📜 ИСТОРИЯ ВЕРСИЙ (эволюция до аудита)
 
-### Owner Bot (@aiviral_alerts_bot) — backend/services/ownerBot.js
-- Команды: /start /menu /status /stats /tickets /omega /exec /feature /improve /factory /stop /resume /report /post /posttest /channel /calendar /adprice /discount /video /adorders
-- /post [тема] — генерация → публикация в канал → ответ со ССЫЛКОЙ на пост (t.me/<channel>/<messageId>)
-- /posttest — скрытая диагностика канала: тестовый пост + ссылка или понятная ошибка (бот не админ / нет chat_id / невалидный токен)
-- /stop — РЕАЛЬНЫЙ emergency stop (setEmergencyStop из routes/admin.js), /resume — снятие
-- Панель (callback_query): owner:tickets/conversations/adorders/prices — реальные данные БД; owner:stats — реальные подписчики+тикеты+заявки; owner:toggle — реальный toggle AI; answerCallbackQuery на всех кнопках
-- singleton + deleteWebhook перед polling/webhook, игнор 409
-- Голосовые → Whisper STT (Groq → OpenAI) → текстовый поток
+### v9.9.11 — Telegram-бот выполняет команды
+- Owner-бот: /post публикует в канал, /status показывает реальный статус, /improve и /report запускают сервисы
+- Убраны "пустые" ответы и дубли меню
+- i18n ключи telegram.* добавлены в ru/en.json
 
-### Client Bot (@aiviral_omega_bot) — backend/services/omegaBot.js
-- Свободный текст → AI-диалог (chatWithAI + extractText), НЕ меню
-- Churn Guard (OMEGACHURN30), Auto-Escalation → тикет, Context Memory 10 сообщений
-- /start <user_id> — привязка telegramId к аккаунту (Telegram Connect из профиля)
-- Privacy Firewall: паттерны запрещённых тем для клиентов
-- Голосовые → Whisper STT, без ключа — вежливая заглушка
+### v9.9.13 — OMEGA перестала болтать (Intent→Action→Learning Graph)
+- Свободный текст "опубликуй пост про кофе" → реальный пост в канал
+- "Статус" → реальные цифры MongoDB/uptime/RAM
+- "Сделай отчёт" → реальный performance-отчёт
+- Клиенты в @aiviral_omega_bot: "поддержка" → тикет, "пост" → публикация
+- Дубли приветствий убраны, AI-чат только при Intent = CHAT
 
-### Канал @aiviralstudio
-- Публикатор: telegramChannelManager.publishToChannel — hot-reload токена/канала (env → cache → MongoDB), ссылка-доказательство, friendly-ошибки
-- AUTO-PUBLISH (autoPublisher.js, 5 мин): platforms пуст → пост уходит в Telegram-канал владельца; 0 платформ = warning + ОДИН алерт владельцу
-- Логи: `[AUTO-PUBLISH] to=channel result=ok id=<messageId>`
+### v9.9.14 — DevStudio + Dream Mode + Neural Graph + Voice v2
+- DevStudio: генерация кода с preview
+- Dream Mode: ночная смена (обучение, оптимизация)
+- Neural Graph: визуализация мозга OMEGA
+- Voice Mode v2: голосовой ввод и озвучка ответов в OmegaChat
+- Auto-Improvement: OMEGA анализирует CTR и улучшает шаблоны
+- Rate Limiter 429 устранён
+- i18n полный
+- 5 тестовых аккаунтов созданы для бета-запуска
 
-## Web-чат (OmegaChat)
-- Backend: POST /api/omega/chat → omegaController → chatWithAI → ответ `{ data: { response } }`
-- Privacy Firewall фильтрует по роли (ACCESS_MATRIX, ROLE_INSTRUCTIONS в ai/omega/contextEngine.js)
-- Smart Quota: info/help-запросы не тратят токены (omegaController → consumeGeneration isInfoQuery)
+### v9.9.16 — Beta Launch
+- Продукт протестирован автоматически: backend/frontend 0 ошибок
+- Beta Launch открыт: 50 слотов, founding members −30%
+- Тестовые аккаунты готовы к ручному тестированию 5 ролей
+- Следующий шаг: v9.9.17 — hotfix по feedback первых клиентов
 
-## Известные грабли (не повторять)
-1. chatWithAI как строка → crash/JSON в чате. Только extractText.
-2. options-объект вторым аргументом (вместо history) — сигнатура (message, history, lang, options).
-3. JSON.parse на сыром ответе — сначала extractText + strip ```json fences + regex-извлечение `{...}`.
-4. Дубли onText-регулярок в ботах — все совпавшие handler'ы срабатывают (дубли ответов).
-5. Мок-цифры в ответах владельцу запрещены — реальные данные БД или честное «нет данных».
+### v9.9.17 — Anti-Fail + Feedback + Daily Report
+- Telegram-боты стабильны: webhook + fallback на polling, нет конфликтов
+- Anti-Fail Mode: OMEGA следит за собой, алертит при проблемах
+- Feedback: клиенты оценивают каждый ответ, собирается статистика
+- Daily Report: владелец получает сводку каждое утро в Telegram
+- Dream Mode v1: ночная смена + утренние идеи
+
+---
+
+## ✅ ЧТО УЖЕ СДЕЛАНО (факт из PROGRESS_REPORT.md)
+
+### v9.9.19-MASTER-AUDIT-K3 (запушено: e65cfc4c, 114 файлов, +906/−384)
+- 47 багов исправлено
+- 36 провайдеров в ApiKeysTab с hot-reload
+- 5 тестовых аккаунтов (staff/admin/creator/business/advertiser), ROLE_INSTRUCTIONS + ACCESS_MATRIX
+- Privacy Firewall активен
+- OMEGA: Intent/Action/Learning engines, Neural Graph seed-smm, cron'ы (self-healing 5мин, reflection, autoPilot, morning report 08:00 MSK)
+- Telegram owner-бот: полные команды, дубль /menu убран, Churn Guard, эскалация, context memory 10
+- Клиентский Telegram Connect по deep-link (карточка в Профиле)
+- Все хардкод-fetch заменены на API_BASE_URL
+- ~30 alert() → toast
+- Адаптив: 20+ модалок max-h-[90vh], touch-targets 44px, FAB safe-area
+
+### v9.9.20 (Growth Engine + Factory + Advertiser + Sales)
+- Growth Engine: рефералы, watermark, leaderboard, challenges
+- Sales Autopilot: 7-шаг drip, FOMO, Free→Paid лимиты
+- Advertiser Suite: /advertise, калькулятор, КП за 30 сек, ROI dashboard
+- Support/Tickets: эскалация, source badge, inline reply
+- Memory Explorer, Concierge, YouTube AI, Web Search (SerpAPI + DuckDuckGo)
+- Factory (базовый): создание сайтов
+
+### v9.9.19.3-TG-BOTS-FIX (сделан)
+- extractText() в 45+ файлах — убран response.slice crash
+- /posttest команда owner-бота
+- Панель owner-бота с реальными цифрами
+- /stop реальный
+- Публикация в канал работает (после extractText)
+
+---
+
+## 🔄 ЧТО В РАБОТЕ ПРЯМО СЕЙЧАС
+
+**v9.9.19.2-v4-CHANNEL-AUTO — ЗАВЕРШЁН и запушен** (2026-08-11)
+- Модалка обновления не блокирует (15 сек watchdog), /api/version = реальная 9.9.19
+- Neural Graph: раскладка+fitToView, монохром, мобильная панель, поиск с наведением камеры
+- AI fallback: 70b → DeepSeek → OpenAI → 8b последний; кэш по userId+message+lang
+- Ключи: Кабинет > env, выключен в кабинете = запрет; Key Health Monitor с алертом в owner-бот
+- OMEGA ведёт канал: автопосты 08/14/20 MSK, голосования раз в 3 дня (+пост-победитель через 24ч), модерация (/moderation), join requests, ответы в комментариях (лимит 10/ч), FAQ из Learning Graph, аналитика канала в Daily Report
+- Новые команды owner-бота: /autoposttest, /polltest, /moderation
+- Требуется ручная проверка владельцем (чек-лист в конце PROGRESS_REPORT v9.9.19.2-v4)
+
+---
+
+## ⏳ ОЧЕРЕДЬ ФИКСОВ (P0 — критично)
+
+| # | Промпт | Модель | Статус |
+|---|--------|--------|--------|
+| 0.1 | 19.6-OMEGA-AUTONOMY-LUXE | K3 high | ✅ Готово |
+| 0.2 | 19.2-UX-HOTFIX + 2.6 + 4.1-б + 4.2 (+ канал-автономия v4) | K2.7 | ✅ Готово (v9.9.19.2-v4) |
+| 0.3 | 19.4-AUTH-401-FIX | K2.7 | ⏳ Ожидает |
+| 0.4 | 19.7-VK-PKCE-FIX | K2.7 | ⏳ Ожидает |
+| 0.5 | 19.8-KEY-HEALTH-UI | K2.7 | ⏳ Ожидает |
+| 0.6 | 19.9-ADAPTIVE-DESIGN-AUDIT | K2.7 | ⏳ Ожидает |
+| 0.7 | 19.10-DESIGN-POLISH | K2.7 | ⏳ Ожидает |
+
+---
+
+## 🔴 ИЗВЕСТНЫЕ БАГИ (ждут фиксов выше)
+
+| Баг | Где видно | Почему | Какой промпт чинит |
+|-----|-----------|--------|-------------------|
+| Модалка "Обновление v7.0.0" висит на 20% | Скрин | Version API отдаёт старую версию | 19.2 Шаг 1 |
+| Neural Graph: 2 оранжевых узла по углам, пустой канвас | Скрин | Нет fitToView, старая раскладка | 19.2 Шаг 2 / 19.6 Шаг 7 |
+| "Поиск узлс" обрезан, дубли луп, каши фильтров | Скрин | Мобильная вёрстка | 19.2 вставка 2.6 / 19.9 |
+| AI отвечает слабой моделью (немецкие слова) | Лог | Groq 429 → fallback на 8b | 19.2 Шаг 3 |
+| Приоритет ключей: Render побеждает кабинет | Лог | getProviderKey порядок | 19.2 Шаг 4 |
+| 401 на /api/omega/self-reflection и /api/owner/settings | Консоль | Прямой fetch без токена | 19.4 |
+| VK "Security Error" | Скрин oauth.vk.ru | Нет PKCE, redirect URI | 19.7 |
+| Спам vectorizeService code 10001 | Лог | Невалидный Pinecone ключ | 19.2 Шаг 5 |
+| AUTO-PUBLISH "published to 0 platforms" | Лог | Нет цели по умолчанию | 19.2 Шаг 5 |
+| Ключи не отслеживаются (протух — не знаем) | Опыт | Нет health-ключей | 19.8 |
+| Адаптивность: не проверена системно | — | Нет аудита всех страниц | 19.9 |
+| Дизайн: эмодзи-квадраты, нет единой системы | Анализ сайта | Нет дизайн-ревью | 19.10 |
+
+---
+
+## 🗝️ КЛЮЧИ (внесены в ApiKeysTab + Render env)
+
+| Ключ | Статус | Где используется |
+|------|--------|------------------|
+| telegram_bot | ✅ | Клиентский бот, публикации |
+| telegram_owner_bot | ✅ | Owner-бот |
+| telegram_chat_id | ✅ | Канал @aiviralstudio |
+| vk / vk_secret | ✅ | VK OAuth (ждёт 19.7) |
+| groq | ✅ | Основная AI-модель |
+| deepseek | ✅ | Fallback |
+| openai | ✅ | Fallback, Whisper (опционально) |
+| yookassa_shop_id / yookassa_secret | ✅ | Платежи |
+| vapid_public / vapid_private | ✅ | Push |
+| replicate | ✅ | AI-видео |
+| serpapi | ✅ | Поиск |
+| elevenlabs | ✅ | TTS (опционально) |
+| resend / smtp | ✅ | Email |
+| stripe / paypal | ⏳ | Если нужны |
+| pinecone | ❌ | Vectorize спамит 10001 — in-memory fallback |
+
+---
+
+## 📱 УСТРОЙСТВА ДЛЯ ТЕСТИРОВАНИЯ АДАПТИВНОСТИ
+
+Обязательные брейкпоинты для проверки каждой фичи:
+- 375px (iPhone SE / старые Android)
+- 414px (iPhone 12/13/14)
+- 768px (iPad Mini, портрет)
+- 1024px (iPad, пейзаж)
+- 1280px (ноутбук)
+- 1920px (десктоп)
+
+Критерии: нет горизонтального скролла, touch-target ≥ 44px, текст не обрезается, кнопки не перекрываются клавиатурой, FAB в safe-area.
+
+---
+
+## 📁 ФАЙЛЫ КОНТЕКСТА (читать при старте каждого чата)
+
+1. `@file D:\kilo2\CHAT_CONTEXT.md` — это файл
+2. `@file D:\kilo2\MASTER_PLAN_v9.9.20.md` — план по приоритетам
+3. `@file D:\kilo2\PROGRESS_REPORT.md` — история версий (последние 60 строк)
+4. `@file D:\kilo2\PROJECT_CONTEXT.md` — архитектура
+5. `@file D:\kilo2\OMEGA_CONTEXT.md` — ядро OMEGA
+
+---
+
+## 🚪 ГЕЙТ МЕЖДУ ЭТАПАМИ
+
+**P0 закрыт только когда:**
+- Логин с телефона (375px) → все табы открываются без горизонтального скролла
+- Нет ошибок в консоли (0 штук)
+- Бот отвечает мгновенно, без JSON-хвостов
+- Пост в канале с фото, HTML-форматированием, рабочими кнопками
+- VK подключается без Security Error
+- Все ключи показывают статус ✅ в ApiKeysTab
+
+---
+
+## 📌 ПОСЛЕДНИЕ ДЕЙСТВИЯ ВЛАДЕЛЬЦА
+
+1. Ждать завершения 19.6 (K3 работает)
+2. Прокликать по чек-листу из 19.6 (Шаг 9.3)
+3. Запустить 19.2 → 19.4 → 19.7 → 19.8 → 19.9 → 19.10
+4. После каждого: скрин мобильной версии (375px) + скрин консоли
+5. Только потом: 20-FACTORY-REAL
+
+---
+
+## 💬 ПРАВИЛО ДЛЯ СЛЕДУЮЩИХ ЧАТОВ
+
+Когда открываете новый чат с Kimi:
+1. Сначала: `@file D:\kilo2\CHAT_CONTEXT.md`
+2. Затем: `@file D:\kilo2\MASTER_PLAN_v9.9.20.md`
+3. Потом: `@file D:\kilo2\PROGRESS_REPORT.md` (последние 60 строк)
+4. Задавайте вопрос или просите следующий промпт по плану
+
+**Не нужно:**
+- Скидывать старые промпты (все в плане)
+- Скидывать скрины старых багов (все в таблице выше)
+- Скидывать историю диалогов (вся в PROGRESS_REPORT)
+- Скидывать анализ сайта (вошёл в MASTER_PLAN: 19.9 + 19.10 + 25-TARIFF-GATES)
+
+**Нужно:**
+- Новые скрины ошибок ПОСЛЕ деплоя
+- Логи Render при новых падениях
+- Скрины мобильной версии (375px) при проверке адаптивности
+- Скрины дизайна если что-то выглядит криво

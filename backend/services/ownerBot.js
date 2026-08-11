@@ -407,6 +407,8 @@ export const initOwnerBot = () => {
         const { publishLuxuryPost } = await import('./postBuilder.js');
         const pub = await publishLuxuryPost({ topic, niche: 'general', tone: 'уверенный экспертный' });
         if (!pub?.success) throw new Error(pub?.error || 'Публикация не удалась');
+        // [v9.9.19.2-v4] команда владельца приоритетнее автопоста — помечаем ручную публикацию
+        import('./telegramChannelManager.js').then(m => m.markManualChannelPost()).catch(() => {});
 
         safeSendMessage(chatId,
           `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
@@ -446,6 +448,89 @@ export const initOwnerBot = () => {
     }
   });
 
+  // [v9.9.19.2-v4-CHANNEL-AUTO] форсировать автопост вне расписания (как в слоте 08/14/20 MSK)
+  bot.onText(/\/autoposttest/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    safeSendMessage(chatId, '⏳ OMEGA выбирает тему и собирает автопост...');
+    try {
+      const { autoPostNow } = await import('./telegramChannelManager.js');
+      const r = await autoPostNow({ force: true });
+      if (r?.success) {
+        safeSendMessage(chatId,
+          `✅ <b>Автопост опубликован</b>\n━━━━━━━━━━━━━━\n📝 Тема: ${r.topic}\n🎯 Источник: ${r.source}` +
+          (r.url ? `\n🔗 <a href="${r.url}">Открыть пост</a>` : ''));
+      } else {
+        safeSendMessage(chatId, `⚠️ Автопост не удался: ${r?.error || r?.reason || 'unknown'}`);
+      }
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ ${e.message}`);
+    }
+  });
+
+  // [v9.9.19.2-v4-CHANNEL-AUTO] тестовое голосование в канале (native Telegram poll)
+  bot.onText(/\/polltest/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    try {
+      const { sendChannelPoll } = await import('./telegramChannelManager.js');
+      const r = await sendChannelPoll({ force: true });
+      if (r?.success) {
+        safeSendMessage(chatId,
+          `🗳 <b>Голосование опубликовано</b>\n━━━━━━━━━━━━━━\n${r.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}\n\nЧерез 24ч OMEGA закроет опрос и опубликует пост-победитель.`);
+      } else {
+        safeSendMessage(chatId, `⚠️ Голосование не удалось: ${r?.error || r?.reason || 'unknown'}`);
+      }
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ ${e.message}`);
+    }
+  });
+
+  // [v9.9.19.2-v4-CHANNEL-AUTO] управление модерацией канала
+  bot.onText(/\/moderation(?:\s+(\w+))?(?:\s+(.+))?/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    const sub = (match[1] || '').toLowerCase();
+    const arg = (match[2] || '').trim();
+    try {
+      const mod = await import('./moderationService.js');
+      if (sub === 'add' && arg) {
+        await mod.addBannedWord(arg);
+        safeSendMessage(chatId, `✅ Слово «${arg.toLowerCase()}» добавлено в запрещённые.`);
+        return;
+      }
+      if ((sub === 'del' || sub === 'remove') && arg) {
+        await mod.removeBannedWord(arg);
+        safeSendMessage(chatId, `✅ Слово «${arg.toLowerCase()}» удалено из запрещённых.`);
+        return;
+      }
+      if (sub === 'threshold' && /^\d+$/.test(arg)) {
+        const cfg = await mod.setBanThreshold(Number(arg));
+        safeSendMessage(chatId, `✅ Бан теперь после ${cfg.banThreshold} нарушений.`);
+        return;
+      }
+      if (sub === 'log') {
+        const logs = await mod.getRecentLogs(20);
+        const lines = logs.map(l => `• ${l.action === 'ban' ? '⛔' : '⚠️'} @${l.username || l.userId} — ${l.reason} (${new Date(l.createdAt).toLocaleString('ru-RU')})`);
+        safeSendMessage(chatId, `🛡 <b>Журнал модерации (последние 20)</b>\n━━━━━━━━━━━━━━\n${lines.join('\n') || 'Нарушений пока нет.'}`);
+        return;
+      }
+      const cfg = await mod.getModerationConfig();
+      safeSendMessage(chatId,
+        `🛡 <b>Модерация канала</b>\n━━━━━━━━━━━━━━\n` +
+        `🚫 Запрещённые слова: ${cfg.bannedWords.join(', ') || '—'}\n` +
+        `🔢 Бан после: ${cfg.banThreshold} нарушений\n` +
+        `⏳ Мут: ${cfg.muteDurationHours}ч\n━━━━━━━━━━━━━━\n` +
+        `<code>/moderation add слово</code> — добавить\n` +
+        `<code>/moderation del слово</code> — удалить\n` +
+        `<code>/moderation threshold 3</code> — порог бана\n` +
+        `<code>/moderation log</code> — журнал (последние 20)`,
+        { parse_mode: 'HTML' });
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ ${e.message}`);
+    }
+  });
+
   // [v9.9.20] Channel manager: /channel [type] [topic]
   bot.onText(/\/channel(?:\s+(\w+))?(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -459,6 +544,8 @@ export const initOwnerBot = () => {
       const { publishLuxuryPost } = await import('./postBuilder.js');
       const pub = await publishLuxuryPost({ topic, tone: type === 'promo' ? 'продающий' : 'уверенный экспертный' });
       if (!pub?.success) throw new Error(pub?.error || 'Не удалось опубликовать пост');
+      // [v9.9.19.2-v4] ручная публикация приоритетнее автопоста
+      import('./telegramChannelManager.js').then(m => m.markManualChannelPost()).catch(() => {});
 
       safeSendMessage(chatId,
         `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +

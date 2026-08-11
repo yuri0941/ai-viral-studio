@@ -456,6 +456,112 @@ export const initOmegaBot = () => {
     }
   })
 
+  // [v9.9.19.2-v4-CHANNEL-AUTO] приём подписчиков: auto-approve живых, decline спам-ботов.
+  // NB: Bot API не отдаёт дату регистрации аккаунта — эвристики: пустой username, username/имя только из цифр.
+  bot.on('chat_join_request', async (req) => {
+    try {
+      const user = req.from;
+      const username = user.username || '';
+      const name = `${user.first_name || ''}${user.last_name || ''}`.replace(/\s/g, '');
+      const isSpamBot = !username || /^\d+$/.test(username) || /^\d+$/.test(name);
+      if (isSpamBot) {
+        await bot.declineChatJoinRequest(req.chat.id, user.id);
+        console.log(`[CHANNEL-AUTO] join declined: id=${user.id} username=${username || 'none'} (spam heuristics)`);
+        return;
+      }
+      await bot.approveChatJoinRequest(req.chat.id, user.id);
+      console.log(`[CHANNEL-AUTO] join approved: @${username}`);
+      bot.sendMessage(user.id, 'Добро пожаловать в @aiviralstudio! Я OMEGA — ассистент канала. Задавай вопросы в комментариях или пиши сюда.').catch(() => {});
+    } catch (e) {
+      console.warn('[CHANNEL-AUTO] join request failed:', e.message);
+    }
+  });
+
+  // [v9.9.19.2-v4-CHANNEL-AUTO] лимит авто-ответов в комментариях: не более 10 в час
+  const commentRate = global.omegaCommentRate || { windowStart: Date.now(), count: 0 };
+  global.omegaCommentRate = commentRate;
+
+  // [v9.9.19.2-v4-CHANNEL-AUTO] сообщения дискуссионной группы канала: модерация + ответы на вопросы
+  async function handleGroupMessage(msg) {
+    const chatId = msg.chat.id;
+    const from = msg.from;
+    if (!from || from.is_bot) return;
+    const text = msg.text || msg.caption || '';
+
+    // 8.4.4 исключения: владелец канала не модерируется
+    const isExempt = isOwner(from.id) || String(from.id) === String(OWNER_CHAT_ID);
+
+    // 8.4.2-8.4.3 авто-модерация: запрещённые слова → delete + warn → ban
+    if (!isExempt && text) {
+      try {
+        const { checkMessage } = await import('./moderationService.js');
+        const verdict = await checkMessage({ userId: from.id, username: from.username, chatId, text });
+        if (verdict.violation) {
+          await bot.deleteMessage(chatId, msg.message_id).catch(() => {});
+          if (verdict.action === 'ban') {
+            const until = Math.floor(Date.now() / 1000) + verdict.muteDurationHours * 3600;
+            await bot.banChatMember(chatId, from.id, { until_date: until }).catch(() => {});
+            bot.sendMessage(chatId, `⛔ @${from.username || from.id} ограничен на ${verdict.muteDurationHours}ч: повторные нарушения правил.`).catch(() => {});
+          } else {
+            bot.sendMessage(chatId, `⚠️ Сообщение удалено: нарушение правил (@${from.username || from.id}, предупреждение ${verdict.count}/${verdict.banThreshold})`).catch(() => {});
+          }
+          return;
+        }
+      } catch (e) { console.warn('[MODERATION] check failed:', e.message); }
+    }
+
+    if (!text) return;
+    // 8.5.2 OMEGA отвечает на @упоминания и вопросы
+    const isMention = text.includes('@aiviral_omega_bot');
+    const isQuestion = text.includes('?') || /^(как|почему|зачем|сколько|когда|что|где|какой|какие)\b/i.test(text.trim());
+    if (!isMention && !isQuestion) return;
+
+    // 8.5.4 лимит: не более 10 авто-ответов в час
+    if (Date.now() - commentRate.windowStart > 3600000) { commentRate.windowStart = Date.now(); commentRate.count = 0; }
+    if (commentRate.count >= 10) {
+      console.log('[CHANNEL-AUTO] comment rate limit reached (10/h)');
+      return;
+    }
+    commentRate.count++;
+
+    // 8.5.3 эскалация владельцу: ценовая политика, сотрудничество, жалоба
+    if (/цен[аы]|стоимост|тариф|сотруднич|жалоб|претензи|возврат/i.test(text)) {
+      try {
+        const { createTicket } = await import('./supportService.js');
+        await createTicket({
+          userEmail: `tg_${from.id}@aiviral-studio.ru`,
+          subject: '💬 Эскалация из комментариев канала',
+          description: `@${from.username || from.id} спросил: "${text.slice(0, 500)}"`,
+          telegramChatId: String(from.id)
+        });
+        const { alertOwner } = await import('./ownerBot.js');
+        alertOwner?.(`💬 Эскалация из комментариев\n@${from.username || from.id}: «${text.slice(0, 200)}»\nТикет создан.`);
+        bot.sendMessage(chatId, 'Передала ваш вопрос владельцу — ответим лично 🙌', { reply_to_message_id: msg.message_id }).catch(() => {});
+      } catch (e) { console.warn('[CHANNEL-AUTO] comment escalation failed:', e.message); }
+      return;
+    }
+
+    // Ответ из Learning Graph + контекст последних постов канала
+    try {
+      const { getSkillFactsForContext } = await import('./skillService.js');
+      const facts = await getSkillFactsForContext(3).catch(() => []);
+      const factsBlock = facts.length ? `\nОпирайся на факты: ${facts.map(f => f.fact).join('; ')}` : '';
+      let postsContext = '';
+      try {
+        const { default: ChannelConfig } = await import('../models/ChannelConfig.js');
+        const cfg = await ChannelConfig.findOne({ active: true }).lean();
+        const last = (cfg?.postsHistory || []).slice(-5).map(p => p.title).filter(Boolean);
+        if (last.length) postsContext = `\nПоследние посты канала: ${last.join(' | ')}`;
+      } catch { /* не критично */ }
+      const ai = await chatWithAI(
+        `Ты OMEGA — экспертный ассистент Telegram-канала @aiviralstudio (AI, SMM, виральный контент). Ответь на комментарий подписчика: кратко (1-3 предложения), экспертно, лаконично, с мягким призывом к действию. Без markdown и звёздочек.${factsBlock}${postsContext}\n\nКомментарий: "${text.slice(0, 500)}"`,
+        [], 'ru', { maxTokens: 300 }
+      );
+      const reply = extractText(ai).replace(/\*\*/g, '').trim();
+      if (reply) bot.sendMessage(chatId, reply.slice(0, 800), { reply_to_message_id: msg.message_id }).catch(() => {});
+    } catch (e) { console.warn('[CHANNEL-AUTO] comment reply failed:', e.message); }
+  }
+
   // [v9.9.2-MASTER-FIX] client support flow + existing AI handler
   bot.on('message', async (msg) => {
     if (msg.text && msg.text.startsWith('/')) return
@@ -463,6 +569,12 @@ export const initOmegaBot = () => {
     const text = msg.text?.trim()
     const owner = isOwner(chatId)
     if (!text) return
+
+    // [v9.9.19.2-v4-CHANNEL-AUTO] комментарии канала (дискуссионная группа) → модерация + ответы
+    if (msg.chat.type === 'group' || msg.chat.type === 'supergroup') {
+      await handleGroupMessage(msg)
+      return
+    }
 
     // Support ticket flow for non-owners
     if (!owner && supportState.get(chatId)) {
@@ -529,6 +641,25 @@ export const initOmegaBot = () => {
 
     if (!owner) {
       if (text && text.trim()) {
+        // [v9.9.19.2-v4-CHANNEL-AUTO] FAQ-автоответ из Learning Graph (изученные навыки), не generic-текст.
+        // Сложное → дальше в handleFreeText (там эскалация владельцу через тикет).
+        if (/цен[аы]|сколько стоит|тариф|как подключить|поддержка/i.test(text)) {
+          try {
+            const { getSkillFactsForContext } = await import('./skillService.js');
+            const facts = await getSkillFactsForContext(4).catch(() => []);
+            if (facts.length) {
+              const ai = await chatWithAI(
+                `Ты OMEGA — ассистент AI Viral Studio. Ответь на вопрос клиента, опираясь ТОЛЬКО на эти изученные факты (ничего не выдумывай): ${facts.map(f => f.fact).join('; ')}\n\nКратко (2-4 предложения), по делу, с призывом к действию. Без markdown.\n\nВопрос: "${text.slice(0, 300)}"`,
+                [], 'ru', { maxTokens: 400 }
+              );
+              const reply = extractText(ai).replace(/\*\*/g, '').trim();
+              if (reply && reply.length > 20) {
+                safeSendMessage(chatId, reply, { parse_mode: 'HTML' });
+                return;
+              }
+            }
+          } catch (e) { console.warn('[omegaBot] FAQ skills answer failed:', e.message); }
+        }
         await handleFreeText(chatId, text, msg.from?.username);
       } else {
         sendClientMenu(chatId);
