@@ -3768,3 +3768,15 @@
 - [UI] ApiKeysTab: trim на save/test, бейдж с title/pричиной и truncate, модалка с подсказкой формата ЮKassa; i18n ru/en расширен ключами apiKeys.keyEmpty/keyWorks/keyWorksWarning/keyError/testYookassa/checkStatus/yookassaOk/yookassaKeyHint/yookassaCardHint
 - [TEST] node --check всех затронутых backend-файлов ✅; npm run build ✅; сервер стартует без ошибок; /api/health ✅; 403 на /payments/test-yookassa с invalid-токеном (не 500) ✅
 - [NOTE] Ручная проверка владельцем: вставить ключ ЮKassa → если 400 причина видна; оба поля → 🧪 Проверить ЮKassa → 🟢; Render Logs — AI-запросы без простыней 401; новый ИИ-ключ → бейдж ✅; /keystatus → сводка
+
+## 2026-08-11 — v9.9.19.14.5-PAYMENT-METHOD-SWITCH-FIX
+- [SYMPTOM] Настройки → Подписка: табы способов оплаты не переключались, все кнопки тарифов показывали «Оплатить PayPal» независимо от выбора; RUB → кнопка PayPal (недопустимо); ЮKassa не была явным способом на странице
+- [FIX] backend/services/paymentMethods.js — async getPaymentMethods: проверяет реальные ключи через getProviderKey (yookassa_shop_id/yookassa_secret, stripe, paypal_client_id/paypal_secret, COINBASE_API_KEY) и возвращает {enabled, reason, recommended}; RUB → yookassa recommended, USD/EUR → stripe recommended
+- [FIX] backend/routes/subscriptions.js /config — await getPaymentMethods, отдаёт paymentMethods с enabled/reason
+- [FIX] frontend/src/pages/SettingsPage.jsx: state selectedPaymentMethod с localStorage; radio-табы методов controlled, disabled с tooltip/reason, при смене валюты авто-переключение на первый enabled (RUB → yookassa); 375px — flex overflow-x-auto no-scrollbar
+- [FIX] Кнопка тарифа = selectedMethod: getPayButtonLabel + i18n keys payWith_yookassa/stripe/paypal/crypto; кнопка disabled если метод не enabled
+- [FIX] handlePayment → processPayment: прямой вызов endpoint выбранного метода — yookassa POST /api/yookassa/pay/subscription → window.location = paymentUrl; stripe/paypal/crypto — их endpoints; ошибки показываются showToast с текстом из ответа
+- [UI] Убрана старая PaymentMethodSelector-модалка из SettingsPage (оставлена для AddonMarketplace); убраны showPaymentSelector/selectedPlan state
+- [i18n] ru/en: recommended, payWith_*, paymentMethodUnavailable, paymentMethodNotReady, paymentNoUrl, paymentSuccess, paymentCancelled, paymentError
+- [TEST] node --check backend/services/paymentMethods.js backend/routes/subscriptions.js backend/routes/payments.js ✅; npm run build ✅; git diff --stat — только paymentMethods, subscriptions-роут, SettingsPage, i18n
+- [NOTE] Ручная проверка владельцем: Подписка → табы переключаются и подсвечиваются; RUB → кнопка «Оплатить через ЮKassa»; клик → redirect ЮKassa; тестовая карта 5555 5555 5555 4477 / 12/25 / 000 → success; Stripe/PayPal/Crypto disabled с причиной «Не настроено: Кабинет → API Ключи"
