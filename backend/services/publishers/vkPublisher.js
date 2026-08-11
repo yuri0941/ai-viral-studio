@@ -8,8 +8,13 @@ export const publishToVK = async (accessToken, ownerId, message, attachments) =>
     })
     if (attachments) params.append('attachments', attachments)
 
-    const res = await fetch(`${url}?${params}`)
-    return res.json()
+    try {
+        const res = await fetch(`${url}?${params}`)
+        const data = await res.json()
+        return data
+    } catch (err) {
+        return { error: { error_msg: err.message || 'Network error', error_code: 'network' } }
+    }
 }
 
 // [SOCIAL-v5.1] added

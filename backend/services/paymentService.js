@@ -23,7 +23,10 @@ export async function activateSubscription(userId, planId) {
   return { active: true, plan: getPlan(planId), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) };
 }
 
+import { isOwner, isWithinLimit } from '../utils/canUse.js'
+
 export function checkQuota(user, action) {
+  if (isOwner(user)) return { allowed: true, unlimited: true }
   const plan = getPlan(user.subscription?.plan || 'free');
   const used = user.subscription?.used || {};
   const limits = plan.limits;

@@ -1,6 +1,6 @@
 import ScheduledPost from '../models/ScheduledPost.js'
-import Integration from '../models/Integration.js'
-import { publish } from './publishers/index.js'
+import User from '../models/User.js'
+import { publishToPlatform } from './platformPublisher.js'
 
 // [v9.9.19.3] алерт владельцу о постах без платформ — один раз на пост, без спама
 const noPlatformAlerted = new Set()
@@ -8,13 +8,17 @@ const noPlatformAlerted = new Set()
 export const startAutoPublisher = () => {
     setInterval(async () => {
         const now = new Date()
-        const posts = await ScheduledPost.find({ status: 'scheduled', scheduledAt: { $lte: now } })
+        const posts = await ScheduledPost.find({
+            $or: [
+                { status: 'scheduled', scheduledAt: { $lte: now } },
+                { status: 'failed', retriedAt: { $exists: false }, scheduledAt: { $lte: new Date(now.getTime() + 5 * 60 * 1000) } }
+            ]
+        })
 
         for (const post of posts) {
             let platforms = post.platforms || []
 
-            // [v9.9.19.2-UX-HOTFIX-v4] platforms пуст → пропуск с понятным логом (НЕ «published to 0 platforms» как успех).
-            // Telegram-канал владельца ведёт отдельный автопостер канала (telegramChannelManager, cron 08/14/20 MSK).
+            // [v9.9.19.2-UX-HOTFIX-v4] platforms пуст → пропуск с понятным логом.
             if (platforms.length === 0) {
                 if (!noPlatformAlerted.has(String(post._id))) {
                     noPlatformAlerted.add(String(post._id))
@@ -23,42 +27,60 @@ export const startAutoPublisher = () => {
                 continue
             }
 
+            const user = await User.findById(post.userId)
+                .select('+vkToken +vkRefreshToken telegramBotToken telegramChatId telegramId socials.vk')
+            if (!user) {
+                console.warn(`[AUTO-PUBLISH] skipped: user not found (post ${post._id})`)
+                post.status = 'failed'
+                post.errorMessage = 'User not found'
+                await post.save()
+                continue
+            }
+
             const results = []
 
             for (const platform of platforms) {
-                const integration = await Integration.findOne({ userId: post.userId, provider: platform, isActive: true })
-                if (!integration) {
-                    results.push({ platform, status: 'skipped', reason: 'Not connected' })
-                    continue
-                }
-
                 try {
-                    const result = await publish(platform, integration, post)
-                    results.push({ platform, status: 'published', result })
+                    const result = await publishToPlatform(user, platform, post)
+                    results.push({ platform, status: result.success !== false ? 'published' : 'error', result })
                 } catch (e) {
                     results.push({ platform, status: 'error', error: e.message })
                 }
             }
 
             const publishedCount = results.filter(r => r.status === 'published').length
+
+            // [v9.9.19.15] retry once after 5 minutes if no platform published
+            if (publishedCount === 0 && !post.retriedAt) {
+                post.status = 'scheduled'
+                post.scheduledAt = new Date(Date.now() + 5 * 60 * 1000)
+                post.retriedAt = new Date()
+                post.publishResults = results
+                post.errorMessage = results.map(r => `${r.platform}: ${r.error || r.result?.error || 'failed'}`).join('; ')
+                await post.save()
+                console.warn(`[AUTO-PUBLISH] retry scheduled in 5 min (post ${post._id}): ${post.errorMessage}`)
+                continue
+            }
+
             post.status = publishedCount > 0 ? 'published' : 'failed'
             post.publishResults = results
             post.publishedAt = new Date()
-            await post.save()
-
-            // [v9.9.19.3] 0 платформ = warning + ОДИН алерт владельцу (не спам)
             if (publishedCount === 0) {
+                post.errorMessage = results.map(r => `${r.platform}: ${r.error || r.result?.error || 'failed'}`).join('; ')
                 console.warn(`[AUTO-PUBLISH] skipped: post ${post._id} — 0 platforms published (${results.map(r => `${r.platform}:${r.status}`).join(', ')})`)
                 if (!noPlatformAlerted.has(String(post._id))) {
                     noPlatformAlerted.add(String(post._id))
                     try {
                         const { alertOwner } = await import('./ownerBot.js')
-                        alertOwner?.(`⚠️ Автопост не опубликован: ни одна платформа не подключена.\nПост: ${(post.title || '').slice(0, 60)}\nПодключите соцсети в Integrations или оставьте platforms пустым — уйдёт в Telegram-канал.`)
+                        alertOwner?.(`⚠️ Автопост не опубликован: ни одна платформа не подключена.\nПост: ${(post.title || '').slice(0, 60)}\nПодключите соцсети в Integrations.`)
                     } catch { /* алерт не критичен */ }
                 }
             } else {
+                const firstUrl = results.find(r => r.result?.postUrl)?.result?.postUrl
+                if (firstUrl) post.publishedUrl = firstUrl
                 console.log(`[AUTO-PUBLISH] Post ${post._id} published to ${publishedCount} platforms`)
             }
+            await post.save()
         }
     }, 5 * 60 * 1000)
 

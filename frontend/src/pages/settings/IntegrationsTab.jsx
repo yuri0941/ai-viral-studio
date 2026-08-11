@@ -123,7 +123,8 @@ export default function IntegrationsTab() {
 
   const disconnect = (provider) => {
     if (confirm('Отключить?')) {
-      fetch(`${API_BASE_URL}/integrations/${provider}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` }})
+      const endpoint = provider === 'vk' ? '/vk' : `/integrations/${provider}`;
+      fetch(`${API_BASE_URL}${endpoint}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` }})
         .then(() => window.location.reload());
     }
   };
@@ -168,6 +169,7 @@ export default function IntegrationsTab() {
         {PLATFORMS.map(p => {
           const connected = isConnected(p.id);
           const configured = isConfigured(p.id);
+          const needsScope = p.id === 'vk' && vkStatus.connected && vkStatus.needsScope;
           const status = integrations.find(i => i.provider === p.id);
           const accountName = p.id === 'vk' ? vkStatus.accountName : (p.id === 'telegram' ? tgStatus.username : status?.accountName);
           return (
@@ -176,20 +178,33 @@ export default function IntegrationsTab() {
                 <div className={`w-10 h-10 rounded-xl ${p.color} flex items-center justify-center text-white font-bold text-sm`}>
                   {p.icon}
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${connected ? 'bg-emerald-500/20 text-emerald-400' : configured ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'}`}>
-                  {connected ? t('socials.connected') : (configured ? t('socials.notConnected') : t('socials.notConfigured'))}
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  needsScope ? 'bg-orange-500/20 text-orange-400'
+                    : connected ? 'bg-emerald-500/20 text-emerald-400'
+                    : configured ? 'bg-yellow-500/20 text-yellow-400'
+                    : 'bg-gray-500/20 text-gray-400'
+                }`}>
+                  {needsScope ? t('vk.needsScope')
+                    : connected ? t('socials.connected')
+                    : (configured ? t('socials.notConnected') : t('socials.notConfigured'))}
                 </span>
               </div>
               <h4 className="text-white font-medium mb-1">{p.name}</h4>
               <p className="text-xs text-gray-500 mb-4">
-                {connected && accountName ? t('socials.account', { name: accountName }) : (configured ? p.desc : t('socials.configureHint'))}
+                {(connected || needsScope) && accountName ? t('socials.account', { name: accountName }) : (configured ? p.desc : t('socials.configureHint'))}
               </p>
               <button
-                onClick={() => connected ? disconnect(p.id) : handleConnect(p.id)}
+                onClick={() => connected && !needsScope ? disconnect(p.id) : handleConnect(p.id)}
                 disabled={!configured && !connected}
-                className={`w-full py-2 rounded-xl text-sm font-medium transition-all ${connected ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full py-2 rounded-xl text-sm font-medium transition-all ${
+                  needsScope ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30 hover:bg-orange-500/30'
+                    : connected ? 'bg-white/5 text-gray-300 hover:bg-white/10'
+                    : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-lg hover:shadow-violet-500/25'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {connected ? t('socials.disconnect') : (configured ? t('socials.connect') : t('socials.notConfigured'))}
+                {needsScope ? t('vk.allowPublishing')
+                  : connected ? t('socials.disconnect')
+                  : (configured ? t('socials.connect') : t('socials.notConfigured'))}
               </button>
             </div>
           );

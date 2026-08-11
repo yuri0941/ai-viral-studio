@@ -25,7 +25,8 @@
     "notifications": "Notifications",
     "profile": "Profile",
     "settings": "Settings",
-    "connected": "Connected"
+    "connected": "Connected",
+    "connect": "Connect"
   },
   "requisites": {
     "contactEmail": "Contact email for client questions",
@@ -896,7 +897,8 @@
       "calm": "Calm",
       "motivational": "Motivational",
       "humorous": "Humorous"
-    }
+    },
+    "step": "Step"
   },
   "voice": {
     "speaking": "🔊 Speaking...",
@@ -1480,7 +1482,15 @@
     "publishError": "Publish error",
     "planError": "Plan generation error",
     "settingsUpdated": "Telegram settings updated",
-    "saveError": "Save error"
+    "saveError": "Save error",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "notConfigured": "Not configured",
+    "account": "Account: {{username}}",
+    "description": "Telegram notifications and bot",
+    "disconnect": "Disconnect",
+    "connectLinkFailed": "Failed to get Telegram link",
+    "disconnected": "Telegram disconnected"
   },
   "selfOptimize": {
     "title": "Self-Optimize — OMEGA learns by itself",
@@ -1666,5 +1676,55 @@
     "join": "Join",
     "close": "Close",
     "escalate": "Escalate"
+  },
+  "socials": {
+    "title": "Social networks",
+    "subtitle": "Connect platforms for publishing",
+    "integrationsTitle": "Integrations",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "notConfigured": "Not configured",
+    "account": "Account: {{name}}",
+    "configureHint": "First configure the app in API Keys",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connectUnavailable": "{{provider}} connection is temporarily unavailable",
+    "connectError": "Connection error",
+    "tabSocial": "Socials",
+    "tabExternal": "External",
+    "tabWebhooks": "Webhooks"
+  },
+  "vk": {
+    "title": "VK",
+    "description": "Publish to VK wall",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "notConfigured": "Not configured",
+    "ready": "Ready to connect",
+    "connect": "Connect VK",
+    "disconnect": "Disconnect VK",
+    "disconnectSuccess": "VK disconnected",
+    "account": "Account: {{name}}",
+    "manage": "Manage",
+    "configureHint": "Add VK Client ID and Secret in API Keys",
+    "authUrlFailed": "Failed to get VK auth link",
+    "needsScope": "Publishing permission required",
+    "allowPublishing": "Allow publishing",
+    "authError": "VK authorization error: {{reason}}",
+    "authMissingParams": "Missing authorization parameters",
+    "authSuccess": "VK connected successfully",
+    "authFailed": "Failed to connect VK",
+    "callbackTitle": "VK Connection",
+    "processing": "Connecting VK...",
+    "goToSettings": "Go to settings",
+    "authHint": "If the error persists, check the redirect URI in your VK app settings",
+    "connectAgain": "Connect again",
+    "publishSuccess": "Post published to VK wall",
+    "publishError": "Publish error: {{error}}",
+    "openPost": "Open post in VK",
+    "reconnectHint": "VK reconnection required"
+  },
+  "discord": {
+    "connectTitle": "Connect Discord webhook"
   }
 }

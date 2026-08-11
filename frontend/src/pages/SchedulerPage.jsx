@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import {
     Calendar, ChevronLeft, ChevronRight, Plus, Clock,
     Video, Image, FileText, Trash2, Edit3, Upload,
@@ -181,16 +182,20 @@ function SchedulerPage() {
         loadPosts();
     }, [loadPosts]);
 
-    // [SOCIAL-v5.1] added: load connected social platforms
+    // [SOCIAL-v5.1] added: load connected social platforms from user.socials (VK/Telegram) + legacy integrations
     useEffect(() => {
         const token = localStorage.getItem('token');
-        fetch(`${API_BASE_URL}/integrations/my`, { headers: { Authorization: `Bearer ${token}` }})
-            .then(r => r.json())
-            .then(data => {
-                const providers = Array.isArray(data) ? data.map(i => i.provider) : [];
-                setAvailablePlatforms(providers);
-            })
-            .catch(err => console.warn('[Scheduler] failed to load integrations:', err));
+        const headers = { Authorization: `Bearer ${token}` };
+        Promise.all([
+            fetch(`${API_BASE_URL}/integrations/my`, { headers }).then(r => r.json()).catch(() => []),
+            fetch(`${API_BASE_URL}/vk/status`, { headers }).then(r => r.json()).catch(() => ({})),
+            fetch(`${API_BASE_URL}/telegram/status`, { headers }).then(r => r.json()).catch(() => ({})),
+        ]).then(([integrations, vk, tg]) => {
+            const set = new Set(Array.isArray(integrations) ? integrations.map(i => i.provider) : []);
+            if (vk?.success && vk.connected) set.add('vk');
+            if (tg?.success && tg.connected) set.add('telegram');
+            setAvailablePlatforms(Array.from(set));
+        }).catch(err => console.warn('[Scheduler] failed to load connected platforms:', err));
     }, []);
 
     // Media queue derived from posts + standalone uploads
@@ -1028,7 +1033,11 @@ function SchedulerPage() {
                                             className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-emerald-500 focus:ring-emerald-500"
                                         />
                                         <span>Опубликовать сейчас</span>
-                                        {availablePlatforms.length === 0 && <span className="text-xs text-orange-400">(сначала подключите соцсети)</span>}
+                                        {availablePlatforms.length === 0 && (
+                                            <Link to="/settings?tab=integrations" className="text-xs text-orange-400 underline hover:text-orange-300">
+                                                (сначала подключите соцсети)
+                                            </Link>
+                                        )}
                                     </label>
                                     <button type="button" onClick={handleSave} disabled={!formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-lg shadow-emerald-500/25 transition transform hover:scale-[1.02] flex items-center gap-2">
                                         <span>🚀</span> Опубликовать

@@ -3,8 +3,7 @@ import { protect } from '../middleware/auth.js'
 import ScheduledPost from '../models/ScheduledPost.js'
 import User from '../models/User.js'
 import { publishToTelegram } from '../services/telegramPublish.js'
-import { publish } from '../services/publishers/index.js'
-import Integration from '../models/Integration.js'
+import { publishToPlatform } from '../services/platformPublisher.js'
 
 const router = express.Router()
 
@@ -126,34 +125,36 @@ router.post('/telegram-test', protect, async (req, res) => {
     }
 })
 
-// [SOCIAL-v5.1] added: publish to connected social platforms
+// [SOCIAL-v5.1] added: publish to connected social platforms (VK/Telegram via user.socials)
 router.post('/:id/publish', protect, async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id
         const post = await ScheduledPost.findOne({ _id: req.params.id, userId })
         if (!post) return res.status(404).json({ status: 'error', error: 'Post not found' })
 
+        const user = await User.findById(userId)
+            .select('+vkToken +vkRefreshToken telegramBotToken telegramChatId telegramId socials.vk')
+        if (!user) return res.status(404).json({ status: 'error', error: 'User not found' })
+
         const platforms = req.body.platforms || post.platforms || []
         const results = []
 
         for (const platform of platforms) {
-            const integration = await Integration.findOne({ userId, provider: platform, isActive: true })
-            if (!integration) {
-                results.push({ platform, status: 'skipped', reason: 'Not connected' })
-                continue
-            }
-
             try {
-                const result = await publish(platform, integration, post)
-                results.push({ platform, status: 'published', result })
+                const result = await publishToPlatform(user, platform, post)
+                results.push({ platform, status: result.success !== false ? 'published' : 'error', result })
             } catch (e) {
                 results.push({ platform, status: 'error', error: e.message })
             }
         }
 
-        post.status = results.some(r => r.status === 'published') ? 'published' : 'failed'
+        const published = results.filter(r => r.status === 'published')
+        post.status = published.length > 0 ? 'published' : 'failed'
         post.publishResults = results
         post.publishedAt = new Date()
+        if (published.length > 0 && published[0].result?.postUrl) {
+            post.publishedUrl = published[0].result.postUrl
+        }
         await post.save()
 
         res.json({ status: 'success', data: { results } })

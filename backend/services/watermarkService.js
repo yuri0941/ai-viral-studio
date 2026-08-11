@@ -108,9 +108,11 @@ export async function applyWatermarkToImage(imageUrl, settings = {}) {
     }
 }
 
+import { isOwner } from '../utils/canUse.js'
+
 export function canDisableWatermark(user) {
     if (!user) return false
-    if (user.role === 'owner') return true
+    if (isOwner(user)) return true
     const allowedSubscriptions = ['pro', 'enterprise']
     return allowedSubscriptions.includes(user.subscription)
 }

@@ -5,8 +5,11 @@ function randomId() {
     return Math.random().toString(36).slice(2, 10)
 }
 
+import { isOwner } from '../utils/canUse.js'
+
 export async function validateSpawning(user) {
     if (!user) return { ok: false, message: 'Пользователь не найден' }
+    if (isOwner(user)) return { ok: true }
     const allowedSubscriptions = ['agency', 'enterprise', 'business']
     if (!allowedSubscriptions.includes(user.subscription)) {
         return { ok: false, message: 'Для создания бизнеса нужен Agency или Enterprise тариф' }

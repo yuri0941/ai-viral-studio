@@ -16,6 +16,7 @@ const scheduledPostSchema = new mongoose.Schema({
   // [SOCIAL-v5.1] added publishing metadata
   publishResults: [{ platform: String, status: String, result: Object, error: String }],
   publishedAt: { type: Date },
+  retriedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 })

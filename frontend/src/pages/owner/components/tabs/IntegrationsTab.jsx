@@ -207,16 +207,28 @@ export function IntegrationsTab({ data }) {
                                     <p className="text-xs text-[var(--text-muted)]">{t('vk.description')}</p>
                                 </div>
                             </div>
-                            <div className={`px-3 py-1 rounded-full text-xs font-medium ${vkStatus.connected ? 'bg-emerald-500/20 text-emerald-400' : vkStatus.configured ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'}`}>
-                                {vkStatus.connected ? t('vk.connected') : vkStatus.configured ? t('vk.ready') : t('vk.notConfigured')}
+                            <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                vkStatus.connected && !vkStatus.needsScope ? 'bg-emerald-500/20 text-emerald-400'
+                                    : vkStatus.connected ? 'bg-orange-500/20 text-orange-400'
+                                    : vkStatus.configured ? 'bg-yellow-500/20 text-yellow-400'
+                                    : 'bg-gray-500/20 text-gray-400'
+                            }`}>
+                                {vkStatus.connected && vkStatus.needsScope ? t('vk.needsScope')
+                                    : vkStatus.connected ? t('vk.connected')
+                                    : vkStatus.configured ? t('vk.ready')
+                                    : t('vk.notConfigured')}
                             </div>
                         </div>
 
-                        {vkStatus.connected && vkStatus.accountName && (
-                            <p className="text-sm text-[var(--text-muted)] mb-3">{t('vk.account', { name: vkStatus.accountName })}</p>
+                        {(vkStatus.connected || vkStatus.accountName) && (
+                            <p className="text-sm text-[var(--text-muted)] mb-3">{t('vk.account', { name: vkStatus.accountName || '' })}</p>
                         )}
 
-                        {vkStatus.connected ? (
+                        {vkStatus.connected && vkStatus.needsScope ? (
+                            <button onClick={connectVK} className="w-full px-4 py-2 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-lg hover:bg-orange-500/30 transition flex items-center justify-center gap-2">
+                                <ExternalLink size={16} /> {t('vk.allowPublishing')}
+                            </button>
+                        ) : vkStatus.connected ? (
                             <button onClick={disconnectVK} className="w-full px-4 py-2 bg-white/5 text-gray-300 border border-white/10 rounded-lg hover:bg-white/10 transition flex items-center justify-center gap-2">
                                 {t('vk.disconnect')}
                             </button>

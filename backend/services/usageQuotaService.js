@@ -1,6 +1,7 @@
 import { UsageQuota } from '../models/index.js'
 import User from '../models/User.js'
 import { PLANS } from '../config/plans.js'
+import { isOwner } from '../utils/canUse.js'
 
 // [MONETIZE-2026-08-04] updated: unified plan limits from config
 const DEFAULT_LIMITS = {
@@ -35,6 +36,12 @@ export async function getOrCreateQuota(userId, plan = null) {
 }
 
 export async function checkQuota(userId) {
+    try {
+        const user = await User.findById(userId).select('role email').lean()
+        if (isOwner(user)) {
+            return { used: 0, limit: Infinity, remaining: Infinity, overageUsed: 0, overageCost: 0, topUpPackSize: 0, topUpPackPrice: 0, plan: 'owner', blocked: false, overageAllowed: true, cycleEndsAt: null }
+        }
+    } catch { /* ignore */ }
     const quota = await getOrCreateQuota(userId)
     const remaining = Math.max(0, quota.generationsLimit - quota.generationsUsed)
     const overageAllowed = quota.plan === 'agency' || quota.plan === 'enterprise'
@@ -55,7 +62,7 @@ export async function checkQuota(userId) {
 }
 
 export async function consumeGeneration(userId, userRole = null, { isInfoQuery = false } = {}) {
-    if (['owner', 'admin', 'staff'].includes(userRole)) {
+    if (isOwner({ role: userRole })) {
         return { allowed: true, remaining: Infinity, unlimited: true }
     }
     const quota = await getOrCreateQuota(userId)

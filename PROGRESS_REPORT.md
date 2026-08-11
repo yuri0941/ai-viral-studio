@@ -3850,3 +3850,18 @@
   3) Подписка RUB → кнопка «Оплатить через ЮKassa» → запрос к `/yookassa/pay/subscription`; ошибки видны текстом.
   4) Соцсети/Подписка — все тексты переведены, сырых ключей нет.
 - [NOTE] ЮKassa: если пар ключей не вставлен — таб disabled молча; после вставки `integrationStatus`/`getProviderKey` обновляется без рестарта.
+## 2026-08-11 — v9.9.19.15-VK-WALL-POSTING-AND-SOCIALS-FINAL
+- [DIAG] Сырые i18n-ключи (socials.*, vk.*) в интерфейсе Соцсетей и VK-callback: в `frontend/src/locales/ru.json`/`en.json` отсутствовали namespace `socials`/`vk`/`discord`; компоненты использовали именно эти ключи.
+- [FIX] i18n: добавлены полные namespace `socials.*`, `vk.*`, `discord.*` и недостающие `telegram.*`/`common.connect` в `ru.json`/`en.json`. Grep реальных `t(...)` из компонентов подтверждает ноль сырых ключей.
+- [FIX] Композер (`SchedulerPage`): источник подключённых платформ — `/vk/status`, `/telegram/status` + `/integrations/my`. VK/Telegram определяются по `user.socials`. Подсказка «сначала подключите соцсети» теперь ссылка в Настройки → Соцсети и показывается только если платформ действительно нет.
+- [FIX] VK scope: авторизация запрашивает `vkid.personal_info wall photos`; в callback сохраняется `socials.vk.scope`, `vkRefreshToken`, `vkTokenExpiresAt`. Старые подключения без `wall` получают `needsScope=true` → карточка VK показывает «Разрешить публикацию»; повторный PKCE-флоу обновляет права.
+- [FIX] VK refresh: `vkTokenService.js` обновляет access_token по refresh_token; `vkPublishService.js` использует свежий токен, при неудаче возвращает JSON с hint «требуется переподключение», без падений.
+- [FIX] VK posting: `POST /api/vk/publish` → `wall.post` (api.vk.com, v=5.199, owner_id = свой id) → сохраняет `VkPost` → JSON `{success, postId, postUrl}`. Ошибки VK (access denied/permissions) → JSON + hint «разрешите публикацию». Медиа (фото) — не реализовано в этом коммите; текст+link работает.
+- [FIX] Планировщик: `platformPublisher.js` маршрутизирует VK/Telegram через `user.socials`/`vkToken`, legacy-платформы — через `Integration`. `scheduledPosts/:id/publish` и `autoPublisher` используют единый publisher. Автопост с `vk` публикуется по due-времени, при неудаче — 1 ретрай через 5 мин, статус `published`/`failed` + причина.
+- [FIX] Owner unlimited: `utils/canUse.js` (`isOwner`/`canUse`/`getPlanLimit`/`isWithinLimit`) — владелец/email из `OWNER_EMAIL` всегда true. Заменены проверки в `usageQuotaService`, `paymentService.checkQuota`, `watermarkService.canDisableWatermark`, `businessSpawner.validateSpawning`, `freeToPaid.checkFreeLimits`. Клиенты — по плану.
+- [TEST] `node --check` по всем backend-файлам ✅; `npm run build` ✅; `git diff --stat` — только vk, соцсети/композер, scheduler, canUse, i18n.
+- [NOTE] Ручная проверка владельцем:
+  1) Соцсети → VK → «Разрешить публикацию» → consent с scope wall.
+  2) Композер → тест-пост → «Опубликовать сейчас» → пост на стене VK.
+  3) Планировщик → пост через 2 мин → появился на стене.
+  4) Все тексты на русском, сырых ключей нет.

@@ -25,7 +25,8 @@
     "notifications": "Уведомления",
     "profile": "Профиль",
     "settings": "Настройки",
-    "connected": "Подключено"
+    "connected": "Подключено",
+    "connect": "Подключить"
   },
   "requisites": {
     "contactEmail": "Контактный email для вопросов клиентов",
@@ -895,7 +896,8 @@
       "calm": "Спокойный",
       "motivational": "Мотивационный",
       "humorous": "Юмористический"
-    }
+    },
+    "step": "Шаг"
   },
   "voice": {
     "speaking": "🔊 Говорю...",
@@ -1453,7 +1455,15 @@
     "stopStart": "Стоп / Старт",
     "openDashboard": "Открыть Dashboard",
     "supportSent": "Обращение отправлено",
-    "writeInTelegram": "Написать в Telegram"
+    "writeInTelegram": "Написать в Telegram",
+    "connected": "Подключено",
+    "notConnected": "Не подключено",
+    "notConfigured": "Не настроено",
+    "account": "Аккаунт: {{username}}",
+    "description": "Telegram-уведомления и бот",
+    "disconnect": "Отключить",
+    "connectLinkFailed": "Не удалось получить ссылку Telegram",
+    "disconnected": "Telegram отключён"
   },
   "selfOptimize": {
     "title": "Self-Optimize — OMEGA учится сама",
@@ -1694,5 +1704,55 @@
     "join": "Присоединиться",
     "close": "Закрыть",
     "escalate": "Эскалация"
+  },
+  "socials": {
+    "title": "Соцсети",
+    "subtitle": "Подключите платформы для публикаций",
+    "integrationsTitle": "Интеграции",
+    "connected": "Подключено",
+    "notConnected": "Не подключено",
+    "notConfigured": "Не настроено",
+    "account": "Аккаунт: {{name}}",
+    "configureHint": "Сначала настройте приложение в API Keys",
+    "connect": "Подключить",
+    "disconnect": "Отключить",
+    "connectUnavailable": "Подключение {{provider}} временно недоступно",
+    "connectError": "Ошибка подключения",
+    "tabSocial": "Соцсети",
+    "tabExternal": "Внешние",
+    "tabWebhooks": "Вебхуки"
+  },
+  "vk": {
+    "title": "VK",
+    "description": "Публикации на стене VK",
+    "connected": "Подключено",
+    "notConnected": "Не подключено",
+    "notConfigured": "Не настроено",
+    "ready": "Готов к подключению",
+    "connect": "Подключить VK",
+    "disconnect": "Отключить VK",
+    "disconnectSuccess": "VK отключён",
+    "account": "Аккаунт: {{name}}",
+    "manage": "Управлять",
+    "configureHint": "Добавьте VK Client ID и Secret в API Keys",
+    "authUrlFailed": "Не удалось получить ссылку VK",
+    "needsScope": "Требуется разрешение на публикацию",
+    "allowPublishing": "Разрешить публикацию",
+    "authError": "Ошибка авторизации VK: {{reason}}",
+    "authMissingParams": "Не хватает параметров авторизации",
+    "authSuccess": "VK успешно подключён",
+    "authFailed": "Не удалось подключить VK",
+    "callbackTitle": "Подключение VK",
+    "processing": "Подключаем VK...",
+    "goToSettings": "В настройки",
+    "authHint": "Если ошибка повторяется, проверьте redirect URI в настройках приложения VK",
+    "connectAgain": "Подключить снова",
+    "publishSuccess": "Пост опубликован на стене VK",
+    "publishError": "Ошибка публикации: {{error}}",
+    "openPost": "Открыть пост в VK",
+    "reconnectHint": "Требуется переподключение VK"
+  },
+  "discord": {
+    "connectTitle": "Подключить Discord webhook"
   }
 }

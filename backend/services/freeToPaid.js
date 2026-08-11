@@ -24,7 +24,12 @@ const LIMITS = {
   }
 };
 
+import { isOwner } from '../utils/canUse.js'
+
 export function checkFreeLimits(user, action) {
+  if (isOwner(user)) {
+    return { allowed: true, unlimited: true, plan: 'owner', action, limit: Infinity, used: user.usage?.[action] || 0, remaining: Infinity, upgrade: null };
+  }
   const plan = user.subscription || 'free';
   const limit = LIMITS[plan] || LIMITS.free;
   const used = user.usage || {};
@@ -63,7 +68,7 @@ export async function incrementUsage(userId, action, count = 1) {
 
 export async function startGracePeriod(userId) {
   const user = await User.findById(userId);
-  if (!user || user.subscription !== 'free') return { skipped: true };
+  if (!user || isOwner(user) || user.subscription !== 'free') return { skipped: true };
 
   const endsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
   user.gracePeriod = { active: true, endsAt, messagesSent: 0 };

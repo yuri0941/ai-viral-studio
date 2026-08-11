@@ -3,8 +3,9 @@ import crypto from 'crypto';
 import axios from 'axios';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
-import { getProviderKey } from '../services/aiService.js';
 import { integrationStatus } from '../utils/integrationStatus.js';
+import { getVkCreds, refreshVkToken, isVkTokenExpired } from '../services/vkTokenService.js';
+import { publishToVKWall } from '../services/vkPublishService.js';
 
 const router = express.Router();
 
@@ -32,12 +33,7 @@ const VK_REDIRECT_URI = process.env.VK_REDIRECT_URI || 'https://aiviral-studio.r
 const VK_FRONTEND_URL = process.env.FRONTEND_URL || 'https://aiviral-studio.ru';
 const VK_TOKEN_HOST = process.env.VK_TOKEN_HOST || 'id.vk.ru';
 
-async function getVkCreds() {
-  return {
-    clientId: (await getProviderKey('vk')) || process.env.VK_APP_ID || process.env.VK_CLIENT_ID,
-    clientSecret: (await getProviderKey('vk_secret')) || process.env.VK_APP_SECRET || process.env.VK_CLIENT_SECRET,
-  };
-}
+const VK_SCOPES = 'vkid.personal_info wall photos';
 
 router.get('/vk/auth-url', protect, async (req, res) => {
   try {
@@ -63,6 +59,7 @@ router.get('/vk/auth-url', protect, async (req, res) => {
     stateStore.set(state, {
       codeVerifier,
       userId: req.user.id,
+      scope: VK_SCOPES,
       createdAt: Date.now()
     });
 
@@ -73,7 +70,7 @@ router.get('/vk/auth-url', protect, async (req, res) => {
       state,
       code_challenge: generateCodeChallenge(codeVerifier),
       code_challenge_method: 'S256',
-      scope: 'vkid.personal_info'
+      scope: VK_SCOPES
     }).toString();
 
     return res.json({ success: true, configured: true, authUrl, state });
@@ -162,13 +159,21 @@ router.post('/vk/callback', protect, async (req, res) => {
     const userInfo = userRes.data;
     const vkUser = userInfo?.user || {};
 
+    const scopeString = tokenData.scope || stored.scope || VK_SCOPES;
+    const scopes = typeof scopeString === 'string' ? scopeString.split(/\s+/) : (Array.isArray(scopeString) ? scopeString : []);
+    const expiresIn = Number(tokenData.expires_in) || 0;
+
     await User.findByIdAndUpdate(req.user.id, {
       $set: {
         'socials.vk.userId': String(vkUser.user_id || vkUser.id || ''),
         'socials.vk.username': [vkUser.first_name, vkUser.last_name].filter(Boolean).join(' ') || `vk${vkUser.user_id || vkUser.id}`,
         'socials.vk.link': vkUser.user_id || vkUser.id ? `https://vk.com/id${vkUser.user_id || vkUser.id}` : '',
         'socials.vk.enabled': true,
+        'socials.vk.scope': scopes,
+        'socials.vk.needsScope': !scopes.includes('wall'),
         vkToken: accessToken,
+        vkRefreshToken: tokenData.refresh_token || '',
+        vkTokenExpiresAt: expiresIn ? new Date(Date.now() + expiresIn * 1000) : undefined,
         vkUserId: String(vkUser.user_id || vkUser.id || ''),
         vkConnectedAt: new Date(),
       }
@@ -188,10 +193,13 @@ router.get('/vk/status', protect, async (req, res) => {
     const status = await integrationStatus('vk', req.user.id);
     const user = await User.findById(req.user.id).select('socials.vk vkUserId').lean();
     const connected = !!(user?.socials?.vk?.userId || user?.vkUserId);
+    const scope = user?.socials?.vk?.scope || [];
+    const needsScope = connected && !scope.includes('wall');
     return res.json({
       success: true,
       configured: status.configured,
       connected,
+      needsScope,
       userId: user?.socials?.vk?.userId || user?.vkUserId || null,
       accountName: user?.socials?.vk?.username || null,
       setupGuide: status.configured ? undefined : [
@@ -205,7 +213,7 @@ router.get('/vk/status', protect, async (req, res) => {
     });
   } catch (err) {
     console.error('[VK status] error:', err.message);
-    return res.json({ success: false, configured: false, connected: false });
+    return res.json({ success: false, configured: false, connected: false, needsScope: false });
   }
 });
 
@@ -213,8 +221,10 @@ router.delete('/vk', protect, async (req, res) => {
   try {
     await User.findByIdAndUpdate(req.user.id, {
       $set: {
-        'socials.vk': { userId: '', username: '', link: '', enabled: false },
+        'socials.vk': { userId: '', username: '', link: '', enabled: false, scope: [], needsScope: true },
         vkToken: '',
+        vkRefreshToken: '',
+        vkTokenExpiresAt: null,
         vkUserId: '',
       }
     });
@@ -222,6 +232,27 @@ router.delete('/vk', protect, async (req, res) => {
   } catch (err) {
     console.error('[VK disconnect] error:', err.message);
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/vk/publish', protect, async (req, res) => {
+  try {
+    const { text, link } = req.body || {};
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, error: 'empty_text', hint: 'Добавьте текст поста' });
+    }
+    const user = await User.findById(req.user.id).select('+vkToken +vkRefreshToken socials.vk vkUserId');
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'user_not_found' });
+    }
+    const result = await publishToVKWall(user, { text, link });
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    return res.json(result);
+  } catch (err) {
+    console.error('[VK publish] error:', err.message);
+    return res.status(400).json({ success: false, error: 'server_error', reason: err.message, hint: 'Попробуйте опубликовать позже' });
   }
 });
 
