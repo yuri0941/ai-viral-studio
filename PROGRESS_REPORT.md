@@ -4189,3 +4189,28 @@
   2) Пост С ВИДЕО → `[vk:video] code=5` → `vk_video_no_scope` (без ретраев) → text-only на стене + уведомление; в планировщике жёлтый warning.
   3) Видео-пост НЕ ретраится каждые 5 минут в логах.
   4) Регрессия: текстовый пост, дабл-клик = один пост, Telegram-канал постит, бот «привет» отвечает, ключи после F5.
+
+## 2026-08-12 — v9.9.19.15.17-VK-KILL-SWITCH — глобальное отключение VK одной переменной
+- [DIAG] VK-публикация должна молчать в логах и не падать при временном отключении — нужен kill switch без переключения веток.
+- [FIX] `backend/utils/connectedSocials.js`:
+  - Добавлен `isVkPublishingEnabled()` — `process.env.VK_PUBLISHING_ENABLED === 'true'`; по умолчанию VK выключен.
+  - `getConnectedSocials` при выключенном флаге возвращает для VK `{ connected: false, disabled: true, reason: 'vk_disabled' }` без обращений к VK.
+- [FIX] `backend/services/vkPublishService.js`:
+  - При старте: один `console.debug('[vk] publishing disabled by env')`, если выключено.
+  - В начале `publishToVKGroup` guard: при выключенном флаге возвращает `{ skipped: true, reason: 'vk_disabled' }` без логов и без вызовов VK API.
+  - `requeueVkFailedPosts` ничего не делает при выключенном VK.
+- [FIX] `backend/services/autoPublisher.js`:
+  - `'vk_disabled'` добавлен в `PERMANENT_ERROR_CODES`.
+  - Посты с глобально отключённой платформой получают `status: 'skipped'`, `errorMessage: 'vk_disabled'`, без ретраев и без алертов владельцу.
+- [FIX] `backend/routes/scheduledPosts.js` /publish: VK-платформа молча пропускается (`skipped`), остальные платформы публикуются как обычно.
+- [FIX] `backend/routes/vk.js`: `GET /vk/status` → `{ disabled: true, configured: false }`; `POST /vk/test`, `/vk/test-photo`, `/vk/test-video`, `/vk/publish` → `{ skipped: true, reason: 'vk_disabled' }` без вызовов VK API. `POST /vk/community` оставлен рабочим для сохранения ключа.
+- [FIX] `frontend/src/pages/settings/IntegrationsTab.jsx`: при `disabled: true` карточка VK показывает серый бейдж `vk.disabled` и описание; форма скрыта.
+- [FIX] `frontend/src/pages/SchedulerPage.jsx`: цель VK скрыта из списка платформ, если `vk.disabled`.
+- [FIX] `frontend/public/locales/ru.json` + `en.json`: добавлены `vk.disabled`, `vk.disabledDescription`.
+- [TEST] `node --check` по `vkPublishService.js`, `autoPublisher.js`, `scheduledPosts.js`, `routes/vk.js`, `connectedSocials.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только разрешённые файлы ✅.
+- [NOTE] Ручная проверка владельцем:
+  1) Без `VK_PUBLISHING_ENABLED` (или `=false`) → деплой → 30 минут логов: ноль строк `[vk:*]`, ноль ошибок/алертов.
+  2) Пост в планировщике с целью VK → статус `skipped`, Telegram-посты идут как раньше.
+  3) Соцсети → карточка VK = «Отключено»; в планировщике цели VK нет.
+  4) `VK_PUBLISHING_ENABLED=true` → рестарт → VK возвращается к текущему состоянию.
+  5) Регрессия: бот «привет», Telegram-канал постит, ключи после F5.

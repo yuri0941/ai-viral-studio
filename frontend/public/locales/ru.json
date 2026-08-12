@@ -149,6 +149,8 @@
     "test": "🧪 Проверить",
     "statusDisconnected": "🔴 Не подключено",
     "statusSaved": "🟡 Сохранён",
+    "disabled": "Отключено",
+    "disabledDescription": "Публикации в VK отключены. Чтобы включить, задайте VK_PUBLISHING_ENABLED=true в переменных окружения.",
     "statusWorking": "🟢 Работает",
     "statusLimited": "🟡 Частичный доступ",
     "statusError": "🔴 Ошибка",

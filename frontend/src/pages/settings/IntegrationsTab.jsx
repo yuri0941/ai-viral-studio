@@ -299,6 +299,21 @@ export default function IntegrationsTab() {
   };
 
   const renderVkCard = (p) => {
+    if (vkStatus.disabled) {
+      return (
+        <div key={p.id} className="bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 hover:border-white/10 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <div className={`w-10 h-10 rounded-xl ${p.color} flex items-center justify-center text-white font-bold text-sm`}>
+              {p.icon}
+            </div>
+            <span className="text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-400">{t('vk.disabled')}</span>
+          </div>
+          <h4 className="text-white font-medium mb-1">{p.name}</h4>
+          <p className="text-xs text-gray-500">{t('vk.disabledDescription')}</p>
+        </div>
+      );
+    }
+
     const connected = vkStatus.connected;
     const hasKey = vkStatus.hasCommunityKey;
     const perms = vkStatus.permissions || {};

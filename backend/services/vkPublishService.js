@@ -1,7 +1,12 @@
 import User from '../models/User.js'
 import VkPost from '../models/VkPost.js'
 import ScheduledPost from '../models/ScheduledPost.js'
+import { isVkPublishingEnabled } from '../utils/connectedSocials.js'
 import { fetchMediaBuffer, preparePhotoBuffer, prepareVideoBuffer } from './vkMediaPipeline.js'
+
+if (!isVkPublishingEnabled()) {
+  console.debug('[vk] publishing disabled by env')
+}
 
 const alertOwner = (async (...args) => {
   try {
@@ -429,6 +434,11 @@ async function maybeSendNotifications(user, result, { isOwner = false } = {}) {
 }
 
 export async function publishToVKGroup(user, { text, title, hashtags, link, mediaUrl, mediaName, mediaType: providedMediaType } = {}) {
+  // [v9.9.19.15.17] global kill switch — silent, no logs, no API calls
+  if (!isVkPublishingEnabled()) {
+    return { success: false, skipped: true, reason: 'vk_disabled', permanent: true }
+  }
+
   const communityKey = user?.vkCommunityKey
   const groupId = String(user?.vkGroupId || '').replace(/^-/, '')
   const displayMedia = (mediaUrl || '').toString().slice(0, 60)
@@ -623,6 +633,8 @@ const REQUEUE_PERMANENT_REASONS = [
  * Only posts failed for missing/invalid credentials are recovered.
  */
 export async function requeueVkFailedPosts(userId, groupId) {
+  // [v9.9.19.15.17] no requeueing when VK publishing is globally disabled
+  if (!isVkPublishingEnabled()) return { requeued: 0 }
   try {
     const posts = await ScheduledPost.find({
       userId,

@@ -89,6 +89,7 @@ function SchedulerPage() {
     const [repurposingResults, setRepurposingResults] = useState(null);
     // [SOCIAL-v5.1] added: connected platforms for auto-publishing
     const [availablePlatforms, setAvailablePlatforms] = useState([]);
+    const [vkDisabled, setVkDisabled] = useState(false);
     const [publishNowFlag, setPublishNowFlag] = useState(false);
     const [publishLoading, setPublishLoading] = useState(false);
     // [P19] added: AI Video (Shorts/Reels) modal state
@@ -195,7 +196,8 @@ function SchedulerPage() {
             fetch(`${API_BASE_URL}/telegram/status`, { headers }).then(r => r.json()).catch(() => ({})),
         ]).then(([integrations, vk, tg]) => {
             const set = new Set(Array.isArray(integrations) ? integrations.map(i => i.provider) : []);
-            if (vk?.success && vk.connected) set.add('vk');
+            setVkDisabled(!!vk?.disabled);
+            if (vk?.success && vk.connected && !vk.disabled) set.add('vk');
             if (tg?.success && tg.connected) set.add('telegram');
             setAvailablePlatforms(Array.from(set));
         }).catch(err => console.warn('[Scheduler] failed to load connected platforms:', err));
@@ -964,7 +966,7 @@ function SchedulerPage() {
                                 <div>
                                     <label className="text-sm text-gray-400 mb-2 block">Платформы</label>
                                     <div className="grid grid-cols-3 gap-2">
-                                        {PLATFORMS.map(p => {
+                                        {PLATFORMS.filter(p => !vkDisabled || p.id !== 'vk').map(p => {
                                             const Icon = p.icon;
                                             const isSelected = formData.platforms.includes(p.id);
                                             return (

@@ -1,6 +1,14 @@
 import User from '../models/User.js'
 
 /**
+ * [v9.9.19.15.17] Global VK kill switch controlled by VK_PUBLISHING_ENABLED env var.
+ * Default is false: VK publishing is disabled unless explicitly enabled.
+ */
+export function isVkPublishingEnabled() {
+  return process.env.VK_PUBLISHING_ENABLED === 'true'
+}
+
+/**
  * [v9.9.19.15.2] Единый источник правды о подключённых соцсетях.
  * Читает ТОЛЬКО user.socials (+ access tokens). Legacy Integration-коллекция
  * используется только старыми legacy-платформами (publishers/index.js).
@@ -22,7 +30,7 @@ export async function getConnectedSocials(userOrId) {
   const vkGroupId = user?.vkGroupId || ''
   const vkGroupIdValid = /^-?\d+$/.test(vkGroupId)
 
-  const vk = {
+  let vk = {
     connected: vkCommunityKey && vkGroupIdValid,
     enabled: vkEnabled,
     hasCommunityKey: vkCommunityKey,
@@ -35,6 +43,11 @@ export async function getConnectedSocials(userOrId) {
         : !vkGroupIdValid
           ? 'invalid_group'
           : 'ok',
+  }
+
+  // [v9.9.19.15.17] global kill switch overrides everything VK-related
+  if (!isVkPublishingEnabled()) {
+    vk = { ...vk, connected: false, disabled: true, reason: 'vk_disabled' }
   }
 
   const tgToken = !!user?.telegramBotToken
@@ -63,6 +76,7 @@ const REASON_TEXT = {
     no_group: 'не указан ID группы VK',
     invalid_group: 'ID группы VK должен быть числом',
     no_chat: 'не указан chat ID Telegram',
+    vk_disabled: 'VK отключён глобально',
     ok: 'подключён',
   },
   en: {
@@ -72,6 +86,7 @@ const REASON_TEXT = {
     no_group: 'VK group ID is missing',
     invalid_group: 'VK group ID must be a number',
     no_chat: 'Telegram chat ID is missing',
+    vk_disabled: 'VK globally disabled',
     ok: 'connected',
   },
 }

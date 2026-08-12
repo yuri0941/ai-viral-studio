@@ -13,6 +13,7 @@ const PERMANENT_ERROR_CODES = [
   'vk_permission_denied',
   'vk_invalid_token',
   'vk_video_no_scope',
+  'vk_disabled',
   'vk_wall_denied',
   'vk_access_denied',
   'vk_group_disabled',
@@ -117,8 +118,18 @@ export const startAutoPublisher = () => {
             const results = []
 
             for (const platform of platforms) {
-                // Проверяем подключение ДО вызова публикатора
+                // [v9.9.19.15.17] globally disabled platform — silent skip, no API calls, no alerts
                 const status = socialStatus[platform]
+                if (status?.disabled) {
+                    results.push({
+                        platform,
+                        status: 'skipped',
+                        result: { success: false, skipped: true, error: 'vk_disabled', reason: status.reason }
+                    })
+                    continue
+                }
+
+                // Проверяем подключение ДО вызова публикатора
                 if (status && !status.connected) {
                     results.push({
                         platform,
@@ -138,8 +149,19 @@ export const startAutoPublisher = () => {
             }
 
             const publishedCount = results.filter(r => r.status === 'published').length
+            const skippedCount = results.filter(r => r.status === 'skipped').length
+            const allSkipped = skippedCount === results.length && results.length > 0
             const allErrorsPermanent = publishedCount === 0 && results.length > 0 && results.every(r => r.status === 'error' && isPermanentError(r))
             const errorMessage = results.map(r => `${r.platform}: ${r.error || r.result?.error || r.result?.reason || 'failed'}`).join('; ')
+
+            // [v9.9.19.15.17] all platforms globally disabled — mark skipped, no retries, no alerts
+            if (allSkipped) {
+                await ScheduledPost.updateOne(
+                    { _id: captured._id },
+                    { $set: { status: 'skipped', errorMessage: 'vk_disabled', publishResults: results, publishedAt: new Date() } }
+                )
+                continue
+            }
 
             // [v9.9.19.15.1] retry once after 5 minutes only for transient failures
             if (publishedCount === 0 && !captured.retriedAt && !allErrorsPermanent) {

@@ -6,6 +6,7 @@ import { protect } from '../middleware/auth.js';
 import { integrationStatus } from '../utils/integrationStatus.js';
 import { getVkCreds, refreshVkToken, isVkTokenExpired } from '../services/vkTokenService.js';
 import { publishToVKWall, requeueVkFailedPosts, vkApi, uploadPhotoToVK, uploadVideoToVK } from '../services/vkPublishService.js';
+import { isVkPublishingEnabled } from '../utils/connectedSocials.js';
 import { preparePhotoBuffer, prepareVideoBuffer, fetchMediaBuffer } from '../services/vkMediaPipeline.js';
 import sharp from 'sharp';
 
@@ -239,6 +240,11 @@ router.post('/vk/callback', protect, async (req, res) => {
 });
 
 router.get('/vk/status', protect, async (req, res) => {
+  // [v9.9.19.15.17] kill switch: VK publishing fully disabled
+  if (!isVkPublishingEnabled()) {
+    return res.json({ success: true, configured: false, disabled: true, connected: false, hasCommunityKey: false, groupId: '', groupIdValid: false, maskedKey: '', groupName: null, accountName: null });
+  }
+
   try {
     const appStatus = await integrationStatus('vk', req.user.id);
     // [v9.9.19.15.5] read from root-level fields to avoid socials path collision
@@ -291,7 +297,8 @@ router.post('/vk/community', protect, async (req, res) => {
         'socials.vk.enabled': true,
       }
     });
-    const requeue = await requeueVkFailedPosts(req.user.id, normalizedGroupId);
+    // [v9.9.19.15.17] do not requeue when VK publishing is globally disabled
+    const requeue = isVkPublishingEnabled() ? await requeueVkFailedPosts(req.user.id, normalizedGroupId) : { requeued: 0 };
     return res.json({ success: true, groupId: normalizedGroupId, maskedKey: maskKey(key), requeued: requeue.requeued || 0 });
   } catch (err) {
     console.error('[VK community save] error:', err.message);
@@ -300,6 +307,11 @@ router.post('/vk/community', protect, async (req, res) => {
 });
 
 router.post('/vk/test', protect, async (req, res) => {
+  // [v9.9.19.15.17] kill switch: no VK API calls
+  if (!isVkPublishingEnabled()) {
+    return res.json({ success: false, skipped: true, reason: 'vk_disabled' });
+  }
+
   try {
     // [v9.9.19.15.8] test key from root-level fields + decode token permissions
     const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId vkPermissionMask socials.vk').lean();
@@ -364,6 +376,11 @@ router.post('/vk/test', protect, async (req, res) => {
 
 // [v9.9.19.15.8] Step-by-step photo upload test (does NOT publish to wall)
 router.post('/vk/test-photo', protect, async (req, res) => {
+  // [v9.9.19.15.17] kill switch: no VK API calls
+  if (!isVkPublishingEnabled()) {
+    return res.json({ success: false, skipped: true, reason: 'vk_disabled' });
+  }
+
   try {
     const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId').lean();
     if (!user?.vkCommunityKey) {
@@ -401,6 +418,11 @@ router.post('/vk/test-photo', protect, async (req, res) => {
 
 // [v9.9.19.15.8] Step-by-step video upload test (does NOT publish to wall)
 router.post('/vk/test-video', protect, async (req, res) => {
+  // [v9.9.19.15.17] kill switch: no VK API calls
+  if (!isVkPublishingEnabled()) {
+    return res.json({ success: false, skipped: true, reason: 'vk_disabled' });
+  }
+
   try {
     const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId').lean();
     if (!user?.vkCommunityKey) {
@@ -484,6 +506,11 @@ router.delete('/vk', protect, async (req, res) => {
 });
 
 router.post('/vk/publish', protect, async (req, res) => {
+  // [v9.9.19.15.17] kill switch: no VK API calls
+  if (!isVkPublishingEnabled()) {
+    return res.json({ success: false, skipped: true, reason: 'vk_disabled' });
+  }
+
   try {
     const { text, link } = req.body || {};
     if (!text || !text.trim()) {

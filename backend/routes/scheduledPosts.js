@@ -161,6 +161,17 @@ router.post('/:id/publish', protect, async (req, res) => {
 
         for (const platform of platforms) {
             const status = socialStatus[platform]
+
+            // [v9.9.19.15.17] globally disabled platform — silent skip
+            if (status?.disabled) {
+                results.push({
+                    platform,
+                    status: 'skipped',
+                    result: { success: false, skipped: true, error: 'vk_disabled', reason: status.reason }
+                })
+                continue
+            }
+
             if (status && !status.connected) {
                 results.push({
                     platform,

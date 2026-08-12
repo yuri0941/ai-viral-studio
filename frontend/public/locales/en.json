@@ -149,6 +149,8 @@
     "test": "🧪 Test",
     "statusDisconnected": "🔴 Not connected",
     "statusSaved": "🟡 Saved",
+    "disabled": "Disabled",
+    "disabledDescription": "VK publishing is disabled. To enable, set VK_PUBLISHING_ENABLED=true in environment variables.",
     "statusWorking": "🟢 Working",
     "statusLimited": "🟡 Limited access",
     "statusError": "🔴 Error",
