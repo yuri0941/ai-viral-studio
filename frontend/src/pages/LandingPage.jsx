@@ -264,7 +264,7 @@ function LandingPage() {
                     {/* Badge */}
                     <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full glass mb-10 border-[var(--primary)]/20">
                         <span className="w-2.5 h-2.5 rounded-full bg-[var(--primary)] animate-pulse" />
-                        <span className="text-sm text-[var(--text)] font-medium">10,000+ создателей уже с нами</span>
+                        <span className="text-sm text-[var(--text)] font-medium">{t('landing.heroBadge')}</span>
                     </div>
 
                     {/* Main heading */}
@@ -298,22 +298,16 @@ function LandingPage() {
                         </button>
                     </div>
 
-                    {/* [P16-FINAL] added: scattered stats with SVG connector lines */}
-                    <div className="relative max-w-4xl mx-auto h-64 md:h-48">
-                        <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-                            <line x1="20%" y1="25%" x2="80%" y2="35%" stroke="var(--border-strong)" strokeWidth="1" strokeDasharray="4 4" />
-                            <line x1="80%" y1="35%" x2="25%" y2="75%" stroke="var(--border-strong)" strokeWidth="1" strokeDasharray="4 4" />
-                            <line x1="25%" y1="75%" x2="75%" y2="85%" stroke="var(--border-strong)" strokeWidth="1" strokeDasharray="4 4" />
-                        </svg>
+                    {/* [v9.9.19.12] honest highlights instead of fake stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mt-16">
                         {[
-                            { value: '10K+', label: 'Пользователей', pos: 'top-[10%] left-[5%] md:left-[10%]' },
-                            { value: '500K+', label: 'Скриптов', pos: 'top-[5%] right-[5%] md:right-[8%]' },
-                            { value: '50M+', label: 'Просмотров', pos: 'bottom-[15%] left-[8%] md:left-[12%]' },
-                            { value: '98%', label: 'Довольны', pos: 'bottom-[5%] right-[10%] md:right-[15%]' }
-                        ].map((stat, i) => (
-                            <div key={i} className={`absolute ${stat.pos} text-left glass-card px-6 py-4 rounded-2xl hover:border-[var(--primary)]/30 transition-all duration-300`}>
-                                <div className="text-4xl font-mono font-medium text-[var(--primary)] mb-1">{stat.value}</div>
-                                <div className="text-sm text-[var(--text-muted)] uppercase tracking-wider">{stat.label}</div>
+                            t('landing.highlightAI'),
+                            t('landing.highlightTrends'),
+                            t('landing.highlightSchedule'),
+                            t('landing.highlightBeta')
+                        ].map((label, i) => (
+                            <div key={i} className="text-center glass-card px-4 py-5 rounded-2xl border border-[var(--border)]">
+                                <div className="text-sm text-[var(--text-muted)]">{label}</div>
                             </div>
                         ))}
                     </div>
@@ -469,9 +463,9 @@ function LandingPage() {
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#2563eb]/5 rounded-full blur-3xl" />
 
                         <div className="relative z-10">
-                            <h2 className="text-4xl md:text-5xl font-black mb-6">Готов к вирусному контенту?</h2>
+                            <h2 className="text-4xl md:text-5xl font-black mb-6">{t('landing.ctaTitle')}</h2>
                             <p className="text-[var(--text-muted)] text-lg mb-10 max-w-xl mx-auto">
-                                Присоединяйся к 10,000+ создателей, которые уже используют AI Viral Studio для роста аудитории
+                                {t('landing.ctaSubtitle')}
                             </p>
                             <button
                                 onClick={() => { setAuthModalMode('register'); setAuthModalOpen(true) }}
@@ -482,7 +476,7 @@ function LandingPage() {
                                 </svg>
                                 Начать бесплатно
                             </button>
-                            <p className="text-sm text-[var(--text-muted)] mt-6">7 дней бесплатно, без карты • Отмена в любой момент</p>
+                            <p className="text-sm text-[var(--text-muted)] mt-6">{t('landing.ctaNote')}</p>
                         </div>
                     </div>
                 </div>

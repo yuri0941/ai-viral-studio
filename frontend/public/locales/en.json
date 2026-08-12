@@ -203,6 +203,27 @@
       "step6": "Tap 🧪 Test → Working → start posting!"
     }
   },
+  "landing": {
+    "start": "Start",
+    "login": "Log in",
+    "heroBadge": "Beta — first users get full access",
+    "highlightAI": "AI content generation",
+    "highlightTrends": "Trend analysis",
+    "highlightSchedule": "Auto-publishing",
+    "highlightBeta": "Beta access",
+    "ctaTitle": "Ready for viral content?",
+    "ctaSubtitle": "Join the first AI Viral Studio users and automate content creation",
+    "ctaNote": "No hidden fees · Cancel anytime"
+  },
+  "betaCounter": {
+    "loading": "Loading available slots…",
+    "unavailable": "Beta slots temporarily unavailable",
+    "waveFull": "Beta wave is full",
+    "slotsLeft": "{{remaining}} of {{total}} beta slots left"
+  },
+  "waitlist": {
+    "positionMessage": "Your position: {{position}}"
+  },
   "apiKeys": {
     "title": "API Keys",
     "subtitle": "Manage AI provider and integration keys",

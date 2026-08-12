@@ -159,6 +159,7 @@ import { createOmegaBackend } from './ai/omega/index.js'
 import { startSubscriptionCron } from './services/subscriptionCron.js'
 import { startAutoPublisher } from './services/autoPublisher.js'  // [SOCIAL-v5.1] added
 import { runAutoImprovement } from './services/autoImprovement.js'  // [v9.9.14-OMEGA-AUTONOMY]
+import { runSmoke } from './scripts/smoke.js'  // [v9.9.19.12] post-deploy health check
 
 // Connect to database before starting server
 await connectDB()
@@ -707,6 +708,14 @@ const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
   console.log(`🚀 Server started on port ${PORT}`);
 });
+
+// [v9.9.19.12] smoke test: first run 2 minutes after boot, then every 15 minutes
+setTimeout(() => {
+  runSmoke().catch(e => console.error('[smoke] initial run failed:', e.message))
+}, 2 * 60 * 1000)
+setInterval(() => {
+  runSmoke().catch(e => console.error('[smoke] scheduled run failed:', e.message))
+}, 15 * 60 * 1000)
 
 // [v9.9.17-ANTI-FAIL] start health monitor + daily report
 startHealthMonitor();

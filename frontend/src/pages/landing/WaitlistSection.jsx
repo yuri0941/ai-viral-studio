@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { launchApi } from '../../services/api.js'
 
-const EST_DAYS_PER_WAVE = 7
-
 function WaitlistSection({ onScrollToWaitlist }) {
     const { t } = useTranslation()
     const NICHES = [
@@ -50,8 +48,8 @@ function WaitlistSection({ onScrollToWaitlist }) {
             setResult(res)
             setStatus('success')
             localStorage.setItem('omega_waitlist_email', email)
-            const daysLeft = Math.max(1, Math.ceil((res.position || 1) / 100) * EST_DAYS_PER_WAVE)
-            setMessage(t('waitlist.position', { position: res.position || res.total, days: daysLeft }))
+            const position = res.position || res.total || 1
+            setMessage(t('waitlist.positionMessage', { position, defaultValue: `Ваша позиция: ${position}` }))
         } catch (err) {
             setStatus('error')
             setMessage(err.message || t('waitlist.error'))
@@ -63,8 +61,8 @@ function WaitlistSection({ onScrollToWaitlist }) {
         setReferralStatus('loading')
         try {
             const res = await launchApi.applyReferral(email, referralInput)
-            const daysLeft = Math.max(1, Math.ceil((res.data.position || 1) / 100) * EST_DAYS_PER_WAVE)
-            setMessage(t('waitlist.position', { position: res.data.position, days: daysLeft }))
+            const position = res.data.position || 1
+            setMessage(t('waitlist.positionMessage', { position, defaultValue: `Ваша позиция: ${position}` }))
             setReferralStatus('success')
         } catch (err) {
             setReferralStatus('error')
@@ -76,8 +74,8 @@ function WaitlistSection({ onScrollToWaitlist }) {
         setBoostStatus(prev => ({ ...prev, [action]: 'loading' }))
         try {
             const res = await launchApi.boost(email, action)
-            const daysLeft = Math.max(1, Math.ceil((res.data.position || 1) / 100) * EST_DAYS_PER_WAVE)
-            setMessage(t('waitlist.position', { position: res.data.position, days: daysLeft }))
+            const position = res.data.position || 1
+            setMessage(t('waitlist.positionMessage', { position, defaultValue: `Ваша позиция: ${position}` }))
             setBoostStatus(prev => ({ ...prev, [action]: 'success' }))
         } catch (err) {
             setBoostStatus(prev => ({ ...prev, [action]: 'error' }))
