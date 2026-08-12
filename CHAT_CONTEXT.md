@@ -310,3 +310,9 @@
 - `ScheduledPost` получил поле `mediaType` (`image`/`video`); планировщик передаёт его в публикатор.
 - `vkPublishService` маршрутизирует: `mediaType=video` → `uploadVideoToVK`, иначе → `uploadPhotoToVK`.
 - В композере превью: `<video>` для видео, `<img>` для фото, бейджи по типу.
+
+### v9.9.19.15.15-VK-ATTACH-TRACE-FIX
+- В `uploadPhotoToVK` добавлен retry при `uploadData.photo === ''` — один повтор со свежим `upload_url`.
+- `photos.saveMessagesPhoto` теперь логирует `photoId`, `ownerId`, наличие `accessKey`.
+- `publishToVKGroup` логирует параметры `wall.post` (owner_id, attachments строка или EMPTY) и результат post_id.
+- Это позволяет увидеть, доходит ли attachment до `wall.post`.

@@ -134,6 +134,13 @@ export async function uploadPhotoToVK(user, buffer, { logPrefix = '[vk:photo]' }
         throw Object.assign(new Error(msg), { vkError: uploadData.error })
       }
       const photoFieldEmpty = !uploadData.photo || uploadData.photo === '[]'
+      if (uploadData.photo === '') {
+        steps.push({ step: 'upload', ok: false, code: 0, msg: 'empty_photo_retry', raw: uploadRawSafe, ms: Date.now() - start })
+        if (attempt < 2) {
+          console.warn(`${logPrefix} attempt=${attempt} photo empty, retrying with fresh upload_url`)
+          continue
+        }
+      }
       if (!uploadData.server || photoFieldEmpty || !uploadData.hash) {
         const reason = 'vk_rejected_upload'
         steps.push({ step: 'upload', ok: false, code: 0, msg: reason, raw: uploadRawSafe, ms: Date.now() - start })
@@ -153,7 +160,8 @@ export async function uploadPhotoToVK(user, buffer, { logPrefix = '[vk:photo]' }
         steps.push({ step: 'save', ok: false, code: 0, msg: 'empty_response', ms: Date.now() - start })
         throw new Error('VK did not return saved photo')
       }
-      steps.push({ step: 'save', ok: true, code: 200, ms: Date.now() - start })
+      console.log(`${logPrefix} step=save photoId=${photo.id} ownerId=${photo.owner_id} accessKey=${photo.access_key ? 'yes' : 'no'}`)
+      steps.push({ step: 'save', ok: true, code: 200, photoId: photo.id, ownerId: photo.owner_id, hasAccessKey: !!photo.access_key, ms: Date.now() - start })
 
       return {
         attachment: formatAttachment('photo', photo.owner_id, photo.id, photo.access_key),
@@ -431,9 +439,11 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
       v: VK_API_VERSION,
     }
     if (attachments.length) params.attachments = attachments.join(',')
+    console.log(`[vk:publish] wallPost params: owner_id=${params.owner_id} attachments=${params.attachments || 'EMPTY'}`)
 
     const vkResult = await vkApi('wall.post', params)
     const postId = vkResult.response?.post_id
+    console.log(`[vk:publish] wallPost result post_id=${postId || 'missing'}`)
     if (!postId) {
       return { success: false, error: 'no_post_id', reason: 'VK не вернул ID поста', hint: 'Попробуйте опубликовать позже' }
     }

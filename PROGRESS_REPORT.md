@@ -4153,3 +4153,17 @@
   2) Публикация → `[vk:publish] mediaType=video`, `[vk:video]` шаги, видео на стене (или честный код VK + fallback).
   3) HEIC с iPhone → загрузка 200, бейдж «📷 Фото прикреплено».
   4) Регрессия: JPG/PNG постятся, дабл-клик = один пост, уведомления, Telegram-канал, бот «привет».
+
+## 2026-08-12 — v9.9.19.15.15-VK-ATTACH-TRACE-FIX — лог save-шага и wall.post attachments + ретрай на пустое photo
+- [DIAG] Фото успешно upload-илось (uploadRaw с непустым `photo`), но на стене VK не появлялось — attachment терялся между `photos.saveMessagesPhoto` и `wall.post`, а шаги не логировались. Также иногда VK возвращал `photo:""`.
+- [ROOT-CAUSE] Отсутствовала трассировка `saveMessagesPhoto` и `wall.post`; при `photo:""` upload считался rejected и не повторялся.
+- [FIX] `backend/services/vkPublishService.js`:
+  - `uploadPhotoToVK`: при `uploadData.photo === ''` делается один повтор с новым `upload_url`; вторая пустота → `vk_rejected_upload`.
+  - После `photos.saveMessagesPhoto` логируется `step=save photoId=... ownerId=... accessKey=...` и шаг записывается с этими полями.
+  - Перед `wall.post` логируются параметры: `[vk:publish] wallPost params: owner_id=... attachments=...` (или `EMPTY`).
+  - После `wall.post` логируется `post_id`.
+- [TEST] `node --check backend/services/vkPublishService.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только `vkPublishService.js` + документы.
+- [NOTE] Ручная проверка владельцем:
+  1) `/api/vk/test-photo` → шаг `save` с photoId/ownerId/accessKey ✅.
+  2) Боевой пост с фото → `[vk:publish] wallPost params: attachments=photo-...` → фото на стене.
+  3) Если `attachments=EMPTY` при `hasMedia=true` — баг виден в логе сразу.
