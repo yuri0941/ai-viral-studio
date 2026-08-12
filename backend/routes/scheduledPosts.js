@@ -23,7 +23,7 @@ router.get('/', protect, async (req, res) => {
 router.post('/', protect, async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id
-        const { title, content, platform, platforms, scheduledDate, scheduledAt, status, mediaUrl, mediaName, hashtags, types } = req.body || {}
+        const { title, content, platform, platforms, scheduledDate, scheduledAt, status, mediaUrl, mediaName, mediaType, hashtags, types } = req.body || {}
         const post = await ScheduledPost.create({
             userId,
             title: title || 'Без названия',
@@ -34,6 +34,7 @@ router.post('/', protect, async (req, res) => {
             status: status || 'scheduled',
             mediaUrl: mediaUrl || '',
             mediaName: mediaName || '',
+            mediaType: mediaType || '',
             hashtags: hashtags || '',
         })
         res.status(201).json({ status: 'success', data: post })
@@ -47,7 +48,7 @@ router.patch('/:id', protect, async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id
         const updates = {}
-        const allowed = ['title', 'content', 'platforms', 'types', 'scheduledAt', 'scheduledDate', 'status', 'mediaUrl', 'mediaName', 'hashtags', 'publishedUrl']
+        const allowed = ['title', 'content', 'platforms', 'types', 'scheduledAt', 'scheduledDate', 'status', 'mediaUrl', 'mediaName', 'mediaType', 'hashtags', 'publishedUrl']
         allowed.forEach(key => {
             if (req.body[key] !== undefined) {
                 if (key === 'scheduledAt' || key === 'scheduledDate') {

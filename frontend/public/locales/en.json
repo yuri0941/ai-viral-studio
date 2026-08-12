@@ -180,6 +180,8 @@
     "keySavedPlaceholder": "•••• (saved)",
     "videoInfo": "Video: checked by a separate test",
     "mediaAttached": "📷 Media attached",
+    "photoAttached": "📷 Photo attached",
+    "videoAttached": "🎬 Video attached",
     "attachPhotoHint": "Attach a photo or video to publish with media",
     "changeMedia": "Change file",
     "dragDropHint": "Drag and drop a file or click to select"

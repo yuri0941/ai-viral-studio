@@ -4131,3 +4131,25 @@
   1) 🧪 Тест фото → в логе `[vk:photo] uploadRaw={..."photo":"[...]"...}` → attachment ✅.
   2) Боевой пост с фото → фото на стене группы.
   3) Если VK отверг upload — в логе виден raw и `mediaError.reason`.
+
+## 2026-08-12 — v9.9.19.15.14-UPLOAD-VIDEO-FIX — загрузка видео и HEIC в композере
+- [DIAG] Пользователь прикрепил MP4 → `/api/upload/image` падал с 500 «unsupported image format» от sharp. iPhone-фото в HEIC тоже не читались.
+- [ROOT-CAUSE] `/api/upload/image` принимал только изображения и возвращал data-URL; в модели `ScheduledPost` не было поля `mediaType`, поэтому VK публикатор не мог выбрать видео-цепочку.
+- [FIX] `backend/routes/upload.js`:
+  - Новый `POST /api/upload/media` (лимит 250 МБ) принимает `image/*` и `video/*`.
+  - HEIC/HEIF конвертируются через `heic-convert` → JPEG → sharp.
+  - Видео сохраняются как есть в `uploads/{userId}/{ts}-{hash}.{ext}`.
+  - Старый `POST /api/upload/image` оставлен для совместимости и делегирует в ту же логику.
+  - Неподдержанный тип → 400 JSON `unsupported_format` (ноль 500).
+- [FIX] `backend/models/ScheduledPost.js`: добавлено поле `mediaType` (`image` | `video` | '').
+- [FIX] `backend/routes/scheduledPosts.js`: `POST /` и `PATCH /:id` принимают и сохраняют `mediaType`.
+- [FIX] `backend/services/platformPublisher.js` + `vkPublishService.js`: `mediaType` передаётся в `publishToVKGroup`; лог `[vk:publish] mediaType=...`; video → `uploadVideoToVK`, image → `uploadPhotoToVK`.
+- [FIX] `frontend/src/pages/SchedulerPage.jsx`: загрузка через `/api/upload/media` с полем `media`; `formData` хранит `mediaUrl`, `mediaName`, `mediaType`; превью: `<video>` для видео, `<img>` для фото; бейджи «📷 Фото прикреплено» / «🎬 Видео прикреплено».
+- [FIX] `frontend/public/locales/ru.json` + `en.json`: добавлены `vk.photoAttached`, `vk.videoAttached`.
+- [FIX] `backend/package.json` + `package-lock.json`: добавлен `heic-convert`, доустановлены зависимости.
+- [TEST] `node --check` по `upload.js`, `ScheduledPost.js`, `scheduledPosts.js`, `platformPublisher.js`, `vkPublishService.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только разрешённые файлы + package-lock + документы.
+- [NOTE] Ручная проверка владельцем:
+  1) MP4 19 сек → загрузка 200 → бейдж «🎬 Видео прикреплено».
+  2) Публикация → `[vk:publish] mediaType=video`, `[vk:video]` шаги, видео на стене (или честный код VK + fallback).
+  3) HEIC с iPhone → загрузка 200, бейдж «📷 Фото прикреплено».
+  4) Регрессия: JPG/PNG постятся, дабл-клик = один пост, уведомления, Telegram-канал, бот «привет».

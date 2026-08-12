@@ -325,12 +325,12 @@ async function maybeSendNotifications(user, result, { isOwner = false } = {}) {
   }
 }
 
-export async function publishToVKGroup(user, { text, title, hashtags, link, mediaUrl, mediaName } = {}) {
+export async function publishToVKGroup(user, { text, title, hashtags, link, mediaUrl, mediaName, mediaType: providedMediaType } = {}) {
   const communityKey = user?.vkCommunityKey
   const groupId = String(user?.vkGroupId || '').replace(/^-/, '')
   const displayMedia = (mediaUrl || '').toString().slice(0, 60)
 
-  console.log(`[vk:publish] user=${user?._id || user?.id}, groupId=${groupId}, hasCommunityKey=${!!communityKey}, hasMedia=${!!mediaUrl}, mediaUrl=${displayMedia}${mediaUrl && mediaUrl.length > 60 ? '...' : ''}`)
+  console.log(`[vk:publish] user=${user?._id || user?.id}, groupId=${groupId}, hasCommunityKey=${!!communityKey}, hasMedia=${!!mediaUrl}, mediaType=${providedMediaType || 'auto'}, mediaUrl=${displayMedia}${mediaUrl && mediaUrl.length > 60 ? '...' : ''}`)
 
   if (!communityKey) {
     return { success: false, error: 'not_connected', permanent: true, hint: 'Подключите ключ сообщества VK в Соцсетях' }
@@ -368,7 +368,7 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
     }
 
     if (buffer) {
-      const mediaType = detectMediaType(buffer, mediaName || mediaUrl)
+      const mediaType = providedMediaType || detectMediaType(buffer, mediaName || mediaUrl)
 
       if (mediaType === 'video') {
         // Try video first; if it fails, try photo pipeline; if that fails, text-only

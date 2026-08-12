@@ -303,3 +303,10 @@
 - Добавлен explicit error `vk_rejected_upload` при `photo === '[]'` или отсутствии полей.
 - `photos.saveMessagesPhoto` получает `photo` как есть, без дополнительного `JSON.stringify`.
 - Video upload тоже логирует raw и парсит VK-ошибки.
+
+### v9.9.19.15.14-UPLOAD-VIDEO-FIX
+- `/api/upload/media` теперь принимает image (включая HEIC) и video до 250 МБ; `/upload/image` делегирует в него.
+- HEIC конвертируется в JPEG через `heic-convert`; видео сохраняется как есть в `uploads/`.
+- `ScheduledPost` получил поле `mediaType` (`image`/`video`); планировщик передаёт его в публикатор.
+- `vkPublishService` маршрутизирует: `mediaType=video` → `uploadVideoToVK`, иначе → `uploadPhotoToVK`.
+- В композере превью: `<video>` для видео, `<img>` для фото, бейджи по типу.

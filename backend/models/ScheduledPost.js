@@ -8,6 +8,7 @@ const scheduledPostSchema = new mongoose.Schema({
   types: [{ type: String, enum: ['video', 'short', 'reels', 'post', 'story', 'carousel'] }],
   mediaUrl: { type: String, default: '' },
   mediaName: { type: String, default: '' },
+  mediaType: { type: String, enum: ['image', 'video', ''], default: '' },
   hashtags: { type: String, default: '' },
   scheduledAt: { type: Date, required: true },
   status: { type: String, enum: ['draft', 'scheduled', 'published', 'failed'], default: 'scheduled' },

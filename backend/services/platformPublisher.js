@@ -6,6 +6,7 @@ import { publish } from './publishers/index.js'
 /**
  * [v9.9.19.15] Unified publisher: VK/Telegram use user.socials tokens,
  * legacy platforms use Integration collection.
+ * [v9.9.19.15.14] mediaType is passed to VK so it can route to photo or video chain.
  */
 export async function publishToPlatform(user, platform, post) {
     if (platform === 'vk') {
@@ -16,6 +17,7 @@ export async function publishToPlatform(user, platform, post) {
             link: post.mediaUrl,
             mediaUrl: post.mediaUrl,
             mediaName: post.mediaName || post.mediaUrl,
+            mediaType: post.mediaType,
         })
     }
 
