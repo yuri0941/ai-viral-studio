@@ -17,6 +17,7 @@ const ENDPOINTS = [
   { path: '/api/version', public: true },
   { path: '/api/vk/status', public: false },
   { path: '/api/telegram/status', public: false },
+  { path: '/api/youtube/auth-url', public: false },
 ]
 
 function isAlive(status, isPublic) {

@@ -4218,10 +4218,10 @@
 ## 2026-08-12 — v9.9.19.12-SMOKE-AND-HONEST-LANDING — smoke-тест деплоя + честный лендинг
 - [DIAG] Нужна автоматическая проверка живости API после деплоя; на лендинге остались выдуманные отзывы/счётчики — юридический и репутационный риск.
 - [FIX] `backend/scripts/smoke.js` (новый):
-  - Прогоняет 10 публичных/защищённых endpoint'ов: `/health`, `/api/health`, `/api/public/plans`, `/api/public/legal-info`, `/api/geo/currency`, `/api/launch/beta/slots`, `/api/launch/waitlist/count`, `/api/version`, `/api/vk/status`, `/api/telegram/status`.
+  - Прогоняет 11 публичных/защищённых endpoint'ов: `/health`, `/api/health`, `/api/public/plans`, `/api/public/legal-info`, `/api/geo/currency`, `/api/launch/beta/slots`, `/api/launch/waitlist/count`, `/api/version`, `/api/vk/status`, `/api/telegram/status`, `/api/youtube/auth-url`.
   - Базовый URL из `RENDER_EXTERNAL_URL` или `SMOKE_BASE_URL` (fallback localhost).
   - Защищённые endpoint'ы считаются живыми при 200/401/403; публичные — только 200; таймаут 10 сек.
-  - Результат — одна строка: `[smoke] 10/10 ok` или `[smoke] FAIL: ...`.
+  - Результат — одна строка: `[smoke] 11/11 ok` или `[smoke] FAIL: ...`.
   - При FAIL — один алерт владельцу через `ownerBot` с cooldown 15 минут.
 - [FIX] `backend/server.js`: импорт `runSmoke` и запуск через 2 минуты после старта + `setInterval` каждые 15 минут.
 - [FIX] `frontend/src/components/landing/BetaCounter.jsx`:
@@ -4234,7 +4234,7 @@
 - [FIX] `frontend/public/locales/ru.json` + `en.json`: добавлены ключи `landing.*`, `betaCounter.*`, `waitlist.positionMessage`.
 - [TEST] `node --check backend/scripts/smoke.js backend/server.js backend/services/ownerBot.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только разрешённые файлы ✅.
 - [NOTE] Ручная проверка владельцем:
-  1) После деплоя в логах: `[smoke] 10/10 ok` через ~2 минуты.
+  1) После деплоя в логах: `[smoke] 11/11 ok` через ~2 минуты; `/api/youtube/auth-url` возвращает JSON (401 или success), а не HTML.
   2) Лендинг: нет выдуманных отзывов, нет фейковых счётчиков/цифр; адаптив 375px без горизонтального скролла.
   3) Регрессия: бот «привет» отвечает, Telegram-канал постит, `/api/vk/status` отдаёт `disabled` без ошибок, логи чистые (ноль `[vk:*]`).
 

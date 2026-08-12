@@ -329,7 +329,7 @@
 - Сохранение ключа через `/vk/community` остаётся рабочим, но рекью и публикации не запускаются.
 
 ### v9.9.19.12-SMOKE-AND-HONEST-LANDING
-- Добавлен постдеплойный smoke-тест `backend/scripts/smoke.js`: 10 endpoint'ов, один лог, алерт владельцу при FAIL с cooldown 15 мин.
+- Добавлен постдеплойный smoke-тест `backend/scripts/smoke.js`: 10 → 11 endpoint'ов (включая `/api/youtube/auth-url`), один лог, алерт владельцу при FAIL с cooldown 15 мин.
 - `backend/server.js` запускает smoke через 2 минуты после старта и каждые 15 минут.
 - Лендинг очищен от выдуманных цифр: убраны фейковые «10 000+ создателей», счётчики и искусственный обратный отсчёт; остались только реальные данные (`/api/launch/beta/slots`, позиция в waitlist).
 - Добавлены i18n-ключи `landing.*`, `betaCounter.*`, `waitlist.positionMessage` в ru/en.
