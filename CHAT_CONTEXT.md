@@ -339,3 +339,9 @@
 - Валидация: `youtube_oauth` должен заканчиваться на `.apps.googleusercontent.com` — иначе 400 `invalid_client_id_format`; `youtube_secret` — непустой.
 - `ApiKeysTab`: новая карточка «YouTube OAuth (загрузка видео)» с двумя полями (password + глазок), отдельными статусами и кнопками сохранения. Существующая карточка «YouTube Data API» (AIzaSy) не изменена.
 - Добавлены i18n-ключи `apiKeys.youtube*`, `apiKeys.saveClient*`, `apiKeys.invalidClientIdFormat` в ru/en.
+
+### v9.9.19.17.1-YOUTUBE-SPIKE
+- Добавлен спайк проверки загрузки видео на YouTube: `GET /api/youtube/auth-url`, `GET /api/youtube/callback`, `POST /api/youtube/spike`.
+- OAuth state — JWT с `userId` владельца, TTL 10 мин; callback сохраняет `ytRefreshToken` и `ytEmail` в `User`.
+- `/spike` генерирует 5-сек MP4 через `ffmpeg-static`, обновляет `access_token` по `refresh_token`, делает resumable upload, затем удаляет тестовое видео.
+- Все ошибки Google возвращаются как JSON `{ success: false, step, googleError: { code, message } }`; логи `[yt:spike] step=...` однострочные, без токенов.

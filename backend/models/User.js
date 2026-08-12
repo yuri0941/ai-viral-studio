@@ -147,6 +147,9 @@ const userSchema = new mongoose.Schema(
         vkConnected: { type: Boolean, default: false },
         vkPermissionMask: { type: Number, default: 0 },
         vkPermissionCheckedAt: Date,
+        // [v9.9.19.17.1] YouTube OAuth upload spike
+        ytRefreshToken: { type: String, default: '', select: false },
+        ytEmail: { type: String, default: '' },
         notificationSettings: {
             notifyPublishSuccess: { type: Boolean, default: true },
             notifyPublishFail: { type: Boolean, default: true },

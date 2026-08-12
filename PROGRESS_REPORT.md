@@ -4256,3 +4256,18 @@
   2) F5 → оба значения на месте (маскированные).
   3) Client ID без `apps.googleusercontent.com` → понятная ошибка, не 500.
 
+## 2026-08-12 — v9.9.19.17.1-YOUTUBE-SPIKE — проверка возможности загрузки видео на YouTube
+- [DIAG] Нужно доказать/опровергнуть за один шаг, что с ключами владельца можно загружать видео на YouTube через OAuth.
+- [FIX] `backend/models/User.js`: добавлены `ytRefreshToken` (`select: false`) и `ytEmail` для хранения OAuth-токенов YouTube.
+- [FIX] `backend/routes/youtube.js`:
+  - `GET /api/youtube/auth-url` (owner-only): формирует Google OAuth URL со scope `youtube.upload`, `access_type=offline`, `prompt=consent`, `state` = JWT с `userId` (TTL 10 мин).
+  - `GET /api/youtube/callback` (public): обмен `code` → токены, сохраняет `refresh_token` и email в `User`; ошибки Google → JSON `{ success: false, error, googleError: { code, message } }`, ноль 500.
+  - `POST /api/youtube/spike` (owner-only): генерирует 5-сек MP4 (640×360) через `ffmpeg-static`, обновляет `access_token` по `refresh_token`, выполняет resumable upload `videos.insert` с `privacyStatus=private`, затем сразу удаляет видео через `videos.delete`.
+  - Логи однострочные `[yt:spike] step=...` без токенов/секретов.
+- [TEST] `node --check backend/routes/youtube.js backend/models/User.js backend/server.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только разрешённые файлы ✅.
+- [NOTE] Ручная проверка владельцем:
+  1) `/api/youtube/auth-url` → авторизация Google-почтой из Test users → callback возвращает `{ success: true, email, hasRefreshToken: true }`.
+  2) `/api/youtube/spike` → `{ success: true, videoId, deleted: true }`; видео не остаётся на канале.
+  3) При ошибке — ответ содержит `{ step, googleError: { code, message } }`.
+
+
