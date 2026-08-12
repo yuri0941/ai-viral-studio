@@ -4270,4 +4270,22 @@
   2) `/api/youtube/spike` → `{ success: true, videoId, deleted: true }`; видео не остаётся на канале.
   3) При ошибке — ответ содержит `{ step, googleError: { code, message } }`.
 
+## 2026-08-12 — v9.9.19.17.2-YOUTUBE-AUTH-BUTTON — доступ владельца к YouTube OAuth из кабинета
+- [DIAG] `/api/youtube/auth-url` работал, но владелец не мог открыть его из браузера напрямую, потому что сессия кабинета (JWT из `localStorage`) не передаётся при ручном открытии URL в адресной строке.
+- [FIX] `backend/routes/youtube.js`:
+  - `GET /api/youtube/callback` теперь редиректит в кабинет: `/owner?tab=apiKeys&youtube=success&email=...` или `&youtube=error&message=...`.
+  - Используется `FRONTEND_URL` из env (fallback `https://aiviral-studio.ru`).
+- [FIX] `frontend/src/pages/owner/components/tabs/ApiKeysTab.jsx`:
+  - Добавлена кнопка «Подключить YouTube»: делает авторизованный запрос `/youtube/auth-url` через `api.js` и открывает Google OAuth в новой вкладке.
+  - Добавлена кнопка «Spike-тест загрузки» (видна при сохранённых Client ID и Secret): запускает `/youtube/spike` из кабинета.
+  - `useSearchParams` + `useEffect` показывают toast после возврата из Google OAuth по query-параметрам.
+- [FIX] `backend/scripts/smoke.js`: `/api/youtube/auth-url` добавлен в список endpoint'ов (ожидаем 401/403/200).
+- [FIX] `frontend/public/locales/ru.json` + `en.json`: добавлены i18n-ключи для кнопок и сообщений.
+- [TEST] `node --check backend/routes/youtube.js backend/scripts/smoke.js` ✅; `cd frontend && npm run build` ✅; JSON i18n валидны ✅.
+- [NOTE] Ручная проверка владельцем:
+  1) Кабинет → API Keys → YouTube OAuth → сохранить Client ID + Client Secret.
+  2) Нажать «Подключить YouTube» → авторизоваться в Google → вернуться в кабинет с toast «YouTube подключён».
+  3) Нажать «Spike-тест загрузки» → через несколько секунд toast с результатом.
+
+
 

@@ -263,7 +263,14 @@
     "saveClientId": "Save Client ID",
     "saveClientSecret": "Save Client Secret",
     "invalidClientIdFormat": "❌ Client ID must end with .apps.googleusercontent.com",
-    "saveFailed": "❌ Save failed: {{error}}"
+    "saveFailed": "❌ Save failed: {{error}}",
+    "connectYoutube": "Connect YouTube",
+    "youtubeAuthUrlFailed": "❌ Failed to get YouTube authorization URL",
+    "youtubeConnected": "✅ YouTube connected: {{email}}",
+    "youtubeConnectError": "❌ YouTube connection error: {{message}}",
+    "runYoutubeSpike": "Spike upload test",
+    "youtubeSpikeOk": "✅ Spike test passed: videoId={{videoId}}, deleted={{deleted}}",
+    "youtubeSpikeFail": "❌ Spike test failed: {{message}}"
   },
   "subscriptions": {
     "title": "Subscriptions",

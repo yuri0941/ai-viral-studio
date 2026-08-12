@@ -345,3 +345,11 @@
 - OAuth state — JWT с `userId` владельца, TTL 10 мин; callback сохраняет `ytRefreshToken` и `ytEmail` в `User`.
 - `/spike` генерирует 5-сек MP4 через `ffmpeg-static`, обновляет `access_token` по `refresh_token`, делает resumable upload, затем удаляет тестовое видео.
 - Все ошибки Google возвращаются как JSON `{ success: false, step, googleError: { code, message } }`; логи `[yt:spike] step=...` однострочные, без токенов.
+
+### v9.9.19.17.2-YOUTUBE-AUTH-BUTTON
+- `/api/youtube/callback` теперь редиректит обратно в кабинет (`/owner?tab=apiKeys&youtube=success|error&message=...`) вместо JSON.
+- `ApiKeysTab`: кнопка «Подключить YouTube» запрашивает `/youtube/auth-url` через `api.js` (с токеном владельца) и открывает Google OAuth в новой вкладке.
+- Кнопка «Spike-тест загрузки» запускает `/youtube/spike` из кабинета.
+- `ApiKeysTab` показывает toast после редиректа от Google по query-параметрам `youtube`/`email`/`message`.
+- `/api/youtube/auth-url` добавлен в smoke-тест.
+- Добавлены i18n-ключи `apiKeys.connectYoutube`, `apiKeys.youtubeConnected`, `apiKeys.youtubeConnectError`, `apiKeys.runYoutubeSpike`, `apiKeys.youtubeSpikeOk`, `apiKeys.youtubeSpikeFail`.

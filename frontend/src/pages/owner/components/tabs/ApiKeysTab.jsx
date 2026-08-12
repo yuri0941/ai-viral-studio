@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { Key, Check, Trash2, Zap, Globe, Sparkles, Brain, Cpu, Flame, Cloud, MessageSquare, Mic, Youtube, Search, Bot, Image, Server, RefreshCw, X, Eye, EyeOff, Send, CreditCard, Mail, Bell, Database, Hash, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { request } from '../../../../services/api.js';
@@ -79,6 +80,8 @@ export default function ApiKeysTab() {
   const [showKey, setShowKey] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all'); // all | active | inactive
   const [groupFilter, setGroupFilter] = useState('all');
+  const [searchParams] = useSearchParams();
+  const youtubeCallbackShown = useRef(false);
 
   // [v9.9.19.17.0] YouTube OAuth pair (Client ID + Client Secret) for video upload spike
   const [youtubeClientId, setYoutubeClientId] = useState('');
@@ -97,6 +100,22 @@ export default function ApiKeysTab() {
   useEffect(() => {
     loadKeys();
   }, []);
+
+  // [v9.9.19.17.2] show YouTube OAuth callback result once after redirect from Google
+  useEffect(() => {
+    if (youtubeCallbackShown.current) return;
+    const youtubeStatus = searchParams.get('youtube');
+    if (!youtubeStatus) return;
+    youtubeCallbackShown.current = true;
+    if (youtubeStatus === 'success') {
+      const email = searchParams.get('email') || '';
+      toast.success((t('apiKeys.youtubeConnected') || '✅ YouTube подключён: {{email}}').replace('{{email}}', email));
+      loadKeys();
+    } else if (youtubeStatus === 'error') {
+      const message = searchParams.get('message') || '';
+      toast.error((t('apiKeys.youtubeConnectError') || '❌ Ошибка подключения YouTube: {{message}}').replace('{{message}}', message));
+    }
+  }, [searchParams, t]);
 
   const loadKeys = async () => {
     try {
@@ -210,6 +229,42 @@ export default function ApiKeysTab() {
       }
     } finally {
       setLoading(prev => ({ ...prev, [provider]: false }));
+    }
+  };
+
+  // [v9.9.19.17.2] open Google OAuth in a new tab using the owner token from api.js
+  const connectYoutube = async () => {
+    setLoading(prev => ({ ...prev, youtubeConnect: true }));
+    try {
+      const data = await request('/youtube/auth-url');
+      if (data?.success && data.authUrl) {
+        window.open(data.authUrl, '_blank');
+      } else {
+        toast.error(data?.error || (t('apiKeys.youtubeAuthUrlFailed') || '❌ Не удалось получить URL авторизации YouTube'));
+      }
+    } catch (e) {
+      toast.error((t('apiKeys.youtubeAuthUrlFailed') || '❌ Не удалось получить URL авторизации YouTube') + ': ' + e.message);
+    } finally {
+      setLoading(prev => ({ ...prev, youtubeConnect: false }));
+    }
+  };
+
+  const runYoutubeSpike = async () => {
+    setLoading(prev => ({ ...prev, youtubeSpike: true }));
+    try {
+      const data = await request('/youtube/spike', { method: 'POST' });
+      if (data?.success) {
+        toast.success((t('apiKeys.youtubeSpikeOk') || '✅ Spike-тест прошёл: videoId={{videoId}}, deleted={{deleted}}')
+          .replace('{{videoId}}', data.videoId || '')
+          .replace('{{deleted}}', String(data.deleted)));
+      } else {
+        const msg = data?.googleError?.message || data?.error || 'unknown';
+        toast.error((t('apiKeys.youtubeSpikeFail') || '❌ Spike-тест не прошёл: {{message}}').replace('{{message}}', msg));
+      }
+    } catch (e) {
+      toast.error((t('apiKeys.youtubeSpikeFail') || '❌ Spike-тест не прошёл: {{message}}').replace('{{message}}', e.message));
+    } finally {
+      setLoading(prev => ({ ...prev, youtubeSpike: false }));
     }
   };
 
@@ -424,6 +479,27 @@ export default function ApiKeysTab() {
                 {loading['youtube_secret'] === 'save' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 {t('apiKeys.saveClientSecret') || 'Сохранить Client Secret'}
               </button>
+            </div>
+
+            <div className="pt-2 border-t border-[var(--border)] flex flex-col gap-2">
+              <button
+                onClick={connectYoutube}
+                disabled={loading['youtubeConnect']}
+                className="w-full px-3 py-2 rounded-lg bg-white text-red-600 hover:bg-gray-100 disabled:opacity-50 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                {loading['youtubeConnect'] ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Youtube className="w-4 h-4" />}
+                {t('apiKeys.connectYoutube') || 'Подключить YouTube'}
+              </button>
+              {saved['youtube_oauth'] && saved['youtube_secret'] && (
+                <button
+                  onClick={runYoutubeSpike}
+                  disabled={loading['youtubeSpike']}
+                  className="w-full px-3 py-2 rounded-lg bg-red-500/15 text-red-300 border border-red-500/20 hover:bg-red-500/25 disabled:opacity-50 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  {loading['youtubeSpike'] ? <RefreshCw className="w-4 h-4 animate-spin" /> : '🧪'}
+                  {t('apiKeys.runYoutubeSpike') || 'Spike-тест загрузки'}
+                </button>
+              )}
             </div>
           </div>
         </div>

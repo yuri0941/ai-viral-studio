@@ -263,7 +263,14 @@
     "saveClientId": "Сохранить Client ID",
     "saveClientSecret": "Сохранить Client Secret",
     "invalidClientIdFormat": "❌ Client ID должен заканчиваться на .apps.googleusercontent.com",
-    "saveFailed": "❌ Сохранение не удалось: {{error}}"
+    "saveFailed": "❌ Сохранение не удалось: {{error}}",
+    "connectYoutube": "Подключить YouTube",
+    "youtubeAuthUrlFailed": "❌ Не удалось получить URL авторизации YouTube",
+    "youtubeConnected": "✅ YouTube подключён: {{email}}",
+    "youtubeConnectError": "❌ Ошибка подключения YouTube: {{message}}",
+    "runYoutubeSpike": "Spike-тест загрузки",
+    "youtubeSpikeOk": "✅ Spike-тест прошёл: videoId={{videoId}}, deleted={{deleted}}",
+    "youtubeSpikeFail": "❌ Spike-тест не прошёл: {{message}}"
   },
   "subscriptions": {
     "title": "Подписки",

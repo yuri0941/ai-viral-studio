@@ -12,11 +12,17 @@ import { getProviderKey } from '../services/aiService.js'
 const router = express.Router()
 
 const YOUTUBE_REDIRECT_URI = 'https://aiviral-studio.ru/auth/youtube/callback'
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://aiviral-studio.ru').replace(/\/$/, '')
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo'
 const YOUTUBE_UPLOAD_SESSION_URL = 'https://www.googleapis.com/upload/youtube/v3/videos'
 const YOUTUBE_DELETE_URL = 'https://www.googleapis.com/youtube/v3/videos'
+
+function redirectUrl(status, extra = {}) {
+  const params = new URLSearchParams({ tab: 'apiKeys', youtube: status, ...extra })
+  return `${FRONTEND_URL}/owner?${params.toString()}`
+}
 
 function log(step, meta = '') {
   const metaStr = meta && typeof meta === 'object'
@@ -37,16 +43,12 @@ router.get('/callback', async (req, res) => {
   const googleError = req.query.error
   if (googleError) {
     log('callback_denied', { error: String(googleError) })
-    return res.status(400).json({
-      success: false,
-      error: 'google_oauth_denied',
-      hint: String(googleError)
-    })
+    return res.redirect(redirectUrl('error', { message: `google_oauth_denied: ${String(googleError)}` }))
   }
 
   const { code, state } = req.query
   if (!code || !state) {
-    return res.status(400).json({ success: false, error: 'missing_code_or_state' })
+    return res.redirect(redirectUrl('error', { message: 'missing_code_or_state' }))
   }
 
   let userId
@@ -54,22 +56,18 @@ router.get('/callback', async (req, res) => {
     const decoded = jwt.verify(state, process.env.JWT_SECRET)
     userId = decoded.userId
   } catch (err) {
-    return res.status(400).json({ success: false, error: 'invalid_state', hint: err.message })
+    return res.redirect(redirectUrl('error', { message: `invalid_state: ${err.message}` }))
   }
 
   if (!userId) {
-    return res.status(400).json({ success: false, error: 'missing_user_id_in_state' })
+    return res.redirect(redirectUrl('error', { message: 'missing_user_id_in_state' }))
   }
 
   try {
     const clientId = await getProviderKey('youtube_oauth', userId)
     const clientSecret = await getProviderKey('youtube_secret', userId)
     if (!clientId || !clientSecret) {
-      return res.status(400).json({
-        success: false,
-        error: 'oauth_credentials_not_configured',
-        hint: 'Save youtube_oauth and youtube_secret in ApiKeysTab'
-      })
+      return res.redirect(redirectUrl('error', { message: 'oauth_credentials_not_configured' }))
     }
 
     const tokenRes = await axios.post(GOOGLE_TOKEN_URL, {
@@ -84,11 +82,7 @@ router.get('/callback', async (req, res) => {
     const refreshToken = tokenRes.data?.refresh_token
 
     if (!accessToken) {
-      return res.status(400).json({
-        success: false,
-        error: 'no_access_token',
-        hint: 'Google did not return access_token'
-      })
+      return res.redirect(redirectUrl('error', { message: 'no_access_token_from_google' }))
     }
 
     let email = ''
@@ -108,15 +102,11 @@ router.get('/callback', async (req, res) => {
     })
 
     log('callback_ok', { userId, email, has_refresh: !!refreshToken })
-    return res.json({ success: true, email, hasRefreshToken: !!refreshToken })
+    return res.redirect(redirectUrl('success', { email, has_refresh: String(!!refreshToken) }))
   } catch (err) {
     const payload = googleErrorPayload(err)
     log('callback_fail', { userId, code: payload.code, msg: payload.message })
-    return res.status(400).json({
-      success: false,
-      error: 'token_exchange_failed',
-      googleError: payload
-    })
+    return res.redirect(redirectUrl('error', { message: payload.message, code: payload.code || '' }))
   }
 })
 
