@@ -24,6 +24,7 @@ function normalizeGroupId(raw) {
 }
 
 // [v9.9.19.15.8] VK community token permission bits from groups.getTokenPermissions
+// [v9.9.19.15.11] permissions are checked by name from API response; video is informational only.
 const VK_SCOPE_BITS = {
   photos: 4,
   video: 16,
@@ -33,14 +34,28 @@ const VK_SCOPE_BITS = {
   manage: 262144,
 }
 
-function decodeVkPermissions(mask = 0) {
+function decodeVkPermissions(permRes = {}) {
   const permissions = {}
-  const missing = []
-  for (const [name, bit] of Object.entries(VK_SCOPE_BITS)) {
-    const has = (mask & bit) === bit
-    permissions[name] = has
-    if (!has && ['wall', 'photos', 'messages'].includes(name)) missing.push(name)
+
+  // Prefer named list returned by VK API: [{name, setting}, ...]
+  if (Array.isArray(permRes.permissions)) {
+    for (const item of permRes.permissions) {
+      const name = item?.name
+      if (name) permissions[name] = (item.setting || 0) > 0
+    }
   }
+
+  // Fallback / complement via bitmask
+  const mask = permRes.mask || 0
+  for (const [name, bit] of Object.entries(VK_SCOPE_BITS)) {
+    if (permissions[name] === undefined) {
+      permissions[name] = (mask & bit) === bit
+    }
+  }
+
+  // Video is not exposed in VK community-key UI, so it is informational only
+  const required = ['wall', 'photos', 'messages']
+  const missing = required.filter(name => !permissions[name])
   return { permissions, missing }
 }
 
@@ -232,7 +247,7 @@ router.get('/vk/status', protect, async (req, res) => {
     const groupId = normalizeGroupId(groupIdRaw);
     const hasKey = !!user?.vkCommunityKey;
     const connected = hasKey && !!groupId;
-    const decoded = decodeVkPermissions(user?.vkPermissionMask || 0);
+    const decoded = decodeVkPermissions({ mask: user?.vkPermissionMask || 0 });
     return res.json({
       success: true,
       configured: appStatus.configured,
@@ -318,8 +333,7 @@ router.post('/vk/test', protect, async (req, res) => {
       return res.status(400).json({ success: false, error: 'vk_api_error', message: msg });
     }
 
-    const mask = permRes.response?.mask || 0
-    const decoded = decodeVkPermissions(mask)
+    const decoded = decodeVkPermissions(permRes.response || {})
     await User.findByIdAndUpdate(req.user.id, {
       $set: {
         vkPermissionMask: mask,
@@ -396,7 +410,7 @@ router.post('/vk/test-video', protect, async (req, res) => {
       return res.status(400).json({ success: false, error: 'invalid_group', message: 'ID группы не сохранён' });
     }
 
-    const { path: ffmpegPath } = await import('ffmpeg-static').then(m => m).catch(() => ({ path: null }));
+    const ffmpegPath = await import('ffmpeg-static').then(m => m.default || m.path).catch(() => null);
     if (!ffmpegPath) {
       return res.json({ success: false, error: 'ffmpeg_unavailable', message: 'ffmpeg-static не установлен' });
     }

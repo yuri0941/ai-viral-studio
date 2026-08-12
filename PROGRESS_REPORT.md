@@ -4089,3 +4089,18 @@
   2) Пост с медиа (`/uploads/...` или прямой URL) → в логе `[vk:publish] hasMedia=true`, `[vk:photo]` шаги, фото/видео на стене.
   3) Пост без текста и медиа → статус `failed`, причина `empty_post`, на стену не уходит.
   4) Регрессия: автопосты по расписанию, Telegram-канал, бот «привет», уведомления — работают.
+
+## 2026-08-12 — v9.9.19.15.11-VK-MEDIA-POLISH — i18n, ffmpeg, фото в боевых постах, права по именам
+- [DIAG] Тест фото проходил, но боевые посты выходили без фото; тест видео падал с «ffmpeg-static не установлен»; на карточке VK сырые ключи и ложный warning о video scope.
+- [ROOT-CAUSE] В `/vk/test-video` использовался `import('ffmpeg-static').then(m => m.path)`, но ESM default-экспорт пакета — строка с путём, поэтому `path` был undefined. `groups.getTokenPermissions` проверялась только битовой маской; `video` попадал в `missing[]`, хотя VK community UI не выдаёт это право. В SchedulerPage `mediaUrl` не сохранялся в `formData`, поэтому пользователь не видел прикреплённое медиа, а при редактировании поле могло сбрасываться.
+- [FIX] `backend/routes/vk.js`: импорт ffmpeg-static исправлен на `m.default || m.path`; `decodeVkPermissions` теперь понимает именованный массив `permissions` из VK API и битовую маску; `missing[]` включает только `wall/photos/messages`; `video` отображается информационно.
+- [FIX] `frontend/src/pages/settings/IntegrationsTab.jsx`: добавлена info-строка `vk.videoInfo` при отсутствии видео-права; все тексты через i18n.
+- [FIX] `frontend/src/pages/SchedulerPage.jsx`: `formData` теперь хранит `mediaUrl`; при открытии поста подставляется существующее медиа; в карточке поста показывается бейдж «📷 Медиа прикреплено», превью фото/видео, кнопка «Сменить файл»; подсказка при отсутствии медиа; сохранение корректно передаёт `mediaUrl`/`mediaName` в backend.
+- [FIX] `frontend/public/locales/ru.json` + `en.json`: добавлены `vk.videoInfo`, `vk.mediaAttached`, `vk.attachPhotoHint`, `vk.changeMedia`, `vk.dragDropHint`; исправлен `instruction.vk.step3` (Wall, Photos, Community messages).
+- [FIX] `backend/package-lock.json` + `node_modules`: `npm install` в backend доустановил `ffmpeg-static@5.3.0` и `ffprobe-static`.
+- [TEST] `node --check` по `vk.js`, `vkMediaPipeline.js`, `vkPublishService.js`, `scheduledPosts.js`, `autoPublisher.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только разрешённые файлы + package-lock + документы.
+- [NOTE] Ручная проверка владельцем:
+  1) Карточка VK — все тексты на русском, без сырых ключей, 🧪 Тест фото ✅.
+  2) 🧪 Тест видео — генерирует 2-сек MP4 и возвращает steps ✅ (или честный `ffmpeg_unavailable`).
+  3) Пост с прикреплённым фото → `[vk:publish] hasMedia=true`, `[vk:photo]` шаги, фото на стене группы.
+  4) Регрессия: текст постится, дабл-клик = один пост, уведомления, Telegram-канал, бот «привет».

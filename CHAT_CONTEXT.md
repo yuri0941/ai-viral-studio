@@ -286,3 +286,9 @@
 - Фронт: `scheduledPostsApi.publish(id, platforms)` с `noRetry: true`, кнопки disabled во время публикации.
 - Добавлен guard `empty_post`: пост без текста и attachments не публикуется на стену.
 - Исправлен `Notification validation failed: body required` в DreamMode morning briefing.
+
+### v9.9.19.15.11-VK-MEDIA-POLISH
+- Исправлен импорт `ffmpeg-static` в `/api/vk/test-video` (ESM default-экспорт — путь к бинарю).
+- `decodeVkPermissions` теперь читает права по именам из VK API; `video` не считается missing, а показывается info-строкой.
+- Добавлены недостающие i18n-ключи VK; `instruction.vk.step3` приведён к «Стена, Фотографии, Сообщения сообщества».
+- В SchedulerPage `formData.mediaUrl` теперь сохраняется и отображается (превью + бейдж), чтобы боевые посты уходили с фото.

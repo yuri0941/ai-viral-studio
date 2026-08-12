@@ -74,7 +74,7 @@ function SchedulerPage() {
     const [showModal, setShowModal] = useState(false);
     const [editingPost, setEditingPost] = useState(null);
     const [formData, setFormData] = useState({
-        title: '', platforms: ['youtube'], date: '', time: '', types: ['video'], description: '', tags: '', mediaName: '', autoDelete: false, autoDeleteTime: '24'
+        title: '', platforms: ['youtube'], date: '', time: '', types: ['video'], description: '', tags: '', mediaUrl: '', mediaName: '', autoDelete: false, autoDeleteTime: '24'
     });
     const [dragOver, setDragOver] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
@@ -270,6 +270,7 @@ function SchedulerPage() {
                 types: post.types || [post.type || 'video'],
                 description: post.description || '',
                 tags: post.tags || '',
+                mediaUrl: post.mediaUrl || post.fileName || '',
                 mediaName: post.mediaName || '',
                 autoDelete: post.autoDelete || false,
                 autoDeleteTime: post.autoDeleteTime || '24',
@@ -284,6 +285,7 @@ function SchedulerPage() {
                 types: ['video'],
                 description: '',
                 tags: '',
+                mediaUrl: '',
                 mediaName: '',
                 autoDelete: false,
                 autoDeleteTime: '24',
@@ -414,8 +416,13 @@ function SchedulerPage() {
 
         const scheduledAt = new Date(`${formData.date}T${formData.time}`);
 
-        let mediaUrl = editingPost?.mediaUrl || editingPost?.fileName || null;
-        let mediaName = editingPost?.mediaName || '';
+        let mediaUrl = formData.mediaUrl || editingPost?.mediaUrl || editingPost?.fileName || null;
+        let mediaName = formData.mediaName || editingPost?.mediaName || '';
+        // User explicitly removed the existing attachment
+        if (!formData.mediaUrl && !uploadedFile) {
+            mediaUrl = null;
+            mediaName = '';
+        }
         if (uploadedFile) {
             const uploaded = await uploadFileToBackend(uploadedFile);
             mediaUrl = uploaded.mediaUrl;
@@ -1045,12 +1052,42 @@ function SchedulerPage() {
 
                                 <div>
                                     <label className="text-sm text-gray-400 mb-2 block">Медиафайл</label>
+                                    {(formData.mediaUrl || uploadedFile) ? (
+                                        <div className="mb-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xs font-medium text-emerald-400">{t('vk.mediaAttached')}</span>
+                                                <button onClick={() => { setUploadedFile(null); setFormData(prev => ({ ...prev, mediaUrl: '' })); }} className="text-xs text-red-400 hover:text-red-300">{t('vk.changeMedia')}</button>
+                                            </div>
+                                            {formData.mediaUrl && !uploadedFile && (
+                                                <div className="flex items-center gap-2">
+                                                    {formData.mediaUrl.match(/\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i) ? (
+                                                        <img src={formData.mediaUrl} alt="" className="h-16 w-16 object-cover rounded-lg border border-white/10" />
+                                                    ) : (
+                                                        <Video size={20} className="text-gray-400" />
+                                                    )}
+                                                    <span className="text-xs text-gray-300 truncate">{formData.mediaName || formData.mediaUrl}</span>
+                                                </div>
+                                            )}
+                                            {uploadedFile && (
+                                                <div className="flex items-center gap-2">
+                                                    {uploadedFile.type?.startsWith('image/') ? (
+                                                        <Image size={20} className="text-gray-400" />
+                                                    ) : (
+                                                        <Video size={20} className="text-gray-400" />
+                                                    )}
+                                                    <span className="text-xs text-gray-300 truncate">{uploadedFile.name}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-gray-500 mb-2">{t('vk.attachPhotoHint')}</p>
+                                    )}
                                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*,video/*" className="hidden" />
                                     <div onClick={() => fileInputRef.current?.click()} onDragOver={() => setDragOver(true)} onDragLeave={() => setDragOver(false)} onDrop={(e) => { e.preventDefault(); setDragOver(false); const files = e.dataTransfer.files; if (files.length > 0) setUploadedFile(files[0]); }} className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${dragOver ? 'border-emerald-500 bg-emerald-500/5' : 'border-white/10 hover:border-emerald-500/30'}`}>
                                         {uploadedFile ? (
                                             <div className="flex items-center justify-center gap-2 text-emerald-400"><Check size={20} /><span className="text-sm">{uploadedFile.name}</span><button onClick={(e) => { e.stopPropagation(); setUploadedFile(null); }} className="text-red-400 hover:text-red-300"><X size={16} /></button></div>
                                         ) : (
-                                            <><Upload size={24} className="mx-auto mb-2 text-gray-400" /><p className="text-sm text-gray-400">Перетащите файл или <span className="text-emerald-400">нажмите для выбора</span></p><p className="text-xs text-gray-600 mt-1">JPG, PNG, MP4, MOV (до 500MB)</p></>
+                                            <><Upload size={24} className="mx-auto mb-2 text-gray-400" /><p className="text-sm text-gray-400">{formData.mediaUrl ? t('vk.changeMedia') : t('vk.dragDropHint')}</p><p className="text-xs text-gray-600 mt-1">JPG, PNG, MP4, MOV (до 500MB)</p></>
                                         )}
                                     </div>
                                 </div>

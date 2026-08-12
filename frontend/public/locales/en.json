@@ -177,14 +177,19 @@
       "video": "Video"
     },
     "keySaved": "Key already saved. Leave the field empty to keep it.",
-    "keySavedPlaceholder": "•••• (saved)"
+    "keySavedPlaceholder": "•••• (saved)",
+    "videoInfo": "Video: checked by a separate test",
+    "mediaAttached": "📷 Media attached",
+    "attachPhotoHint": "Attach a photo or video to publish with media",
+    "changeMedia": "Change file",
+    "dragDropHint": "Drag and drop a file or click to select"
   },
   "instruction": {
     "vk": {
       "title": "📖 Step-by-step guide",
       "step1": "Create a VK community (if you don't have one): vk.com → Communities → Create — 2 minutes.",
       "step2": "Open your group → Manage → Settings → API → Access keys.",
-      "step3": "Tap Create key → check permissions: wall, photos, video → confirm.",
+      "step3": "Tap Create key → check permissions: Wall, Photos, Community messages → confirm.",
       "step4": "Copy the key (shown once!) and paste it into the field above.",
       "step5": "Group ID is the number from vk.com/club123456 (if the short name is used, open any post: in wall-123456_ the digits are after wall-).",
       "step6": "Tap 🧪 Test → Working → start posting!"

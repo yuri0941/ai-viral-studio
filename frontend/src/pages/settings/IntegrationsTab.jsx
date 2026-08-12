@@ -349,6 +349,9 @@ export default function IntegrationsTab() {
                 <p className="text-yellow-300/80">{t('vk.reissueKeyHint')}</p>
               </div>
             )}
+            {connected && perms.video === false && (
+              <p className="text-xs text-gray-500">{t('vk.videoInfo')}</p>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               <button
