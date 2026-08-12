@@ -145,6 +145,12 @@ const userSchema = new mongoose.Schema(
         vkCommunityKey: { type: String, default: '', select: false },
         vkGroupId: { type: String, default: '' },
         vkConnected: { type: Boolean, default: false },
+        vkPermissionMask: { type: Number, default: 0 },
+        vkPermissionCheckedAt: Date,
+        notificationSettings: {
+            notifyPublishSuccess: { type: Boolean, default: true },
+            notifyPublishFail: { type: Boolean, default: true },
+        },
         apiKeys: [{
             name: String,
             key: String,

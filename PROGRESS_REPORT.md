@@ -4052,3 +4052,23 @@
   2) 🧪 Проверить → 🟢 Работает или 🟡 с причиной.
   3) Логи Render: нет `Group authorization failed` на фото-загрузке.
   4) Регрессия: Telegram-канал постит, бот «привет» отвечает.
+
+## 2026-08-12 — v9.9.19.15.8-VK-MEDIA-FULL — фото + видео в VK-группу (messages-workaround) + уведомления
+- [DIAG] Подтверждено: VK error 27 «method is unavailable with group auth» — photos.getWallUploadServer / photos.saveWallPhoto недоступны с ключом сообщества. Текстовый wall.post работает.
+- [ROOT-CAUSE] VK ограничивает wall-загрузку фото для community-ключей; рабочий путь — `photos.getMessagesUploadServer → photos.saveMessagesPhoto` (attachment вида `photo{owner_id}_{id}_{access_key}`).
+- [FIX] `backend/services/vkMediaPipeline.js` (новый): автоконвертация фото (sharp → JPEG ≤5000×3000 ≤5МБ) и видео (ffmpeg-static/ffprobe-static → MP4 H.264+AAC faststart ≤250МБ ≤45мин; MP4/H264/AAC проходит без конвертации); lazy-импорт ffmpeg, модуль опционален.
+- [FIX] `backend/services/vkPublishService.js`: `uploadPhotoToVK` полностью переписана на messages-workaround; удалена мёртвая цепочка wall; `uploadVideoToVK` — `video.save` с `group_id`, upload `video_file`, attachment с `access_key`; fallback-лесенка: видео упало → фото+текст; фото упало → text-only; пост не падает целиком.
+- [FIX] `backend/services/vkPublishService.js`: уведомления владельцу (owner-бот) и клиенту (OMEGA-бот в привязанный Telegram) при успешной публикации; антиспам-кэш — один postUrl = одно уведомление.
+- [FIX] `backend/models/User.js`: добавлены `notificationSettings.notifyPublishSuccess/notifyPublishFail`, `vkPermissionMask`, `vkPermissionCheckedAt`.
+- [FIX] `backend/controllers/userController.js`: `PATCH /api/users/me` принимает `notificationSettings`; `GET /api/users/me` возвращает настройки.
+- [FIX] `backend/services/omegaBot.js`: экспорт `sendClientNotification(chatId, text)` для уведомлений клиентов.
+- [FIX] `backend/routes/vk.js`: `POST /vk/test` декодирует маску прав (wall/photos/video/messages/docs/manage), возвращает `permissions` + `missing`; `GET /vk/status` отдаёт кэшированные права; `POST /vk/test-photo` и `POST /vk/test-video` — пошаговые тесты без публикации на стену.
+- [FIX] `frontend/src/pages/settings/IntegrationsTab.jsx` + `locales/ru.json`/`en.json`: статусы по реальным правам (🟢 полный, 🟡 частичный), кнопки «Тест фото»/«Тест видео», пошаговый результат, переключатели уведомлений, тексты для всех новых ключей.
+- [FIX] `backend/package.json`: добавлены `ffmpeg-static` и `ffprobe-static`.
+- [TEST] `node --check` по `vkMediaPipeline.js`, `vkPublishService.js`, `vk.js`, `VkPost.js`, `User.js`, `userController.js`, `omegaBot.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только разрешённые VK-файлы + документы.
+- [NOTE] Ручная проверка владельцем:
+  1) Карточка VK → статус прав (🟢 или 🟡 с причиной).
+  2) 🧪 Тест фото → все шаги ✅.
+  3) 🧪 Тест видео → все шаги ✅ (или честный reason).
+  4) Пост с фото → фото на стене группы + уведомление в TG.
+  5) Пост с видео → видео на стене (подождать обработку VK 1–5 мин).

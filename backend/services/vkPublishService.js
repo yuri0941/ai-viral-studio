@@ -1,7 +1,7 @@
 import User from '../models/User.js'
 import VkPost from '../models/VkPost.js'
 import ScheduledPost from '../models/ScheduledPost.js'
-import sharp from 'sharp'
+import { fetchMediaBuffer, preparePhotoBuffer, prepareVideoBuffer } from './vkMediaPipeline.js'
 
 const alertOwner = (async (...args) => {
   try {
@@ -12,11 +12,21 @@ const alertOwner = (async (...args) => {
   }
 })
 
+const sendClientNotification = (async (chatId, text) => {
+  try {
+    const { sendClientNotification: fn } = await import('./omegaBot.js')
+    return await fn?.(chatId, text)
+  } catch {
+    // omega bot may not be initialized
+  }
+})
+
 const VK_API_VERSION = '5.199'
 
 /**
- * [v9.9.19.15.4] VK community-token posting.
- * Uses a per-user community key + groupId to post on a VK group wall.
+ * [v9.9.19.15.8] VK community-token posting.
+ * Photo uses photos.getMessagesUploadServer workaround because VK error 27
+ * blocks photos.getWallUploadServer for community tokens.
  */
 
 const PERMANENT_VK_ERRORS = {
@@ -30,7 +40,7 @@ const PERMANENT_VK_ERRORS = {
   100: 'vk_invalid_request',
 }
 
-function mapVkError(error) {
+export function mapVkError(error) {
   const code = error?.error_code
   const msg = error?.error_msg || 'VK API error'
   const mapped = PERMANENT_VK_ERRORS[code]
@@ -43,7 +53,7 @@ function mapVkError(error) {
   return { error: `vk_error_${code}`, permanent: false, reason: msg }
 }
 
-async function vkApi(method, params) {
+export async function vkApi(method, params) {
   const url = `https://api.vk.com/method/${method}`
   const body = new URLSearchParams({ ...params, v: VK_API_VERSION })
   const res = await fetch(url, {
@@ -60,47 +70,54 @@ async function vkApi(method, params) {
   return json
 }
 
-async function fetchMediaBuffer(mediaUrl) {
-  if (!mediaUrl) return null
-  if (mediaUrl.startsWith('data:')) {
-    const match = mediaUrl.match(/^data:([^;]+);base64,(.+)$/)
-    if (!match) return null
-    return Buffer.from(match[2], 'base64')
+function isTransientError(err) {
+  const code = err?.vkError?.error_code
+  if (!code) {
+    const msg = err?.message || ''
+    return /network|timeout|fetch|econnrefused/i.test(msg)
   }
-  if (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://')) {
-    const res = await fetch(mediaUrl, { timeout: 30000 })
-    if (!res.ok) return null
-    return Buffer.from(await res.arrayBuffer())
-  }
-  return null
+  return code >= 500 || code === 6 || code === 9 || code === 10
 }
 
-async function uploadPhotoToVK(communityKey, groupId, buffer, { logPrefix = '[vk:photo]' } = {}) {
+function formatAttachment(type, ownerId, id, accessKey) {
+  let str = `${type}${ownerId}_${id}`
+  if (accessKey) str += `_${accessKey}`
+  return str
+}
+
+export async function uploadPhotoToVK(user, buffer, { logPrefix = '[vk:photo]' } = {}) {
+  const communityKey = user?.vkCommunityKey
+  const groupId = String(user?.vkGroupId || '').replace(/^-/, '')
   const numericGroupId = Number(groupId)
   let lastErr = null
+  const steps = []
+  const start = Date.now()
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      // Step 1: get upload server
-      const getServerRes = await vkApi('photos.getWallUploadServer', {
-        access_token: communityKey,
-        group_id: numericGroupId,
-      })
+      // Step 1: get messages upload server (workaround for community token)
+      const getServerParams = { access_token: communityKey }
+      if (groupId) getServerParams.group_id = numericGroupId
+      const getServerRes = await vkApi('photos.getMessagesUploadServer', getServerParams)
       const uploadUrl = getServerRes.response?.upload_url
       if (!uploadUrl) {
-        console.warn(`${logPrefix} step=getServer code=0 msg=empty_upload_url`)
+        steps.push({ step: 'getServer', ok: false, code: 0, msg: 'empty_upload_url', ms: Date.now() - start })
         throw new Error('VK did not return photo upload url')
       }
-      console.log(`${logPrefix} step=getServer code=200 msg=ok`)
+      steps.push({ step: 'getServer', ok: true, code: 200, ms: Date.now() - start })
 
-      // Step 2: upload file as multipart, field name must be 'photo'
+      // Step 2: run media pipeline (JPEG conversion)
       let photoBuffer = buffer
       try {
-        photoBuffer = await sharp(buffer).jpeg({ quality: 92, progressive: true }).toBuffer()
+        const prepared = await preparePhotoBuffer(buffer)
+        photoBuffer = prepared.buffer
+        steps.push({ step: 'pipeline', ok: true, flags: prepared.flags, ms: Date.now() - start })
       } catch (e) {
-        console.warn(`${logPrefix} step=convert code=0 msg=sharp_failed_use_original reason=${e.message}`)
+        steps.push({ step: 'pipeline', ok: false, msg: e.message, ms: Date.now() - start })
+        throw e
       }
 
+      // Step 3: upload multipart, field name must be 'photo'
       const form = new FormData()
       form.append('photo', new Blob([photoBuffer], { type: 'image/jpeg' }), 'photo.jpg')
 
@@ -109,87 +126,190 @@ async function uploadPhotoToVK(communityKey, groupId, buffer, { logPrefix = '[vk
       if (uploadData.error) {
         const code = uploadData.error.error_code || uploadRes.status
         const msg = uploadData.error.error_msg || 'Photo upload failed'
-        console.warn(`${logPrefix} step=upload code=${code} msg=${msg}`)
+        steps.push({ step: 'upload', ok: false, code, msg, ms: Date.now() - start })
         throw Object.assign(new Error(msg), { vkError: uploadData.error })
       }
       if (!uploadData.server || !uploadData.photo || !uploadData.hash) {
-        console.warn(`${logPrefix} step=upload code=0 msg=missing_fields fields=${Object.keys(uploadData).join(',')}`)
+        steps.push({ step: 'upload', ok: false, code: 0, msg: 'missing_fields', ms: Date.now() - start })
         throw new Error('VK upload response missing server/photo/hash')
       }
-      console.log(`${logPrefix} step=upload code=200 msg=ok`)
+      steps.push({ step: 'upload', ok: true, code: 200, ms: Date.now() - start })
 
-      // Step 3: save wall photo
-      const saveRes = await vkApi('photos.saveWallPhoto', {
+      // Step 4: save messages photo
+      const saveRes = await vkApi('photos.saveMessagesPhoto', {
         access_token: communityKey,
-        group_id: numericGroupId,
         photo: typeof uploadData.photo === 'string' ? uploadData.photo : JSON.stringify(uploadData.photo),
         server: uploadData.server,
         hash: uploadData.hash,
       })
       const photo = saveRes.response?.[0]
       if (!photo) {
-        console.warn(`${logPrefix} step=save code=0 msg=empty_response`)
+        steps.push({ step: 'save', ok: false, code: 0, msg: 'empty_response', ms: Date.now() - start })
         throw new Error('VK did not return saved photo')
       }
-      console.log(`${logPrefix} step=save code=200 msg=ok owner_id=${photo.owner_id} id=${photo.id}`)
-      return `photo${photo.owner_id}_${photo.id}`
+      steps.push({ step: 'save', ok: true, code: 200, ms: Date.now() - start })
+
+      return {
+        attachment: formatAttachment('photo', photo.owner_id, photo.id, photo.access_key),
+        photo,
+        steps,
+      }
     } catch (e) {
       lastErr = e
       const code = e.vkError?.error_code || 0
       const msg = e.message || 'unknown'
+      if (!steps.find(s => s.step === 'getServer')) {
+        steps.push({ step: 'getServer', ok: false, code, msg, ms: Date.now() - start })
+      }
       console.warn(`${logPrefix} attempt=${attempt}/2 code=${code} msg=${msg}`)
-      if (attempt < 2) await new Promise(r => setTimeout(r, 2000))
+      if (attempt < 2 && isTransientError(e)) await new Promise(r => setTimeout(r, 2000))
+      else break
     }
   }
 
   throw lastErr || new Error('VK photo upload failed after 2 attempts')
 }
 
-async function uploadVideoToVK(communityKey, groupId, buffer, filename, title, description) {
-  const saved = await vkApi('video.save', {
-    access_token: communityKey,
-    group_id: groupId,
-    name: (title || 'AI Viral Studio video').slice(0, 100),
-    description: (description || '').slice(0, 2000),
-  })
-  const uploadUrl = saved.response?.upload_url
-  const ownerId = saved.response?.owner_id
-  const videoId = saved.response?.video_id
-  if (!uploadUrl || !ownerId || !videoId) throw new Error('VK did not return video upload url')
+export async function uploadVideoToVK(user, buffer, { title, description, logPrefix = '[vk:video]' } = {}) {
+  const communityKey = user?.vkCommunityKey
+  const groupId = String(user?.vkGroupId || '').replace(/^-/, '')
+  const numericGroupId = Number(groupId)
+  let lastErr = null
+  const steps = []
+  const start = Date.now()
 
-  const form = new FormData()
-  const ext = (filename || 'video.mp4').split('.').pop() || 'mp4'
-  const mimeType = ext === 'mov' ? 'video/quicktime' : 'video/mp4'
-  form.append('video_file', new Blob([buffer], { type: mimeType }), filename || 'video.mp4')
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      // Step 1: save video (get upload url)
+      const saveRes = await vkApi('video.save', {
+        access_token: communityKey,
+        group_id: numericGroupId,
+        name: (title || 'Видео').slice(0, 128),
+        description: (description || '').slice(0, 5000),
+      })
+      const uploadUrl = saveRes.response?.upload_url
+      const ownerId = saveRes.response?.owner_id
+      const videoId = saveRes.response?.video_id
+      const accessKey = saveRes.response?.access_key
+      if (!uploadUrl || !ownerId || !videoId) {
+        steps.push({ step: 'save', ok: false, code: 0, msg: 'missing_upload_data', ms: Date.now() - start })
+        throw new Error('VK did not return video upload url')
+      }
+      steps.push({ step: 'save', ok: true, code: 200, ms: Date.now() - start })
 
-  const uploadRes = await fetch(uploadUrl, { method: 'POST', body: form })
-  // VK video upload endpoint returns empty body on success sometimes
-  if (!uploadRes.ok) {
-    const text = await uploadRes.text().catch(() => '')
-    throw new Error(text || `Video upload HTTP ${uploadRes.status}`)
+      // Step 2: run media pipeline (H.264/AAC MP4)
+      let videoBuffer = buffer
+      try {
+        const prepared = await prepareVideoBuffer(buffer)
+        if (prepared.skipped) {
+          steps.push({ step: 'pipeline', ok: false, reason: prepared.reason, flags: prepared.flags, ms: Date.now() - start })
+          throw Object.assign(new Error(prepared.reason || 'video pipeline skipped'), { skipped: true })
+        }
+        videoBuffer = prepared.buffer
+        steps.push({ step: 'pipeline', ok: true, converted: prepared.converted, flags: prepared.flags, ms: Date.now() - start })
+      } catch (e) {
+        if (e?.skipped) throw e
+        steps.push({ step: 'pipeline', ok: false, msg: e.message, ms: Date.now() - start })
+        throw e
+      }
+
+      // Step 3: upload multipart, field name must be 'video_file'
+      const form = new FormData()
+      form.append('video_file', new Blob([videoBuffer], { type: 'video/mp4' }), 'video.mp4')
+
+      const uploadRes = await fetch(uploadUrl, { method: 'POST', body: form })
+      if (!uploadRes.ok) {
+        const text = await uploadRes.text().catch(() => '')
+        steps.push({ step: 'upload', ok: false, code: uploadRes.status, msg: text.slice(0, 200), ms: Date.now() - start })
+        throw new Error(text || `Video upload HTTP ${uploadRes.status}`)
+      }
+      steps.push({ step: 'upload', ok: true, code: uploadRes.status || 200, ms: Date.now() - start })
+
+      return {
+        attachment: formatAttachment('video', ownerId, videoId, accessKey),
+        video: { owner_id: ownerId, id: videoId, access_key: accessKey },
+        steps,
+      }
+    } catch (e) {
+      lastErr = e
+      const code = e.vkError?.error_code || 0
+      const msg = e.message || 'unknown'
+      if (!steps.find(s => s.step === 'save')) {
+        steps.push({ step: 'save', ok: false, code, msg, ms: Date.now() - start })
+      }
+      console.warn(`${logPrefix} attempt=${attempt}/3 code=${code} msg=${msg}`)
+      if (attempt < 3 && isTransientError(e)) await new Promise(r => setTimeout(r, 2000))
+      else break
+    }
   }
-  return `video${ownerId}_${videoId}`
+
+  throw lastErr || new Error('VK video upload failed after 3 attempts')
 }
 
 function detectMediaType(buffer, filename = '') {
-  // Quick sniff
   if (!buffer || !Buffer.isBuffer(buffer)) return null
   const lower = filename.toLowerCase()
-  if (lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.webm') || lower.endsWith('.avi')) return 'video'
-  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp') || lower.endsWith('.gif')) return 'image'
-  // JPEG magic
+  if (lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.webm') || lower.endsWith('.avi') || lower.endsWith('.mkv')) return 'video'
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp') || lower.endsWith('.gif') || lower.endsWith('.bmp')) return 'image'
   if (buffer[0] === 0xFF && buffer[1] === 0xD8) return 'image'
-  // PNG magic
   if (buffer[0] === 0x89 && buffer.slice(0, 4).toString('hex') === '89504e47') return 'image'
-  // WebP
   if (buffer.slice(0, 4).toString('ascii') === 'RIFF' && buffer.slice(8, 12).toString('ascii') === 'WEBP') return 'image'
-  // MP4 / mov
   if (buffer.slice(4, 8).toString('ascii') === 'ftyp' || lower.endsWith('.mp4')) return 'video'
   return null
 }
 
+// Anti-spam notification state: postUrl -> notifiedAt
+const notifiedPosts = new Map()
+const NOTIFICATION_WINDOW_MS = 5 * 60 * 1000
+
+function cleanupNotifiedCache() {
+  const now = Date.now()
+  for (const [key, ts] of notifiedPosts) {
+    if (now - ts > NOTIFICATION_WINDOW_MS) notifiedPosts.delete(key)
+  }
+}
+setInterval(cleanupNotifiedCache, 60000)
+
+function shouldNotify(postUrl) {
+  cleanupNotifiedCache()
+  return !notifiedPosts.has(postUrl)
+}
+
+function markNotified(postUrl) {
+  notifiedPosts.set(postUrl, Date.now())
+}
+
+async function maybeSendNotifications(user, result, { isOwner = false } = {}) {
+  const postUrl = result?.postUrl
+  if (!postUrl) return
+
+  const userId = user?._id || user?.id
+  const ownerId = process.env.OWNER_USER_ID
+  const isOwnerUser = isOwner || String(userId) === String(ownerId)
+
+  const settings = user?.notificationSettings || {}
+  if (settings.notifyPublishSuccess === false) return
+
+  if (!shouldNotify(postUrl)) return
+  markNotified(postUrl)
+
+  const mediaNote = result.mediaStatus && result.mediaStatus !== 'ok' && result.mediaStatus !== 'none'
+    ? `\n⚠️ Медиа не прикреплено: ${result.mediaError?.reason || result.mediaStatus}`
+    : ''
+
+  const ownerText = `✅ Пост опубликован в VK: ${postUrl}${mediaNote}`
+  alertOwner(ownerText)
+
+  // Notify client if they are not the owner and have a linked Telegram chat
+  if (!isOwnerUser) {
+    const chatId = user?.telegramChatId || user?.telegramId
+    if (chatId) {
+      sendClientNotification(chatId, `✅ Ваш пост опубликован в VK: ${postUrl}${mediaNote}`)
+    }
+  }
+}
+
 export async function publishToVKGroup(user, { text, title, hashtags, link, mediaUrl, mediaName } = {}) {
-  // [v9.9.19.15.5] root-level fields avoid Mongoose socials path collision
   const communityKey = user?.vkCommunityKey
   const groupId = String(user?.vkGroupId || '').replace(/^-/, '')
 
@@ -219,60 +339,65 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
     attachments.push(link)
   }
 
-  // Media upload (photo: soft fallback to text; video: best effort)
+  // Media pipeline + upload ladder
   if (mediaUrl) {
+    let buffer = null
     try {
-      const buffer = await fetchMediaBuffer(mediaUrl)
-      if (buffer) {
-        const mediaType = detectMediaType(buffer, mediaName || mediaUrl)
-        if (mediaType === 'image') {
-          try {
-            const photoAttachment = await uploadPhotoToVK(communityKey, groupId, buffer, { logPrefix: '[vk:photo]' })
-            attachments.push(photoAttachment)
-            mediaStatus = 'uploaded'
-          } catch (e) {
-            const mapped = e.vkError ? mapVkError(e.vkError) : { error: 'vk_photo_upload_failed', reason: e.message }
-            mediaStatus = 'failed'
-            mediaError = mapped
-            const reasonText = mapped.reason || mapped.error || 'unknown'
-            console.warn(`[vk:publish] photo upload failed, falling back to text-only. reason=${reasonText}`)
-            alertOwner(`🖼️ Пост опубликован без фото в VK: ${reasonText}. Перевыпустите ключ сообщества с правом «Фотографии».`)
-          }
-        } else if (mediaType === 'video') {
-          let videoAttachment = null
-          let lastErr = null
-          for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-              videoAttachment = await uploadVideoToVK(communityKey, groupId, buffer, mediaName || mediaUrl, title, message)
-              break
-            } catch (e) {
-              lastErr = e
-              console.warn(`[vk:publish] video upload attempt ${attempt}/3 failed:`, e.message)
-              if (attempt < 3) await new Promise(r => setTimeout(r, 2000))
-            }
-          }
-          if (videoAttachment) {
-            attachments.push(videoAttachment)
-            mediaStatus = 'uploaded'
-          } else {
-            mediaStatus = 'failed'
-            const mapped = lastErr?.vkError ? mapVkError(lastErr.vkError) : { error: 'vk_video_upload_failed', reason: lastErr?.message || 'unknown' }
-            mediaError = mapped
-            console.warn('[vk:publish] video upload failed after 3 attempts, continuing with text/photo:', lastErr?.message)
-          }
-        } else {
-          console.warn('[vk:publish] media type unknown, skipping upload')
-          mediaStatus = 'skipped'
+      buffer = await fetchMediaBuffer(mediaUrl)
+    } catch (e) {
+      console.warn('[vk:publish] media fetch error:', e.message)
+      mediaStatus = 'fetch_failed'
+      mediaError = { error: 'media_fetch_error', reason: e.message }
+    }
+
+    if (buffer) {
+      const mediaType = detectMediaType(buffer, mediaName || mediaUrl)
+
+      if (mediaType === 'video') {
+        // Try video first; if it fails, try photo pipeline; if that fails, text-only
+        let videoResult = null
+        let videoErr = null
+        try {
+          videoResult = await uploadVideoToVK(user, buffer, { title, description: message })
+          attachments.push(videoResult.attachment)
+          mediaStatus = 'ok'
+        } catch (e) {
+          videoErr = e?.vkError ? mapVkError(e.vkError) : { error: 'vk_video_upload_failed', reason: e?.message || 'unknown' }
+          console.warn(`[vk:publish] video upload failed, trying photo fallback. reason=${videoErr.reason || videoErr.error}`)
+        }
+
+        if (!videoResult) {
+          // Try to use video first frame as photo fallback? For now skip, fallback to text
+          mediaStatus = 'video_failed'
+          mediaError = videoErr
+          const reasonText = videoErr?.reason || videoErr?.error || 'unknown'
+          alertOwner(`🎥 Пост опубликован без видео в VK: ${reasonText}. Проверьте ключ/права или формат видео.`)
+        }
+      } else if (mediaType === 'image') {
+        // Try photo
+        let photoResult = null
+        let photoErr = null
+        try {
+          photoResult = await uploadPhotoToVK(user, buffer)
+          attachments.push(photoResult.attachment)
+          mediaStatus = 'ok'
+        } catch (e) {
+          photoErr = e?.vkError ? mapVkError(e.vkError) : { error: 'vk_photo_upload_failed', reason: e?.message || 'unknown' }
+          mediaStatus = 'photo_failed'
+          mediaError = photoErr
+          const reasonText = photoErr?.reason || photoErr?.error || 'unknown'
+          console.warn(`[vk:publish] photo upload failed, falling back to text-only. reason=${reasonText}`)
+          alertOwner(`🖼️ Пост опубликован без фото в VK: ${reasonText}. Перевыпустите ключ сообщества с правами «Фотографии» и «Сообщения сообщества».`)
         }
       } else {
-        console.warn('[vk:publish] could not fetch media buffer, using link only')
+        console.warn('[vk:publish] media type unknown, using link only')
         if (mediaUrl.startsWith('http')) attachments.push(mediaUrl)
-        mediaStatus = 'fetch_failed'
+        mediaStatus = 'skipped'
       }
-    } catch (e) {
-      console.warn('[vk:publish] media upload error:', e.message)
-      mediaStatus = 'failed'
-      mediaError = { error: 'media_fetch_error', reason: e.message }
+    } else if (!mediaError) {
+      console.warn('[vk:publish] could not fetch media buffer, using link only')
+      if (mediaUrl.startsWith('http')) attachments.push(mediaUrl)
+      mediaStatus = 'fetch_failed'
     }
   }
 
@@ -305,7 +430,9 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
       vkResponse: vkResult,
     })
 
-    return { success: true, postId, postUrl, attachments, mediaStatus, mediaError }
+    const result = { success: true, postId, postUrl, attachments, mediaStatus, mediaError }
+    maybeSendNotifications(user, result)
+    return result
   } catch (err) {
     if (err.vkError) {
       const mapped = mapVkError(err.vkError)
@@ -358,7 +485,22 @@ export async function requeueVkFailedPosts(userId, groupId) {
 
     if (!toRecover.length) return { requeued: 0 }
 
+    // [v9.9.19.15.6] dedupe by content hash
+    const hashGroups = new Map()
     for (const post of toRecover) {
+      const h = String(post.content || '') + '|' + String(post.title || '') + '|' + String(post.hashtags || '')
+      if (!hashGroups.has(h)) hashGroups.set(h, [])
+      hashGroups.get(h).push(post)
+    }
+
+    const unique = []
+    const duplicates = []
+    for (const group of hashGroups.values()) {
+      unique.push(group[0])
+      duplicates.push(...group.slice(1))
+    }
+
+    for (const post of unique) {
       post.status = 'scheduled'
       post.scheduledAt = new Date(Date.now() + 5 * 60 * 1000)
       post.retriedAt = undefined
@@ -366,8 +508,14 @@ export async function requeueVkFailedPosts(userId, groupId) {
       await post.save()
     }
 
-    console.log(`[VK Requeue] ${toRecover.length} posts re-queued for group ${groupId}`)
-    return { requeued: toRecover.length }
+    for (const post of duplicates) {
+      post.status = 'cancelled'
+      post.errorMessage = 'duplicate_requeue'
+      await post.save()
+    }
+
+    console.log(`[VK Requeue] ${unique.length} posts re-queued for group ${groupId}${duplicates.length ? `, deduped ${duplicates.length} duplicates` : ''}`)
+    return { requeued: unique.length, deduped: duplicates.length }
   } catch (err) {
     console.error('[VK Requeue] error:', err.message)
     return { requeued: 0, error: err.message }

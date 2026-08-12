@@ -5,6 +5,7 @@
 > Мастер-план: @file D:\kilo2\MASTER_PLAN_v9.9.20.md
 > ⚠️ Файл называется CHAT_CONTEXT.md (без пробела) — вариант «CHAT_CONTEXT .md» был случайным rename, исправлен.
 > ⚠️ VK per-user ключи перенесены в корень User (`vkCommunityKey`, `vkGroupId`, `vkConnected`) из-за Path collision Map/Mixed в `socials.vk`.
+> ⚠️ VK фото/видео публикуются через `photos.getMessagesUploadServer`/`saveMessagesPhoto` workaround (VK error 27 блокирует wall-загрузку); автоконвертация через `vkMediaPipeline.js` (sharp + ffmpeg-static).
 
 ---
 

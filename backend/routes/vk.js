@@ -5,7 +5,9 @@ import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 import { integrationStatus } from '../utils/integrationStatus.js';
 import { getVkCreds, refreshVkToken, isVkTokenExpired } from '../services/vkTokenService.js';
-import { publishToVKWall, requeueVkFailedPosts } from '../services/vkPublishService.js';
+import { publishToVKWall, requeueVkFailedPosts, vkApi, uploadPhotoToVK, uploadVideoToVK } from '../services/vkPublishService.js';
+import { preparePhotoBuffer, prepareVideoBuffer, fetchMediaBuffer } from '../services/vkMediaPipeline.js';
+import sharp from 'sharp';
 
 const router = express.Router();
 
@@ -19,6 +21,27 @@ function normalizeGroupId(raw) {
   if (!raw) return ''
   const str = String(raw).trim().replace(/^-/, '')
   return /^\d+$/.test(str) ? str : ''
+}
+
+// [v9.9.19.15.8] VK community token permission bits from groups.getTokenPermissions
+const VK_SCOPE_BITS = {
+  photos: 4,
+  video: 16,
+  messages: 4096,
+  wall: 8192,
+  docs: 131072,
+  manage: 262144,
+}
+
+function decodeVkPermissions(mask = 0) {
+  const permissions = {}
+  const missing = []
+  for (const [name, bit] of Object.entries(VK_SCOPE_BITS)) {
+    const has = (mask & bit) === bit
+    permissions[name] = has
+    if (!has && ['wall', 'photos', 'messages'].includes(name)) missing.push(name)
+  }
+  return { permissions, missing }
 }
 
 // PKCE state store: in-memory Map with 10-minute TTL. Single Render instance is fine.
@@ -204,11 +227,12 @@ router.get('/vk/status', protect, async (req, res) => {
   try {
     const appStatus = await integrationStatus('vk', req.user.id);
     // [v9.9.19.15.5] read from root-level fields to avoid socials path collision
-    const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId vkConnected vkUserId socials.vk').lean();
+    const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId vkConnected vkPermissionMask vkUserId socials.vk').lean();
     const groupIdRaw = user?.vkGroupId || '';
     const groupId = normalizeGroupId(groupIdRaw);
     const hasKey = !!user?.vkCommunityKey;
     const connected = hasKey && !!groupId;
+    const decoded = decodeVkPermissions(user?.vkPermissionMask || 0);
     return res.json({
       success: true,
       configured: appStatus.configured,
@@ -219,6 +243,9 @@ router.get('/vk/status', protect, async (req, res) => {
       maskedKey: maskKey(user?.vkCommunityKey),
       groupName: user?.socials?.vk?.groupName || null,
       accountName: user?.socials?.vk?.username || null,
+      permissions: decoded.permissions,
+      missing: decoded.missing,
+      status: (connected && decoded.permissions.wall && decoded.permissions.photos && decoded.permissions.messages) ? 'working' : (connected ? 'limited' : 'disconnected'),
     });
   } catch (err) {
     console.error('[VK status] error:', err.message);
@@ -259,8 +286,8 @@ router.post('/vk/community', protect, async (req, res) => {
 
 router.post('/vk/test', protect, async (req, res) => {
   try {
-    // [v9.9.19.15.5] test key from root-level fields
-    const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId socials.vk').lean();
+    // [v9.9.19.15.8] test key from root-level fields + decode token permissions
+    const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId vkPermissionMask socials.vk').lean();
     const communityKey = user?.vkCommunityKey;
     const groupId = normalizeGroupId(user?.vkGroupId);
     if (!communityKey) {
@@ -291,10 +318,14 @@ router.post('/vk/test', protect, async (req, res) => {
       return res.status(400).json({ success: false, error: 'vk_api_error', message: msg });
     }
 
-    // [v9.9.19.15.6] check whether the community token has photos scope
     const mask = permRes.response?.mask || 0
-    const permissions = Array.isArray(permRes.response?.permissions) ? permRes.response.permissions : []
-    const hasPhotos = (mask & 4) === 4 || permissions.some(p => p.name === 'photos')
+    const decoded = decodeVkPermissions(mask)
+    await User.findByIdAndUpdate(req.user.id, {
+      $set: {
+        vkPermissionMask: mask,
+        vkPermissionCheckedAt: new Date(),
+      }
+    });
 
     const group = groupRes.response?.[0];
     const groupName = group?.name || '';
@@ -302,15 +333,115 @@ router.post('/vk/test', protect, async (req, res) => {
       await User.findByIdAndUpdate(req.user.id, { $set: { 'socials.vk.groupName': groupName } });
     }
 
+    const allOk = decoded.permissions.wall && decoded.permissions.photos && decoded.permissions.messages;
     return res.json({
       success: true,
       groupId,
       groupName: groupName || null,
-      status: 'working',
-      warning: hasPhotos ? null : 'no_photos_scope',
+      status: allOk ? 'working' : 'limited',
+      permissions: decoded.permissions,
+      missing: decoded.missing,
     });
   } catch (err) {
     console.error('[VK test] error:', err.message);
+    return res.status(500).json({ success: false, error: 'server_error', message: err.message });
+  }
+});
+
+// [v9.9.19.15.8] Step-by-step photo upload test (does NOT publish to wall)
+router.post('/vk/test-photo', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId').lean();
+    if (!user?.vkCommunityKey) {
+      return res.status(400).json({ success: false, error: 'missing_key', message: 'Ключ сообщества не сохранён' });
+    }
+    if (!normalizeGroupId(user?.vkGroupId)) {
+      return res.status(400).json({ success: false, error: 'invalid_group', message: 'ID группы не сохранён' });
+    }
+
+    const testBuffer = await sharp({
+      create: { width: 100, height: 100, channels: 3, background: { r: 99, g: 102, b: 241 } }
+    }).png().toBuffer();
+
+    const steps = [];
+    const start = Date.now();
+
+    try {
+      const pipeline = await preparePhotoBuffer(testBuffer);
+      steps.push({ step: 'pipeline', ok: true, flags: pipeline.flags, ms: Date.now() - start });
+
+      const upload = await uploadPhotoToVK(user, pipeline.buffer);
+      steps.push(...upload.steps.map(s => ({ ...s, ok: s.ok })));
+
+      return res.json({ success: true, attachment: upload.attachment, steps });
+    } catch (e) {
+      const mapped = e?.vkError ? { code: e.vkError.error_code, msg: e.vkError.error_msg } : { msg: e.message };
+      steps.push({ step: 'upload', ok: false, ...mapped, ms: Date.now() - start });
+      return res.status(400).json({ success: false, error: 'photo_test_failed', steps, message: e.message });
+    }
+  } catch (err) {
+    console.error('[VK test-photo] error:', err.message);
+    return res.status(500).json({ success: false, error: 'server_error', message: err.message });
+  }
+});
+
+// [v9.9.19.15.8] Step-by-step video upload test (does NOT publish to wall)
+router.post('/vk/test-video', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId').lean();
+    if (!user?.vkCommunityKey) {
+      return res.status(400).json({ success: false, error: 'missing_key', message: 'Ключ сообщества не сохранён' });
+    }
+    if (!normalizeGroupId(user?.vkGroupId)) {
+      return res.status(400).json({ success: false, error: 'invalid_group', message: 'ID группы не сохранён' });
+    }
+
+    const { path: ffmpegPath } = await import('ffmpeg-static').then(m => m).catch(() => ({ path: null }));
+    if (!ffmpegPath) {
+      return res.json({ success: false, error: 'ffmpeg_unavailable', message: 'ffmpeg-static не установлен' });
+    }
+
+    const { spawn } = await import('child_process');
+    const videoBuffer = await new Promise((resolve, reject) => {
+      const chunks = [];
+      const child = spawn(ffmpegPath, [
+        '-f', 'lavfi',
+        '-i', 'testsrc=size=320x240:rate=1:duration=2',
+        '-f', 'lavfi',
+        '-i', 'anullsrc=r=44100:cl=mono',
+        '-c:v', 'libx264',
+        '-preset', 'ultrafast',
+        '-crf', '28',
+        '-c:a', 'aac',
+        '-b:a', '64k',
+        '-pix_fmt', 'yuv420p',
+        '-movflags', '+faststart',
+        '-f', 'mp4',
+        'pipe:1',
+      ], { stdio: ['ignore', 'pipe', 'pipe'] });
+      child.stdout.on('data', c => chunks.push(c));
+      child.stderr.on('data', () => {});
+      child.on('close', code => {
+        if (code !== 0) reject(new Error(`ffmpeg exited ${code}`));
+        else resolve(Buffer.concat(chunks));
+      });
+      child.on('error', reject);
+    });
+
+    const steps = [];
+    const start = Date.now();
+
+    try {
+      const upload = await uploadVideoToVK(user, videoBuffer, { title: 'Test video' });
+      steps.push(...upload.steps);
+      return res.json({ success: true, attachment: upload.attachment, steps });
+    } catch (e) {
+      const mapped = e?.vkError ? { code: e.vkError.error_code, msg: e.vkError.error_msg } : { msg: e.message };
+      steps.push({ step: 'upload', ok: false, ...mapped, ms: Date.now() - start });
+      return res.status(400).json({ success: false, error: 'video_test_failed', steps, message: e.message });
+    }
+  } catch (err) {
+    console.error('[VK test-video] error:', err.message);
     return res.status(500).json({ success: false, error: 'server_error', message: err.message });
   }
 });
@@ -327,6 +458,8 @@ router.delete('/vk', protect, async (req, res) => {
         vkCommunityKey: '',
         vkGroupId: '',
         vkConnected: false,
+        vkPermissionMask: 0,
+        vkPermissionCheckedAt: null,
       }
     });
     return res.json({ success: true });

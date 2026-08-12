@@ -38,6 +38,7 @@ export const getMe = async (req, res) => {
         vkCommunityKey: maskVkCommunityKey(user.vkCommunityKey),
         vkGroupId: user.vkGroupId || '',
         vkConnected: user.vkConnected || false,
+        notificationSettings: user.notificationSettings || { notifyPublishSuccess: true, notifyPublishFail: true },
         acceptedTerms: user.acceptedTerms,
         acceptedPrivacy: user.acceptedPrivacy,
         acceptedConsent: user.acceptedConsent,
@@ -56,7 +57,7 @@ export const getMe = async (req, res) => {
 export const updateMe = async (req, res) => {
   try {
     const userId = req.user.id
-    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram, telegramBotToken, telegramChatId, role, watermarkSettings, vkCommunityKey, vkGroupId } = req.body || {}
+    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram, telegramBotToken, telegramChatId, role, watermarkSettings, vkCommunityKey, vkGroupId, notificationSettings } = req.body || {}
 
     const updates = {}
     if (name !== undefined) updates.name = name.trim()
@@ -96,6 +97,13 @@ export const updateMe = async (req, res) => {
       if (typeof watermarkSettings.opacity === 'number') updates.watermarkSettings.opacity = watermarkSettings.opacity
       if (typeof watermarkSettings.size === 'number') updates.watermarkSettings.size = watermarkSettings.size
       updates.watermarkSettings.updatedAt = new Date()
+    }
+
+    // [v9.9.19.15.8] notification toggles for publish success/fail
+    if (notificationSettings && typeof notificationSettings === 'object') {
+      updates.notificationSettings = {}
+      if (typeof notificationSettings.notifyPublishSuccess === 'boolean') updates.notificationSettings.notifyPublishSuccess = notificationSettings.notifyPublishSuccess
+      if (typeof notificationSettings.notifyPublishFail === 'boolean') updates.notificationSettings.notifyPublishFail = notificationSettings.notifyPublishFail
     }
 
     // [P16] Role switching via dashboard header
@@ -149,6 +157,7 @@ export const updateMe = async (req, res) => {
         vkCommunityKey: maskVkCommunityKey(user.vkCommunityKey),
         vkGroupId: user.vkGroupId || '',
         vkConnected: user.vkConnected || false,
+        notificationSettings: user.notificationSettings || { notifyPublishSuccess: true, notifyPublishFail: true },
         acceptedTerms: user.acceptedTerms,
         acceptedPrivacy: user.acceptedPrivacy,
         acceptedConsent: user.acceptedConsent,

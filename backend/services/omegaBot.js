@@ -936,6 +936,18 @@ export async function alertOmega(message) {
   }
 }
 
+// [v9.9.19.15.8] Send a notification to a client's Telegram chat via the OMEGA bot.
+export async function sendClientNotification(chatId, text) {
+  if (!chatId) return
+  const b = getOmegaBot()
+  if (!b || typeof b.sendMessage !== 'function') return
+  try {
+    await safeSendMessage(chatId, text)
+  } catch (e) {
+    console.error('[omegaBot] client notification failed:', e.message)
+  }
+}
+
 const omegaBot = null
 export { omegaBot }
-export default { alertOmega, getOmegaBot, omegaBot }
+export default { alertOmega, getOmegaBot, sendClientNotification, omegaBot }

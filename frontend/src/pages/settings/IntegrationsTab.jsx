@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
 import { API_BASE_URL } from '../../config.js';
 import InstructionBlock from '../../components/common/InstructionBlock.jsx';
 
@@ -29,7 +29,12 @@ export default function IntegrationsTab() {
   const [vkGroupId, setVkGroupId] = useState('');
   const [vkSaving, setVkSaving] = useState(false);
   const [vkTesting, setVkTesting] = useState(false);
+  const [vkTestingPhoto, setVkTestingPhoto] = useState(false);
+  const [vkTestingVideo, setVkTestingVideo] = useState(false);
   const [showKey, setShowKey] = useState(false);
+  const [testSteps, setTestSteps] = useState(null); // { type, success, steps, error }
+  const [notificationSettings, setNotificationSettings] = useState({ notifyPublishSuccess: true, notifyPublishFail: true });
+  const [savingNotifications, setSavingNotifications] = useState(false);
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -51,15 +56,19 @@ export default function IntegrationsTab() {
             maskedKey: vk.maskedKey,
             groupName: vk.groupName,
             accountName: vk.accountName,
-            tested: vk?.groupName ? true : false,
+            permissions: vk.permissions || {},
+            missing: vk.missing || [],
+            status: vk.status || 'disconnected',
           });
           setVkGroupId(vk.groupId || '');
         }
-        // [v9.9.19.15.5] pre-fill from /users/me root-level fields so values survive F5
         const meUser = me?.user || me?.data;
         if (meUser?.vkGroupId) setVkGroupId(String(meUser.vkGroupId));
         if (meUser?.vkCommunityKey && !meUser.vkCommunityKey.includes('•')) {
           setVkCommunityKey(meUser.vkCommunityKey);
+        }
+        if (meUser?.notificationSettings) {
+          setNotificationSettings(prev => ({ ...prev, ...meUser.notificationSettings }));
         }
         if (tg?.success) setTgStatus({ configured: tg.configured, connected: tg.connected, username: tg.username });
         setLoading(false);
@@ -69,11 +78,30 @@ export default function IntegrationsTab() {
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(''), 3000);
+    const timer = setTimeout(() => setToast(''), 4000);
     return () => clearTimeout(timer);
   }, [toast]);
 
   const showToast = (msg) => setToast(msg);
+
+  const saveNotificationSettings = async (key, value) => {
+    const next = { ...notificationSettings, [key]: value };
+    setNotificationSettings(next);
+    setSavingNotifications(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ notificationSettings: next }),
+      });
+      const data = await res.json();
+      if (!data?.success) showToast(data.message || t('vk.saveError'));
+    } catch (e) {
+      showToast(t('vk.saveError'));
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
 
   const isConnected = (provider) => {
     if (provider === 'vk') return vkStatus.connected;
@@ -102,10 +130,7 @@ export default function IntegrationsTab() {
       }
       return;
     }
-    if (provider === 'vk') {
-      // [v9.9.19.15.4] VK community-token flow: no OAuth here; handled inline in the card.
-      return;
-    }
+    if (provider === 'vk') return;
 
     try {
       const res = await fetch(`${API_BASE_URL}/integrations/${provider}/url`, {
@@ -183,7 +208,9 @@ export default function IntegrationsTab() {
           groupName: data.groupName || prev.groupName,
           connected: true,
           tested: true,
-          warning: data.warning || null,
+          permissions: data.permissions || {},
+          missing: data.missing || [],
+          status: data.status || 'working',
         }));
       } else {
         const map = {
@@ -197,6 +224,25 @@ export default function IntegrationsTab() {
       showToast(t('vk.testError'));
     } finally {
       setVkTesting(false);
+    }
+  };
+
+  const runMediaTest = async (type, setLoading) => {
+    setLoading(true);
+    setTestSteps(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/vk/test-${type}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setTestSteps({ type, success: data?.success, steps: data?.steps || [], attachment: data?.attachment, error: data?.error, message: data?.message });
+      if (data?.success) showToast(t(type === 'photo' ? 'vk.testPhotoSuccess' : 'vk.testVideoSuccess'));
+      else showToast(data.message || t(type === 'photo' ? 'vk.testPhotoError' : 'vk.testVideoError'));
+    } catch (e) {
+      showToast(t(type === 'photo' ? 'vk.testPhotoError' : 'vk.testVideoError'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -255,13 +301,24 @@ export default function IntegrationsTab() {
   const renderVkCard = (p) => {
     const connected = vkStatus.connected;
     const hasKey = vkStatus.hasCommunityKey;
-    const tested = vkStatus.tested;
-    const statusLabel = connected
-      ? (tested ? t('vk.statusWorking') : t('vk.statusSaved'))
-      : (hasKey ? t('vk.statusSaved') : t('vk.statusDisconnected'));
-    const statusClass = connected
-      ? (tested ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400')
-      : (hasKey ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400');
+    const perms = vkStatus.permissions || {};
+    const missing = vkStatus.missing || [];
+    const fullAccess = connected && perms.wall && perms.photos && perms.messages;
+    const limitedAccess = connected && !fullAccess && (perms.wall || perms.photos || perms.messages);
+    const statusLabel = fullAccess
+      ? t('vk.statusWorking')
+      : limitedAccess
+        ? t('vk.statusLimited')
+        : connected
+          ? t('vk.statusSaved')
+          : (hasKey ? t('vk.statusSaved') : t('vk.statusDisconnected'));
+    const statusClass = fullAccess
+      ? 'bg-emerald-500/20 text-emerald-400'
+      : limitedAccess
+        ? 'bg-yellow-500/20 text-yellow-400'
+        : connected
+          ? 'bg-emerald-500/20 text-emerald-400'
+          : (hasKey ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400');
 
     return (
       <div key={p.id} className="bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 hover:border-white/10 transition-all">
@@ -285,11 +342,45 @@ export default function IntegrationsTab() {
               <p>{t('vk.groupId')}: <span className="text-gray-300 font-mono">{vkStatus.groupId}</span></p>
               {vkStatus.groupName && <p>{t('vk.groupName')}: <span className="text-gray-300">{vkStatus.groupName}</span></p>}
             </div>
-            {vkStatus.warning === 'no_photos_scope' && (
-              <div className="text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg px-3 py-2">
-                {t('vk.noPhotosScope')}
+
+            {missing.length > 0 && (
+              <div className="text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg px-3 py-2 space-y-1">
+                <p>{t('vk.missingPermissions', { list: missing.map(m => t(`vk.scope.${m}`, m)).join(', ') })}</p>
+                <p className="text-yellow-300/80">{t('vk.reissueKeyHint')}</p>
               </div>
             )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => runMediaTest('photo', setVkTestingPhoto)}
+                disabled={vkTestingPhoto || !hasKey}
+                className="py-2 rounded-xl bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {vkTestingPhoto ? t('common.loading') : t('vk.testPhoto')}
+              </button>
+              <button
+                onClick={() => runMediaTest('video', setVkTestingVideo)}
+                disabled={vkTestingVideo || !hasKey}
+                className="py-2 rounded-xl bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {vkTestingVideo ? t('common.loading') : t('vk.testVideo')}
+              </button>
+            </div>
+
+            {testSteps && (
+              <div className="text-xs space-y-1">
+                <p className="text-gray-400 font-medium">{t(testSteps.type === 'photo' ? 'vk.testPhotoResult' : 'vk.testVideoResult')}:</p>
+                {(testSteps.steps || []).map((s, i) => (
+                  <div key={i} className="flex items-center gap-2 text-gray-400">
+                    {s.ok ? <CheckCircle2 size={12} className="text-emerald-400" /> : <XCircle size={12} className="text-red-400" />}
+                    <span>{s.step}{s.code ? ` (${s.code})` : ''}{s.msg ? `: ${s.msg}` : ''}{s.ms ? ` — ${s.ms}ms` : ''}</span>
+                  </div>
+                ))}
+                {testSteps.attachment && <p className="text-emerald-400">{t('vk.attachment')}: {testSteps.attachment}</p>}
+                {!testSteps.success && <p className="text-red-400">{testSteps.message || testSteps.error}</p>}
+              </div>
+            )}
+
             <button
               onClick={() => disconnect(p.id)}
               className="w-full py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-300 hover:bg-white/10"
@@ -362,6 +453,31 @@ export default function IntegrationsTab() {
             />
           </div>
         )}
+
+        {/* [v9.9.19.15.8] VK publish notification toggles */}
+        <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
+          <p className="text-xs font-medium text-gray-400">{t('vk.notificationsTitle')}</p>
+          <label className="flex items-center justify-between text-xs text-gray-300 cursor-pointer">
+            <span>{t('vk.notifyPublishSuccess')}</span>
+            <input
+              type="checkbox"
+              checked={notificationSettings.notifyPublishSuccess}
+              onChange={e => saveNotificationSettings('notifyPublishSuccess', e.target.checked)}
+              disabled={savingNotifications}
+              className="accent-violet-500"
+            />
+          </label>
+          <label className="flex items-center justify-between text-xs text-gray-300 cursor-pointer">
+            <span>{t('vk.notifyPublishFail')}</span>
+            <input
+              type="checkbox"
+              checked={notificationSettings.notifyPublishFail}
+              onChange={e => saveNotificationSettings('notifyPublishFail', e.target.checked)}
+              disabled={savingNotifications}
+              className="accent-violet-500"
+            />
+          </label>
+        </div>
       </div>
     );
   };

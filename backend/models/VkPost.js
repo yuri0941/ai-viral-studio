@@ -8,7 +8,7 @@ const vkPostSchema = new mongoose.Schema({
   link: { type: String, default: '' },
   publishedAt: { type: Date, default: Date.now },
   status: { type: String, enum: ['published', 'failed'], default: 'published' },
-  mediaStatus: { type: String, enum: ['none', 'uploaded', 'failed', 'skipped', 'fetch_failed'], default: 'none' },
+  mediaStatus: { type: String, enum: ['none', 'ok', 'uploaded', 'failed', 'photo_failed', 'video_failed', 'skipped', 'fetch_failed'], default: 'none' },
   mediaError: { type: mongoose.Schema.Types.Mixed, default: null },
   errorMessage: { type: String, default: '' },
   vkResponse: { type: mongoose.Schema.Types.Mixed, default: {} },
