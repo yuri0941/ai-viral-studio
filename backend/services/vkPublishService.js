@@ -60,6 +60,7 @@ export async function vkApi(method, params) {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
+    signal: AbortSignal.timeout(30000),
   })
   const json = await res.json().catch(() => ({}))
   if (json.error) {
@@ -83,6 +84,89 @@ function formatAttachment(type, ownerId, id, accessKey) {
   let str = `${type}${ownerId}_${id}`
   if (accessKey) str += `_${accessKey}`
   return str
+}
+
+async function waitForPhotoProcessing(user, photo, { logPrefix = '[vk:photo]', start = Date.now() } = {}) {
+  const communityKey = user?.vkCommunityKey
+  const steps = []
+  let ready = false
+  const maxAttempts = 6
+  const delayMs = 4000
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await vkApi('photos.getById', {
+        access_token: communityKey,
+        photos: `${photo.owner_id}_${photo.id}_${photo.access_key || ''}`,
+      })
+      const fetched = res.response?.[0]
+      const sizes = fetched?.sizes || []
+      const sizes2 = fetched?.sizes2 || []
+      ready = sizes.length > 0 || sizes2.length > 0
+      console.log(`${logPrefix} waitProcessing attempt=${attempt}/${maxAttempts} ready=${ready} sizes=${sizes.length} sizes2=${sizes2.length}`)
+      steps.push({ step: 'waitProcessing', ok: ready, attempt, sizes: sizes.length, sizes2: sizes2.length, ms: Date.now() - start })
+      if (ready) break
+    } catch (e) {
+      const code = e.vkError?.error_code || 0
+      const msg = e.message || 'unknown'
+      console.warn(`${logPrefix} waitProcessing attempt=${attempt}/${maxAttempts} code=${code} msg=${msg}`)
+      steps.push({ step: 'waitProcessing', ok: false, attempt, code, msg, ms: Date.now() - start })
+    }
+    if (attempt < maxAttempts) await new Promise(r => setTimeout(r, delayMs))
+  }
+  if (!ready) {
+    console.warn(`${logPrefix} waitProcessing timeout after ${maxAttempts} attempts`)
+    steps.push({ step: 'waitProcessing', ok: false, attempt: maxAttempts, msg: 'timeout', ms: Date.now() - start })
+  }
+  return { ready, timeout: !ready, steps }
+}
+
+async function verifyPostAttachment(user, ownerId, postId, attachment, { logPrefix = '[vk:publish]' } = {}) {
+  if (!attachment || !attachment.startsWith('photo')) return { ok: false, reason: 'not_a_photo' }
+  const match = attachment.match(/^photo(-?\d+)_(\d+)(?:_.*)?$/)
+  if (!match) return { ok: false, reason: 'bad_attachment' }
+  const [, photoOwnerId, photoId] = match
+  try {
+    const res = await vkApi('wall.getById', {
+      access_token: user?.vkCommunityKey,
+      posts: `${ownerId}_${postId}`,
+    })
+    const post = res.response?.[0]
+    const attachments = post?.attachments || []
+    const found = attachments.some(a =>
+      a.type === 'photo' &&
+      String(a.photo?.owner_id) === photoOwnerId &&
+      String(a.photo?.id) === photoId
+    )
+    console.log(`${logPrefix} verify ${found ? 'photo in' : 'FAILED photo dropped'} post_id=${postId} attachments=${attachments.length}`)
+    return { ok: found }
+  } catch (e) {
+    const code = e.vkError?.error_code || 0
+    const msg = e.message || 'unknown'
+    console.warn(`${logPrefix} verify error post_id=${postId} code=${code} msg=${msg}`)
+    return { ok: false, reason: msg }
+  }
+}
+
+function getVkLang(user) {
+  return user?.preferences?.language === 'en' ? 'en' : 'ru'
+}
+
+function tPhotoProcessing(user) {
+  return getVkLang(user) === 'en'
+    ? 'VK is processing the photo; post may appear without image'
+    : 'VK обрабатывает фото, пост может быть без изображения'
+}
+
+function tPhotoDropped(user) {
+  return getVkLang(user) === 'en'
+    ? 'VK did not attach the photo to the post'
+    : 'VK не прикрепил фото к посту'
+}
+
+function tVideoNoScopeReason(user) {
+  return getVkLang(user) === 'en'
+    ? 'VK does not support video upload via community key. Video support coming after YouTube integration.'
+    : 'VK не поддерживает загрузку видео ключом сообщества. Видео появится после подключения YouTube (скоро).'
 }
 
 export async function uploadPhotoToVK(user, buffer, { logPrefix = '[vk:photo]' } = {}) {
@@ -160,12 +244,18 @@ export async function uploadPhotoToVK(user, buffer, { logPrefix = '[vk:photo]' }
         steps.push({ step: 'save', ok: false, code: 0, msg: 'empty_response', ms: Date.now() - start })
         throw new Error('VK did not return saved photo')
       }
-      console.log(`${logPrefix} step=save photoId=${photo.id} ownerId=${photo.owner_id} accessKey=${photo.access_key ? 'yes' : 'no'}`)
-      steps.push({ step: 'save', ok: true, code: 200, photoId: photo.id, ownerId: photo.owner_id, hasAccessKey: !!photo.access_key, ms: Date.now() - start })
+      const sizes = photo.sizes || []
+      const sizes2 = photo.sizes2 || []
+      console.log(`${logPrefix} step=save photoId=${photo.id} ownerId=${photo.owner_id} accessKey=${photo.access_key ? 'yes' : 'no'} sizes=${sizes.length} sizes2=${sizes2.length}`)
+      steps.push({ step: 'save', ok: true, code: 200, photoId: photo.id, ownerId: photo.owner_id, hasAccessKey: !!photo.access_key, sizes: sizes.length, sizes2: sizes2.length, ms: Date.now() - start })
+
+      const processing = await waitForPhotoProcessing(user, photo, { logPrefix, start })
+      steps.push(...processing.steps)
 
       return {
         attachment: formatAttachment('photo', photo.owner_id, photo.id, photo.access_key),
         photo,
+        processingTimeout: processing.timeout,
         steps,
       }
     } catch (e) {
@@ -267,6 +357,11 @@ export async function uploadVideoToVK(user, buffer, { title, description, logPre
     }
   }
 
+  if (lastErr?.vkError?.error_code === 5) {
+    throw Object.assign(new Error('VK community key cannot upload video (scope missing)'), {
+      vkError: { error_code: 'vk_video_no_scope', error_msg: 'VK community key cannot upload video' }
+    })
+  }
   throw lastErr || new Error('VK video upload failed after 3 attempts')
 }
 
@@ -387,16 +482,22 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
           attachments.push(videoResult.attachment)
           mediaStatus = 'ok'
         } catch (e) {
-          videoErr = e?.vkError ? mapVkError(e.vkError) : { error: 'vk_video_upload_failed', reason: e?.message || 'unknown' }
-          console.warn(`[vk:publish] video upload failed, trying photo fallback. reason=${videoErr.reason || videoErr.error}`)
+          if (e?.vkError?.error_code === 5 || e?.vkError?.error_code === 'vk_video_no_scope') {
+            videoErr = { error: 'vk_video_no_scope', permanent: true, reason: tVideoNoScopeReason(user) }
+          } else {
+            videoErr = e?.vkError ? mapVkError(e.vkError) : { error: 'vk_video_upload_failed', reason: e?.message || 'unknown' }
+          }
+          console.warn(`[vk:publish] video upload failed, falling back to text-only. error=${videoErr.error} reason=${videoErr.reason || videoErr.error}`)
         }
 
         if (!videoResult) {
-          // Try to use video first frame as photo fallback? For now skip, fallback to text
+          // VK community tokens cannot upload video (code 5); publish text-only with explanation
           mediaStatus = 'video_failed'
           mediaError = videoErr
-          const reasonText = videoErr?.reason || videoErr?.error || 'unknown'
-          alertOwner(`🎥 Пост опубликован без видео в VK: ${reasonText}. Проверьте ключ/права или формат видео.`)
+          if (videoErr?.error !== 'vk_video_no_scope') {
+            const reasonText = videoErr?.reason || videoErr?.error || 'unknown'
+            alertOwner(`🎥 Пост опубликован без видео в VK: ${reasonText}. Проверьте ключ/права или формат видео.`)
+          }
         }
       } else if (mediaType === 'image') {
         // Try photo
@@ -406,6 +507,11 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
           photoResult = await uploadPhotoToVK(user, buffer)
           attachments.push(photoResult.attachment)
           mediaStatus = 'ok'
+          if (photoResult.processingTimeout) {
+            mediaStatus = 'processing'
+            mediaError = { error: 'vk_photo_processing_timeout', reason: tPhotoProcessing(user) }
+            alertOwner(`⏳ ${tPhotoProcessing(user)}`)
+          }
         } catch (e) {
           photoErr = e?.vkError ? mapVkError(e.vkError) : { error: 'vk_photo_upload_failed', reason: e?.message || 'unknown' }
           mediaStatus = 'photo_failed'
@@ -449,6 +555,23 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
     }
 
     const postUrl = `https://vk.com/wall-${groupId}_${postId}`
+
+    // [v9.9.19.15.16] verify the photo really ended up in the post
+    if (postId && attachments.length && mediaStatus !== 'photo_failed') {
+      const verified = await verifyPostAttachment(user, `-${groupId}`, postId, attachments.find(a => typeof a === 'string' && a.startsWith('photo')))
+      if (mediaStatus === 'processing') {
+        // If it finally appeared, mark ok; otherwise keep processing
+        if (verified.ok) {
+          mediaStatus = 'ok'
+          mediaError = null
+        }
+      } else if (!verified.ok && mediaStatus === 'ok') {
+        mediaStatus = 'dropped'
+        mediaError = { error: 'vk_photo_dropped', reason: tPhotoDropped(user) }
+        alertOwner(`🖼️ ${tPhotoDropped(user)}`)
+      }
+    }
+
     await VkPost.create({
       userId: user._id || user.id,
       postId: String(postId),
@@ -462,7 +585,9 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
     })
 
     const result = { success: true, postId, postUrl, attachments, mediaStatus, mediaError }
-    maybeSendNotifications(user, result)
+    if (mediaStatus !== 'processing' && mediaStatus !== 'dropped') {
+      maybeSendNotifications(user, result)
+    }
     return result
   } catch (err) {
     if (err.vkError) {

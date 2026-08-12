@@ -4167,3 +4167,25 @@
   1) `/api/vk/test-photo` → шаг `save` с photoId/ownerId/accessKey ✅.
   2) Боевой пост с фото → `[vk:publish] wallPost params: attachments=photo-...` → фото на стене.
   3) Если `attachments=EMPTY` при `hasMedia=true` — баг виден в логе сразу.
+
+## 2026-08-12 — v9.9.19.15.16-VK-WALLPOST-FIX — фото видно на стене + честный fallback видео
+- [DIAG] Боевой лог: `uploadPhotoToVK` отработал, attachment передан в `wall.post`, но фото на стене не отображалось. В `uploadRaw` VK сообщил `"markers_restarted":true,"sizes":[]` — фото ещё обрабатывается асинхронно. Видео: `video.save` с ключом сообщества возвращает VK error 5 «User authorization failed» — платформенное ограничение community-ключей.
+- [FIX] `backend/services/vkPublishService.js`:
+  - `vkApi` теперь использует `AbortSignal.timeout(30000)`.
+  - После `photos.saveMessagesPhoto` логируются `sizes`/`sizes2`.
+  - Добавлен `waitForPhotoProcessing`: polling `photos.getById` до 6 раз с паузой 4 сек, пока `sizes`/`sizes2` не станут непустыми. Бюджет ≤25 сек.
+  - Если фото не успело обработаться — attachment всё равно используется, `mediaStatus='processing'`, один алерт владельцу.
+  - После `wall.post` вызывается `wall.getById` и проверяется, что фото действительно прикрепилось. Если нет — `mediaStatus='dropped'`, алерт владельцу.
+  - `uploadVideoToVK` при VK code 5 маппит ошибку в `vk_video_no_scope` (без ретраев). Пост уходит text-only; владелец и клиент получают уведомление с человеческой причиной.
+- [FIX] `backend/services/autoPublisher.js`:
+  - `vk_video_no_scope` добавлен в `PERMANENT_ERROR_CODES` — видео-посты не ретраятся каждые 5 минут.
+  - Watchdog: посты в `publishing` старше 10 минут переводятся в `failed` с `errorMessage='stale_publishing'`.
+- [FIX] `frontend/src/pages/SchedulerPage.jsx`: если цель VK и `mediaType==='video'` — жёлтый warning `vk.videoUnsupported` (публикацию не блокирует).
+- [FIX] `frontend/src/pages/settings/IntegrationsTab.jsx`: info-строка `vk.videoRestriction`; результат теста видео при `vk_video_no_scope` показывается как ожидаемое ограничение (🟡), а не ошибка.
+- [FIX] `frontend/public/locales/ru.json` + `en.json`: добавлены `vk.videoUnsupported`, `vk.videoRestriction`, `vk.photoProcessing`, `vk.photoDropped`.
+- [TEST] `node --check backend/services/vkPublishService.js backend/services/autoPublisher.js` ✅; `cd frontend && npm run build` ✅; i18n JSON валидны, сырых ключей нет ✅.
+- [NOTE] Ручная проверка владельцем:
+  1) Новый пост С ФОТО → логи: `step=save` → `waitProcessing attempt=N ready=true` → `wallPost result post_id=...` → `verified photo in post_id=...` → фото видно на стене группы.
+  2) Пост С ВИДЕО → `[vk:video] code=5` → `vk_video_no_scope` (без ретраев) → text-only на стене + уведомление; в планировщике жёлтый warning.
+  3) Видео-пост НЕ ретраится каждые 5 минут в логах.
+  4) Регрессия: текстовый пост, дабл-клик = один пост, Telegram-канал постит, бот «привет» отвечает, ключи после F5.

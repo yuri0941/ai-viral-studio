@@ -1090,6 +1090,11 @@ function SchedulerPage() {
                                                             <span className="text-xs text-gray-300 truncate">{uploadedFile.name}</span>
                                                         </div>
                                                     )}
+                                                    {formData.platforms.includes('vk') && isVideo && (
+                                                        <p className="text-xs text-yellow-400 mt-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                                                            {t('vk.videoUnsupported')}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             );
                                         })()

@@ -349,8 +349,8 @@ export default function IntegrationsTab() {
                 <p className="text-yellow-300/80">{t('vk.reissueKeyHint')}</p>
               </div>
             )}
-            {connected && perms.video === false && (
-              <p className="text-xs text-gray-500">{t('vk.videoInfo')}</p>
+            {connected && (
+              <p className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">{t('vk.videoRestriction')}</p>
             )}
 
             <div className="grid grid-cols-2 gap-2">
@@ -380,7 +380,15 @@ export default function IntegrationsTab() {
                   </div>
                 ))}
                 {testSteps.attachment && <p className="text-emerald-400">{t('vk.attachment')}: {testSteps.attachment}</p>}
-                {!testSteps.success && <p className="text-red-400">{testSteps.message || testSteps.error}</p>}
+                {!testSteps.success && (
+                  (testSteps.type === 'video' && (
+                    testSteps.error === 'vk_video_no_scope' ||
+                    testSteps.message?.includes('vk_video_no_scope') ||
+                    testSteps.steps?.some(s => s.code === 'vk_video_no_scope' || s.code === 5 || s.msg?.includes('User authorization failed'))
+                  ))
+                    ? <p className="text-yellow-400">{t('vk.videoRestriction')}</p>
+                    : <p className="text-red-400">{testSteps.message || testSteps.error}</p>
+                )}
               </div>
             )}
 

@@ -316,3 +316,9 @@
 - `photos.saveMessagesPhoto` теперь логирует `photoId`, `ownerId`, наличие `accessKey`.
 - `publishToVKGroup` логирует параметры `wall.post` (owner_id, attachments строка или EMPTY) и результат post_id.
 - Это позволяет увидеть, доходит ли attachment до `wall.post`.
+
+### v9.9.19.15.16-VK-WALLPOST-FIX
+- Фото: после `photos.saveMessagesPhoto` ждём готовности через `photos.getById` (6×4 сек) — решает проблему пустых `sizes` и фото, невидимого на стене.
+- Пост-верификация через `wall.getById`: если фото не прикрепилось, фиксируем `mediaStatus='dropped'`.
+- Видео: community-ключи VK не умеют `video.save` (code 5) → маппим в `vk_video_no_scope`, публикуем text-only, уведомляем владельца/клиента.
+- UI: предупреждение о невозможности видео в VK-композере и в карточке VK; новые i18n-ключи.

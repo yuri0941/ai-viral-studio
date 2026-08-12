@@ -12,6 +12,7 @@ const PERMANENT_ERROR_CODES = [
   'vk_needs_wall_scope',
   'vk_permission_denied',
   'vk_invalid_token',
+  'vk_video_no_scope',
   'vk_wall_denied',
   'vk_access_denied',
   'vk_group_disabled',
@@ -46,6 +47,23 @@ function isPermanentError(result) {
 
 export const startAutoPublisher = () => {
     setInterval(async () => {
+        // [v9.9.19.15.16] recover posts stuck in publishing for >10 minutes
+        try {
+            const stalePublishing = await ScheduledPost.find({
+                status: 'publishing',
+                publishStartedAt: { $lt: new Date(Date.now() - 10 * 60 * 1000) },
+            })
+            for (const stale of stalePublishing) {
+                await ScheduledPost.updateOne(
+                    { _id: stale._id },
+                    { $set: { status: 'failed', errorMessage: 'stale_publishing' } }
+                )
+                console.warn(`[AUTO-PUBLISH] stale publishing post ${stale._id} marked failed`)
+            }
+        } catch (e) {
+            console.warn('[AUTO-PUBLISH] stale publishing watchdog error:', e.message)
+        }
+
         const now = new Date()
         const candidatePosts = await ScheduledPost.find({
             $or: [
