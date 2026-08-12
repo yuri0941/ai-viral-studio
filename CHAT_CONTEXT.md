@@ -297,3 +297,9 @@
 - `/api/upload/image` больше не возвращает data: URL — сохраняет файл в `uploads/{userId}/` и отдаёт файловый URL.
 - `fetchMediaBuffer` научился декодировать base64 `data:` URL и логировать `source=data-url size=... mime=...`.
 - Битые/не-base64 data-URL теперь дают `fetch_failed` с причиной вместо молчаливого fallback.
+
+### v9.9.19.15.13-VK-UPLOAD-MULTIPART-FIX
+- `uploadPhotoToVK`/`uploadVideoToVK` теперь логируют сырой ответ `upload_url` (обрезанно) — видно, что именно вернул VK.
+- Добавлен explicit error `vk_rejected_upload` при `photo === '[]'` или отсутствии полей.
+- `photos.saveMessagesPhoto` получает `photo` как есть, без дополнительного `JSON.stringify`.
+- Video upload тоже логирует raw и парсит VK-ошибки.

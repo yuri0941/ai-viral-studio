@@ -4115,3 +4115,19 @@
   1) Пост с прикреплённым фото → `mediaUrl` = `/uploads/...`, лог `[vk:media] source=http|local size=N`.
   2) Старый пост с `data:image/jpeg;base64,...` → лог `[vk:media] source=data-url size=N`, `[vk:photo]` шаги, фото на стене.
   3) Новые посты всегда получают файловый URL, base64 в `mediaUrl` больше не пишется.
+
+## 2026-08-12 — v9.9.19.15.13-VK-UPLOAD-MULTIPART-FIX — корректный multipart для VK upload_url
+- [DIAG] Файл скачивался (`source=http size=88527`), но `[vk:photo]` падал с `missing server/photo/hash`; VK возвращал `photo:"[]"`, потому что multipart POST не содержал корректный filename/contentType или не логировался сырой ответ.
+- [ROOT-CAUSE] Хотя `FormData.append('photo', blob, 'photo.jpg')` уже передавал имя файла, ответ не логировался, и `photo === '[]'` обрабатывался как missing fields. Также `saveMessagesPhoto` получал `photo` через условный `JSON.stringify`, что могло искажать строку.
+- [FIX] `backend/services/vkPublishService.js`:
+  - После POST на `upload_url` сначала читаем сырой текст, логируем `[vk:photo] uploadRaw=<first 300 chars>`.
+  - Если `uploadData.error` — сохраняем код/сообщение и raw в шагах.
+  - Если `photo` отсутствует или равно `'[]'` — явная ошибка `vk_rejected_upload` с raw в `mediaError`.
+  - `photos.saveMessagesPhoto` получает `photo` точно так, как вернул VK (строкой).
+  - Аналогично для видео: логируется raw ответ, парсятся VK-ошибки.
+  - `upload_url` по-прежнему запрашивается заново внутри каждой попытки.
+- [TEST] `node --check backend/services/vkPublishService.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только `vkPublishService.js` + документы.
+- [NOTE] Ручная проверка владельцем:
+  1) 🧪 Тест фото → в логе `[vk:photo] uploadRaw={..."photo":"[...]"...}` → attachment ✅.
+  2) Боевой пост с фото → фото на стене группы.
+  3) Если VK отверг upload — в логе виден raw и `mediaError.reason`.

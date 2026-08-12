@@ -122,23 +122,29 @@ export async function uploadPhotoToVK(user, buffer, { logPrefix = '[vk:photo]' }
       form.append('photo', new Blob([photoBuffer], { type: 'image/jpeg' }), 'photo.jpg')
 
       const uploadRes = await fetch(uploadUrl, { method: 'POST', body: form })
-      const uploadData = await uploadRes.json().catch(() => ({}))
+      const uploadRaw = await uploadRes.text().catch(() => '')
+      const uploadRawSafe = uploadRaw.slice(0, 300)
+      console.log(`${logPrefix} uploadRaw=${uploadRawSafe}${uploadRaw.length > 300 ? '...' : ''}`)
+      let uploadData = {}
+      try { uploadData = uploadRaw ? JSON.parse(uploadRaw) : {} } catch { uploadData = {} }
       if (uploadData.error) {
         const code = uploadData.error.error_code || uploadRes.status
         const msg = uploadData.error.error_msg || 'Photo upload failed'
-        steps.push({ step: 'upload', ok: false, code, msg, ms: Date.now() - start })
+        steps.push({ step: 'upload', ok: false, code, msg, raw: uploadRawSafe, ms: Date.now() - start })
         throw Object.assign(new Error(msg), { vkError: uploadData.error })
       }
-      if (!uploadData.server || !uploadData.photo || !uploadData.hash) {
-        steps.push({ step: 'upload', ok: false, code: 0, msg: 'missing_fields', ms: Date.now() - start })
-        throw new Error('VK upload response missing server/photo/hash')
+      const photoFieldEmpty = !uploadData.photo || uploadData.photo === '[]'
+      if (!uploadData.server || photoFieldEmpty || !uploadData.hash) {
+        const reason = 'vk_rejected_upload'
+        steps.push({ step: 'upload', ok: false, code: 0, msg: reason, raw: uploadRawSafe, ms: Date.now() - start })
+        throw Object.assign(new Error('VK rejected photo upload'), { reason, uploadRaw: uploadRawSafe })
       }
-      steps.push({ step: 'upload', ok: true, code: 200, ms: Date.now() - start })
+      steps.push({ step: 'upload', ok: true, code: 200, raw: uploadRawSafe, ms: Date.now() - start })
 
-      // Step 4: save messages photo
+      // Step 4: save messages photo (photo must be passed exactly as returned by VK)
       const saveRes = await vkApi('photos.saveMessagesPhoto', {
         access_token: communityKey,
-        photo: typeof uploadData.photo === 'string' ? uploadData.photo : JSON.stringify(uploadData.photo),
+        photo: uploadData.photo,
         server: uploadData.server,
         hash: uploadData.hash,
       })
@@ -218,12 +224,22 @@ export async function uploadVideoToVK(user, buffer, { title, description, logPre
       form.append('video_file', new Blob([videoBuffer], { type: 'video/mp4' }), 'video.mp4')
 
       const uploadRes = await fetch(uploadUrl, { method: 'POST', body: form })
+      const uploadRaw = await uploadRes.text().catch(() => '')
+      const uploadRawSafe = uploadRaw.slice(0, 300)
+      console.log(`${logPrefix} uploadRaw=${uploadRawSafe}${uploadRaw.length > 300 ? '...' : ''}`)
       if (!uploadRes.ok) {
-        const text = await uploadRes.text().catch(() => '')
-        steps.push({ step: 'upload', ok: false, code: uploadRes.status, msg: text.slice(0, 200), ms: Date.now() - start })
-        throw new Error(text || `Video upload HTTP ${uploadRes.status}`)
+        steps.push({ step: 'upload', ok: false, code: uploadRes.status, msg: uploadRawSafe, ms: Date.now() - start })
+        throw new Error(uploadRawSafe || `Video upload HTTP ${uploadRes.status}`)
       }
-      steps.push({ step: 'upload', ok: true, code: uploadRes.status || 200, ms: Date.now() - start })
+      let uploadData = {}
+      try { uploadData = uploadRaw ? JSON.parse(uploadRaw) : {} } catch { uploadData = {} }
+      if (uploadData.error) {
+        const code = uploadData.error.error_code || uploadRes.status
+        const msg = uploadData.error.error_msg || 'Video upload failed'
+        steps.push({ step: 'upload', ok: false, code, msg, raw: uploadRawSafe, ms: Date.now() - start })
+        throw Object.assign(new Error(msg), { vkError: uploadData.error })
+      }
+      steps.push({ step: 'upload', ok: true, code: uploadRes.status || 200, raw: uploadRawSafe, ms: Date.now() - start })
 
       return {
         attachment: formatAttachment('video', ownerId, videoId, accessKey),
