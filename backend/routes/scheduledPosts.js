@@ -128,19 +128,34 @@ router.post('/telegram-test', protect, async (req, res) => {
 })
 
 // [SOCIAL-v5.1] added: publish to connected social platforms (VK/Telegram via user.socials)
+// [v9.9.19.15.10] atomic status capture to prevent VersionError 500 and duplicate wall.posts
 router.post('/:id/publish', protect, async (req, res) => {
+    const userId = req.user?._id || req.user?.id
+    const now = new Date()
+
     try {
-        const userId = req.user?._id || req.user?.id
-        const post = await ScheduledPost.findOne({ _id: req.params.id, userId })
-        if (!post) return res.status(404).json({ status: 'error', error: 'Post not found' })
+        const captured = await ScheduledPost.findOneAndUpdate(
+            { _id: req.params.id, userId, status: { $in: ['scheduled', 'failed', 'cancelled'] }, hidden: { $ne: true } },
+            { $set: { status: 'publishing', publishStartedAt: now } },
+            { new: true }
+        )
+
+        if (!captured) {
+            const existing = await ScheduledPost.findOne({ _id: req.params.id, userId }).lean()
+            if (!existing) return res.status(404).json({ status: 'error', error: 'Post not found' })
+            return res.status(409).json({ status: 'error', error: 'already_publishing_or_published', data: { status: existing.status } })
+        }
 
         const user = await User.findById(userId)
             .select('+vkToken +vkRefreshToken +vkUserId +vkCommunityKey vkGroupId vkConnected telegramBotToken telegramChatId telegramId preferences.language')
-        if (!user) return res.status(404).json({ status: 'error', error: 'User not found' })
+        if (!user) {
+            await ScheduledPost.updateOne({ _id: captured._id }, { $set: { status: 'failed', errorMessage: 'User not found' } })
+            return res.status(404).json({ status: 'error', error: 'User not found' })
+        }
 
         // [v9.9.19.15.2] единый источник правды о подключённых соцсетях
         const socialStatus = await getConnectedSocials(user)
-        const platforms = req.body.platforms || post.platforms || []
+        const platforms = req.body.platforms || captured.platforms || []
         const results = []
 
         for (const platform of platforms) {
@@ -161,7 +176,7 @@ router.post('/:id/publish', protect, async (req, res) => {
             }
 
             try {
-                const result = await publishToPlatform(user, platform, post)
+                const result = await publishToPlatform(user, platform, captured)
                 results.push({ platform, status: result.success !== false ? 'published' : 'error', result })
             } catch (e) {
                 results.push({ platform, status: 'error', error: e.message })
@@ -169,18 +184,29 @@ router.post('/:id/publish', protect, async (req, res) => {
         }
 
         const published = results.filter(r => r.status === 'published')
-        post.status = published.length > 0 ? 'published' : 'failed'
-        post.publishResults = results
-        post.publishedAt = new Date()
-        if (published.length > 0 && published[0].result?.postUrl) {
-            post.publishedUrl = published[0].result.postUrl
-        }
-        await post.save()
+        const finalStatus = published.length > 0 ? 'published' : 'failed'
+        const publishedUrl = published[0]?.result?.postUrl || ''
+        const errorMessage = finalStatus === 'failed'
+            ? results.map(r => `${r.platform}: ${r.error || r.result?.error || r.result?.reason || 'failed'}`).join('; ')
+            : ''
 
-        res.json({ status: 'success', data: { results } })
+        await ScheduledPost.updateOne(
+            { _id: captured._id },
+            { $set: { status: finalStatus, publishResults: results, publishedAt: new Date(), publishedUrl, errorMessage } }
+        )
+
+        if (finalStatus === 'published') {
+            return res.json({ status: 'success', data: { results, publishedUrl } })
+        }
+        return res.status(400).json({ status: 'error', error: errorMessage || 'Publish failed', data: { results, publishedUrl } })
     } catch (err) {
         console.error('[scheduledPosts:publish]', err.message)
-        res.status(500).json({ status: 'error', error: err.message })
+        try {
+            await ScheduledPost.updateOne({ _id: req.params.id, userId }, { $set: { status: 'failed', errorMessage: err.message } })
+        } catch (updateErr) {
+            console.error('[scheduledPosts:publish] failed to mark post as failed:', updateErr.message)
+        }
+        return res.status(200).json({ status: 'error', error: err.message || 'Publish error' })
     }
 })
 

@@ -510,6 +510,8 @@ export const scheduledPostsApi = {
     create: (data) => request('/scheduled-posts', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => request(`/scheduled-posts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     remove: (id) => request(`/scheduled-posts/${id}`, { method: 'DELETE' }),
+    // [v9.9.19.15.10] no retry on publish to avoid duplicate wall.posts
+    publish: (id, platforms) => request(`/scheduled-posts/${id}/publish`, { method: 'POST', body: JSON.stringify({ platforms }), noRetry: true }),
 }
 
 // ============================================

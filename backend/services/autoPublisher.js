@@ -23,6 +23,8 @@ const PERMANENT_ERROR_CODES = [
   'no_post_id',
   'no_group',
   'invalid_group',
+  'empty_post',
+  'empty_text',
   'not connected',
   'telegram bot token',
   'chat id не настроены',
@@ -45,38 +47,54 @@ function isPermanentError(result) {
 export const startAutoPublisher = () => {
     setInterval(async () => {
         const now = new Date()
-        const posts = await ScheduledPost.find({
+        const candidatePosts = await ScheduledPost.find({
             $or: [
-                { status: 'scheduled', scheduledAt: { $lte: now } },
-                { status: 'failed', retriedAt: { $exists: false }, scheduledAt: { $lte: new Date(now.getTime() + 5 * 60 * 1000) } }
+                { status: 'scheduled', scheduledAt: { $lte: now }, hidden: { $ne: true } },
+                { status: 'failed', retriedAt: { $exists: false }, scheduledAt: { $lte: new Date(now.getTime() + 5 * 60 * 1000) }, hidden: { $ne: true } }
             ]
         })
 
-        for (const post of posts) {
-            let platforms = post.platforms || []
-
-            // [v9.9.19.2-UX-HOTFIX-v4] platforms пуст → пропуск с понятным логом.
-            if (platforms.length === 0) {
-                if (!noPlatformAlerted.has(String(post._id))) {
-                    noPlatformAlerted.add(String(post._id))
-                    console.warn(`[AUTO-PUBLISH] skipped: no platforms connected (post ${post._id})`)
-                }
+        for (const post of candidatePosts) {
+            // [v9.9.19.15.10] atomic capture to avoid racing with manual /publish
+            const captured = await ScheduledPost.findOneAndUpdate(
+                { _id: post._id, status: { $in: ['scheduled', 'failed'] }, hidden: { $ne: true } },
+                { $set: { status: 'publishing', publishStartedAt: new Date() } },
+                { new: true }
+            )
+            if (!captured) {
+                console.warn(`[AUTO-PUBLISH] post ${post._id} already being processed, skipping`)
                 continue
             }
 
-            const user = await User.findById(post.userId)
+            let platforms = captured.platforms || []
+
+            // [v9.9.19.2-UX-HOTFIX-v4] platforms пуст → пропуск с понятным логом.
+            if (platforms.length === 0) {
+                if (!noPlatformAlerted.has(String(captured._id))) {
+                    noPlatformAlerted.add(String(captured._id))
+                    console.warn(`[AUTO-PUBLISH] skipped: no platforms connected (post ${captured._id})`)
+                }
+                await ScheduledPost.updateOne(
+                    { _id: captured._id },
+                    { $set: { status: 'failed', errorMessage: 'No platforms selected' } }
+                )
+                continue
+            }
+
+            const user = await User.findById(captured.userId)
                 .select('+vkToken +vkRefreshToken +vkUserId +vkCommunityKey vkGroupId vkConnected telegramBotToken telegramChatId telegramId preferences.language')
             if (!user) {
-                console.warn(`[AUTO-PUBLISH] skipped: user not found (post ${post._id})`)
-                post.status = 'failed'
-                post.errorMessage = 'User not found'
-                await post.save()
+                console.warn(`[AUTO-PUBLISH] skipped: user not found (post ${captured._id})`)
+                await ScheduledPost.updateOne(
+                    { _id: captured._id },
+                    { $set: { status: 'failed', errorMessage: 'User not found' } }
+                )
                 continue
             }
 
             // [v9.9.19.15.2] единый источник правды о подключённых соцсетях
             const socialStatus = await getConnectedSocials(user)
-            console.log(`[AUTO-PUBLISH] post=${post._id} user=${post.userId} vk=${JSON.stringify(socialStatus.vk)} telegram=${JSON.stringify(socialStatus.telegram)}`)
+            console.log(`[AUTO-PUBLISH] post=${captured._id} user=${captured.userId} vk=${JSON.stringify(socialStatus.vk)} telegram=${JSON.stringify(socialStatus.telegram)}`)
 
             const results = []
 
@@ -94,7 +112,7 @@ export const startAutoPublisher = () => {
                 }
 
                 try {
-                    const result = await publishToPlatform(user, platform, post)
+                    const result = await publishToPlatform(user, platform, captured)
                     results.push({ platform, status: result.success !== false ? 'published' : 'error', result })
                 } catch (e) {
                     results.push({ platform, status: 'error', error: e.message })
@@ -103,48 +121,50 @@ export const startAutoPublisher = () => {
 
             const publishedCount = results.filter(r => r.status === 'published').length
             const allErrorsPermanent = publishedCount === 0 && results.length > 0 && results.every(r => r.status === 'error' && isPermanentError(r))
+            const errorMessage = results.map(r => `${r.platform}: ${r.error || r.result?.error || r.result?.reason || 'failed'}`).join('; ')
 
             // [v9.9.19.15.1] retry once after 5 minutes only for transient failures
-            if (publishedCount === 0 && !post.retriedAt && !allErrorsPermanent) {
-                post.status = 'scheduled'
-                post.scheduledAt = new Date(Date.now() + 5 * 60 * 1000)
-                post.retriedAt = new Date()
-                post.publishResults = results
-                post.errorMessage = results.map(r => `${r.platform}: ${r.error || r.result?.error || 'failed'}`).join('; ')
-                await post.save()
-                console.warn(`[AUTO-PUBLISH] retry scheduled in 5 min (post ${post._id}): ${post.errorMessage}`)
+            if (publishedCount === 0 && !captured.retriedAt && !allErrorsPermanent) {
+                await ScheduledPost.updateOne(
+                    { _id: captured._id },
+                    { $set: { status: 'scheduled', scheduledAt: new Date(Date.now() + 5 * 60 * 1000), retriedAt: new Date(), publishResults: results, errorMessage } }
+                )
+                console.warn(`[AUTO-PUBLISH] retry scheduled in 5 min (post ${captured._id}): ${errorMessage}`)
                 continue
             }
 
-            post.status = publishedCount > 0 ? 'published' : 'failed'
-            post.publishResults = results
-            post.publishedAt = new Date()
-            if (publishedCount === 0) {
-                post.errorMessage = results.map(r => `${r.platform}: ${r.error || r.result?.error || 'failed'}`).join('; ')
+            const finalStatus = publishedCount > 0 ? 'published' : 'failed'
+            const publishedUrl = results.find(r => r.result?.postUrl)?.result?.postUrl || ''
+            const update = {
+                status: finalStatus,
+                publishResults: results,
+                publishedAt: new Date(),
+                publishedUrl,
+                errorMessage: finalStatus === 'failed' ? errorMessage : ''
+            }
+            if (finalStatus === 'failed') {
                 // [v9.9.19.16.1] prevent permanent-failed posts from being re-selected every 5 minutes
-                post.retriedAt = new Date()
-                const skipKey = `${post._id}:${post.errorMessage}`
+                update.retriedAt = new Date()
+                const skipKey = `${captured._id}:${errorMessage}`
                 if (!permanentSkipLogged.has(skipKey)) {
                     permanentSkipLogged.add(skipKey)
-                    console.warn(`[AUTO-PUBLISH] skipped: post ${post._id} — 0 platforms published (${results.map(r => `${r.platform}:${r.status}`).join(', ')})`)
+                    console.warn(`[AUTO-PUBLISH] skipped: post ${captured._id} — 0 platforms published (${results.map(r => `${r.platform}:${r.status}`).join(', ')})`)
                 }
-                if (!noPlatformAlerted.has(String(post._id))) {
-                    noPlatformAlerted.add(String(post._id))
+                if (!noPlatformAlerted.has(String(captured._id))) {
+                    noPlatformAlerted.add(String(captured._id))
                     try {
                         const { alertOwner } = await import('./ownerBot.js')
                         const reasons = formatPlatformReasons(socialStatus, socialStatus.language)
                         const action = socialStatus.language === 'ru'
                             ? `Проверьте статус в Соцсетях.`
                             : `Check status in Socials.`
-                        alertOwner?.(`⚠️ ${socialStatus.language === 'ru' ? 'Автопост не опубликован' : 'Auto-post not published'}: ${(post.title || '').slice(0, 60)}\n${reasons}\n${action}`)
+                        alertOwner?.(`⚠️ ${socialStatus.language === 'ru' ? 'Автопост не опубликован' : 'Auto-post not published'}: ${(captured.title || '').slice(0, 60)}\n${reasons}\n${action}`)
                     } catch { /* алерт не критичен */ }
                 }
             } else {
-                const firstUrl = results.find(r => r.result?.postUrl)?.result?.postUrl
-                if (firstUrl) post.publishedUrl = firstUrl
-                console.log(`[AUTO-PUBLISH] Post ${post._id} published to ${publishedCount} platforms`)
+                console.log(`[AUTO-PUBLISH] Post ${captured._id} published to ${publishedCount} platforms`)
             }
-            await post.save()
+            await ScheduledPost.updateOne({ _id: captured._id }, { $set: update })
         }
     }, 5 * 60 * 1000)
 

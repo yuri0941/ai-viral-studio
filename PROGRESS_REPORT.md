@@ -4072,3 +4072,20 @@
   3) 🧪 Тест видео → все шаги ✅ (или честный reason).
   4) Пост с фото → фото на стене группы + уведомление в TG.
   5) Пост с видео → видео на стене (подождать обработку VK 1–5 мин).
+
+## 2026-08-12 — v9.9.19.15.10-PUBLISH-IDEMPOTENT-FIX — убийство 500/дублей при публикации + диагностика медиа
+- [DIAG] Ручная публикация из планировщика: пост уходил в VK, но сохранение статуса падало с Mongoose VersionError → API 500 → axios retry 5xx → дубли на стене. Также медиа не доходило до `[vk:photo]` и встречалось `could not fetch media buffer`.
+- [ROOT-CAUSE] `scheduledPosts/:id/publish` загружал документ, публиковал, потом `post.save()`; при одновременной обработке autoPublisher или повторном запросе фронта возникала гонка. Фронт использовал `fetch` без `noRetry`, а backend не возвращал 409. `fetchMediaBuffer` не поддерживал относительные URL (`/uploads/...`) и не логировал HTTP-статус.
+- [FIX] `backend/routes/scheduledPosts.js`: `/publish` теперь делает атомарный захват `findOneAndUpdate(status -> publishing)`; если пост уже публикуется/опубликован — 409 `already_publishing_or_published`; финальный статус пишется через `updateOne` без `doc.save()`; любой catch → `updateOne(status='failed')` и JSON 200/400, ноль 500.
+- [FIX] `backend/services/autoPublisher.js`: перед обработкой каждого поста атомарный захват `scheduled/failed -> publishing`; все обновления через `ScheduledPost.updateOne`; добавлен `empty_post`/`empty_text` в перманентные коды.
+- [FIX] `backend/services/vkPublishService.js`: `[vk:publish]` логирует `hasMedia` и обрезанный `mediaUrl`; перед `wall.post` guard `empty_post`, если нет текста и attachments.
+- [FIX] `backend/services/vkMediaPipeline.js`: `fetchMediaBuffer` поддерживает относительные URL (`/uploads/...` через `RENDER_EXTERNAL_URL/API_BASE_URL/FRONTEND_URL`), логирует HTTP-статус и размер; таймаут 30с.
+- [FIX] `frontend/src/services/api.js`: `scheduledPostsApi.publish(id, platforms)` с `noRetry: true`.
+- [FIX] `frontend/src/pages/SchedulerPage.jsx`: публикация идёт через `scheduledPostsApi.publish`; кнопки «Опубликовать»/«Сохранить» и чекбокс «Опубликовать сейчас» disabled во время публикации; результат показывается toast.
+- [FIX] `backend/ai/omega/dreamMode.js`: `Notification.create` теперь передаёт обязательное поле `body`, убирает `Notification validation failed: body required`.
+- [TEST] `node --check` по `scheduledPosts.js`, `autoPublisher.js`, `vkPublishService.js`, `vkMediaPipeline.js`, `dreamMode.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только разрешённые файлы + документы.
+- [NOTE] Ручная проверка владельцем:
+  1) Два быстрых клика «Опубликовать сейчас» → второй запрос получает 409, пост на стене ВК один.
+  2) Пост с медиа (`/uploads/...` или прямой URL) → в логе `[vk:publish] hasMedia=true`, `[vk:photo]` шаги, фото/видео на стене.
+  3) Пост без текста и медиа → статус `failed`, причина `empty_post`, на стену не уходит.
+  4) Регрессия: автопосты по расписанию, Telegram-канал, бот «привет», уведомления — работают.

@@ -184,23 +184,46 @@ export async function prepareVideoBuffer(inputBuffer, filename = 'video.mp4') {
   }
 }
 
+function resolveMediaUrl(mediaUrl) {
+  if (!mediaUrl) return null
+  if (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://') || mediaUrl.startsWith('data:')) return mediaUrl
+  if (mediaUrl.startsWith('/')) {
+    const base = process.env.RENDER_EXTERNAL_URL || process.env.API_BASE_URL || process.env.BACKEND_URL || process.env.FRONTEND_URL || ''
+    if (base) return `${base.replace(/\/$/, '')}${mediaUrl}`
+  }
+  return null
+}
+
 /**
  * [v9.9.19.15.8] Fetch media from URL with timeout and optional User-Agent.
+ * [v9.9.19.15.10] supports relative /uploads/... URLs and logs HTTP status.
  */
 export async function fetchMediaBuffer(mediaUrl, timeoutMs = 30000) {
-  if (!mediaUrl) return null
-  if (mediaUrl.startsWith('data:')) {
-    const match = mediaUrl.match(/^data:([^;]+);base64,(.+)$/)
+  const rawUrl = resolveMediaUrl(mediaUrl)
+  if (!rawUrl) {
+    console.warn(`[vk:media] could not resolve media URL: ${String(mediaUrl).slice(0, 80)}`)
+    return null
+  }
+  if (rawUrl.startsWith('data:')) {
+    const match = rawUrl.match(/^data:([^;]+);base64,(.+)$/)
     if (!match) return null
     return Buffer.from(match[2], 'base64')
   }
-  if (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://')) {
-    const res = await fetch(mediaUrl, {
+  const displayUrl = rawUrl.slice(0, 80)
+  try {
+    const res = await fetch(rawUrl, {
       headers: { 'User-Agent': 'AI Viral Studio VK Publisher/1.0' },
       signal: AbortSignal.timeout(timeoutMs),
     })
-    if (!res.ok) return null
-    return Buffer.from(await res.arrayBuffer())
+    if (!res.ok) {
+      console.warn(`[vk:media] fetch failed status=${res.status} url=${displayUrl}${rawUrl.length > 80 ? '...' : ''}`)
+      return null
+    }
+    const buffer = Buffer.from(await res.arrayBuffer())
+    console.log(`[vk:media] fetched size=${buffer.length} url=${displayUrl}${rawUrl.length > 80 ? '...' : ''}`)
+    return buffer
+  } catch (err) {
+    console.warn(`[vk:media] fetch error: ${err.message} url=${displayUrl}${rawUrl.length > 80 ? '...' : ''}`)
+    return null
   }
-  return null
 }

@@ -278,3 +278,11 @@
 - `connectedSocials.js`: VK `connected` = ключ + числовой groupId; `needsScope` VK ID не блокирует постинг.
 - `SchedulerPage`: цель «VK (группа)», медиа загружается через `/api/upload/image` (format=jpeg) перед сохранением.
 - `autoPublisher`: перманентные VK-коды (`vk_invalid_token`, `vk_wall_denied` и др.) не retry.
+
+### v9.9.19.15.10-PUBLISH-IDEMPOTENT-FIX
+- Ручная публикация в планировщике переведена на атомарный захват статуса (`publishing`) и `updateOne` вместо `doc.save()`, чтобы убить VersionError 500 и дубли на стене VK.
+- `autoPublisher` тоже делает atomic `scheduled/failed -> publishing` и обновляет через `updateOne`.
+- `fetchMediaBuffer` теперь понимает относительные `/uploads/...` URL и логирует HTTP-статус/размер.
+- Фронт: `scheduledPostsApi.publish(id, platforms)` с `noRetry: true`, кнопки disabled во время публикации.
+- Добавлен guard `empty_post`: пост без текста и attachments не публикуется на стену.
+- Исправлен `Notification validation failed: body required` в DreamMode morning briefing.

@@ -278,6 +278,7 @@ class DreamMode {
                     type: 'system',
                     title: 'Breakfast Briefing ready 🍳',
                     message: `OMEGA завершила ночную смену. MRR: ${mrr.toLocaleString('ru-RU')}₽, клиентов: ${totalUsers}, тикетов: ${openTickets}.`,
+                    body: `OMEGA завершила ночную смену. MRR: ${mrr.toLocaleString('ru-RU')}₽, клиентов: ${totalUsers}, тикетов: ${openTickets}.`,
                     read: false,
                 })
             }

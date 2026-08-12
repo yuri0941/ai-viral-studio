@@ -10,7 +10,7 @@ import {
     Trash, Play, Maximize2, Wand2, Zap, LayoutTemplate,
     ToggleLeft, ToggleRight, Bot, Loader2, Copy, Clapperboard
 } from 'lucide-react';
-import { omegaApi } from '../services/api';
+import { omegaApi, scheduledPostsApi } from '../services/api';
 import { API_BASE_URL } from '../config.js';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -90,6 +90,7 @@ function SchedulerPage() {
     // [SOCIAL-v5.1] added: connected platforms for auto-publishing
     const [availablePlatforms, setAvailablePlatforms] = useState([]);
     const [publishNowFlag, setPublishNowFlag] = useState(false);
+    const [publishLoading, setPublishLoading] = useState(false);
     // [P19] added: AI Video (Shorts/Reels) modal state
     const [videoModalOpen, setVideoModalOpen] = useState(false);
     const [videoTopic, setVideoTopic] = useState('');
@@ -451,13 +452,23 @@ function SchedulerPage() {
                 createdPost = await res.json().catch(() => null);
             }
             // [SOCIAL-v5.1] added: publish immediately if requested
+            // [v9.9.19.15.10] no retry + disabled button to prevent duplicate wall.posts
             if (publishNowFlag && (createdPost?.data?._id || editingPost?._id)) {
                 const postId = createdPost?.data?._id || editingPost?._id;
-                await fetch(`${API_BASE_URL}/scheduled-posts/${postId}/publish`, {
-                    method: 'POST',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({ platforms: formData.platforms }),
-                });
+                setPublishLoading(true);
+                try {
+                    const publishRes = await scheduledPostsApi.publish(postId, formData.platforms);
+                    if (publishRes?.status === 'success') {
+                        toast.success('Опубликовано!');
+                    } else {
+                        toast.error(publishRes?.error || 'Ошибка публикации');
+                    }
+                } catch (err) {
+                    console.error('[Scheduler] publish failed:', err);
+                    toast.error(err.message || 'Ошибка публикации');
+                } finally {
+                    setPublishLoading(false);
+                }
             }
             await loadPosts();
         } catch (err) {
@@ -1068,7 +1079,7 @@ function SchedulerPage() {
                                             type="checkbox"
                                             checked={publishNowFlag}
                                             onChange={e => setPublishNowFlag(e.target.checked)}
-                                            disabled={!editingPost?._id && availablePlatforms.length === 0}
+                                            disabled={publishLoading || (!editingPost?._id && availablePlatforms.length === 0)}
                                             className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-emerald-500 focus:ring-emerald-500"
                                         />
                                         <span>Опубликовать сейчас</span>
@@ -1078,10 +1089,10 @@ function SchedulerPage() {
                                             </Link>
                                         )}
                                     </label>
-                                    <button type="button" onClick={handleSave} disabled={!formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-lg shadow-emerald-500/25 transition transform hover:scale-[1.02] flex items-center gap-2">
+                                    <button type="button" onClick={handleSave} disabled={publishLoading || !formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-lg shadow-emerald-500/25 transition transform hover:scale-[1.02] flex items-center gap-2">
                                         <span>🚀</span> Опубликовать
                                     </button>
-                                    <button type="button" onClick={handleSave} disabled={!formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-lg shadow-violet-500/25 transition transform hover:scale-[1.02]">
+                                    <button type="button" onClick={handleSave} disabled={publishLoading || !formData.title.trim() || formData.platforms.length === 0 || formData.types.length === 0} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-lg shadow-violet-500/25 transition transform hover:scale-[1.02]">
                                         {editingPost ? 'Сохранить' : 'Создать'}
                                     </button>
                                 </div>
