@@ -4,10 +4,10 @@ import ScheduledPost from '../models/ScheduledPost.js'
 import { getConnectedSocials } from '../utils/connectedSocials.js'
 
 /**
- * [v9.9.19.15.2] Разовое восстановление постов, убитых старым багом vk_not_connected.
+ * [v9.9.19.15.5] Разовое восстановление постов, убитых багом vk_not_connected / отсутствием ключа.
  * Находит ScheduledPost со status=failed за последние 7 дней, где причина связана с
- * vk_not_connected / "0 platforms published" / "ни одна платформа".
- * Для постов с целью vk проверяет getConnectedSocials(user).vk.connected.
+ * отсутствием/невалидностью VK community key или group id.
+ * getConnectedSocials теперь читает root-level поля vkCommunityKey/vkGroupId.
  * Только dry-run по умолчанию; с --apply переводит в scheduled (due = now+5min).
  *
  * node backend/scripts/requeueVkFailedPosts.js           # dry-run
@@ -20,6 +20,14 @@ const SINCE = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 const FAILED_REASONS = [
   'vk_not_connected',
   'vk_needs_wall_scope',
+  'not_connected',
+  'no_group',
+  'invalid_group',
+  'vk_invalid_token',
+  'vk_wall_denied',
+  'vk_access_denied',
+  'vk_group_disabled',
+  'vk_invalid_group',
   '0 platforms published',
   'ни одна платформа',
   'no platforms connected'

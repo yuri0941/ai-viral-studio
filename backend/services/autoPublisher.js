@@ -37,6 +37,7 @@ const PERMANENT_ERROR_CODES = [
 const permanentSkipLogged = new Set()
 
 function isPermanentError(result) {
+  if (result?.permanent === true || result?.result?.permanent === true) return true
   const text = String(result?.error || result?.result?.error || result?.result?.hint || result?.errorMessage || '').toLowerCase()
   return PERMANENT_ERROR_CODES.some(code => text.includes(code.toLowerCase()))
 }
@@ -64,7 +65,7 @@ export const startAutoPublisher = () => {
             }
 
             const user = await User.findById(post.userId)
-                .select('+vkToken +vkRefreshToken +vkUserId +socials.vk.communityKey socials.vk telegramBotToken telegramChatId telegramId preferences.language')
+                .select('+vkToken +vkRefreshToken +vkUserId +vkCommunityKey vkGroupId vkConnected telegramBotToken telegramChatId telegramId preferences.language')
             if (!user) {
                 console.warn(`[AUTO-PUBLISH] skipped: user not found (post ${post._id})`)
                 post.status = 'failed'

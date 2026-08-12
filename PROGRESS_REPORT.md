@@ -4015,3 +4015,24 @@
   2) Тест-пост текстом и с фото → на стене ГРУППЫ; `postUrl` открывается.
   3) Планировщик +2 мин → пост на стене группы; алертов «не подключена» нет.
   4) Тестовый клиент-аккаунт: свой ключ → своя группа; чужие ключи недоступны.
+
+## 2026-08-12 — v9.9.19.15.5-VK-COMMUNITY-FIX — Path collision + root-level per-user ключи
+- [DIAG] В Render-логах спамилось `[VK status] error: Path collision at socials.vk.communityKey remaining portion vk.communityKey`. Mongoose не мог разрешить вложенный путь внутри `socials` при сохранении через `$set: { 'socials.vk.communityKey': ... }`.
+- [ROOT-CAUSE] `socials` — Mixed/Map-совместимая структура; попытка хранить per-user `communityKey`/`groupId` внутри `socials.vk` приводила к Path collision, поле не сохранялось, после F5 пусто.
+- [FIX] `backend/models/User.js`: добавлены корневые поля `vkCommunityKey` (String, select: false), `vkGroupId` (String), `vkConnected` (Boolean) — источник правды для постинга в группу. Поле `socials` и его подполя (Telegram/Instagram/остальные) не тронуты.
+- [FIX] `backend/controllers/userController.js`: `GET /api/users/me` возвращает `vkCommunityKey` (маскированный), `vkGroupId`, `vkConnected`; `PATCH /api/users/me` принимает `vkCommunityKey`/`vkGroupId`, валидирует groupId как числа, автоматически вычисляет `vkConnected`.
+- [FIX] `backend/routes/vk.js`: `GET /vk/status`, `POST /vk/community`, `POST /vk/test`, `DELETE /vk`, `POST /vk/publish` переключены на чтение/запись root-level полей; маска ключа `XXXXXX••••XXXX`; PKCE-колбэк оставлен без изменений.
+- [FIX] `backend/services/vkPublishService.js`: `publishToVKGroup` читает `user.vkCommunityKey`/`user.vkGroupId`; `wall.post owner_id=-groupId from_group=1`; фото обязателен; видео best effort 3 попытки; в маппинг ошибок добавлен флаг `permanent` для перманентных VK-кодов.
+- [FIX] `backend/utils/connectedSocials.js`: VK `connected` = `vkCommunityKey` + числовой `vkGroupId`; источник — корневые поля.
+- [FIX] `backend/services/autoPublisher.js` + `backend/routes/scheduledPosts.js`: выборка пользователя включает `vkCommunityKey`/`vkGroupId`/`vkConnected`; retry только при transient-ошибках, `permanent: true` → failed без retry.
+- [FIX] `backend/services/vkPublishService.js`: добавлен `requeueVkFailedPosts(userId, groupId)` — при сохранении ключа переводит старые failed-посты VK с причинами `not_connected`/`invalid_group`/VK permission в `scheduled`.
+- [FIX] `backend/scripts/requeueVkFailedPosts.js`: актуализирован список причин для разового восстановления.
+- [FIX] `frontend/src/pages/settings/IntegrationsTab.jsx`: карточка VK показывает статусы «🔴 Не подключено / 🟡 Сохранён / 🟢 Работает»; поля сохраняются после F5; тест и сохранение работают с корневыми полями.
+- [FIX] `frontend/public/locales/ru.json` + `en.json`: добавлены ключи `vk.statusDisconnected`, `vk.statusSaved`, `vk.statusWorking`, `vk.statusError`, `vk.errorInvalidKey`, `vk.errorNoWallPermission`, `vk.errorGroupNotFound`, `instruction.vk.title` + step1…step6.
+- [TEST] `node --check` по User.js, userController.js, vk.js, scheduledPosts.js, vkPublishService.js, connectedSocials.js, autoPublisher.js, requeueVkFailedPosts.js ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только разрешённые VK-файлы + документы.
+- [NOTE] Ручная проверка владельцем:
+  1) Соцсети → VK → вставить ключ + ID группы → 💾 → F5 → поля не пропали.
+  2) 🧪 → 🟢 Работает; инструкция раскрывается и читается.
+  3) Тест-пост текстом + фото → на стене ГРУППЫ.
+  4) Планировщик +2 мин → пост на стене группы.
+  5) Регрессия: VK ID-логин (если настроен), Telegram-канал, бот «привет» — работают.

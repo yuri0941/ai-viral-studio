@@ -135,7 +135,7 @@ router.post('/:id/publish', protect, async (req, res) => {
         if (!post) return res.status(404).json({ status: 'error', error: 'Post not found' })
 
         const user = await User.findById(userId)
-            .select('+vkToken +vkRefreshToken +vkUserId +socials.vk.communityKey socials.vk telegramBotToken telegramChatId telegramId preferences.language')
+            .select('+vkToken +vkRefreshToken +vkUserId +vkCommunityKey vkGroupId vkConnected telegramBotToken telegramChatId telegramId preferences.language')
         if (!user) return res.status(404).json({ status: 'error', error: 'User not found' })
 
         // [v9.9.19.15.2] единый источник правды о подключённых соцсетях

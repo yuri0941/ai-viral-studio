@@ -141,6 +141,10 @@ const userSchema = new mongoose.Schema(
         vkTokenExpiresAt: Date,
         vkUserId: { type: String, default: '' },
         vkConnectedAt: Date,
+        // [v9.9.19.15.5] root-level VK community keys to avoid Mongoose path collision in socials Map/Mixed
+        vkCommunityKey: { type: String, default: '', select: false },
+        vkGroupId: { type: String, default: '' },
+        vkConnected: { type: Boolean, default: false },
         apiKeys: [{
             name: String,
             key: String,

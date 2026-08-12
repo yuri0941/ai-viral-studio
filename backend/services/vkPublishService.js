@@ -1,5 +1,6 @@
 import User from '../models/User.js'
 import VkPost from '../models/VkPost.js'
+import ScheduledPost from '../models/ScheduledPost.js'
 import sharp from 'sharp'
 
 const VK_API_VERSION = '5.199'
@@ -24,13 +25,13 @@ function mapVkError(error) {
   const code = error?.error_code
   const msg = error?.error_msg || 'VK API error'
   const mapped = PERMANENT_VK_ERRORS[code]
-  if (mapped) return { error: mapped, reason: msg }
-  if (code >= 500 && code < 600) return { error: 'vk_server_error', reason: msg }
+  if (mapped) return { error: mapped, permanent: true, reason: msg }
+  if (code >= 500 && code < 600) return { error: 'vk_server_error', permanent: false, reason: msg }
   if (code === undefined || code === null) {
-    if (/network|timeout|fetch|econnrefused/i.test(msg)) return { error: 'vk_network_error', reason: msg }
-    return { error: 'vk_api_error', reason: msg }
+    if (/network|timeout|fetch|econnrefused/i.test(msg)) return { error: 'vk_network_error', permanent: false, reason: msg }
+    return { error: 'vk_api_error', permanent: true, reason: msg }
   }
-  return { error: `vk_error_${code}`, reason: msg }
+  return { error: `vk_error_${code}`, permanent: false, reason: msg }
 }
 
 async function vkApi(method, params) {
@@ -144,19 +145,20 @@ function detectMediaType(buffer, filename = '') {
 }
 
 export async function publishToVKGroup(user, { text, title, hashtags, link, mediaUrl, mediaName } = {}) {
-  const communityKey = user?.socials?.vk?.communityKey
-  const groupId = String(user?.socials?.vk?.groupId || '').replace(/^-/, '')
+  // [v9.9.19.15.5] root-level fields avoid Mongoose socials path collision
+  const communityKey = user?.vkCommunityKey
+  const groupId = String(user?.vkGroupId || '').replace(/^-/, '')
 
   console.log(`[vk:publish] user=${user?._id || user?.id}, groupId=${groupId}, hasCommunityKey=${!!communityKey}`)
 
   if (!communityKey) {
-    return { success: false, error: 'not_connected', hint: 'Подключите ключ сообщества VK в Соцсетях' }
+    return { success: false, error: 'not_connected', permanent: true, hint: 'Подключите ключ сообщества VK в Соцсетях' }
   }
   if (!groupId) {
-    return { success: false, error: 'no_group', hint: 'Укажите ID группы VK в Соцсетях' }
+    return { success: false, error: 'no_group', permanent: true, hint: 'Укажите ID группы VK в Соцсетях' }
   }
   if (!/^\d+$/.test(groupId)) {
-    return { success: false, error: 'invalid_group', hint: 'ID группы VK должен содержать только цифры' }
+    return { success: false, error: 'invalid_group', permanent: true, hint: 'ID группы VK должен содержать только цифры' }
   }
 
   const message = [text, hashtags].filter(Boolean).join('\n\n') || ''
@@ -244,7 +246,7 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
       return { success: false, ...mapped, hint: mapped.reason }
     }
     const reason = err.message || 'Network error'
-    return { success: false, error: 'vk_network_error', reason, hint: 'Ошибка публикации. Попробуйте позже' }
+    return { success: false, error: 'vk_network_error', permanent: false, reason, hint: 'Ошибка публикации. Попробуйте позже' }
   }
 }
 
@@ -254,4 +256,54 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
  */
 export async function publishToVKWall(user, payload) {
   return publishToVKGroup(user, payload)
+}
+
+const REQUEUE_PERMANENT_REASONS = [
+  'not_connected',
+  'no_group',
+  'invalid_group',
+  'vk_invalid_token',
+  'vk_wall_denied',
+  'vk_access_denied',
+  'vk_group_disabled',
+  'vk_invalid_group',
+]
+
+/**
+ * [v9.9.19.15.5] Re-queue old VK failed posts when a user saves a valid community key + group id.
+ * Only posts failed for missing/invalid credentials are recovered.
+ */
+export async function requeueVkFailedPosts(userId, groupId) {
+  try {
+    const posts = await ScheduledPost.find({
+      userId,
+      status: 'failed',
+      platforms: { $in: ['vk'] },
+    }).sort({ createdAt: -1 })
+
+    const toRecover = []
+    for (const post of posts) {
+      const text = String(post.errorMessage || '') + ' ' + JSON.stringify(post.publishResults || [])
+      const matches = REQUEUE_PERMANENT_REASONS.some(reason =>
+        text.toLowerCase().includes(reason.toLowerCase())
+      )
+      if (matches) toRecover.push(post)
+    }
+
+    if (!toRecover.length) return { requeued: 0 }
+
+    for (const post of toRecover) {
+      post.status = 'scheduled'
+      post.scheduledAt = new Date(Date.now() + 5 * 60 * 1000)
+      post.retriedAt = undefined
+      post.errorMessage = '[VK Requeue] recovered after community key saved'
+      await post.save()
+    }
+
+    console.log(`[VK Requeue] ${toRecover.length} posts re-queued for group ${groupId}`)
+    return { requeued: toRecover.length }
+  } catch (err) {
+    console.error('[VK Requeue] error:', err.message)
+    return { requeued: 0, error: err.message }
+  }
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Eye, EyeOff } from 'lucide-react';
 import { API_BASE_URL } from '../../config.js';
 import InstructionBlock from '../../components/common/InstructionBlock.jsx';
 
@@ -28,6 +29,7 @@ export default function IntegrationsTab() {
   const [vkGroupId, setVkGroupId] = useState('');
   const [vkSaving, setVkSaving] = useState(false);
   const [vkTesting, setVkTesting] = useState(false);
+  const [showKey, setShowKey] = useState(false);
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -35,8 +37,9 @@ export default function IntegrationsTab() {
       fetch(`${API_BASE_URL}/integrations/my`, { headers: { Authorization: `Bearer ${token}` }}).then(r => r.json()),
       fetch(`${API_BASE_URL}/vk/status`, { headers: { Authorization: `Bearer ${token}` }}).then(r => r.json()),
       fetch(`${API_BASE_URL}/telegram/status`, { headers: { Authorization: `Bearer ${token}` }}).then(r => r.json()),
+      fetch(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` }}).then(r => r.json()).catch(() => ({})),
     ])
-      .then(([data, vk, tg]) => {
+      .then(([data, vk, tg, me]) => {
         setIntegrations(Array.isArray(data) ? data : []);
         if (vk?.success) {
           setVkStatus({
@@ -48,8 +51,15 @@ export default function IntegrationsTab() {
             maskedKey: vk.maskedKey,
             groupName: vk.groupName,
             accountName: vk.accountName,
+            tested: vk?.groupName ? true : false,
           });
           setVkGroupId(vk.groupId || '');
+        }
+        // [v9.9.19.15.5] pre-fill from /users/me root-level fields so values survive F5
+        const meUser = me?.user || me?.data;
+        if (meUser?.vkGroupId) setVkGroupId(String(meUser.vkGroupId));
+        if (meUser?.vkCommunityKey && !meUser.vkCommunityKey.includes('•')) {
+          setVkCommunityKey(meUser.vkCommunityKey);
         }
         if (tg?.success) setTgStatus({ configured: tg.configured, connected: tg.connected, username: tg.username });
         setLoading(false);
@@ -113,21 +123,28 @@ export default function IntegrationsTab() {
   };
 
   const saveVkCommunity = async () => {
-    if (!vkCommunityKey.trim()) {
-      showToast(t('vk.missingKey'));
-      return;
-    }
     const normalizedGroupId = String(vkGroupId).trim().replace(/^-/, '');
     if (!/^\d+$/.test(normalizedGroupId)) {
       showToast(t('vk.invalidGroup'));
       return;
     }
+    const key = vkCommunityKey.trim();
+    if (!key && !vkStatus.hasCommunityKey) {
+      showToast(t('vk.missingKey'));
+      return;
+    }
+    if (key && key.length < 10) {
+      showToast(t('vk.invalidToken'));
+      return;
+    }
     setVkSaving(true);
     try {
+      const payload = { groupId: normalizedGroupId };
+      if (key) payload.communityKey = key;
       const res = await fetch(`${API_BASE_URL}/vk/community`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ communityKey: vkCommunityKey.trim(), groupId: normalizedGroupId }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data?.success) {
@@ -161,7 +178,7 @@ export default function IntegrationsTab() {
       const data = await res.json();
       if (data?.success) {
         showToast(t('vk.works', { name: data.groupName || data.groupId }));
-        setVkStatus(prev => ({ ...prev, groupName: data.groupName || prev.groupName, connected: true }));
+        setVkStatus(prev => ({ ...prev, groupName: data.groupName || prev.groupName, connected: true, tested: true }));
       } else {
         const map = {
           invalid_token: t('vk.invalidToken'),
@@ -232,8 +249,13 @@ export default function IntegrationsTab() {
   const renderVkCard = (p) => {
     const connected = vkStatus.connected;
     const hasKey = vkStatus.hasCommunityKey;
-    const statusLabel = connected ? t('socials.connected') : (hasKey ? t('vk.needsGroup') : t('socials.notConnected'));
-    const statusClass = connected ? 'bg-emerald-500/20 text-emerald-400' : (hasKey ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400');
+    const tested = vkStatus.tested;
+    const statusLabel = connected
+      ? (tested ? t('vk.statusWorking') : t('vk.statusSaved'))
+      : (hasKey ? t('vk.statusSaved') : t('vk.statusDisconnected'));
+    const statusClass = connected
+      ? (tested ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400')
+      : (hasKey ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400');
 
     return (
       <div key={p.id} className="bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 hover:border-white/10 transition-all">
@@ -268,13 +290,26 @@ export default function IntegrationsTab() {
           <div className="space-y-3">
             <div>
               <label className="text-xs text-gray-400 block mb-1">{t('vk.communityKey')}</label>
-              <input
-                type="password"
-                value={vkCommunityKey}
-                onChange={e => setVkCommunityKey(e.target.value)}
-                placeholder={t('vk.communityKeyPlaceholder')}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-[var(--text)] text-sm outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
-              />
+              <div className="relative">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  value={vkCommunityKey}
+                  onChange={e => setVkCommunityKey(e.target.value)}
+                  placeholder={hasKey ? t('vk.keySavedPlaceholder') || '•••• (сохранён)' : t('vk.communityKeyPlaceholder')}
+                  className="w-full px-3 py-2 pr-10 bg-white/5 border border-white/10 rounded-xl text-[var(--text)] text-sm outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey(prev => !prev)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                  tabIndex={-1}
+                >
+                  {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {hasKey && !vkCommunityKey && (
+                <p className="text-[10px] text-gray-500 mt-1">{t('vk.keySaved') || 'Ключ уже сохранён. Оставьте поле пустым, чтобы не менять.'}</p>
+              )}
             </div>
             <div>
               <label className="text-xs text-gray-400 block mb-1">{t('vk.groupId')}</label>
@@ -290,28 +325,28 @@ export default function IntegrationsTab() {
             <div className="flex gap-2">
               <button
                 onClick={saveVkCommunity}
-                disabled={vkSaving || !vkCommunityKey.trim() || !vkGroupId.trim()}
+                disabled={vkSaving || !vkGroupId.trim() || (!vkCommunityKey.trim() && !hasKey)}
                 className="flex-1 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {vkSaving ? t('common.loading') : t('common.save')}
+                {vkSaving ? t('common.loading') : t('vk.save')}
               </button>
               <button
                 onClick={testVkCommunity}
-                disabled={vkTesting || !vkStatus.hasCommunityKey}
+                disabled={vkTesting || !hasKey}
                 className="flex-1 py-2 rounded-xl bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {vkTesting ? t('common.loading') : t('vk.test')}
               </button>
             </div>
             <InstructionBlock
-              titleKey="vk.instructionTitle"
+              titleKey="instruction.vk.title"
               stepKeys={[
-                'vk.instructionStep1',
-                'vk.instructionStep2',
-                'vk.instructionStep3',
-                'vk.instructionStep4',
-                'vk.instructionStep5',
-                'vk.instructionStep6',
+                'instruction.vk.step1',
+                'instruction.vk.step2',
+                'instruction.vk.step3',
+                'instruction.vk.step4',
+                'instruction.vk.step5',
+                'instruction.vk.step6',
               ]}
             />
           </div>

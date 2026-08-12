@@ -1,9 +1,10 @@
 # CHAT_CONTEXT.md — Текущее состояние проекта AIVIRAL
 
-> Версия контекста: v9.9.19.14-ctx
-> Дата: 2026-08-11 (обновлено после MEMORY-GRAPH-PAYMENT-FIX)
+> Версия контекста: v9.9.19.15.5-ctx
+> Дата: 2026-08-12 (обновлено после VK-COMMUNITY-FIX)
 > Мастер-план: @file D:\kilo2\MASTER_PLAN_v9.9.20.md
 > ⚠️ Файл называется CHAT_CONTEXT.md (без пробела) — вариант «CHAT_CONTEXT .md» был случайным rename, исправлен.
+> ⚠️ VK per-user ключи перенесены в корень User (`vkCommunityKey`, `vkGroupId`, `vkConnected`) из-за Path collision Map/Mixed в `socials.vk`.
 
 ---
 

@@ -1,8 +1,20 @@
 import { User } from '../models/index.js'
 
+function maskVkCommunityKey(key) {
+  if (!key) return ''
+  if (key.length < 14) return '••••'
+  return `${key.slice(0, 6)}••••${key.slice(-4)}`
+}
+
+function normalizeVkGroupId(raw) {
+  if (!raw) return ''
+  const str = String(raw).trim().replace(/^-/, '')
+  return /^\d+$/.test(str) ? str : ''
+}
+
 export const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id)
+    const user = await User.findById(req.user.id).select('+vkCommunityKey')
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' })
     }
@@ -23,6 +35,9 @@ export const getMe = async (req, res) => {
         telegram: user.telegram,
         telegramBotToken: user.telegramBotToken,
         telegramChatId: user.telegramChatId,
+        vkCommunityKey: maskVkCommunityKey(user.vkCommunityKey),
+        vkGroupId: user.vkGroupId || '',
+        vkConnected: user.vkConnected || false,
         acceptedTerms: user.acceptedTerms,
         acceptedPrivacy: user.acceptedPrivacy,
         acceptedConsent: user.acceptedConsent,
@@ -41,7 +56,7 @@ export const getMe = async (req, res) => {
 export const updateMe = async (req, res) => {
   try {
     const userId = req.user.id
-    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram, telegramBotToken, telegramChatId, role, watermarkSettings } = req.body || {}
+    const { name, avatar, preferences, defaultAddAiLabel, phone, telegram, telegramBotToken, telegramChatId, role, watermarkSettings, vkCommunityKey, vkGroupId } = req.body || {}
 
     const updates = {}
     if (name !== undefined) updates.name = name.trim()
@@ -51,6 +66,27 @@ export const updateMe = async (req, res) => {
     if (telegramBotToken !== undefined) updates.telegramBotToken = telegramBotToken.trim()
     if (telegramChatId !== undefined) updates.telegramChatId = String(telegramChatId).trim()
     if (defaultAddAiLabel !== undefined) updates.defaultAddAiLabel = !!defaultAddAiLabel
+
+    // [v9.9.19.15.5] per-user VK community key + group id stored at root level to avoid socials path collision
+    if (vkCommunityKey !== undefined || vkGroupId !== undefined) {
+      const key = typeof vkCommunityKey === 'string' ? vkCommunityKey.trim() : ''
+      const normalizedGroupId = normalizeVkGroupId(vkGroupId)
+
+      if (vkCommunityKey !== undefined && key.length > 0 && key.length < 10) {
+        return res.status(400).json({ success: false, error: 'vk_key_too_short', message: 'Ключ сообщества VK должен быть не короче 10 символов' })
+      }
+      if (vkGroupId !== undefined && String(vkGroupId).trim() && !normalizedGroupId) {
+        return res.status(400).json({ success: false, error: 'vk_invalid_group', message: 'ID группы VK должен содержать только цифры' })
+      }
+
+      if (vkCommunityKey !== undefined) updates.vkCommunityKey = key
+      if (vkGroupId !== undefined) updates.vkGroupId = normalizedGroupId
+
+      const currentUser = await User.findById(userId).select('+vkCommunityKey').lean()
+      const finalKey = vkCommunityKey !== undefined ? key : (currentUser?.vkCommunityKey || '')
+      const finalGroupId = vkGroupId !== undefined ? normalizedGroupId : normalizeVkGroupId(currentUser?.vkGroupId)
+      updates.vkConnected = !!finalKey && !!finalGroupId
+    }
 
     // [P20] added: watermark settings
     if (watermarkSettings && typeof watermarkSettings === 'object') {
@@ -88,7 +124,7 @@ export const updateMe = async (req, res) => {
       if (preferences.timezone && typeof preferences.timezone === 'string') updates.preferences.timezone = preferences.timezone
     }
 
-    const user = await User.findByIdAndUpdate(userId, { $set: updates }, { new: true })
+    const user = await User.findByIdAndUpdate(userId, { $set: updates }, { new: true }).select('+vkCommunityKey')
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' })
     }
@@ -110,6 +146,9 @@ export const updateMe = async (req, res) => {
         telegram: user.telegram,
         telegramBotToken: user.telegramBotToken,
         telegramChatId: user.telegramChatId,
+        vkCommunityKey: maskVkCommunityKey(user.vkCommunityKey),
+        vkGroupId: user.vkGroupId || '',
+        vkConnected: user.vkConnected || false,
         acceptedTerms: user.acceptedTerms,
         acceptedPrivacy: user.acceptedPrivacy,
         acceptedConsent: user.acceptedConsent,

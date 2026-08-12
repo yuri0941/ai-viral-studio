@@ -12,13 +12,14 @@ export async function getConnectedSocials(userOrId) {
   let user = userOrId
   if (!user || typeof user === 'string' || user instanceof String || user._bsontype) {
     user = await User.findById(userOrId)
-      .select('+vkToken +vkRefreshToken +socials.vk.communityKey socials.vk telegramBotToken telegramChatId telegramId preferences.language')
+      .select('+vkToken +vkRefreshToken +vkCommunityKey vkGroupId vkConnected telegramBotToken telegramChatId telegramId preferences.language')
       .lean()
   }
 
-  const vkEnabled = !!user?.socials?.vk?.enabled
-  const vkCommunityKey = !!user?.socials?.vk?.communityKey
-  const vkGroupId = user?.socials?.vk?.groupId || ''
+  // [v9.9.19.15.5] root-level VK community fields are the source of truth for posting
+  const vkEnabled = user?.vkConnected || false
+  const vkCommunityKey = !!user?.vkCommunityKey
+  const vkGroupId = user?.vkGroupId || ''
   const vkGroupIdValid = /^-?\d+$/.test(vkGroupId)
 
   const vk = {

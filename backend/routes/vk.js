@@ -5,14 +5,14 @@ import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 import { integrationStatus } from '../utils/integrationStatus.js';
 import { getVkCreds, refreshVkToken, isVkTokenExpired } from '../services/vkTokenService.js';
-import { publishToVKWall } from '../services/vkPublishService.js';
+import { publishToVKWall, requeueVkFailedPosts } from '../services/vkPublishService.js';
 
 const router = express.Router();
 
 function maskKey(key) {
   if (!key) return ''
-  if (key.length <= 8) return '*'.repeat(key.length)
-  return key.slice(0, 4) + '*'.repeat(key.length - 8) + key.slice(-4)
+  if (key.length < 14) return '••••'
+  return `${key.slice(0, 6)}••••${key.slice(-4)}`
 }
 
 function normalizeGroupId(raw) {
@@ -203,10 +203,11 @@ router.post('/vk/callback', protect, async (req, res) => {
 router.get('/vk/status', protect, async (req, res) => {
   try {
     const appStatus = await integrationStatus('vk', req.user.id);
-    const user = await User.findById(req.user.id).select('+socials.vk.communityKey socials.vk vkUserId').lean();
-    const groupIdRaw = user?.socials?.vk?.groupId || '';
+    // [v9.9.19.15.5] read from root-level fields to avoid socials path collision
+    const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId vkConnected vkUserId socials.vk').lean();
+    const groupIdRaw = user?.vkGroupId || '';
     const groupId = normalizeGroupId(groupIdRaw);
-    const hasKey = !!user?.socials?.vk?.communityKey;
+    const hasKey = !!user?.vkCommunityKey;
     const connected = hasKey && !!groupId;
     return res.json({
       success: true,
@@ -215,7 +216,7 @@ router.get('/vk/status', protect, async (req, res) => {
       hasCommunityKey: hasKey,
       groupId: groupIdRaw,
       groupIdValid: !!groupId,
-      maskedKey: maskKey(user?.socials?.vk?.communityKey),
+      maskedKey: maskKey(user?.vkCommunityKey),
       groupName: user?.socials?.vk?.groupName || null,
       accountName: user?.socials?.vk?.username || null,
     });
@@ -231,18 +232,25 @@ router.post('/vk/community', protect, async (req, res) => {
     if (!communityKey || !communityKey.trim()) {
       return res.status(400).json({ success: false, error: 'missing_key', message: 'Укажите ключ сообщества' });
     }
+    const key = communityKey.trim();
+    if (key.length < 10) {
+      return res.status(400).json({ success: false, error: 'key_too_short', message: 'Ключ сообщества VK должен быть не короче 10 символов' });
+    }
     const normalizedGroupId = normalizeGroupId(groupId);
     if (!normalizedGroupId) {
       return res.status(400).json({ success: false, error: 'invalid_group', message: 'Укажите числовой ID группы VK' });
     }
+    // [v9.9.19.15.5] store at root level to avoid Mongoose socials path collision
     await User.findByIdAndUpdate(req.user.id, {
       $set: {
-        'socials.vk.communityKey': communityKey.trim(),
-        'socials.vk.groupId': normalizedGroupId,
+        vkCommunityKey: key,
+        vkGroupId: normalizedGroupId,
+        vkConnected: true,
         'socials.vk.enabled': true,
       }
     });
-    return res.json({ success: true, groupId: normalizedGroupId, maskedKey: maskKey(communityKey.trim()) });
+    const requeue = await requeueVkFailedPosts(req.user.id, normalizedGroupId);
+    return res.json({ success: true, groupId: normalizedGroupId, maskedKey: maskKey(key), requeued: requeue.requeued || 0 });
   } catch (err) {
     console.error('[VK community save] error:', err.message);
     return res.status(500).json({ success: false, error: 'server_error', message: err.message });
@@ -251,9 +259,10 @@ router.post('/vk/community', protect, async (req, res) => {
 
 router.post('/vk/test', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('+socials.vk.communityKey socials.vk').lean();
-    const communityKey = user?.socials?.vk?.communityKey;
-    const groupId = normalizeGroupId(user?.socials?.vk?.groupId);
+    // [v9.9.19.15.5] test key from root-level fields
+    const user = await User.findById(req.user.id).select('+vkCommunityKey vkGroupId socials.vk').lean();
+    const communityKey = user?.vkCommunityKey;
+    const groupId = normalizeGroupId(user?.vkGroupId);
     if (!communityKey) {
       return res.status(400).json({ success: false, error: 'missing_key', message: 'Ключ сообщества не сохранён' });
     }
@@ -285,7 +294,7 @@ router.post('/vk/test', protect, async (req, res) => {
       await User.findByIdAndUpdate(req.user.id, { $set: { 'socials.vk.groupName': groupName } });
     }
 
-    return res.json({ success: true, groupId, groupName: groupName || null });
+    return res.json({ success: true, groupId, groupName: groupName || null, status: 'working' });
   } catch (err) {
     console.error('[VK test] error:', err.message);
     return res.status(500).json({ success: false, error: 'server_error', message: err.message });
@@ -301,6 +310,9 @@ router.delete('/vk', protect, async (req, res) => {
         vkRefreshToken: '',
         vkTokenExpiresAt: null,
         vkUserId: '',
+        vkCommunityKey: '',
+        vkGroupId: '',
+        vkConnected: false,
       }
     });
     return res.json({ success: true });
@@ -316,7 +328,7 @@ router.post('/vk/publish', protect, async (req, res) => {
     if (!text || !text.trim()) {
       return res.status(400).json({ success: false, error: 'empty_text', hint: 'Добавьте текст поста' });
     }
-    const user = await User.findById(req.user.id).select('+vkToken +vkRefreshToken +socials.vk.communityKey socials.vk vkUserId');
+    const user = await User.findById(req.user.id).select('+vkToken +vkRefreshToken +vkCommunityKey vkGroupId vkConnected vkUserId');
     if (!user) {
       return res.status(404).json({ success: false, error: 'user_not_found' });
     }
