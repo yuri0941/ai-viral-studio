@@ -80,6 +80,12 @@ export default function ApiKeysTab() {
   const [statusFilter, setStatusFilter] = useState('all'); // all | active | inactive
   const [groupFilter, setGroupFilter] = useState('all');
 
+  // [v9.9.19.17.0] YouTube OAuth pair (Client ID + Client Secret) for video upload spike
+  const [youtubeClientId, setYoutubeClientId] = useState('');
+  const [youtubeClientSecret, setYoutubeClientSecret] = useState('');
+  const [showYoutubeClientId, setShowYoutubeClientId] = useState(false);
+  const [showYoutubeClientSecret, setShowYoutubeClientSecret] = useState(false);
+
   const activeCount = useMemo(() => PROVIDERS.filter(p => saved[p.id]).length, [saved]);
   const visibleProviders = useMemo(() => PROVIDERS.filter(p => {
     if (groupFilter !== 'all' && p.group !== groupFilter) return false;
@@ -178,6 +184,32 @@ export default function ApiKeysTab() {
       toast.success('🗑 Ключ удалён');
     } catch (e) {
       toast.error('❌ Удаление не удалось: ' + e.message);
+    }
+  };
+
+  const saveYoutubeOauthField = async (provider, value) => {
+    const key = String(value || '').trim();
+    if (!key) {
+      toast.error(t('apiKeys.keyEmpty') || '❌ Ключ пустой после удаления пробелов');
+      return;
+    }
+    setLoading(prev => ({ ...prev, [provider]: 'save' }));
+    try {
+      const data = await request('/api-keys', {
+        method: 'POST',
+        body: JSON.stringify({ provider, key })
+      });
+      setSaved(prev => ({ ...prev, [provider]: data.isValid ? 'valid' : 'saved' }));
+      toast.success(data.message || (t('apiKeys.keySaved') || '✅ Ключ сохранён'));
+    } catch (e) {
+      const msg = e.message || '';
+      if (msg.includes('invalid_client_id_format')) {
+        toast.error(t('apiKeys.invalidClientIdFormat') || '❌ Client ID должен заканчиваться на .apps.googleusercontent.com');
+      } else {
+        toast.error((t('apiKeys.saveFailed') || '❌ Сохранение не удалось: {{error}}').replace('{{error}}', msg));
+      }
+    } finally {
+      setLoading(prev => ({ ...prev, [provider]: false }));
     }
   };
 
@@ -321,6 +353,81 @@ export default function ApiKeysTab() {
             </div>
           );
         })}
+
+        {/* [v9.9.19.17.0] YouTube OAuth pair (Client ID + Client Secret) for future video upload spike */}
+        <div className="glass-luxury rounded-xl p-5 border border-[var(--border)] hover:border-red-500/30 transition-all group relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Youtube className="w-20 h-20 text-red-400" />
+          </div>
+          <div className="flex items-start justify-between mb-4 relative z-10">
+            <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+              <Youtube className="w-5 h-5 text-red-400" />
+            </div>
+            <div className="flex flex-col items-end gap-1.5">
+              <div className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 ${saved['youtube_oauth'] ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${saved['youtube_oauth'] ? 'bg-yellow-400' : 'bg-gray-500'}`} />
+                <span>{saved['youtube_oauth'] ? (t('apiKeys.youtubeClientIdSaved') || 'Client ID сохранён') : (t('apiKeys.youtubeClientIdNotConnected') || 'Client ID не подключён')}</span>
+              </div>
+              <div className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 ${saved['youtube_secret'] ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${saved['youtube_secret'] ? 'bg-yellow-400' : 'bg-gray-500'}`} />
+                <span>{saved['youtube_secret'] ? (t('apiKeys.youtubeClientSecretSaved') || 'Client Secret сохранён') : (t('apiKeys.youtubeClientSecretNotConnected') || 'Client Secret не подключён')}</span>
+              </div>
+            </div>
+          </div>
+          <h3 className="font-semibold text-base mb-0.5 relative z-10">{t('apiKeys.youtubeOauthTitle') || 'YouTube OAuth (загрузка видео)'}</h3>
+          <p className="text-xs text-[var(--text-muted)] mb-4 relative z-10">{t('apiKeys.youtubeOauthDesc') || 'Client ID и Client Secret для загрузки видео на YouTube (spike 19.17.1).'}</p>
+
+          <div className="space-y-3 relative z-10">
+            <div>
+              <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('apiKeys.youtubeClientId') || 'Client ID'}</label>
+              <div className="relative">
+                <input
+                  type={showYoutubeClientId ? 'text' : 'password'}
+                  value={youtubeClientId}
+                  onChange={e => setYoutubeClientId(e.target.value)}
+                  placeholder={t('apiKeys.youtubeClientIdPlaceholder') || '1234567890-abc123.apps.googleusercontent.com'}
+                  className="w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] p-2.5 pr-10 text-sm focus:border-red-500/50 focus:outline-none transition-colors"
+                />
+                <button onClick={() => setShowYoutubeClientId(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[var(--text-muted)] hover:text-white transition-colors">
+                  {showYoutubeClientId ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <button
+                onClick={() => saveYoutubeOauthField('youtube_oauth', youtubeClientId)}
+                disabled={!youtubeClientId || loading['youtube_oauth']}
+                className="mt-2 w-full px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                {loading['youtube_oauth'] === 'save' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {t('apiKeys.saveClientId') || 'Сохранить Client ID'}
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('apiKeys.youtubeClientSecret') || 'Client Secret'}</label>
+              <div className="relative">
+                <input
+                  type={showYoutubeClientSecret ? 'text' : 'password'}
+                  value={youtubeClientSecret}
+                  onChange={e => setYoutubeClientSecret(e.target.value)}
+                  placeholder={t('apiKeys.youtubeClientSecretPlaceholder') || 'GOCSPX-...'}
+                  className="w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] p-2.5 pr-10 text-sm focus:border-red-500/50 focus:outline-none transition-colors"
+                />
+                <button onClick={() => setShowYoutubeClientSecret(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[var(--text-muted)] hover:text-white transition-colors">
+                  {showYoutubeClientSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <button
+                onClick={() => saveYoutubeOauthField('youtube_secret', youtubeClientSecret)}
+                disabled={!youtubeClientSecret || loading['youtube_secret']}
+                className="mt-2 w-full px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                {loading['youtube_secret'] === 'save' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {t('apiKeys.saveClientSecret') || 'Сохранить Client Secret'}
+              </button>
+            </div>
+          </div>
+        </div>
+
         {visibleProviders.length === 0 && (
           <div className="col-span-full glass-luxury rounded-xl p-8 border border-[var(--border)] text-center text-sm text-[var(--text-muted)]">
             Нет ключей по выбранному фильтру

@@ -333,3 +333,9 @@
 - `backend/server.js` запускает smoke через 2 минуты после старта и каждые 15 минут.
 - Лендинг очищен от выдуманных цифр: убраны фейковые «10 000+ создателей», счётчики и искусственный обратный отсчёт; остались только реальные данные (`/api/launch/beta/slots`, позиция в waitlist).
 - Добавлены i18n-ключи `landing.*`, `betaCounter.*`, `waitlist.positionMessage` в ru/en.
+
+### v9.9.19.17.0-YOUTUBE-KEYS-UI
+- Добавлены провайдеры ApiKey `youtube_oauth` (Client ID) и `youtube_secret` (Client Secret) для будущей загрузки видео на YouTube (spike 19.17.1).
+- Валидация: `youtube_oauth` должен заканчиваться на `.apps.googleusercontent.com` — иначе 400 `invalid_client_id_format`; `youtube_secret` — непустой.
+- `ApiKeysTab`: новая карточка «YouTube OAuth (загрузка видео)» с двумя полями (password + глазок), отдельными статусами и кнопками сохранения. Существующая карточка «YouTube Data API» (AIzaSy) не изменена.
+- Добавлены i18n-ключи `apiKeys.youtube*`, `apiKeys.saveClient*`, `apiKeys.invalidClientIdFormat` в ru/en.

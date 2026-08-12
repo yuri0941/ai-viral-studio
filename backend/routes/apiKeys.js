@@ -45,13 +45,12 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
     }
 
     const formatCheck = checkKeyFormat(provider, key)
+    if (!formatCheck.ok) {
+      return res.status(400).json({ success: false, error: formatCheck.error })
+    }
     const validation = await validateApiKey(provider, key)
     if (formatCheck.warning && !validation.error) {
       validation.warning = formatCheck.warning
-    }
-    if (!formatCheck.ok) {
-      validation.valid = false
-      validation.error = formatCheck.error
     }
 
     // [v9.9.19.14.6] unified scope: finds owned keys AND orphan legacy keys.
@@ -117,7 +116,7 @@ router.post('/test', protect, requireRole('owner'), async (req, res) => {
     }
     const formatCheck = checkKeyFormat(provider, key)
     if (!formatCheck.ok) {
-      return res.json({ success: true, valid: false, provider, error: formatCheck.error, warning: formatCheck.warning })
+      return res.status(400).json({ success: false, error: formatCheck.error })
     }
     const result = await validateApiKey(provider, key)
     if (formatCheck.warning && result.valid) result.warning = formatCheck.warning
@@ -146,6 +145,16 @@ function checkKeyFormat(provider, key) {
   if (provider === 'telegram_bot' || provider === 'telegram_owner_bot') {
     if (!/^\d+:[A-Za-z0-9_-]+$/.test(trimmed)) {
       return { ok: true, warning: 'Bot Token выглядит как 123456:ABC-DEF... из @BotFather' }
+    }
+  }
+  if (provider === 'youtube_oauth') {
+    if (!/\.apps\.googleusercontent\.com$/.test(trimmed)) {
+      return { ok: false, error: 'invalid_client_id_format' }
+    }
+  }
+  if (provider === 'youtube_secret') {
+    if (trimmed.length < 1) {
+      return { ok: false, error: 'youtube_secret_empty' }
     }
   }
   return { ok: true }
@@ -232,9 +241,11 @@ async function validateApiKey(provider, key) {
       case 'smtp_user':
       case 'smtp_pass':
       case 'vk':
-      case 'vk_secret': {
+      case 'vk_secret':
+      case 'youtube_oauth':
+      case 'youtube_secret': {
         // [v9.9.19.14.5] no safe ping endpoint — mark as saved, not working; real check is via 🧪 button
-        return { valid: false, provider, warning: 'Ключ сохранён. Реальная проверка — через 🧪 Проверить ЮKassa' }
+        return { valid: false, provider, warning: 'Ключ сохранён. Реальная проверка — через 🧪 Проверить' }
       }
       default:
         return { valid: true, provider, warning: 'No online validation, assuming valid' }

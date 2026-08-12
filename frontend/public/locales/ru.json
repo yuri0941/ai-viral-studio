@@ -249,7 +249,21 @@
     "checkStatus": "Проверить статус",
     "yookassaOk": "🟢 ЮKassa работает! Можно принимать платежи",
     "yookassaKeyHint": "ЮKassa: shopId (6 цифр) + Secret test_/live_ из кабинета → Интеграция → API",
-    "yookassaCardHint": "Тестовая карта: 5555 5555 5555 4477 · срок 12/25 · CVV 000"
+    "yookassaCardHint": "Тестовая карта: 5555 5555 5555 4477 · срок 12/25 · CVV 000",
+    "youtubeOauthTitle": "YouTube OAuth (загрузка видео)",
+    "youtubeOauthDesc": "Client ID и Client Secret для загрузки видео на YouTube (spike 19.17.1).",
+    "youtubeClientId": "Client ID",
+    "youtubeClientSecret": "Client Secret",
+    "youtubeClientIdPlaceholder": "1234567890-abc123.apps.googleusercontent.com",
+    "youtubeClientSecretPlaceholder": "GOCSPX-...",
+    "youtubeClientIdSaved": "Client ID сохранён",
+    "youtubeClientSecretSaved": "Client Secret сохранён",
+    "youtubeClientIdNotConnected": "Client ID не подключён",
+    "youtubeClientSecretNotConnected": "Client Secret не подключён",
+    "saveClientId": "Сохранить Client ID",
+    "saveClientSecret": "Сохранить Client Secret",
+    "invalidClientIdFormat": "❌ Client ID должен заканчиваться на .apps.googleusercontent.com",
+    "saveFailed": "❌ Сохранение не удалось: {{error}}"
   },
   "subscriptions": {
     "title": "Подписки",

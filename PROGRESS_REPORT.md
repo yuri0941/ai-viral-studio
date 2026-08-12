@@ -4237,3 +4237,22 @@
   1) После деплоя в логах: `[smoke] 10/10 ok` через ~2 минуты.
   2) Лендинг: нет выдуманных отзывов, нет фейковых счётчиков/цифр; адаптив 375px без горизонтального скролла.
   3) Регрессия: бот «привет» отвечает, Telegram-канал постит, `/api/vk/status` отдаёт `disabled` без ошибок, логи чистые (ноль `[vk:*]`).
+
+## 2026-08-12 — v9.9.19.17.0-YOUTUBE-KEYS-UI — поля OAuth-ключей YouTube в ApiKeysTab
+- [DIAG] Для spike 19.17.1 (загрузка видео на YouTube) нужна OAuth-пара Client ID + Client Secret. Существующий провайдер `youtube` занят под Data API ключ (AIzaSy) — использованы отдельные имена `youtube_oauth`/`youtube_secret` (согласовано с владельцем).
+- [FIX] `backend/models/ApiKey.js`: добавлены `youtube_oauth` и `youtube_secret` в enum провайдеров.
+- [FIX] `backend/routes/apiKeys.js`:
+  - `checkKeyFormat`: `youtube_oauth` проверяется на окончание `.apps.googleusercontent.com`; `youtube_secret` — непустой.
+  - `POST /api/api-keys` и `POST /api/api-keys/test` возвращают 400 `{ success: false, error: 'invalid_client_id_format' }` при неверном формате.
+  - `validateApiKey`: `youtube_oauth`/`youtube_secret` помечаются как сохранённые без онлайн-проверки (аналогично `vk`/`vk_secret`).
+- [FIX] `frontend/src/pages/owner/components/tabs/ApiKeysTab.jsx`:
+  - Новая карточка «YouTube OAuth (загрузка видео)» с двумя независимыми полями: Client ID и Client Secret.
+  - Поля `type=password` с иконкой глазка, отдельные статусы «Сохранён/Не подключён» для каждого поля, отдельные кнопки «Сохранить и применить».
+  - Существующая карточка «YouTube Data API» (AIzaSy) не изменена.
+- [FIX] `frontend/public/locales/ru.json` + `en.json`: добавлены ключи `apiKeys.youtubeOauthTitle`, `apiKeys.youtubeOauthDesc`, `apiKeys.youtubeClientId`, `apiKeys.youtubeClientSecret`, `apiKeys.saveClientId`, `apiKeys.saveClientSecret`, `apiKeys.invalidClientIdFormat` и статусы.
+- [TEST] `node --check backend/models/ApiKey.js backend/routes/apiKeys.js` ✅; `cd frontend && npm run build` ✅; JSON i18n валидны ✅; `git diff --stat` — только разрешённые файлы ✅.
+- [NOTE] Ручная проверка владельцем:
+  1) Кабинет → API Keys → карточка «YouTube OAuth»: вставить Client ID (`...apps.googleusercontent.com`) и Secret → «Сохранить» → статус «Сохранён».
+  2) F5 → оба значения на месте (маскированные).
+  3) Client ID без `apps.googleusercontent.com` → понятная ошибка, не 500.
+
