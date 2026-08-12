@@ -292,3 +292,8 @@
 - `decodeVkPermissions` теперь читает права по именам из VK API; `video` не считается missing, а показывается info-строкой.
 - Добавлены недостающие i18n-ключи VK; `instruction.vk.step3` приведён к «Стена, Фотографии, Сообщения сообщества».
 - В SchedulerPage `formData.mediaUrl` теперь сохраняется и отображается (превью + бейдж), чтобы боевые посты уходили с фото.
+
+### v9.9.19.15.12-VK-DATAURL-FIX
+- `/api/upload/image` больше не возвращает data: URL — сохраняет файл в `uploads/{userId}/` и отдаёт файловый URL.
+- `fetchMediaBuffer` научился декодировать base64 `data:` URL и логировать `source=data-url size=... mime=...`.
+- Битые/не-base64 data-URL теперь дают `fetch_failed` с причиной вместо молчаливого fallback.

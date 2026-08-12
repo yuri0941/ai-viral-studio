@@ -205,11 +205,30 @@ export async function fetchMediaBuffer(mediaUrl, timeoutMs = 30000) {
     return null
   }
   if (rawUrl.startsWith('data:')) {
-    const match = rawUrl.match(/^data:([^;]+);base64,(.+)$/)
-    if (!match) return null
-    return Buffer.from(match[2], 'base64')
+    // [v9.9.19.15.12] decode base64 data: URLs coming from composer/old uploads
+    const match = rawUrl.match(/^data:([^,;]+)(;base64)?,(.*)$/)
+    if (!match) {
+      console.warn(`[vk:media] data-url invalid format`)
+      return null
+    }
+    const mime = match[1] || 'application/octet-stream'
+    const isBase64 = match[2] === ';base64'
+    const data = match[3] || ''
+    if (!isBase64) {
+      console.warn(`[vk:media] data-url not base64 mime=${mime}`)
+      return null
+    }
+    try {
+      const buffer = Buffer.from(data, 'base64')
+      console.log(`[vk:media] source=data-url size=${buffer.length} mime=${mime}`)
+      return buffer
+    } catch (err) {
+      console.warn(`[vk:media] data-url decode error: ${err.message}`)
+      return null
+    }
   }
   const displayUrl = rawUrl.slice(0, 80)
+  const source = rawUrl.startsWith('/') ? 'local' : 'http'
   try {
     const res = await fetch(rawUrl, {
       headers: { 'User-Agent': 'AI Viral Studio VK Publisher/1.0' },
@@ -220,7 +239,7 @@ export async function fetchMediaBuffer(mediaUrl, timeoutMs = 30000) {
       return null
     }
     const buffer = Buffer.from(await res.arrayBuffer())
-    console.log(`[vk:media] fetched size=${buffer.length} url=${displayUrl}${rawUrl.length > 80 ? '...' : ''}`)
+    console.log(`[vk:media] source=${source} size=${buffer.length} url=${displayUrl}${rawUrl.length > 80 ? '...' : ''}`)
     return buffer
   } catch (err) {
     console.warn(`[vk:media] fetch error: ${err.message} url=${displayUrl}${rawUrl.length > 80 ? '...' : ''}`)

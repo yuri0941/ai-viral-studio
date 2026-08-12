@@ -4104,3 +4104,14 @@
   2) 🧪 Тест видео — генерирует 2-сек MP4 и возвращает steps ✅ (или честный `ffmpeg_unavailable`).
   3) Пост с прикреплённым фото → `[vk:publish] hasMedia=true`, `[vk:photo]` шаги, фото на стене группы.
   4) Регрессия: текст постится, дабл-клик = один пост, уведомления, Telegram-канал, бот «привет».
+
+## 2026-08-12 — v9.9.19.15.12-VK-DATAURL-FIX — чтение base64 data: URL в медиапайплайне
+- [DIAG] Боевые посты с фото всё ещё уходили без фото: `mediaUrl` в посте оказался `data:image/jpeg;base64,...`, а `fetchMediaBuffer` пытался делать HTTP-запрос к `data:` URL → молчаливый fallback → текст на стене.
+- [ROOT-CAUSE] `/api/upload/image` сохранял оптимизированное изображение как base64 data-URL и возвращал его клиенту; медиапайплайн не умел декодировать data: URL.
+- [FIX] `backend/routes/upload.js`: `/api/upload/image` теперь сохраняет файл в `uploads/{userId}/{timestamp}-{hash}.{ext}` и возвращает файловый URL `/uploads/...`, а не data-URL.
+- [FIX] `backend/services/vkMediaPipeline.js`: `fetchMediaBuffer` декодирует base64 `data:` URL, логирует `source=data-url size=N mime=...`; битый/не-base64 data-URL → явный `fetch_failed` с причиной; HTTP и relative URL логируются как `source=http|local`.
+- [TEST] `node --check` по `vkMediaPipeline.js`, `upload.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только `vkMediaPipeline.js`, `upload.js`, документы.
+- [NOTE] Ручная проверка владельцем:
+  1) Пост с прикреплённым фото → `mediaUrl` = `/uploads/...`, лог `[vk:media] source=http|local size=N`.
+  2) Старый пост с `data:image/jpeg;base64,...` → лог `[vk:media] source=data-url size=N`, `[vk:photo]` шаги, фото на стене.
+  3) Новые посты всегда получают файловый URL, base64 в `mediaUrl` больше не пишется.
