@@ -11,9 +11,18 @@ const PERMANENT_ERROR_CODES = [
   'vk_not_connected',
   'vk_needs_wall_scope',
   'vk_permission_denied',
+  'vk_invalid_token',
+  'vk_wall_denied',
+  'vk_access_denied',
+  'vk_group_disabled',
+  'vk_invalid_group',
+  'vk_auth_failed',
+  'vk_invalid_request',
   'refresh_failed',
   'empty_text',
   'no_post_id',
+  'no_group',
+  'invalid_group',
   'not connected',
   'telegram bot token',
   'chat id не настроены',
@@ -55,7 +64,7 @@ export const startAutoPublisher = () => {
             }
 
             const user = await User.findById(post.userId)
-                .select('+vkToken +vkRefreshToken +vkUserId telegramBotToken telegramChatId telegramId socials.vk preferences.language')
+                .select('+vkToken +vkRefreshToken +vkUserId +socials.vk.communityKey socials.vk telegramBotToken telegramChatId telegramId preferences.language')
             if (!user) {
                 console.warn(`[AUTO-PUBLISH] skipped: user not found (post ${post._id})`)
                 post.status = 'failed'

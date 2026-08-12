@@ -3987,3 +3987,31 @@
   1) Render → Logs после деплоя: `[Cache]` одна строка; `[OWNER-BOT]`/`[OMEGA-BOT]` Created по одному разу; оба webhook set.
   2) Боту «привет» сразу и через 10 мин → отвечает.
   3) 15 мин лога: нет повторов skipped/autoFix по тем же причинам.
+
+## 2026-08-12 — v9.9.19.15.4-VK-COMMUNITY-TOKEN-POSTING
+- [DIAG] VK ID PKCE не выдаёт `wall` scope; токены `vk2.a.*` не поддерживают `wall.post` (error 1051). Официальный рабочий путь — ключ доступа сообщества VK (права: стена, фотографии, видео). Владелец уже получил ключ для группы 236115481.
+- [TABLE] Проверка платформ → источник:
+  | Путь | Источник | Правка |
+  |---|---|---|
+  | `autoPublisher.js` | `getConnectedSocials(user)` | VK posting = `communityKey` + числовой `groupId` |
+  | `scheduledPosts/:id/publish` | `getConnectedSocials(user)` | То же |
+  | `IntegrationsTab.jsx` (settings) | `/vk/status` | Карточка VK: поля ключа + ID группы + тест + инструкция |
+  | `SchedulerPage.jsx` | `/vk/status` + `/telegram/status` + `/integrations/my` | Цель «VK (группа)», загрузка медиа перед сохранением |
+- [FIX] `backend/models/User.js`: `socials.vk.communityKey` (select: false), `groupId`, `groupName` — per-user.
+- [FIX] `backend/routes/vk.js`: добавлены `POST /vk/community` (сохранение ключа+ID), `POST /vk/test` (`groups.getById`), обновлён `GET /vk/status` (маскированный ключ, groupId, groupName). PKCE-логин оставлен без изменений.
+- [FIX] `backend/services/vkPublishService.js`: переписан на `wall.post owner_id=-groupId from_group=1` с ключом сообщества; фото — `photos.getWallUploadServer → saveWallPhoto` с конвертацией в JPEG через sharp; видео — best effort `video.save` с 3 попытками; маппинг ошибок VK → перманентные коды; сохранение `VkPost`.
+- [FIX] `backend/services/platformPublisher.js`: VK-вызов передаёт `title`, `hashtags`, `mediaUrl`, `mediaName`.
+- [FIX] `backend/utils/connectedSocials.js`: VK `connected` = `communityKey` + числовой `groupId`; reason-коды `not_connected`/`no_group`/`invalid_group`; `needsScope` больше не блокирует постинг.
+- [FIX] `backend/services/autoPublisher.js`: PERMANENT_ERROR_CODES дополнен кодами VK API (`vk_invalid_token`, `vk_wall_denied`, `vk_access_denied`, `vk_group_disabled`, `vk_invalid_group`, `no_group`, `invalid_group`).
+- [FIX] `backend/models/ScheduledPost.js`: добавлено поле `mediaName`.
+- [FIX] `backend/routes/scheduledPosts.js`: `mediaName` сохраняется в POST/PATCH.
+- [FIX] `frontend/src/pages/settings/IntegrationsTab.jsx`: карточка VK заменена на per-user форму — «Ключ доступа сообщества», «ID группы», кнопки «Сохранить» и «🧪 Проверить», раскрывающийся блок «📖 Пошаговая инструкция».
+- [FIX] `frontend/src/components/common/InstructionBlock.jsx`: переиспользуемый компонент раскрывающейся инструкции.
+- [FIX] `frontend/src/pages/SchedulerPage.jsx`: цель VK переименована в `vk.groupTarget`; `availablePlatforms` по-прежнему опирается на `/vk/status`; при сохранении медиа сначала загружается через `/api/upload/image` (format=jpeg), а затем `mediaUrl` + `mediaName` сохраняются в пост; `publishNowFlag` работает и при редактировании.
+- [FIX] `frontend/public/locales/ru.json` + `en.json`: добавлены все реальные `socials.*`, `vk.*`, `telegram.*` ключи, используемые в `IntegrationsTab.jsx`, `VkCallbackPage.jsx`, `SchedulerPage.jsx` и owner `IntegrationsTab.jsx`.
+- [TEST] `node --check` по User.js, ScheduledPost.js, connectedSocials.js, vkPublishService.js, platformPublisher.js, autoPublisher.js, vk.js, scheduledPosts.js, upload.js, requeueVkFailedPosts.js ✅; `cd frontend && npm run build` ✅; i18n-grep — ноль сырых `socials.*`/`vk.*` ключей ✅.
+- [NOTE] Ручная проверка владельцем:
+  1) Соцсети → VK → вставить ключ + ID группы → 🧪 🟢; блок «📖 Пошаговая инструкция» раскрывается.
+  2) Тест-пост текстом и с фото → на стене ГРУППЫ; `postUrl` открывается.
+  3) Планировщик +2 мин → пост на стене группы; алертов «не подключена» нет.
+  4) Тестовый клиент-аккаунт: свой ключ → своя группа; чужие ключи недоступны.

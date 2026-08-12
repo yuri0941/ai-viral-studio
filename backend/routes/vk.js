@@ -9,6 +9,18 @@ import { publishToVKWall } from '../services/vkPublishService.js';
 
 const router = express.Router();
 
+function maskKey(key) {
+  if (!key) return ''
+  if (key.length <= 8) return '*'.repeat(key.length)
+  return key.slice(0, 4) + '*'.repeat(key.length - 8) + key.slice(-4)
+}
+
+function normalizeGroupId(raw) {
+  if (!raw) return ''
+  const str = String(raw).trim().replace(/^-/, '')
+  return /^\d+$/.test(str) ? str : ''
+}
+
 // PKCE state store: in-memory Map with 10-minute TTL. Single Render instance is fine.
 const stateStore = new Map();
 const STATE_TTL_MS = 10 * 60 * 1000;
@@ -190,30 +202,93 @@ router.post('/vk/callback', protect, async (req, res) => {
 
 router.get('/vk/status', protect, async (req, res) => {
   try {
-    const status = await integrationStatus('vk', req.user.id);
-    const user = await User.findById(req.user.id).select('socials.vk vkUserId').lean();
-    const connected = !!(user?.socials?.vk?.userId || user?.vkUserId);
-    const scope = user?.socials?.vk?.scope || [];
-    const needsScope = connected && !scope.includes('wall');
+    const appStatus = await integrationStatus('vk', req.user.id);
+    const user = await User.findById(req.user.id).select('+socials.vk.communityKey socials.vk vkUserId').lean();
+    const groupIdRaw = user?.socials?.vk?.groupId || '';
+    const groupId = normalizeGroupId(groupIdRaw);
+    const hasKey = !!user?.socials?.vk?.communityKey;
+    const connected = hasKey && !!groupId;
     return res.json({
       success: true,
-      configured: status.configured,
+      configured: appStatus.configured,
       connected,
-      needsScope,
-      userId: user?.socials?.vk?.userId || user?.vkUserId || null,
+      hasCommunityKey: hasKey,
+      groupId: groupIdRaw,
+      groupIdValid: !!groupId,
+      maskedKey: maskKey(user?.socials?.vk?.communityKey),
+      groupName: user?.socials?.vk?.groupName || null,
       accountName: user?.socials?.vk?.username || null,
-      setupGuide: status.configured ? undefined : [
-        '1. Откройте https://dev.vk.com/apps → ai-viral-studio',
-        '2. Скопируйте ID приложения (54714375)',
-        '3. Вставьте в ApiKeysTab → VK Client ID',
-        '4. Скопируйте Защищённый ключ',
-        '5. Вставьте в ApiKeysTab → VK Client Secret',
-        '6. Нажмите «Сохранить и применить»'
-      ]
     });
   } catch (err) {
     console.error('[VK status] error:', err.message);
-    return res.json({ success: false, configured: false, connected: false, needsScope: false });
+    return res.json({ success: false, configured: false, connected: false, hasCommunityKey: false, groupId: '', groupIdValid: false, maskedKey: '', groupName: null, accountName: null });
+  }
+});
+
+router.post('/vk/community', protect, async (req, res) => {
+  try {
+    const { communityKey, groupId } = req.body || {};
+    if (!communityKey || !communityKey.trim()) {
+      return res.status(400).json({ success: false, error: 'missing_key', message: 'Укажите ключ сообщества' });
+    }
+    const normalizedGroupId = normalizeGroupId(groupId);
+    if (!normalizedGroupId) {
+      return res.status(400).json({ success: false, error: 'invalid_group', message: 'Укажите числовой ID группы VK' });
+    }
+    await User.findByIdAndUpdate(req.user.id, {
+      $set: {
+        'socials.vk.communityKey': communityKey.trim(),
+        'socials.vk.groupId': normalizedGroupId,
+        'socials.vk.enabled': true,
+      }
+    });
+    return res.json({ success: true, groupId: normalizedGroupId, maskedKey: maskKey(communityKey.trim()) });
+  } catch (err) {
+    console.error('[VK community save] error:', err.message);
+    return res.status(500).json({ success: false, error: 'server_error', message: err.message });
+  }
+});
+
+router.post('/vk/test', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('+socials.vk.communityKey socials.vk').lean();
+    const communityKey = user?.socials?.vk?.communityKey;
+    const groupId = normalizeGroupId(user?.socials?.vk?.groupId);
+    if (!communityKey) {
+      return res.status(400).json({ success: false, error: 'missing_key', message: 'Ключ сообщества не сохранён' });
+    }
+    if (!groupId) {
+      return res.status(400).json({ success: false, error: 'invalid_group', message: 'ID группы не сохранён' });
+    }
+
+    const url = 'https://api.vk.com/method/groups.getById?' + new URLSearchParams({
+      access_token: communityKey,
+      group_id: groupId,
+      v: '5.199',
+    }).toString();
+
+    const vkRes = await fetch(url);
+    const vkData = await vkRes.json().catch(() => ({}));
+
+    if (vkData.error) {
+      const code = vkData.error.error_code;
+      const msg = vkData.error.error_msg || 'VK API error';
+      if (code === 5) return res.status(400).json({ success: false, error: 'invalid_token', message: 'Ключ недействителен' });
+      if (code === 100 || code === 113) return res.status(400).json({ success: false, error: 'group_not_found', message: 'Группа не найдена — проверьте ID' });
+      if (code === 27 || code === 214 || code === 15) return res.status(400).json({ success: false, error: 'no_wall_permission', message: 'У ключа нет права «стена»' });
+      return res.status(400).json({ success: false, error: 'vk_api_error', message: msg });
+    }
+
+    const group = vkData.response?.[0];
+    const groupName = group?.name || '';
+    if (groupName) {
+      await User.findByIdAndUpdate(req.user.id, { $set: { 'socials.vk.groupName': groupName } });
+    }
+
+    return res.json({ success: true, groupId, groupName: groupName || null });
+  } catch (err) {
+    console.error('[VK test] error:', err.message);
+    return res.status(500).json({ success: false, error: 'server_error', message: err.message });
   }
 });
 
@@ -221,7 +296,7 @@ router.delete('/vk', protect, async (req, res) => {
   try {
     await User.findByIdAndUpdate(req.user.id, {
       $set: {
-        'socials.vk': { userId: '', username: '', link: '', enabled: false, scope: [], needsScope: true },
+        'socials.vk': { userId: '', username: '', link: '', enabled: false, scope: [], needsScope: true, communityKey: '', groupId: '', groupName: '' },
         vkToken: '',
         vkRefreshToken: '',
         vkTokenExpiresAt: null,
@@ -241,11 +316,11 @@ router.post('/vk/publish', protect, async (req, res) => {
     if (!text || !text.trim()) {
       return res.status(400).json({ success: false, error: 'empty_text', hint: 'Добавьте текст поста' });
     }
-    const user = await User.findById(req.user.id).select('+vkToken +vkRefreshToken socials.vk vkUserId');
+    const user = await User.findById(req.user.id).select('+vkToken +vkRefreshToken +socials.vk.communityKey socials.vk vkUserId');
     if (!user) {
       return res.status(404).json({ success: false, error: 'user_not_found' });
     }
-    const result = await publishToVKWall(user, { text, link });
+    const result = await publishToVKWall(user, { text, link, mediaUrl: link });
     if (!result.success) {
       return res.status(400).json(result);
     }

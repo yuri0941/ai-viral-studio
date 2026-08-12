@@ -33,14 +33,7 @@ const PLATFORM_COLORS = {
     vk: '#4C75A3',
 };
 
-const PLATFORMS = [
-    { id: 'youtube', name: 'YouTube', icon: Youtube },
-    { id: 'tiktok', name: 'TikTok', icon: Music },
-    { id: 'instagram', name: 'Instagram', icon: Instagram },
-    { id: 'twitter', name: 'Twitter', icon: Twitter },
-    { id: 'telegram', name: 'Telegram', icon: Send },
-    { id: 'vk', name: 'VK', icon: Globe },
-];
+
 
 const CONTENT_TYPES = [
     { id: 'video', name: 'Видео', icon: Film },
@@ -81,7 +74,7 @@ function SchedulerPage() {
     const [showModal, setShowModal] = useState(false);
     const [editingPost, setEditingPost] = useState(null);
     const [formData, setFormData] = useState({
-        title: '', platforms: ['youtube'], date: '', time: '', types: ['video'], description: '', tags: '', autoDelete: false, autoDeleteTime: '24'
+        title: '', platforms: ['youtube'], date: '', time: '', types: ['video'], description: '', tags: '', mediaName: '', autoDelete: false, autoDeleteTime: '24'
     });
     const [dragOver, setDragOver] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
@@ -111,6 +104,14 @@ function SchedulerPage() {
         { id: 'calm', label: t('aiVideo.styles.calm') },
         { id: 'motivational', label: t('aiVideo.styles.motivational') },
         { id: 'humorous', label: t('aiVideo.styles.humorous') },
+    ];
+    const PLATFORMS = [
+        { id: 'youtube', name: 'YouTube', icon: Youtube },
+        { id: 'tiktok', name: 'TikTok', icon: Music },
+        { id: 'instagram', name: 'Instagram', icon: Instagram },
+        { id: 'twitter', name: 'Twitter', icon: Twitter },
+        { id: 'telegram', name: 'Telegram', icon: Send },
+        { id: 'vk', name: t('vk.groupTarget'), icon: Globe },
     ];
     const [imageZoom, setImageZoom] = useState(1);
     const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
@@ -152,6 +153,7 @@ function SchedulerPage() {
             types: post.types || [],
             status: post.status || 'scheduled',
             mediaUrl: post.mediaUrl || null,
+            mediaName: post.mediaName || '',
             description: post.content || '',
             tags: post.hashtags || '',
             content: post.content || '',
@@ -267,6 +269,7 @@ function SchedulerPage() {
                 types: post.types || [post.type || 'video'],
                 description: post.description || '',
                 tags: post.tags || '',
+                mediaName: post.mediaName || '',
                 autoDelete: post.autoDelete || false,
                 autoDeleteTime: post.autoDeleteTime || '24',
             });
@@ -280,6 +283,7 @@ function SchedulerPage() {
                 types: ['video'],
                 description: '',
                 tags: '',
+                mediaName: '',
                 autoDelete: false,
                 autoDeleteTime: '24',
             });
@@ -378,12 +382,45 @@ function SchedulerPage() {
         setVideoTopic('');
     }
 
+    async function uploadFileToBackend(file) {
+        if (!file) return { mediaUrl: null, mediaName: '' };
+        try {
+            const body = new FormData();
+            body.append('image', file);
+            body.append('format', 'jpeg');
+            body.append('quality', '85');
+            const res = await fetch(`${API_BASE_URL}/upload/image`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                body,
+            });
+            const json = await res.json().catch(() => ({}));
+            if (json?.success && json.url) {
+                return { mediaUrl: json.url, mediaName: file.name };
+            }
+            console.warn('[Scheduler] upload failed:', json.message);
+            return { mediaUrl: null, mediaName: file.name };
+        } catch (err) {
+            console.error('[Scheduler] upload error:', err);
+            return { mediaUrl: null, mediaName: file.name };
+        }
+    }
+
     const handleSave = async () => {
         if (!formData.title.trim()) return;
         if (formData.platforms.length === 0) return;
         if (formData.types.length === 0) return;
 
         const scheduledAt = new Date(`${formData.date}T${formData.time}`);
+
+        let mediaUrl = editingPost?.mediaUrl || editingPost?.fileName || null;
+        let mediaName = editingPost?.mediaName || '';
+        if (uploadedFile) {
+            const uploaded = await uploadFileToBackend(uploadedFile);
+            mediaUrl = uploaded.mediaUrl;
+            mediaName = uploaded.mediaName;
+        }
+
         const backendPayload = {
             title: formData.title,
             content: formData.description,
@@ -391,7 +428,8 @@ function SchedulerPage() {
             types: formData.types,
             hashtags: formData.tags,
             scheduledAt: isNaN(scheduledAt) ? new Date() : scheduledAt,
-            mediaUrl: uploadedFile ? uploadedFile.name : (editingPost?.mediaUrl || editingPost?.fileName || null),
+            mediaUrl,
+            mediaName,
             status: 'scheduled',
         };
 
@@ -413,8 +451,9 @@ function SchedulerPage() {
                 createdPost = await res.json().catch(() => null);
             }
             // [SOCIAL-v5.1] added: publish immediately if requested
-            if (publishNowFlag && createdPost?.data?._id) {
-                await fetch(`${API_BASE_URL}/scheduled-posts/${createdPost.data._id}/publish`, {
+            if (publishNowFlag && (createdPost?.data?._id || editingPost?._id)) {
+                const postId = createdPost?.data?._id || editingPost?._id;
+                await fetch(`${API_BASE_URL}/scheduled-posts/${postId}/publish`, {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify({ platforms: formData.platforms }),
@@ -425,7 +464,7 @@ function SchedulerPage() {
             console.error('Backend save failed:', err);
         }
 
-        if (uploadedFile) {
+        if (uploadedFile && mediaUrl) {
             const duration = await getVideoDuration(uploadedFile);
             setMediaQueue(prev => [...prev, {
                 id: `mq_${Date.now()}`,

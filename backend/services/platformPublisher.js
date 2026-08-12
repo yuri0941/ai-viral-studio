@@ -9,7 +9,14 @@ import { publish } from './publishers/index.js'
  */
 export async function publishToPlatform(user, platform, post) {
     if (platform === 'vk') {
-        return publishToVKWall(user, { text: post.content, link: post.mediaUrl })
+        return publishToVKWall(user, {
+            text: post.content,
+            title: post.title,
+            hashtags: post.hashtags,
+            link: post.mediaUrl,
+            mediaUrl: post.mediaUrl,
+            mediaName: post.mediaName || post.mediaUrl,
+        })
     }
 
     if (platform === 'telegram') {

@@ -23,7 +23,7 @@ router.get('/', protect, async (req, res) => {
 router.post('/', protect, async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id
-        const { title, content, platform, platforms, scheduledDate, scheduledAt, status, mediaUrl, hashtags, types } = req.body || {}
+        const { title, content, platform, platforms, scheduledDate, scheduledAt, status, mediaUrl, mediaName, hashtags, types } = req.body || {}
         const post = await ScheduledPost.create({
             userId,
             title: title || 'Без названия',
@@ -33,6 +33,7 @@ router.post('/', protect, async (req, res) => {
             scheduledAt: scheduledAt ? new Date(scheduledAt) : (scheduledDate ? new Date(scheduledDate) : new Date()),
             status: status || 'scheduled',
             mediaUrl: mediaUrl || '',
+            mediaName: mediaName || '',
             hashtags: hashtags || '',
         })
         res.status(201).json({ status: 'success', data: post })
@@ -46,7 +47,7 @@ router.patch('/:id', protect, async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id
         const updates = {}
-        const allowed = ['title', 'content', 'platforms', 'types', 'scheduledAt', 'scheduledDate', 'status', 'mediaUrl', 'hashtags', 'publishedUrl']
+        const allowed = ['title', 'content', 'platforms', 'types', 'scheduledAt', 'scheduledDate', 'status', 'mediaUrl', 'mediaName', 'hashtags', 'publishedUrl']
         allowed.forEach(key => {
             if (req.body[key] !== undefined) {
                 if (key === 'scheduledAt' || key === 'scheduledDate') {
@@ -134,7 +135,7 @@ router.post('/:id/publish', protect, async (req, res) => {
         if (!post) return res.status(404).json({ status: 'error', error: 'Post not found' })
 
         const user = await User.findById(userId)
-            .select('+vkToken +vkRefreshToken +vkUserId telegramBotToken telegramChatId telegramId socials.vk preferences.language')
+            .select('+vkToken +vkRefreshToken +vkUserId +socials.vk.communityKey socials.vk telegramBotToken telegramChatId telegramId preferences.language')
         if (!user) return res.status(404).json({ status: 'error', error: 'User not found' })
 
         // [v9.9.19.15.2] единый источник правды о подключённых соцсетях

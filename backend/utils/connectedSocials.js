@@ -12,27 +12,27 @@ export async function getConnectedSocials(userOrId) {
   let user = userOrId
   if (!user || typeof user === 'string' || user instanceof String || user._bsontype) {
     user = await User.findById(userOrId)
-      .select('+vkToken +vkRefreshToken socials.vk telegramBotToken telegramChatId telegramId preferences.language')
+      .select('+vkToken +vkRefreshToken +socials.vk.communityKey socials.vk telegramBotToken telegramChatId telegramId preferences.language')
       .lean()
   }
 
   const vkEnabled = !!user?.socials?.vk?.enabled
-  const vkToken = !!user?.vkToken
-  const vkUserId = !!(user?.vkUserId || user?.socials?.vk?.userId)
-  const vkNeedsScope = user?.socials?.vk?.needsScope ?? true
+  const vkCommunityKey = !!user?.socials?.vk?.communityKey
+  const vkGroupId = user?.socials?.vk?.groupId || ''
+  const vkGroupIdValid = /^-?\d+$/.test(vkGroupId)
 
   const vk = {
-    connected: vkEnabled && vkToken && vkUserId && !vkNeedsScope,
+    connected: vkCommunityKey && vkGroupIdValid,
     enabled: vkEnabled,
-    hasToken: vkToken,
-    hasUserId: vkUserId,
-    needsScope: vkNeedsScope,
-    reason: !vkEnabled || !vkUserId
+    hasCommunityKey: vkCommunityKey,
+    hasGroupId: !!vkGroupId,
+    groupIdValid: vkGroupIdValid,
+    reason: !vkCommunityKey
       ? 'not_connected'
-      : !vkToken
-        ? 'no_token'
-        : vkNeedsScope
-          ? 'needs_scope'
+      : !vkGroupId
+        ? 'no_group'
+        : !vkGroupIdValid
+          ? 'invalid_group'
           : 'ok',
   }
 
@@ -59,6 +59,8 @@ const REASON_TEXT = {
     not_connected: 'не подключён (Соцсети → подключить)',
     no_token: 'токен не найден — переподключите в Соцсетях',
     needs_scope: 'требуется разрешение на публикацию (Соцсети → VK → Разрешить)',
+    no_group: 'не указан ID группы VK',
+    invalid_group: 'ID группы VK должен быть числом',
     no_chat: 'не указан chat ID Telegram',
     ok: 'подключён',
   },
@@ -66,6 +68,8 @@ const REASON_TEXT = {
     not_connected: 'not connected (Socials → connect)',
     no_token: 'token missing — reconnect in Socials',
     needs_scope: 'publication permission required (Socials → VK → Allow)',
+    no_group: 'VK group ID is missing',
+    invalid_group: 'VK group ID must be a number',
     no_chat: 'Telegram chat ID is missing',
     ok: 'connected',
   },

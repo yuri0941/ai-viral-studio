@@ -268,3 +268,11 @@
 - OMEGA-бот: при 409 на setWebhook ретрай до 3 раз с 20с; fallback в polling + cron каждые 30 мин на возврат webhook.
 - autoFixAgent: `AuditLog.processed` — обработанные записи не пересканируются, цикл молчит о старых ошибках.
 - autoPublisher: permanent-failed посты получают `retriedAt` и не логируются повторно; добавлен `scope_denied` в перманентные коды.
+
+### v9.9.19.15.4 — VK постит в группу per-user ключом сообщества
+- VK ID PKCE не даёт `wall` scope; личная стена закрыта платформой. Рабочий путь: per-user ключ доступа сообщества + `groupId`.
+- `user.socials.vk.communityKey`/`groupId`/`groupName`; карточка VK в Соцсетях содержит поля ключа, ID группы, 🧪 проверку и раскрывающуюся инструкцию.
+- `vkPublishService.js`: `wall.post owner_id=-groupId from_group=1` + загрузка фото (JPEG через sharp) + видео best effort.
+- `connectedSocials.js`: VK `connected` = ключ + числовой groupId; `needsScope` VK ID не блокирует постинг.
+- `SchedulerPage`: цель «VK (группа)», медиа загружается через `/api/upload/image` (format=jpeg) перед сохранением.
+- `autoPublisher`: перманентные VK-коды (`vk_invalid_token`, `vk_wall_denied` и др.) не retry.
