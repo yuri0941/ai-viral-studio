@@ -4036,3 +4036,19 @@
   3) Тест-пост текстом + фото → на стене ГРУППЫ.
   4) Планировщик +2 мин → пост на стене группы.
   5) Регрессия: VK ID-логин (если настроен), Telegram-канал, бот «привет» — работают.
+
+## 2026-08-12 — v9.9.19.15.6-VK-PHOTO-UPLOAD-FIX — group_id в цепочке фото + проверка прав + fallback
+- [DIAG] Текстовые посты публикуются, но фото падает: `Group authorization failed: method is unavailable with group auth.` (VK error 15) на этапе загрузки фото.
+- [ROOT-CAUSE] VK API для community-ключей требует `group_id` как положительное число и строгое поле `photo` в multipart; цепочка `photos.getWallUploadServer → upload → photos.saveWallPhoto` могла терять/искажать `group_id`.
+- [FIX] `backend/services/vkPublishService.js`: `uploadPhotoToVK` переведена на явные `Number(group_id)` в `getWallUploadServer` и `saveWallPhoto`, `v=5.199`, поле multipart `photo`, 2 ретрая, подробное логирование каждого шага `[vk:photo] step=...` без тела/ключа.
+- [FIX] `backend/services/vkPublishService.js`: мягкий fallback — если фото не загрузилось, публикуется текст (без 500), в `VkPost` пишется `mediaStatus='failed'` + `mediaError`; один алерт владельцу через owner-бот о причине.
+- [FIX] `backend/models/VkPost.js`: добавлены `mediaStatus` и `mediaError`.
+- [FIX] `backend/routes/vk.js`: `POST /vk/test` теперь дополнительно вызывает `groups.getTokenPermissions` и возвращает `warning: 'no_photos_scope'`, если у ключа нет права «Фотографии».
+- [FIX] `frontend/src/pages/settings/IntegrationsTab.jsx` + `locales/ru.json`/`en.json`: при `no_photos_scope` карточка VK показывает 🟡 с понятным предупреждением «Текст публикуется, фото — нет: перевыпустите ключ...».
+- [FIX] `backend/scripts/requeueVkFailedPosts.js`: dedup по хешу текста — дубликаты получают `status='cancelled'`, `errorMessage='duplicate_requeue'`, в логе `[VK Requeue] deduped N duplicates`.
+- [TEST] `node --check` по `vkPublishService.js`, `vk.js`, `requeueVkFailedPosts.js`, `VkPost.js` ✅; `cd frontend && npm run build` ✅; `git diff --stat` — только разрешённые VK-файлы + документы.
+- [NOTE] Ручная проверка владельцем:
+  1) Тест-пост С ФОТО → фото видно на стене группы.
+  2) 🧪 Проверить → 🟢 Работает или 🟡 с причиной.
+  3) Логи Render: нет `Group authorization failed` на фото-загрузке.
+  4) Регрессия: Telegram-канал постит, бот «привет» отвечает.

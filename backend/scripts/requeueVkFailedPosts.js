@@ -17,6 +17,16 @@ import { getConnectedSocials } from '../utils/connectedSocials.js'
 const APPLY = process.argv.includes('--apply')
 const SINCE = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
+function textHash(post) {
+  const text = String(post.content || '') + '|' + String(post.title || '') + '|' + String(post.hashtags || '')
+  let h = 0
+  for (let i = 0; i < text.length; i++) {
+    h = ((h << 5) - h) + text.charCodeAt(i)
+    h |= 0
+  }
+  return String(h)
+}
+
 const FAILED_REASONS = [
   'vk_not_connected',
   'vk_needs_wall_scope',
@@ -78,13 +88,35 @@ async function main() {
     }
   }
 
+  // [v9.9.19.15.6] dedupe by content hash: keep only 1 post per duplicate text group
+  const hashGroups = new Map()
+  for (const { post } of toRequeue) {
+    const h = textHash(post)
+    if (!hashGroups.has(h)) hashGroups.set(h, [])
+    hashGroups.get(h).push(post)
+  }
+
+  const unique = []
+  const duplicates = []
+  for (const group of hashGroups.values()) {
+    if (group.length > 1) {
+      unique.push(group[0])
+      duplicates.push(...group.slice(1))
+    } else {
+      unique.push(group[0])
+    }
+  }
+
   if (!APPLY) {
     console.log(`\n[requeue] DRY-RUN. Передайте --apply для применения.`)
+    if (duplicates.length) {
+      console.log(`[requeue] найдено ${duplicates.length} дубликатов, которые будут отменены`)
+    }
     process.exit(0)
   }
 
   let updated = 0
-  for (const { post } of toRequeue) {
+  for (const post of unique) {
     post.status = 'scheduled'
     post.scheduledAt = new Date(Date.now() + 5 * 60 * 1000)
     post.retriedAt = undefined
@@ -94,7 +126,19 @@ async function main() {
     console.log(`[requeue] recovered ${post._id} → scheduled at ${post.scheduledAt.toISOString()}`)
   }
 
-  console.log(`\n[requeue] применено: ${updated} постов переочереднено, ${skipped.length} пропущено.`)
+  let cancelled = 0
+  for (const post of duplicates) {
+    post.status = 'cancelled'
+    post.errorMessage = 'duplicate_requeue'
+    await post.save()
+    cancelled++
+  }
+
+  if (cancelled) {
+    console.log(`[VK Requeue] deduped ${cancelled} duplicates`)
+  }
+
+  console.log(`\n[requeue] применено: ${updated} постов переочереднено, ${cancelled} отменено как дубликаты, ${skipped.length} пропущено.`)
   process.exit(0)
 }
 

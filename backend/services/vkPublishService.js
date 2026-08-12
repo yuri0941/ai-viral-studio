@@ -3,6 +3,15 @@ import VkPost from '../models/VkPost.js'
 import ScheduledPost from '../models/ScheduledPost.js'
 import sharp from 'sharp'
 
+const alertOwner = (async (...args) => {
+  try {
+    const { alertOwner: fn } = await import('./ownerBot.js')
+    return await fn?.(...args)
+  } catch {
+    // owner bot may not be initialized in tests/scripts
+  }
+})
+
 const VK_API_VERSION = '5.199'
 
 /**
@@ -66,39 +75,74 @@ async function fetchMediaBuffer(mediaUrl) {
   return null
 }
 
-async function uploadPhotoToVK(communityKey, groupId, buffer) {
-  const uploadServer = await vkApi('photos.getWallUploadServer', {
-    access_token: communityKey,
-    group_id: groupId,
-  })
-  const uploadUrl = uploadServer.response?.upload_url
-  if (!uploadUrl) throw new Error('VK did not return photo upload url')
+async function uploadPhotoToVK(communityKey, groupId, buffer, { logPrefix = '[vk:photo]' } = {}) {
+  const numericGroupId = Number(groupId)
+  let lastErr = null
 
-  // VK wall upload expects JPEG; convert webp/png if needed
-  let photoBuffer = buffer
-  try {
-    photoBuffer = await sharp(buffer).jpeg({ quality: 92, progressive: true }).toBuffer()
-  } catch (e) {
-    console.warn('[vk:publish] sharp jpeg conversion failed, using original buffer:', e.message)
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      // Step 1: get upload server
+      const getServerRes = await vkApi('photos.getWallUploadServer', {
+        access_token: communityKey,
+        group_id: numericGroupId,
+      })
+      const uploadUrl = getServerRes.response?.upload_url
+      if (!uploadUrl) {
+        console.warn(`${logPrefix} step=getServer code=0 msg=empty_upload_url`)
+        throw new Error('VK did not return photo upload url')
+      }
+      console.log(`${logPrefix} step=getServer code=200 msg=ok`)
+
+      // Step 2: upload file as multipart, field name must be 'photo'
+      let photoBuffer = buffer
+      try {
+        photoBuffer = await sharp(buffer).jpeg({ quality: 92, progressive: true }).toBuffer()
+      } catch (e) {
+        console.warn(`${logPrefix} step=convert code=0 msg=sharp_failed_use_original reason=${e.message}`)
+      }
+
+      const form = new FormData()
+      form.append('photo', new Blob([photoBuffer], { type: 'image/jpeg' }), 'photo.jpg')
+
+      const uploadRes = await fetch(uploadUrl, { method: 'POST', body: form })
+      const uploadData = await uploadRes.json().catch(() => ({}))
+      if (uploadData.error) {
+        const code = uploadData.error.error_code || uploadRes.status
+        const msg = uploadData.error.error_msg || 'Photo upload failed'
+        console.warn(`${logPrefix} step=upload code=${code} msg=${msg}`)
+        throw Object.assign(new Error(msg), { vkError: uploadData.error })
+      }
+      if (!uploadData.server || !uploadData.photo || !uploadData.hash) {
+        console.warn(`${logPrefix} step=upload code=0 msg=missing_fields fields=${Object.keys(uploadData).join(',')}`)
+        throw new Error('VK upload response missing server/photo/hash')
+      }
+      console.log(`${logPrefix} step=upload code=200 msg=ok`)
+
+      // Step 3: save wall photo
+      const saveRes = await vkApi('photos.saveWallPhoto', {
+        access_token: communityKey,
+        group_id: numericGroupId,
+        photo: typeof uploadData.photo === 'string' ? uploadData.photo : JSON.stringify(uploadData.photo),
+        server: uploadData.server,
+        hash: uploadData.hash,
+      })
+      const photo = saveRes.response?.[0]
+      if (!photo) {
+        console.warn(`${logPrefix} step=save code=0 msg=empty_response`)
+        throw new Error('VK did not return saved photo')
+      }
+      console.log(`${logPrefix} step=save code=200 msg=ok owner_id=${photo.owner_id} id=${photo.id}`)
+      return `photo${photo.owner_id}_${photo.id}`
+    } catch (e) {
+      lastErr = e
+      const code = e.vkError?.error_code || 0
+      const msg = e.message || 'unknown'
+      console.warn(`${logPrefix} attempt=${attempt}/2 code=${code} msg=${msg}`)
+      if (attempt < 2) await new Promise(r => setTimeout(r, 2000))
+    }
   }
 
-  const form = new FormData()
-  form.append('photo', new Blob([photoBuffer], { type: 'image/jpeg' }), 'photo.jpg')
-
-  const uploadRes = await fetch(uploadUrl, { method: 'POST', body: form })
-  const uploadData = await uploadRes.json().catch(() => ({}))
-  if (uploadData.error) throw new Error(uploadData.error.error_msg || 'Photo upload failed')
-
-  const saved = await vkApi('photos.saveWallPhoto', {
-    access_token: communityKey,
-    group_id: groupId,
-    photo: typeof uploadData.photo === 'string' ? uploadData.photo : JSON.stringify(uploadData.photo),
-    server: uploadData.server,
-    hash: uploadData.hash,
-  })
-  const photo = saved.response?.[0]
-  if (!photo) throw new Error('VK did not return saved photo')
-  return `photo${photo.owner_id}_${photo.id}`
+  throw lastErr || new Error('VK photo upload failed after 2 attempts')
 }
 
 async function uploadVideoToVK(communityKey, groupId, buffer, filename, title, description) {
@@ -167,21 +211,33 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
   }
 
   let attachments = []
+  let mediaStatus = 'none'
+  let mediaError = null
 
   // Optional link as plain URL attachment if no media
   if (!mediaUrl && link) {
     attachments.push(link)
   }
 
-  // Media upload (photo mandatory if provided, video best effort)
+  // Media upload (photo: soft fallback to text; video: best effort)
   if (mediaUrl) {
     try {
       const buffer = await fetchMediaBuffer(mediaUrl)
       if (buffer) {
         const mediaType = detectMediaType(buffer, mediaName || mediaUrl)
         if (mediaType === 'image') {
-          const photoAttachment = await uploadPhotoToVK(communityKey, groupId, buffer)
-          attachments.push(photoAttachment)
+          try {
+            const photoAttachment = await uploadPhotoToVK(communityKey, groupId, buffer, { logPrefix: '[vk:photo]' })
+            attachments.push(photoAttachment)
+            mediaStatus = 'uploaded'
+          } catch (e) {
+            const mapped = e.vkError ? mapVkError(e.vkError) : { error: 'vk_photo_upload_failed', reason: e.message }
+            mediaStatus = 'failed'
+            mediaError = mapped
+            const reasonText = mapped.reason || mapped.error || 'unknown'
+            console.warn(`[vk:publish] photo upload failed, falling back to text-only. reason=${reasonText}`)
+            alertOwner(`🖼️ Пост опубликован без фото в VK: ${reasonText}. Перевыпустите ключ сообщества с правом «Фотографии».`)
+          }
         } else if (mediaType === 'video') {
           let videoAttachment = null
           let lastErr = null
@@ -197,18 +253,26 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
           }
           if (videoAttachment) {
             attachments.push(videoAttachment)
+            mediaStatus = 'uploaded'
           } else {
-            console.warn('[vk:publish] video upload failed after 3 attempts, continuing with text/link:', lastErr?.message)
+            mediaStatus = 'failed'
+            const mapped = lastErr?.vkError ? mapVkError(lastErr.vkError) : { error: 'vk_video_upload_failed', reason: lastErr?.message || 'unknown' }
+            mediaError = mapped
+            console.warn('[vk:publish] video upload failed after 3 attempts, continuing with text/photo:', lastErr?.message)
           }
         } else {
           console.warn('[vk:publish] media type unknown, skipping upload')
+          mediaStatus = 'skipped'
         }
       } else {
         console.warn('[vk:publish] could not fetch media buffer, using link only')
         if (mediaUrl.startsWith('http')) attachments.push(mediaUrl)
+        mediaStatus = 'fetch_failed'
       }
     } catch (e) {
       console.warn('[vk:publish] media upload error:', e.message)
+      mediaStatus = 'failed'
+      mediaError = { error: 'media_fetch_error', reason: e.message }
     }
   }
 
@@ -236,10 +300,12 @@ export async function publishToVKGroup(user, { text, title, hashtags, link, medi
       text: message,
       link: link || mediaUrl || '',
       status: 'published',
+      mediaStatus,
+      mediaError,
       vkResponse: vkResult,
     })
 
-    return { success: true, postId, postUrl, attachments }
+    return { success: true, postId, postUrl, attachments, mediaStatus, mediaError }
   } catch (err) {
     if (err.vkError) {
       const mapped = mapVkError(err.vkError)

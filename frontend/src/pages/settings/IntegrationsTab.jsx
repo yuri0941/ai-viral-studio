@@ -178,7 +178,13 @@ export default function IntegrationsTab() {
       const data = await res.json();
       if (data?.success) {
         showToast(t('vk.works', { name: data.groupName || data.groupId }));
-        setVkStatus(prev => ({ ...prev, groupName: data.groupName || prev.groupName, connected: true, tested: true }));
+        setVkStatus(prev => ({
+          ...prev,
+          groupName: data.groupName || prev.groupName,
+          connected: true,
+          tested: true,
+          warning: data.warning || null,
+        }));
       } else {
         const map = {
           invalid_token: t('vk.invalidToken'),
@@ -279,6 +285,11 @@ export default function IntegrationsTab() {
               <p>{t('vk.groupId')}: <span className="text-gray-300 font-mono">{vkStatus.groupId}</span></p>
               {vkStatus.groupName && <p>{t('vk.groupName')}: <span className="text-gray-300">{vkStatus.groupName}</span></p>}
             </div>
+            {vkStatus.warning === 'no_photos_scope' && (
+              <div className="text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg px-3 py-2">
+                {t('vk.noPhotosScope')}
+              </div>
+            )}
             <button
               onClick={() => disconnect(p.id)}
               className="w-full py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-300 hover:bg-white/10"

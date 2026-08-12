@@ -154,6 +154,7 @@
     "errorInvalidKey": "Invalid VK community key",
     "errorNoWallPermission": "Key lacks wall permission",
     "errorGroupNotFound": "Group not found — check the ID",
+    "noPhotosScope": "Text posts work, but photos will not: re-issue the community key with the «Photos» permission.",
     "keySaved": "Key already saved. Leave the field empty to keep it.",
     "keySavedPlaceholder": "•••• (saved)"
   },

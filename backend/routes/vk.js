@@ -270,31 +270,45 @@ router.post('/vk/test', protect, async (req, res) => {
       return res.status(400).json({ success: false, error: 'invalid_group', message: 'ID группы не сохранён' });
     }
 
-    const url = 'https://api.vk.com/method/groups.getById?' + new URLSearchParams({
-      access_token: communityKey,
-      group_id: groupId,
-      v: '5.199',
-    }).toString();
+    const [groupRes, permRes] = await Promise.all([
+      fetch('https://api.vk.com/method/groups.getById?' + new URLSearchParams({
+        access_token: communityKey,
+        group_id: groupId,
+        v: '5.199',
+      }).toString()).then(r => r.json()).catch(() => ({})),
+      fetch('https://api.vk.com/method/groups.getTokenPermissions?' + new URLSearchParams({
+        access_token: communityKey,
+        v: '5.199',
+      }).toString()).then(r => r.json()).catch(() => ({})),
+    ]);
 
-    const vkRes = await fetch(url);
-    const vkData = await vkRes.json().catch(() => ({}));
-
-    if (vkData.error) {
-      const code = vkData.error.error_code;
-      const msg = vkData.error.error_msg || 'VK API error';
+    if (groupRes.error) {
+      const code = groupRes.error.error_code;
+      const msg = groupRes.error.error_msg || 'VK API error';
       if (code === 5) return res.status(400).json({ success: false, error: 'invalid_token', message: 'Ключ недействителен' });
       if (code === 100 || code === 113) return res.status(400).json({ success: false, error: 'group_not_found', message: 'Группа не найдена — проверьте ID' });
       if (code === 27 || code === 214 || code === 15) return res.status(400).json({ success: false, error: 'no_wall_permission', message: 'У ключа нет права «стена»' });
       return res.status(400).json({ success: false, error: 'vk_api_error', message: msg });
     }
 
-    const group = vkData.response?.[0];
+    // [v9.9.19.15.6] check whether the community token has photos scope
+    const mask = permRes.response?.mask || 0
+    const permissions = Array.isArray(permRes.response?.permissions) ? permRes.response.permissions : []
+    const hasPhotos = (mask & 4) === 4 || permissions.some(p => p.name === 'photos')
+
+    const group = groupRes.response?.[0];
     const groupName = group?.name || '';
     if (groupName) {
       await User.findByIdAndUpdate(req.user.id, { $set: { 'socials.vk.groupName': groupName } });
     }
 
-    return res.json({ success: true, groupId, groupName: groupName || null, status: 'working' });
+    return res.json({
+      success: true,
+      groupId,
+      groupName: groupName || null,
+      status: 'working',
+      warning: hasPhotos ? null : 'no_photos_scope',
+    });
   } catch (err) {
     console.error('[VK test] error:', err.message);
     return res.status(500).json({ success: false, error: 'server_error', message: err.message });
