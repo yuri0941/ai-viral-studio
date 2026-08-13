@@ -182,7 +182,7 @@ router.get('/auth-url', requireRole('owner'), async (req, res) => {
       response_type: 'code',
       client_id: clientId,
       redirect_uri: YOUTUBE_REDIRECT_URI,
-      scope: 'https://www.googleapis.com/auth/youtube.upload',
+      scope: 'https://www.googleapis.com/auth/youtube',
       access_type: 'offline',
       prompt: 'consent',
       state
@@ -269,14 +269,23 @@ router.post('/spike', requireRole('owner'), async (req, res) => {
     log('spike_uploaded', { videoId, status: 'uploaded' })
 
     currentStep = 'delete_video'
-    await axios.delete(YOUTUBE_DELETE_URL, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      params: { id: videoId },
-      timeout: 30000
-    })
-    log('spike_deleted', { videoId, deleted: true })
-
-    return res.json({ success: true, videoId, deleted: true })
+    try {
+      await axios.delete(YOUTUBE_DELETE_URL, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        params: { id: videoId },
+        timeout: 30000
+      })
+      log('spike_deleted', { videoId, deleted: true })
+      return res.json({ success: true, videoId, deleted: true })
+    } catch (deleteErr) {
+      log('spike_delete_skipped', { videoId, reason: deleteErr.message })
+      return res.json({
+        success: true,
+        videoId,
+        deleted: false,
+        warning: 'удали видео вручную в студии'
+      })
+    }
   } catch (err) {
     const payload = googleErrorPayload(err)
     log('spike_fail', { step: currentStep, code: payload.code, msg: payload.message })
