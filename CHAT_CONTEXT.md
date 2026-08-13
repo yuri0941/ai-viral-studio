@@ -353,3 +353,8 @@
 - `ApiKeysTab` показывает toast после редиректа от Google по query-параметрам `youtube`/`email`/`message`.
 - `/api/youtube/auth-url` добавлен в smoke-тест.
 - Добавлены i18n-ключи `apiKeys.connectYoutube`, `apiKeys.youtubeConnected`, `apiKeys.youtubeConnectError`, `apiKeys.runYoutubeSpike`, `apiKeys.youtubeSpikeOk`, `apiKeys.youtubeSpikeFail`.
+
+### v9.9.19.17.6-YOUTUBE-AUDIT-PREP
+- `docs/YOUTUBE_AUDIT_CHECKLIST.md`: чек-лист для перевода OAuth-приложения в production, обоснование scope `auth/youtube`, demo-video script.
+- `/privacy`: добавлен блок Google API Services Limited Use (RU+EN).
+- Футер лендинга: ссылка на `/privacy`.

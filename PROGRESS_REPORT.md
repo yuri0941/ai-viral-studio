@@ -4289,3 +4289,9 @@
 
 
 
+
+## 2026-08-13 — v9.9.19.17.6-YOUTUBE-AUDIT-PREP — подготовка к аудиту Google
+- [DOC] `docs/YOUTUBE_AUDIT_CHECKLIST.md`: consent screen → production, обоснование scope `auth/youtube`, demo-video script, ссылки на privacy/terms, ответы на ожидаемые вопросы Google.
+- [FIX] `frontend/src/pages/legal/PrivacyPage.jsx`: добавлен блок «Google API Services Limited Use» (RU+EN): какие данные, использование только по команде пользователя, шифрованное хранение, отзыв кнопкой, no sharing/sale.
+- [FIX] `frontend/src/pages/LandingPage.jsx`: ссылка на `/privacy` в футере (была `/privacy-policy`, маршрут `/privacy` существует).
+- [TEST] `npm run build` ✅.
