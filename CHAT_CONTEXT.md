@@ -369,3 +369,14 @@
 - Квота YouTube: счётчик units/день в Mongo (`youtube_quota`), алерт владельцу в TG при >80%, `quota_exceeded` → «повтори после 10:00 МСК».
 - SchedulerPage: секция YouTube с формой загрузки, списком видео, удалением с confirm, адаптив 375px.
 - i18n: `youtube.scheduler.*` в src и public ru/en.
+
+### v9.9.19.17.9-YOUTUBE-DIRECT-UPLOAD
+- Два пути загрузки по размеру: ≤100 МБ — старый multipart через backend (не тронут), >100 МБ до 20 ГБ — прямая resumable-загрузка браузер→YouTube (файл не проксируется через Render).
+- Новая модель `UploadSession` (Mongo): uploadUrl, videoMeta (title/description/tags/categoryId/privacyStatus/madeForKids/publishAt/playlistId/language), fileHash, bytesUploaded, status, expiresAt (~7 дней).
+- Эндпоинты: `POST /api/youtube/upload-session`, `GET /api/youtube/upload-session/:id` (докачка), `POST /api/youtube/upload-session/:id/complete` (thumbnail + playlistItems.insert +50 units), `GET /api/youtube/videos/:id/processing`, `GET /api/youtube/playlists`, `POST /api/youtube/ai-meta`.
+- Фронт: чанки 8 МБ с Content-Range прямо в Google, ретраи + ресинк позиции (`PUT bytes */N`), прогресс со скоростью/ETA, стадии «Подготовка → Загрузка → Обработка → Готово», «Продолжить» после обрыва (sessionId в localStorage по SHA-256 первого+последнего МБ).
+- Дедup: backend сверяет fileHash с completed-сессиями → 409 duplicate_file → confirm «уже загружалось (дата)». Идемпотентность: активная сессия того же файла возвращается вместо создания новой.
+- Предпроверки до сессии: квота ≥1600 units (429 → «после 10:00 МСК»), живой OAuth-токен (400 youtube_not_connected → «Переподключить канал»).
+- Комплаенс: madeForKids (COPPA) + publishAt за `ENABLE_YOUTUBE_PUBLIC` (в /status отдаётся publicEnabled, UI disabled с пояснением).
+- Планировщик (19.17.5): `publishScheduledYouTubePost` переведён на chunked-resumable (8 МБ чанки из fs.createReadStream), thumbnail из media queue по base-имени.
+- i18n: youtube.scheduler.* (+31 ключ) в src и public ru/en синхронно.

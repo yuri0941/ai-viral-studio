@@ -10,7 +10,7 @@ import {
     Trash, Play, Maximize2, Wand2, Zap, LayoutTemplate,
     ToggleLeft, ToggleRight, Bot, Loader2, Copy, Clapperboard
 } from 'lucide-react';
-import { omegaApi, scheduledPostsApi, youtubeApi } from '../services/api';
+import { omegaApi, scheduledPostsApi, youtubeApi, computeYtFileHash, uploadFileResumable, queryResumablePosition, YT_DIRECT_MIN_SIZE, YT_DIRECT_MAX_SIZE } from '../services/api';
 import { API_BASE_URL } from '../config.js';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -53,6 +53,12 @@ const TEMPLATES = [
 
 const WEEK_DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+// [19.17.9-DIRECT-UPLOAD] official YouTube category IDs (labels via i18n), default 22 = People & Blogs
+const YT_CATEGORY_IDS = ['22', '24', '26', '27', '28', '10', '20', '23', '1', '17', '25', '19'];
+// Language names stay native — no translation needed
+const YT_LANGUAGES = ['', 'ru', 'en', 'uk', 'kk', 'de', 'es', 'fr', 'tr'];
+const YT_LANGUAGE_NAMES = { '': '', ru: 'Русский', en: 'English', uk: 'Українська', kk: 'Қазақша', de: 'Deutsch', es: 'Español', fr: 'Français', tr: 'Türkçe' };
 
 function formatDateInput(d) {
     return d.toISOString().split('T')[0];
@@ -115,6 +121,22 @@ function SchedulerPage() {
     const [ytVideosLoading, setYtVideosLoading] = useState(false);
     const ytFileInputRef = useRef(null);
     const ytThumbInputRef = useRef(null);
+    // [19.17.9-DIRECT-UPLOAD] extra form fields + direct resumable upload state
+    const [ytCategory, setYtCategory] = useState('22');
+    const [ytLanguage, setYtLanguage] = useState('');
+    const [ytPlaylist, setYtPlaylist] = useState('');
+    const [ytPlaylists, setYtPlaylists] = useState([]);
+    const [ytMadeForKids, setYtMadeForKids] = useState(false);
+    const [ytPublishAt, setYtPublishAt] = useState('');
+    const [ytPublicEnabled, setYtPublicEnabled] = useState(false);
+    const [ytAiLoading, setYtAiLoading] = useState(false);
+    const [ytFileDuration, setYtFileDuration] = useState(0);
+    // ytDirect: null | { stage: 'preparing'|'uploading'|'processing'|'done'|'error'|'paused'|'resumable',
+    //   percent, uploadedMB, totalMB, speedMBs, etaMin, videoId, url, error, errorCode, resumeSessionId, fileHash }
+    const [ytDirect, setYtDirect] = useState(null);
+    const ytAbortRef = useRef(null);
+    const ytSpeedRef = useRef({ ema: 0 });
+    const ytPollRef = useRef(null);
     const VIDEO_STYLES = [
         { id: 'dynamic', label: t('aiVideo.styles.dynamic') },
         { id: 'calm', label: t('aiVideo.styles.calm') },
@@ -666,6 +688,22 @@ function SchedulerPage() {
         loadYtVideos();
     }, [loadYtVideos]);
 
+    // [19.17.9-DIRECT-UPLOAD] load playlists + feature flags once (silent fail — optional fields)
+    useEffect(() => {
+        youtubeApi.status()
+            .then(s => setYtPublicEnabled(!!s?.publicEnabled))
+            .catch(() => {});
+        youtubeApi.playlists()
+            .then(r => setYtPlaylists(Array.isArray(r?.playlists) ? r.playlists : []))
+            .catch(() => setYtPlaylists([]));
+    }, []);
+
+    // [19.17.9-DIRECT-UPLOAD] stop polling / abort upload when leaving the page
+    useEffect(() => () => {
+        if (ytPollRef.current) clearTimeout(ytPollRef.current);
+        ytAbortRef.current?.abort();
+    }, []);
+
     const buildYtFormData = (withSchedule = false) => {
         const fd = new FormData();
         fd.append('video', ytFile);
@@ -673,6 +711,11 @@ function SchedulerPage() {
         fd.append('description', ytDescription);
         fd.append('tags', ytTags);
         fd.append('privacyStatus', ytPrivacy);
+        fd.append('categoryId', ytCategory);
+        fd.append('language', ytLanguage);
+        fd.append('madeForKids', String(ytMadeForKids));
+        if (ytPlaylist) fd.append('playlistId', ytPlaylist);
+        if (ytPublicEnabled && ytPublishAt) fd.append('publishAt', new Date(ytPublishAt).toISOString());
         if (ytThumbnail) fd.append('thumbnail', ytThumbnail);
         if (withSchedule) fd.append('scheduledAt', new Date(ytScheduledAt).toISOString());
         return fd;
@@ -686,12 +729,239 @@ function SchedulerPage() {
         setYtTags('');
         setYtPrivacy('private');
         setYtScheduledAt('');
+        setYtCategory('22');
+        setYtLanguage('');
+        setYtPlaylist('');
+        setYtMadeForKids(false);
+        setYtPublishAt('');
+        setYtFileDuration(0);
+        setYtDirect(null);
+        ytSpeedRef.current = { ema: 0 };
         if (ytFileInputRef.current) ytFileInputRef.current.value = '';
         if (ytThumbInputRef.current) ytThumbInputRef.current.value = '';
     };
 
+    // [19.17.9-DIRECT-UPLOAD] file pick: validate, measure duration, look for a resumable session
+    const handleYtFileSelect = async (e) => {
+        const file = e.target.files[0] || null;
+        setYtDirect(null);
+        setYtFileDuration(0);
+        if (!file) { setYtFile(null); return; }
+        const extOk = /\.(mp4|mov|webm)$/i.test(file.name) || ['video/mp4', 'video/quicktime', 'video/webm'].includes(file.type);
+        if (!extOk) {
+            toast.error(t('youtube.scheduler.directBadType'));
+            e.target.value = '';
+            setYtFile(null);
+            return;
+        }
+        if (file.size > YT_DIRECT_MAX_SIZE) {
+            toast.error(t('youtube.scheduler.directTooBig'));
+            e.target.value = '';
+            setYtFile(null);
+            return;
+        }
+        setYtFile(file);
+        getVideoDuration(file).then(setYtFileDuration);
+        // Resumable session survived a page reload? Offer to continue the same file.
+        if (file.size > YT_DIRECT_MIN_SIZE) {
+            try {
+                const hash = await computeYtFileHash(file);
+                const sessionId = localStorage.getItem(`yt_direct_${hash}`);
+                if (!sessionId) return;
+                const s = await youtubeApi.getUploadSession(sessionId);
+                if (s?.status === 'active' && s.fileSize === file.size) {
+                    setYtDirect({ stage: 'resumable', resumeSessionId: s.sessionId, fileHash: hash, totalMB: Math.round(file.size / (1024 * 1024)) });
+                } else {
+                    localStorage.removeItem(`yt_direct_${hash}`);
+                }
+            } catch { /* no stored session — fresh upload */ }
+        }
+    };
+
+    const buildYtMeta = () => ({
+        title: ytTitle,
+        description: ytDescription,
+        tags: ytTags,
+        privacyStatus: ytPrivacy,
+        categoryId: ytCategory,
+        language: ytLanguage,
+        madeForKids: ytMadeForKids,
+        playlistId: ytPlaylist || '',
+        publishAt: ytPublicEnabled && ytPublishAt ? new Date(ytPublishAt).toISOString() : '',
+    });
+
+    // Honest ETA from the measured channel speed (EMA over uploaded chunks)
+    const ytEstimateMinutes = (file) => {
+        const downlinkMbps = navigator.connection?.downlink; // Mbps, Chrome/Android only
+        if (!downlinkMbps || !file) return null;
+        return Math.max(1, Math.round((file.size * 8) / (downlinkMbps * 1e6) / 60));
+    };
+
+    const mapYtDirectError = (err) => {
+        if (err?.status === 429 || /quota/i.test(err?.reason || '') || /quota/i.test(err?.message || '')) {
+            return { message: t('youtube.scheduler.quotaRetryAfter'), code: 'quota' };
+        }
+        if (err?.message === 'youtube_not_connected' || err?.status === 401) {
+            return { message: t('youtube.scheduler.reconnectNeeded'), code: 'reconnect' };
+        }
+        if (err?.message === 'file_too_large') return { message: t('youtube.scheduler.directTooBig'), code: 'size' };
+        if (err?.message === 'invalid_file_type') return { message: t('youtube.scheduler.directBadType'), code: 'type' };
+        return { message: err?.message || t('youtube.scheduler.uploadError'), code: 'generic' };
+    };
+
+    const pollYtProcessing = useCallback((videoId, url, attempt = 0) => {
+        if (ytPollRef.current) clearTimeout(ytPollRef.current);
+        ytPollRef.current = setTimeout(async () => {
+            try {
+                const r = await youtubeApi.getProcessing(videoId);
+                if (r?.status === 'succeeded') {
+                    setYtDirect(prev => ({ ...prev, stage: 'done', videoId, url }));
+                    return;
+                }
+                if (r?.status === 'failed') {
+                    setYtDirect(prev => ({ ...prev, stage: 'error', error: t('youtube.scheduler.processingFailed'), errorCode: 'processing' }));
+                    return;
+                }
+                if (attempt >= 180) { // ~30 min of polling — processing continues on YouTube anyway
+                    setYtDirect(prev => ({ ...prev, stage: 'done', videoId, url }));
+                    return;
+                }
+                setYtDirect(prev => prev?.stage === 'processing' ? { ...prev, processingProgress: r?.progress ?? null } : prev);
+                pollYtProcessing(videoId, url, attempt + 1);
+            } catch {
+                if (attempt >= 180) return;
+                pollYtProcessing(videoId, url, attempt + 1); // transient poll errors are tolerated
+            }
+        }, 10000);
+    }, [t]);
+
+    // [19.17.9-DIRECT-UPLOAD] browser → YouTube chunked resumable upload (>100 MB)
+    const handleYtDirectUpload = async (resume = false) => {
+        if (!ytFile || !ytTitle.trim()) return;
+        const file = ytFile;
+        const totalMB = file.size / (1024 * 1024);
+        ytSpeedRef.current = { ema: 0 };
+        const abort = new AbortController();
+        ytAbortRef.current = abort;
+        setYtDirect({ stage: 'preparing', percent: 0, totalMB: Math.round(totalMB) });
+
+        try {
+            const fileHash = resume && ytDirect?.fileHash ? ytDirect.fileHash : await computeYtFileHash(file);
+            let sessionId = resume ? ytDirect?.resumeSessionId : null;
+            let uploadUrl = null;
+            let startByte = 0;
+
+            if (sessionId) {
+                const s = await youtubeApi.getUploadSession(sessionId);
+                uploadUrl = s.uploadUrl;
+                const pos = await queryResumablePosition(uploadUrl, file.size, abort.signal).catch(() => null);
+                startByte = pos != null ? pos : 0;
+            } else {
+                let created = null;
+                try {
+                    created = await youtubeApi.createUploadSession({
+                        fileSize: file.size, fileName: file.name, fileHash, meta: buildYtMeta(),
+                    });
+                } catch (err) {
+                    if (err?.status === 409) {
+                        const date = err.details?.uploadedAt ? new Date(err.details.uploadedAt).toLocaleString() : '';
+                        if (!window.confirm(t('youtube.scheduler.duplicateConfirm', { date }))) {
+                            setYtDirect(null);
+                            return;
+                        }
+                        created = await youtubeApi.createUploadSession({
+                            fileSize: file.size, fileName: file.name, fileHash, meta: buildYtMeta(), allowDuplicate: true,
+                        });
+                    } else {
+                        throw err;
+                    }
+                }
+                sessionId = created.sessionId;
+                uploadUrl = created.uploadUrl;
+                if (created.resumed) {
+                    const pos = await queryResumablePosition(uploadUrl, file.size, abort.signal).catch(() => null);
+                    startByte = pos != null ? pos : 0;
+                }
+            }
+
+            localStorage.setItem(`yt_direct_${fileHash}`, sessionId);
+            setYtDirect({ stage: 'uploading', percent: Math.round((startByte / file.size) * 100), uploadedMB: Math.round(startByte / (1024 * 1024)), totalMB: Math.round(totalMB), speedMBs: 0, etaMin: null, resumeSessionId: sessionId, fileHash });
+
+            const onProgress = ({ uploaded, total, chunkBytes, chunkMs }) => {
+                if (chunkBytes && chunkMs > 0) {
+                    const inst = chunkBytes / (1024 * 1024) / (chunkMs / 1000); // MB/s
+                    const ema = ytSpeedRef.current.ema;
+                    ytSpeedRef.current.ema = ema > 0 ? ema * 0.7 + inst * 0.3 : inst;
+                }
+                const speed = ytSpeedRef.current.ema;
+                const remainingMB = (total - uploaded) / (1024 * 1024);
+                setYtDirect(prev => prev?.stage === 'uploading' ? {
+                    ...prev,
+                    percent: Math.min(99, Math.round((uploaded / total) * 100)),
+                    uploadedMB: Math.round(uploaded / (1024 * 1024)),
+                    speedMBs: Math.round(speed * 10) / 10,
+                    etaMin: speed > 0 ? Math.max(1, Math.round(remainingMB / speed / 60)) : null,
+                } : prev);
+            };
+
+            const resource = await uploadFileResumable({ file, uploadUrl, startByte, onProgress, signal: abort.signal });
+            const videoId = resource?.id;
+            if (!videoId) throw new Error('no_video_id_in_upload_response');
+
+            // Finalize on the backend: thumbnail + playlist + session status
+            setYtDirect(prev => ({ ...prev, stage: 'processing', percent: 100, videoId }));
+            const fd = new FormData();
+            fd.append('videoId', videoId);
+            fd.append('bytesUploaded', String(file.size));
+            if (ytThumbnail) fd.append('thumbnail', ytThumbnail);
+            const done = await youtubeApi.completeUploadSession(sessionId, fd);
+            localStorage.removeItem(`yt_direct_${fileHash}`);
+            setYtDirect(prev => ({ ...prev, stage: 'processing', videoId, url: done.url }));
+            toast.success(t('youtube.scheduler.uploadSuccess'));
+            pollYtProcessing(videoId, done.url);
+            loadYtVideos();
+        } catch (err) {
+            if (err?.code === 'aborted') {
+                setYtDirect(prev => prev ? { ...prev, stage: 'paused' } : null);
+                return;
+            }
+            console.error('[Scheduler] YouTube direct upload failed:', err);
+            const mapped = mapYtDirectError(err);
+            setYtDirect(prev => ({
+                stage: 'error',
+                error: mapped.message,
+                errorCode: mapped.code,
+                resumeSessionId: prev?.resumeSessionId || null,
+                fileHash: prev?.fileHash || null,
+                totalMB: Math.round(totalMB),
+            }));
+        }
+    };
+
+    const handleYtResumeDirect = () => handleYtDirectUpload(true);
+
+    const handleYtAiMeta = async () => {
+        if (ytAiLoading) return;
+        setYtAiLoading(true);
+        try {
+            const r = await youtubeApi.aiMeta({ title: ytTitle, fileName: ytFile?.name || '' });
+            if (r?.tags?.length) setYtTags(r.tags.join(', '));
+            if (r?.description) setYtDescription(r.description);
+            if (!r?.tags?.length && !r?.description) toast.error(t('youtube.scheduler.uploadError'));
+        } catch (err) {
+            console.error('[Scheduler] AI meta failed:', err);
+            toast.error(err.message || t('common.error'));
+        } finally {
+            setYtAiLoading(false);
+        }
+    };
+
     const handleYtUpload = async () => {
         if (!ytFile || !ytTitle.trim() || ytUploading) return;
+        // [19.17.9-DIRECT-UPLOAD] >100 MB — direct browser→YouTube resumable path
+        if (ytFile.size > YT_DIRECT_MIN_SIZE) {
+            return handleYtDirectUpload(false);
+        }
         setYtUploading(true);
         try {
             await youtubeApi.upload(buildYtFormData());
@@ -707,8 +977,15 @@ function SchedulerPage() {
         }
     };
 
+    const YT_SCHEDULE_MAX_SIZE = 256 * 1024 * 1024; // scheduled path still goes through the backend
+
     const handleYtSchedule = async () => {
         if (!ytFile || !ytTitle.trim() || !ytScheduledAt || ytScheduling) return;
+        // [19.17.9] big files cannot be proxied through the backend — use publishAt instead
+        if (ytFile.size > YT_SCHEDULE_MAX_SIZE) {
+            toast.error(t('youtube.scheduler.scheduleTooBig'));
+            return;
+        }
         setYtScheduling(true);
         try {
             await youtubeApi.schedule(buildYtFormData(true));
@@ -1052,10 +1329,21 @@ function SchedulerPage() {
                                 type="file"
                                 ref={ytFileInputRef}
                                 accept="video/mp4,video/quicktime,video/webm"
-                                onChange={(e) => setYtFile(e.target.files[0] || null)}
+                                onChange={handleYtFileSelect}
                                 className="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-red-600/20 file:text-red-400 file:text-xs hover:file:bg-red-600/30 file:cursor-pointer"
                             />
                             <p className="text-[11px] text-gray-500 mt-1">{t('youtube.scheduler.shortsHint')}</p>
+                            {ytFile && ytFile.size > YT_DIRECT_MIN_SIZE && (
+                                <p className="text-[11px] text-emerald-400/90 mt-1">
+                                    {t('youtube.scheduler.directMode')}
+                                    {ytEstimateMinutes(ytFile) != null && ` · ${t('youtube.scheduler.estimate', { minutes: ytEstimateMinutes(ytFile) })}`}
+                                </p>
+                            )}
+                            {ytFileDuration > 900 && (
+                                <p className="text-[11px] text-amber-400/90 mt-1 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2 py-1.5">
+                                    {t('youtube.scheduler.fifteenMinHint')}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.videoTitle')}</label>
@@ -1066,7 +1354,17 @@ function SchedulerPage() {
                             <textarea value={ytDescription} onChange={e => setYtDescription(e.target.value)} rows={3} className="luxury-input w-full min-h-[80px] resize-y" />
                         </div>
                         <div>
-                            <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.tags')}</label>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="text-xs text-gray-400">{t('youtube.scheduler.tags')}</label>
+                                <button
+                                    onClick={handleYtAiMeta}
+                                    disabled={ytAiLoading}
+                                    className="text-xs text-emerald-400 flex items-center gap-1 hover:underline disabled:opacity-50"
+                                >
+                                    {ytAiLoading ? <Loader2 className="animate-spin" size={12} /> : <Sparkles size={12} />}
+                                    {ytAiLoading ? t('youtube.scheduler.aiMetaLoading') : t('youtube.scheduler.aiMeta')}
+                                </button>
+                            </div>
                             <input type="text" value={ytTags} onChange={e => setYtTags(e.target.value)} className="luxury-input w-full" />
                         </div>
                         <div>
@@ -1086,9 +1384,153 @@ function SchedulerPage() {
                                 <option value="unlisted">{t('youtube.scheduler.unlisted')}</option>
                             </select>
                         </div>
+                        {/* [19.17.9-DIRECT-UPLOAD] category / language / playlist / COPPA / publishAt */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.category')}</label>
+                                <select value={ytCategory} onChange={e => setYtCategory(e.target.value)} className="luxury-input w-full">
+                                    {YT_CATEGORY_IDS.map(id => (
+                                        <option key={id} value={id}>{t(`youtube.scheduler.categories.c${id}`)}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.language')}</label>
+                                <select value={ytLanguage} onChange={e => setYtLanguage(e.target.value)} className="luxury-input w-full">
+                                    {YT_LANGUAGES.map(id => (
+                                        <option key={id || 'none'} value={id}>{id ? YT_LANGUAGE_NAMES[id] : t('youtube.scheduler.languageNone')}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        {ytPlaylists.length > 0 && (
+                            <div>
+                                <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.playlist')}</label>
+                                <select value={ytPlaylist} onChange={e => setYtPlaylist(e.target.value)} className="luxury-input w-full">
+                                    <option value="">{t('youtube.scheduler.playlistNone')}</option>
+                                    {ytPlaylists.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                                </select>
+                            </div>
+                        )}
+                        <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={ytMadeForKids}
+                                    onChange={e => setYtMadeForKids(e.target.checked)}
+                                    className="w-4 h-4 rounded border-white/20 bg-[#1a1a24] text-red-500 focus:ring-red-500"
+                                />
+                                {t('youtube.scheduler.madeForKids')}
+                            </label>
+                            <p className="text-[11px] text-gray-500 mt-1 ml-6">{t('youtube.scheduler.madeForKidsHint')}</p>
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.publishAt')}</label>
+                            <input
+                                type="datetime-local"
+                                value={ytPublishAt}
+                                onChange={e => setYtPublishAt(e.target.value)}
+                                disabled={!ytPublicEnabled}
+                                className="luxury-input w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                            {!ytPublicEnabled && (
+                                <p className="text-[11px] text-gray-500 mt-1">{t('youtube.scheduler.publishAtHint')}</p>
+                            )}
+                        </div>
+                        {/* [19.17.9-DIRECT-UPLOAD] staged progress UI — no silent dead time */}
+                        {ytDirect && (
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
+                                {(ytDirect.stage === 'preparing' || ytDirect.stage === 'uploading') && (
+                                    <>
+                                        <div className="flex items-center gap-2 text-xs text-gray-300">
+                                            <Loader2 className="animate-spin shrink-0" size={14} />
+                                            {ytDirect.stage === 'preparing'
+                                                ? t('youtube.scheduler.stagePreparing')
+                                                : `${t('youtube.scheduler.stageUploading')} ${t('youtube.scheduler.uploadProgress', {
+                                                    percent: ytDirect.percent ?? 0,
+                                                    uploaded: ytDirect.uploadedMB ?? 0,
+                                                    total: ytDirect.totalMB ?? 0,
+                                                    speed: ytDirect.speedMBs ?? 0,
+                                                    eta: ytDirect.etaMin ?? '…',
+                                                })}`}
+                                        </div>
+                                        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-gradient-to-r from-red-600 to-rose-500 transition-all duration-300"
+                                                style={{ width: `${ytDirect.percent ?? 0}%` }}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => ytAbortRef.current?.abort()}
+                                            className="text-xs text-gray-400 hover:text-red-300 transition"
+                                        >
+                                            {t('youtube.scheduler.cancelUpload')}
+                                        </button>
+                                    </>
+                                )}
+                                {ytDirect.stage === 'processing' && (
+                                    <div className="flex items-center gap-2 text-xs text-gray-300">
+                                        <Loader2 className="animate-spin shrink-0" size={14} />
+                                        {t('youtube.scheduler.stageProcessing')}
+                                        {ytDirect.processingProgress != null && ` · ${ytDirect.processingProgress}%`}
+                                    </div>
+                                )}
+                                {ytDirect.stage === 'done' && (
+                                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                                        <Check size={14} className="text-emerald-400 shrink-0" />
+                                        <span className="text-emerald-300">{t('youtube.scheduler.stageDone')}</span>
+                                        {ytDirect.url && (
+                                            <a href={ytDirect.url} target="_blank" rel="noreferrer" className="text-emerald-400 underline hover:text-emerald-300">
+                                                {t('youtube.scheduler.openInStudio')}
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                                {ytDirect.stage === 'error' && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-xs text-red-300">
+                                            <AlertCircle size={14} className="shrink-0" />
+                                            <span>{ytDirect.error}</span>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            {ytDirect.errorCode === 'reconnect' && (
+                                                <Link to="/settings?tab=integrations" className="text-xs text-orange-400 underline hover:text-orange-300">
+                                                    {t('youtube.scheduler.reconnectCta')}
+                                                </Link>
+                                            )}
+                                            {ytDirect.resumeSessionId && (
+                                                <button onClick={handleYtResumeDirect} className="text-xs text-emerald-400 underline hover:text-emerald-300">
+                                                    {t('youtube.scheduler.resume')}
+                                                </button>
+                                            )}
+                                            <button onClick={() => setYtDirect(null)} className="text-xs text-gray-500 hover:text-gray-300">
+                                                {t('youtube.scheduler.cancelUpload')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                {(ytDirect.stage === 'paused' || ytDirect.stage === 'resumable') && (
+                                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                                        <AlertCircle size={14} className="text-amber-400 shrink-0" />
+                                        <span className="text-amber-300">
+                                            {ytDirect.stage === 'resumable' ? t('youtube.scheduler.resumeFound') : t('youtube.scheduler.resumeHint')}
+                                        </span>
+                                        <button
+                                            onClick={handleYtResumeDirect}
+                                            className="px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 font-medium transition"
+                                        >
+                                            {t('youtube.scheduler.resume')}
+                                        </button>
+                                        <button onClick={() => setYtDirect(null)} className="text-xs text-gray-500 hover:text-gray-300">
+                                            {t('youtube.scheduler.cancelUpload')}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <button
                             onClick={handleYtUpload}
-                            disabled={ytUploading || !ytFile || !ytTitle.trim()}
+                            disabled={ytUploading || !ytFile || !ytTitle.trim() || ['preparing', 'uploading', 'processing'].includes(ytDirect?.stage)}
                             className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-lg shadow-red-500/20 transition flex items-center justify-center gap-2"
                         >
                             {ytUploading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
