@@ -4,6 +4,9 @@ import User from '../models/User.js'
 import fs from 'fs'
 import path from 'path'
 
+// [HOTFIX] re-export runMediaCleanup so autoPublisher.js can import it from this module.
+export { runMediaCleanup } from './mediaCleanup.js'
+
 // [19.17.7-SCHEDULER-UX] clean up scheduled posts/files by TTL and archive to PublishLog before deletion.
 
 export async function deletePostFiles(post) {
