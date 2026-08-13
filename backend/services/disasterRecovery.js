@@ -101,10 +101,11 @@ export async function listBackups() {
     const entries = await fs.readdir(BACKUP_DIR)
     const stats = await Promise.all(entries.map(async name => {
         const full = path.join(BACKUP_DIR, name)
-        const stat = await fs.stat(full)
-        return { name, path: full, createdAt: stat.mtime }
+        const stat = await fs.stat(full).catch(() => null)
+        if (!stat || typeof stat.isDirectory !== 'function') return null
+        return { name, path: full, createdAt: stat.mtime, stat }
     }))
-    return stats.filter(s => s.stat.isDirectory()).sort((a, b) => b.createdAt - a.createdAt)
+    return stats.filter(Boolean).filter(s => s.stat.isDirectory()).sort((a, b) => b.createdAt - a.createdAt)
 }
 
 export async function getBackupStatus() {
