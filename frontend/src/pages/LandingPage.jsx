@@ -556,7 +556,7 @@ function LandingPage() {
                         <div>
                             <h4 className="font-semibold mb-4 text-[var(--text)]">Компания</h4>
                             <ul className="space-y-3 text-sm text-[var(--text-muted)]">
-                                <li><Link to="/privacy-policy" className="hover:text-[var(--primary)] transition-colors">Privacy</Link></li>
+                                <li><Link to="/privacy" className="hover:text-[var(--primary)] transition-colors">Privacy</Link></li>
                                 <li><Link to="/terms-of-service" className="hover:text-[var(--primary)] transition-colors">Terms</Link></li>
                                 <li><Link to="/consent" className="hover:text-[var(--primary)] transition-colors">Consent</Link></li>
                                 <li><a href="https://t.me/aiviral_omega_bot" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--primary)] transition-colors">Контакты</a></li>
@@ -579,7 +579,7 @@ function LandingPage() {
                             © 2026 AI Viral Studio. Все права защищены.
                         </div>
                         <div className="flex gap-6 text-sm text-[var(--text-muted)]">
-                            <Link to="/privacy-policy" className="hover:text-[var(--primary)] transition-colors">Политика конфиденциальности</Link>
+                            <Link to="/privacy" className="hover:text-[var(--primary)] transition-colors">Политика конфиденциальности</Link>
                             <Link to="/terms-of-service" className="hover:text-[var(--primary)] transition-colors">Условия использования</Link>
                         </div>
                     </div>

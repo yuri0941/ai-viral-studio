@@ -144,6 +144,11 @@ export default function PrivacyPage() {
             <p>HTTPS, bcrypt для паролей, JWT-токены. Доступ к базе ограничен.</p>
           </Section>
 
+          <Section icon={<Server size={18} />} title="9.1. Google API Services Limited Use">
+            <p><strong>RU:</strong> При подключении YouTube мы получаем доступ к вашему каналу (OAuth). Мы используем данные только для выполнения ваших явных команд: загрузка видео, удаление видео, чтение списка видео. Токены хранятся в зашифрованном виде (AES-256). Мы не передаём данные Google третьим лицам, не продаём их и не используем для рекламы. Отозвать доступ можно в любой момент кнопкой «Отключить YouTube» в настройках.</p>
+            <p><strong>EN:</strong> When you connect YouTube, we access your channel via OAuth. We use Google data only to execute your explicit commands: uploading videos, deleting videos, and reading your video list. Tokens are stored encrypted (AES-256). We do not share, sell, or use Google user data for advertising. You can revoke access at any time with the "Disconnect YouTube" button in Settings.</p>
+          </Section>
+
           <Section icon={<MessageCircle size={18} />} title="10. Изменения">
             <p>Обновления Политики — уведомление по email при существенных изменениях.</p>
             <p>По вопросам: {emailLink(contactEmail)}</p>
