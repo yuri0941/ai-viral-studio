@@ -28,6 +28,11 @@ import { generateNicheReport, getPricing } from '../services/dataIntelligenceSer
 import { getOwnerSettings, updateOwnerSettings } from '../controllers/ownerSettingsController.js'
 import { ApiKey } from '../models/index.js'
 import { invalidateApiKeysCache } from '../services/aiService.js'
+import PlanConfig from '../models/PlanConfig.js'
+import PriceChangeLog from '../models/PriceChangeLog.js'
+import AdPricing from '../models/AdPricing.js'
+import { analyzePricing, marginAfter } from '../services/pricingAnalysis.js'
+import { invalidatePlanCache } from '../middleware/enforceQuota.js'
 
 const router = express.Router()
 
@@ -142,6 +147,85 @@ router.patch('/api-keys/:provider', protect, authorize('owner', 'admin'), async 
         invalidateApiKeysCache?.()
         res.json({ success: true })
     } catch (err) { res.status(500).json({ success: false, message: err.message }) }
+})
+
+// [25-TARIFF-GATES] Pricing management
+router.get('/pricing', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const plans = await PlanConfig.getAll()
+        const adPricing = await AdPricing.findOne().lean() || { cpm: 0, cpc: 0, cpa: 0, fixedMonth: 0 }
+        res.json({ success: true, data: { plans, adPricing } })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.get('/pricing/analysis', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { what } = req.query
+        if (!what) return res.status(400).json({ success: false, error: 'what_required' })
+        const analysis = await analyzePricing(what)
+        res.json({ success: true, data: analysis })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.post('/pricing/change', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { what, newPrice, reason = '' } = req.body || {}
+        if (!what || typeof newPrice !== 'number') {
+            return res.status(400).json({ success: false, error: 'what_and_newPrice_required' })
+        }
+
+        const analysis = await marginAfter(what, newPrice)
+        const [type, target, field] = what.split('.')
+        let oldPrice = 0
+
+        if (type === 'tariff') {
+            const plan = await PlanConfig.findOne({ plan: target })
+            oldPrice = plan?.price || 0
+            if (!plan) return res.status(404).json({ success: false, error: 'plan_not_found' })
+            plan.price = newPrice
+            await plan.save()
+        } else if (type === 'ad' && target === 'channel') {
+            const pricing = await AdPricing.findOne()
+            oldPrice = pricing?.[field] || 0
+            if (!pricing) {
+                await AdPricing.create({ ownerId: req.user.id, [field]: newPrice })
+            } else {
+                pricing[field] = newPrice
+                await pricing.save()
+            }
+        } else {
+            return res.status(400).json({ success: false, error: 'unsupported_what' })
+        }
+
+        invalidatePlanCache()
+
+        await PriceChangeLog.create({
+            what,
+            oldPrice,
+            newPrice,
+            source: 'cabinet',
+            analysisSnapshot: analysis,
+            reason,
+            changedBy: req.user.id,
+        })
+
+        res.json({ success: true, data: { what, oldPrice, newPrice, analysis } })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.get('/pricing/history', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const history = await PriceChangeLog.find().sort({ createdAt: -1 }).limit(50).lean()
+        res.json({ success: true, data: history })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
 })
 
 // AI Provider health check (used by OMEGA Core tab)

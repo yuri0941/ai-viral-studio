@@ -36,6 +36,16 @@ export async function sendDailyReport() {
   const usersToday = await User.countDocuments({ createdAt: { $gte: new Date(Date.now() - 24*60*60*1000) } });
   const ticketsOpen = await Ticket.countDocuments({ status: 'open' });
 
+  // [19.17.8-NOTIFY-RESILIENCE] YouTube daily stats line
+  let youtubeSection = '';
+  try {
+    const { getYoutubeDailyStats } = await import('./youtubeService.js');
+    const yt = await getYoutubeDailyStats();
+    youtubeSection = `\n📺 YouTube: опубликовано ${yt.published}, ошибок ${yt.errors}, квота ${yt.quotaPercent}%`;
+  } catch (e) {
+    console.warn('[dailyReport] youtube stats failed:', e.message);
+  }
+
   // [v9.9.19.2-v4-CHANNEL-AUTO] секция канала: подписчики (рост/падение), модерация, голосования
   let channelSection = '';
   try {
@@ -57,7 +67,7 @@ export async function sendDailyReport() {
 
 👤 Новых клиентов за 24ч: ${usersToday}
 💬 Feedback: ${stats.thumbsUp} 👍 / ${stats.thumbsDown} 👎 (удовлетворённость: ${stats.satisfaction}%)
-🎫 Открытых тикетов: ${ticketsOpen}${channelSection}${keySection}
+🎫 Открытых тикетов: ${ticketsOpen}${channelSection}${youtubeSection}${keySection}
 🤖 Статус: 🟢 Активна
 ⏰ ${new Date().toLocaleString('ru-RU')}`;
 

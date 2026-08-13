@@ -197,6 +197,14 @@ export const ownerApi = {
         method: 'PUT',
         body: JSON.stringify(data),
     }),
+    // [25-TARIFF-GATES] pricing management
+    pricing: () => request('/owner/pricing'),
+    pricingAnalysis: (what) => request(`/owner/pricing/analysis?what=${encodeURIComponent(what)}`),
+    changePrice: (data) => request('/owner/pricing/change', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+    pricingHistory: () => request('/owner/pricing/history'),
 
     create: (entity, data) => request(`/owner/${entity}`, {
         method: 'POST',

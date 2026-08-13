@@ -263,6 +263,36 @@
     "label": "Часовой пояс",
     "detect": "Определить автоматически"
   },
+  "pricing": {
+    "title": "Цены и тарифы",
+    "analyze": "Анализ",
+    "adPricing": "Цены рекламы",
+    "analysisFor": "Анализ для",
+    "currentPrice": "Текущая цена",
+    "cost": "Себестоимость",
+    "margin": "Маржа",
+    "sales30d": "Продаж за 30 дней",
+    "recommended": "Рекомендуемый коридор",
+    "optimal": "оптимально",
+    "newPrice": "Новая цена",
+    "apply": "Применить",
+    "history": "История изменений",
+    "noHistory": "Изменений пока нет",
+    "generationsPerDay": "Генераций/день",
+    "youtubeUploads": "YouTube загрузок/день",
+    "mediaQueue": "Очередь медиа"
+  },
+  "upsell": {
+    "title": "Лимит исчерпан",
+    "limitReached": "Вы достигли лимита: {{reason}} ({{usage}} из {{limit}}).",
+    "moreFeatures": "больше возможностей",
+    "month": "мес",
+    "upgrade": "Перейти на тариф"
+  },
+  "quota": {
+    "generationsToday": "Генерации сегодня",
+    "almostExhausted": "Почти исчерпано — осталось мало генераций"
+  },
   "settings": {
     "title": "Настройки",
     "subtitle": "Управление профилем, подпиской и интерфейсом",
@@ -1895,6 +1925,8 @@
       "quotaRetryAfter": "Квота YouTube на сегодня исчерпана — повторите после 10:00 МСК",
       "reconnectNeeded": "Токен YouTube устарел — нужно переподключить канал",
       "reconnectCta": "Переподключить канал",
+      "tokenExpiredTitle": "YouTube-канал нужно переподключить",
+      "tokenExpiredDesc": "Токен доступа устарел или был отозван. Нажмите «Переподключить», чтобы восстановить публикации.",
       "openInStudio": "Открыть в YouTube Studio",
       "processingFailed": "YouTube не смог обработать видео",
       "cancelUpload": "Отмена",

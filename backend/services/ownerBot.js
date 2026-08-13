@@ -19,6 +19,10 @@ import { recordOutcome } from '../ai/omega/learningEngine.js'
 import { ROLE_INSTRUCTIONS } from '../ai/omega/contextEngine.js'
 import { submitOwnerCommand, getCommandsLog } from './commandExecutor.js'
 import { wrapBotHtmlSending } from '../utils/telegramHtml.js'
+import PlanConfig from '../models/PlanConfig.js'
+import AdPricing from '../models/AdPricing.js'
+import PriceChangeLog from '../models/PriceChangeLog.js'
+import { analyzePricing, marginAfter } from './pricingAnalysis.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -720,6 +724,93 @@ export const initOwnerBot = () => {
     }
   });
 
+  // [25-TARIFF-GATES] price-change veto state per owner chat
+  const pendingPriceChanges = global.pendingPriceChanges || new Map()
+  global.pendingPriceChanges = pendingPriceChanges
+
+  function formatPricingAnalysis(what, analysis) {
+    const nameMap = {
+      'tariff.free': 'Free', 'tariff.pro': 'Pro', 'tariff.agency': 'Agency',
+      'ad.channel.cpm': 'CPM рекламы в канале', 'ad.channel.cpc': 'CPC рекламы в канале', 'ad.channel.cpa': 'CPA рекламы в канале',
+      'ad.app.banner': 'Баннер в приложении',
+    }
+    const name = nameMap[what] || what
+    let text = `📊 <b>Анализ цены: ${name}</b>\n━━━━━━━━━━━━━━\n`
+    text += `Текущая цена: <b>${analysis.currentPrice}₽</b>\n`
+    text += `Себестоимость: ${analysis.totalCost}₽ (AI ~${analysis.costPerUnit}₽ + комиссия ${analysis.commissionYookassa}₽ + налог ${analysis.taxNpd}₽)\n`
+    text += `Маржа сейчас: <b>${analysis.marginNow}%</b>\n`
+    text += `Продаж за 30 дней: ${analysis.sales30d}\n`
+    text += `Конверсия Free→Paid: ${analysis.conversionFreeToPaid}%\n`
+    if (analysis.competitorHint) text += `💡 Конкуренты: ${analysis.competitorHint}\n`
+    text += `\nРекомендуемый коридор: ${analysis.recommendation.min}–${analysis.recommendation.max}₽\n`
+    text += `Оптимально: <b>${analysis.recommendation.optimal}₽</b>`
+    return text
+  }
+
+  async function handlePricingCommand(chatId, text) {
+    const lower = text.toLowerCase()
+
+    // "проанализируй цены" / "проанализируй цену pro"
+    if (/проанализируй|анализ цен|анализ цены/.test(lower)) {
+      const targets = ['tariff.pro', 'tariff.agency', 'ad.channel.cpm']
+      for (const what of targets) {
+        try {
+          const analysis = await analyzePricing(what)
+          safeSendMessage(chatId, formatPricingAnalysis(what, analysis), { parse_mode: 'HTML' })
+        } catch (e) {
+          safeSendMessage(chatId, `⚠️ Не удалось проанализировать ${what}: ${e.message}`)
+        }
+      }
+      return true
+    }
+
+    // "подними pro до 1290" / "подними cpm до 300" / "цена pro 1290"
+    const priceMatch = lower.match(/(?:подними|повысь|установи|поставь|сделай)?\s*(?:цену\s+)?(?:на\s+)?(pro|agency|cpm|cpc|cpa|баннер|banner)\s+(?:до\s+)?(\d+)/i)
+    if (priceMatch) {
+      const targetWord = priceMatch[1].toLowerCase()
+      const newPrice = Number(priceMatch[2])
+      let what = null
+      if (targetWord === 'pro') what = 'tariff.pro'
+      else if (targetWord === 'agency') what = 'tariff.agency'
+      else if (targetWord === 'cpm') what = 'ad.channel.cpm'
+      else if (targetWord === 'cpc') what = 'ad.channel.cpc'
+      else if (targetWord === 'cpa') what = 'ad.channel.cpa'
+      else if (targetWord === 'banner' || targetWord === 'баннер') what = 'ad.app.banner'
+      if (!what) return false
+
+      try {
+        const analysis = await marginAfter(what, newPrice)
+        const analysisText = formatPricingAnalysis(what, analysis)
+        const text = `${analysisText}\n\nПосле изменения на <b>${newPrice}₽</b>: маржа <b>${analysis.marginAfter}%</b>`
+        pendingPriceChanges.set(chatId, { what, newPrice, analysis })
+        safeSendMessage(chatId, text, {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: `✅ Применить ${newPrice}₽`, callback_data: `price:apply:${what}:${newPrice}` }],
+              [{ text: '✏️ Ввести свою сумму', callback_data: `price:custom:${what}` }],
+              [{ text: '❌ Отмена', callback_data: 'price:cancel' }],
+            ],
+          },
+        })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка анализа: ${e.message}`)
+      }
+      return true
+    }
+
+    // "цена рекламы в канале" / "сколько стоит cpm"
+    if (/цена рекламы|сколько стоит|цена cpm|цена cpc|цена cpa/.test(lower)) {
+      const pricing = await AdPricing.findOne().lean() || { cpm: 0, cpc: 0, cpa: 0 }
+      let text = '💰 <b>Текущие цены рекламы</b>\n━━━━━━━━━━━━━━\n'
+      text += `CPM: ${pricing.cpm}₽\nCPC: ${pricing.cpc}₽\nCPA: ${pricing.cpa}₽\nФикс/мес: ${pricing.fixedMonth || 0}₽`
+      safeSendMessage(chatId, text, { parse_mode: 'HTML' })
+      return true
+    }
+
+    return false
+  }
+
   // OWNER MODE — smart reply
   bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
@@ -765,6 +856,38 @@ export const initOwnerBot = () => {
       return;
     }
 
+    // [25-TARIFF-GATES] custom price input after "Ввести свою сумму"
+    const pendingCustom = global.pendingPriceChanges?.get(chatId)
+    if (pendingCustom?.custom) {
+      const newPrice = Number(text.trim())
+      if (Number.isNaN(newPrice) || newPrice < 0) {
+        safeSendMessage(chatId, '⚠️ Введи корректную сумму числом.')
+        return
+      }
+      try {
+        const analysis = await marginAfter(pendingCustom.what, newPrice)
+        const analysisText = formatPricingAnalysis(pendingCustom.what, analysis)
+        const textOut = `${analysisText}\n\nПосле изменения на <b>${newPrice}₽</b>: маржа <b>${analysis.marginAfter}%</b>`
+        global.pendingPriceChanges.set(chatId, { what: pendingCustom.what, newPrice, analysis })
+        safeSendMessage(chatId, textOut, {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: `✅ Применить ${newPrice}₽`, callback_data: `price:apply:${pendingCustom.what}:${newPrice}` }],
+              [{ text: '❌ Отмена', callback_data: 'price:cancel' }],
+            ],
+          },
+        })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка анализа: ${e.message}`)
+      }
+      return
+    }
+
+    // [25-TARIFF-GATES] price management commands (owner-only, before AI queue)
+    const handled = await handlePricingCommand(chatId, text).catch(() => false)
+    if (handled) return
+
     // [v9.9.19.6] ЛЮБОЕ сообщение владельца → очередь команд: мгновенный акцепт → выполнение → отчёт с verification.
     // В CHAT без попытки выполнения — никогда (универсальный исполнитель разбирает любой запрос).
     try {
@@ -791,6 +914,60 @@ export const initOwnerBot = () => {
 
     // [v9.9.19.3] сразу гасим спиннер кнопки в Telegram-клиенте
     bot.answerCallbackQuery(q.id).catch(() => {});
+
+    // [25-TARIFF-GATES] price change confirmations
+    if (data.startsWith('price:apply:')) {
+      const parts = data.split(':')
+      const what = parts[2]
+      const newPrice = Number(parts[3])
+      const pending = global.pendingPriceChanges?.get(chatId)
+      if (!pending || pending.what !== what || pending.newPrice !== newPrice) {
+        safeSendMessage(chatId, '⚠️ Запрос устарел. Начни заново.')
+        return
+      }
+
+      try {
+        const [type, target, field] = what.split('.')
+        let oldPrice = 0
+        if (type === 'tariff') {
+          const plan = await PlanConfig.findOne({ plan: target })
+          oldPrice = plan?.price || 0
+          if (plan) { plan.price = newPrice; await plan.save() }
+        } else if (type === 'ad' && target === 'channel') {
+          const pricing = await AdPricing.findOne()
+          oldPrice = pricing?.[field] || 0
+          if (pricing) { pricing[field] = newPrice; await pricing.save() }
+          else { await AdPricing.create({ ownerId: await getOwnerMongoId(), [field]: newPrice }) }
+        }
+
+        await PriceChangeLog.create({
+          what,
+          oldPrice,
+          newPrice,
+          source: 'telegram',
+          analysisSnapshot: pending.analysis,
+          changedBy: await getOwnerMongoId(),
+        })
+        global.pendingPriceChanges.delete(chatId)
+        safeSendMessage(chatId, `✅ Цена обновлена: ${what} = ${newPrice}₽`)
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка применения цены: ${e.message}`)
+      }
+      return
+    }
+
+    if (data.startsWith('price:custom:')) {
+      const what = data.split(':')[2]
+      safeSendMessage(chatId, `Введи новую цену для ${what} одним числом (например, 1290):`)
+      global.pendingPriceChanges.set(chatId, { what, custom: true })
+      return
+    }
+
+    if (data === 'price:cancel') {
+      global.pendingPriceChanges?.delete(chatId)
+      safeSendMessage(chatId, '❌ Изменение цены отменено.')
+      return
+    }
 
     // [v9.9.5-TELEGRAM-UNIFIED] owner luxury panel callbacks
     if (data === 'owner:tickets') {

@@ -1,7 +1,7 @@
 import { createPayment, checkPayment, handleWebhook, createInvoicePayment } from '../services/yookassaService.js';
 import { Subscription, Invoice, User } from '../models/index.js';
 import { sendPaymentSuccessEmail } from '../services/emailService.js';
-import { PLANS } from '../config/plans.js';
+import PlanConfig from '../models/PlanConfig.js';
 
 // [v9.9.19.14] return_url — строго HTTPS, собирается из FRONTEND_URL + '/payment/success'
 const RETURN_URL = (process.env.FRONTEND_URL || 'https://aiviral-studio.ru').replace(/\/$/, '');
@@ -23,9 +23,9 @@ export const createSubscriptionPayment = async (req, res) => {
     const planId = plan || 'creator';
     const isYearly = interval === 'year';
 
-    // [MONETIZE-2026-08-04] updated: use unified plans config
-    const planConfig = PLANS[planId] || PLANS.creator;
-    const basePrice = currency?.toUpperCase() === 'USD' ? planConfig.priceUSD : planConfig.priceRUB;
+    // [25-TARIFF-GATES] price is read from PlanConfig (DB) — hot-editable by owner
+    const planConfig = await PlanConfig.getPlan(planId);
+    const basePrice = planConfig.price;
     let amount = basePrice;
     if (isYearly) {
       amount = Math.round(basePrice * 12 * 0.8); // -20% discount

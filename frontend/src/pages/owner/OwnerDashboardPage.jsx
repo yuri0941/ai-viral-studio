@@ -11,6 +11,7 @@ import { CabinetsTab } from './components/tabs/CabinetsTab'
 import { FinanceTab } from './components/tabs/FinanceTab'
 import { SubscriptionsTab } from './components/tabs/SubscriptionsTab'
 import { AdvertisingTab } from './components/tabs/AdvertisingTab'
+import { PricingTab } from './components/tabs/PricingTab' // [25-TARIFF-GATES]
 import { SecurityTab } from './components/tabs/SecurityTab'
 import { AgentsTab } from './components/tabs/AgentsTab'
 import { ChatTab } from './components/tabs/ChatTab'
@@ -390,6 +391,7 @@ export default function OwnerDashboardPage() {
             case 'news': return <NewsTab data={ownerData} />
             case 'referrals': return <ReferralsTab data={ownerData} />
             case 'advertising': return <AdvertisingTab data={ownerData} />
+            case 'pricing': return <PricingTab /> // [25-TARIFF-GATES]
             case 'security': return <SecurityTab data={ownerData} />
             case 'integrations': return <IntegrationsTab data={ownerData} />
             case 'aiAnalytics': return <AIAnalyticsTab data={ownerData} />

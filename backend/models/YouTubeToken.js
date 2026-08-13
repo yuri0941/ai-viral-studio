@@ -41,6 +41,10 @@ const youtubeTokenSchema = new mongoose.Schema(
     channelTitle: { type: String, default: '' },
     expiresAt: Date,
     connectedAt: { type: Date, default: Date.now },
+    // [19.17.8-NOTIFY-RESILIENCE] token health tracking
+    status: { type: String, enum: ['active', 'expired', 'revoked'], default: 'active' },
+    lastCheckedAt: Date,
+    statusReason: { type: String, default: '' },
   },
   { timestamps: true }
 )
@@ -55,6 +59,9 @@ youtubeTokenSchema.statics.setTokens = async function (userId, data = {}) {
     channelTitle: data.channelTitle || '',
     expiresAt: data.expiresAt || null,
     connectedAt: data.connectedAt || new Date(),
+    // [19.17.8-NOTIFY-RESILIENCE] fresh OAuth round always restores health
+    status: 'active',
+    statusReason: '',
   }
   return this.findOneAndUpdate({ userId }, { $set: update }, { upsert: true, new: true, setDefaultsOnInsert: true })
 }
@@ -71,7 +78,18 @@ youtubeTokenSchema.statics.getTokens = async function (userId) {
     channelTitle: doc.channelTitle || '',
     connectedAt: doc.connectedAt || null,
     expiresAt: doc.expiresAt || null,
+    status: doc.status || 'active',
+    statusReason: doc.statusReason || '',
+    lastCheckedAt: doc.lastCheckedAt || null,
   }
+}
+
+youtubeTokenSchema.statics.markStatus = async function (userId, status, reason = '') {
+  return this.findOneAndUpdate(
+    { userId },
+    { $set: { status, statusReason: reason, lastCheckedAt: new Date() } },
+    { new: true }
+  )
 }
 
 youtubeTokenSchema.statics.deleteForUser = async function (userId) {

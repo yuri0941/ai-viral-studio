@@ -18,6 +18,7 @@ import VisualCalendar from '../components/scheduler/VisualCalendar';
 import BestTimePicker from '../components/scheduler/BestTimePicker';
 import PostPreview from '../components/scheduler/PostPreview';
 import ABTestModal from '../components/scheduler/ABTestModal';
+import YouTubeReconnectBanner from '../components/YouTubeReconnectBanner.jsx'; // [19.17.8-NOTIFY-RESILIENCE] token health banner
 import { EmptyState } from '../components/common/EmptyState.jsx';
 import PredictionCard from '../components/omega/PredictionCard.jsx';
 import { OneClickPublish } from '../components/scheduler/OneClickPublish';
@@ -1285,6 +1286,9 @@ function SchedulerPage() {
                     </div>
                 </div>
             </div>
+
+            {/* [19.17.8-NOTIFY-RESILIENCE] YouTube token health banner */}
+            <YouTubeReconnectBanner />
 
             {totalPosts === 0 && (
                 <div className="mb-6">

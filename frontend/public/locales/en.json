@@ -11,6 +11,36 @@
     "enabled": "Enabled",
     "disabled": "Disabled"
   },
+  "pricing": {
+    "title": "Pricing & Plans",
+    "analyze": "Analyze",
+    "adPricing": "Ad Pricing",
+    "analysisFor": "Analysis for",
+    "currentPrice": "Current price",
+    "cost": "Cost",
+    "margin": "Margin",
+    "sales30d": "Sales (30d)",
+    "recommended": "Recommended range",
+    "optimal": "optimal",
+    "newPrice": "New price",
+    "apply": "Apply",
+    "history": "Change history",
+    "noHistory": "No changes yet",
+    "generationsPerDay": "Generations/day",
+    "youtubeUploads": "YouTube uploads/day",
+    "mediaQueue": "Media queue"
+  },
+  "upsell": {
+    "title": "Limit reached",
+    "limitReached": "You have reached the limit: {{reason}} ({{usage}} of {{limit}}).",
+    "moreFeatures": "more features",
+    "month": "mo",
+    "upgrade": "Upgrade plan"
+  },
+  "quota": {
+    "generationsToday": "Generations today",
+    "almostExhausted": "Almost exhausted — few generations left"
+  },
   "settings": {
     "title": "Settings",
     "subtitle": "Manage your profile, subscription and integrations",
@@ -797,6 +827,8 @@
     "disconnectFailed": "Failed to disconnect YouTube",
     "newPlace": "New place",
     "shortDesc": "Videos, Shorts",
+    "tokenExpiredTitle": "YouTube channel needs reconnect",
+    "tokenExpiredDesc": "The access token has expired or was revoked. Click «Reconnect» to restore publishing.",
     "scheduler": {
       "title": "YouTube",
       "subtitle": "Upload videos to your channel",
