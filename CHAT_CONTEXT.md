@@ -51,6 +51,15 @@
 - Тестовые аккаунты готовы к ручному тестированию 5 ролей
 - Следующий шаг: v9.9.17 — hotfix по feedback первых клиентов
 
+### 25 — Tariff Gates + Price Management
+- Тарифная матрица в БД (PlanConfig), горячее редактирование без деплоя
+- enforceQuota: 402 с upsell, безлимит для owner/admin/staff
+- Управление ценами: кабинет (PricingTab) + Telegram ownerBot (2-шаговое вето)
+- PriceChangeLog: история изменений с анализом
+- Цена фиксируется при создании платежа, действующие подписчики grandfathered
+- i18n: pricing/upsell/quota ключи
+- Следующий этап: ручная проверка владельца, затем production deploy
+
 ### 19.17.8 — Notify Resilience (YouTube-upload эпик, этап 2/3)
 - Живучесть токена: status active/expired/revoked, ежедневный cron 06:00 MSK
 - Уведомления клиенту в Telegram: успех со ссылкой, ошибка с причиной и кнопкой действия

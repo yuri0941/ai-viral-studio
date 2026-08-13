@@ -1,3 +1,18 @@
+## 2026-08-13 — 25-TARIFF-GATES + PRICE-MANAGEMENT
+- [BACKEND] PlanConfig: тарифная матрица в БД (free/pro/agency), seed без деплоя
+- [BACKEND] PriceChangeLog: аудит изменений цен
+- [BACKEND] pricingAnalysis: себестоимость, маржа, рекомендации, продажи за 30 дней
+- [BACKEND] enforceQuota middleware: 402 с upsell, owner/admin/staff unlimited
+- [BACKEND] owner routes: GET /pricing, /pricing/analysis, /pricing/history, POST /pricing/change
+- [BACKEND] paymentService + yookassaController: цена из PlanConfig, фиксация при создании платежа
+- [BACKEND] ownerBot: команды «проанализируй цены», «подними Pro до X» с кнопками вето
+- [FRONTEND] PricingTab в Owner Dashboard (тарифы + реклама + история)
+- [FRONTEND] UpsellModal, UsageQuotaWidget
+- [i18n] pricing/upsell/quota ключи в ru/en (src + public)
+- [CHECKS] node --check OK, npm run build OK, git diff --stat 18 files +1031/-8
+- [GIT] Commit+push: fix/tariff-gates — PR #9
+- [NEXT] Ручная проверка: смена цены из кабинета/TG, upsell при исчерпании квоты
+
 ## 2026-08-13 — 19.17.8-NOTIFY-RESILIENCE (этап 2 из 3)
 - [BACKEND] YouTubeToken: status active/expired/revoked, lastCheckedAt, statusReason
 - [BACKEND] checkTokenAlive + cron ежедневно 06:00 MSK, напоминание за 1 час до публикации
