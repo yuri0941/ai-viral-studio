@@ -237,13 +237,18 @@ export default function ApiKeysTab() {
     setLoading(prev => ({ ...prev, youtubeConnect: true }));
     try {
       const data = await request('/youtube/auth-url');
-      if (data?.success && data.authUrl) {
-        window.open(data.authUrl, '_blank');
+      if (data?.success && (data.url || data.authUrl)) {
+        window.open(data.url || data.authUrl, '_blank');
       } else {
         toast.error(data?.error || (t('apiKeys.youtubeAuthUrlFailed') || '❌ Не удалось получить URL авторизации YouTube'));
       }
     } catch (e) {
-      toast.error((t('apiKeys.youtubeAuthUrlFailed') || '❌ Не удалось получить URL авторизации YouTube') + ': ' + e.message);
+      // [v9.9.19.17.2] 401 from /youtube/* must NOT log out — show a dedicated toast and stay in the cabinet
+      if (e.status === 401 || /401|Unauthorized|TOKEN_EXPIRED/i.test(e.message || '')) {
+        toast.error('Ошибка авторизации YouTube');
+      } else {
+        toast.error((t('apiKeys.youtubeAuthUrlFailed') || '❌ Не удалось получить URL авторизации YouTube') + ': ' + e.message);
+      }
     } finally {
       setLoading(prev => ({ ...prev, youtubeConnect: false }));
     }
@@ -262,7 +267,12 @@ export default function ApiKeysTab() {
         toast.error((t('apiKeys.youtubeSpikeFail') || '❌ Spike-тест не прошёл: {{message}}').replace('{{message}}', msg));
       }
     } catch (e) {
-      toast.error((t('apiKeys.youtubeSpikeFail') || '❌ Spike-тест не прошёл: {{message}}').replace('{{message}}', e.message));
+      // [v9.9.19.17.2] 401 from /youtube/* must NOT log out — show a dedicated toast and stay in the cabinet
+      if (e.status === 401 || /401|Unauthorized|TOKEN_EXPIRED/i.test(e.message || '')) {
+        toast.error('Ошибка авторизации YouTube');
+      } else {
+        toast.error((t('apiKeys.youtubeSpikeFail') || '❌ Spike-тест не прошёл: {{message}}').replace('{{message}}', e.message));
+      }
     } finally {
       setLoading(prev => ({ ...prev, youtubeSpike: false }));
     }

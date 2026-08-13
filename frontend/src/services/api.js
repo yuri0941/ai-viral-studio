@@ -116,7 +116,9 @@ async function request(path, options = {}) {
         error.hint = err.hint || null
         error.missing = err.missing || null
         // [v6.6-PART2] added: redirect to login on 401 to stop infinite loops
-        if (res.status === 401 || /401|Unauthorized|TOKEN_EXPIRED/i.test(message)) {
+        // [v9.9.19.17.2] 401 from /youtube/* must NOT log the owner out — the dashboard stays open
+        const isYoutubeEndpoint = path.startsWith('/youtube')
+        if (!isYoutubeEndpoint && (res.status === 401 || /401|Unauthorized|TOKEN_EXPIRED/i.test(message))) {
             console.warn('[API] 401 Unauthorized — redirecting to login')
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('token')

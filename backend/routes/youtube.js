@@ -110,11 +110,11 @@ router.get('/callback', async (req, res) => {
   }
 })
 
-// All routes below require authentication
-router.use(protect)
+// [v9.9.19.17.2] auth aligned with /api/api-keys: same protect + requireOwner stack
+const ownerOnly = [protect, requireRole('owner')]
 
-// Legacy YouTube Data API routes (unchanged)
-router.get('/search', async (req, res) => {
+// Legacy YouTube Data API routes (owner-only)
+router.get('/search', ...ownerOnly, async (req, res) => {
   try {
     const { q, maxResults } = req.query
     if (!q) {
@@ -128,7 +128,7 @@ router.get('/search', async (req, res) => {
   }
 })
 
-router.get('/stats/:videoId', async (req, res) => {
+router.get('/stats/:videoId', ...ownerOnly, async (req, res) => {
   try {
     const { getVideoStats } = await import('../services/youtubeService.js')
     const result = await getVideoStats(req.params.videoId)
@@ -138,7 +138,7 @@ router.get('/stats/:videoId', async (req, res) => {
   }
 })
 
-router.get('/trending', async (req, res) => {
+router.get('/trending', ...ownerOnly, async (req, res) => {
   try {
     const { region, category } = req.query
     const { getTrending } = await import('../services/youtubeService.js')
@@ -149,7 +149,7 @@ router.get('/trending', async (req, res) => {
   }
 })
 
-router.get('/analyze', async (req, res) => {
+router.get('/analyze', ...ownerOnly, async (req, res) => {
   try {
     const { q } = req.query
     if (!q) {
@@ -164,7 +164,7 @@ router.get('/analyze', async (req, res) => {
 })
 
 // [v9.9.19.17.1] YouTube OAuth upload spike
-router.get('/auth-url', requireRole('owner'), async (req, res) => {
+router.get('/auth-url', ...ownerOnly, async (req, res) => {
   try {
     const userId = req.user.id
     const clientId = await getProviderKey('youtube_oauth', userId)
@@ -188,14 +188,15 @@ router.get('/auth-url', requireRole('owner'), async (req, res) => {
     }).toString()
 
     log('auth_url', { userId })
-    return res.json({ success: true, authUrl })
+    // [v9.9.19.17.2] return canonical `url` field; keep `authUrl` alias for compatibility
+    return res.json({ success: true, url: authUrl, authUrl })
   } catch (err) {
     log('auth_url_fail', { msg: err.message })
     return res.status(500).json({ success: false, error: 'auth_url_generation_failed' })
   }
 })
 
-router.post('/spike', requireRole('owner'), async (req, res) => {
+router.post('/spike', ...ownerOnly, async (req, res) => {
   const userId = req.user.id
   let tmpFile = null
   let currentStep = 'start'
