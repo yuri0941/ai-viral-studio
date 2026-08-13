@@ -1,4 +1,7 @@
 import express from 'express'
+import multer from 'multer'
+import fs from 'fs'
+import path from 'path'
 import { protect } from '../middleware/auth.js'
 import ScheduledPost from '../models/ScheduledPost.js'
 import User from '../models/User.js'
@@ -8,6 +11,32 @@ import { getConnectedSocials, formatPlatformReasons } from '../utils/connectedSo
 
 const router = express.Router()
 
+// [19.17.5-UPLOAD-SCHEDULER] storage for scheduled YouTube videos
+const YT_SCHEDULED_DIR = path.join(process.cwd(), 'uploads', 'yt')
+fs.mkdirSync(YT_SCHEDULED_DIR, { recursive: true })
+
+const ytScheduledStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, YT_SCHEDULED_DIR),
+    filename: (req, file, cb) => {
+        const userId = req.user?._id || req.user?.id || 'unknown'
+        cb(null, `${userId}-${Date.now()}${path.extname(file.originalname || '')}`)
+    }
+})
+
+const YT_SCHEDULED_VIDEO_MIMES = new Set(['video/mp4', 'video/quicktime', 'video/webm'])
+const ytScheduledUpload = multer({
+    storage: ytScheduledStorage,
+    limits: { fileSize: 256 * 1024 * 1024 }, // 256MB
+    fileFilter: (req, file, cb) => {
+        if (file.fieldname === 'thumbnail') {
+            const ok = ['image/jpeg', 'image/png'].includes((file.mimetype || '').toLowerCase())
+            return cb(ok ? null : new Error('thumbnail_must_be_jpeg_or_png'), ok)
+        }
+        const ok = YT_SCHEDULED_VIDEO_MIMES.has((file.mimetype || '').toLowerCase())
+        cb(ok ? null : new Error('only_mp4_mov_webm_allowed'), ok)
+    }
+})
+
 // [MASTER-v5.0] added: real CRUD for scheduled posts
 router.get('/', protect, async (req, res) => {
     try {
@@ -16,6 +45,54 @@ router.get('/', protect, async (req, res) => {
         res.json({ status: 'success', data: posts })
     } catch (err) {
         console.error('[scheduledPosts:list]', err.message)
+        res.status(500).json({ status: 'error', error: err.message })
+    }
+})
+
+// [19.17.5-UPLOAD-SCHEDULER] schedule a YouTube video upload
+// public запрещён до аудита Google — только private / unlisted
+router.post('/youtube', protect, ytScheduledUpload.fields([
+    { name: 'video', maxCount: 1 },
+    { name: 'thumbnail', maxCount: 1 }
+]), async (req, res) => {
+    const videoFile = req.files?.video?.[0]
+    const thumbnailFile = req.files?.thumbnail?.[0]
+    try {
+        const userId = req.user?._id || req.user?.id
+        if (!videoFile) {
+            return res.status(400).json({ status: 'error', error: 'video_file_required' })
+        }
+        const { title, description = '', tags = '', privacyStatus = 'private', scheduledAt } = req.body || {}
+        if (!['private', 'unlisted'].includes(privacyStatus)) {
+            return res.status(400).json({ status: 'error', error: 'invalid_privacy_status', message: 'Разрешены только private или unlisted' })
+        }
+        if (!scheduledAt) {
+            return res.status(400).json({ status: 'error', error: 'scheduledAt_required' })
+        }
+        const post = await ScheduledPost.create({
+            userId,
+            title: title || 'Без названия',
+            content: description || '',
+            platforms: ['youtube'],
+            types: ['video'],
+            scheduledAt: new Date(scheduledAt),
+            status: 'scheduled',
+            youtubeTitle: title || '',
+            youtubeDescription: description || '',
+            youtubeTags: tags || '',
+            youtubePrivacyStatus: privacyStatus,
+            youtubeVideoPath: videoFile.path,
+            youtubeThumbnailPath: thumbnailFile?.path || '',
+        })
+        res.status(201).json({ status: 'success', data: post })
+    } catch (err) {
+        // не оставляем загруженные файлы при ошибке валидации/БД
+        for (const f of [videoFile, thumbnailFile]) {
+            if (f?.path && fs.existsSync(f.path)) {
+                try { fs.unlinkSync(f.path) } catch {}
+            }
+        }
+        console.error('[scheduledPosts:youtube]', err.message)
         res.status(500).json({ status: 'error', error: err.message })
     }
 })

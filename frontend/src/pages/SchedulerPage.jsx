@@ -10,7 +10,7 @@ import {
     Trash, Play, Maximize2, Wand2, Zap, LayoutTemplate,
     ToggleLeft, ToggleRight, Bot, Loader2, Copy, Clapperboard
 } from 'lucide-react';
-import { omegaApi, scheduledPostsApi } from '../services/api';
+import { omegaApi, scheduledPostsApi, youtubeApi } from '../services/api';
 import { API_BASE_URL } from '../config.js';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -101,6 +101,20 @@ function SchedulerPage() {
     const [videoLoading, setVideoLoading] = useState(false);
     const [videoResult, setVideoResult] = useState(null);
     const [showAIVideoCreator, setShowAIVideoCreator] = useState(false);
+    // [19.17.5-UPLOAD-SCHEDULER] YouTube upload/schedule section state
+    const [ytFile, setYtFile] = useState(null);
+    const [ytThumbnail, setYtThumbnail] = useState(null);
+    const [ytTitle, setYtTitle] = useState('');
+    const [ytDescription, setYtDescription] = useState('');
+    const [ytTags, setYtTags] = useState('');
+    const [ytPrivacy, setYtPrivacy] = useState('private');
+    const [ytScheduledAt, setYtScheduledAt] = useState('');
+    const [ytUploading, setYtUploading] = useState(false);
+    const [ytScheduling, setYtScheduling] = useState(false);
+    const [ytVideos, setYtVideos] = useState([]);
+    const [ytVideosLoading, setYtVideosLoading] = useState(false);
+    const ytFileInputRef = useRef(null);
+    const ytThumbInputRef = useRef(null);
     const VIDEO_STYLES = [
         { id: 'dynamic', label: t('aiVideo.styles.dynamic') },
         { id: 'calm', label: t('aiVideo.styles.calm') },
@@ -633,6 +647,95 @@ function SchedulerPage() {
         if (file) setUploadedFile(file);
     };
 
+    // [19.17.5-UPLOAD-SCHEDULER] YouTube section handlers
+    const loadYtVideos = useCallback(async () => {
+        setYtVideosLoading(true);
+        try {
+            const res = await youtubeApi.videos();
+            const list = res?.data || res?.videos || (Array.isArray(res) ? res : []);
+            setYtVideos(Array.isArray(list) ? list : []);
+        } catch (err) {
+            console.warn('[Scheduler] failed to load YouTube videos:', err);
+            setYtVideos([]);
+        } finally {
+            setYtVideosLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadYtVideos();
+    }, [loadYtVideos]);
+
+    const buildYtFormData = (withSchedule = false) => {
+        const fd = new FormData();
+        fd.append('video', ytFile);
+        fd.append('title', ytTitle);
+        fd.append('description', ytDescription);
+        fd.append('tags', ytTags);
+        fd.append('privacyStatus', ytPrivacy);
+        if (ytThumbnail) fd.append('thumbnail', ytThumbnail);
+        if (withSchedule) fd.append('scheduledAt', new Date(ytScheduledAt).toISOString());
+        return fd;
+    };
+
+    const resetYtForm = () => {
+        setYtFile(null);
+        setYtThumbnail(null);
+        setYtTitle('');
+        setYtDescription('');
+        setYtTags('');
+        setYtPrivacy('private');
+        setYtScheduledAt('');
+        if (ytFileInputRef.current) ytFileInputRef.current.value = '';
+        if (ytThumbInputRef.current) ytThumbInputRef.current.value = '';
+    };
+
+    const handleYtUpload = async () => {
+        if (!ytFile || !ytTitle.trim() || ytUploading) return;
+        setYtUploading(true);
+        try {
+            await youtubeApi.upload(buildYtFormData());
+            toast.success(t('youtube.scheduler.uploadSuccess'));
+            resetYtForm();
+            await loadYtVideos();
+        } catch (err) {
+            console.error('[Scheduler] YouTube upload failed:', err);
+            const quota = err.status === 429 || /quota/i.test(err.message || '');
+            toast.error(quota ? t('youtube.scheduler.quotaExceeded') : (err.message || t('youtube.scheduler.uploadError')));
+        } finally {
+            setYtUploading(false);
+        }
+    };
+
+    const handleYtSchedule = async () => {
+        if (!ytFile || !ytTitle.trim() || !ytScheduledAt || ytScheduling) return;
+        setYtScheduling(true);
+        try {
+            await youtubeApi.schedule(buildYtFormData(true));
+            toast.success(t('youtube.scheduler.scheduleSuccess'));
+            resetYtForm();
+        } catch (err) {
+            console.error('[Scheduler] YouTube schedule failed:', err);
+            toast.error(err.message || t('youtube.scheduler.scheduleError'));
+        } finally {
+            setYtScheduling(false);
+        }
+    };
+
+    const handleYtDelete = async (video) => {
+        const id = video.id || video._id || video.videoId;
+        if (!id) return;
+        if (!window.confirm(t('youtube.scheduler.deleteConfirm'))) return;
+        try {
+            await youtubeApi.deleteVideo(id);
+            toast.success(t('youtube.scheduler.deleteSuccess'));
+            setYtVideos(prev => prev.filter(v => (v.id || v._id || v.videoId) !== id));
+        } catch (err) {
+            console.error('[Scheduler] YouTube delete failed:', err);
+            toast.error(err.message || t('youtube.scheduler.deleteError'));
+        }
+    };
+
     const handleMediaFileSelect = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -926,6 +1029,131 @@ function SchedulerPage() {
                     )}
                 </div>
                 <input type="file" ref={mediaFileInputRef} onChange={handleMediaFileSelect} accept="image/*,video/*" className="hidden" />
+            </div>
+
+            {/* [19.17.5-UPLOAD-SCHEDULER] YouTube upload & schedule section */}
+            <div className="bg-[#0f0f1a]/80 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-5 mb-6">
+                <div className="flex items-center gap-3 mb-1">
+                    <div className="w-9 h-9 rounded-xl bg-red-600/20 flex items-center justify-center shrink-0">
+                        <Youtube size={18} className="text-red-500" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-semibold">{t('youtube.scheduler.title')}</h3>
+                        <p className="text-xs text-gray-500">{t('youtube.scheduler.subtitle')}</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    {/* Upload form */}
+                    <div className="space-y-3">
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.file')}</label>
+                            <input
+                                type="file"
+                                ref={ytFileInputRef}
+                                accept="video/mp4,video/quicktime,video/webm"
+                                onChange={(e) => setYtFile(e.target.files[0] || null)}
+                                className="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-red-600/20 file:text-red-400 file:text-xs hover:file:bg-red-600/30 file:cursor-pointer"
+                            />
+                            <p className="text-[11px] text-gray-500 mt-1">{t('youtube.scheduler.shortsHint')}</p>
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.videoTitle')}</label>
+                            <input type="text" value={ytTitle} onChange={e => setYtTitle(e.target.value)} className="luxury-input w-full" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.description')}</label>
+                            <textarea value={ytDescription} onChange={e => setYtDescription(e.target.value)} rows={3} className="luxury-input w-full min-h-[80px] resize-y" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.tags')}</label>
+                            <input type="text" value={ytTags} onChange={e => setYtTags(e.target.value)} className="luxury-input w-full" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.thumbnail')}</label>
+                            <input
+                                type="file"
+                                ref={ytThumbInputRef}
+                                accept="image/*"
+                                onChange={(e) => setYtThumbnail(e.target.files[0] || null)}
+                                className="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-white/10 file:text-gray-300 file:text-xs hover:file:bg-white/20 file:cursor-pointer"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1 block">{t('youtube.scheduler.privacy')}</label>
+                            <select value={ytPrivacy} onChange={e => setYtPrivacy(e.target.value)} className="luxury-input w-full">
+                                <option value="private">{t('youtube.scheduler.private')}</option>
+                                <option value="unlisted">{t('youtube.scheduler.unlisted')}</option>
+                            </select>
+                        </div>
+                        <button
+                            onClick={handleYtUpload}
+                            disabled={ytUploading || !ytFile || !ytTitle.trim()}
+                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-lg shadow-red-500/20 transition flex items-center justify-center gap-2"
+                        >
+                            {ytUploading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+                            {t('youtube.scheduler.upload')}
+                        </button>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                                type="datetime-local"
+                                value={ytScheduledAt}
+                                onChange={e => setYtScheduledAt(e.target.value)}
+                                className="luxury-input flex-1 min-w-0"
+                            />
+                            <button
+                                onClick={handleYtSchedule}
+                                disabled={ytScheduling || !ytFile || !ytTitle.trim() || !ytScheduledAt}
+                                className="py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition flex items-center justify-center gap-2 shrink-0"
+                            >
+                                {ytScheduling ? <Loader2 className="animate-spin" size={16} /> : <Clock size={16} />}
+                                {t('youtube.scheduler.schedule')}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Videos list */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-gray-400">{t('youtube.scheduler.title')}</span>
+                            {ytVideosLoading && <Loader2 className="animate-spin text-gray-500" size={14} />}
+                        </div>
+                        {ytVideos.length === 0 && !ytVideosLoading ? (
+                            <p className="text-xs text-gray-500 py-6 text-center border border-dashed border-white/10 rounded-xl">{t('youtube.scheduler.noVideos')}</p>
+                        ) : (
+                            <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                                {ytVideos.map((video) => {
+                                    const id = video.id || video._id || video.videoId;
+                                    return (
+                                        <div key={id} className="flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/10">
+                                            {video.thumbnail ? (
+                                                <img src={video.thumbnail} alt="" className="w-16 h-10 object-cover rounded-lg shrink-0 border border-white/10" />
+                                            ) : (
+                                                <div className="w-16 h-10 rounded-lg shrink-0 bg-black/50 border border-white/10 flex items-center justify-center">
+                                                    <Youtube size={16} className="text-red-500" />
+                                                </div>
+                                            )}
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-xs text-white truncate" title={video.title}>{video.title}</p>
+                                                <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-gray-500 mt-0.5">
+                                                    {video.status && <span>{t('youtube.scheduler.status')}: {video.status}</span>}
+                                                    {video.views != null && <span>{t('youtube.scheduler.views')}: {video.views}</span>}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleYtDelete(video)}
+                                                className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition shrink-0"
+                                                title={t('youtube.scheduler.deleteConfirm')}
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Modal */}

@@ -1776,6 +1776,32 @@
     "connectFailed": "Failed to get YouTube authorization URL",
     "disconnectFailed": "Failed to disconnect YouTube",
     "newPlace": "New place",
-    "shortDesc": "Videos, Shorts"
+    "shortDesc": "Videos, Shorts",
+    "scheduler": {
+      "title": "YouTube",
+      "subtitle": "Upload videos to your channel",
+      "upload": "Upload",
+      "file": "Video file",
+      "videoTitle": "Title",
+      "description": "Description",
+      "tags": "Tags",
+      "thumbnail": "Thumbnail",
+      "privacy": "Privacy",
+      "private": "Private",
+      "unlisted": "Unlisted",
+      "shortsHint": "Vertical 9:16 video will automatically go to Shorts",
+      "uploadSuccess": "Video uploaded",
+      "uploadError": "Upload failed",
+      "deleteConfirm": "Delete video from YouTube?",
+      "deleteSuccess": "Video deleted",
+      "deleteError": "Failed to delete video",
+      "noVideos": "No videos",
+      "views": "Views",
+      "status": "Status",
+      "schedule": "Schedule",
+      "scheduleSuccess": "Post scheduled",
+      "scheduleError": "Failed to schedule",
+      "quotaExceeded": "YouTube daily quota exceeded. Retry after 10:00 MSK"
+    }
   }
 }

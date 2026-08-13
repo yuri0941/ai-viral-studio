@@ -353,3 +353,19 @@
 - `ApiKeysTab` показывает toast после редиректа от Google по query-параметрам `youtube`/`email`/`message`.
 - `/api/youtube/auth-url` добавлен в smoke-тест.
 - Добавлены i18n-ключи `apiKeys.connectYoutube`, `apiKeys.youtubeConnected`, `apiKeys.youtubeConnectError`, `apiKeys.runYoutubeSpike`, `apiKeys.youtubeSpikeOk`, `apiKeys.youtubeSpikeFail`.
+
+### v9.9.19.17.4-YOUTUBE-CLIENT-CHANNELS
+- YouTube OAuth обобщён на owner/admin/creator: state JWT несёт `userId` + `redirect`, callback сохраняет токен тому, кто начал.
+- Добавлена модель `YouTubeToken`: AES-256-GCM шифрование at-rest (`TOKEN_ENCRYPTION_KEY`), в API только маскированные данные.
+- Новые эндпоинты: `GET /api/youtube/status`, `POST /api/youtube/disconnect` (revoke у Google + удаление токенов).
+- Настройки клиента: вкладка «YouTube» с подключением/отключением, именем канала и датой; старая плитка в Social Connect заменена ссылкой.
+- `/spike` читает `YouTubeToken` с fallback на legacy `User.ytRefreshToken`.
+- i18n: `youtube.*` в src и public ru/en.
+
+### v9.9.19.17.5-YOUTUBE-UPLOAD-SCHEDULER
+- `POST /api/youtube/upload` — multipart до 256 МБ, mp4/mov/webm, privacyStatus только private/unlisted, thumbnail опционально.
+- `GET /api/youtube/videos` и `DELETE /api/youtube/videos/:id` — список видео канала и удаление только своего видео (проверка channelId).
+- `POST /api/scheduled-posts/youtube` — планирование загрузки видео; autoPublisher через platformPublisher вызывает `publishScheduledYouTubePost`.
+- Квота YouTube: счётчик units/день в Mongo (`youtube_quota`), алерт владельцу в TG при >80%, `quota_exceeded` → «повтори после 10:00 МСК».
+- SchedulerPage: секция YouTube с формой загрузки, списком видео, удалением с confirm, адаптив 375px.
+- i18n: `youtube.scheduler.*` в src и public ru/en.
