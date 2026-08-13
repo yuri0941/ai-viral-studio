@@ -19,6 +19,15 @@ const scheduledPostSchema = new mongoose.Schema({
   publishResults: [{ platform: String, status: String, result: Object, error: String }],
   publishedAt: { type: Date },
   retriedAt: { type: Date },
+  // [19.17.5-UPLOAD-SCHEDULER] YouTube scheduled upload fields
+  youtubeTitle: { type: String, default: '' },
+  youtubeDescription: { type: String, default: '' },
+  youtubeTags: { type: String, default: '' },
+  youtubePrivacyStatus: { type: String, enum: ['private', 'unlisted', ''], default: '' },
+  youtubeVideoId: { type: String, default: '' },
+  youtubeVideoUrl: { type: String, default: '' },
+  youtubeVideoPath: { type: String, default: '' },
+  youtubeThumbnailPath: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 })

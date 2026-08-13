@@ -1,6 +1,7 @@
 import express from 'express'
 import axios from 'axios'
 import jwt from 'jsonwebtoken'
+import multer from 'multer'
 import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
@@ -379,6 +380,116 @@ router.post('/spike', requireRole('owner'), async (req, res) => {
     if (tmpFile && fs.existsSync(tmpFile)) {
       try { fs.unlinkSync(tmpFile) } catch {}
     }
+  }
+})
+
+// ============================================================
+// [19.17.5-UPLOAD-SCHEDULER] upload / list / delete routes
+// Upload/publish/delete only by explicit user action; ownership
+// is validated inside the service before any destructive call.
+// ============================================================
+
+const ytUploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, os.tmpdir()),
+  filename: (req, file, cb) => cb(null, `yt-upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${path.extname(file.originalname || '')}`)
+})
+
+const YT_VIDEO_MIMES = new Set(['video/mp4', 'video/quicktime', 'video/webm'])
+const ytUpload = multer({
+  storage: ytUploadStorage,
+  limits: { fileSize: 256 * 1024 * 1024 }, // 256MB
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'thumbnail') {
+      const ok = ['image/jpeg', 'image/png'].includes((file.mimetype || '').toLowerCase())
+      return cb(ok ? null : new Error('thumbnail_must_be_jpeg_or_png'), ok)
+    }
+    const ok = YT_VIDEO_MIMES.has((file.mimetype || '').toLowerCase())
+    cb(ok ? null : new Error('only_mp4_mov_webm_allowed'), ok)
+  }
+})
+
+function handleYoutubeRouteError(res, err, context) {
+  const payload = googleErrorPayload(err)
+  log(`${context}_fail`, { code: err.code || payload.code, msg: err.message })
+  if (err.code === 'quota_exceeded') {
+    return res.status(429).json({ success: false, error: 'quota_exceeded', message: err.message })
+  }
+  if (err.code === 'youtube_not_connected') {
+    return res.status(400).json({ success: false, error: 'youtube_not_connected', message: err.message })
+  }
+  if (err.code === 'not_video_owner') {
+    return res.status(403).json({ success: false, error: 'not_video_owner', message: 'Видео не принадлежит вашему каналу' })
+  }
+  if (err.code === 'video_not_found') {
+    return res.status(404).json({ success: false, error: 'video_not_found' })
+  }
+  return res.status(500).json({ success: false, error: payload.message || err.message, code: payload.code || '' })
+}
+
+router.post('/upload', requireRole('owner', 'admin', 'creator'), ytUpload.fields([
+  { name: 'video', maxCount: 1 },
+  { name: 'thumbnail', maxCount: 1 }
+]), async (req, res) => {
+  const userId = req.user.id
+  const videoFile = req.files?.video?.[0]
+  const thumbnailFile = req.files?.thumbnail?.[0]
+
+  try {
+    if (!videoFile) {
+      return res.status(400).json({ success: false, error: 'video_file_required' })
+    }
+
+    const { title, description = '', tags = '', privacyStatus = 'private' } = req.body || {}
+    // public запрещён до аудита Google
+    if (!['private', 'unlisted'].includes(privacyStatus)) {
+      return res.status(400).json({ success: false, error: 'invalid_privacy_status', message: 'Разрешены только private или unlisted' })
+    }
+
+    const { uploadVideoForUser, setThumbnailForUser } = await import('../services/youtubeService.js')
+    const parsedTags = String(tags).split(',').map(t => t.trim()).filter(Boolean)
+    const { videoId } = await uploadVideoForUser(userId, videoFile.path, { title, description, tags: parsedTags, privacyStatus })
+
+    let thumbnailSet = false
+    if (thumbnailFile) {
+      try {
+        await setThumbnailForUser(userId, videoId, thumbnailFile.path)
+        thumbnailSet = true
+      } catch (thumbErr) {
+        log('upload_thumbnail_warn', googleErrorPayload(thumbErr))
+      }
+    }
+
+    log('upload_ok', { userId, videoId, privacyStatus, thumbnailSet })
+    return res.json({ success: true, videoId, url: `https://youtu.be/${videoId}`, thumbnailSet })
+  } catch (err) {
+    return handleYoutubeRouteError(res, err, 'upload')
+  } finally {
+    for (const f of [videoFile, thumbnailFile]) {
+      if (f?.path && fs.existsSync(f.path)) {
+        try { fs.unlinkSync(f.path) } catch {}
+      }
+    }
+  }
+})
+
+router.get('/videos', requireRole('owner', 'admin', 'creator'), async (req, res) => {
+  try {
+    const { listVideosForUser } = await import('../services/youtubeService.js')
+    const videos = await listVideosForUser(req.user.id)
+    return res.json({ success: true, videos })
+  } catch (err) {
+    return handleYoutubeRouteError(res, err, 'videos')
+  }
+})
+
+router.delete('/videos/:id', requireRole('owner', 'admin', 'creator'), async (req, res) => {
+  try {
+    const { deleteVideoForUser } = await import('../services/youtubeService.js')
+    const result = await deleteVideoForUser(req.user.id, req.params.id)
+    log('delete_ok', { userId: req.user.id, videoId: req.params.id })
+    return res.json(result)
+  } catch (err) {
+    return handleYoutubeRouteError(res, err, 'delete')
   }
 })
 

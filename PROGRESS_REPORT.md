@@ -4289,3 +4289,31 @@
 
 
 
+
+## 2026-08-13 — v9.9.19.17.4-YOUTUBE-CLIENT-CHANNELS — перенос OAuth в настройки клиента, per-user токены
+- [FIX] `backend/models/YouTubeToken.js`: новая модель per-user YouTube OAuth-токенов. AES-256-GCM шифрование at-rest (`TOKEN_ENCRYPTION_KEY`, fallback `JWT_SECRET` только для dev), методы `setTokens`/`getTokens`/`deleteForUser`.
+- [FIX] `backend/.env.example`: добавлен `TOKEN_ENCRYPTION_KEY=`.
+- [FIX] `backend/routes/youtube.js`:
+  - `GET /api/youtube/auth-url` теперь для `owner/admin/creator`; в JWT state кладётся `redirect` (sanitize, только `/...`), чтобы callback возвращал на страницу, откуда стартовали.
+  - `GET /api/youtube/callback` сохраняет токены в `YouTubeToken` (access/refresh, scope, channelId/channelTitle из `channels.list?mine=true`), чистит legacy `User.ytRefreshToken/ytEmail`; редиректит на `redirect` из state.
+  - `GET /api/youtube/status` — подключён ли канал, `channelTitle`, `connectedAt` (только маскированные данные).
+  - `POST /api/youtube/disconnect` — revoke у Google + удаление `YouTubeToken` и legacy-полей; confirm в UI.
+  - `/spike` читает `YouTubeToken`, fallback на `User.ytRefreshToken` для старых подключений.
+- [FIX] `frontend/src/pages/SettingsPage.jsx`: новая вкладка «YouTube» — подключение/отключение, имя канала, дата подключения, обработка редиректа после OAuth.
+- [FIX] `frontend/src/pages/settings/IntegrationsTab.jsx`: старая плитка YouTube удалена, заменена ссылкой на новую вкладку.
+- [FIX] `frontend/src/services/api.js`: добавлен `youtubeApi` (`status`, `connectUrl`, `disconnect`).
+- [FIX] i18n: `youtube.*` и `settings.youtube` добавлены в `frontend/src/locales/{ru,en}.json` и `frontend/public/locales/{ru,en}.json`.
+- [TEST] `node --check backend/routes/youtube.js backend/models/YouTubeToken.js` ✅; `npm run build` ✅; JSON i18n валидны ✅; `git diff --stat` — только разрешённые файлы ✅.
+- [NOTE] Ручная проверка владельцем: тестовый клиент (creator) подключает канал «Юрий Тихонов», видит имя канала в Настройки → YouTube.
+
+## 2026-08-13 — v9.9.19.17.5-YOUTUBE-UPLOAD-SCHEDULER — загрузка видео из кабинета и планировщик
+- [FIX] `backend/services/youtubeService.js`: OAuth-секция — `getAccessTokenForUser` (refresh через YouTubeToken), `uploadVideoForUser` (resumable upload), `setThumbnailForUser`, `listVideosForUser`, `deleteVideoForUser` (проверка владения по channelId), квота `youtube_quota` (счётчик units/день, алерт владельцу в TG при >80%, `quota_exceeded` → «повтори после 10:00 МСК»), `publishScheduledYouTubePost`.
+- [FIX] `backend/routes/youtube.js`: `POST /api/youtube/upload` (multipart, ≤256 МБ, mp4/mov/webm, privacyStatus только private/unlisted с guard-комментарием, thumbnail опционально), `GET /api/youtube/videos`, `DELETE /api/youtube/videos/:id` (только своё видео).
+- [FIX] `backend/models/ScheduledPost.js`: поля `youtubeTitle/youtubeDescription/youtubeTags/youtubePrivacyStatus/youtubeVideoId/youtubeVideoUrl/youtubeVideoPath/youtubeThumbnailPath`.
+- [FIX] `backend/routes/scheduledPosts.js`: `POST /api/scheduled-posts/youtube` (multipart, сохраняет файл в `uploads/yt/`, создаёт ScheduledPost `platforms=['youtube']`).
+- [FIX] `backend/services/platformPublisher.js`: добавлен case `youtube` → `publishScheduledYouTubePost` (autoPublisher подхватывает автоматически).
+- [FIX] `frontend/src/pages/SchedulerPage.jsx`: секция YouTube — форма (файл, заголовок, описание, теги, обложка, select private/unlisted, подсказка «вертикаль 9:16 → Shorts автоматически»), список видео, удаление с confirm, адаптив 375px.
+- [FIX] `frontend/src/services/api.js`: `youtubeApi.upload/videos/deleteVideo/schedule`, хелпер `requestForm` для multipart.
+- [FIX] i18n: `youtube.scheduler.*` добавлены в `frontend/src/locales/{ru,en}.json` и `frontend/public/locales/{ru,en}.json`.
+- [TEST] `node --check` backend-файлов ✅; `npm run build` ✅; JSON i18n валидны ✅.
+- [NOTE] Ручная проверка владельцем: загрузка 5-сек видео из кабинета → приватное в студии → удалено из кабинета → исчезло из студии.

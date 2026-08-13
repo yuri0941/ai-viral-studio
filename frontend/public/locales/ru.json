@@ -786,6 +786,32 @@
     "connectFailed": "Не удалось получить URL авторизации YouTube",
     "disconnectFailed": "Не удалось отключить YouTube",
     "newPlace": "Новое место",
-    "shortDesc": "Видео, Shorts"
+    "shortDesc": "Видео, Shorts",
+    "scheduler": {
+      "title": "YouTube",
+      "subtitle": "Загрузка видео на канал",
+      "upload": "Загрузить",
+      "file": "Видеофайл",
+      "videoTitle": "Заголовок",
+      "description": "Описание",
+      "tags": "Теги",
+      "thumbnail": "Обложка",
+      "privacy": "Приватность",
+      "private": "Приватное",
+      "unlisted": "По ссылке",
+      "shortsHint": "Вертикальное видео 9:16 попадёт в Shorts автоматически",
+      "uploadSuccess": "Видео загружено",
+      "uploadError": "Ошибка загрузки",
+      "deleteConfirm": "Удалить видео с YouTube?",
+      "deleteSuccess": "Видео удалено",
+      "deleteError": "Не удалось удалить видео",
+      "noVideos": "Нет видео",
+      "views": "Просмотры",
+      "status": "Статус",
+      "schedule": "Запланировать",
+      "scheduleSuccess": "Пост запланирован",
+      "scheduleError": "Не удалось запланировать",
+      "quotaExceeded": "Превышена дневная квота YouTube. Повторите после 10:00 МСК"
+    }
   }
 }

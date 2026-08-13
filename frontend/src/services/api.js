@@ -131,6 +131,44 @@ async function request(path, options = {}) {
     return res.json()
 }
 
+// [19.17.5-UPLOAD-SCHEDULER] multipart/form-data requests (no JSON Content-Type)
+async function requestForm(path, formData, options = {}) {
+    const url = `${API_BASE}${path}`
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+
+    console.log('[API] FormData request:', url, options.method || 'POST')
+
+    const res = await fetch(url, {
+        ...options,
+        headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+            ...options.headers,
+        },
+        body: formData,
+    })
+
+    const contentType = res.headers.get('content-type')
+    const data = contentType && contentType.includes('application/json')
+        ? await res.json().catch(() => ({}))
+        : {}
+
+    if (!res.ok) {
+        const message = data.error || data.message || `HTTP ${res.status}`
+        const error = new Error(message)
+        error.status = res.status
+        error.code = data.code || null
+        if (res.status === 401 && typeof window !== 'undefined') {
+            localStorage.removeItem('token')
+            localStorage.removeItem('authToken')
+            localStorage.removeItem('jwt')
+            window.location.href = '/login'
+        }
+        throw error
+    }
+
+    return data
+}
+
 // ============================================
 // Owner API
 // ============================================
@@ -552,6 +590,11 @@ export const youtubeApi = {
     status: () => request('/youtube/status'),
     connectUrl: (redirect = '') => request(`/youtube/auth-url${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`),
     disconnect: () => request('/youtube/disconnect', { method: 'POST' }),
+    // [19.17.5-UPLOAD-SCHEDULER] upload video (multipart), list, delete, schedule
+    upload: (formData) => requestForm('/youtube/upload', formData, { method: 'POST' }),
+    videos: () => request('/youtube/videos'),
+    deleteVideo: (id) => request(`/youtube/videos/${id}`, { method: 'DELETE' }),
+    schedule: (formData) => requestForm('/scheduled-posts/youtube', formData, { method: 'POST' }),
 }
 
 // ============================================
