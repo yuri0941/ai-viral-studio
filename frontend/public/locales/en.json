@@ -64,7 +64,17 @@
     "paymentNoUrl": "Payment URL not received",
     "paymentSuccess": "Payment successful",
     "paymentCancelled": "Payment cancelled",
-    "paymentError": "Payment error"
+    "paymentError": "Payment error",
+    "schedulerTab": "Scheduler",
+    "schedulerAutoCleanTitle": "Calendar auto-cleanup",
+    "autoCleanTTLHint": "After publishing, the post will be automatically removed from the calendar after the selected time. Media files are deleted right after upload to save disk space.",
+    "autoCleanTTLLabel": "Remove published posts from calendar after",
+    "autoCleanTTLImmediately": "Immediately",
+    "autoCleanTTL15min": "15 minutes",
+    "autoCleanTTL1hour": "1 hour",
+    "autoCleanTTLNever": "Never",
+    "autoCleanTTLSaved": "Auto-cleanup setting saved",
+    "autoCleanTTLError": "Failed to save auto-cleanup setting"
   },
   "socials": {
     "title": "Socials",

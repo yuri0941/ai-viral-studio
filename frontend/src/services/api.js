@@ -548,8 +548,12 @@ export const scheduledPostsApi = {
     create: (data) => request('/scheduled-posts', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => request(`/scheduled-posts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     remove: (id) => request(`/scheduled-posts/${id}`, { method: 'DELETE' }),
+    delete: (id) => request(`/scheduled-posts/${id}`, { method: 'DELETE' }),
+    pause: (id) => request(`/scheduled-posts/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'paused' }) }),
+    resume: (id) => request(`/scheduled-posts/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'scheduled' }) }),
     // [v9.9.19.15.10] no retry on publish to avoid duplicate wall.posts
     publish: (id, platforms) => request(`/scheduled-posts/${id}/publish`, { method: 'POST', body: JSON.stringify({ platforms }), noRetry: true }),
+    publishNow: (id, platforms) => scheduledPostsApi.publish(id, platforms),
 }
 
 // ============================================
