@@ -1,9 +1,11 @@
 import { google } from 'googleapis'
 import axios from 'axios'
 import fs from 'fs'
+import path from 'path'
 import mongoose from 'mongoose'
 import YouTubeToken from '../models/YouTubeToken.js'
-import { getProviderKey } from './aiService.js'
+import UploadSession from '../models/UploadSession.js'
+import { getProviderKey, generateContent } from './aiService.js'
 import { alertOwner } from './ownerBot.js'
 
 const YOUTUBE_API_KEY = 'AIzaSyD1SH9WizR4zgi7JUshXfTuzHsJagmu4zU'
@@ -130,7 +132,13 @@ const YT_THUMBNAIL_UPLOAD_URL = 'https://www.googleapis.com/upload/youtube/v3/th
 
 // YouTube Data API quota costs (units per day, default limit 10000)
 const QUOTA_DAILY_LIMIT = 10000
-export const QUOTA_COSTS = { upload: 1600, delete: 50, list: 1 }
+export const QUOTA_COSTS = { upload: 1600, delete: 50, list: 1, playlistInsert: 50 }
+
+// [19.17.9-DIRECT-UPLOAD] public/publishAt only after Google audit
+export const isYoutubePublicEnabled = () => process.env.ENABLE_YOUTUBE_PUBLIC === 'true'
+export const YT_MAX_FILE_SIZE = 20 * 1024 * 1024 * 1024 // 20 GB
+const RESUMABLE_CHUNK_SIZE = 8 * 1024 * 1024 // 8 MB (multiple of 256 KB, required by Google)
+const RESUMABLE_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000 // session URI lives ~1 week
 
 function quotaCollection() {
     return mongoose.connection.collection('youtube_quota')
@@ -216,23 +224,37 @@ export async function getAccessTokenForUser(userId) {
     return accessToken
 }
 
-export async function uploadVideoForUser(userId, filePath, { title, description = '', tags = [], privacyStatus = 'private' } = {}) {
+// [19.17.9] builds the videos.insert resource body shared by all upload paths.
+// publishAt is honoured only behind ENABLE_YOUTUBE_PUBLIC (unverified app stays private).
+function buildVideoResource({ title, description = '', tags = [], privacyStatus = 'private', categoryId = '22', madeForKids = false, language = '', publishAt = '' } = {}) {
+    const safePrivacy = ['private', 'unlisted', 'public'].includes(privacyStatus) ? privacyStatus : 'private'
+    const effectivePrivacy = safePrivacy === 'public' && !isYoutubePublicEnabled() ? 'private' : safePrivacy
+    const snippet = {
+        title: title || 'Без названия',
+        description,
+        tags: Array.isArray(tags) ? tags : [],
+        categoryId: categoryId || '22'
+    }
+    if (language) snippet.defaultLanguage = language
+    const status = { privacyStatus: effectivePrivacy, madeForKids: !!madeForKids }
+    // YouTube-native scheduled publish: requires privacyStatus=private + RFC 3339 future time
+    if (publishAt && isYoutubePublicEnabled()) {
+        const ts = new Date(publishAt)
+        if (!isNaN(ts) && ts.getTime() > Date.now()) {
+            status.publishAt = ts.toISOString()
+            status.privacyStatus = 'private'
+        }
+    }
+    return { snippet, status }
+}
+
+export async function uploadVideoForUser(userId, filePath, meta = {}) {
     if (!fs.existsSync(filePath)) throw new Error('video_file_not_found')
-    // public запрещён до аудита Google
-    const safePrivacy = ['private', 'unlisted'].includes(privacyStatus) ? privacyStatus : 'private'
 
     await checkQuota(QUOTA_COSTS.upload)
     const accessToken = await getAccessTokenForUser(userId)
 
-    const sessionRes = await axios.post(`${YT_UPLOAD_URL}?uploadType=resumable&part=snippet,status`, {
-        snippet: {
-            title: title || 'Без названия',
-            description,
-            tags: Array.isArray(tags) ? tags : [],
-            categoryId: '22'
-        },
-        status: { privacyStatus: safePrivacy }
-    }, {
+    const sessionRes = await axios.post(`${YT_UPLOAD_URL}?uploadType=resumable&part=snippet,status`, buildVideoResource(meta), {
         headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
@@ -342,17 +364,315 @@ export async function deleteVideoForUser(userId, videoId) {
     return { success: true, deleted: true }
 }
 
+// [19.17.9-DIRECT-UPLOAD] scheduled posts upload via the resumable chunked path:
+// backend streams the file from disk in 8 MB chunks straight to Google (no 20 GB buffer in RAM).
 export async function publishScheduledYouTubePost(post) {
     const userId = post.userId
     if (!post.youtubeVideoPath) throw new Error('youtube_video_path_missing')
     const tags = Array.isArray(post.youtubeTags)
         ? post.youtubeTags
         : String(post.youtubeTags || '').split(',').map(t => t.trim()).filter(Boolean)
-    const { videoId } = await uploadVideoForUser(userId, post.youtubeVideoPath, {
+    const { videoId } = await uploadVideoChunkedForUser(userId, post.youtubeVideoPath, {
         title: post.youtubeTitle || post.title,
         description: post.youtubeDescription || post.content || '',
         tags,
         privacyStatus: post.youtubePrivacyStatus || 'private'
     })
+
+    // Thumbnail for cron uploads: explicit path or an image with the same base name in the media queue
+    const thumbnailPath = post.youtubeThumbnailPath && fs.existsSync(post.youtubeThumbnailPath)
+        ? post.youtubeThumbnailPath
+        : findThumbnailForVideo(post.youtubeVideoPath)
+    if (thumbnailPath) {
+        try {
+            await setThumbnailForUser(userId, videoId, thumbnailPath)
+        } catch (thumbErr) {
+            console.warn('[yt:schedule] thumbnail failed:', thumbErr.message)
+        }
+    }
     return { success: true, postUrl: 'https://youtu.be/' + videoId, videoId }
+}
+
+// ============================================================
+// [19.17.9-DIRECT-UPLOAD] resumable direct upload (browser → YouTube)
+// ============================================================
+
+function normalizeUploadMeta(meta = {}) {
+    return {
+        title: String(meta.title || '').slice(0, 100),
+        description: String(meta.description || '').slice(0, 5000),
+        tags: Array.isArray(meta.tags)
+            ? meta.tags.map(t => String(t).trim()).filter(Boolean).slice(0, 30)
+            : String(meta.tags || '').split(',').map(t => t.trim()).filter(Boolean).slice(0, 30),
+        categoryId: String(meta.categoryId || '22'),
+        privacyStatus: ['private', 'unlisted', 'public'].includes(meta.privacyStatus) ? meta.privacyStatus : 'private',
+        madeForKids: meta.madeForKids === true || meta.madeForKids === 'true',
+        publishAt: meta.publishAt ? String(meta.publishAt) : '',
+        playlistId: String(meta.playlistId || ''),
+        language: String(meta.language || ''),
+    }
+}
+
+// Creates a resumable session at Google + persists it. Idempotent: an active
+// session for the same file (userId+fileHash+fileSize) is returned, not duplicated.
+export async function createResumableSessionForUser(userId, { fileSize, fileName = '', fileHash = '', meta = {}, allowDuplicate = false } = {}) {
+    if (!fileSize || fileSize <= 0) {
+        const err = new Error('file_size_required')
+        err.code = 'file_size_required'
+        throw err
+    }
+    if (fileSize > YT_MAX_FILE_SIZE) {
+        const err = new Error('file_too_large')
+        err.code = 'file_too_large'
+        throw err
+    }
+
+    // Resume of an existing active session for the same file — no new videos.insert, no extra quota
+    if (fileHash) {
+        const active = await UploadSession.findOne({
+            userId, fileHash, fileSize, status: 'active', expiresAt: { $gt: new Date() }
+        }).sort({ createdAt: -1 })
+        if (active) {
+            return { session: active, resumed: true, duplicate: null }
+        }
+    }
+
+    // Duplicate guard: same file already fully uploaded before
+    if (fileHash && !allowDuplicate) {
+        const dup = await UploadSession.findOne({ userId, fileHash, status: 'completed' }).sort({ createdAt: -1 }).lean()
+        if (dup) {
+            const err = new Error('duplicate_file')
+            err.code = 'duplicate_file'
+            err.duplicate = { videoId: dup.videoId, uploadedAt: dup.updatedAt || dup.createdAt, fileName: dup.fileName }
+            throw err
+        }
+    }
+
+    // Pre-flight checks: quota first, then a live token — no 500 halfway through
+    await checkQuota(QUOTA_COSTS.upload)
+    const accessToken = await getAccessTokenForUser(userId)
+
+    const videoMeta = normalizeUploadMeta(meta)
+    const sessionRes = await axios.post(`${YT_UPLOAD_URL}?uploadType=resumable&part=snippet,status`, buildVideoResource(videoMeta), {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'X-Upload-Content-Length': fileSize,
+        },
+        timeout: 30000
+    })
+    const uploadUrl = sessionRes.headers?.location
+    if (!uploadUrl) throw new Error('no_upload_location')
+
+    await trackQuota(QUOTA_COSTS.upload) // videos.insert is charged at session initiation
+
+    const session = await UploadSession.create({
+        userId,
+        uploadUrl,
+        videoMeta,
+        fileSize,
+        fileName: String(fileName || '').slice(0, 255),
+        fileHash: String(fileHash || ''),
+        bytesUploaded: 0,
+        status: 'active',
+        expiresAt: new Date(Date.now() + RESUMABLE_SESSION_TTL_MS),
+    })
+    return { session, resumed: false, duplicate: null }
+}
+
+export async function getUploadSessionForUser(userId, sessionId) {
+    const session = await UploadSession.findOne({ _id: sessionId, userId })
+    if (!session) {
+        const err = new Error('upload_session_not_found')
+        err.code = 'upload_session_not_found'
+        throw err
+    }
+    if (session.status === 'active' && session.expiresAt && session.expiresAt.getTime() < Date.now()) {
+        session.status = 'expired'
+        await session.save().catch(() => {})
+    }
+    return session
+}
+
+export async function addToPlaylistForUser(userId, playlistId, videoId) {
+    await checkQuota(QUOTA_COSTS.playlistInsert)
+    const accessToken = await getAccessTokenForUser(userId)
+    await axios.post(`${YT_API_URL}/playlistItems?part=snippet`, {
+        snippet: {
+            playlistId,
+            resourceId: { kind: 'youtube#video', videoId }
+        }
+    }, {
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        timeout: 30000
+    })
+    await trackQuota(QUOTA_COSTS.playlistInsert)
+    return { success: true }
+}
+
+// Post-upload finalization: thumbnail, playlist, session bookkeeping
+export async function completeUploadForUser(userId, sessionId, { videoId, thumbnailPath = '', bytesUploaded = 0 } = {}) {
+    if (!videoId) {
+        const err = new Error('video_id_required')
+        err.code = 'video_id_required'
+        throw err
+    }
+    const session = await getUploadSessionForUser(userId, sessionId)
+
+    let thumbnailSet = false
+    if (thumbnailPath && fs.existsSync(thumbnailPath)) {
+        try {
+            await setThumbnailForUser(userId, videoId, thumbnailPath)
+            thumbnailSet = true
+        } catch (thumbErr) {
+            console.warn('[yt:complete] thumbnail failed:', thumbErr.message)
+        }
+    }
+
+    let playlistAdded = false
+    if (session.videoMeta?.playlistId) {
+        try {
+            await addToPlaylistForUser(userId, session.videoMeta.playlistId, videoId)
+            playlistAdded = true
+        } catch (plErr) {
+            console.warn('[yt:complete] playlist insert failed:', plErr.message)
+        }
+    }
+
+    session.status = 'completed'
+    session.videoId = videoId
+    session.bytesUploaded = bytesUploaded || session.fileSize
+    await session.save()
+
+    return { success: true, videoId, url: `https://studio.youtube.com/video/${videoId}`, thumbnailSet, playlistAdded }
+}
+
+export async function getProcessingStatusForUser(userId, videoId) {
+    await checkQuota(QUOTA_COSTS.list)
+    const accessToken = await getAccessTokenForUser(userId)
+    const res = await axios.get(`${YT_API_URL}/videos`, {
+        params: { part: 'processingDetails', id: videoId },
+        headers: { Authorization: `Bearer ${accessToken}` },
+        timeout: 30000
+    })
+    await trackQuota(QUOTA_COSTS.list)
+    const item = res.data?.items?.[0]
+    if (!item) {
+        const err = new Error('video_not_found')
+        err.code = 'video_not_found'
+        throw err
+    }
+    const details = item.processingDetails || {}
+    let status = details.processingStatus || 'processing'
+    if (status === 'terminated') status = 'failed'
+    const partsTotal = Number(details.processingProgress?.partsTotal || 0)
+    const partsProcessed = Number(details.processingProgress?.partsProcessed || 0)
+    const progress = partsTotal > 0 ? Math.round((partsProcessed / partsTotal) * 100) : null
+    return { status, progress, timeLeftMs: Number(details.processingProgress?.timeLeftMs || 0) || null }
+}
+
+export async function listPlaylistsForUser(userId) {
+    await checkQuota(QUOTA_COSTS.list)
+    const accessToken = await getAccessTokenForUser(userId)
+    const res = await axios.get(`${YT_API_URL}/playlists`, {
+        params: { part: 'snippet', mine: true, maxResults: 50 },
+        headers: { Authorization: `Bearer ${accessToken}` },
+        timeout: 30000
+    })
+    await trackQuota(QUOTA_COSTS.list)
+    return (res.data?.items || []).map(p => ({ id: p.id, title: p.snippet?.title || '' }))
+}
+
+// AI tags/description via the existing aiService (generateContent), internals untouched
+export async function generateVideoMetaForUser(userId, { title = '', fileName = '' } = {}) {
+    const topic = title || fileName || 'video'
+    const [tagsRes, descRes] = await Promise.all([
+        generateContent('tags', { topic, platform: 'YouTube', ownerId: userId }),
+        generateContent('description', { title: topic, platform: 'YouTube', ownerId: userId }),
+    ])
+    const tags = String(tagsRes?.content || '')
+        .replace(/#/g, '')
+        .split(/[,\n]+/)
+        .map(s => s.trim())
+        .filter(Boolean)
+        .slice(0, 15)
+    return {
+        success: !!(tagsRes?.success || descRes?.success),
+        tags,
+        description: String(descRes?.content || '').trim(),
+    }
+}
+
+// [19.17.9] chunked resumable upload from a server-side file (scheduler / cron path)
+async function readChunk(filePath, start, length) {
+    return new Promise((resolve, reject) => {
+        const stream = fs.createReadStream(filePath, { start, end: start + length - 1 })
+        const parts = []
+        stream.on('data', d => parts.push(d))
+        stream.on('end', () => resolve(Buffer.concat(parts)))
+        stream.on('error', reject)
+    })
+}
+
+export async function uploadVideoChunkedForUser(userId, filePath, meta = {}) {
+    if (!fs.existsSync(filePath)) throw new Error('video_file_not_found')
+    const fileSize = fs.statSync(filePath).size
+
+    await checkQuota(QUOTA_COSTS.upload)
+    const accessToken = await getAccessTokenForUser(userId)
+
+    const sessionRes = await axios.post(`${YT_UPLOAD_URL}?uploadType=resumable&part=snippet,status`, buildVideoResource(normalizeUploadMeta(meta)), {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'X-Upload-Content-Length': fileSize,
+        },
+        timeout: 30000
+    })
+    const uploadUrl = sessionRes.headers?.location
+    if (!uploadUrl) throw new Error('no_upload_location')
+
+    let start = 0
+    let videoId = null
+    while (start < fileSize) {
+        const end = Math.min(start + RESUMABLE_CHUNK_SIZE, fileSize) - 1
+        const chunk = await readChunk(filePath, start, end - start + 1)
+        const resp = await axios.put(uploadUrl, chunk, {
+            headers: {
+                'Content-Type': 'video/*',
+                'Content-Length': chunk.length,
+                'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+            },
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity,
+            validateStatus: s => s === 200 || s === 201 || s === 308,
+            timeout: 120000
+        })
+        if (resp.status === 308) {
+            // Resume Incomplete — server confirms bytes via Range: bytes=0-N
+            const range = resp.headers?.range
+            const match = range ? /bytes=0-(\d+)/.exec(range) : null
+            start = match ? Number(match[1]) + 1 : end + 1
+            continue
+        }
+        videoId = resp.data?.id
+        break
+    }
+    if (!videoId) throw new Error('no_video_id_in_upload_response')
+
+    await trackQuota(QUOTA_COSTS.upload)
+    return { videoId }
+}
+
+// Thumbnail lookup for cron uploads: image with the same base name next to the video
+function findThumbnailForVideo(videoPath) {
+    try {
+        const dir = path.dirname(videoPath)
+        const base = path.basename(videoPath, path.extname(videoPath))
+        for (const ext of ['.jpg', '.jpeg', '.png']) {
+            const candidate = path.join(dir, base + ext)
+            if (fs.existsSync(candidate)) return candidate
+        }
+    } catch { /* optional thumbnail */ }
+    return ''
 }

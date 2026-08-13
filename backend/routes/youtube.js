@@ -233,13 +233,15 @@ router.get('/auth-url', requireRole('owner', 'admin', 'creator'), async (req, re
 router.get('/status', requireRole('owner', 'admin', 'creator'), async (req, res) => {
   try {
     const yt = await YouTubeToken.getTokens(req.user.id)
-    if (!yt) return res.json({ success: true, connected: false })
+    const publicEnabled = process.env.ENABLE_YOUTUBE_PUBLIC === 'true'
+    if (!yt) return res.json({ success: true, connected: false, publicEnabled })
     return res.json({
       success: true,
       connected: true,
       channelId: yt.channelId,
       channelTitle: yt.channelTitle,
       connectedAt: yt.connectedAt,
+      publicEnabled,
     })
   } catch (err) {
     return res.status(500).json({ success: false, error: 'youtube_status_failed' })
@@ -417,6 +419,18 @@ function handleYoutubeRouteError(res, err, context) {
   if (err.code === 'youtube_not_connected') {
     return res.status(400).json({ success: false, error: 'youtube_not_connected', message: err.message })
   }
+  if (err.code === 'duplicate_file') {
+    return res.status(409).json({ success: false, error: 'duplicate_file', details: err.duplicate || null })
+  }
+  if (err.code === 'file_too_large' || err.code === 'file_size_required') {
+    return res.status(400).json({ success: false, error: err.code })
+  }
+  if (err.code === 'upload_session_not_found') {
+    return res.status(404).json({ success: false, error: 'upload_session_not_found' })
+  }
+  if (err.code === 'video_id_required') {
+    return res.status(400).json({ success: false, error: 'video_id_required' })
+  }
   if (err.code === 'not_video_owner') {
     return res.status(403).json({ success: false, error: 'not_video_owner', message: 'Видео не принадлежит вашему каналу' })
   }
@@ -439,15 +453,18 @@ router.post('/upload', requireRole('owner', 'admin', 'creator'), ytUpload.fields
       return res.status(400).json({ success: false, error: 'video_file_required' })
     }
 
-    const { title, description = '', tags = '', privacyStatus = 'private' } = req.body || {}
+    const { title, description = '', tags = '', privacyStatus = 'private', categoryId = '22', madeForKids, language = '', publishAt = '', playlistId = '' } = req.body || {}
     // public запрещён до аудита Google
     if (!['private', 'unlisted'].includes(privacyStatus)) {
       return res.status(400).json({ success: false, error: 'invalid_privacy_status', message: 'Разрешены только private или unlisted' })
     }
 
-    const { uploadVideoForUser, setThumbnailForUser } = await import('../services/youtubeService.js')
+    const { uploadVideoForUser, setThumbnailForUser, addToPlaylistForUser } = await import('../services/youtubeService.js')
     const parsedTags = String(tags).split(',').map(t => t.trim()).filter(Boolean)
-    const { videoId } = await uploadVideoForUser(userId, videoFile.path, { title, description, tags: parsedTags, privacyStatus })
+    const { videoId } = await uploadVideoForUser(userId, videoFile.path, {
+      title, description, tags: parsedTags, privacyStatus, categoryId, language, publishAt,
+      madeForKids: madeForKids === true || madeForKids === 'true',
+    })
 
     let thumbnailSet = false
     if (thumbnailFile) {
@@ -459,8 +476,18 @@ router.post('/upload', requireRole('owner', 'admin', 'creator'), ytUpload.fields
       }
     }
 
-    log('upload_ok', { userId, videoId, privacyStatus, thumbnailSet })
-    return res.json({ success: true, videoId, url: `https://youtu.be/${videoId}`, thumbnailSet })
+    let playlistAdded = false
+    if (playlistId) {
+      try {
+        await addToPlaylistForUser(userId, playlistId, videoId)
+        playlistAdded = true
+      } catch (plErr) {
+        log('upload_playlist_warn', googleErrorPayload(plErr))
+      }
+    }
+
+    log('upload_ok', { userId, videoId, privacyStatus, thumbnailSet, playlistAdded })
+    return res.json({ success: true, videoId, url: `https://youtu.be/${videoId}`, thumbnailSet, playlistAdded })
   } catch (err) {
     return handleYoutubeRouteError(res, err, 'upload')
   } finally {
@@ -490,6 +517,125 @@ router.delete('/videos/:id', requireRole('owner', 'admin', 'creator'), async (re
     return res.json(result)
   } catch (err) {
     return handleYoutubeRouteError(res, err, 'delete')
+  }
+})
+
+// ============================================================
+// [19.17.9-DIRECT-UPLOAD] resumable direct upload (browser → YouTube).
+// The video file never passes through the backend — only session
+// bookkeeping, post-upload finalize and processing polls.
+// ============================================================
+
+const YT_DIRECT_EXTS = new Set(['.mp4', '.mov', '.webm'])
+
+// Creates a resumable session; frontend then PUTs chunks straight to Google
+router.post('/upload-session', requireRole('owner', 'admin', 'creator'), async (req, res) => {
+  try {
+    const { fileSize, fileName = '', fileHash = '', meta = {}, allowDuplicate = false } = req.body || {}
+    const size = Number(fileSize)
+    if (!size || size <= 0) {
+      return res.status(400).json({ success: false, error: 'file_size_required' })
+    }
+    const ext = path.extname(String(fileName || '')).toLowerCase()
+    if (!YT_DIRECT_EXTS.has(ext)) {
+      return res.status(400).json({ success: false, error: 'invalid_file_type', message: 'Разрешены только mp4, mov, webm' })
+    }
+
+    const { createResumableSessionForUser } = await import('../services/youtubeService.js')
+    const { session, resumed } = await createResumableSessionForUser(req.user.id, {
+      fileSize: size, fileName, fileHash, meta, allowDuplicate: allowDuplicate === true
+    })
+    log('upload_session_ok', { userId: req.user.id, sessionId: String(session._id), size, resumed })
+    return res.json({
+      success: true,
+      sessionId: String(session._id),
+      uploadUrl: session.uploadUrl,
+      expiresAt: session.expiresAt,
+      resumed,
+    })
+  } catch (err) {
+    return handleYoutubeRouteError(res, err, 'upload_session')
+  }
+})
+
+// Session info for resuming after a network break / page reload
+router.get('/upload-session/:id', requireRole('owner', 'admin', 'creator'), async (req, res) => {
+  try {
+    const { getUploadSessionForUser } = await import('../services/youtubeService.js')
+    const session = await getUploadSessionForUser(req.user.id, req.params.id)
+    return res.json({
+      success: true,
+      sessionId: String(session._id),
+      uploadUrl: session.uploadUrl,
+      fileSize: session.fileSize,
+      fileName: session.fileName,
+      fileHash: session.fileHash,
+      bytesUploaded: session.bytesUploaded,
+      status: session.status,
+      videoId: session.videoId,
+      meta: session.videoMeta,
+      expiresAt: session.expiresAt,
+    })
+  } catch (err) {
+    return handleYoutubeRouteError(res, err, 'upload_session_get')
+  }
+})
+
+// Post-upload finalize: thumbnail (optional multipart), playlist insert, session status
+router.post('/upload-session/:id/complete', requireRole('owner', 'admin', 'creator'), ytUpload.fields([
+  { name: 'thumbnail', maxCount: 1 }
+]), async (req, res) => {
+  const thumbnailFile = req.files?.thumbnail?.[0]
+  try {
+    const { videoId, bytesUploaded } = req.body || {}
+    const { completeUploadForUser } = await import('../services/youtubeService.js')
+    const result = await completeUploadForUser(req.user.id, req.params.id, {
+      videoId,
+      thumbnailPath: thumbnailFile?.path || '',
+      bytesUploaded: Number(bytesUploaded) || 0,
+    })
+    log('upload_complete_ok', { userId: req.user.id, sessionId: req.params.id, videoId })
+    return res.json(result)
+  } catch (err) {
+    return handleYoutubeRouteError(res, err, 'upload_complete')
+  } finally {
+    if (thumbnailFile?.path && fs.existsSync(thumbnailFile.path)) {
+      try { fs.unlinkSync(thumbnailFile.path) } catch {}
+    }
+  }
+})
+
+// Processing status poll (frontend asks every 10 s after the upload finishes)
+router.get('/videos/:id/processing', requireRole('owner', 'admin', 'creator'), async (req, res) => {
+  try {
+    const { getProcessingStatusForUser } = await import('../services/youtubeService.js')
+    const result = await getProcessingStatusForUser(req.user.id, req.params.id)
+    return res.json({ success: true, ...result })
+  } catch (err) {
+    return handleYoutubeRouteError(res, err, 'processing')
+  }
+})
+
+// User playlists for the upload form (playlistItems.insert happens after upload)
+router.get('/playlists', requireRole('owner', 'admin', 'creator'), async (req, res) => {
+  try {
+    const { listPlaylistsForUser } = await import('../services/youtubeService.js')
+    const playlists = await listPlaylistsForUser(req.user.id)
+    return res.json({ success: true, playlists })
+  } catch (err) {
+    return handleYoutubeRouteError(res, err, 'playlists')
+  }
+})
+
+// AI tags/description from the existing aiService (OMEGA), internals untouched
+router.post('/ai-meta', requireRole('owner', 'admin', 'creator'), async (req, res) => {
+  try {
+    const { title = '', fileName = '' } = req.body || {}
+    const { generateVideoMetaForUser } = await import('../services/youtubeService.js')
+    const meta = await generateVideoMetaForUser(req.user.id, { title, fileName })
+    return res.json(meta)
+  } catch (err) {
+    return handleYoutubeRouteError(res, err, 'ai_meta')
   }
 })
 

@@ -595,6 +595,132 @@ export const youtubeApi = {
     videos: () => request('/youtube/videos'),
     deleteVideo: (id) => request(`/youtube/videos/${id}`, { method: 'DELETE' }),
     schedule: (formData) => requestForm('/scheduled-posts/youtube', formData, { method: 'POST' }),
+    // [19.17.9-DIRECT-UPLOAD] resumable direct upload (browser → YouTube)
+    // noRetry: quota 429 / duplicate 409 must reach the UI immediately, not after 5 backoffs
+    createUploadSession: (payload) => request('/youtube/upload-session', { method: 'POST', body: JSON.stringify(payload), noRetry: true }),
+    getUploadSession: (id) => request(`/youtube/upload-session/${id}`, { noRetry: true }),
+    completeUploadSession: (id, formData) => requestForm(`/youtube/upload-session/${id}/complete`, formData, { method: 'POST' }),
+    getProcessing: (id) => request(`/youtube/videos/${id}/processing`, { noRetry: true }),
+    playlists: () => request('/youtube/playlists'),
+    aiMeta: (payload) => request('/youtube/ai-meta', { method: 'POST', body: JSON.stringify(payload) }),
+}
+
+// ============================================
+// [19.17.9-DIRECT-UPLOAD] resumable upload helpers (browser → Google directly)
+// ============================================
+export const YT_DIRECT_CHUNK_SIZE = 8 * 1024 * 1024 // 8 MB — multiple of 256 KB per Google spec
+export const YT_DIRECT_MAX_SIZE = 20 * 1024 * 1024 * 1024 // 20 GB
+export const YT_DIRECT_MIN_SIZE = 100 * 1024 * 1024 // >100 MB goes direct, ≤100 MB — old multipart path
+
+// SHA-256 of the first + last MB — duplicate guard without reading a 20 GB file whole
+export async function computeYtFileHash(file) {
+    const MB = 1024 * 1024
+    const firstBuf = await file.slice(0, MB).arrayBuffer()
+    const lastBuf = file.size > MB ? await file.slice(file.size - MB).arrayBuffer() : new ArrayBuffer(0)
+    const merged = new Uint8Array(firstBuf.byteLength + lastBuf.byteLength)
+    merged.set(new Uint8Array(firstBuf), 0)
+    merged.set(new Uint8Array(lastBuf), firstBuf.byteLength)
+    const digest = await crypto.subtle.digest('SHA-256', merged)
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+// Ask Google how many bytes it already has (resume after a break)
+export async function queryResumablePosition(uploadUrl, totalSize, signal) {
+    const res = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Range': `bytes */${totalSize}` },
+        body: new Blob([]),
+        signal,
+    })
+    if (res.status === 308) {
+        const range = res.headers.get('Range') || res.headers.get('range') || ''
+        const m = /bytes=0-(\d+)/.exec(range)
+        // Range may be hidden by CORS on some setups — null means "unknown, keep client position"
+        return m ? Number(m[1]) + 1 : null
+    }
+    if (res.status === 200 || res.status === 201) return totalSize // already fully uploaded
+    return null
+}
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+
+// Chunked PUT loop with per-chunk retry. onProgress({uploaded, total, chunkBytes, chunkMs})
+export async function uploadFileResumable({ file, uploadUrl, startByte = 0, onProgress, signal }) {
+    const total = file.size
+    let offset = startByte
+
+    const throwIfAborted = () => {
+        if (signal?.aborted) {
+            const err = new Error('aborted')
+            err.code = 'aborted'
+            throw err
+        }
+    }
+
+    while (offset < total) {
+        throwIfAborted()
+        let attempts = 0
+        let res = null
+
+        while (true) {
+            const end = Math.min(offset + YT_DIRECT_CHUNK_SIZE, total) - 1
+            const chunk = file.slice(offset, end + 1)
+            const chunkStart = Date.now()
+            try {
+                res = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Range': `bytes ${offset}-${end}/${total}` },
+                    body: chunk,
+                    signal,
+                })
+                if (res.status === 308 || res.status === 200 || res.status === 201) {
+                    onProgress?.({ uploaded: res.status === 308 ? end + 1 : total, total, chunkBytes: chunk.size, chunkMs: Date.now() - chunkStart })
+                }
+            } catch (err) {
+                if (signal?.aborted) throw err
+                res = null // network failure — retry below
+            }
+
+            // Retryable: network error or Google 5xx
+            if (res == null || res.status >= 500) {
+                attempts++
+                if (attempts > 5) {
+                    if (res == null) throw new Error('network_error')
+                    break // fall through to error parsing with the last response
+                }
+                await sleep(Math.min(2000 * Math.pow(2, attempts), 15000))
+                throwIfAborted()
+                // The chunk may have partially arrived — re-sync with the server position
+                try {
+                    const pos = await queryResumablePosition(uploadUrl, total, signal)
+                    if (pos != null && pos !== offset) offset = pos
+                } catch { /* keep client-side position */ }
+                if (offset >= total) return {} // server finished without us seeing the body (rare)
+                continue
+            }
+            break
+        }
+
+        if (res.status === 308) {
+            offset = Math.min(offset + YT_DIRECT_CHUNK_SIZE, total)
+            continue
+        }
+        if (res.status === 200 || res.status === 201) {
+            return await res.json().catch(() => ({}))
+        }
+        let message = `HTTP ${res.status}`
+        let reason = ''
+        try {
+            const errBody = await res.json()
+            message = errBody?.error?.message || message
+            reason = errBody?.error?.errors?.[0]?.reason || ''
+        } catch { /* non-JSON error body */ }
+        const error = new Error(message)
+        error.status = res.status
+        error.reason = reason
+        throw error
+    }
+    return {}
 }
 
 // ============================================
