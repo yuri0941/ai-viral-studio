@@ -250,6 +250,7 @@
     "yookassaOk": "🟢 ЮKassa работает! Можно принимать платежи",
     "yookassaKeyHint": "ЮKassa: shopId (6 цифр) + Secret test_/live_ из кабинета → Интеграция → API",
     "yookassaCardHint": "Тестовая карта: 5555 5555 5555 4477 · срок 12/25 · CVV 000",
+    "yookassaHint": "Тестовая карта: 5555 5555 5555 4477 · срок 12/25 · CVV 000",
     "youtubeOauthTitle": "YouTube OAuth (загрузка видео)",
     "youtubeOauthDesc": "Client ID и Client Secret для загрузки видео на YouTube (spike 19.17.1).",
     "youtubeClientId": "Client ID",

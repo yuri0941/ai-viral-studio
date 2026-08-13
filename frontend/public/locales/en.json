@@ -250,6 +250,7 @@
     "yookassaOk": "🟢 YooKassa works! You can accept payments",
     "yookassaKeyHint": "YooKassa: shopId (6 digits) + Secret test_/live_ from dashboard → Integration → API",
     "yookassaCardHint": "Test card: 5555 5555 5555 4477 · expiry 12/25 · CVV 000",
+    "yookassaHint": "Test card: 5555 5555 5555 4477 · exp 12/25 · CVV 000",
     "youtubeOauthTitle": "YouTube OAuth (video upload)",
     "youtubeOauthDesc": "Client ID and Client Secret for uploading videos to YouTube (spike 19.17.1).",
     "youtubeClientId": "Client ID",

@@ -11,7 +11,8 @@ import { getProviderKey } from '../services/aiService.js'
 
 const router = express.Router()
 
-const YOUTUBE_REDIRECT_URI = 'https://aiviral-studio.ru/auth/youtube/callback'
+const BACKEND_URL = (process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:10000').replace(/\/$/, '')
+const YOUTUBE_REDIRECT_URI = `${BACKEND_URL}/api/youtube/callback`
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://aiviral-studio.ru').replace(/\/$/, '')
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
