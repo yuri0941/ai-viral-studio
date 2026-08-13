@@ -51,6 +51,16 @@
 - Тестовые аккаунты готовы к ручному тестированию 5 ролей
 - Следующий шаг: v9.9.17 — hotfix по feedback первых клиентов
 
+### 19.17.8 — Notify Resilience (YouTube-upload эпик, этап 2/3)
+- Живучесть токена: status active/expired/revoked, ежедневный cron 06:00 MSK
+- Уведомления клиенту в Telegram: успех со ссылкой, ошибка с причиной и кнопкой действия
+- Отбивка владельцу: мгновенно об ошибках, строкой в Daily Report об успехах
+- Идемпотентность: youtubeVideoId сохраняется сразу, повторный запуск не дублирует upload
+- Часовой пояс: scheduledAtLocal + user.preferences.timezone
+- Public за рубильником ENABLE_YOUTUBE_PUBLIC до аудита Google
+- Test users: подсказка при access_denied + инструкция в docs/YOUTUBE_AUDIT_CHECKLIST.md
+- Следующий этап: 19.17.7-SCHEDULER-UX v2 → 25-TARIFF-GATES
+
 ### v9.9.17 — Anti-Fail + Feedback + Daily Report
 - Telegram-боты стабильны: webhook + fallback на polling, нет конфликтов
 - Anti-Fail Mode: OMEGA следит за собой, алертит при проблемах
