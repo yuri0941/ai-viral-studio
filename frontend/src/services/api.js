@@ -546,6 +546,15 @@ export const neuroSalesApi = {
 }
 
 // ============================================
+// YouTube API [v9.9.19.17.4]
+// ============================================
+export const youtubeApi = {
+    status: () => request('/youtube/status'),
+    connectUrl: (redirect = '') => request(`/youtube/auth-url${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`),
+    disconnect: () => request('/youtube/disconnect', { method: 'POST' }),
+}
+
+// ============================================
 // Default export (kept for compatibility)
 // ============================================
 export { request }
@@ -576,4 +585,5 @@ export default {
     selfImprovementApi,
     monitoringApi,
     scheduledPostsApi,
+    youtubeApi,
 }

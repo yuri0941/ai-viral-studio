@@ -10,14 +10,13 @@ const PLATFORMS = [
   { id: 'instagram', name: 'Instagram', icon: 'IG', color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600', desc: 'Посты, Reels' },
   { id: 'tiktok', name: 'TikTok', icon: 'TT', color: 'bg-black border border-white/20', desc: 'Видео' },
   { id: 'linkedin', name: 'LinkedIn', icon: 'in', color: 'bg-blue-700', desc: 'Профиль, компания' },
-  { id: 'youtube', name: 'YouTube', icon: 'YT', color: 'bg-red-600', desc: 'Видео, Shorts' },
   { id: 'pinterest', name: 'Pinterest', icon: 'P', color: 'bg-red-700', desc: 'Пины, доски' },
   { id: 'facebook', name: 'Facebook', icon: 'f', color: 'bg-blue-800', desc: 'Страницы, группы' },
   { id: 'twitter', name: 'Twitter / X', icon: 'X', color: 'bg-black border border-white/20', desc: 'Посты, треды' },
   { id: 'discord', name: 'Discord', icon: 'D', color: 'bg-indigo-500', desc: 'Webhook' }
 ];
 
-export default function IntegrationsTab() {
+export default function IntegrationsTab({ onOpenYouTube }) {
   const { t } = useTranslation();
   const [integrations, setIntegrations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -529,6 +528,20 @@ export default function IntegrationsTab() {
       <p className="text-gray-400 text-sm">{t('socials.subtitle')}</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* [v9.9.19.17.4] YouTube moved to dedicated settings tab; old tile replaced by link */}
+        <button
+          type="button"
+          onClick={onOpenYouTube}
+          className="text-left bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 hover:border-red-500/30 transition-all"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white font-bold text-sm">YT</div>
+            <span className="text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-400">{t('youtube.newPlace') || 'Новое место'}</span>
+          </div>
+          <h4 className="text-white font-medium mb-1">YouTube</h4>
+          <p className="text-xs text-gray-500 mb-4">{t('youtube.shortDesc') || 'Видео, Shorts'}</p>
+          <span className="text-sm font-medium text-red-400">{t('youtube.connect') || 'Подключить YouTube'} →</span>
+        </button>
         {PLATFORMS.map(p => {
           if (p.id === 'vk') return renderVkCard(p);
 
