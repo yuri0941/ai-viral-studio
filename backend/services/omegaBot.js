@@ -111,6 +111,12 @@ function safeSendMessage(chatId, data, options = {}) {
   return bot.sendMessage(chatId, text, options)
 }
 
+// [19.17.8-NOTIFY-RESILIENCE] exported sender for system notifications to clients
+export function sendClientMessage(chatId, text, options = {}) {
+  if (!chatId) return Promise.resolve()
+  return safeSendMessage(chatId, text, options)
+}
+
 // [MASTER-v5.6-CONT] OMEGA Bot with Owner Mode & Auto-Features
 export const initOmegaBot = () => {
   if (initPromise) return initPromise

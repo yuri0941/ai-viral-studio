@@ -1844,6 +1844,8 @@
       "quotaRetryAfter": "YouTube quota is exhausted for today — retry after 10:00 MSK",
       "reconnectNeeded": "YouTube token expired — the channel needs to be reconnected",
       "reconnectCta": "Reconnect channel",
+      "tokenExpiredTitle": "YouTube channel needs reconnect",
+      "tokenExpiredDesc": "The access token has expired or was revoked. Click «Reconnect» to restore publishing.",
       "openInStudio": "Open in YouTube Studio",
       "processingFailed": "YouTube failed to process the video",
       "cancelUpload": "Cancel",

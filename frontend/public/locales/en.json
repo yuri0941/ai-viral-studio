@@ -787,6 +787,8 @@
     "disconnectFailed": "Failed to disconnect YouTube",
     "newPlace": "New place",
     "shortDesc": "Videos, Shorts",
+    "tokenExpiredTitle": "YouTube channel needs reconnect",
+    "tokenExpiredDesc": "The access token has expired or was revoked. Click «Reconnect» to restore publishing.",
     "scheduler": {
       "title": "YouTube",
       "subtitle": "Upload videos to your channel",

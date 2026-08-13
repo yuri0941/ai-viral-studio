@@ -11,6 +11,29 @@ import { getConnectedSocials, formatPlatformReasons } from '../utils/connectedSo
 
 const router = express.Router()
 
+// [19.17.8-NOTIFY-RESILIENCE] interpret client-local time using the user's timezone preference
+function parseScheduledAt(body = {}, userTimezone = 'Europe/Moscow') {
+    if (body.scheduledAtLocal && typeof body.scheduledAtLocal === 'string') {
+        // Expected format: "2026-08-14T14:00" (no timezone suffix) — treated as client-local
+        const localDate = new Date(body.scheduledAtLocal)
+        if (!isNaN(localDate.getTime())) {
+            try {
+                const utcString = localDate.toLocaleString('en-US', { timeZone: userTimezone })
+                const utcDate = new Date(utcString)
+                // Offset between the user's timezone and UTC at that moment
+                const offsetMs = utcDate.getTime() - localDate.getTime()
+                return new Date(localDate.getTime() - offsetMs)
+            } catch {
+                return localDate
+            }
+        }
+    }
+    const raw = body.scheduledAt || body.scheduledDate
+    if (!raw) return new Date()
+    const d = new Date(raw)
+    return isNaN(d.getTime()) ? new Date() : d
+}
+
 // [19.17.5-UPLOAD-SCHEDULER] storage for scheduled YouTube videos
 const YT_SCHEDULED_DIR = path.join(process.cwd(), 'uploads', 'yt')
 fs.mkdirSync(YT_SCHEDULED_DIR, { recursive: true })
@@ -69,13 +92,15 @@ router.post('/youtube', protect, ytScheduledUpload.fields([
         if (!scheduledAt) {
             return res.status(400).json({ status: 'error', error: 'scheduledAt_required' })
         }
+        const user = await User.findById(userId).select('preferences.timezone').lean()
+        const scheduledDate = parseScheduledAt(req.body, user?.preferences?.timezone || 'Europe/Moscow')
         const post = await ScheduledPost.create({
             userId,
             title: title || 'Без названия',
             content: description || '',
             platforms: ['youtube'],
             types: ['video'],
-            scheduledAt: new Date(scheduledAt),
+            scheduledAt: scheduledDate,
             status: 'scheduled',
             youtubeTitle: title || '',
             youtubeDescription: description || '',
@@ -100,14 +125,15 @@ router.post('/youtube', protect, ytScheduledUpload.fields([
 router.post('/', protect, async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id
-        const { title, content, platform, platforms, scheduledDate, scheduledAt, status, mediaUrl, mediaName, mediaType, hashtags, types } = req.body || {}
+        const { title, content, platform, platforms, status, mediaUrl, mediaName, mediaType, hashtags, types } = req.body || {}
+        const user = await User.findById(userId).select('preferences.timezone').lean()
         const post = await ScheduledPost.create({
             userId,
             title: title || 'Без названия',
             content: content || '',
             platforms: platforms || (platform ? [platform] : []),
             types: Array.isArray(types) ? types : (platforms || []).map(() => 'post'),
-            scheduledAt: scheduledAt ? new Date(scheduledAt) : (scheduledDate ? new Date(scheduledDate) : new Date()),
+            scheduledAt: parseScheduledAt(req.body, user?.preferences?.timezone || 'Europe/Moscow'),
             status: status || 'scheduled',
             mediaUrl: mediaUrl || '',
             mediaName: mediaName || '',
@@ -125,14 +151,14 @@ router.patch('/:id', protect, async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id
         const updates = {}
-        const allowed = ['title', 'content', 'platforms', 'types', 'scheduledAt', 'scheduledDate', 'status', 'mediaUrl', 'mediaName', 'mediaType', 'hashtags', 'publishedUrl']
+        const allowed = ['title', 'content', 'platforms', 'types', 'scheduledAt', 'scheduledDate', 'scheduledAtLocal', 'status', 'mediaUrl', 'mediaName', 'mediaType', 'hashtags', 'publishedUrl']
+        if (req.body.scheduledAtLocal !== undefined || req.body.scheduledAt !== undefined || req.body.scheduledDate !== undefined) {
+            const user = await User.findById(userId).select('preferences.timezone').lean()
+            updates.scheduledAt = parseScheduledAt(req.body, user?.preferences?.timezone || 'Europe/Moscow')
+        }
         allowed.forEach(key => {
-            if (req.body[key] !== undefined) {
-                if (key === 'scheduledAt' || key === 'scheduledDate') {
-                    updates.scheduledAt = new Date(req.body[key])
-                } else {
-                    updates[key] = req.body[key]
-                }
+            if (req.body[key] !== undefined && key !== 'scheduledAt' && key !== 'scheduledDate' && key !== 'scheduledAtLocal') {
+                updates[key] = req.body[key]
             }
         })
         const post = await ScheduledPost.findOneAndUpdate(

@@ -10,6 +10,11 @@ import User from '../models/User.js'
 import YouTubeToken from '../models/YouTubeToken.js'
 import { protect, requireRole } from '../middleware/auth.js'
 import { getProviderKey } from '../services/aiService.js'
+import { startYoutubeTokenHealthCron, startYoutubeReminderCron } from '../cron/youtubeNotifyCron.js'
+
+// [19.17.8-NOTIFY-RESILIENCE] start token health + reminder crons when routes load
+startYoutubeTokenHealthCron()
+startYoutubeReminderCron()
 
 const router = express.Router()
 
@@ -53,7 +58,11 @@ router.get('/callback', async (req, res) => {
   const googleError = req.query.error
   if (googleError) {
     log('callback_denied', { error: String(googleError) })
-    return res.redirect(redirectUrl('error', { message: `google_oauth_denied: ${String(googleError)}` }))
+    const extra = { message: `google_oauth_denied: ${String(googleError)}` }
+    if (String(googleError) === 'access_denied') {
+      extra.hint = 'Попроси владельца добавить твой Gmail в test users в Google Cloud Console → APIs & Services → OAuth consent screen → Test users.'
+    }
+    return res.redirect(redirectUrl('error', extra))
   }
 
   const { code, state } = req.query
@@ -241,6 +250,8 @@ router.get('/status', requireRole('owner', 'admin', 'creator'), async (req, res)
       channelId: yt.channelId,
       channelTitle: yt.channelTitle,
       connectedAt: yt.connectedAt,
+      tokenStatus: yt.status || 'active',
+      tokenStatusReason: yt.statusReason || '',
       publicEnabled,
     })
   } catch (err) {
@@ -418,6 +429,9 @@ function handleYoutubeRouteError(res, err, context) {
   }
   if (err.code === 'youtube_not_connected') {
     return res.status(400).json({ success: false, error: 'youtube_not_connected', message: err.message })
+  }
+  if (err.code === 'invalid_grant') {
+    return res.status(401).json({ success: false, error: 'invalid_grant', message: err.userMessage || 'Токен YouTube устарел или отозван — переподключи канал' })
   }
   if (err.code === 'duplicate_file') {
     return res.status(409).json({ success: false, error: 'duplicate_file', details: err.duplicate || null })

@@ -5,8 +5,10 @@ import path from 'path'
 import mongoose from 'mongoose'
 import YouTubeToken from '../models/YouTubeToken.js'
 import UploadSession from '../models/UploadSession.js'
+import User from '../models/User.js'
 import { getProviderKey, generateContent } from './aiService.js'
 import { alertOwner } from './ownerBot.js'
+import { sendClientMessage } from './omegaBot.js'
 
 const YOUTUBE_API_KEY = 'AIzaSyD1SH9WizR4zgi7JUshXfTuzHsJagmu4zU'
 const youtube = google.youtube({ version: 'v3', auth: YOUTUBE_API_KEY })
@@ -201,12 +203,29 @@ export async function getAccessTokenForUser(userId) {
         throw err
     }
 
-    const refreshRes = await axios.post(GOOGLE_TOKEN_URL, {
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: yt.refreshToken,
-        grant_type: 'refresh_token'
-    }, { timeout: 30000 })
+    let refreshRes
+    try {
+        refreshRes = await axios.post(GOOGLE_TOKEN_URL, {
+            client_id: clientId,
+            client_secret: clientSecret,
+            refresh_token: yt.refreshToken,
+            grant_type: 'refresh_token'
+        }, { timeout: 30000 })
+    } catch (refreshErr) {
+        const googleError = refreshErr.response?.data?.error || ''
+        const googleDescription = refreshErr.response?.data?.error_description || refreshErr.message
+        // [19.17.8-NOTIFY-RESILIENCE] invalid_grant means the grant was revoked or expired
+        if (googleError === 'invalid_grant') {
+            await YouTubeToken.markStatus(userId, 'revoked', 'invalid_grant')
+            const err = new Error('invalid_grant')
+            err.code = 'invalid_grant'
+            err.userMessage = 'Токен YouTube устарел или отозван — переподключи канал в настройках'
+            throw err
+        }
+        const err = new Error(`refresh_failed: ${googleDescription}`)
+        err.code = 'refresh_failed'
+        throw err
+    }
 
     const accessToken = refreshRes.data?.access_token
     if (!accessToken) throw new Error('no_access_token_in_refresh_response')
@@ -222,6 +241,78 @@ export async function getAccessTokenForUser(userId) {
     })
 
     return accessToken
+}
+
+// [19.17.8-NOTIFY-RESILIENCE] lightweight token health check: channels.list costs 1 quota unit
+export async function checkTokenAlive(userId) {
+    try {
+        const accessToken = await getAccessTokenForUser(userId)
+        await axios.get(`${YT_API_URL}/channels`, {
+            params: { part: 'id', mine: true, maxResults: 1 },
+            headers: { Authorization: `Bearer ${accessToken}` },
+            timeout: 30000
+        })
+        await YouTubeToken.markStatus(userId, 'active', '')
+        return { alive: true, status: 'active' }
+    } catch (err) {
+        const status = err.code === 'invalid_grant' ? 'revoked' : 'expired'
+        await YouTubeToken.markStatus(userId, status, err.code || err.message)
+        return { alive: false, status, reason: err.code || err.message }
+    }
+}
+
+// [19.17.8-NOTIFY-RESILIENCE] client-facing Telegram notifications
+async function getClientTelegramChatId(userId) {
+    try {
+        const user = await User.findById(userId).select('telegramChatId name').lean()
+        return user?.telegramChatId || null
+    } catch {
+        return null
+    }
+}
+
+export async function notifyClientYoutubePublished(userId, title, url) {
+    const chatId = await getClientTelegramChatId(userId)
+    if (!chatId) return
+    const message = `✅ Видео «${title}» опубликовано на YouTube:\n${url}\n\nЕсли HD ещё обрабатывается — YouTube докрутит сам.`
+    await sendClientMessage(chatId, message)
+}
+
+export async function notifyClientYoutubeError(userId, title, errorCode, errorMessage) {
+    const chatId = await getClientTelegramChatId(userId)
+    if (!chatId) return
+    let humanReason = errorMessage || errorCode
+    let actionHint = ''
+    if (errorCode === 'quota_exceeded') {
+        humanReason = 'Превышена дневная квота YouTube API'
+        actionHint = 'Повтори после 10:00 МСК.'
+    } else if (errorCode === 'invalid_grant' || errorCode === 'youtube_not_connected') {
+        humanReason = 'Токен YouTube устарел или отозван'
+        actionHint = 'Переподключи канал в настройках.'
+    } else if (errorCode === 'file_too_large' || errorCode === 'directBadType') {
+        humanReason = 'Неподдерживаемый формат или размер файла'
+        actionHint = 'Используй MP4, MOV или WebM до 20 ГБ.'
+    }
+    const message = `❌ Не удалось опубликовать видео «${title}»\nПричина: ${humanReason}\n\n${actionHint}`
+    const options = {}
+    if (errorCode === 'invalid_grant' || errorCode === 'youtube_not_connected') {
+        options.reply_markup = {
+            inline_keyboard: [[{ text: 'Переподключить канал', url: `${process.env.FRONTEND_URL || 'https://aiviral-studio.ru'}/settings?tab=youtube` }]]
+        }
+    }
+    await sendClientMessage(chatId, message, options)
+}
+
+export async function notifyClientYoutubeReminder(userId, title, scheduledAt) {
+    const chatId = await getClientTelegramChatId(userId)
+    if (!chatId) return
+    const timeStr = scheduledAt ? new Date(scheduledAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : ''
+    const message = `⏰ Пост «${title}» запланирован на ${timeStr}, но YouTube-канал отключён или токен устарел.\n\nПереподключи канал, иначе пост не выйдет.`
+    await sendClientMessage(chatId, message, {
+        reply_markup: {
+            inline_keyboard: [[{ text: 'Переподключить YouTube', url: `${process.env.FRONTEND_URL || 'https://aiviral-studio.ru'}/settings?tab=youtube` }]]
+        }
+    })
 }
 
 // [19.17.9] builds the videos.insert resource body shared by all upload paths.
@@ -366,31 +457,58 @@ export async function deleteVideoForUser(userId, videoId) {
 
 // [19.17.9-DIRECT-UPLOAD] scheduled posts upload via the resumable chunked path:
 // backend streams the file from disk in 8 MB chunks straight to Google (no 20 GB buffer in RAM).
+// [19.17.8-NOTIFY-RESILIENCE] wrapped with client + owner notifications.
 export async function publishScheduledYouTubePost(post) {
     const userId = post.userId
+    const title = post.youtubeTitle || post.title || 'Без названия'
     if (!post.youtubeVideoPath) throw new Error('youtube_video_path_missing')
+
+    // Idempotency guard: already uploaded in a previous run — do not upload twice
+    if (post.youtubeVideoId) {
+        return { success: true, postUrl: 'https://youtu.be/' + post.youtubeVideoId, videoId: post.youtubeVideoId, alreadyUploaded: true }
+    }
+
     const tags = Array.isArray(post.youtubeTags)
         ? post.youtubeTags
         : String(post.youtubeTags || '').split(',').map(t => t.trim()).filter(Boolean)
-    const { videoId } = await uploadVideoChunkedForUser(userId, post.youtubeVideoPath, {
-        title: post.youtubeTitle || post.title,
-        description: post.youtubeDescription || post.content || '',
-        tags,
-        privacyStatus: post.youtubePrivacyStatus || 'private'
-    })
 
-    // Thumbnail for cron uploads: explicit path or an image with the same base name in the media queue
-    const thumbnailPath = post.youtubeThumbnailPath && fs.existsSync(post.youtubeThumbnailPath)
-        ? post.youtubeThumbnailPath
-        : findThumbnailForVideo(post.youtubeVideoPath)
-    if (thumbnailPath) {
-        try {
-            await setThumbnailForUser(userId, videoId, thumbnailPath)
-        } catch (thumbErr) {
-            console.warn('[yt:schedule] thumbnail failed:', thumbErr.message)
+    try {
+        const { videoId } = await uploadVideoChunkedForUser(userId, post.youtubeVideoPath, {
+            title,
+            description: post.youtubeDescription || post.content || '',
+            tags,
+            privacyStatus: post.youtubePrivacyStatus || 'private'
+        })
+
+        // Persist immediately so a retried run skips the upload
+        if (post._id) {
+            await mongoose.model('ScheduledPost').updateOne(
+                { _id: post._id },
+                { $set: { youtubeVideoId: videoId, youtubeVideoUrl: 'https://youtu.be/' + videoId } }
+            ).catch(() => {})
         }
+
+        // Thumbnail for cron uploads: explicit path or an image with the same base name in the media queue
+        const thumbnailPath = post.youtubeThumbnailPath && fs.existsSync(post.youtubeThumbnailPath)
+            ? post.youtubeThumbnailPath
+            : findThumbnailForVideo(post.youtubeVideoPath)
+        if (thumbnailPath) {
+            try {
+                await setThumbnailForUser(userId, videoId, thumbnailPath)
+            } catch (thumbErr) {
+                console.warn('[yt:schedule] thumbnail failed:', thumbErr.message)
+            }
+        }
+
+        const url = 'https://youtu.be/' + videoId
+        await notifyClientYoutubePublished(userId, title, url).catch(() => {})
+        return { success: true, postUrl: url, videoId }
+    } catch (err) {
+        const code = err.code || 'unknown_error'
+        await notifyClientYoutubeError(userId, title, code, err.userMessage || err.message).catch(() => {})
+        alertOwner?.(`❌ YouTube publish failed\nClient: ${userId}\nPost: ${title}\nReason: ${code} — ${err.message}`).catch(() => {})
+        throw err
     }
-    return { success: true, postUrl: 'https://youtu.be/' + videoId, videoId }
 }
 
 // ============================================================
@@ -675,4 +793,29 @@ function findThumbnailForVideo(videoPath) {
         }
     } catch { /* optional thumbnail */ }
     return ''
+}
+
+// [19.17.8-NOTIFY-RESILIENCE] daily YouTube stats for the owner morning report
+export async function getYoutubeDailyStats() {
+    const today = new Date().toISOString().slice(0, 10)
+    const quotaDoc = await quotaCollection().findOne({ _id: today })
+    const quotaUsed = quotaDoc?.used || 0
+    const quotaPercent = Math.round((quotaUsed / QUOTA_DAILY_LIMIT) * 100)
+
+    const startOfDay = new Date(today + 'T00:00:00.000Z')
+    const endOfDay = new Date(today + 'T23:59:59.999Z')
+    const [published, errors] = await Promise.all([
+        mongoose.model('ScheduledPost').countDocuments({
+            platforms: 'youtube',
+            status: 'published',
+            publishedAt: { $gte: startOfDay, $lte: endOfDay }
+        }),
+        mongoose.model('ScheduledPost').countDocuments({
+            platforms: 'youtube',
+            status: 'failed',
+            updatedAt: { $gte: startOfDay, $lte: endOfDay }
+        })
+    ])
+
+    return { published, errors, quotaUsed, quotaPercent }
 }

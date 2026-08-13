@@ -1872,6 +1872,8 @@
       "quotaRetryAfter": "Квота YouTube на сегодня исчерпана — повторите после 10:00 МСК",
       "reconnectNeeded": "Токен YouTube устарел — нужно переподключить канал",
       "reconnectCta": "Переподключить канал",
+      "tokenExpiredTitle": "YouTube-канал нужно переподключить",
+      "tokenExpiredDesc": "Токен доступа устарел или был отозван. Нажмите «Переподключить», чтобы восстановить публикации.",
       "openInStudio": "Открыть в YouTube Studio",
       "processingFailed": "YouTube не смог обработать видео",
       "cancelUpload": "Отмена",

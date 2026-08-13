@@ -787,6 +787,8 @@
     "disconnectFailed": "Не удалось отключить YouTube",
     "newPlace": "Новое место",
     "shortDesc": "Видео, Shorts",
+    "tokenExpiredTitle": "YouTube-канал нужно переподключить",
+    "tokenExpiredDesc": "Токен доступа устарел или был отозван. Нажмите «Переподключить», чтобы восстановить публикации.",
     "scheduler": {
       "title": "YouTube",
       "subtitle": "Загрузка видео на канал",
