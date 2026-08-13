@@ -1,15 +1,50 @@
 import { createNode } from './cognitiveMesh.js';
+import PlanConfig from '../models/PlanConfig.js';
 
-const PLANS = {
+// [25-TARIFF-GATES] plans are now stored in DB (PlanConfig) with hot-reload cache
+const plansCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000;
+
+const FALLBACK_PLANS = {
   free: { name: 'Free', price: 0, limits: { projects: 3, agents: 2, storage: '100MB' }, features: ['Basic AI', '3 projects', 'Community support'] },
   pro: { name: 'Pro', price: 990, limits: { projects: 20, agents: 10, storage: '2GB' }, features: ['Advanced AI', '20 projects', 'Priority support', 'Telegram bot', 'Analytics'] },
   agency: { name: 'Agency', price: 4990, limits: { projects: 999, agents: 50, storage: '10GB' }, features: ['All Pro features', 'Unlimited projects', 'White-label', 'API access', 'Dedicated support'] }
 };
 
-export function getPlan(planId) { return PLANS[planId] || PLANS.free; }
+async function loadPlanFromDb(planId) {
+  const cached = plansCache.get(planId);
+  if (cached && Date.now() - cached.at < CACHE_TTL) return cached.data;
+  try {
+    const doc = await PlanConfig.getPlan(planId);
+    const plan = {
+      name: doc.plan === 'free' ? 'Free' : doc.plan === 'pro' ? 'Pro' : 'Agency',
+      price: doc.price,
+      quotas: doc.quotas,
+      features: doc.features,
+    };
+    plansCache.set(planId, { data: plan, at: Date.now() });
+    return plan;
+  } catch (err) {
+    console.warn('[paymentService] PlanConfig load failed, using fallback:', err.message);
+    return FALLBACK_PLANS[planId] || FALLBACK_PLANS.free;
+  }
+}
+
+export function getPlan(planId) {
+  // Sync facade for legacy callers; kicks async refresh
+  loadPlanFromDb(planId).catch(() => {});
+  const cached = plansCache.get(planId);
+  if (cached) return cached.data;
+  return FALLBACK_PLANS[planId] || FALLBACK_PLANS.free;
+}
+
+export async function getPlanPrice(planId) {
+  const plan = await loadPlanFromDb(planId);
+  return plan.price;
+}
 
 export async function createPayment(userId, planId, provider = 'yookassa') {
-  const plan = getPlan(planId);
+  const plan = await loadPlanFromDb(planId);
   if (plan.price === 0) return { success: true, planId, status: 'active', mock: true };
   const YOOKASSA_ENABLED = !!(process.env.YOOKASSA_SHOP_ID && process.env.YOOKASSA_SECRET_KEY);
   if (!YOOKASSA_ENABLED) {
@@ -29,7 +64,7 @@ export function checkQuota(user, action) {
   if (isOwner(user)) return { allowed: true, unlimited: true }
   const plan = getPlan(user.subscription?.plan || 'free');
   const used = user.subscription?.used || {};
-  const limits = plan.limits;
+  const limits = plan.limits || {};
   if (action === 'project' && (used.projects || 0) >= limits.projects) return { allowed: false, reason: 'Project limit reached. Upgrade to Pro.' };
   if (action === 'agent' && (used.agents || 0) >= limits.agents) return { allowed: false, reason: 'Agent limit reached. Upgrade to Pro.' };
   return { allowed: true };

@@ -263,6 +263,36 @@
     "label": "Timezone",
     "detect": "Detect automatically"
   },
+  "pricing": {
+    "title": "Pricing & Plans",
+    "analyze": "Analyze",
+    "adPricing": "Ad Pricing",
+    "analysisFor": "Analysis for",
+    "currentPrice": "Current price",
+    "cost": "Cost",
+    "margin": "Margin",
+    "sales30d": "Sales (30d)",
+    "recommended": "Recommended range",
+    "optimal": "optimal",
+    "newPrice": "New price",
+    "apply": "Apply",
+    "history": "Change history",
+    "noHistory": "No changes yet",
+    "generationsPerDay": "Generations/day",
+    "youtubeUploads": "YouTube uploads/day",
+    "mediaQueue": "Media queue"
+  },
+  "upsell": {
+    "title": "Limit reached",
+    "limitReached": "You have reached the limit: {{reason}} ({{usage}} of {{limit}}).",
+    "moreFeatures": "more features",
+    "month": "mo",
+    "upgrade": "Upgrade plan"
+  },
+  "quota": {
+    "generationsToday": "Generations today",
+    "almostExhausted": "Almost exhausted — few generations left"
+  },
   "settings": {
     "title": "Settings",
     "subtitle": "Manage profile, subscription and interface",

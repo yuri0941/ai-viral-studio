@@ -174,6 +174,7 @@ export const TAB_LABELS = {
     news: 'Новости',
     referrals: 'Рефералы',
     advertising: 'Реклама',
+    pricing: '💰 Цены', // [25-TARIFF-GATES]
     security: 'Безопасность',
     integrations: 'Интеграции',
     aiAnalytics: 'AI Аналитика',
