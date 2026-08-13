@@ -121,6 +121,22 @@ router.post('/', protect, async (req, res) => {
     }
 })
 
+// [19.17.7-SCHEDULER-UX] hard-delete post with all server-side files
+async function deletePostFiles(post) {
+  const candidates = [
+    post?.youtubeVideoPath,
+    post?.youtubeThumbnailPath,
+    post?.mediaUrl,
+  ].filter(Boolean)
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) fs.unlinkSync(p)
+    } catch (e) {
+      console.warn('[scheduledPosts:deletePostFiles] failed to delete:', p, e.message)
+    }
+  }
+}
+
 router.patch('/:id', protect, async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id
@@ -135,6 +151,12 @@ router.patch('/:id', protect, async (req, res) => {
                 }
             }
         })
+        // [19.17.7-SCHEDULER-UX] pause/resume bookkeeping
+        if (updates.status === 'paused') {
+            updates.pausedAt = new Date()
+        } else if (updates.status === 'scheduled') {
+            updates.pausedAt = null
+        }
         const post = await ScheduledPost.findOneAndUpdate(
             { _id: req.params.id, userId },
             { $set: updates },
@@ -151,8 +173,11 @@ router.patch('/:id', protect, async (req, res) => {
 router.delete('/:id', protect, async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id
-        const post = await ScheduledPost.findOneAndDelete({ _id: req.params.id, userId })
+        const post = await ScheduledPost.findOne({ _id: req.params.id, userId })
         if (!post) return res.status(404).json({ status: 'error', error: 'Post not found' })
+        // [19.17.7-SCHEDULER-UX] delete all associated server files first
+        await deletePostFiles(post)
+        await ScheduledPost.deleteOne({ _id: post._id, userId })
         res.json({ status: 'success', message: 'Deleted' })
     } catch (err) {
         console.error('[scheduledPosts:delete]', err.message)

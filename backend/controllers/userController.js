@@ -130,6 +130,9 @@ export const updateMe = async (req, res) => {
       }
       if (typeof preferences.notifications === 'boolean') updates.preferences.notifications = preferences.notifications
       if (preferences.timezone && typeof preferences.timezone === 'string') updates.preferences.timezone = preferences.timezone
+      if (typeof preferences.autoCleanTTL === 'number' && [-1, 0, 15, 60].includes(preferences.autoCleanTTL)) {
+        updates.preferences.autoCleanTTL = preferences.autoCleanTTL
+      }
     }
 
     const user = await User.findByIdAndUpdate(userId, { $set: updates }, { new: true }).select('+vkCommunityKey')

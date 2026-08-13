@@ -2,6 +2,9 @@ import ScheduledPost from '../models/ScheduledPost.js'
 import User from '../models/User.js'
 import { publishToPlatform } from './platformPublisher.js'
 import { getConnectedSocials, formatPlatformReasons } from '../utils/connectedSocials.js'
+import { runSchedulerCleanup, runMediaCleanup } from '../cron/schedulerCleanup.js'
+
+let lastMediaCleanupDate = ''
 
 // [v9.9.19.3] алерт владельцу о постах без платформ — один раз на пост, без спама
 const noPlatformAlerted = new Set()
@@ -65,6 +68,22 @@ export const startAutoPublisher = () => {
             console.warn('[AUTO-PUBLISH] stale publishing watchdog error:', e.message)
         }
 
+        // [19.17.7-SCHEDULER-UX] TTL cleanup hooks
+        try {
+            await runSchedulerCleanup()
+        } catch (e) {
+            console.warn('[AUTO-PUBLISH] scheduler cleanup error:', e.message)
+        }
+        const today = new Date().toISOString().slice(0, 10)
+        if (today !== lastMediaCleanupDate) {
+            lastMediaCleanupDate = today
+            try {
+                const { deleted, freed } = await runMediaCleanup()
+                if (deleted) console.log(`[AUTO-PUBLISH] media cleanup: ${deleted} files freed ${Math.round(freed / 1024 / 1024)} MB`)
+            } catch (e) {
+                console.warn('[AUTO-PUBLISH] media cleanup error:', e.message)
+            }
+        }
         const now = new Date()
         const candidatePosts = await ScheduledPost.find({
             $or: [
@@ -185,6 +204,8 @@ export const startAutoPublisher = () => {
             if (finalStatus === 'failed') {
                 // [v9.9.19.16.1] prevent permanent-failed posts from being re-selected every 5 minutes
                 update.retriedAt = new Date()
+                // [19.17.7-SCHEDULER-UX] keep file for 24h retry, then cleanup moves to 'error'
+                update.fileExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
                 const skipKey = `${captured._id}:${errorMessage}`
                 if (!permanentSkipLogged.has(skipKey)) {
                     permanentSkipLogged.add(skipKey)
@@ -205,6 +226,30 @@ export const startAutoPublisher = () => {
                 console.log(`[AUTO-PUBLISH] Post ${captured._id} published to ${publishedCount} platforms`)
             }
             await ScheduledPost.updateOne({ _id: captured._id }, { $set: update })
+
+            // [19.17.7-SCHEDULER-UX] after DB update, delete uploaded files immediately on success;
+            // set autoDeleteAt for the post record based on user's preference.
+            if (finalStatus === 'published') {
+                try {
+                    const { deletePostFiles } = await import('../cron/schedulerCleanup.js')
+                    await deletePostFiles(captured)
+                    const ttl = user?.preferences?.autoCleanTTL
+                    let autoDeleteAt = null
+                    if (ttl === -1) {
+                        autoDeleteAt = null
+                    } else {
+                        const minutes = Number.isFinite(ttl) ? ttl : 15
+                        if (minutes <= 0) autoDeleteAt = new Date()
+                        else autoDeleteAt = new Date(Date.now() + minutes * 60 * 1000)
+                    }
+                    await ScheduledPost.updateOne(
+                        { _id: captured._id },
+                        { $set: { autoDeleteAt } }
+                    )
+                } catch (e) {
+                    console.warn('[AUTO-PUBLISH] post-cleanup failed:', e.message)
+                }
+            }
         }
     }, 5 * 60 * 1000)
 

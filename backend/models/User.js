@@ -68,6 +68,7 @@ const userSchema = new mongoose.Schema(
                 theme: { type: String, enum: ['dark', 'light', 'system'], default: 'dark' },
                 notifications: { type: Boolean, default: true },
                 timezone: { type: String, default: 'Europe/Moscow' },
+                autoCleanTTL: { type: Number, default: 15 }, // minutes: 0=immediately, 15=default, 60=1hour, -1=never
                 voiceSettings: {
                     type: {
                         voiceId: { type: String, default: 'ru-RU-female' },

@@ -191,6 +191,9 @@ function SettingsPage() {
         language: user?.preferences?.language || 'ru',
         timezone: user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'
     });
+    // [v9.9.19.17.7] added: auto-clean TTL for published scheduler posts
+    const [autoCleanTTL, setAutoCleanTTL] = useState(user?.preferences?.autoCleanTTL ?? 15);
+    const [autoCleanSaving, setAutoCleanSaving] = useState(false);
 
     // [P20] added: watermark settings state
     const [watermark, setWatermark] = useState({
@@ -213,7 +216,10 @@ function SettingsPage() {
         if (user?.preferences?.timezone && user.preferences.timezone !== profile.timezone) {
             setProfile(p => ({ ...p, timezone: user.preferences.timezone }))
         }
-    }, [user?.preferences?.timezone])
+        if (typeof user?.preferences?.autoCleanTTL === 'number' && user.preferences.autoCleanTTL !== autoCleanTTL) {
+            setAutoCleanTTL(user.preferences.autoCleanTTL)
+        }
+    }, [user?.preferences?.timezone, user?.preferences?.autoCleanTTL])
 
     // [FIX-2026-08-05] removed old socials loader (tab deleted)
 
@@ -519,6 +525,7 @@ function SettingsPage() {
         { id: 'security', label: t('settings.security'), icon: Shield },
         { id: 'appearance', label: t('settings.appearance'), icon: Palette },
         { id: 'watermark', label: t('settings.watermark'), icon: Stamp },
+        { id: 'scheduler', label: t('settings.schedulerTab'), icon: Calendar }, // [v9.9.19.17.7] scheduler settings
         { id: 'addons', label: 'Мои дополнения', icon: Sparkles },
     ];
 
@@ -1418,6 +1425,68 @@ function SettingsPage() {
         </div>
     );
 
+    // [v9.9.19.17.7] added: scheduler auto-clean TTL settings
+    const handleSaveAutoCleanTTL = async () => {
+        setAutoCleanSaving(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/users/me`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ preferences: { autoCleanTTL } })
+            });
+            const data = await response.json();
+            if (data.success) {
+                if (updatePreferences) {
+                    await updatePreferences({ autoCleanTTL });
+                }
+                showToast(t('settings.autoCleanTTLSaved'), 'success');
+            } else {
+                showToast(data.message || t('settings.autoCleanTTLError'), 'error');
+            }
+        } catch (err) {
+            showToast(t('settings.autoCleanTTLError') + ': ' + err.message, 'error');
+        } finally {
+            setAutoCleanSaving(false);
+        }
+    };
+
+    const renderScheduler = () => (
+        <div className="luxury-card glass p-6 mb-4 space-y-6">
+            <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-[var(--text)]">
+                <Calendar size={18} className="text-[var(--success)]" /> {t('settings.schedulerAutoCleanTitle')}
+            </h3>
+            <p className="text-sm text-[var(--text-muted)] mb-4">
+                {t('settings.autoCleanTTLHint')}
+            </p>
+
+            <div>
+                <label className="text-xs text-[var(--text-muted)] mb-1 block">
+                    {t('settings.autoCleanTTLLabel')}
+                </label>
+                <select
+                    value={autoCleanTTL}
+                    onChange={e => setAutoCleanTTL(Number(e.target.value))}
+                    className={inputClass}
+                >
+                    <option value={0}>{t('settings.autoCleanTTLImmediately')}</option>
+                    <option value={15}>{t('settings.autoCleanTTL15min')}</option>
+                    <option value={60}>{t('settings.autoCleanTTL1hour')}</option>
+                    <option value={-1}>{t('settings.autoCleanTTLNever')}</option>
+                </select>
+            </div>
+
+            <button
+                onClick={handleSaveAutoCleanTTL}
+                disabled={autoCleanSaving}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+            >
+                {autoCleanSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                {autoCleanSaving ? t('settings.saving') : t('settings.saveChanges')}
+            </button>
+        </div>
+    );
+
     const handleAnimationsToggle = () => {
         const next = !animationsEnabled;
         setAnimationsEnabled(next);
@@ -1512,6 +1581,7 @@ function SettingsPage() {
             case 'addons': return <AddonMarketplace />;
             case 'appearance': return renderAppearance();
             case 'watermark': return renderWatermark();
+            case 'scheduler': return renderScheduler(); // [v9.9.19.17.7] scheduler settings
             default: return renderProfile();
         }
     };

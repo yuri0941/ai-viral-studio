@@ -137,6 +137,13 @@ function SchedulerPage() {
     const ytAbortRef = useRef(null);
     const ytSpeedRef = useRef({ ema: 0 });
     const ytPollRef = useRef(null);
+    // [19.17.7-SCHEDULER-UX v2] lifecycle + filters + fullscreen + confirm + media usage
+    const [filters, setFilters] = useState({ platform: '', status: '' });
+    const [confirmModal, setConfirmModal] = useState(null);
+    const [fullscreenMedia, setFullscreenMedia] = useState(null);
+    const [mediaUsage, setMediaUsage] = useState({ used: 0, limit: 5 * 1024 * 1024 * 1024 });
+    const [deleteMediaIndex, setDeleteMediaIndex] = useState(null);
+    const confirmModalRef = useRef(null);
     const VIDEO_STYLES = [
         { id: 'dynamic', label: t('aiVideo.styles.dynamic') },
         { id: 'calm', label: t('aiVideo.styles.calm') },
@@ -192,6 +199,7 @@ function SchedulerPage() {
             status: post.status || 'scheduled',
             mediaUrl: post.mediaUrl || null,
             mediaName: post.mediaName || '',
+            mediaType: post.mediaType || '',
             description: post.content || '',
             tags: post.hashtags || '',
             content: post.content || '',
@@ -201,6 +209,11 @@ function SchedulerPage() {
             autoDelete: false,
             autoDeleteTime: '24',
             fileName: post.mediaUrl || null,
+            errorMessage: post.errorMessage || '',
+            youtubeVideoId: post.youtubeVideoId || '',
+            youtubeVideoUrl: post.youtubeVideoUrl || '',
+            publishedUrl: post.publishedUrl || '',
+            thumbnailUrl: post.mediaUrl || post.youtubeThumbnailPath || '',
         };
     }
 
@@ -245,6 +258,12 @@ function SchedulerPage() {
         { id: 'm1', name: 'intro_final.png', type: 'image/png', url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=600&fit=crop', size: 1055736 },
         { id: 'm2', name: 'thumbnail_v2.png', type: 'image/png', url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=600&fit=crop', size: 48200 },
     ]);
+
+    // [19.17.7-SCHEDULER-UX] media queue usage (client-side estimate)
+    useEffect(() => {
+        const used = mediaQueue.reduce((sum, m) => sum + (m.size || 0), 0);
+        setMediaUsage(prev => ({ ...prev, used }));
+    }, [mediaQueue]);
 
     // Auto-publishing simulation
     useEffect(() => {
@@ -589,6 +608,111 @@ function SchedulerPage() {
         }
     };
 
+    // [19.17.7-SCHEDULER-UX] post lifecycle actions
+    const handlePause = async (post) => {
+        try {
+            await scheduledPostsApi.pause(post._id || post.id);
+            toast.success(t('scheduler.pauseSuccess'));
+            await loadPosts();
+        } catch (err) {
+            toast.error(err.message || t('common.error'));
+        }
+    };
+
+    const handleResume = async (post) => {
+        try {
+            await scheduledPostsApi.resume(post._id || post.id);
+            toast.success(t('scheduler.resumeSuccess'));
+            await loadPosts();
+        } catch (err) {
+            toast.error(err.message || t('common.error'));
+        }
+    };
+
+    const handleDuplicate = async (post) => {
+        try {
+            const scheduledAt = new Date();
+            scheduledAt.setDate(scheduledAt.getDate() + 1);
+            scheduledAt.setHours(12, 0, 0, 0);
+            const payload = {
+                title: post.title ? `${post.title} (копия)` : 'Копия поста',
+                content: post.content || post.description || '',
+                platforms: post.platforms || [],
+                types: post.types || [],
+                hashtags: post.hashtags || '',
+                scheduledAt: scheduledAt.toISOString(),
+                mediaUrl: post.mediaUrl || '',
+                mediaName: post.mediaName || '',
+                mediaType: post.mediaType || '',
+                status: 'scheduled',
+            };
+            await scheduledPostsApi.create(payload);
+            toast.success(t('scheduler.duplicateSuccess'));
+            await loadPosts();
+        } catch (err) {
+            toast.error(err.message || t('common.error'));
+        }
+    };
+
+    const handleDeletePost = (post) => {
+        setConfirmModal({
+            title: t('scheduler.confirmDeleteTitle'),
+            message: t('scheduler.confirmDeleteMessage', { title: post.title }),
+            onConfirm: async () => {
+                try {
+                    await scheduledPostsApi.delete(post._id || post.id);
+                    toast.success(t('scheduler.deleteSuccess'));
+                    setConfirmModal(null);
+                    await loadPosts();
+                } catch (err) {
+                    toast.error(err.message || t('common.error'));
+                }
+            },
+            onCancel: () => setConfirmModal(null),
+        });
+    };
+
+    const handlePublishNow = async (post) => {
+        try {
+            await scheduledPostsApi.publishNow(post._id || post.id, post.platforms || []);
+            toast.success(t('scheduler.publishNowSuccess'));
+            await loadPosts();
+        } catch (err) {
+            toast.error(err.message || t('common.error'));
+        }
+    };
+
+    const handleOpenFullscreen = (post) => {
+        const videoId = post.youtubeVideoId || post.publishedUrl?.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1];
+        if (videoId) {
+            setFullscreenMedia({ type: 'youtube', videoId });
+            return;
+        }
+        const src = post.mediaUrl || post.thumbnailUrl || '';
+        if (!src) return;
+        const isVideo = post.mediaType?.startsWith('video/') || /\.(mp4|mov|webm)(\?|$)/i.test(src);
+        setFullscreenMedia({ type: isVideo ? 'video' : 'image', src });
+    };
+
+    const closeFullscreen = () => setFullscreenMedia(null);
+
+    const handleDeleteMedia = (idx) => {
+        setDeleteMediaIndex(idx);
+        setConfirmModal({
+            title: t('scheduler.deleteMediaConfirm'),
+            message: mediaQueue[idx]?.name || '',
+            onConfirm: () => {
+                setMediaQueue(prev => prev.filter((_, i) => i !== idx));
+                setDeleteMediaIndex(null);
+                setConfirmModal(null);
+            },
+            onCancel: () => {
+                setDeleteMediaIndex(null);
+                setConfirmModal(null);
+            },
+        });
+    };
+
     // Keyboard navigation for media preview
     useEffect(() => {
         if (previewIndex === null) return;
@@ -612,6 +736,18 @@ function SchedulerPage() {
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
     }, [previewIndex, mediaQueue.length]);
+
+    // [19.17.7-SCHEDULER-UX] Esc closes fullscreen and confirm modal
+    useEffect(() => {
+        const handler = (e) => {
+            if (e.key === 'Escape') {
+                setFullscreenMedia(null);
+                setConfirmModal(null);
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, []);
 
     // Drag post between days
     const handlePostDragStart = (e, postId) => {
@@ -1128,6 +1264,12 @@ function SchedulerPage() {
     const scheduledPosts = posts.filter(p => p.status === 'scheduled').length;
     const draftPosts = posts.filter(p => p.status === 'draft').length;
     const publishedPosts = posts.filter(p => p.status === 'published').length;
+    const pausedPosts = posts.filter(p => p.status === 'paused').length;
+    const filteredPosts = posts.filter(p => {
+        if (filters.platform && !p.platforms?.includes(filters.platform)) return false;
+        if (filters.status && p.status !== filters.status) return false;
+        return true;
+    });
 
     return (
         <div className="min-h-screen bg-[#0a0a0f] text-white p-4 md:p-6">
@@ -1195,6 +1337,33 @@ function SchedulerPage() {
                 </div>
             </div>
 
+            {/* [19.17.7-SCHEDULER-UX] platform + status filters */}
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+                <select
+                    value={filters.platform}
+                    onChange={e => setFilters(f => ({ ...f, platform: e.target.value }))}
+                    className="luxury-input text-sm py-1.5"
+                >
+                    <option value="">{t('scheduler.filterAll')} {t('scheduler.filterPlatform')}</option>
+                    {PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <select
+                    value={filters.status}
+                    onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
+                    className="luxury-input text-sm py-1.5"
+                >
+                    <option value="">{t('scheduler.filterAll')} {t('scheduler.filterStatus')}</option>
+                    {['draft', 'scheduled', 'paused', 'publishing', 'published', 'failed', 'error'].map(s => (
+                        <option key={s} value={s}>{t(`scheduler.status.${s}`)}</option>
+                    ))}
+                </select>
+                {(filters.platform || filters.status) && (
+                    <button onClick={() => setFilters({ platform: '', status: '' })} className="text-xs text-gray-400 hover:text-white underline">
+                        {t('scheduler.clearFilters')}
+                    </button>
+                )}
+            </div>
+
             {/* Calendar Grid */}
             {/* [LUXURY-UI] added: glassmorphic calendar container */}
             <div className="bg-[#0f0f1a]/80 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden mb-8">
@@ -1213,13 +1382,20 @@ function SchedulerPage() {
                 </div>
 
                 <VisualCalendar
-                    posts={posts}
+                    posts={filteredPosts}
                     weekDates={weekDates}
                     onDateClick={(dateStr) => openModal(null, dateStr)}
                     onPostClick={openModal}
                     onPostMove={handlePostMove}
                     onCopyPost={handleCopyPost}
                     onPublishTelegram={handlePublishTelegram}
+                    onPause={handlePause}
+                    onResume={handleResume}
+                    onDuplicate={handleDuplicate}
+                    onDelete={handleDeletePost}
+                    onPublishNow={handlePublishNow}
+                    onFullscreen={handleOpenFullscreen}
+                    t={t}
                     platformColors={PLATFORM_COLORS}
                     platformIcons={PLATFORMS.reduce((acc, p) => { acc[p.id] = p.icon; return acc; }, {})}
                 />
@@ -1228,9 +1404,21 @@ function SchedulerPage() {
             {/* Media queue */}
             {/* [LUXURY-UI] added: glassmorphic media queue */}
             <div className="bg-[#0f0f1a]/80 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-5 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold flex items-center gap-2"><Film className="w-4 h-4 text-purple-400" /> Очередь медиа</h3>
-                    <span className="text-xs text-gray-500">{mediaQueue.length} файлов</span>
+                <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold flex items-center gap-2"><Film className="w-4 h-4 text-purple-400" /> {t('scheduler.mediaQueue')}</h3>
+                        <span className="text-xs text-gray-500">{mediaQueue.length} {t('scheduler.files')}</span>
+                    </div>
+                    {/* [19.17.7-SCHEDULER-UX] disk usage indicator */}
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                        <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
+                            <div
+                                className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all"
+                                style={{ width: `${Math.min(100, (mediaUsage.used / mediaUsage.limit) * 100)}%` }}
+                            />
+                        </div>
+                        <span className="shrink-0">{formatSize(mediaUsage.used)} {t('scheduler.mediaUsed')} {formatSize(mediaUsage.limit)}</span>
+                    </div>
                 </div>
                 <div className="flex gap-4 overflow-x-auto pb-3 touch-pan-x">
                     {mediaQueue.length === 0 ? (
@@ -1286,7 +1474,16 @@ function SchedulerPage() {
                                 </div>
                                 {/* [LUXURY-UI] added: premium media card metadata */}
                                 <div className="w-[160px] md:w-[200px]">
-                                    <p className="text-xs text-gray-400 truncate" title={media.name}>{media.name}</p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs text-gray-400 truncate" title={media.name}>{media.name}</p>
+                                        <button
+                                            onClick={() => handleDeleteMedia(idx)}
+                                            className="p-1 rounded hover:bg-white/10 text-red-400"
+                                            title={t('scheduler.delete')}
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
                                     <div className="flex items-center gap-2 text-[10px] text-gray-500 mt-1">
                                         {media.size ? <span>{formatSize(media.size)}</span> : null}
                                         {media.duration ? <span className="flex items-center gap-0.5"><Clock size={10} /> {formatDuration(media.duration)}</span> : null}
@@ -1932,6 +2129,61 @@ function SchedulerPage() {
                             {mediaQueue[previewIndex].duration ? <span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={12} /> {formatDuration(mediaQueue[previewIndex].duration)}</span> : null}
                             <span className="text-xs text-gray-600">{previewIndex + 1} / {mediaQueue.length}</span>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* [19.17.7-SCHEDULER-UX] confirm modal (delete post / delete media) */}
+            {confirmModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] flex items-center justify-center p-4" onClick={() => confirmModal.onCancel?.()}>
+                    <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-semibold text-white mb-2">{confirmModal.title}</h3>
+                        <p className="text-sm text-gray-300 mb-6">{confirmModal.message}</p>
+                        <div className="flex gap-3 justify-end">
+                            <button onClick={confirmModal.onCancel} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm transition">
+                                {t('scheduler.confirmDeleteCancel')}
+                            </button>
+                            <button
+                                onClick={confirmModal.onConfirm}
+                                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition"
+                            >
+                                {t('scheduler.confirmDeleteConfirm')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* [19.17.7-SCHEDULER-UX] fullscreen media / YouTube embed */}
+            {fullscreenMedia && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4" onClick={closeFullscreen}>
+                    <button onClick={closeFullscreen} className="absolute top-5 right-5 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition">
+                        <X size={24} />
+                    </button>
+                    <div className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
+                        {fullscreenMedia.type === 'youtube' ? (
+                            <iframe
+                                src={`https://www.youtube.com/embed/${fullscreenMedia.videoId}`}
+                                title="YouTube video player"
+                                className="w-full aspect-video rounded-xl shadow-2xl"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
+                        ) : fullscreenMedia.type === 'video' ? (
+                            <video
+                                src={fullscreenMedia.src}
+                                controls
+                                autoPlay
+                                playsInline
+                                className="max-h-[85vh] max-w-full rounded-xl shadow-2xl"
+                            />
+                        ) : (
+                            <img
+                                src={fullscreenMedia.src}
+                                alt=""
+                                className="max-h-[85vh] max-w-full object-contain rounded-xl shadow-2xl"
+                            />
+                        )}
                     </div>
                 </div>
             )}

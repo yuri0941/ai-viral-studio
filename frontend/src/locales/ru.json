@@ -1788,9 +1788,32 @@
   "discord": {
     "connectTitle": "Подключить Discord webhook"
   },
-  "youtube": {
-    "title": "YouTube",
-    "subtitle": "Подключите канал для загрузки видео из кабинета",
+  "scheduler": {
+    "pause": "Пауза",
+    "resume": "Возобновить",
+    "duplicate": "Дублировать",
+    "delete": "Удалить",
+    "publishNow": "Опубликовать сейчас",
+    "pausedBadge": "Пауза",
+    "statusPaused": "На паузе",
+    "statusFailed": "Ошибка",
+    "errorTooltip": "Ошибка: {{message}}",
+    "confirmDeleteTitle": "Удалить пост",
+    "confirmDeleteMessage": "Вы уверены, что хотите удалить «{{title}}»? Это действие нельзя отменить.",
+    "confirmDeleteConfirm": "Удалить",
+    "confirmDeleteCancel": "Отмена",
+    "filterAll": "Все",
+    "filterPlatform": "Платформа",
+    "filterStatus": "Статус",
+    "mediaUsage": "Использование медиа",
+    "mediaUsed": "Использовано",
+    "mediaLimit": "Лимит",
+    "deleteMediaConfirm": "Удалить файл «{{name}}» из очереди?",
+    "fullscreenTitle": "Просмотр"
+  },
+  "settings": {
+    "title": "Настройки",
+    "subtitle": "Управление профилем, подпиской и интерфейсом",
     "connect": "Подключить YouTube",
     "disconnect": "Отключить YouTube",
     "connected": "Подключено",
@@ -1876,6 +1899,16 @@
       "processingFailed": "YouTube не смог обработать видео",
       "cancelUpload": "Отмена",
       "scheduleTooBig": "Файлы больше 256 МБ нельзя планировать через сервер — используйте отложенную публикацию"
-    }
+    },
+    "schedulerTab": "Планировщик",
+    "schedulerAutoCleanTitle": "Автоочистка календаря",
+    "autoCleanTTLHint": "После публикации пост автоматически исчезает из календаря через выбранное время. Сами медиафайлы удаляются сразу после загрузки — это экономит место на диске.",
+    "autoCleanTTLLabel": "Удалять опубликованные посты из календаря через",
+    "autoCleanTTLImmediately": "Сразу",
+    "autoCleanTTL15min": "15 минут",
+    "autoCleanTTL1hour": "1 час",
+    "autoCleanTTLNever": "Никогда",
+    "autoCleanTTLSaved": "Настройка автоочистки сохранена",
+    "autoCleanTTLError": "Не удалось сохранить настройку автоочистки"
   }
 }

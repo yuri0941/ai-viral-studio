@@ -64,7 +64,17 @@
     "paymentNoUrl": "Не получен URL оплаты",
     "paymentSuccess": "Оплата прошла успешно",
     "paymentCancelled": "Оплата отменена",
-    "paymentError": "Ошибка оплаты"
+    "paymentError": "Ошибка оплаты",
+    "schedulerTab": "Планировщик",
+    "schedulerAutoCleanTitle": "Автоочистка календаря",
+    "autoCleanTTLHint": "После публикации пост автоматически исчезает из календаря через выбранное время. Сами медиафайлы удаляются сразу после загрузки — это экономит место на диске.",
+    "autoCleanTTLLabel": "Удалять опубликованные посты из календаря через",
+    "autoCleanTTLImmediately": "Сразу",
+    "autoCleanTTL15min": "15 минут",
+    "autoCleanTTL1hour": "1 час",
+    "autoCleanTTLNever": "Никогда",
+    "autoCleanTTLSaved": "Настройка автоочистки сохранена",
+    "autoCleanTTLError": "Не удалось сохранить настройку автоочистки"
   },
   "socials": {
     "title": "Соцсети",
