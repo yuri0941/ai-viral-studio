@@ -273,6 +273,7 @@
     "notifications": "Уведомления",
     "security": "Безопасность",
     "appearance": "Внешний вид",
+    "youtube": "YouTube",
     "logout": "Выйти",
     "name": "Имя",
     "email": "Email",
@@ -1786,5 +1787,23 @@
   },
   "discord": {
     "connectTitle": "Подключить Discord webhook"
+  },
+  "youtube": {
+    "title": "YouTube",
+    "subtitle": "Подключите канал для загрузки видео из кабинета",
+    "connect": "Подключить YouTube",
+    "disconnect": "Отключить YouTube",
+    "connected": "Подключено",
+    "notConnected": "Не подключено",
+    "channel": "Канал: {{title}}",
+    "connectedAtLabel": "Подключено",
+    "disconnectConfirm": "Отключить YouTube? Токены будут отозваны и удалены.",
+    "disconnected": "YouTube отключён",
+    "connectedSuccess": "✅ YouTube подключён",
+    "connectError": "❌ Ошибка подключения YouTube",
+    "connectFailed": "Не удалось получить URL авторизации YouTube",
+    "disconnectFailed": "Не удалось отключить YouTube",
+    "newPlace": "Новое место",
+    "shortDesc": "Видео, Shorts"
   }
 }

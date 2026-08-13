@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
+import { youtubeApi } from '../services/api.js';
 import i18n from '../i18n';
 import { PLANS, getPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
 import IntegrationsTab from './settings/IntegrationsTab.jsx'; // [SOCIAL-v5.1] added
@@ -32,6 +34,108 @@ const CURRENCIES = [
     { value: 'UAH', label: '₴ UAH' },
     { value: 'KZT', label: '₸ KZT' },
 ]; // [P24] fixed: currency selector options
+
+// [v9.9.19.17.4] YouTube connect tab for owner/admin/creator
+function YouTubeSettingsTab() {
+    const { t } = useTranslation();
+    const [status, setStatus] = useState({ connected: false });
+    const [loading, setLoading] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
+
+    const loadStatus = async () => {
+        setLoading(true);
+        try {
+            const data = await youtubeApi.status();
+            setStatus(data || { connected: false });
+        } catch (e) {
+            setStatus({ connected: false });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadStatus();
+    }, []);
+
+    const handleConnect = async () => {
+        setActionLoading(true);
+        try {
+            const data = await youtubeApi.connectUrl('/settings?tab=youtube');
+            if (data?.url) {
+                window.open(data.url, '_blank');
+            } else {
+                toast.error(data?.error || t('youtube.connectFailed') || 'Не удалось получить URL авторизации YouTube');
+            }
+        } catch (e) {
+            toast.error(t('youtube.connectFailed') || 'Не удалось получить URL авторизации YouTube');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleDisconnect = async () => {
+        if (!window.confirm(t('youtube.disconnectConfirm') || 'Отключить YouTube? Токены будут отозваны и удалены.')) return;
+        setActionLoading(true);
+        try {
+            await youtubeApi.disconnect();
+            setStatus({ connected: false });
+            toast.success(t('youtube.disconnected') || 'YouTube отключён');
+        } catch (e) {
+            toast.error(t('youtube.disconnectFailed') || 'Не удалось отключить YouTube');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <h3 className="text-xl font-bold text-[var(--text)] flex items-center gap-2">
+                    <Youtube className="w-6 h-6 text-red-500" />
+                    {t('youtube.title') || 'YouTube'}
+                </h3>
+                <p className="text-sm text-gray-400 mt-1">{t('youtube.subtitle') || 'Подключите канал для загрузки видео из кабинета'}</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white font-bold text-sm">YT</div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${status.connected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                        {status.connected ? t('youtube.connected') || 'Подключено' : t('youtube.notConnected') || 'Не подключено'}
+                    </span>
+                </div>
+
+                {status.connected && (
+                    <div className="mb-4 space-y-1 text-sm text-gray-300">
+                        <p>{t('youtube.channel', { title: status.channelTitle || status.channelId || '' })}</p>
+                        <p className="text-xs text-gray-400">
+                            {status.connectedAt ? `${t('youtube.connectedAtLabel') || 'Подключено'}: ${new Date(status.connectedAt).toLocaleString('ru-RU')}` : ''}
+                        </p>
+                    </div>
+                )}
+
+                {status.connected ? (
+                    <button
+                        onClick={handleDisconnect}
+                        disabled={actionLoading}
+                        className="w-full py-2 rounded-xl bg-white/5 text-gray-300 hover:bg-white/10 text-sm font-medium transition-all disabled:opacity-50"
+                    >
+                        {actionLoading ? t('common.loading') : t('youtube.disconnect') || 'Отключить YouTube'}
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleConnect}
+                        disabled={actionLoading || loading}
+                        className="w-full py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-medium hover:shadow-lg hover:shadow-red-500/25 transition-all disabled:opacity-50"
+                    >
+                        {actionLoading ? t('common.loading') : t('youtube.connect') || 'Подключить YouTube'}
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
 
 function SettingsPage() {
     const { t } = useTranslation();
@@ -137,6 +241,22 @@ function SettingsPage() {
             window.history.replaceState({}, document.title, window.location.pathname);
         } else if (paymentStatus === 'cancel') {
             showToast(t('settings.paymentCancelled'), 'error');
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []);
+
+    // [v9.9.19.17.4] handle YouTube OAuth redirect back to settings
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        const youtubeStatus = urlParams.get('youtube');
+        if (tab) setActiveTab(tab);
+        if (youtubeStatus === 'success') {
+            toast.success(t('youtube.connectedSuccess') || '✅ YouTube подключён');
+        } else if (youtubeStatus === 'error') {
+            toast.error(t('youtube.connectError') || '❌ Ошибка подключения YouTube');
+        }
+        if (tab || youtubeStatus) {
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     }, []);
@@ -394,6 +514,7 @@ function SettingsPage() {
         { id: 'profile', label: t('settings.profile'), icon: User },
         { id: 'subscription', label: t('settings.subscription'), icon: Diamond },
         { id: 'integrations', label: t('settings.integrations'), icon: Link2 }, // [FIX-2026-08-05] only one socials tab
+        { id: 'youtube', label: t('settings.youtube') || 'YouTube', icon: Youtube },
         { id: 'notifications', label: t('settings.notifications'), icon: Bell },
         { id: 'security', label: t('settings.security'), icon: Shield },
         { id: 'appearance', label: t('settings.appearance'), icon: Palette },
@@ -1384,7 +1505,8 @@ function SettingsPage() {
         switch (activeTab) {
             case 'profile': return renderProfile();
             case 'subscription': return renderSubscription();
-            case 'integrations': return <IntegrationsTab />; // [FIX-2026-08-05] unified socials tab
+            case 'integrations': return <IntegrationsTab onOpenYouTube={() => setActiveTab('youtube')} />; // [FIX-2026-08-05] unified socials tab
+            case 'youtube': return <YouTubeSettingsTab />;
             case 'notifications': return renderNotifications();
             case 'security': return renderSecurity();
             case 'addons': return <AddonMarketplace />;

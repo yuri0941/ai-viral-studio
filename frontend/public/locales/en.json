@@ -20,6 +20,7 @@
     "notifications": "Notifications",
     "security": "Security",
     "appearance": "Appearance",
+    "youtube": "YouTube",
     "logout": "Log out",
     "name": "Name",
     "email": "Email",
@@ -768,5 +769,23 @@
     "recommendations": "Recommendations",
     "readError": "Could not read image",
     "error": "Analysis failed"
+  },
+  "youtube": {
+    "title": "YouTube",
+    "subtitle": "Connect your channel to upload videos from the dashboard",
+    "connect": "Connect YouTube",
+    "disconnect": "Disconnect YouTube",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "channel": "Channel: {{title}}",
+    "connectedAtLabel": "Connected",
+    "disconnectConfirm": "Disconnect YouTube? Tokens will be revoked and deleted.",
+    "disconnected": "YouTube disconnected",
+    "connectedSuccess": "✅ YouTube connected",
+    "connectError": "❌ YouTube connection error",
+    "connectFailed": "Failed to get YouTube authorization URL",
+    "disconnectFailed": "Failed to disconnect YouTube",
+    "newPlace": "New place",
+    "shortDesc": "Videos, Shorts"
   }
 }

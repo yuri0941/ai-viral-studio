@@ -6,6 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import User from '../models/User.js'
+import YouTubeToken from '../models/YouTubeToken.js'
 import { protect, requireRole } from '../middleware/auth.js'
 import { getProviderKey } from '../services/aiService.js'
 
@@ -20,9 +21,16 @@ const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo'
 const YOUTUBE_UPLOAD_SESSION_URL = 'https://www.googleapis.com/upload/youtube/v3/videos'
 const YOUTUBE_DELETE_URL = 'https://www.googleapis.com/youtube/v3/videos'
 
-function redirectUrl(status, extra = {}) {
-  const params = new URLSearchParams({ tab: 'apiKeys', youtube: status, ...extra })
-  return `${FRONTEND_URL}/owner?${params.toString()}`
+function sanitizeRedirect(value) {
+  const raw = typeof value === 'string' ? value : ''
+  if (!raw.startsWith('/') || raw.length > 200) return '/owner?tab=apiKeys'
+  return raw
+}
+
+function redirectUrl(status, extra = {}, redirect = '/owner?tab=apiKeys') {
+  const params = new URLSearchParams({ youtube: status, ...extra })
+  if (!redirect.includes('tab=')) params.set('tab', redirect.startsWith('/settings') ? 'youtube' : 'apiKeys')
+  return `${FRONTEND_URL}${redirect}${redirect.includes('?') ? '&' : '?'}${params.toString()}`
 }
 
 function log(step, meta = '') {
@@ -53,22 +61,24 @@ router.get('/callback', async (req, res) => {
   }
 
   let userId
+  let redirect = '/owner?tab=apiKeys'
   try {
     const decoded = jwt.verify(state, process.env.JWT_SECRET)
     userId = decoded.userId
+    redirect = sanitizeRedirect(decoded.redirect || redirect)
   } catch (err) {
-    return res.redirect(redirectUrl('error', { message: `invalid_state: ${err.message}` }))
+    return res.redirect(redirectUrl('error', { message: `invalid_state: ${err.message}` }, redirect))
   }
 
   if (!userId) {
-    return res.redirect(redirectUrl('error', { message: 'missing_user_id_in_state' }))
+    return res.redirect(redirectUrl('error', { message: 'missing_user_id_in_state' }, redirect))
   }
 
   try {
     const clientId = await getProviderKey('youtube_oauth', userId)
     const clientSecret = await getProviderKey('youtube_secret', userId)
     if (!clientId || !clientSecret) {
-      return res.redirect(redirectUrl('error', { message: 'oauth_credentials_not_configured' }))
+      return res.redirect(redirectUrl('error', { message: 'oauth_credentials_not_configured' }, redirect))
     }
 
     const tokenRes = await axios.post(GOOGLE_TOKEN_URL, {
@@ -83,10 +93,12 @@ router.get('/callback', async (req, res) => {
     const refreshToken = tokenRes.data?.refresh_token
 
     if (!accessToken) {
-      return res.redirect(redirectUrl('error', { message: 'no_access_token_from_google' }))
+      return res.redirect(redirectUrl('error', { message: 'no_access_token_from_google' }, redirect))
     }
 
     let email = ''
+    let channelId = ''
+    let channelTitle = ''
     try {
       const userInfoRes = await axios.get(GOOGLE_USERINFO_URL, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -97,17 +109,37 @@ router.get('/callback', async (req, res) => {
       log('callback_userinfo_warn', googleErrorPayload(err))
     }
 
-    await User.findByIdAndUpdate(userId, {
-      ytRefreshToken: refreshToken || '',
-      ytEmail: email
+    try {
+      const channelRes = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
+        params: { part: 'snippet', mine: true },
+        headers: { Authorization: `Bearer ${accessToken}` },
+        timeout: 30000
+      })
+      const item = channelRes.data?.items?.[0]
+      channelId = item?.id || ''
+      channelTitle = item?.snippet?.title || ''
+    } catch (err) {
+      log('callback_channel_warn', googleErrorPayload(err))
+    }
+
+    await YouTubeToken.setTokens(userId, {
+      accessToken,
+      refreshToken,
+      scope: tokenRes.data?.scope ? String(tokenRes.data.scope).split(' ') : ['https://www.googleapis.com/auth/youtube'],
+      channelId,
+      channelTitle,
+      expiresAt: tokenRes.data?.expires_in ? new Date(Date.now() + tokenRes.data.expires_in * 1000) : null,
     })
 
-    log('callback_ok', { userId, email, has_refresh: !!refreshToken })
-    return res.redirect(redirectUrl('success', { email, has_refresh: String(!!refreshToken) }))
+    // [v9.9.19.17.4] tokens live in YouTubeToken (encrypted); clear legacy plaintext fields
+    await User.findByIdAndUpdate(userId, { ytRefreshToken: '', ytEmail: '' }).catch(() => {})
+
+    log('callback_ok', { userId, email, channelId, has_refresh: !!refreshToken })
+    return res.redirect(redirectUrl('success', { email, channel: channelTitle, has_refresh: String(!!refreshToken) }, redirect))
   } catch (err) {
     const payload = googleErrorPayload(err)
     log('callback_fail', { userId, code: payload.code, msg: payload.message })
-    return res.redirect(redirectUrl('error', { message: payload.message, code: payload.code || '' }))
+    return res.redirect(redirectUrl('error', { message: payload.message, code: payload.code || '' }, redirect))
   }
 })
 
@@ -164,8 +196,8 @@ router.get('/analyze', async (req, res) => {
   }
 })
 
-// [v9.9.19.17.1] YouTube OAuth upload spike
-router.get('/auth-url', requireRole('owner'), async (req, res) => {
+// [v9.9.19.17.4] YouTube OAuth connect for owner/admin/creator (per-user tokens)
+router.get('/auth-url', requireRole('owner', 'admin', 'creator'), async (req, res) => {
   try {
     const userId = req.user.id
     const clientId = await getProviderKey('youtube_oauth', userId)
@@ -177,7 +209,8 @@ router.get('/auth-url', requireRole('owner'), async (req, res) => {
       })
     }
 
-    const state = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '10m' })
+    const redirect = sanitizeRedirect(req.query.redirect)
+    const state = jwt.sign({ userId, redirect }, process.env.JWT_SECRET, { expiresIn: '10m' })
     const authUrl = GOOGLE_AUTH_URL + '?' + new URLSearchParams({
       response_type: 'code',
       client_id: clientId,
@@ -189,10 +222,52 @@ router.get('/auth-url', requireRole('owner'), async (req, res) => {
     }).toString()
 
     log('auth_url', { userId })
-    return res.json({ success: true, authUrl })
+    return res.json({ success: true, url: authUrl, authUrl })
   } catch (err) {
     log('auth_url_fail', { msg: err.message })
     return res.status(500).json({ success: false, error: 'auth_url_generation_failed' })
+  }
+})
+
+router.get('/status', requireRole('owner', 'admin', 'creator'), async (req, res) => {
+  try {
+    const yt = await YouTubeToken.getTokens(req.user.id)
+    if (!yt) return res.json({ success: true, connected: false })
+    return res.json({
+      success: true,
+      connected: true,
+      channelId: yt.channelId,
+      channelTitle: yt.channelTitle,
+      connectedAt: yt.connectedAt,
+    })
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'youtube_status_failed' })
+  }
+})
+
+router.post('/disconnect', requireRole('owner', 'admin', 'creator'), async (req, res) => {
+  try {
+    const yt = await YouTubeToken.getTokens(req.user.id)
+    if (!yt) return res.json({ success: true, disconnected: true })
+
+    // [v9.9.19.17.4] revoke grant at Google, then remove stored tokens
+    try {
+      const revokeToken = yt.refreshToken || yt.accessToken
+      if (revokeToken) {
+        await axios.post('https://oauth2.googleapis.com/revoke', null, {
+          params: { token: revokeToken },
+          timeout: 15000,
+        })
+      }
+    } catch (err) {
+      log('disconnect_revoke_warn', googleErrorPayload(err))
+    }
+
+    await YouTubeToken.deleteForUser(req.user.id)
+    await User.findByIdAndUpdate(req.user.id, { ytRefreshToken: '', ytEmail: '' }).catch(() => {})
+    return res.json({ success: true, disconnected: true })
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'youtube_disconnect_failed' })
   }
 })
 
@@ -212,8 +287,14 @@ router.post('/spike', requireRole('owner'), async (req, res) => {
       })
     }
 
-    const user = await User.findById(userId).select('+ytRefreshToken').lean()
-    const refreshToken = user?.ytRefreshToken
+    let refreshToken = ''
+    const yt = await YouTubeToken.getTokens(userId)
+    if (yt?.refreshToken) {
+      refreshToken = yt.refreshToken
+    } else {
+      const user = await User.findById(userId).select('+ytRefreshToken').lean()
+      refreshToken = user?.ytRefreshToken
+    }
     if (!refreshToken) {
       return res.status(400).json({
         success: false,
