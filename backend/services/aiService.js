@@ -9,6 +9,7 @@ import { getOwnerScope, getDefaultOwnerId } from '../utils/keyScope.js'
 import { emergencyStop } from '../routes/admin.js'
 import { searchVectorMemory, addToVectorMemory } from './vectorStore.js'
 import LocalBrain from '../ai/omega/localBrain.js'
+import { AI_MODELS } from '../config/aiModels.js'
 
 // ============ HELPERS ============
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -18,9 +19,9 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 // [HOTFIX-2026-08-08] Groq fallback chain + smaller models to avoid TPD rate limits
 // [v9.6.2-TELEGRAM-OWNER] removed llama-3.1-70b-versatile (returns 400)
 // [v9.9.19.2-UX-HOTFIX-v4] только сильная модель в основном слоте Groq;
-// llama-3.1-8b-instant — ПОСЛЕДНИЙ fallback (groq_lite), не деградируем до слабой модели раньше времени
+// [AI-MODELS-HOTSWAP] llama-3.1-8b-instant deprecated 2026-08-16 → openai/gpt-oss-20b
 const GROQ_MODELS = [
-    'llama-3.3-70b-versatile',  // рабочая — первая
+    AI_MODELS.GROQ_MODEL_MAIN,
 ]
 
 // [P24] fixed: auto-detect user query language
@@ -437,6 +438,9 @@ export function invalidateApiKeysCache() {
 // ApiKey status='invalid' + lastError + дата, ОДИН алерт владельцу в owner-бот.
 // Fallback-цепочка продолжает работать — приложение НЕ падает.
 const keyAlertSent = new Set()
+// [AI-MODELS-HOTSWAP] one owner alert per removed model per hour
+const modelRemovedAlertSent = new Map()
+const MODEL_REMOVED_ALERT_COOLDOWN_MS = 60 * 60 * 1000
 
 function isInvalidKeyError(status, error) {
     if (status === 401 || status === 403) return true
@@ -469,6 +473,21 @@ export async function reportKeyFailure(providerId, status, error) {
         alertOwner?.(`🔑 Ключ ${keyProvider} невалиден: ${shortError}\nFallback-цепочка продолжает работать.\nОбновите ключ в Кабинет → API Ключи.`)
     } catch (e) {
         console.warn('[KEY-HEALTH] report failed:', e.message)
+    }
+}
+
+// [AI-MODELS-HOTSWAP] model pulled from provider (404/410) — alert owner and continue chain
+export async function reportModelRemoved(providerId, modelId, fallbackModelId = '') {
+    try {
+        const key = `${providerId}:${modelId}`
+        const last = modelRemovedAlertSent.get(key)
+        if (last && Date.now() - last < MODEL_REMOVED_ALERT_COOLDOWN_MS) return
+        modelRemovedAlertSent.set(key, Date.now())
+        const { alertOwner } = await import('./ownerBot.js')
+        const fallback = fallbackModelId ? ` → переключил на ${fallbackModelId}` : ' → fallback-цепочка продолжает работать'
+        alertOwner?.(`🚫 Модель ${modelId} у провайдера ${providerId} снята (404/410)${fallback}. Проверьте AI Models в env/render.`)
+    } catch (e) {
+        console.warn('[MODEL-REMOVED] report failed:', e.message)
     }
 }
 
@@ -672,18 +691,26 @@ async function chatWithGroq(prompt, ownerId = null) {
                 console.log(`[Groq] 429 received — retrying next model in ${delay}ms...`)
                 await sleep(delay)
             }
+            // [AI-MODELS-HOTSWAP] model pulled (404/410) — try next model in Groq chain and alert owner
+            if ((status === 404 || status === 410) && i < models.length - 1) {
+                const nextModel = models[i + 1]
+                console.log(`[Groq] model ${model} removed — retrying ${nextModel}`)
+                reportModelRemoved('groq', model, nextModel).catch(() => {})
+            }
         }
     }
     throw lastErr
 }
 
 // [v9.9.19.2-UX-HOTFIX-v4] Groq 8b — ПОСЛЕДНИЙ резерв, только если все сильные модели умерли
+// [AI-MODELS-HOTSWAP] llama-3.1-8b-instant deprecated → AI_MODELS.GROQ_MODEL_FAST
 async function chatWithGroqLite(prompt, ownerId = null) {
     const key = await getProviderKey('groq', ownerId)
     if (!key || key.length < 20) throw new Error('No valid Groq key')
-    console.log('🚀 Calling Groq 8b (last resort)...')
+    const model = process.env.GROQ_LITE_MODEL || AI_MODELS.GROQ_MODEL_FAST
+    console.log(`🚀 Calling Groq fast (last resort) with ${model}...`)
     const res = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-        model: process.env.GROQ_LITE_MODEL || 'llama-3.1-8b-instant',
+        model,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 1024
     }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 15000 })
@@ -777,14 +804,35 @@ async function chatWithCloudflare(prompt, ownerId = null) {
 async function chatWithOpenRouter(prompt, ownerId = null) {
     const key = await getProviderKey('openrouter', ownerId)
     if (!key) throw new Error('No OpenRouter key')
+    const primaryModel = process.env.OPENROUTER_MODEL || MODEL_IDS.openrouter
+    const backupModel = process.env.OPENROUTER_MODEL_BACKUP || AI_MODELS.OPENROUTER_MODEL_BACKUP
+    const models = [primaryModel]
+    if (backupModel && backupModel !== primaryModel) models.push(backupModel)
     console.log('🚀 Calling OpenRouter...')
-    const res = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-        // [v9.9.19.14.4] centralized model id (see MODEL_IDS)
-        model: process.env.OPENROUTER_MODEL || MODEL_IDS.openrouter,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 2048
-    }, { headers: { 'Authorization': `Bearer ${key}`, 'HTTP-Referer': 'https://ai-viral-studio.ru', 'X-Title': 'AI Viral Studio', 'Content-Type': 'application/json' }, timeout: 20000 })
-    return res.data.choices[0].message.content
+    let lastErr
+    for (const model of models) {
+        try {
+            const res = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+                // [v9.9.19.14.4] centralized model id (see MODEL_IDS)
+                // [AI-MODELS-HOTSWAP] backup model auto-switched on 404/410
+                model,
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 2048
+            }, { headers: { 'Authorization': `Bearer ${key}`, 'HTTP-Referer': 'https://ai-viral-studio.ru', 'X-Title': 'AI Viral Studio', 'Content-Type': 'application/json' }, timeout: 20000 })
+            console.log(`[OpenRouter] ${model} success`)
+            return res.data.choices[0].message.content
+        } catch (err) {
+            lastErr = err
+            const status = err.response?.status
+            console.log(`[OpenRouter] ${model} failed (status ${status || 'N/A'}):`, err.message)
+            if ((status === 404 || status === 410) && model === primaryModel) {
+                reportModelRemoved('openrouter', primaryModel, backupModel).catch(() => {})
+                continue
+            }
+            break
+        }
+    }
+    throw lastErr
 }
 
 async function chatWithPollinationsText(prompt) {
@@ -862,12 +910,14 @@ const AI_PROVIDER_URLS = {
 }
 
 const MODEL_IDS = {
-    groq: 'llama-3.3-70b-versatile',
-    groq_lite: 'llama-3.1-8b-instant',
+    // [AI-MODELS-HOTSWAP] model IDs centralized in backend/config/aiModels.js + env overrides
+    groq: AI_MODELS.GROQ_MODEL_MAIN,
+    groq_lite: AI_MODELS.GROQ_MODEL_FAST,
     deepseek: 'deepseek-chat',
     openai: 'gpt-4o-mini',
     // [v9.9.19.14.4] OpenRouter free model id updated 2026-08-11
-    openrouter: 'google/gemini-2.0-flash-001',
+    // [AI-MODELS-HOTSWAP] default openai/gpt-oss-20b:free, backup nvidia/nemotron-3-super-120b-a12b:free
+    openrouter: AI_MODELS.OPENROUTER_MODEL,
     cerebras: 'llama-3.3-70b',
     together: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
     // [v9.9.19.14.4] Fireworks deployed id updated 2026-08-11
@@ -932,8 +982,8 @@ function resetKeyHealth(providerId) {
 
 // ============ PROVIDER CHAIN ============
 // [v9.9.15-BETA-LAUNCH] all 13 AI providers active with real keys
-// [v9.9.19.2-UX-HOTFIX-v4] при 429/ошибке llama-3.3-70b-versatile: deepseek → openai → остальные сильные →
-// groq llama-3.1-8b-instant (ПОСЛЕДНИЙ, только если всё умерло) → pollinations
+// [v9.9.19.2-UX-HOTFIX-v4] при 429/ошибке: deepseek → openai → остальные сильные →
+// [AI-MODELS-HOTSWAP] groq fast (ПОСЛЕДНИЙ, только если всё умерло) → pollinations
 const PROVIDER_CHAIN = [
     { id: 'groq', name: 'Groq', handler: chatWithGroq, model: MODEL_IDS.groq },
     { id: 'deepseek', name: 'DeepSeek', handler: chatWithDeepSeek, model: MODEL_IDS.deepseek },
@@ -991,10 +1041,17 @@ const tryProviders = async (messages, ownerId = null) => {
         } catch (error) {
             const status = error.response?.status
             const isKeyErr = isInvalidKeyError(status, error)
+            const isModelRemoved = status === 404 || status === 410
             // [v9.9.19.14.4] silent skip for dead/missing keys: one-line debug only
-            if (isKeyErr || status === 404) {
+            if (isKeyErr) {
                 setKeyHealthState(provider.id, 'invalid', error?.response?.data?.error?.message || error.message)
-                if (isKeyErr) setCooldown(provider.id)
+                setCooldown(provider.id)
+            }
+            // [AI-MODELS-HOTSWAP] model pulled from provider — alert owner but do NOT mark key invalid
+            if (isModelRemoved) {
+                const fallbackModel = provider.id === 'openrouter' ? AI_MODELS.OPENROUTER_MODEL_BACKUP : ''
+                reportModelRemoved(provider.id, provider.model, fallbackModel).catch(() => {})
+                setKeyHealthState(provider.id, 'error', `model removed: ${provider.model}`)
             }
             // [v9.9.19.14.4] log provider failure compactly, no full dump
             console.log(`⏭️ ${provider.name} failed (status ${status || 'N/A'}): ${error.message}`)
