@@ -296,6 +296,9 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Manage profile, subscription and interface",
+    "tabs": {
+      "payments": "Payments"
+    },
     "profile": "Profile",
     "subscription": "Subscription",
     "socials": "Socials",
@@ -1891,5 +1894,30 @@
     "autoCleanTTLNever": "Never",
     "autoCleanTTLSaved": "Auto-cleanup setting saved",
     "autoCleanTTLError": "Failed to save auto-cleanup setting"
+  },
+  "payments": {
+    "title": "Payment history",
+    "empty": "No payments yet",
+    "colDate": "Date",
+    "colPlan": "Plan",
+    "colAmount": "Amount",
+    "colStatus": "Status",
+    "colReceipt": "Receipt",
+    "statusSucceeded": "Paid",
+    "statusCanceled": "Canceled",
+    "statusRefunded": "Refunded",
+    "statusPending": "Pending",
+    "receiptOk": "Receipt OK",
+    "receiptFailed": "Receipt failed",
+    "receiptPending": "Receipt pending",
+    "resendReceipt": "Resend receipt to email",
+    "receiptSent": "Email sent",
+    "resendError": "Failed to send, try again later"
+  },
+  "owner": {
+    "subscriptions": {
+      "receipt": "Receipt",
+      "receiptFilterFailed": "Receipt failed only"
+    }
   }
 }

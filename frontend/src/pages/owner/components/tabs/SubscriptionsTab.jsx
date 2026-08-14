@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { StatusBadge } from '../common/StatusBadge'
-import { subscriptionsApi, yookassaApi, stripeApi } from '../../../../services/api.js'
+import { subscriptionsApi, yookassaApi, stripeApi, paymentsApi } from '../../../../services/api.js'
 import { useAuth } from '../../../../context/AuthContext.jsx'
 import { useSmartData } from '../../../../hooks/useSmartData'
 import { API_BASE_URL } from '../../../../config.js'
@@ -107,6 +107,10 @@ export function SubscriptionsTab({ data }) {
     const [applyingPlan, setApplyingPlan] = useState(null)
     // [P18] added: dynamic pricing badge
     const [dynamicBadge, setDynamicBadge] = useState(null)
+    // [19.13-lite-PAYMENTS-NPD] receipt status by yookassa payment id
+    const [receiptByPaymentId, setReceiptByPaymentId] = useState({})
+    // [19.13-lite-PAYMENTS-NPD] receipt filter: 'all' | 'failed'
+    const [receiptFilter, setReceiptFilter] = useState('all')
 
     // [PLANS-SYNC] added: load plans from unified /api/plans endpoint
     const plansUrl = useMemo(() => {
@@ -122,6 +126,22 @@ export function SubscriptionsTab({ data }) {
         loadDynamicPricingStatus()
         loadPaymentConfig()
     }, [currency])
+
+    // [19.13-lite-PAYMENTS-NPD] load payments once to map receipt statuses; silent fallback to '—'
+    useEffect(() => {
+        let cancelled = false
+        paymentsApi.adminList()
+            .then((res) => {
+                if (cancelled) return
+                const map = {}
+                for (const p of (Array.isArray(res?.payments) ? res.payments : [])) {
+                    if (p.yookassaPaymentId) map[p.yookassaPaymentId] = p.receiptStatus || null
+                }
+                setReceiptByPaymentId(map)
+            })
+            .catch(() => { if (!cancelled) setReceiptByPaymentId({}) })
+        return () => { cancelled = true }
+    }, [])
 
     // [P24] added: load geo-currency config and exchange rate
     async function loadPaymentConfig() {
@@ -818,9 +838,21 @@ export function SubscriptionsTab({ data }) {
 
             {safeHistory.length > 0 && (
                 <div>
-                    <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-[var(--text)] mb-4 flex flex-wrap items-center gap-2">
                         <Receipt className="w-5 h-5" />
                         История подписок
+                        {/* [19.13-lite-PAYMENTS-NPD] filter: show only payments with failed fiscal receipt */}
+                        <button
+                            type="button"
+                            onClick={() => setReceiptFilter(f => (f === 'failed' ? 'all' : 'failed'))}
+                            className={`ml-auto min-h-[40px] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                receiptFilter === 'failed'
+                                    ? 'bg-[var(--danger)]/20 text-[var(--danger)]'
+                                    : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text)]'
+                            }`}
+                        >
+                            {t('owner.subscriptions.receiptFilterFailed')}
+                        </button>
                     </h3>
                     <div className="overflow-x-auto rounded-2xl border border-[var(--border)] glass">
                         <table className="w-full text-sm text-left">
@@ -831,10 +863,18 @@ export function SubscriptionsTab({ data }) {
                                     <th className="px-4 py-3 font-medium">Сумма</th>
                                     <th className="px-4 py-3 font-medium">Период</th>
                                     <th className="px-4 py-3 font-medium">Дата</th>
+                                    <th className="px-4 py-3 font-medium">{t('owner.subscriptions.receipt')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--border)]">
-                                {safeHistory.map((item, idx) => (
+                                {safeHistory.filter((item) => {
+                                    // [19.13-lite-PAYMENTS-NPD] receipt failed filter
+                                    if (receiptFilter !== 'failed') return true
+                                    return item.providerPaymentId ? receiptByPaymentId[item.providerPaymentId] === 'failed' : false
+                                }).map((item, idx) => {
+                                    // [19.13-lite-PAYMENTS-NPD] receipt status from payments admin list
+                                    const receiptStatus = item.providerPaymentId ? receiptByPaymentId[item.providerPaymentId] : undefined
+                                    return (
                                     <tr key={idx} className="hover:bg-[var(--primary-soft)]/30 transition-colors">
                                         <td className="px-4 py-3 text-[var(--text)] capitalize">{item.plan}</td>
                                         <td className="px-4 py-3"><StatusBadge status={item.status} label={item.status} /></td>
@@ -845,8 +885,17 @@ export function SubscriptionsTab({ data }) {
                                         <td className="px-4 py-3 text-[var(--text-muted)]">
                                             {item.createdAt ? new Date(item.createdAt).toLocaleDateString('ru-RU') : '—'}
                                         </td>
+                                        <td className="px-4 py-3">
+                                            {receiptStatus === 'registered' && <span className="text-[var(--success)]">✓</span>}
+                                            {receiptStatus === 'failed' && <span className="text-[var(--danger)]">✗</span>}
+                                            {receiptStatus === 'pending' && <span className="text-[var(--warning)]">⏳</span>}
+                                            {(receiptStatus !== 'registered' && receiptStatus !== 'failed' && receiptStatus !== 'pending') && (
+                                                <span className="text-[var(--text-muted)]">—</span>
+                                            )}
+                                        </td>
                                     </tr>
-                                ))}
+                                    )
+                                })}
                             </tbody>
                         </table>
                     </div>

@@ -1,10 +1,105 @@
-import { createPayment, checkPayment, handleWebhook, createInvoicePayment } from '../services/yookassaService.js';
+import { createPayment, checkPayment, handleWebhook, createInvoicePayment, getReceiptsByPayment } from '../services/yookassaService.js';
 import { Subscription, Invoice, User } from '../models/index.js';
-import { sendPaymentSuccessEmail } from '../services/emailService.js';
+import Payment from '../models/Payment.js';
+import { sendPaymentSuccessEmail, sendReceiptFailedEmail, sendSubscriptionActiveEmail } from '../services/emailService.js';
 import PlanConfig from '../models/PlanConfig.js';
 
 // [v9.9.19.14] return_url — строго HTTPS, собирается из FRONTEND_URL + '/payment/success'
 const RETURN_URL = (process.env.FRONTEND_URL || 'https://aiviral-studio.ru').replace(/\/$/, '');
+
+// [19.13-lite-PAYMENTS-NPD] 54-ФЗ receipt builder (НПД: без НДС, услуга, полная оплата)
+function buildReceipt({ email, amount, planId, isYearly, isFounding }) {
+  const planLabel = planId === 'agency' ? 'Agency' : 'Pro';
+  let itemDescription = `Подписка AI Viral Studio ${planLabel}, 1 мес`;
+  if (isYearly) itemDescription = `Подписка AI Viral Studio ${planLabel}, 1 год`;
+  if (isFounding) itemDescription += ' — скидка основателя 30%';
+  return {
+    customer: { email },
+    items: [{
+      description: itemDescription,
+      quantity: '1.00',
+      amount: { value: Number(amount).toFixed(2), currency: 'RUB' },
+      vat_code: 1,
+      payment_mode: 'full_payment',
+      payment_subject: 'service',
+    }],
+  };
+}
+
+// [19.13-lite-PAYMENTS-NPD] после успешной оплаты: фиксируем платёжную запись + статус чека.
+// Ошибка фискализации НИКОГДА не валит платёж.
+async function recordPaymentAndReceipt({ paymentId, metadata, result }) {
+  const userId = metadata?.userId;
+  if (!userId || !paymentId) return;
+  const user = await User.findById(userId).lean();
+  const subscription = metadata?.subscriptionId
+    ? await Subscription.findById(metadata.subscriptionId).lean()
+    : null;
+  const invoice = metadata?.invoiceId
+    ? await Invoice.findById(metadata.invoiceId).lean()
+    : null;
+  const amount = subscription?.price ?? invoice?.amount ?? 0;
+
+  const paymentDoc = await Payment.findOneAndUpdate(
+    { yookassaPaymentId: paymentId },
+    {
+      $set: {
+        userId,
+        planId: subscription?.plan || metadata?.plan || '',
+        amount,
+        currency: 'RUB',
+        status: 'succeeded',
+        paidAt: new Date(),
+        customerEmail: user?.email || '',
+        description: result?.description || `Подписка ${subscription?.plan || metadata?.plan || ''}`,
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+
+  if (String(process.env.YOOKASSA_RECEIPTS || '').toLowerCase() !== 'true') return;
+
+  try {
+    const receipts = await getReceiptsByPayment(paymentId);
+    const sale = receipts.find(r => r.type === 'payment') || receipts[0];
+    if (sale && sale.status === 'succeeded') {
+      paymentDoc.receiptId = sale.id;
+      paymentDoc.receiptStatus = 'registered';
+      await paymentDoc.save();
+    } else {
+      // Чек может формироваться до 5 минут — повторный запрос с задержкой
+      setTimeout(async () => {
+        try {
+          const again = await getReceiptsByPayment(paymentId);
+          const r2 = again.find(r => r.type === 'payment') || again[0];
+          if (r2 && r2.status === 'succeeded') {
+            await Payment.updateOne({ yookassaPaymentId: paymentId }, { $set: { receiptId: r2.id, receiptStatus: 'registered' } });
+          } else {
+            await markReceiptFailed(paymentId, 'receipt_not_found_after_retry', user);
+          }
+        } catch (e) {
+          await markReceiptFailed(paymentId, e.message, user);
+        }
+      }, 5 * 60 * 1000);
+    }
+  } catch (err) {
+    await markReceiptFailed(paymentId, err.message, user);
+  }
+}
+
+async function markReceiptFailed(paymentId, reason, user) {
+  await Payment.updateOne(
+    { yookassaPaymentId: paymentId },
+    { $set: { receiptStatus: 'failed', receiptError: String(reason || '').slice(0, 200) } }
+  );
+  try {
+    const { alertOwner } = await import('../services/ownerBot.js');
+    alertOwner?.(`🧾 Чек НЕ сформирован для платежа ${paymentId}\nКлиент: ${user?.email || '—'}\nПричина: ${String(reason || '').slice(0, 160)}`, 'payment');
+  } catch { /* alert best-effort */ }
+  if (user?.email) {
+    sendReceiptFailedEmail(user.email, user.name).catch(() => {});
+  }
+}
 
 export const createSubscriptionPayment = async (req, res) => {
   try {
@@ -29,6 +124,13 @@ export const createSubscriptionPayment = async (req, res) => {
     let amount = basePrice;
     if (isYearly) {
       amount = Math.round(basePrice * 12 * 0.8); // -20% discount
+    }
+
+    // [19.13-lite-PAYMENTS-NPD] founding member −30% от текущей цены тарифа
+    const payer = await User.findById(userId).lean();
+    const isFounding = !!payer?.isFoundingMember;
+    if (isFounding) {
+      amount = Math.round(amount * 0.7);
     }
 
     if (amount <= 0) {
@@ -83,12 +185,18 @@ export const createSubscriptionPayment = async (req, res) => {
       provider: 'yookassa',
     });
 
+    // [19.13-lite-PAYMENTS-NPD] 54-ФЗ receipt (за рубильником YOOKASSA_RECEIPTS внутри createPayment)
+    const receipt = payer?.email
+      ? buildReceipt({ email: payer.email, amount, planId, isYearly, isFounding })
+      : null;
+
     // Create YooKassa payment
     const payment = await createPayment({
       amount,
       currency,
-      description: `Подписка ${planId}`,
+      description: receipt?.items?.[0]?.description || `Подписка ${planId}`,
       returnUrl: `${RETURN_URL}/payment/success?plan=${planId}&subscription=${subscription._id}`,
+      receipt,
       metadata: {
         userId: userId.toString(),
         subscriptionId: subscription._id.toString(),
@@ -97,6 +205,15 @@ export const createSubscriptionPayment = async (req, res) => {
         interval: isYearly ? 'year' : 'month',
       },
     });
+
+    // [19.13-lite-PAYMENTS-NPD] чек отклонён, но платёж создан без него — фиксируем для отчётности
+    if (payment.receiptFailed) {
+      await Payment.findOneAndUpdate(
+        { yookassaPaymentId: payment.paymentId },
+        { $set: { receiptStatus: 'failed', receiptError: String(payment.receiptError || '').slice(0, 200) } },
+        { upsert: true }
+      ).catch(() => {});
+    }
 
     // Update subscription and invoice with provider payment id
     await Promise.all([
@@ -232,6 +349,11 @@ export const yookassaWebhook = async (req, res) => {
         }
       }
 
+      // [19.13-lite-PAYMENTS-NPD] фиксируем платёжную запись + статус чека (ошибки чека не валят webhook)
+      recordPaymentAndReceipt({ paymentId, metadata, result }).catch((e) => {
+        console.error('[yookassaController:webhook] recordPaymentAndReceipt failed:', e.message);
+      });
+
       // Send payment success email
       try {
         const userId = metadata?.userId;
@@ -246,12 +368,23 @@ export const yookassaWebhook = async (req, res) => {
           const plan = subscription?.plan || metadata?.plan || '—';
           const amount = subscription?.price || invoice?.amount || 0;
           if (user) {
-            await sendPaymentSuccessEmail(user.email, user.name, plan, amount);
+            // [19.13-lite-PAYMENTS-NPD] новое письмо «подписка активна до <дата> + чек от ЮKassa»
+            if (subscription?.endDate) {
+              await sendSubscriptionActiveEmail(user.email, user.name, plan, subscription.endDate);
+            } else {
+              await sendPaymentSuccessEmail(user.email, user.name, plan, amount);
+            }
           }
         }
       } catch (emailErr) {
         console.error('[yookassaController:webhook] payment success email failed:', emailErr.message);
       }
+    } else if (action === 'mark_refunded') {
+      // [19.13-lite-PAYMENTS-NPD] refund.succeeded: помечаем платёж возвращённым
+      await Payment.updateOne(
+        { yookassaPaymentId: paymentId },
+        { $set: { status: 'refunded', refundedAt: new Date() } }
+      ).catch(() => {});
     } else if (action === 'mark_canceled') {
       if (metadata?.invoiceId) {
         await Invoice.findByIdAndUpdate(metadata.invoiceId, {

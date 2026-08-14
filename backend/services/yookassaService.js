@@ -19,7 +19,7 @@ async function getAuthHeaders() {
   };
 }
 
-export async function createPayment({ amount, currency = 'RUB', description, returnUrl, metadata = {} }) {
+export async function createPayment({ amount, currency = 'RUB', description, returnUrl, metadata = {}, receipt = null }) {
   // [v9.9.19.14] amount.value — СТРОКА с двумя знаками: "100.00"
   const rubAmount = Number(amount).toFixed(2);
 
@@ -42,6 +42,25 @@ export async function createPayment({ amount, currency = 'RUB', description, ret
     // [v9.9.19.14] поле test удалено: неизвестные параметры → 400 от API ЮKassa; тестовый режим определяется ключами магазина
   };
 
+  // [19.13-lite-PAYMENTS-NPD] 54-ФЗ receipt — только при YOOKASSA_RECEIPTS=true и наличии email клиента
+  if (receiptsEnabled() && receipt && receipt.customer?.email && Array.isArray(receipt.items) && receipt.items.length) {
+    body.receipt = receipt;
+  }
+
+  // [19.13-lite-PAYMENTS-NPD] если чек запрошен, но ЮKassa его отвергнет (400) — повторяем БЕЗ receipt:
+  // оплата не должна падать из-за фискализации
+  if (body.receipt) {
+    return createPaymentWithReceiptFallback(body, receipt);
+  }
+
+  return postPayment(body);
+}
+
+function receiptsEnabled() {
+  return String(process.env.YOOKASSA_RECEIPTS || '').toLowerCase() === 'true';
+}
+
+async function postPayment(body) {
   try {
     const response = await fetch(YOOKASSA_API_URL, {
       method: 'POST',
@@ -73,6 +92,67 @@ export async function createPayment({ amount, currency = 'RUB', description, ret
     console.error('[yookassaService:createPayment]', err.message);
     throw err;
   }
+}
+
+// [19.13-lite-PAYMENTS-NPD] попытка с receipt → при ошибке фискализации повтор без receipt
+async function createPaymentWithReceiptFallback(body, receipt) {
+  try {
+    return await postPayment(body);
+  } catch (err) {
+    const msg = `${err?.message || ''} ${JSON.stringify(err?.raw || '')}`.toLowerCase();
+    const isReceiptError = err.status === 400 && (msg.includes('receipt') || msg.includes('fiscal') || msg.includes('чек'));
+    if (!isReceiptError) throw err;
+    console.error('[yookassaService:createPayment] receipt rejected, retrying WITHOUT receipt:', err.message);
+    const { alertOwner } = await import('./ownerBot.js').catch(() => ({}));
+    alertOwner?.(`🧾 Чек ЮKassa отклонён (платёж проведён БЕЗ чека): ${String(err.message).slice(0, 160)}\nКлиент: ${receipt.customer?.email || '—'}`).catch(() => {});
+    const noReceiptBody = { ...body };
+    delete noReceiptBody.receipt;
+    const result = await postPayment(noReceiptBody);
+    result.receiptFailed = true;
+    result.receiptError = err.message;
+    return result;
+  }
+}
+
+// [19.13-lite-PAYMENTS-NPD] получить чеки по платежу (GET /receipts?payment_id=)
+export async function getReceiptsByPayment(paymentId) {
+  if (!paymentId) throw new Error('paymentId обязателен');
+  const url = `https://api.yookassa.ru/v3/receipts?payment_id=${encodeURIComponent(paymentId)}&limit=5`;
+  const response = await fetch(url, { method: 'GET', headers: await getAuthHeaders() });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const err = new Error(data?.description || data?.message || `YooKassa HTTP ${response.status}`);
+    err.status = response.status;
+    err.raw = data;
+    throw err;
+  }
+  return Array.isArray(data?.items) ? data.items : [];
+}
+
+// [19.13-lite-PAYMENTS-NPD] возврат с чеком возврата (54-ФЗ)
+export async function createRefund({ paymentId, amount, currency = 'RUB', description, receipt = null }) {
+  if (!paymentId) throw new Error('paymentId обязателен');
+  const body = {
+    payment_id: paymentId,
+    amount: { value: Number(amount).toFixed(2), currency: currency.toUpperCase() },
+  };
+  if (description) body.description = description;
+  if (receiptsEnabled() && receipt && receipt.customer?.email && Array.isArray(receipt.items) && receipt.items.length) {
+    body.receipt = receipt;
+  }
+  const response = await fetch('https://api.yookassa.ru/v3/refunds', {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const err = new Error(data?.description || data?.message || `YooKassa HTTP ${response.status}`);
+    err.status = response.status;
+    err.raw = data;
+    throw err;
+  }
+  return { success: true, refundId: data.id, status: data.status, raw: data };
 }
 
 export async function checkPayment(paymentId) {

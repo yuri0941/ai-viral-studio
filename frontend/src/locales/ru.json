@@ -1844,6 +1844,9 @@
   "settings": {
     "title": "Настройки",
     "subtitle": "Управление профилем, подпиской и интерфейсом",
+    "tabs": {
+      "payments": "Платежи"
+    },
     "connect": "Подключить YouTube",
     "disconnect": "Отключить YouTube",
     "connected": "Подключено",
@@ -1942,5 +1945,30 @@
     "autoCleanTTLNever": "Никогда",
     "autoCleanTTLSaved": "Настройка автоочистки сохранена",
     "autoCleanTTLError": "Не удалось сохранить настройку автоочистки"
+  },
+  "payments": {
+    "title": "История платежей",
+    "empty": "Платежей пока нет",
+    "colDate": "Дата",
+    "colPlan": "Тариф",
+    "colAmount": "Сумма",
+    "colStatus": "Статус",
+    "colReceipt": "Чек",
+    "statusSucceeded": "Оплачен",
+    "statusCanceled": "Отменён",
+    "statusRefunded": "Возвращён",
+    "statusPending": "В обработке",
+    "receiptOk": "Чек есть",
+    "receiptFailed": "Ошибка чека",
+    "receiptPending": "Чек формируется",
+    "resendReceipt": "Прислать чек на email повторно",
+    "receiptSent": "Письмо отправлено",
+    "resendError": "Не удалось отправить, попробуйте позже"
+  },
+  "owner": {
+    "subscriptions": {
+      "receipt": "Чек",
+      "receiptFilterFailed": "Без чека"
+    }
   }
 }

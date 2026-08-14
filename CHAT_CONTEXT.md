@@ -399,3 +399,14 @@
 - Комплаенс: madeForKids (COPPA) + publishAt за `ENABLE_YOUTUBE_PUBLIC` (в /status отдаётся publicEnabled, UI disabled с пояснением).
 - Планировщик (19.17.5): `publishScheduledYouTubePost` переведён на chunked-resumable (8 МБ чанки из fs.createReadStream), thumbnail из media queue по base-имени.
 - i18n: youtube.scheduler.* (+31 ключ) в src и public ru/en синхронно.
+
+### v9.9.19.13-lite-PAYMENTS-NPD (2026-08-14)
+- ЮKassa `createPayment` поддерживает 54-ФЗ receipt за рубильником `YOOKASSA_RECEIPTS=true` (дефолт false). Receipt отклонён → автоповтор без него: платёж жив, receiptStatus=failed, алерт владельцу в TG.
+- `Payment` модель: receiptId/receiptStatus/receiptError/refundReceiptId/refundedAt/customerEmail; webhook фиксирует платёж + статус чека (ретрай 5 мин).
+- Возврат из Owner Dashboard → `createRefund` с чеком возврата; `refund.succeeded` webhook → refunded.
+- Клиент: SettingsPage → вкладка «Платежи» (история + кнопка «Прислать чек повторно»). Владелец: колонка «Чек» + фильтр «Без чека» в SubscriptionsTab.
+- Письма (новые шаблоны, старые не тронуты): «Подписка активна до <дата>», «чек формируется», «повторная отправка чека» — RU/EN.
+- Founding member −30% теперь применяется при создании платежа и отражается в description чека.
+- Напоминание о продлении (autoPilot) не цитирует цену → работает с PlanConfig-ценами без регресса.
+- i18n: 20 новых ключей во все 4 файла, паритет 0-diff; старые расхождения (дубль `settings` в ru.json) не трогались — список в PR.
+- Проверки: node --check ✅, build ✅, JSON ✅, BOM нет ✅, адаптив код-ревью ✅ (360–1920, RU/EN).

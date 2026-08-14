@@ -4,9 +4,74 @@ import { getStripe } from '../config/stripe.js'
 import { protect } from '../middleware/auth.js'
 import PaymentProvider from '../models/PaymentProvider.js'
 import Subscription from '../models/Subscription.js'
+import Payment from '../models/Payment.js'
+import Invoice from '../models/Invoice.js'
 import { createYookassaPayment, yookassaWebhookHandler, getPaymentStatus } from '../controllers/paymentController.js'
 
 const router = express.Router()
+
+// ============ [19.13-lite-PAYMENTS-NPD] CLIENT PAYMENT HISTORY ============
+router.get('/history', protect, async (req, res) => {
+    try {
+        const userId = req.user?._id || req.user?.id
+        const payments = await Payment.find({ userId }).sort({ createdAt: -1 }).limit(100).lean()
+        // Дополняем старыми оплаченными счетами (до введения Payment-записей)
+        const knownIds = new Set(payments.map(p => p.yookassaPaymentId).filter(Boolean))
+        const invoices = await Invoice.find({ ownerId: userId, status: 'paid' }).sort({ paidAt: -1, createdAt: -1 }).limit(100).lean()
+        const legacy = invoices
+            .filter(inv => !inv.providerPaymentId || !knownIds.has(inv.providerPaymentId))
+            .map(inv => ({
+                _id: inv._id,
+                legacy: true,
+                planId: inv.items?.[0]?.name || inv.description || '',
+                amount: inv.amount,
+                currency: inv.currency || 'RUB',
+                status: 'succeeded',
+                yookassaPaymentId: inv.providerPaymentId || '',
+                description: inv.description || '',
+                receiptStatus: null,
+                createdAt: inv.paidAt || inv.createdAt,
+            }))
+        res.json({ success: true, payments: [...payments, ...legacy].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) })
+    } catch (err) {
+        console.error('[payments/history]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+// [19.13-lite-PAYMENTS-NPD] повторная отправка чека на email
+router.post('/:id/resend-receipt', protect, async (req, res) => {
+    try {
+        const userId = req.user?._id || req.user?.id
+        const payment = await Payment.findOne({ _id: req.params.id, userId }).lean()
+        if (!payment) return res.status(404).json({ error: 'Платёж не найден' })
+        const email = payment.customerEmail || req.user?.email
+        if (!email) return res.status(400).json({ error: 'Нет email для отправки' })
+        const { sendReceiptResentEmail } = await import('../services/emailService.js')
+        await sendReceiptResentEmail(email, req.user?.name, payment.description, `${payment.amount} ${payment.currency || 'RUB'}`, payment.receiptStatus)
+        res.json({ success: true })
+    } catch (err) {
+        console.error('[payments/resend-receipt]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+// [19.13-lite-PAYMENTS-NPD] владелец: список платежей с фильтром по статусу чека
+router.get('/admin/list', protect, requireOwner, async (req, res) => {
+    try {
+        const query = {}
+        if (req.query.receiptStatus) query.receiptStatus = req.query.receiptStatus
+        const payments = await Payment.find(query)
+            .populate('userId', 'name email')
+            .sort({ createdAt: -1 })
+            .limit(200)
+            .lean()
+        res.json({ success: true, payments })
+    } catch (err) {
+        console.error('[payments/admin/list]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
 
 // ============ COINBASE COMMERCE ============
 const COINBASE_API_KEY = process.env.COINBASE_API_KEY || ''
@@ -404,6 +469,42 @@ router.post('/admin/refund/:subscriptionId', protect, requireOwner, async (req, 
         if (sub.provider === 'stripe' && process.env.STRIPE_SECRET_KEY) {
             const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
             await stripe.refunds.create({ payment_intent: lastPayment.providerPaymentId })
+        }
+
+        // [19.13-lite-PAYMENTS-NPD] возврат через ЮKassa с чеком возврата (54-ФЗ, за рубильником YOOKASSA_RECEIPTS)
+        if (sub.provider === 'yookassa' && sub.providerPaymentId) {
+            try {
+                const { createRefund } = await import('../services/yookassaService.js')
+                const payer = await (await import('../models/User.js')).default.findById(sub.userId).lean()
+                const planLabel = sub.plan === 'agency' ? 'Agency' : 'Pro'
+                const refundReceipt = payer?.email ? {
+                    customer: { email: payer.email },
+                    items: [{
+                        description: `Возврат: Подписка AI Viral Studio ${planLabel}`,
+                        quantity: '1.00',
+                        amount: { value: Number(sub.price || 0).toFixed(2), currency: 'RUB' },
+                        vat_code: 1,
+                        payment_mode: 'full_payment',
+                        payment_subject: 'service',
+                    }],
+                } : null
+                const refund = await createRefund({
+                    paymentId: sub.providerPaymentId,
+                    amount: sub.price || 0,
+                    currency: sub.currency || 'RUB',
+                    description: `Возврат по подписке ${sub.plan}`,
+                    receipt: refundReceipt,
+                })
+                await Payment.updateOne(
+                    { yookassaPaymentId: sub.providerPaymentId },
+                    { $set: { status: 'refunded', refundedAt: new Date(), refundReceiptId: refund.refundId } }
+                ).catch(() => {})
+            } catch (refundErr) {
+                console.error('[payments/admin/refund] yookassa refund failed:', refundErr.message)
+                const { alertOwner } = await import('../services/ownerBot.js').catch(() => ({}))
+                alertOwner?.(`⚠️ Возврат ЮKassa НЕ прошёл: подписка ${sub._id}, причина: ${String(refundErr.message).slice(0, 160)}`, 'payment')
+                return res.status(502).json({ error: `Возврат ЮKassa не выполнен: ${refundErr.message}` })
+            }
         }
 
         sub.status = 'refunded'

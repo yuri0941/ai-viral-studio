@@ -41,9 +41,37 @@
     "generationsToday": "Генерации сегодня",
     "almostExhausted": "Почти исчерпано — осталось мало генераций"
   },
+  "payments": {
+    "title": "История платежей",
+    "empty": "Платежей пока нет",
+    "colDate": "Дата",
+    "colPlan": "Тариф",
+    "colAmount": "Сумма",
+    "colStatus": "Статус",
+    "colReceipt": "Чек",
+    "statusSucceeded": "Оплачен",
+    "statusCanceled": "Отменён",
+    "statusRefunded": "Возвращён",
+    "statusPending": "В обработке",
+    "receiptOk": "Чек есть",
+    "receiptFailed": "Ошибка чека",
+    "receiptPending": "Чек формируется",
+    "resendReceipt": "Прислать чек на email повторно",
+    "receiptSent": "Письмо отправлено",
+    "resendError": "Не удалось отправить, попробуйте позже"
+  },
+  "owner": {
+    "subscriptions": {
+      "receipt": "Чек",
+      "receiptFilterFailed": "Без чека"
+    }
+  },
   "settings": {
     "title": "Настройки",
     "subtitle": "Управляй профилем, подпиской и интеграциями",
+    "tabs": {
+      "payments": "Платежи"
+    },
     "profile": "Профиль",
     "subscription": "Подписка",
     "socials": "Соцсети",
