@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +39,7 @@ const CURRENCIES = [
 // [v9.9.19.17.4] YouTube connect tab for owner/admin/creator
 function YouTubeSettingsTab() {
     const { t } = useTranslation();
+    const [searchParams] = useSearchParams();
     const [status, setStatus] = useState({ connected: false });
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
@@ -56,7 +58,8 @@ function YouTubeSettingsTab() {
 
     useEffect(() => {
         loadStatus();
-    }, []);
+        // [HOTFIX-YT-VERIFY-REACT31] reload status after OAuth callback redirects back to ?tab=youtube&youtube=success
+    }, [searchParams]);
 
     const handleConnect = async () => {
         setActionLoading(true);
@@ -110,7 +113,11 @@ function YouTubeSettingsTab() {
                     <div className="mb-4 space-y-1 text-sm text-gray-300">
                         <p>{t('youtube.channel', { title: status.channelTitle || status.channelId || '' })}</p>
                         <p className="text-xs text-gray-400">
-                            {status.connectedAt ? `${t('youtube.connectedAtLabel') || 'Подключено'}: ${new Date(status.connectedAt).toLocaleString('ru-RU')}` : ''}
+                            {(() => {
+                                if (!status.connectedAt) return '';
+                                const d = new Date(status.connectedAt);
+                                return !isNaN(d.getTime()) ? `${t('youtube.connectedAtLabel') || 'Подключено'}: ${d.toLocaleString('ru-RU')}` : '';
+                            })()}
                         </p>
                     </div>
                 )}

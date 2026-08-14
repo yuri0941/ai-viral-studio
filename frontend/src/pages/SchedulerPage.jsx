@@ -72,6 +72,20 @@ function getWeekStart(date) {
     return new Date(d.setDate(diff));
 }
 
+// [HOTFIX-YT-VERIFY-REACT31] YouTube Data API returns status as an object.
+// React cannot render objects as children; render scalar fields and stringify non-strings.
+function formatYoutubeStatus(status) {
+    if (status == null) return '';
+    if (typeof status !== 'object') return String(status);
+    const parts = [
+        status.uploadStatus,
+        status.privacyStatus,
+        status.madeForKids != null ? (status.madeForKids ? 'для детей' : 'не для детей') : null, // i18n: перенести ключ в UI-POLISH
+    ].filter(v => v != null);
+    if (parts.length === 0) return JSON.stringify(status);
+    return parts.map(String).join(' · ');
+}
+
 function SchedulerPage() {
     const { t } = useTranslation();
     const { user } = useAuth();
@@ -1779,7 +1793,7 @@ function SchedulerPage() {
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-xs text-white truncate" title={video.title}>{video.title}</p>
                                                 <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-gray-500 mt-0.5">
-                                                    {video.status && <span>{t('youtube.scheduler.status')}: {video.status}</span>}
+                                                    {video.status && <span>{t('youtube.scheduler.status')}: {formatYoutubeStatus(video.status)}</span>}
                                                     {video.views != null && <span>{t('youtube.scheduler.views')}: {video.views}</span>}
                                                 </div>
                                             </div>

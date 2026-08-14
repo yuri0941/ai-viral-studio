@@ -98,6 +98,41 @@ export async function buildLuxuryPost({ topic, niche = 'general', tone, language
   return { text: html, topic: safeTopic, ctaUrl, appliedSkills: skillFacts.map(f => f.name), auditIssues: lastIssues };
 }
 
+// Validate remote media URL before asking Telegram to download it.
+// Pollinations sometimes returns 5xx/empty bodies; retry a few times, then fail cleanly.
+async function validateMediaUrl(url, retries = 3) {
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return { ok: false, reason: 'invalid_url' };
+  }
+  let lastReason = 'validation_failed';
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(url, { method: 'GET', redirect: 'follow', signal: controller.signal });
+      clearTimeout(timeout);
+      if (!res.ok) {
+        lastReason = `HTTP ${res.status}`;
+        throw new Error(lastReason);
+      }
+      const contentType = res.headers.get('content-type') || '';
+      if (!/^image\//i.test(contentType) && !/^video\//i.test(contentType)) {
+        lastReason = `unexpected_content_type_${contentType}`;
+        throw new Error(lastReason);
+      }
+      return { ok: true, contentType };
+    } catch (e) {
+      const reason = e.name === 'AbortError' ? 'timeout' : (e.message || lastReason);
+      lastReason = reason;
+      console.warn(`[postBuilder] media URL validation attempt ${attempt + 1}/${retries} failed for ${url}: ${reason}`);
+      if (attempt < retries - 1) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
+  }
+  return { ok: false, reason: lastReason };
+}
+
 // Обложка: видео (Replicate активен) → иначе фото Pollinations в стиле канала.
 async function buildCover(topic) {
   const style = 'dark luxury minimalist poster, deep black background, glowing white neon lines, premium tech aesthetic, no text';
@@ -170,16 +205,29 @@ export async function publishLuxuryPost(params = {}) {
   let mediaType = 'none';
   try {
     const cover = await buildCover(post.topic);
-    if (cover.type === 'video') {
-      result = await tgApi(token, 'sendVideo', { chat_id: channel, video: cover.url, caption, parse_mode: 'HTML' });
+    if (cover?.url) {
+      console.log(`[postBuilder] validating media URL before Telegram send: ${cover.url}`);
+      const validated = await validateMediaUrl(cover.url);
+      if (validated.ok) {
+        if (cover.type === 'video') {
+          result = await tgApi(token, 'sendVideo', { chat_id: channel, video: cover.url, caption, parse_mode: 'HTML' });
+        } else {
+          result = await tgApi(token, 'sendPhoto', { chat_id: channel, photo: cover.url, caption, parse_mode: 'HTML' });
+        }
+        mediaType = cover.type;
+      } else {
+        console.warn(`[postBuilder] media URL failed validation (${validated.reason}), falling back to text-only: ${cover.url}`);
+      }
     } else {
-      result = await tgApi(token, 'sendPhoto', { chat_id: channel, photo: cover.url, caption, parse_mode: 'HTML' });
+      console.warn('[postBuilder] cover has no URL, falling back to text-only');
     }
-    mediaType = cover.type;
   } catch (e) {
-    console.warn('[postBuilder] media send failed, text-only fallback:', e.message);
+    console.warn('[postBuilder] media send failed, will fall back to text-only:', e.message);
+  }
+  if (!result) {
     try {
       result = await tgApi(token, 'sendMessage', { chat_id: channel, text: post.text, parse_mode: 'HTML' });
+      mediaType = 'none';
     } catch (e2) {
       return { success: false, error: friendlyError(e2.message), rawError: e2.message };
     }
