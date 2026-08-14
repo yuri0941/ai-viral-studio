@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { Link } from 'react-router-dom';
 import {
     Calendar, ChevronLeft, ChevronRight, Plus, Clock,
@@ -80,7 +81,7 @@ function formatYoutubeStatus(status) {
     const parts = [
         status.uploadStatus,
         status.privacyStatus,
-        status.madeForKids != null ? (status.madeForKids ? 'для детей' : 'не для детей') : null, // i18n: перенести ключ в UI-POLISH
+        status.madeForKids != null ? i18n.t(status.madeForKids ? 'youtube.scheduler.forKids' : 'youtube.scheduler.notForKids') : null,
     ].filter(v => v != null);
     if (parts.length === 0) return JSON.stringify(status);
     return parts.map(String).join(' · ');

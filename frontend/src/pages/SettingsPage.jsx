@@ -578,7 +578,7 @@ function SettingsPage() {
         { id: 'appearance', label: t('settings.appearance'), icon: Palette },
         { id: 'watermark', label: t('settings.watermark'), icon: Stamp },
         { id: 'scheduler', label: t('settings.schedulerTab'), icon: Calendar }, // [v9.9.19.17.7] scheduler settings
-        { id: 'addons', label: 'Мои дополнения', icon: Sparkles },
+        { id: 'addons', label: t('settings.myAddons'), icon: Sparkles },
     ];
 
     const handleSave = async () => {

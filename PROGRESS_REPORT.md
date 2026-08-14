@@ -4427,3 +4427,36 @@
 - [NOTE] Работа велась в изолированном worktree `.p16-worktree` (основное дерево занято батчем fix/yt-verify-react31; мой WIP был сохранён той сессией в stash@{0} и восстановлен оттуда без потерь).
 - [NOTE] Затронут сверх списка: `yookassaController.js` (2 точки — обязательно для авто-выкл скидки и учёта слота; поведение при свободных слотах неизменно), `server.js` (+4 строки регистрации роутов).
 - [NOTE] Ручная проверка владельца: 1) лендинг — отзывов нет → заглушка; добавить отзыв в PricingTab → появился на лендинге; 2) цены/лимиты на лендинге совпадают с PlanConfig; «в тарифе Pro поставь 300 генераций» в TG → подтверждение → лендинг и enforceQuota видят 300; 3) тест-оплата founding → слот занят, BetaCounter −1; 4) «💎 Тарифы» в клиентском боте — живые цифры; 5) 360px EN — вёрстка ровная.
+
+
+## 2026-08-14 — UI-POLISH — чистота интерфейса + скрин-аудит перед запуском (v9.9.21)
+- [ШАГ 0.1] Дубли top-level: `settings` в src/locales/ru.json (блоки @368 и @1916 — дизъюнктные, конфликтов значений 0) и `youtube` в src/locales/en.json. Правило слияния: union всех ключей, при конфликте — осмысленный текст важнее ключа-заглушки, иначе значение первого блока.
+- [FIX] `scripts/i18n-merge-dups.mjs` (новый): консолидация дублей с потоковым сканером вложенных дублей. settings: 216 ключей → 216 (потерь 0, проверено `scripts/i18n-verify-merge.mjs`), youtube(en): 105 → 105. Сырые settings.* в Настройках устранены.
+- [NEW] `scripts/i18n-parity.mjs` — сканер: все t('...')/шаблонные t(`prefix.${var}`) в коде × 4 файла локалей + ru↔en и src↔public дифы по используемым ключам. Игнорирует .bak/.old. Оставлен в репо для будущих батчей.
+- [FIX] Полный паритет: дозаполнено 797 ключей RU+EN (settings 125, advertiser 87, youtube 83, admin 60, staff 51, vk 43, telegram 37, tasks 34, finance 26, boardroom 25, chat 21, omega 20, scheduler 18 и др. + шаблонные префиксы scheduler.status.*, tasks.column.*, vk.scope.*, boardroom.votes.*, addons.*, aiVideoCreator.*, brainviz.types.*). Итог сканера: `I18N PARITY: OK (diff пустой)` — 1799 статических ключей + 24 шаблонных префикса, все 4 файла.
+- [FIX] public/locales теперь зеркало src/locales (приложение читает только src — проверено: i18n.js и i18n/index.js импортируют src JSON; public нигде не подключается).
+- [FIX] Inline-строка хотфикса (SchedulerPage formatYoutubeStatus 'для детей/не для детей') перенесена в ключи youtube.scheduler.forKids/notForKids (через i18n.t — функция вне компонента).
+- [FIX] Кракозябры: `scripts/mojibake-scan.mjs` (новый, U+FFFD/Ð/Ñ/â€/сербская кириллица). Найдено и исправлено в `src/App.jsx`: 'Loading documentвЂ¦' → '…', title '/advertiser-requests' двойной кодировкой → 'Заявки на рекламу'. После фикса скан чист.
+- [FIX] Адаптив код-ревью: h-screen → h-[100dvh] в ChatInterface, h-[calc(100vh-80px)] → 100dvh в AIChatPage, Sidebar — адресная строка Safari больше не обрезает чат/сайдбар. Лендинг P1.6 (отзывы/цены/BetaCounter) — grid-cols-1→3, break-words, skeleton: код-ревью чисто.
+- [VER] v9.9.21: App.jsx BUILD_ID + window.__APP_BUILD__, AppSidebar, config/version.js — синхронно.
+- [AUDIT] `scripts/ui-audit.mjs` (новый): Playwright, preview против продового API, роли public/creator/business/advertiser × 5 ширин (360/428/768/1280/1920) × RU/EN; на снимке: горизонтальный скролл (+ offenders), сырые ключи (regex word.word.word в innerText), console errors. Скриншоты reports/ui-audit/ (gitignored), сводка summary.json.
+- [NOTE] Тестовые аккаунты из TEST_ACCOUNTS.md на проде невалидны (все «Неверный email или пароль»). С разрешения владельца зарегистрированы uitest.{creator,business,advertiser}@aiviral-studio.ru (пароль в .tmp-ui-polish, не коммитится). owner/admin/staff — публичной регистрацией не создать.
+- [SECURITY-NOTE] Вне скоупа батча (backend не трогаем), но критично: `authController.register` принимает `role` из тела запроса без whitelist — потенциальная эскалация роли через публичную регистрацию. Требует отдельного backend-хотфикса.
+- [TEST] `npm run build` ✅; паритет i18n ✅ (вывод выше); mojibake-scan ✅; git add по явному списку.
+- [NOTE] Ручная проверка владельцем: Настройки — все пункты текстом (RU и EN); Планировщик — youtube.scheduler.* текстом; Заказы рекламы — common.all → «Все»; лендинг 360px EN без скролла.
+
+### Сводка скрин-аудита (Playwright, preview + продовый API через CORS-прокси)
+
+| Этап | Снимков | Проблем | Что найдено → исправлено |
+|---|---|---|---|
+| Полный прогон (37 стр × 5 ширин × RU/EN) | 370 | 23 | /privacy ×10 — ложное срабатывание regex на `app.aiviral.studio` (легальный id сайта, добавлен в whitelist); /scheduler ×13 — сырой ключ `youtube.scheduler.categories.*` → дозаполнены 12 официальных категорий YouTube RU+EN |
+| Точечная пересъёмка (scheduler, privacy, home) | 30 | 0 | — |
+| Визуальный разбор | — | 2 | Кнопка «Ждать доступ» посимвольно переносилась на 360px → whitespace-nowrap + min-w-0 у input; PWA-модалка обновления перекрывала скрины → автозакрытие в скрипте аудита |
+| Пересъёмка auth-ролей с настоящим EN (язык через `PUT /users/me` — DashboardShell берёт язык из user.preferences, а не localStorage) | 280 | 0 | «Мои дополнения» хардкодом в SettingsPage → ключ settings.myAddons |
+| Финал | 310 png в архиве | **0** | 0 горизонтальных скроллов, 0 console errors, 0 сырых ключей |
+
+Архив: `reports/ui-audit.zip` (56 МБ, 310 снимков; reports/ в .gitignore, в PR не входит).
+
+Известные ограничения (НЕ блокеры, отдельные батчи):
+- Хардкод RU-строк в страницах: AnalyticsPage (~94 строки), DashboardPage (~50), AIChatPage (~43), CheckoutPage, AppSidebar (owner-дашборд RU-only по конвенции) и др. Это не «сырые ключи» — критерий батча выполнен, но для полного EN нужен отдельный эпик i18n-hardcode.
+- Роли owner/admin/staff не проверены скрин-аудитом: публичной регистрацией их не создать, учётки из TEST_ACCOUNTS.md на проде невалидны.

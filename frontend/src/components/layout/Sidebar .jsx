@@ -137,7 +137,7 @@ function Sidebar() {
                 {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
 
-            <aside className={`fixed lg:sticky top-0 left-0 h-screen bg-[#0f0f17] border-r border-white/5 z-40 transition-all duration-300 flex flex-col ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${collapsed ? 'w-20' : 'w-64'}`}>
+            <aside className={`fixed lg:sticky top-0 left-0 h-[100dvh] bg-[#0f0f17] border-r border-white/5 z-40 transition-all duration-300 flex flex-col ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${collapsed ? 'w-20' : 'w-64'}`}>
                 {/* Logo */}
                 <div className={`p-4 border-b border-white/5 ${collapsed ? 'text-center' : ''}`}>
                     <div className="flex items-center gap-3 justify-center lg:justify-start">
