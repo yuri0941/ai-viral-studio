@@ -359,6 +359,22 @@ export const launchApi = {
 }
 
 // ============================================
+// [P1.6-PREP] PlanConfig (живые тарифы) + отзывы лендинга
+// ============================================
+export const planConfigApi = {
+    list: () => request('/plan-config'),
+    update: (plan, payload) => request(`/plan-config/${encodeURIComponent(plan)}`, { method: 'PUT', body: JSON.stringify(payload) }),
+}
+
+export const testimonialsApi = {
+    list: () => request('/testimonials'),
+    listAll: () => request('/testimonials/all'),
+    create: (data) => request('/testimonials', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => request(`/testimonials/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    remove: (id) => request(`/testimonials/${id}`, { method: 'DELETE' }),
+}
+
+// ============================================
 // Demo API
 // ============================================
 export const demoApi = {

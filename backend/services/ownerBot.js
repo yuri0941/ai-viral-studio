@@ -754,6 +754,44 @@ export const initOwnerBot = () => {
   async function handlePricingCommand(chatId, text) {
     const lower = text.toLowerCase()
 
+    // [P1.6-PREP] "в тарифе pro поставь 300 генераций" — редактирование лимитов PlanConfig с подтверждением
+    const quotaMatch = lower.match(/в тарифе\s+(free|pro|agency)\s+(?:поставь|установи|сделай)\s+(\d+)\s*(генераци\w*|загруз\w*|канал\w*|пост\w*|мб|мегабайт\w*|тег\w*)/i)
+    if (quotaMatch) {
+      const plan = quotaMatch[1]
+      const value = Number(quotaMatch[2])
+      const word = quotaMatch[3]
+      const fieldMap = [
+        [/генераци/, 'generationsPerDay', 'генераций/день'],
+        [/загруз/, 'youtubeUploadsPerDay', 'YouTube-загрузок/день'],
+        [/канал/, 'youtubeChannels', 'YouTube-каналов'],
+        [/пост/, 'scheduledPostsMax', 'запланированных постов (0 = безлимит)'],
+        [/мб|мегабайт/, 'mediaQueueMB', 'МБ медиа-очереди'],
+        [/тег/, 'aiTagsPerDay', 'AI-тегов/день'],
+      ]
+      const hit = fieldMap.find(([re]) => re.test(word))
+      if (!hit) return false
+      const [, field, label] = hit
+      try {
+        const planDoc = await PlanConfig.findOne({ plan })
+        if (!planDoc) { safeSendMessage(chatId, `⚠️ Тариф ${plan} не найден`); return true }
+        const oldValue = Number(planDoc.quotas?.[field] ?? 0)
+        safeSendMessage(chatId,
+          `🛠 <b>Изменение лимита</b>\n━━━━━━━━━━━━━━\nТариф: <b>${plan}</b>\n${label}: <b>${oldValue}</b> → <b>${value}</b>`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: `✅ Применить ${value}`, callback_data: `quota:apply:${plan}:${field}:${value}` }],
+                [{ text: '❌ Отмена', callback_data: 'price:cancel' }],
+              ],
+            },
+          })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`)
+      }
+      return true
+    }
+
     // "проанализируй цены" / "проанализируй цену pro"
     if (/проанализируй|анализ цен|анализ цены/.test(lower)) {
       const targets = ['tariff.pro', 'tariff.agency', 'ad.channel.cpm']
@@ -1031,6 +1069,35 @@ export const initOwnerBot = () => {
         safeSendMessage(chatId, r.ok ? `✅ ${r.message}` : `⚠️ ${r.message}`)
       } catch (e) {
         safeSendMessage(chatId, `⚠️ Ошибка возврата: ${e.message}`)
+      }
+      return
+    }
+
+    // [P1.6-PREP] подтверждение изменения лимита тарифа (PlanConfig quotas)
+    if (data.startsWith('quota:apply:')) {
+      const [, , plan, field, raw] = data.split(':')
+      const value = Number(raw)
+      try {
+        const planDoc = await PlanConfig.findOne({ plan })
+        if (!planDoc) { safeSendMessage(chatId, '⚠️ Тариф не найден'); return }
+        const oldValue = Number(planDoc.quotas?.[field] ?? 0)
+        planDoc.quotas[field] = value
+        await planDoc.save()
+        const { invalidatePlanCache } = await import('../middleware/enforceQuota.js')
+        invalidatePlanCache()
+        await PriceChangeLog.create({
+          what: `tariff.${plan}.${field}`,
+          oldPrice: oldValue,
+          newPrice: value,
+          source: 'telegram',
+          reason: 'quota via TG',
+          changedBy: await getOwnerMongoId(),
+        })
+        const { logOwnerAction } = await import('./ownerActionsService.js')
+        await logOwnerAction('owner.plan.quota', { plan, field, old: oldValue, new: value }, 'ok', 'owner-telegram')
+        safeSendMessage(chatId, `✅ Тариф <b>${plan}</b>: ${field} = <b>${value}</b> (было ${oldValue})`, { parse_mode: 'HTML' })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка применения лимита: ${e.message}`)
       }
       return
     }

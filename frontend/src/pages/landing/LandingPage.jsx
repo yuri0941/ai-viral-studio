@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Sparkles, Bot, BarChart3, Factory, Telescope, Calendar, Check, ChevronDown, ArrowRight, Send, Mail, Menu, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { API_BASE_URL } from '../../config.js'
+import { planConfigApi, testimonialsApi, launchApi } from '../../services/api.js' // [P1.6-PREP] живые тарифы и отзывы
 import FeatureMap from '../../components/landing/FeatureMap.jsx'
 import ViralDemo from './ViralDemo.jsx'
 import BetaCounter from './BetaCounter.jsx'
@@ -25,25 +26,16 @@ const STEPS = [
   { num: '04', title: 'Публикует', desc: 'Автопостинг, аналитика, рост.' }
 ]
 
-const TESTIMONIALS = [
-  { name: 'Анна К.', role: 'SMM-директор', text: 'OMEGA сократила время на контент в 4 раза. Рост подписчиков +37% за месяц.' },
-  { name: 'Дмитрий С.', role: 'Founder', text: 'Project Factory запустил наш лендинг за день. Без разработчиков.' },
-  { name: 'Мария Л.', role: 'Контент-менеджер', text: 'Telegram-бот заменил мне 3 инструмента. Очень удобно.' }
-]
+// [P1.6-PREP] выдуманные отзывы удалены — секция читает реальные отзывы из БД (GET /api/testimonials)
 
 const FAQ = [
   { q: 'Что такое AI Viral Studio?', a: 'Это платформа с AI-ассистентом OMEGA, который создаёт, публикует и анализирует вирусный контент.' },
   { q: 'Нужны ли навыки программирования?', a: 'Нет. Интерфейс простой, а бот в Telegram ведёт вас за руку.' },
   { q: 'Какие соцсети поддерживаются?', a: 'TikTok, Instagram, YouTube, Telegram, VK и другие через интеграции.' },
-  { q: 'Сколько стоит?', a: 'Есть бесплатный тариф. Pro — 990 ₽/мес, Agency — 4990 ₽/мес.' },
   { q: 'Как попасть в бета-тест?', a: 'Запишитесь в waitlist — мы высылаем приглашения каждую неделю.' }
 ]
 
-const PLANS = [
-  { name: 'Free', price: 0, features: ['3 проекта', '2 агента', '100MB хранилища', 'Basic AI'] },
-  { name: 'Pro', price: 990, popular: true, features: ['20 проектов', '10 агентов', '2GB хранилища', 'Telegram-бот', 'Аналитика'] },
-  { name: 'Agency', price: 4990, features: ['Безлимит проектов', '50 агентов', '10GB хранилища', 'White-label', 'API доступ'] }
-]
+// [P1.6-PREP] хардкод PLANS удалён — тарифы читаются из PlanConfig (GET /api/plan-config)
 
 export default function LandingPage() {
   const { t } = useTranslation()
@@ -54,6 +46,45 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(0)
   const [waitlistEmail, setWaitlistEmail] = useState('')
   const [waitlistStatus, setWaitlistStatus] = useState(null)
+
+  // [P1.6-PREP] живые данные: тарифы из PlanConfig, отзывы из БД, founding-статус
+  const [plans, setPlans] = useState(null)
+  const [plansError, setPlansError] = useState(false)
+  const [testimonials, setTestimonials] = useState([])
+  const [foundingActive, setFoundingActive] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    planConfigApi.list()
+      .then(res => { if (mounted) setPlans(Array.isArray(res?.plans) ? res.plans : []) })
+      .catch(() => { if (mounted) { setPlans([]); setPlansError(true) } })
+    testimonialsApi.list()
+      .then(res => { if (mounted) setTestimonials(Array.isArray(res?.testimonials) ? res.testimonials : []) })
+      .catch(() => { if (mounted) setTestimonials([]) })
+    launchApi.betaSlots()
+      .then(res => { if (mounted) setFoundingActive(!!res?.data?.foundingActive) })
+      .catch(() => { if (mounted) setFoundingActive(false) })
+    return () => { mounted = false }
+  }, [])
+
+  // [P1.6-PREP] строки фич тарифа из quotas/features PlanConfig
+  const planFeatureLines = (p) => {
+    const q = p.quotas || {}
+    const f = p.features || {}
+    const lines = []
+    if (q.generationsPerDay) lines.push(t('landing.plans.genPerDay', { count: q.generationsPerDay }))
+    if (q.youtubeUploadsPerDay) lines.push(t('landing.plans.ytPerDay', { count: q.youtubeUploadsPerDay }))
+    if (q.youtubeChannels) lines.push(t('landing.plans.ytChannels', { count: q.youtubeChannels }))
+    if (q.mediaQueueMB) lines.push(t('landing.plans.mediaMB', { count: q.mediaQueueMB }))
+    if (q.scheduledPostsMax) lines.push(t('landing.plans.scheduledMax', { count: q.scheduledPostsMax }))
+    if (q.aiTagsPerDay) lines.push(t('landing.plans.aiTagsPerDay', { count: q.aiTagsPerDay }))
+    for (const key of ['publishAt', 'playlists', 'brandVoice', 'abTesting', 'analytics', 'whiteLabel']) {
+      if (f[key]) lines.push(t(`landing.plans.feature.${key}`))
+    }
+    return lines
+  }
+
+  const planPrice = (id) => plans?.find(p => p.plan === id)?.price ?? 0
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -184,25 +215,42 @@ export default function LandingPage() {
 
       <FeatureMap />
 
-      {/* Pricing */}
+      {/* Pricing — [P1.6-PREP] живые данные из PlanConfig */}
       <section id="pricing" className="py-20 px-4">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Тарифы</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {PLANS.map((p, i) => (
-              <div key={i} className={`relative rounded-2xl p-6 border ${p.popular ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)] glass-card'}`}>
-                {p.popular && <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[var(--primary)] text-[var(--text-on-primary)] text-xs font-medium">Популярный</span>}
-                <h3 className="text-xl font-bold mb-2">{p.name}</h3>
-                <div className="text-3xl font-bold mb-4">{p.price} <span className="text-sm text-[var(--text-muted)] font-normal">₽/мес</span></div>
-                <ul className="space-y-2 mb-6">
-                  {p.features.map((feat, j) => (
-                    <li key={j} className="flex items-center gap-2 text-sm text-[var(--text-muted)]"><Check className="w-4 h-4 text-emerald-400" /> {feat}</li>
-                  ))}
-                </ul>
-                <Link to={`/signup?plan=${p.name.toLowerCase()}`} className="block text-center py-3 rounded-xl bg-[var(--primary)] text-[var(--text-on-primary)] text-sm font-medium hover:opacity-90">Выбрать</Link>
-              </div>
-            ))}
-          </div>
+          {plansError && (
+            <div className="glass-card rounded-2xl p-6 border border-[var(--border)] text-center text-[var(--text-muted)]">
+              {t('landing.plans.error')}
+            </div>
+          )}
+          {!plansError && plans === null && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="rounded-2xl p-6 border border-[var(--border)] glass-card animate-pulse h-64" />
+              ))}
+            </div>
+          )}
+          {!plansError && plans !== null && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {plans.map((p) => (
+                <div key={p.plan} className={`relative rounded-2xl p-6 border ${p.plan === 'pro' ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)] glass-card'}`}>
+                  {p.plan === 'pro' && <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[var(--primary)] text-[var(--text-on-primary)] text-xs font-medium">{t('landing.plans.popular')}</span>}
+                  <h3 className="text-xl font-bold mb-2 capitalize">{p.plan}</h3>
+                  <div className="text-3xl font-bold mb-1">{p.price} <span className="text-sm text-[var(--text-muted)] font-normal">{t('landing.plans.perMonth')}</span></div>
+                  {foundingActive && p.price > 0 && (
+                    <div className="text-xs text-emerald-400 mb-3 break-words">{t('landing.plans.foundingLine', { price: Math.round(p.price * 0.7) })}</div>
+                  )}
+                  <ul className="space-y-2 mb-6 mt-4">
+                    {planFeatureLines(p).map((feat, j) => (
+                      <li key={j} className="flex items-center gap-2 text-sm text-[var(--text-muted)] break-words"><Check className="w-4 h-4 text-emerald-400 shrink-0" /> {feat}</li>
+                    ))}
+                  </ul>
+                  <Link to={`/signup?plan=${p.plan}`} className="block text-center py-3 min-h-[40px] rounded-xl bg-[var(--primary)] text-[var(--text-on-primary)] text-sm font-medium hover:opacity-90">{t('landing.plans.choose')}</Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -222,19 +270,25 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Testimonials — [P1.6-PREP] реальные отзывы из БД; при отсутствии — честная заглушка */}
       <section className="py-20 px-4">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Отзывы</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="glass-card rounded-2xl p-6 border border-[var(--border)]">
-                <p className="text-sm text-[var(--text)] mb-4">“{t.text}”</p>
-                <div className="text-sm font-semibold">{t.name}</div>
-                <div className="text-xs text-[var(--text-muted)]">{t.role}</div>
-              </div>
-            ))}
-          </div>
+          <h2 className="text-3xl font-bold text-center mb-12">{t('landing.testimonials.title')}</h2>
+          {testimonials.length === 0 ? (
+            <div className="glass-card rounded-2xl p-8 border border-[var(--border)] text-center text-[var(--text-muted)] break-words">
+              {t('landing.testimonials.empty')}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {testimonials.map((item) => (
+                <div key={item._id} className="glass-card rounded-2xl p-6 border border-[var(--border)]">
+                  <p className="text-sm text-[var(--text)] mb-4 break-words">“{item.text}”</p>
+                  <div className="text-sm font-semibold break-words">{item.name}</div>
+                  {item.role && <div className="text-xs text-[var(--text-muted)] break-words">{item.role}</div>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -245,7 +299,10 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">FAQ</h2>
           <div className="space-y-3">
-            {FAQ.map((item, i) => (
+            {[...FAQ.slice(0, 3),
+              // [P1.6-PREP] живые цены из PlanConfig вместо хардкода
+              { q: 'Сколько стоит?', a: plans?.length ? t('landing.faq.priceAnswer', { pro: planPrice('pro'), agency: planPrice('agency') }) : t('landing.faq.priceAnswerFallback') },
+              ...FAQ.slice(3)].map((item, i) => (
               <div key={i} className="glass-card rounded-2xl border border-[var(--border)] overflow-hidden">
                 <button onClick={() => setOpenFaq(openFaq === i ? -1 : i)} className="w-full flex items-center justify-between p-4 text-left">
                   <span className="font-medium">{item.q}</span>

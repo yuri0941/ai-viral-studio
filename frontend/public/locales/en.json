@@ -20,6 +20,41 @@
   },
   "pricing": {
     "title": "Pricing & Plans",
+    "editPlan": "Edit plan",
+    "savePlan": "Save plan",
+    "saved": "Plan saved",
+    "saveError": "Failed to save plan",
+    "quota": {
+      "generationsPerDay": "Generations/day",
+      "youtubeUploadsPerDay": "YouTube uploads/day",
+      "youtubeChannels": "YouTube channels",
+      "mediaQueueMB": "Media queue, MB",
+      "scheduledPostsMax": "Scheduled posts (0 = unlimited)",
+      "aiTagsPerDay": "AI tags/day"
+    },
+    "feature": {
+      "publishAt": "Scheduled publishing",
+      "playlists": "Playlists",
+      "brandVoice": "Brand Voice",
+      "abTesting": "A/B testing",
+      "analytics": "Analytics",
+      "whiteLabel": "White-label"
+    },
+    "testimonials": {
+      "title": "Landing reviews",
+      "name": "Name",
+      "role": "Role",
+      "text": "Review text",
+      "add": "Add review",
+      "added": "Review added",
+      "delete": "Delete",
+      "deleted": "Review deleted",
+      "hide": "Hide",
+      "show": "Show",
+      "empty": "No reviews yet",
+      "error": "Review operation failed",
+      "hiddenBadge": "hidden"
+    },
     "analyze": "Analyze",
     "adPricing": "Ad Pricing",
     "analysisFor": "Analysis for",
@@ -316,6 +351,36 @@
   "landing": {
     "start": "Start",
     "login": "Log in",
+    "testimonials": {
+      "title": "Reviews",
+      "empty": "First reviews will appear here"
+    },
+    "plans": {
+      "perMonth": "₽/month",
+      "popular": "Popular",
+      "choose": "Choose",
+      "error": "Failed to load plans",
+      "foundingLine": "Founding members: {{price}} ₽/mo (−30%)",
+      "unlimited": "Unlimited posts",
+      "genPerDay": "{{count}} generations/day",
+      "ytPerDay": "{{count}} YouTube uploads/day",
+      "ytChannels": "{{count}} YouTube channels",
+      "mediaMB": "{{count}} MB media",
+      "scheduledMax": "{{count}} scheduled posts",
+      "aiTagsPerDay": "{{count}} AI tags/day",
+      "feature": {
+        "publishAt": "Scheduled publishing",
+        "playlists": "Playlists",
+        "brandVoice": "Brand Voice",
+        "abTesting": "A/B testing",
+        "analytics": "Analytics",
+        "whiteLabel": "White-label"
+      }
+    },
+    "faq": {
+      "priceAnswer": "There's a free plan. Pro — {{pro}} ₽/mo, Agency — {{agency}} ₽/mo.",
+      "priceAnswerFallback": "There's a free plan and paid tiers — see current prices in the pricing section above."
+    },
     "heroBadge": "Beta — first users get full access",
     "highlightAI": "AI content generation",
     "highlightTrends": "Trend analysis",

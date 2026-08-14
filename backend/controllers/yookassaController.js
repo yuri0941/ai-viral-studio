@@ -127,8 +127,10 @@ export const createSubscriptionPayment = async (req, res) => {
     }
 
     // [19.13-lite-PAYMENTS-NPD] founding member −30% от текущей цены тарифа
+    // [P1.6-PREP] скидка действует, пока есть свободные founding-слоты (авто-выкл при 50/50 без деплоя)
     const payer = await User.findById(userId).lean();
-    const isFounding = !!payer?.isFoundingMember;
+    const { isFoundingDiscountEligible } = await import('../services/foundingService.js');
+    const isFounding = await isFoundingDiscountEligible(payer);
     if (isFounding) {
       amount = Math.round(amount * 0.7);
     }
@@ -347,6 +349,15 @@ export const yookassaWebhook = async (req, res) => {
             $set: { status: 'active', providerPaymentId: paymentId },
           });
         }
+      }
+
+      // [P1.6-PREP] founding-слот занимается первой успешной оплатой (идемпотентно, unique userId);
+      // метрика слотов НЕ валит webhook
+      try {
+        const { markFoundingSlotPaid } = await import('../services/foundingService.js');
+        await markFoundingSlotPaid(metadata?.userId, paymentId);
+      } catch (fErr) {
+        console.warn('[founding] markFoundingSlotPaid failed:', fErr.message);
       }
 
       // [P1.5-METRICS] paid: идемпотентно по paymentId (guard в metricsService); метрика НЕ валит webhook

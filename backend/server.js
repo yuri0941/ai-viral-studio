@@ -39,6 +39,8 @@ import userRoutes from './routes/users.js'
 import youtubeRoutes from './routes/youtube.js'  // ← НОВОЕ: YouTube API
 import paymentRoutes from './routes/payments.js'  // ← НОВОЕ: Платежи
 import metricsRoutes from './routes/metrics.js'  // [P1.5-METRICS] beacon воронки (публичный, rate-limited)
+import testimonialsRoutes from './routes/testimonials.js'  // [P1.6-PREP] отзывы лендинга
+import planConfigRoutes from './routes/planConfig.js'  // [P1.6-PREP] PlanConfig: публичный GET + owner PUT лимитов/фич
 import { maintenanceMode } from './middleware/maintenanceMode.js'  // [OWNER-REMOTE-CONTROL]
 import ownerRoutes from './routes/owner.js'  // ← НОВОЕ: Owner Dashboard API
 import auditRoutes from './routes/audit.js'  // ← v6.6-HOTFIX-EXPORT: audit CSV export
@@ -573,6 +575,8 @@ app.use('/api/admin/sales-metrics', salesMetricsRoutes)  // [v9.9.8-SALES-OMEGA]
 app.use('/api/youtube', youtubeRoutes)  // ← НОВОЕ: YouTube роуты
 app.use('/api/payments', paymentRoutes)  // ← НОВОЕ: Платежи
 app.use('/api/metrics', metricsRoutes)  // [P1.5-METRICS] POST /api/metrics/visit
+app.use('/api/testimonials', testimonialsRoutes)  // [P1.6-PREP] отзывы лендинга
+app.use('/api/plan-config', planConfigRoutes)  // [P1.6-PREP] живые тарифы (PlanConfig)
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API
 app.use('/api/api-keys', apiKeyRoutes)  // [v9.9.19-HOTFIX] owner-managed API keys (hot-reload)
 app.use('/api/owner/apikeys', apiKeyRoutes)  // [v9.9.15-REAL] legacy owner API keys

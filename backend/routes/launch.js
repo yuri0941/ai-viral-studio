@@ -218,13 +218,22 @@ router.get('/waitlist/founding-members', async (req, res) => {
     }
 })
 
-// GET /api/launch/beta/slots — оставшиеся бета-слоты
+// GET /api/launch/beta/slots — оставшиеся founding-слоты
+// [P1.6-PREP] слот = первая УСПЕШНАЯ оплата (FoundingSlot), не регистрация; активность скидки — из БД, без деплоя
 router.get('/beta/slots', async (req, res) => {
     try {
-        const totalBeta = await User.countDocuments({ role: 'beta' })
-        const totalSlots = 50
-        const remaining = Math.max(0, totalSlots - totalBeta)
-        res.json({ success: true, data: { total: totalSlots, used: totalBeta, remaining, nextWaveInDays: remaining === 0 ? 7 : 0 } })
+        const { getFoundingStats } = await import('../services/foundingService.js')
+        const stats = await getFoundingStats()
+        res.json({
+            success: true,
+            data: {
+                total: stats.total,
+                used: stats.used,
+                remaining: stats.remaining,
+                foundingActive: stats.active,
+                nextWaveInDays: 0,
+            },
+        })
     } catch (err) {
         res.status(500).json({ success: false, message: err.message })
     }

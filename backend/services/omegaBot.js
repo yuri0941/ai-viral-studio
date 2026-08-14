@@ -807,7 +807,15 @@ export const initOmegaBot = () => {
         return
       }
       if (data === 'ad:prices') {
-        bot.sendMessage(chatId, `💎 <b>Тарифы приложения</b>\n━━━━━━━━━━━━━━\n• Free — 0₽ (10 генераций)\n• Pro — 990₽/мес\n• Agency — 4990₽/мес\n━━━━━━━━━━━━━━\nhttps://aiviral-studio.ru/pricing`, { parse_mode: 'HTML' })
+        // [P1.6-PREP] живые тарифы из PlanConfig (кэш ≤60 сек), формат сообщения прежний
+        try {
+          const { getCachedPlansForBot } = await import('./planDisplayService.js')
+          const lines = await getCachedPlansForBot()
+          bot.sendMessage(chatId, `💎 <b>Тарифы приложения</b>\n━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━\nhttps://aiviral-studio.ru/pricing`, { parse_mode: 'HTML' })
+        } catch (e) {
+          console.warn('[omegaBot] plans fetch failed:', e.message)
+          bot.sendMessage(chatId, `💎 <b>Тарифы приложения</b>\n━━━━━━━━━━━━━━\nАктуальные тарифы — на сайте:\nhttps://aiviral-studio.ru/pricing`, { parse_mode: 'HTML' })
+        }
         return
       }
     }

@@ -4409,3 +4409,21 @@
 - [NOTE] Ветка построена поверх feat/p1-5-metrics (P1.5 на момент старта не был влит в main). PR создавать после мержа P1.5 — diff станет чистым.
 - [NOTE] Затронуты сверх списка: `routes/payments.js` (только именование+export handler'а, логика не тронута), `App.jsx` (+1 строка гейта), `AuthContext.jsx` (+code в возврате register), `RegisterForm.jsx` (маппинг i18n) — минимально необходимое для ТЗ.
 - [NOTE] Ручная проверка владельца — по чек-листу батча (статус/рубильники/возврат-404/смена TG с кодом/посторонний TG/регресс метрик и Daily Report).
+
+
+## 2026-08-14 — P1.6-PREP — честный запуск: реальные отзывы/цифры, founding 50 слотов с авто-выкл, состав тарифов
+- [ШАГ 0] Фейк-отзывы лежали в `frontend/src/pages/landing/LandingPage.jsx` (const TESTIMONIALS, 3 выдуманных), фейк-цены/фичи — const PLANS там же + FAQ «Pro 990». BetaCounter получал число из `GET /api/launch/beta/slots` (считал User role='beta' — регистрации, не оплаты). Хардкод тарифов в omegaBot — блок `ad:prices` (строка «Free — 0₽ (10 генераций)…»).
+- [NEW] `backend/models/FoundingSlot.js` + `services/foundingService.js`: слот = ПЕРВАЯ успешная оплата (unique userId — идемпотентно), `getFoundingStats`, `isFoundingDiscountEligible` (флаг + есть слоты/слот уже занят), `markFoundingSlotPaid` с TG-алертами на 40 и 50 слоте; при 50/50 −30% отключается автоматически (гейт в createSubscriptionPayment).
+- [FIX] `yookassaController.js` (минимум, 2 точки): isFounding теперь через `isFoundingDiscountEligible`; webhook `mark_paid` вызывает `markFoundingSlotPaid` в try/catch (не валит webhook).
+- [FIX] `routes/launch.js`: `/beta/slots` считает по FoundingSlot (оплаты), отдаёт `foundingActive` — BetaCounter и лендинг переключаются без деплоя.
+- [NEW] `models/Testimonial.js` + `routes/testimonials.js`: публичный GET (только visible), owner CRUD (POST/PUT/DELETE, аудит через logOwnerAction). Лендинг: фейк-массив удалён, секция читает БД; пусто/ошибка → честная заглушка «Первые отзывы появятся здесь».
+- [NEW] `routes/planConfig.js`: `GET /api/plan-config` (публичный: цена+квоты+фичи из PlanConfig) и `PUT /api/plan-config/:plan` (owner: quotas/features, каждое изменение → PriceChangeLog + invalidatePlanCache + AuditLog). Лендинг #pricing и FAQ-цены читают эти живые данные (хардкод PLANS удалён, skeleton при загрузке, без выдуманных цифр).
+- [FIX] `PricingTab.jsx`: кнопка «Изменить состав» в карточке тарифа — 6 квот (числа) + 6 фич (чекбоксы) → PUT plan-config, toast, reload. Секция «Отзывы лендинга»: добавление/скрытие/удаление (тот же CRUD).
+- [FIX] `ownerBot.js` (только добавление): «в тарифе Pro поставь N генераций» (+ загрузок/каналов/постов/МБ/тегов) → карточка → кнопки [Применить]/[Отмена] (callback `quota:apply:`) → PlanConfig + PriceChangeLog + аудит. Команды цен не тронуты.
+- [FIX] `omegaBot.js` (только блок ad:prices): «💎 Тарифы» — живые цены/лимиты/фичи из PlanConfig через новый `services/planDisplayService.js` (кэш 60 сек), формат сообщения прежний, fallback при сбое.
+- [i18n] 51 новый ключ (landing.testimonials/plans/faq, pricing.quota/feature/testimonials/savePlan…) во все 4 файла текстовыми вставками (дубль settings в ru.json не тронут); паритет 0-diff скриптом; JSON валидны, UTF-8 без BOM, кракозябр нет.
+- [TEST] `node --check` 11 backend-файлов ✅; `npm run build` ✅ (из worktree через junction node_modules); git add строго по списку файлов.
+- [ADAPTIVE] Код-ревью: skeleton-карточки, grid-cols-1→3, break-words у отзывов/фич, кнопки min-h-[40px], line-clamp-2 в списке — 360/428/768/1280/1920, RU/EN.
+- [NOTE] Работа велась в изолированном worktree `.p16-worktree` (основное дерево занято батчем fix/yt-verify-react31; мой WIP был сохранён той сессией в stash@{0} и восстановлен оттуда без потерь).
+- [NOTE] Затронут сверх списка: `yookassaController.js` (2 точки — обязательно для авто-выкл скидки и учёта слота; поведение при свободных слотах неизменно), `server.js` (+4 строки регистрации роутов).
+- [NOTE] Ручная проверка владельца: 1) лендинг — отзывов нет → заглушка; добавить отзыв в PricingTab → появился на лендинге; 2) цены/лимиты на лендинге совпадают с PlanConfig; «в тарифе Pro поставь 300 генераций» в TG → подтверждение → лендинг и enforceQuota видят 300; 3) тест-оплата founding → слот занят, BetaCounter −1; 4) «💎 Тарифы» в клиентском боте — живые цифры; 5) 360px EN — вёрстка ровная.
