@@ -14,12 +14,36 @@ const FORBIDDEN_REGISTRATION_ROLES = ['owner', 'admin', 'staff']
 // [P22] added: Turnstile verification re-enabled with graceful fallback
 router.post('/register', validateRegister, verifyTurnstile, async (req, res) => {
   try {
+    // [FIX-BUFFER] рубильник регистрации (OWNER-REMOTE-CONTROL) на ЖИВОМ пути
+    const { getOwnerFlags } = await import('../models/OwnerSettings.js')
+    const { registrationEnabled } = await getOwnerFlags()
+    if (!registrationEnabled) {
+      return res.status(403).json({
+        success: false,
+        code: 'registration_closed',
+        message: 'Регистрация временно закрыта. Попробуйте позже.'
+      })
+    }
+
     const { name, email, password, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult, timezone } = req.body
 
-    // Security: clients cannot self-register privileged roles
-    if (FORBIDDEN_REGISTRATION_ROLES.includes(req.body.role)) {
-      console.warn('[security] attempt to register privileged role:', req.body.role)
-      return res.status(403).json({ success: false, message: 'Forbidden role' })
+    // [FIX-BUFFER] role из тела ПОЛНОСТЬЮ игнорируется — всегда клиентская роль.
+    // Попытка эскалации логируется в AuditLog, регистрация продолжается как обычно.
+    if (req.body.role && req.body.role !== 'creator') {
+      console.warn('[security] role from register body ignored:', req.body.role, email)
+      try {
+        const { default: AuditLog } = await import('../models/AuditLog.js')
+        await AuditLog.create({
+          action: 'security.register_role_attempt',
+          user: String(email || 'unknown'),
+          type: 'security',
+          severity: FORBIDDEN_REGISTRATION_ROLES.includes(req.body.role) ? 'high' : 'medium',
+          metadata: { requestedRole: String(req.body.role).slice(0, 40), ip: req.ip },
+          timestamp: new Date(),
+        })
+      } catch (auditErr) {
+        console.warn('[security] audit log failed:', auditErr.message)
+      }
     }
     const role = 'creator'
 
@@ -70,6 +94,14 @@ router.post('/register', validateRegister, verifyTurnstile, async (req, res) => 
       })
     } catch (quotaErr) {
       console.error('[auth:register] usage quota creation failed:', quotaErr.message)
+    }
+
+    // [FIX-BUFFER] P1.5 signup-метрика на ЖИВОМ пути регистрации (authController.register — мёртвый код, хук там не срабатывал)
+    try {
+      const { trackSignup } = await import('../services/metricsService.js')
+      await trackSignup()
+    } catch (mErr) {
+      console.warn('[metrics] signup track failed:', mErr.message)
     }
 
     const token = user.generateToken()

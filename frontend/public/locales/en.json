@@ -2499,7 +2499,9 @@
       "published": "Published",
       "failed": "Failed",
       "error": "Error"
-    }
+    },
+    "retry": "Retry",
+    "retrySuccess": "Post queued for publishing again"
   },
   "team": {
     "add": "Add employee",

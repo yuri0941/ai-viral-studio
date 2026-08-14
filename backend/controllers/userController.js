@@ -117,6 +117,21 @@ export const updateMe = async (req, res) => {
       if (privileged.includes(role) && req.user.role !== 'owner') {
         return res.status(403).json({ success: false, message: 'Not allowed to set this role' })
       }
+      // [FIX-BUFFER] любая смена роли — в AuditLog
+      try {
+        const { default: AuditLog } = await import('../models/AuditLog.js')
+        await AuditLog.create({
+          action: 'security.role_change',
+          user: String(req.user.email || req.user._id),
+          userId: req.user._id,
+          type: 'security',
+          severity: privileged.includes(role) ? 'high' : 'low',
+          metadata: { from: req.user.role, to: role },
+          timestamp: new Date(),
+        })
+      } catch (auditErr) {
+        console.warn('[userController] role audit failed:', auditErr.message)
+      }
       updates.role = role
     }
     if (preferences && typeof preferences === 'object') {

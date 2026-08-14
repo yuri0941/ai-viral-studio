@@ -4460,3 +4460,23 @@
 Известные ограничения (НЕ блокеры, отдельные батчи):
 - Хардкод RU-строк в страницах: AnalyticsPage (~94 строки), DashboardPage (~50), AIChatPage (~43), CheckoutPage, AppSidebar (owner-дашборд RU-only по конвенции) и др. Это не «сырые ключи» — критерий батча выполнен, но для полного EN нужен отдельный эпик i18n-hardcode.
 - Роли owner/admin/staff не проверены скрин-аудитом: публичной регистрацией их не создать, учётки из TEST_ACCOUNTS.md на проде невалидны.
+
+
+## 2026-08-14 — FIX-BUFFER — точечные правки перед запуском
+- [ШАГ 0.0] reports/ui-audit: неисправленных остатков нет (все находки UI-POLISH закрыты там же); mojibake-scan чист.
+- [ШАГ 0.1] SECURITY: живой обработчик регистрации — `routes/auth.js` (НЕ controllers/authController.js — он мёртвый код, нигде не смонтирован). Живой путь уже игнорировал привилегированные роли (403), НО: (а) рубильник регистрации OWNER-REMOTE-CONTROL был добавлен в мёртвый контроллер → на проде не работал; (б) P1.5 signup-метрика была в мёртвом контроллере → signups не считались; (в) попытки эскалации логировались только в консоль. Ещё место: `userController.updateMe` принимает role из тела (фича P16 role switching) — гейт privileged есть, аудита не было.
+- [ШАГ 0.2] Ретраи AUTO-PUBLISH: счётчика не было — один `retriedAt`, а stale-watchdog сбрасывал publishing→failed БЕЗ retriedAt → мёртвые посты переотбирались бесконечно (инцидент 14.08).
+- [ШАГ 0.3] «backup is stale»: checkBackupStale уже слал TG-алерт, но без причины; runBackup уже алертит о сбое в ту же ночь; ручной триггер существует (POST /api/admin/backup/trigger, owner/admin). Вероятная первопричина на проде — отсутствие mongodump/MONGODB_URI (видно по lastBackupStatus в алерте теперь).
+- [ШАГ 0.4] YouTube 400 без деталей: axios бросает до парсинга тела — в publishScheduledYouTubePost прилетал голый «Request failed with status code 400».
+
+- [FIX 1] SECURITY role whitelist: `routes/auth.js` register — role из тела ПОЛНОСТЬЮ игнорируется (всегда creator), попытка эскалации → AuditLog (security.register_role_attempt, severity high для owner/admin/staff) + регистрация продолжается как обычный клиент. Добавлены на живой путь: рубильник registrationEnabled (403 registration_closed) и trackSignup (P1.5). Мёртвый `authController.register` нейтрализован (hardcode creator). `userController.updateMe` — смена роли теперь пишется в AuditLog (security.role_change).
+- [FIX 2] Потолок ретраев AUTO-PUBLISH: `ScheduledPost.failCount/failAlertedAt`; максимум 3 неудачи подряd (включая stale-петлю watchdog — она теперь $inc failCount) → failed, ретраи стоп, ОДНО TG-уведомление с причиной. Ручной «повторить»: PATCH status=scheduled сбрасывает failCount/failAlertedAt/retriedAt; в Планировщике у failed-постов кнопка «Повторить» (VisualCalendar, desktop hover + mobile menu), ключи scheduler.retry/retrySuccess.
+- [FIX 3] YouTube publish: из тела ошибки API извлекаются errors[].reason + message → в лог и TG-алерт с подсказками (refresh_failed → «переподключите YouTube», quotaExceeded → «после 10:00 МСК», insufficientPermissions, invalidTitle).
+- [FIX 4] Backup: stale-алерт теперь с причиной (lastBackupStatus, кол-во бэкапов, подсказка про mongodump/MONGODB_URI и ручной триггер). Ручной триггер проверен код-ревью: POST /api/admin/backup/trigger (protect+owner/admin) → runBackup → ответ success/error; алерты успеха/сбоя есть.
+- [TEST] node --check 8 backend-файлов ✅; i18n-parity чист (1801 ключ, 24 префикса) ✅; mojibake чист ✅; npm run build ✅; пересъём /scheduler (360/428/768/1280/1920 × RU/EN) — 10/10 OK ✅.
+- [NOTE] Проверка на проде после деплоя (ручной чек-лист): 1) POST /api/auth/register с role:"owner" → 201, role=creator, запись security.register_role_attempt в AuditLog; 2) «регистрация off» в TG → register → 403 registration_closed (рубильник теперь на живом пути); 3) пост без видео → 3 ретрая → failed + ОДНО уведомление; кнопка «Повторить» → снова в очередь; 4) POST /api/admin/backup/trigger → success или алерт с причиной; 5) YouTube publish при дохлом токене → алерт «refresh_failed — переподключите YouTube».
+
+### Смоук-прогон ботов (чек-лист владельца)
+Клиентский @aiviral_omega_bot: 1) /start со второго аккаунта → клиентское меню; 2) «💎 Тарифы» → живые цены из PlanConfig; 3) свободный текст → AI-ответ без дубля меню; 4) «хочу возврат» → тикет + алерт владельцу; 5) диалог переживает рестарт.
+Владельский @aiviral_alerts_bot: 6) «статус» → карточка с цифрами и флагами; 7) «метрики» → воронка + MRR; 8) «📋 Тикеты» → виден тикет из п.4.
+Чат в приложении: 9) OMEGA Chat отвечает; 10) тикет из SupportTab доходит владельцу.

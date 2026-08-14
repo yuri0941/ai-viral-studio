@@ -137,8 +137,14 @@ async function cleanupOldBackups() {
 export async function checkBackupStale() {
     const status = await getBackupStatus()
     if (status.stale) {
-        console.warn('[disasterRecovery] backup is stale')
-        await sendOwnerAlert('⚠️ Бэкап MongoDB не создавался более 24 часов. Проверьте disasterRecovery.')
+        // [FIX-BUFFER] владельцу — не сухой "stale", а причина и что делать
+        console.warn('[disasterRecovery] backup is stale:', status.status)
+        await sendOwnerAlert(
+            `⚠️ Бэкап MongoDB не создавался более 24 часов.\n` +
+            `Последний статус: ${status.status || 'unknown'}\n` +
+            `Бэкапов на диске: ${status.backupsCount}\n` +
+            `Проверьте наличие mongodump на сервере и MONGODB_URI. Ручной запуск: POST /api/admin/backup/trigger`
+        )
     }
     return status
 }
