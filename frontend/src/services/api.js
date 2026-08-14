@@ -444,6 +444,18 @@ export const yookassaApi = {
 }
 
 // ============================================
+// Payments history API [19.13-lite-PAYMENTS-NPD]
+// ============================================
+export const paymentsApi = {
+    history: () => request('/payments/history'),
+    resendReceipt: (id) => request(`/payments/${id}/resend-receipt`, { method: 'POST' }),
+    adminList: (params = {}) => {
+        const qs = new URLSearchParams(params).toString()
+        return request(`/payments/admin/list${qs ? `?${qs}` : ''}`)
+    },
+}
+
+// ============================================
 // Stripe API (prepared, disabled by default)
 // ============================================
 export const stripeApi = {

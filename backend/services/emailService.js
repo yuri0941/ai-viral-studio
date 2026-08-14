@@ -65,6 +65,18 @@ const T = {
         refundText: 'Мы получили ваш запрос на возврат: {reason}.',
         ticketSubject: 'Новый тикет — AI Viral Studio',
         ticketText: 'Создан тикет: {subject}.',
+        subActiveSubject: 'Подписка активна — AI Viral Studio',
+        subActiveTitle: 'Спасибо, {name}!',
+        subActiveText: 'Подписка <strong>{plan}</strong> активна до <strong>{date}</strong>.',
+        subActiveReceipt: 'Чек отправлен на вашу почту от ЮKassa.',
+        subActiveButton: 'Открыть кабинет',
+        receiptFailedSubject: 'Оплата прошла, чек формируется — AI Viral Studio',
+        receiptFailedTitle: 'Здравствуйте, {name}!',
+        receiptFailedText: 'Ваша оплата прошла успешно. Фискальный чек формируется — он придёт на вашу почту от ЮKassa. Ничего делать не нужно.',
+        receiptResentSubject: 'Ваш чек — AI Viral Studio',
+        receiptResentTitle: 'Здравствуйте, {name}!',
+        receiptResentText: 'По вашему запросу: чек за оплату <strong>{description}</strong> на сумму <strong>{amount}</strong> был отправлен на вашу почту сервисом ЮKassa в момент оплаты. Если письма нет во входящих — проверьте папку «Спам».',
+        receiptResentFailed: 'Статус чека: формируется. Как только ЮKassa выпустит чек, он придёт на вашу почту автоматически.',
     },
     en: {
         verifySubject: 'Confirm your AI Viral Studio registration',
@@ -91,6 +103,18 @@ const T = {
         refundText: 'We received your refund request: {reason}.',
         ticketSubject: 'New ticket — AI Viral Studio',
         ticketText: 'A new ticket was created: {subject}.',
+        subActiveSubject: 'Subscription active — AI Viral Studio',
+        subActiveTitle: 'Thank you, {name}!',
+        subActiveText: 'Your <strong>{plan}</strong> subscription is active until <strong>{date}</strong>.',
+        subActiveReceipt: 'The receipt was sent to your email by YooKassa.',
+        subActiveButton: 'Open dashboard',
+        receiptFailedSubject: 'Payment received, receipt is being generated — AI Viral Studio',
+        receiptFailedTitle: 'Hello, {name}!',
+        receiptFailedText: 'Your payment was successful. The fiscal receipt is being generated and will be sent to your email by YooKassa. No action is required.',
+        receiptResentSubject: 'Your receipt — AI Viral Studio',
+        receiptResentTitle: 'Hello, {name}!',
+        receiptResentText: 'As requested: the receipt for your payment <strong>{description}</strong> of <strong>{amount}</strong> was sent to your email by YooKassa at the time of payment. If you cannot find it, please check the Spam folder.',
+        receiptResentFailed: 'Receipt status: being generated. Once YooKassa issues it, it will be emailed to you automatically.',
     }
 }
 
@@ -167,6 +191,56 @@ export async function sendPaymentSuccessEmail(to, name, plan, amount, lang = 'ru
         subject,
         html,
     })
+}
+
+// [19.13-lite-PAYMENTS-NPD] письмо «подписка активна + чек от ЮKassa» (новый шаблон, старый не тронут)
+export async function sendSubscriptionActiveEmail(to, name, plan, endDate, lang = 'ru') {
+    const l = T[getLang(lang)]
+    const dateStr = endDate ? new Date(endDate).toLocaleDateString(getLang(lang) === 'en' ? 'en-US' : 'ru-RU') : '—'
+    const html = `
+            <h1>${format(l.subActiveTitle, { name: name || 'user' })}</h1>
+            <p>${format(l.subActiveText, { plan: plan || '—', date: dateStr })}</p>
+            <p>${l.subActiveReceipt}</p>
+            <p><a href="${FRONTEND_URL}/dashboard" style="padding:10px 16px;background:#00ff41;color:#0a0a0f;text-decoration:none;border-radius:8px;font-weight:bold;">${l.subActiveButton}</a></p>
+        `
+    await ensureMailers()
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${to}, Subject: ${l.subActiveSubject}`)
+        return { mocked: true }
+    }
+    return resend.emails.send({ from: FROM, to, subject: l.subActiveSubject, html })
+}
+
+// [19.13-lite-PAYMENTS-NPD] мягкое письмо: оплата прошла, чек формируется
+export async function sendReceiptFailedEmail(to, name, lang = 'ru') {
+    const l = T[getLang(lang)]
+    const html = `
+            <h1>${format(l.receiptFailedTitle, { name: name || 'user' })}</h1>
+            <p>${l.receiptFailedText}</p>
+        `
+    await ensureMailers()
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${to}, Subject: ${l.receiptFailedSubject}`)
+        return { mocked: true }
+    }
+    return resend.emails.send({ from: FROM, to, subject: l.receiptFailedSubject, html })
+}
+
+// [19.13-lite-PAYMENTS-NPD] повторная отправка чека (кнопка «Прислать чек на email повторно»)
+export async function sendReceiptResentEmail(to, name, description, amount, receiptStatus, lang = 'ru') {
+    const l = T[getLang(lang)]
+    const statusLine = receiptStatus === 'registered' ? '' : `<p>${l.receiptResentFailed}</p>`
+    const html = `
+            <h1>${format(l.receiptResentTitle, { name: name || 'user' })}</h1>
+            <p>${format(l.receiptResentText, { description: description || '—', amount: amount || '—' })}</p>
+            ${statusLine}
+        `
+    await ensureMailers()
+    if (!resend) {
+        console.info(`[EMAIL MOCK] To: ${to}, Subject: ${l.receiptResentSubject}`)
+        return { mocked: true }
+    }
+    return resend.emails.send({ from: FROM, to, subject: l.receiptResentSubject, html })
 }
 
 export function getEmailStatus() {

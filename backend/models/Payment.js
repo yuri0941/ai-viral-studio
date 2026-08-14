@@ -5,9 +5,17 @@ const paymentSchema = new mongoose.Schema({
     planId: String,
     amount: Number,
     currency: { type: String, default: 'RUB' },
-    status: { type: String, enum: ['pending', 'succeeded', 'canceled'], default: 'pending' },
+    status: { type: String, enum: ['pending', 'succeeded', 'canceled', 'refunded'], default: 'pending' },
     yookassaPaymentId: String,
     paidAt: Date,
+    // [19.13-lite-PAYMENTS-NPD] fiscal receipt (54-ФЗ / НПД) tracking
+    customerEmail: String,
+    description: String,
+    receiptId: String,
+    receiptStatus: { type: String, enum: ['pending', 'registered', 'failed'], default: 'pending' },
+    receiptError: String,
+    refundReceiptId: String,
+    refundedAt: Date,
     createdAt: { type: Date, default: Date.now }
 })
 

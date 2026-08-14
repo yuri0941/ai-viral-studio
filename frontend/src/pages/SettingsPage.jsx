@@ -3,7 +3,7 @@ import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { youtubeApi } from '../services/api.js';
+import { youtubeApi, paymentsApi } from '../services/api.js'; // [19.13-lite-PAYMENTS-NPD] payments history API
 import i18n from '../i18n';
 import { PLANS, getPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
 import IntegrationsTab from './settings/IntegrationsTab.jsx'; // [SOCIAL-v5.1] added
@@ -15,7 +15,7 @@ import {
     Send, Globe, Moon, Sun, Smartphone, Mail, Lock, Eye, EyeOff,
     ChevronRight, Sparkles, Crown, Zap, Users, Calendar, CreditCard,
     Wallet, Bitcoin, Volume2, VolumeX, Linkedin, Loader2, Monitor,
-    Stamp
+    Stamp, Receipt
 } from 'lucide-react';
 
 const PLAN_COLORS = {
@@ -212,6 +212,14 @@ function SettingsPage() {
     const [avatarLoading, setAvatarLoading] = useState(false);
     const avatarInputRef = useRef(null);
 
+    // [19.13-lite-PAYMENTS-NPD] payments history tab state
+    const [payments, setPayments] = useState([]);
+    const [paymentsLoading, setPaymentsLoading] = useState(false);
+    const [paymentsError, setPaymentsError] = useState(null);
+    const [paymentsLoaded, setPaymentsLoaded] = useState(false);
+    const [resendingReceiptId, setResendingReceiptId] = useState(null);
+    const [resentReceiptIds, setResentReceiptIds] = useState({});
+
     useEffect(() => {
         if (user?.preferences?.timezone && user.preferences.timezone !== profile.timezone) {
             setProfile(p => ({ ...p, timezone: user.preferences.timezone }))
@@ -283,6 +291,42 @@ function SettingsPage() {
     }, []);
 
     // [FIX-2026-08-05] removed old Telegram settings loader (moved to IntegrationsTab)
+
+    // [19.13-lite-PAYMENTS-NPD] load payments history when the tab is opened
+    useEffect(() => {
+        if (activeTab !== 'payments' || paymentsLoaded) return;
+        let cancelled = false;
+        setPaymentsLoading(true);
+        setPaymentsError(null);
+        paymentsApi.history()
+            .then(data => {
+                if (cancelled) return;
+                setPayments(Array.isArray(data?.payments) ? data.payments : []);
+                setPaymentsLoaded(true);
+            })
+            .catch(err => {
+                if (cancelled) return;
+                setPaymentsError(err?.message || 'error');
+            })
+            .finally(() => {
+                if (!cancelled) setPaymentsLoading(false);
+            });
+        return () => { cancelled = true; };
+    }, [activeTab, paymentsLoaded]);
+
+    // [19.13-lite-PAYMENTS-NPD] resend fiscal receipt to email
+    const handleResendReceipt = async (paymentId) => {
+        setResendingReceiptId(paymentId);
+        try {
+            await paymentsApi.resendReceipt(paymentId);
+            setResentReceiptIds(prev => ({ ...prev, [paymentId]: true }));
+            showToast(t('payments.receiptSent'), 'success');
+        } catch (err) {
+            showToast(t('payments.resendError'), 'error');
+        } finally {
+            setResendingReceiptId(null);
+        }
+    };
 
     const [subscriptionCurrency, setSubscriptionCurrency] = useState(user?.preferences?.currency || 'RUB');
     const [paymentMethods, setPaymentMethods] = useState([]);
@@ -519,6 +563,7 @@ function SettingsPage() {
     const tabs = [
         { id: 'profile', label: t('settings.profile'), icon: User },
         { id: 'subscription', label: t('settings.subscription'), icon: Diamond },
+        { id: 'payments', label: t('settings.tabs.payments'), icon: Receipt }, // [19.13-lite-PAYMENTS-NPD] payments history tab
         { id: 'integrations', label: t('settings.integrations'), icon: Link2 }, // [FIX-2026-08-05] only one socials tab
         { id: 'youtube', label: t('settings.youtube') || 'YouTube', icon: Youtube },
         { id: 'notifications', label: t('settings.notifications'), icon: Bell },
@@ -1570,10 +1615,130 @@ function SettingsPage() {
         </div>
     );
 
+    // [19.13-lite-PAYMENTS-NPD] payments history tab
+    const renderPayments = () => {
+        const locale = i18n.language || 'ru';
+        const formatPaymentDate = (dateString) => {
+            if (!dateString) return '—';
+            const d = new Date(dateString);
+            return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString(locale);
+        };
+        const statusLabel = (status) => {
+            switch (status) {
+                case 'succeeded': return t('payments.statusSucceeded');
+                case 'canceled': return t('payments.statusCanceled');
+                case 'refunded': return t('payments.statusRefunded');
+                default: return t('payments.statusPending');
+            }
+        };
+        const statusClass = (status) => {
+            switch (status) {
+                case 'succeeded': return 'bg-[var(--success)]/20 text-[var(--success)]';
+                case 'canceled':
+                case 'refunded': return 'bg-[var(--danger)]/20 text-[var(--danger)]';
+                default: return 'bg-[var(--warning)]/20 text-[var(--warning)]';
+            }
+        };
+        return (
+            <div className="space-y-6">
+                <h3 className="text-xl font-bold text-[var(--text)] flex items-center gap-2">
+                    <Receipt className="w-6 h-6 text-[var(--primary)]" />
+                    {t('payments.title')}
+                </h3>
+
+                {paymentsLoading && (
+                    <div className="flex items-center justify-center py-10">
+                        <Loader2 className="w-6 h-6 animate-spin text-[var(--primary)]" />
+                    </div>
+                )}
+
+                {!paymentsLoading && paymentsError && (
+                    <div className="glass rounded-2xl p-6 text-center text-[var(--danger)]">
+                        {t('payments.resendError')}
+                    </div>
+                )}
+
+                {!paymentsLoading && !paymentsError && payments.length === 0 && (
+                    <div className="glass rounded-2xl p-8 text-center text-[var(--text-muted)]">
+                        {t('payments.empty')}
+                    </div>
+                )}
+
+                {!paymentsLoading && !paymentsError && payments.length > 0 && (
+                    <div className="overflow-x-auto rounded-2xl border border-[var(--border)] glass">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-[var(--bg-secondary)] text-[var(--text-muted)]">
+                                <tr>
+                                    <th className="px-4 py-3 font-medium">{t('payments.colDate')}</th>
+                                    <th className="px-4 py-3 font-medium">{t('payments.colPlan')}</th>
+                                    <th className="px-4 py-3 font-medium">{t('payments.colAmount')}</th>
+                                    <th className="px-4 py-3 font-medium">{t('payments.colStatus')}</th>
+                                    <th className="px-4 py-3 font-medium">{t('payments.colReceipt')}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--border)]">
+                                {payments.map((p) => (
+                                    <tr key={p._id} className="hover:bg-[var(--primary-soft)]/30 transition-colors">
+                                        <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap">
+                                            {formatPaymentDate(p.paidAt || p.createdAt)}
+                                        </td>
+                                        <td className="px-4 py-3 text-[var(--text)]">
+                                            <span className="block max-w-[220px] truncate" title={p.description || p.planId || ''}>
+                                                {p.description || p.planId || '—'}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-[var(--text)] whitespace-nowrap">
+                                            {p.amount} {p.currency}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <span className={`text-xs px-2 py-1 rounded-full ${statusClass(p.status)}`}>
+                                                {statusLabel(p.status)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {p.receiptStatus === 'registered' && (
+                                                <span className="text-[var(--success)] flex items-center gap-1 whitespace-nowrap">
+                                                    <Check size={14} /> {t('payments.receiptOk')}
+                                                </span>
+                                            )}
+                                            {p.receiptStatus === 'failed' && (
+                                                <div className="flex flex-col items-start gap-2">
+                                                    <span className="text-[var(--danger)] flex items-center gap-1 whitespace-nowrap">
+                                                        ✗ {t('payments.receiptFailed')}
+                                                    </span>
+                                                    {resentReceiptIds[p._id] ? (
+                                                        <span className="text-xs text-[var(--success)]">{t('payments.receiptSent')}</span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleResendReceipt(p._id)}
+                                                            disabled={resendingReceiptId === p._id}
+                                                            className="min-h-[40px] px-4 py-2.5 rounded-xl bg-[var(--primary)]/20 text-[var(--primary)] text-xs font-medium hover:bg-[var(--primary)]/30 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                                                        >
+                                                            {resendingReceiptId === p._id && <Loader2 size={14} className="animate-spin" />}
+                                                            {t('payments.resendReceipt')}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {(p.receiptStatus === 'pending' || !p.receiptStatus) && (
+                                                <span className="text-[var(--text-muted)] whitespace-nowrap">— {t('payments.receiptPending')}</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const renderContent = () => {
         switch (activeTab) {
             case 'profile': return renderProfile();
             case 'subscription': return renderSubscription();
+            case 'payments': return renderPayments(); // [19.13-lite-PAYMENTS-NPD]
             case 'integrations': return <IntegrationsTab onOpenYouTube={() => setActiveTab('youtube')} />; // [FIX-2026-08-05] unified socials tab
             case 'youtube': return <YouTubeSettingsTab />;
             case 'notifications': return renderNotifications();
