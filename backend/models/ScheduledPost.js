@@ -23,6 +23,9 @@ const scheduledPostSchema = new mongoose.Schema({
   publishResults: [{ platform: String, status: String, result: Object, error: String }],
   publishedAt: { type: Date },
   retriedAt: { type: Date },
+  // [FIX-BUFFER] потолок ретраев: максимум 3 неудачи подряд → стоп + одно уведомление владельцу
+  failCount: { type: Number, default: 0 },
+  failAlertedAt: { type: Date },
   // [19.17.5-UPLOAD-SCHEDULER] YouTube scheduled upload fields
   youtubeTitle: { type: String, default: '' },
   youtubeDescription: { type: String, default: '' },

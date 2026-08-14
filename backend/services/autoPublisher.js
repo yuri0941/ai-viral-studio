@@ -49,6 +49,23 @@ function isPermanentError(result) {
   return PERMANENT_ERROR_CODES.some(code => text.includes(code.toLowerCase()))
 }
 
+// [FIX-BUFFER] максимум 3 неудачи подряд; при исчерпании — ОДНО уведомление владельцу
+const MAX_PUBLISH_FAILURES = 3
+
+async function maybeAlertRetriesExhausted(postId) {
+  try {
+    const post = await ScheduledPost.findById(postId).lean()
+    if (!post || (post.failCount || 0) < MAX_PUBLISH_FAILURES || post.failAlertedAt) return
+    await ScheduledPost.updateOne({ _id: postId }, { $set: { failAlertedAt: new Date() } })
+    const { alertOwner } = await import('./ownerBot.js')
+    alertOwner?.(
+      `🛑 Автопост остановлен после ${MAX_PUBLISH_FAILURES} неудач\nПост: ${(post.title || post._id).toString().slice(0, 80)}\nПричина: ${String(post.errorMessage || 'неизвестно').slice(0, 200)}\nПовторите вручную из Планировщика (кнопка «Повторить»).`
+    ).catch(() => {})
+  } catch (e) {
+    console.warn('[AUTO-PUBLISH] fail alert error:', e.message)
+  }
+}
+
 export const startAutoPublisher = () => {
     setInterval(async () => {
         // [v9.9.19.15.16] recover posts stuck in publishing for >10 minutes
@@ -58,11 +75,13 @@ export const startAutoPublisher = () => {
                 publishStartedAt: { $lt: new Date(Date.now() - 10 * 60 * 1000) },
             })
             for (const stale of stalePublishing) {
+                // [FIX-BUFFER] stale-ретрай засчитывается в потолок (3 подряд → стоп), иначе мёртвые посты крутились бесконечно
                 await ScheduledPost.updateOne(
                     { _id: stale._id },
-                    { $set: { status: 'failed', errorMessage: 'stale_publishing' } }
+                    { $set: { status: 'failed', errorMessage: 'stale_publishing' }, $inc: { failCount: 1 } }
                 )
                 console.warn(`[AUTO-PUBLISH] stale publishing post ${stale._id} marked failed`)
+                await maybeAlertRetriesExhausted(stale._id)
             }
         } catch (e) {
             console.warn('[AUTO-PUBLISH] stale publishing watchdog error:', e.message)
@@ -88,7 +107,8 @@ export const startAutoPublisher = () => {
         const candidatePosts = await ScheduledPost.find({
             $or: [
                 { status: 'scheduled', scheduledAt: { $lte: now }, hidden: { $ne: true } },
-                { status: 'failed', retriedAt: { $exists: false }, scheduledAt: { $lte: new Date(now.getTime() + 5 * 60 * 1000) }, hidden: { $ne: true } }
+                // [FIX-BUFFER] failed переотбираются, только если не исчерпан потолок (3 подряд)
+                { status: 'failed', $or: [{ failCount: { $exists: false } }, { failCount: { $lt: MAX_PUBLISH_FAILURES } }], scheduledAt: { $lte: new Date(now.getTime() + 5 * 60 * 1000) }, hidden: { $ne: true } }
             ]
         })
 
@@ -183,12 +203,13 @@ export const startAutoPublisher = () => {
             }
 
             // [v9.9.19.15.1] retry once after 5 minutes only for transient failures
-            if (publishedCount === 0 && !captured.retriedAt && !allErrorsPermanent) {
+            // [FIX-BUFFER] ретраев максимум MAX_PUBLISH_FAILURES-1; дальше — failed + одно уведомление
+            if (publishedCount === 0 && (captured.failCount || 0) < MAX_PUBLISH_FAILURES - 1 && !allErrorsPermanent) {
                 await ScheduledPost.updateOne(
                     { _id: captured._id },
-                    { $set: { status: 'scheduled', scheduledAt: new Date(Date.now() + 5 * 60 * 1000), retriedAt: new Date(), publishResults: results, errorMessage } }
+                    { $set: { status: 'scheduled', scheduledAt: new Date(Date.now() + 5 * 60 * 1000), retriedAt: new Date(), publishResults: results, errorMessage }, $inc: { failCount: 1 } }
                 )
-                console.warn(`[AUTO-PUBLISH] retry scheduled in 5 min (post ${captured._id}): ${errorMessage}`)
+                console.warn(`[AUTO-PUBLISH] retry scheduled in 5 min (post ${captured._id}, fail ${(captured.failCount || 0) + 1}/${MAX_PUBLISH_FAILURES}): ${errorMessage}`)
                 continue
             }
 
@@ -225,7 +246,13 @@ export const startAutoPublisher = () => {
             } else {
                 console.log(`[AUTO-PUBLISH] Post ${captured._id} published to ${publishedCount} platforms`)
             }
-            await ScheduledPost.updateOne({ _id: captured._id }, { $set: update })
+            // [FIX-BUFFER] финальный fail засчитывается в потолок; уведомление — один раз на пост
+            if (finalStatus === 'failed') {
+                await ScheduledPost.updateOne({ _id: captured._id }, { $set: update, $inc: { failCount: 1 } })
+                await maybeAlertRetriesExhausted(captured._id)
+            } else {
+                await ScheduledPost.updateOne({ _id: captured._id }, { $set: update })
+            }
 
             // [19.17.7-SCHEDULER-UX] after DB update, delete uploaded files immediately on success;
             // set autoDeleteAt for the post record based on user's preference.

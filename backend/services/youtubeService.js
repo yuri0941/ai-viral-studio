@@ -504,9 +504,21 @@ export async function publishScheduledYouTubePost(post) {
         await notifyClientYoutubePublished(userId, title, url).catch(() => {})
         return { success: true, postUrl: url, videoId }
     } catch (err) {
-        const code = err.code || 'unknown_error'
-        await notifyClientYoutubeError(userId, title, code, err.userMessage || err.message).catch(() => {})
-        alertOwner?.(`❌ YouTube publish failed\nClient: ${userId}\nPost: ${title}\nReason: ${code} — ${err.message}`).catch(() => {})
+        // [FIX-BUFFER] вытаскиваем тело ошибки YouTube API: errors[].reason + message вместо сухого «400»
+        const apiErr = err.response?.data?.error
+        const reasons = Array.isArray(apiErr?.errors) ? apiErr.errors.map(e => e?.reason).filter(Boolean) : []
+        const apiMessage = apiErr?.message || ''
+        const code = err.code || reasons[0] || 'unknown_error'
+        const detail = [err.message, apiMessage && apiMessage !== err.message ? apiMessage : '', reasons.length ? `reasons: ${reasons.join(', ')}` : '']
+            .filter(Boolean).join(' | ')
+        let hint = ''
+        if (code === 'refresh_failed') hint = ' Переподключите YouTube (Настройки → YouTube).'
+        else if (reasons.includes('quotaExceeded')) hint = ' Превышена дневная квота YouTube — повторите после 10:00 МСК.'
+        else if (reasons.includes('insufficientPermissions')) hint = ' Недостаточно прав у токена — переподключите YouTube.'
+        else if (reasons.includes('invalidTitle')) hint = ' YouTube отклонил название видео.'
+        console.error(`[yt:schedule] publish failed: ${code} — ${detail}`)
+        await notifyClientYoutubeError(userId, title, code, err.userMessage || detail).catch(() => {})
+        alertOwner?.(`❌ YouTube publish failed\nClient: ${userId}\nPost: ${title}\nReason: ${code} — ${detail}${hint}`).catch(() => {})
         throw err
     }
 }

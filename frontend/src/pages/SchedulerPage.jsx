@@ -645,6 +645,17 @@ function SchedulerPage() {
         }
     };
 
+    // [FIX-BUFFER] «Повторить» для failed: сервер сбрасывает failCount/failAlertedAt (PATCH status=scheduled)
+    const handleRetry = async (post) => {
+        try {
+            await scheduledPostsApi.resume(post._id || post.id);
+            toast.success(t('scheduler.retrySuccess'));
+            await loadPosts();
+        } catch (err) {
+            toast.error(err.message || t('common.error'));
+        }
+    };
+
     const handleDuplicate = async (post) => {
         try {
             const scheduledAt = new Date();
@@ -1410,6 +1421,7 @@ function SchedulerPage() {
                     onPublishTelegram={handlePublishTelegram}
                     onPause={handlePause}
                     onResume={handleResume}
+                    onRetry={handleRetry}
                     onDuplicate={handleDuplicate}
                     onDelete={handleDeletePost}
                     onPublishNow={handlePublishNow}

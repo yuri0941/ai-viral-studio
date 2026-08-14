@@ -182,6 +182,10 @@ router.patch('/:id', protect, async (req, res) => {
             updates.pausedAt = new Date()
         } else if (updates.status === 'scheduled') {
             updates.pausedAt = null
+            // [FIX-BUFFER] ручной «повторить» из Планировщика сбрасывает потолок ретраев
+            updates.failCount = 0
+            updates.failAlertedAt = null
+            updates.retriedAt = null
         }
         const post = await ScheduledPost.findOneAndUpdate(
             { _id: req.params.id, userId },

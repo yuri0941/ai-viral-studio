@@ -56,8 +56,9 @@ export const register = async (req, res) => {
             })
         }
 
-        // [HOTFIX-v7.0-CHAT] owner gets Agency unlimited
-        const effectiveRole = role || 'creator'
+        // [FIX-BUFFER] SECURITY: role из тела игнорируется даже здесь (контроллер сейчас не смонтирован,
+        // но если его подключат — эскалация не сработает). Живой путь регистрации — routes/auth.js.
+        const effectiveRole = 'creator'
         const isOwnerRole = effectiveRole === 'owner'
 
         // Create user

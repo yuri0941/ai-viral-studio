@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Edit2, Pause, Play, Copy, Trash2, Send, MoreVertical } from 'lucide-react';
+import { Edit2, Pause, Play, Copy, Trash2, Send, MoreVertical, RotateCcw } from 'lucide-react';
 
 const STATUS_COLORS = {
     draft: 'bg-gray-400',
@@ -30,6 +30,7 @@ export default function VisualCalendar({
     onPublishTelegram,
     onPause,
     onResume,
+    onRetry, // [FIX-BUFFER]
     onDuplicate,
     onDelete,
     onPublishNow,
@@ -173,6 +174,10 @@ export default function VisualCalendar({
                                             <ActionIcon icon={Pause} title={t?.('scheduler.pause') || 'Пауза'} onClick={(e) => actionButton(e, post, onPause)} />
                                         )}
                                         <ActionIcon icon={Copy} title={t?.('scheduler.duplicate') || 'Дублировать'} onClick={(e) => actionButton(e, post, onDuplicate)} />
+                                        {/* [FIX-BUFFER] ручной повтор после потолка ретраев — сбрасывает счётчик на сервере */}
+                                        {status === 'failed' && onRetry && (
+                                            <ActionIcon icon={RotateCcw} title={t?.('scheduler.retry') || 'Повторить'} onClick={(e) => actionButton(e, post, onRetry)} />
+                                        )}
                                         {(status === 'draft' || status === 'scheduled' || status === 'paused' || status === 'failed') && (
                                             <ActionIcon icon={Send} title={t?.('scheduler.publishNow') || 'Опубликовать сейчас'} onClick={(e) => actionButton(e, post, onPublishNow)} />
                                         )}
@@ -202,6 +207,9 @@ export default function VisualCalendar({
                                                 <MenuItem icon={Pause} label={t?.('scheduler.pause') || 'Пауза'} onClick={(e) => actionButton(e, post, onPause)} />
                                             )}
                                             <MenuItem icon={Copy} label={t?.('scheduler.duplicate') || 'Дублировать'} onClick={(e) => actionButton(e, post, onDuplicate)} />
+                                            {status === 'failed' && onRetry && (
+                                                <MenuItem icon={RotateCcw} label={t?.('scheduler.retry') || 'Повторить'} onClick={(e) => actionButton(e, post, onRetry)} />
+                                            )}
                                             {(status === 'draft' || status === 'scheduled' || status === 'paused' || status === 'failed') && (
                                                 <MenuItem icon={Send} label={t?.('scheduler.publishNow') || 'Опубликовать сейчас'} onClick={(e) => actionButton(e, post, onPublishNow)} />
                                             )}
