@@ -1,6 +1,7 @@
 import cron from 'node-cron'
 import { AuditLog } from '../models/index.js'
 import { alertOwner, getOwnerBot } from './ownerBot.js'
+import { getOwnerChatId } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
 import { queryMesh, createNode } from './cognitiveMesh.js'
 import { chatWithAI } from './aiService.js'
 import { sendMorningReport as sendLuxuryMorningReport } from './morningReport.js'
@@ -74,7 +75,7 @@ function aggregateActions(logs) {
 
 export async function sendMorningReport(ownerId) {
     const ownerBot = getOwnerBot()
-    const ownerChatId = process.env.TELEGRAM_OWNER_CHAT_ID
+    const ownerChatId = await getOwnerChatId() // [OWNER-REMOTE-CONTROL]
     if (ownerBot && ownerChatId) {
         try {
             await sendLuxuryMorningReport(ownerBot, ownerChatId)

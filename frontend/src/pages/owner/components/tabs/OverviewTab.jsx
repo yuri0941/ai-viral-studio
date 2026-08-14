@@ -2,12 +2,12 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../../context/AuthContext'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
-import { ownerApi, selfImprovementApi } from '../../../../services/api'
+import { ownerApi, ownerControlApi, selfImprovementApi } from '../../../../services/api'
 import { API_BASE_URL } from '../../../../config.js'
 import {
     DollarSign, Users, Brain, Calendar, BarChart, Bell, Zap,
     ArrowUpRight, Server, CreditCard, CheckSquare, AlertTriangle, UserX,
-    FileText, BarChart2, KeyRound,
+    FileText, BarChart2, KeyRound, Settings2, Undo2, Loader2,
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 import '../../../../styles/animations.css'
@@ -38,6 +38,151 @@ function BentoCard({ title, value, subtext, icon: Icon, color, onClick, children
             <div className="text-xs text-[var(--text-muted)] mb-2">{title}</div>
             {subtext && <div className="text-[11px] text-[var(--text-muted)]">{subtext}</div>}
             {children}
+        </div>
+    )
+}
+
+// [OWNER-REMOTE-CONTROL] control card: maintenance/registration toggles + refund + funnel metrics
+function OwnerControlCard() {
+    const { t } = useTranslation()
+
+    const [flags, setFlags] = useState(null)
+    const [metrics, setMetrics] = useState(null)
+    const [metricsError, setMetricsError] = useState(false)
+    const [refundId, setRefundId] = useState('')
+    const [refundLoading, setRefundLoading] = useState(false)
+
+    useEffect(() => {
+        let mounted = true
+        ownerControlApi.flags()
+            .then(res => { if (mounted && res?.flags) setFlags(res.flags) })
+            .catch(() => {})
+        ownerControlApi.metrics()
+            .then(res => { if (mounted && res?.metrics) setMetrics(res.metrics) })
+            .catch(() => { if (mounted) setMetricsError(true) })
+        return () => { mounted = false }
+    }, [])
+
+    const toggleFlag = async (key) => {
+        if (!flags) return
+        const next = { ...flags, [key]: !flags[key] }
+        setFlags(next)
+        try {
+            const res = await ownerControlApi.updateFlags({ [key]: next[key] })
+            if (res?.flags) setFlags(res.flags)
+        } catch (err) {
+            setFlags(flags) // revert on error
+            toast.error(err.message || t('owner.control.error'))
+        }
+    }
+
+    const handleRefund = async () => {
+        if (!refundId.trim() || refundLoading) return
+        setRefundLoading(true)
+        try {
+            await ownerControlApi.refund(refundId.trim())
+            toast.success(t('owner.control.refundOk'))
+            setRefundId('')
+        } catch (err) {
+            toast.error(err.status === 404 ? t('owner.control.refundNotFound') : (err.message || t('owner.control.error')))
+        } finally {
+            setRefundLoading(false)
+        }
+    }
+
+    const pct = (part, total) => (total > 0 ? Math.round((part / total) * 100) : 0)
+    const funnel = metrics?.funnel7d
+
+    const ToggleRow = ({ label, hint, value, flagKey }) => (
+        <div className="flex items-center justify-between gap-3 py-1">
+            <div className="min-w-0">
+                <div className="text-sm text-[var(--text)] break-words">{label}</div>
+                <div className="text-[11px] text-[var(--text-muted)] break-words">{hint}</div>
+            </div>
+            <button
+                type="button"
+                onClick={() => toggleFlag(flagKey)}
+                disabled={!flags}
+                aria-pressed={value}
+                className={`relative shrink-0 w-12 h-7 my-1.5 min-h-[40px] rounded-full transition-colors disabled:opacity-50 ${value ? 'bg-violet-600' : 'bg-gray-600'}`}
+            >
+                <span className={`absolute top-1/2 -translate-y-1/2 left-1 w-5 h-5 rounded-full bg-white transition-transform ${value ? 'translate-x-6' : ''}`} />
+            </button>
+        </div>
+    )
+
+    return (
+        <div className="glass-luxury rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
+                    <Settings2 className="w-5 h-5 text-violet-400" />
+                </div>
+                <h3 className="text-sm font-semibold text-[var(--text)] break-words">{t('owner.control.title')}</h3>
+            </div>
+
+            <ToggleRow
+                label={t('owner.control.maintenance')}
+                hint={t('owner.control.maintenanceHint')}
+                value={!!flags?.maintenanceMode}
+                flagKey="maintenanceMode"
+            />
+            <ToggleRow
+                label={t('owner.control.registration')}
+                hint={t('owner.control.registrationHint')}
+                value={!!flags?.registrationEnabled}
+                flagKey="registrationEnabled"
+            />
+
+            {/* Refund */}
+            <div className="mt-4 pt-4 border-t border-white/10">
+                <div className="text-sm text-[var(--text)] mb-2 break-words">{t('owner.control.refundTitle')}</div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                        value={refundId}
+                        onChange={e => setRefundId(e.target.value)}
+                        placeholder={t('owner.control.refundPlaceholder')}
+                        className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)]"
+                    />
+                    <button
+                        type="button"
+                        onClick={handleRefund}
+                        disabled={refundLoading || !refundId.trim()}
+                        className="min-h-[40px] px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-medium flex items-center justify-center gap-2"
+                    >
+                        {refundLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}
+                        {t('owner.control.refundButton')}
+                    </button>
+                </div>
+            </div>
+
+            {/* Metrics widget */}
+            <div className="mt-4 pt-4 border-t border-white/10">
+                <div className="text-sm text-[var(--text)] mb-2 break-words">{t('owner.metricsWidget.title')}</div>
+                {metricsError && (
+                    <div className="text-xs text-[var(--text-muted)] break-words">{t('owner.metricsWidget.error')}</div>
+                )}
+                {!metricsError && !metrics && (
+                    <div className="h-16 shimmer rounded-2xl" />
+                )}
+                {metrics && funnel && (
+                    <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--text-muted)] break-words">
+                            <span>{t('owner.metricsWidget.visits')} {funnel.visits ?? 0}</span>
+                            <span>→</span>
+                            <span>{t('owner.metricsWidget.signups')} {funnel.signups ?? 0} ({pct(funnel.signups, funnel.visits)}%)</span>
+                            <span>→</span>
+                            <span>{t('owner.metricsWidget.firstPosts')} {funnel.firstPosts ?? 0} ({pct(funnel.firstPosts, funnel.signups)}%)</span>
+                            <span>→</span>
+                            <span>{t('owner.metricsWidget.payments')} {funnel.paidCount ?? 0} ({pct(funnel.paidCount, funnel.firstPosts)}%)</span>
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                            <span className="text-[var(--text-muted)]">{t('owner.metricsWidget.mrr')}: <span className="text-[var(--text)] font-medium">{formatCurrency(metrics.mrr || 0)}</span></span>
+                            <span className="text-[var(--text-muted)]">{t('owner.metricsWidget.paying')}: <span className="text-[var(--text)] font-medium">{metrics.paying ?? 0}</span></span>
+                            <span className="text-[var(--text-muted)]">{t('owner.metricsWidget.revenue7d')}: <span className="text-[var(--text)] font-medium">{formatCurrency(funnel.revenueRub || 0)}</span></span>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }
@@ -147,6 +292,8 @@ export function OverviewTab({ data }) {
             )}
 
             <AutoReportWidget />
+
+            <OwnerControlCard />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-1">

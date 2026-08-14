@@ -458,7 +458,9 @@ router.get('/admin/subscriptions/export', protect, requireOwner, async (req, res
 })
 
 // ============ ADMIN: REFUND / EXTEND / BROADCAST ============
-router.post('/admin/refund/:subscriptionId', protect, requireOwner, async (req, res) => {
+// [OWNER-REMOTE-CONTROL] handler вынесен в именованный export: TG-возврат и кабинет вызывают ЕГО ЖЕ
+// через ownerActionsService — логика возврата (и чек 19.13-lite) не дублируется.
+export async function adminRefundHandler(req, res) {
     try {
         const sub = await Subscription.findById(req.params.subscriptionId)
         if (!sub) return res.status(404).json({ error: 'Подписка не найдена' })
@@ -517,7 +519,8 @@ router.post('/admin/refund/:subscriptionId', protect, requireOwner, async (req, 
         console.error('[payments/admin/refund]', err.message)
         res.status(500).json({ error: err.message })
     }
-})
+}
+router.post('/admin/refund/:subscriptionId', protect, requireOwner, adminRefundHandler)
 
 router.post('/admin/extend/:subscriptionId', protect, requireOwner, async (req, res) => {
     try {

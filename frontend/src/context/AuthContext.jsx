@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true)
                 return { success: true }
             }
-            return { success: false, message: data.message || data.error }
+            return { success: false, message: data.message || data.error, code: data.code || null }
         } catch (error) {
             return { success: false, message: 'Ошибка сервера' }
         }

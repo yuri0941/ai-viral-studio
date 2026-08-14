@@ -247,4 +247,170 @@ router.get('/omega/health', (req, res) => {
     })
 })
 
+// ============ [OWNER-REMOTE-CONTROL] рубильники / метрики / возврат / смена TG владельца ============
+// Единый источник истины — OwnerSettings; те же данные/обёртки, что у TG-бота (ownerActionsService).
+
+router.get('/control/flags', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { getOwnerFlags } = await import('../models/OwnerSettings.js')
+        res.json({ success: true, flags: await getOwnerFlags() })
+    } catch (err) {
+        console.error('[owner/control/flags]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.put('/control/flags', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { setOwnerFlag } = await import('../models/OwnerSettings.js')
+        const { logOwnerAction } = await import('../services/ownerActionsService.js')
+        const actor = `cabinet:${req.user?.email || req.user?._id}`
+        const out = {}
+        if (typeof req.body?.maintenanceMode === 'boolean') {
+            Object.assign(out, await setOwnerFlag('maintenanceMode', req.body.maintenanceMode))
+            await logOwnerAction(req.body.maintenanceMode ? 'owner.maintenance.on' : 'owner.maintenance.off', {}, 'ok', actor)
+        }
+        if (typeof req.body?.registrationEnabled === 'boolean') {
+            Object.assign(out, await setOwnerFlag('registrationEnabled', req.body.registrationEnabled))
+            await logOwnerAction(req.body.registrationEnabled ? 'owner.registration.on' : 'owner.registration.off', {}, 'ok', actor)
+        }
+        if (!Object.keys(out).length) return res.status(400).json({ error: 'Нечего обновлять' })
+        res.json({ success: true, flags: out })
+    } catch (err) {
+        console.error('[owner/control/flags:put]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.get('/control/metrics', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { getOwnerMetricsWidget } = await import('../services/ownerActionsService.js')
+        res.json({ success: true, metrics: await getOwnerMetricsWidget() })
+    } catch (err) {
+        console.error('[owner/control/metrics]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+// Кнопка «Возврат платежа» в кабинете — та же обёртка, что и TG «верни платёж»
+router.post('/control/refund', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { findRefundablePayment, refundByPaymentId } = await import('../services/ownerActionsService.js')
+        const identifier = String(req.body?.identifier || '').trim()
+        if (!identifier) return res.status(400).json({ error: 'Укажите email клиента или id платежа' })
+        const payment = await findRefundablePayment(identifier)
+        if (!payment) return res.status(404).json({ error: 'Платёж не найден' })
+        const actor = `cabinet:${req.user?.email || req.user?._id}`
+        const r = await refundByPaymentId(payment.yookassaPaymentId, actor)
+        if (!r.ok) {
+            const status = r.reason === 'already_refunded' ? 409 : r.reason === 'not_found' ? 404 : 502
+            return res.status(status).json({ error: r.message })
+        }
+        res.json({ success: true, message: r.message })
+    } catch (err) {
+        console.error('[owner/control/refund]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+// ---- Смена Telegram владельца (код 6 цифр, 10 минут, 3 попытки, rate-limit 1/мин) ----
+const tgChangeState = global.ownerTgChangeState || new Map()
+global.ownerTgChangeState = tgChangeState
+
+function maskChatId(id) {
+    const s = String(id || '')
+    return s.length > 4 ? `•••${s.slice(-4)}` : (s ? '••••' : '')
+}
+
+router.get('/telegram-owner', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { getOwnerChatId } = await import('../models/OwnerSettings.js')
+        const current = await getOwnerChatId(true)
+        res.json({ success: true, chatIdMasked: maskChatId(current), configured: !!current })
+    } catch (err) {
+        console.error('[owner/telegram-owner]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.post('/telegram-owner/send-code', protect, authorize('owner'), async (req, res) => {
+    try {
+        const chatId = String(req.body?.chatId || '').trim()
+        if (!/^-?\d{5,15}$/.test(chatId)) {
+            return res.status(400).json({ error: 'Некорректный chat_id. Узнайте его командой «мой id» в боте.' })
+        }
+        const ownerKey = String(req.user?._id || req.user?.id)
+        const now = Date.now()
+        const prev = tgChangeState.get(ownerKey)
+        if (prev?.lastSentAt && now - prev.lastSentAt < 60 * 1000) {
+            return res.status(429).json({ error: 'Код уже отправлен. Повторите через минуту.' })
+        }
+        const code = String(Math.floor(100000 + Math.random() * 900000))
+        const { getOwnerBot } = await import('../services/ownerBot.js')
+        const bot = getOwnerBot()
+        if (!bot || typeof bot.sendMessage !== 'function') {
+            return res.status(503).json({ error: 'TG-бот владельца не запущен' })
+        }
+        await bot.sendMessage(chatId,
+            `🔐 <b>AI Viral Studio</b>\n\nКод привязки Telegram владельца: <code>${code}</code>\n\nКод действует 10 минут. Если вы не запрашивали привязку — проигнорируйте.`,
+            { parse_mode: 'HTML' })
+        tgChangeState.set(ownerKey, { code, chatId, expiresAt: now + 10 * 60 * 1000, attempts: 3, lastSentAt: now })
+        res.json({ success: true, message: 'Код отправлен в новый Telegram' })
+    } catch (err) {
+        console.error('[owner/telegram-owner/send-code]', err.message)
+        res.status(500).json({ error: `Не удалось отправить код: ${err.message}. Новый аккаунт должен сначала написать боту.` })
+    }
+})
+
+router.post('/telegram-owner/confirm', protect, authorize('owner'), async (req, res) => {
+    try {
+        const ownerKey = String(req.user?._id || req.user?.id)
+        const pending = tgChangeState.get(ownerKey)
+        if (!pending || Date.now() > pending.expiresAt) {
+            tgChangeState.delete(ownerKey)
+            return res.status(400).json({ error: 'Код истёк. Отправьте новый.' })
+        }
+        if (pending.attempts <= 0) {
+            tgChangeState.delete(ownerKey)
+            return res.status(429).json({ error: 'Попытки исчерпаны. Отправьте новый код.' })
+        }
+        const code = String(req.body?.code || '').trim()
+        if (code !== pending.code) {
+            pending.attempts -= 1
+            return res.status(400).json({ error: `Неверный код. Осталось попыток: ${pending.attempts}` })
+        }
+        const newChatId = pending.chatId
+        tgChangeState.delete(ownerKey)
+
+        const { getOwnerChatId, invalidateOwnerChatIdCache } = await import('../models/OwnerSettings.js')
+        const oldChatId = await getOwnerChatId(true)
+
+        const { OwnerSettings } = await import('../models/OwnerSettings.js')
+        await OwnerSettings.findOneAndUpdate(
+            { ownerId: req.user?._id || req.user?.id },
+            { $set: { ownerTelegramChatId: newChatId } },
+            { upsert: true, new: true }
+        )
+        invalidateOwnerChatIdCache()
+
+        const { getOwnerBot } = await import('../services/ownerBot.js')
+        const bot = getOwnerBot()
+        if (bot && typeof bot.sendMessage === 'function') {
+            const text = '✅ <b>AI Viral Studio</b>\n\nTelegram владельца обновлён. Все алерты и отчёты теперь приходят сюда.'
+            if (oldChatId && String(oldChatId) !== String(newChatId)) {
+                bot.sendMessage(oldChatId, 'ℹ️ <b>AI Viral Studio</b>\n\nTelegram владельца изменён из кабинета. Алерты больше не будут приходить в этот аккаунт.', { parse_mode: 'HTML' }).catch(() => {})
+            }
+            bot.sendMessage(newChatId, text, { parse_mode: 'HTML' }).catch(() => {})
+        }
+
+        const { logOwnerAction } = await import('../services/ownerActionsService.js')
+        await logOwnerAction('owner.telegram.change', { old: maskChatId(oldChatId), new: maskChatId(newChatId) }, 'ok', `cabinet:${req.user?.email || ''}`)
+
+        res.json({ success: true, message: 'Telegram владельца обновлён', chatIdMasked: maskChatId(newChatId) })
+    } catch (err) {
+        console.error('[owner/telegram-owner/confirm]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
 export default router

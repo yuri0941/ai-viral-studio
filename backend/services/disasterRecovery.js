@@ -5,6 +5,7 @@ import cron from 'node-cron'
 import { fileURLToPath } from 'url'
 import { sendEmail } from './emailService.js'
 import { getOwnerBot } from './ownerBot.js'
+import { getOwnerChatId } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -152,8 +153,9 @@ export async function rollbackToPreviousVersion(tag) {
 async function sendOwnerAlert(message) {
     try {
         const bot = getOwnerBot()
-        if (bot && process.env.TELEGRAM_OWNER_CHAT_ID) {
-            await bot.sendMessage(process.env.TELEGRAM_OWNER_CHAT_ID, message).catch(() => {})
+        const ownerChatId = await getOwnerChatId() // [OWNER-REMOTE-CONTROL]
+        if (bot && ownerChatId) {
+            await bot.sendMessage(ownerChatId, message).catch(() => {})
         }
     } catch (e) { /* ignore */ }
     try {

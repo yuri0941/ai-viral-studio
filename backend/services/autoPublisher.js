@@ -231,6 +231,13 @@ export const startAutoPublisher = () => {
             // set autoDeleteAt for the post record based on user's preference.
             if (finalStatus === 'published') {
                 try {
+                    // [P1.5-METRICS] first_post — один раз на пользователя, метрика не валит публикацию
+                    const { trackFirstPost } = await import('./metricsService.js')
+                    await trackFirstPost(captured.userId)
+                } catch (mErr) {
+                    console.warn('[metrics] first_post track failed:', mErr.message)
+                }
+                try {
                     const { deletePostFiles } = await import('../cron/schedulerCleanup.js')
                     await deletePostFiles(captured)
                     const ttl = user?.preferences?.autoCleanTTL

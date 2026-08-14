@@ -410,3 +410,19 @@
 - Напоминание о продлении (autoPilot) не цитирует цену → работает с PlanConfig-ценами без регресса.
 - i18n: 20 новых ключей во все 4 файла, паритет 0-diff; старые расхождения (дубль `settings` в ru.json) не трогались — список в PR.
 - Проверки: node --check ✅, build ✅, JSON ✅, BOM нет ✅, адаптив код-ревью ✅ (360–1920, RU/EN).
+
+### P1.5-METRICS (2026-08-14)
+- Серверная воронка: visit (beacon с лендинга, localStorage 1/сутки + rate-limit, без IP в БД), signup (хук в register), first_post (хук в autoPublisher, guard 1 раз/юзер), paid (хук в webhook ЮKassa, guard по paymentId через unique-ключ в MetricsGuard — двойной подсчёт исключён на уровне БД).
+- Модель MetricsDaily (UTC-день, upsert). calcMRR — активные платные подписки по последнему платежу, free=0, честные нули.
+- Daily Report дополнен блоком «ВОРОНКА 7 дней + MRR» (существующий не переписан). Owner-бот: «метрики»/«воронка» → карточка 7д/30д + MRR + выручка 30д, только владелец.
+- Все хуки в try/catch → console.warn: метрики никогда не валят регистрацию/публикацию/webhook.
+- Новых i18n-ключей нет (UI не менялся). node --check ✅, build ✅, JSON ✅.
+
+### OWNER-REMOTE-CONTROL (2026-08-14)
+- TG-команды владельца (свободный текст, после isOwner-гейта): «статус» (uptime, платежи 24ч, MRR, очередь, тикеты, флаги), «техработы on/off», «регистрация on/off», «верни платёж <email|id>» → карточка → [Вернуть] (идемпотентно: in-flight lock + проверка refunded; вызов существующего adminRefundHandler, чек возврата 19.13-lite), «мой id» → chat_id любому.
+- Рубильники в OwnerSettings (hot-reload, кэш ≤60 сек): maintenanceMode → middleware 503 {maintenance:true} для не-владельцев (owner/admin неуязвимы, login/health/webhook ЮKassa exempt); registrationEnabled=false → register 403 registration_closed.
+- Единый getOwnerChatId() (OwnerSettings.ownerTelegramChatId → env fallback): все алерты/отчёты/тикеты переведены, прямых env owner id в коде не осталось (grep чист).
+- Смена TG владельца из кабинета: send-code (6 цифр в НОВЫЙ TG, 10 мин, 3 попытки, rate-limit) → confirm → OwnerSettings + уведомления в оба TG + аудит (AuditLog type 'owner').
+- Кабинет: OverviewTab — карточка «Управление» (те же флаги), «Возврат платежа» (та же обёртка), виджет «Метрики» (metricsService P1.5); TelegramTab — смена TG. MaintenanceScreen (заглушка 503, 100dvh, safe-area, i18n).
+- i18n: 31 новый ключ во все 4 файла, паритет 0-diff. node --check ✅, build ✅.
+- Ветка поверх feat/p1-5-metrics (P1.5 ещё не в main): PR после мержа P1.5.

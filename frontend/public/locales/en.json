@@ -1,4 +1,11 @@
 {
+  "maintenance": {
+    "title": "Maintenance",
+    "text": "We'll be back soon. Thanks for your patience!"
+  },
+  "auth": {
+    "registrationClosed": "Registration is temporarily closed. Please try again later."
+  },
   "common": {
     "loading": "Loading...",
     "save": "Save",
@@ -13,6 +20,41 @@
   },
   "pricing": {
     "title": "Pricing & Plans",
+    "editPlan": "Edit plan",
+    "savePlan": "Save plan",
+    "saved": "Plan saved",
+    "saveError": "Failed to save plan",
+    "quota": {
+      "generationsPerDay": "Generations/day",
+      "youtubeUploadsPerDay": "YouTube uploads/day",
+      "youtubeChannels": "YouTube channels",
+      "mediaQueueMB": "Media queue, MB",
+      "scheduledPostsMax": "Scheduled posts (0 = unlimited)",
+      "aiTagsPerDay": "AI tags/day"
+    },
+    "feature": {
+      "publishAt": "Scheduled publishing",
+      "playlists": "Playlists",
+      "brandVoice": "Brand Voice",
+      "abTesting": "A/B testing",
+      "analytics": "Analytics",
+      "whiteLabel": "White-label"
+    },
+    "testimonials": {
+      "title": "Landing reviews",
+      "name": "Name",
+      "role": "Role",
+      "text": "Review text",
+      "add": "Add review",
+      "added": "Review added",
+      "delete": "Delete",
+      "deleted": "Review deleted",
+      "hide": "Hide",
+      "show": "Show",
+      "empty": "No reviews yet",
+      "error": "Review operation failed",
+      "hiddenBadge": "hidden"
+    },
     "analyze": "Analyze",
     "adPricing": "Ad Pricing",
     "analysisFor": "Analysis for",
@@ -61,6 +103,40 @@
     "resendError": "Failed to send, try again later"
   },
   "owner": {
+    "control": {
+      "title": "Control",
+      "maintenance": "Maintenance mode",
+      "maintenanceHint": "When enabled, the site is unavailable to users",
+      "registration": "Registration",
+      "registrationHint": "When disabled, new users cannot sign up",
+      "refundTitle": "Payment refund",
+      "refundPlaceholder": "Email or payment ID",
+      "refundButton": "Refund",
+      "refundOk": "Payment refunded",
+      "refundNotFound": "Payment not found",
+      "error": "Operation failed"
+    },
+    "metricsWidget": {
+      "title": "Metrics",
+      "mrr": "MRR",
+      "paying": "Paying users",
+      "revenue7d": "Revenue (7 days)",
+      "visits": "visits",
+      "signups": "signups",
+      "firstPosts": "first post",
+      "payments": "payments",
+      "error": "Failed to load metrics"
+    },
+    "tgOwner": {
+      "title": "Owner Telegram",
+      "current": "Current chat_id",
+      "notSet": "Not set",
+      "hint": "Find your chat_id with the \"my id\" command in the bot",
+      "sendCode": "Send code",
+      "codePlaceholder": "Code from Telegram (6 digits)",
+      "confirm": "Confirm",
+      "success": "Owner Telegram updated"
+    },
     "subscriptions": {
       "receipt": "Receipt",
       "receiptFilterFailed": "Receipt failed only"
@@ -275,6 +351,36 @@
   "landing": {
     "start": "Start",
     "login": "Log in",
+    "testimonials": {
+      "title": "Reviews",
+      "empty": "First reviews will appear here"
+    },
+    "plans": {
+      "perMonth": "₽/month",
+      "popular": "Popular",
+      "choose": "Choose",
+      "error": "Failed to load plans",
+      "foundingLine": "Founding members: {{price}} ₽/mo (−30%)",
+      "unlimited": "Unlimited posts",
+      "genPerDay": "{{count}} generations/day",
+      "ytPerDay": "{{count}} YouTube uploads/day",
+      "ytChannels": "{{count}} YouTube channels",
+      "mediaMB": "{{count}} MB media",
+      "scheduledMax": "{{count}} scheduled posts",
+      "aiTagsPerDay": "{{count}} AI tags/day",
+      "feature": {
+        "publishAt": "Scheduled publishing",
+        "playlists": "Playlists",
+        "brandVoice": "Brand Voice",
+        "abTesting": "A/B testing",
+        "analytics": "Analytics",
+        "whiteLabel": "White-label"
+      }
+    },
+    "faq": {
+      "priceAnswer": "There's a free plan. Pro — {{pro}} ₽/mo, Agency — {{agency}} ₽/mo.",
+      "priceAnswerFallback": "There's a free plan and paid tiers — see current prices in the pricing section above."
+    },
     "heroBadge": "Beta — first users get full access",
     "highlightAI": "AI content generation",
     "highlightTrends": "Trend analysis",

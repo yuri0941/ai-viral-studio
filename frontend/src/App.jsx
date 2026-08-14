@@ -55,6 +55,7 @@ import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
 import { UpdateModal } from './components/shared/UpdateModal.jsx'
+import { MaintenanceGate } from './components/MaintenanceScreen.jsx'
 import toast, { Toaster } from 'react-hot-toast'
 import { APP_VERSION } from './config/version.js'
 import { API_BASE_URL } from './config.js'
@@ -270,6 +271,7 @@ function App() {
     return (
         <>
             <Toaster position="top-right" toastOptions={{ style: { background: '#1a1a2e', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }} />
+            <MaintenanceGate />
             <VersionCheck />
             <Suspense fallback={
                 <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">

@@ -47,6 +47,15 @@ export async function generateDailyReport(ownerId) {
         ]
     }
 
+    // [P1.5-METRICS] воронка 7 дней + MRR из серверных счётчиков; сбой метрик не ломает отчёт
+    let metricsBlock = ''
+    try {
+        const { buildDailyMetricsBlock } = await import('./metricsService.js')
+        metricsBlock = await buildDailyMetricsBlock()
+    } catch (e) {
+        console.warn('[autoReportService] metrics block failed:', e.message)
+    }
+
     const report = {
         date: now,
         mrr,
@@ -54,6 +63,7 @@ export async function generateDailyReport(ownerId) {
         errors,
         topTrends,
         recommendations,
+        metricsBlock,
         generatedBy: 'OMEGA',
     }
 
@@ -70,8 +80,8 @@ export async function sendReport(ownerId, report, channels = ['in-app']) {
     const owner = await User.findById(ownerId)
     if (!owner) return
 
-    const text = `📊 Утренний отчёт OMEGA\n\nMRR: ${report.mrr}\nНовых пользователей: ${report.newUsers}\nОшибок за 24ч: ${report.errors}\n\nТоп-тренды: ${report.topTrends.join(', ')}\n\nРекомендации:\n${report.recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}`
-    const html = `<h2>📊 Утренний отчёт OMEGA</h2><p><b>MRR:</b> ${report.mrr}</p><p><b>Новых пользователей:</b> ${report.newUsers}</p><p><b>Ошибок за 24ч:</b> ${report.errors}</p><p><b>Топ-тренды:</b> ${report.topTrends.join(', ')}</p><ul>${report.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>`
+    const text = `📊 Утренний отчёт OMEGA\n\nMRR: ${report.mrr}\nНовых пользователей: ${report.newUsers}\nОшибок за 24ч: ${report.errors}\n\nТоп-тренды: ${report.topTrends.join(', ')}\n\nРекомендации:\n${report.recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}${report.metricsBlock ? `\n\n${report.metricsBlock}` : ''}`
+    const html = `<h2>📊 Утренний отчёт OMEGA</h2><p><b>MRR:</b> ${report.mrr}</p><p><b>Новых пользователей:</b> ${report.newUsers}</p><p><b>Ошибок за 24ч:</b> ${report.errors}</p><p><b>Топ-тренды:</b> ${report.topTrends.join(', ')}</p><ul>${report.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>${report.metricsBlock ? `<p>${report.metricsBlock.replace(/\n/g, '<br>')}</p>` : ''}`
 
     for (const channel of channels) {
         try {

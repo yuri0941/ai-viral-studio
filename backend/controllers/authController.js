@@ -27,6 +27,17 @@ const generateTokens = (userId) => {
 // @access  Public
 export const register = async (req, res) => {
     try {
+        // [OWNER-REMOTE-CONTROL] рубильник регистрации (OwnerSettings, hot-reload ≤60 сек)
+        const { getOwnerFlags } = await import('../models/OwnerSettings.js')
+        const { registrationEnabled } = await getOwnerFlags()
+        if (!registrationEnabled) {
+            return res.status(403).json({
+                status: 'error',
+                code: 'registration_closed',
+                message: 'Регистрация временно закрыта. Попробуйте позже.'
+            })
+        }
+
         const { email, password, name, role, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult, timezone } = req.body
 
         if (!acceptedTerms || !acceptedPrivacy || !acceptedConsent || !isAdult) {
@@ -88,6 +99,14 @@ export const register = async (req, res) => {
 
         alertOwner(`🎉 Новый пользователь!\n📧 ${user.email}\n👤 ${user.name || '—'}`)
             .catch(() => {})
+
+        // [P1.5-METRICS] signup — метрика никогда не валит регистрацию
+        try {
+            const { trackSignup } = await import('../services/metricsService.js')
+            await trackSignup()
+        } catch (mErr) {
+            console.warn('[metrics] signup track failed:', mErr.message)
+        }
 
         res.status(201).json({
             status: 'success',

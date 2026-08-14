@@ -1,4 +1,11 @@
 {
+  "maintenance": {
+    "title": "Технические работы",
+    "text": "Мы скоро вернёмся. Спасибо за терпение!"
+  },
+  "auth": {
+    "registrationClosed": "Регистрация временно закрыта. Попробуйте позже."
+  },
   "common": {
     "loading": "Загрузка...",
     "save": "Сохранить",
@@ -13,6 +20,41 @@
   },
   "pricing": {
     "title": "Цены и тарифы",
+    "editPlan": "Изменить состав",
+    "savePlan": "Сохранить состав",
+    "saved": "Состав тарифа сохранён",
+    "saveError": "Не удалось сохранить состав тарифа",
+    "quota": {
+      "generationsPerDay": "Генераций/день",
+      "youtubeUploadsPerDay": "YouTube-загрузок/день",
+      "youtubeChannels": "YouTube-каналов",
+      "mediaQueueMB": "Медиа-очередь, МБ",
+      "scheduledPostsMax": "Постов в планировщике (0 = безлимит)",
+      "aiTagsPerDay": "AI-тегов/день"
+    },
+    "feature": {
+      "publishAt": "Отложенный постинг",
+      "playlists": "Плейлисты",
+      "brandVoice": "Brand Voice",
+      "abTesting": "A/B тесты",
+      "analytics": "Аналитика",
+      "whiteLabel": "White-label"
+    },
+    "testimonials": {
+      "title": "Отзывы лендинга",
+      "name": "Имя",
+      "role": "Роль",
+      "text": "Текст отзыва",
+      "add": "Добавить отзыв",
+      "added": "Отзыв добавлен",
+      "delete": "Удалить",
+      "deleted": "Отзыв удалён",
+      "hide": "Скрыть",
+      "show": "Показать",
+      "empty": "Отзывов пока нет",
+      "error": "Ошибка операции с отзывом",
+      "hiddenBadge": "скрыт"
+    },
     "analyze": "Анализ",
     "adPricing": "Цены рекламы",
     "analysisFor": "Анализ для",
@@ -61,6 +103,40 @@
     "resendError": "Не удалось отправить, попробуйте позже"
   },
   "owner": {
+    "control": {
+      "title": "Управление",
+      "maintenance": "Техработы",
+      "maintenanceHint": "При включении сайт недоступен для пользователей",
+      "registration": "Регистрация",
+      "registrationHint": "При выключении новые пользователи не смогут зарегистрироваться",
+      "refundTitle": "Возврат платежа",
+      "refundPlaceholder": "Email или ID платежа",
+      "refundButton": "Вернуть",
+      "refundOk": "Платёж возвращён",
+      "refundNotFound": "Платёж не найден",
+      "error": "Ошибка операции"
+    },
+    "metricsWidget": {
+      "title": "Метрики",
+      "mrr": "MRR (в месяц)",
+      "paying": "Платящие",
+      "revenue7d": "Выручка за 7 дней",
+      "visits": "визиты",
+      "signups": "регистрации",
+      "firstPosts": "первый пост",
+      "payments": "оплаты",
+      "error": "Не удалось загрузить метрики"
+    },
+    "tgOwner": {
+      "title": "Telegram владельца",
+      "current": "Текущий chat_id",
+      "notSet": "Не задан",
+      "hint": "Узнайте свой chat_id командой «мой id» в боте",
+      "sendCode": "Отправить код",
+      "codePlaceholder": "Код из Telegram (6 цифр)",
+      "confirm": "Подтвердить",
+      "success": "Telegram владельца обновлён"
+    },
     "subscriptions": {
       "receipt": "Чек",
       "receiptFilterFailed": "Без чека"
@@ -275,6 +351,36 @@
   "landing": {
     "start": "Начать",
     "login": "Войти",
+    "testimonials": {
+      "title": "Отзывы",
+      "empty": "Первые отзывы появятся здесь"
+    },
+    "plans": {
+      "perMonth": "₽/мес",
+      "popular": "Популярный",
+      "choose": "Выбрать",
+      "error": "Не удалось загрузить тарифы",
+      "foundingLine": "Основателям: {{price}} ₽/мес (−30%)",
+      "unlimited": "Безлимит постов",
+      "genPerDay": "{{count}} генераций/день",
+      "ytPerDay": "{{count}} YouTube-загрузок/день",
+      "ytChannels": "{{count}} YouTube-каналов",
+      "mediaMB": "{{count}} МБ медиа",
+      "scheduledMax": "{{count}} постов в планировщике",
+      "aiTagsPerDay": "{{count}} AI-тегов/день",
+      "feature": {
+        "publishAt": "Отложенный постинг",
+        "playlists": "Плейлисты",
+        "brandVoice": "Brand Voice",
+        "abTesting": "A/B тесты",
+        "analytics": "Аналитика",
+        "whiteLabel": "White-label"
+      }
+    },
+    "faq": {
+      "priceAnswer": "Есть бесплатный тариф. Pro — {{pro}} ₽/мес, Agency — {{agency}} ₽/мес.",
+      "priceAnswerFallback": "Есть бесплатный тариф и платные планы — актуальные цены в разделе тарифов выше."
+    },
     "heroBadge": "Бета-версия — первые пользователи получают полный доступ",
     "highlightAI": "AI-генерация контента",
     "highlightTrends": "Анализ трендов",
