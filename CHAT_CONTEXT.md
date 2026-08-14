@@ -410,3 +410,10 @@
 - Напоминание о продлении (autoPilot) не цитирует цену → работает с PlanConfig-ценами без регресса.
 - i18n: 20 новых ключей во все 4 файла, паритет 0-diff; старые расхождения (дубль `settings` в ru.json) не трогались — список в PR.
 - Проверки: node --check ✅, build ✅, JSON ✅, BOM нет ✅, адаптив код-ревью ✅ (360–1920, RU/EN).
+
+### P1.5-METRICS (2026-08-14)
+- Серверная воронка: visit (beacon с лендинга, localStorage 1/сутки + rate-limit, без IP в БД), signup (хук в register), first_post (хук в autoPublisher, guard 1 раз/юзер), paid (хук в webhook ЮKassa, guard по paymentId через unique-ключ в MetricsGuard — двойной подсчёт исключён на уровне БД).
+- Модель MetricsDaily (UTC-день, upsert). calcMRR — активные платные подписки по последнему платежу, free=0, честные нули.
+- Daily Report дополнен блоком «ВОРОНКА 7 дней + MRR» (существующий не переписан). Owner-бот: «метрики»/«воронка» → карточка 7д/30д + MRR + выручка 30д, только владелец.
+- Все хуки в try/catch → console.warn: метрики никогда не валят регистрацию/публикацию/webhook.
+- Новых i18n-ключей нет (UI не менялся). node --check ✅, build ✅, JSON ✅.

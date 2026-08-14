@@ -349,6 +349,16 @@ export const yookassaWebhook = async (req, res) => {
         }
       }
 
+      // [P1.5-METRICS] paid: идемпотентно по paymentId (guard в metricsService); метрика НЕ валит webhook
+      try {
+        const { trackPaid } = await import('../services/metricsService.js');
+        const paidSub = metadata?.subscriptionId ? await Subscription.findById(metadata.subscriptionId).lean() : null;
+        const paidInvoice = metadata?.invoiceId ? await Invoice.findById(metadata.invoiceId).lean() : null;
+        await trackPaid({ paymentId, amountRub: paidSub?.price ?? paidSub?.amount ?? paidInvoice?.amount ?? 0 });
+      } catch (mErr) {
+        console.warn('[metrics] paid track failed:', mErr.message);
+      }
+
       // [19.13-lite-PAYMENTS-NPD] фиксируем платёжную запись + статус чека (ошибки чека не валят webhook)
       recordPaymentAndReceipt({ paymentId, metadata, result }).catch((e) => {
         console.error('[yookassaController:webhook] recordPaymentAndReceipt failed:', e.message);

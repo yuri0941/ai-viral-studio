@@ -884,6 +884,20 @@ export const initOwnerBot = () => {
       return
     }
 
+    // [P1.5-METRICS] «метрики» / «воронка» — карточка воронки 7д/30д + MRR.
+    // Только владелец: не-владельцы отсечены проверкой context.isOwner выше.
+    if (/^(метрики|воронка|metrics|funnel)[\s!?.]*$/i.test(text.trim())) {
+      try {
+        const { buildMetricsCard } = await import('./metricsService.js')
+        const card = await buildMetricsCard()
+        safeSendMessage(chatId, card, { parse_mode: 'HTML' })
+      } catch (e) {
+        console.warn('[OWNER-BOT] metrics card failed:', e.message)
+        safeSendMessage(chatId, '⚠️ Метрики временно недоступны.')
+      }
+      return
+    }
+
     // [25-TARIFF-GATES] price management commands (owner-only, before AI queue)
     const handled = await handlePricingCommand(chatId, text).catch(() => false)
     if (handled) return

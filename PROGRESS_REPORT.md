@@ -4373,3 +4373,20 @@
 - [TEST] `node --check` 5 backend-файлов ✅; `npm run build` ✅ (vite 6.4.3, 77 модулей); 4 JSON локалей валидны ✅; паритет НОВЫХ i18n-ключей ru↔en и src↔public — diff пустой ✅; кодировка UTF-8 без BOM ✅. Старые расхождения ключей (дубль блока `settings` в ru.json, 213 RU-only / 273 EN-only) — НЕ трогались, см. отчёт в PR.
 - [ADAPTIVE] Код-ревью: таблицы в `overflow-x-auto` контейнерах (клиент + owner), длинные строки — `truncate`/`whitespace-nowrap`, кнопки ≥40px, страница `min-h-screen`, заголовок с фильтром — `flex-wrap`. RU-строки длиннее EN — перенос/обрезание предусмотрены. Существующие экраны не затронуты (изменения аддитивны).
 - [NOTE] Ручная проверка владельцем: выставить `YOOKASSA_RECEIPTS=true` на проде, тест-оплата → чек «зарегистрирован» в кабинете и в TG-алертах нет ошибки; возврат из Owner Dashboard → чек возврата.
+
+
+## 2026-08-14 — P1.5-METRICS — серверные метрики воронки и MRR в Daily Report + owner-бот
+- [NEW] `backend/models/MetricsDaily.js`: дневные счётчики { date (UTC 'YYYY-MM-DD', unique), visits, signups, firstPosts, paidCount, revenueRub } — upsert по дню.
+- [NEW] `backend/services/metricsService.js`: `trackVisit/trackSignup/trackFirstPost/trackPaid`, `getFunnel(days)`, `calcMRR()`, `buildDailyMetricsBlock()`, `buildMetricsCard()`. Идемпотентность через коллекцию-гард `MetricsGuard` (unique key: `paid:<paymentId>`, `first_post:<userId>`; duplicate key 11000 = уже посчитано) — тот же paymentId никогда не считается дважды, race-safe на уровне БД. calcMRR: активные платные подписки, цена из последнего оплаченного платежа в paymentHistory (founding −30% уже в сумме), free=0, честные нули.
+- [NEW] `backend/routes/metrics.js`: `POST /api/metrics/visit` — публичный beacon, rate-limit 10/мин (в памяти процесса), всегда 204, IP в БД не хранится. Зарегистрирован в `server.js` (`/api/metrics`).
+- [FIX] Хуки (только вызов, в try/catch → console.warn, основной флоу неуязвим):
+  - signup: `authController.register` после `User.create`.
+  - first_post: `autoPublisher` при `finalStatus === 'published'`, guard один раз на пользователя.
+  - paid: `yookassaController` webhook `mark_paid` (после существующих идемпотентных early-return), сумма = зафиксированная цена заказа (sub.price ?? sub.amount ?? invoice.amount).
+- [FIX] `autoReportService.js`: в существующий Daily Report дополнен блок «📊 ВОРОНКА 7 дней: визиты X → регистрации Y (Z%) → первый пост A (B%) → оплаты C (D%) / 💰 MRR: N ₽ | платящих: K | выручка 7 дней: R ₽» (text + html каналы). Существующий блок не переписан.
+- [FIX] `ownerBot.js`: свободный текст «метрики» / «воронка» (и metrics/funnel) → карточка: воронка 7д и 30д, MRR, платящие, выручка 30д. Только владелец (посторонние отсечены существующей проверкой context.isOwner выше по коду).
+- [FIX] `frontend/src/pages/LandingPage.jsx`: visit-beacon — fetch keepalive на `/api/metrics/visit`, анти-накрутка localStorage-флагом (1 раз/сутки с браузера), молчаливый catch. UI не изменён.
+- [i18n] Новых UI-строк нет (beacon невидим; TG-бот — RU, как существующие команды цен) → новых ключей нет, паритет diff пустой по определению. 4 JSON локалей не тронуты, валидны, без BOM.
+- [TEST] `node --check` 9 backend-файлов ✅; `npm run build` ✅; JSON ✅; кракозябр нет ✅.
+- [NOTE] Ручная проверка владельца: лендинг инкогнито → «метрики» → visits +1; новый аккаунт → signups +1; первый пост → firstPosts +1; тест-оплата → paidCount +1 и MRR; «метрики» с чужого TG → меню-отказ; без данных — честные нули.
+- [NOTE] Затронут `backend/server.js` (+2 строки регистрации роута) — необходимо для работы нового роута, вне списка разрешённых, но без этого эндпоинт недостижим.

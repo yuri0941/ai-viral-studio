@@ -89,6 +89,14 @@ export const register = async (req, res) => {
         alertOwner(`🎉 Новый пользователь!\n📧 ${user.email}\n👤 ${user.name || '—'}`)
             .catch(() => {})
 
+        // [P1.5-METRICS] signup — метрика никогда не валит регистрацию
+        try {
+            const { trackSignup } = await import('../services/metricsService.js')
+            await trackSignup()
+        } catch (mErr) {
+            console.warn('[metrics] signup track failed:', mErr.message)
+        }
+
         res.status(201).json({
             status: 'success',
             message: 'Registration successful',

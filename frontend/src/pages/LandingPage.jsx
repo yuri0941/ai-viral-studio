@@ -79,6 +79,17 @@ function LandingPage() {
         ownerLegalInfoApi.public().then(res => setLegalInfo(res.legalInfo || {})).catch(() => setLegalInfo({}))
     }, [])
 
+    // [P1.5-METRICS] visit beacon: не чаще 1 раза/сутки с браузера, без персональных данных
+    useEffect(() => {
+        try {
+            const KEY = 'avs_visit_ts'
+            const last = Number(localStorage.getItem(KEY) || 0)
+            if (Date.now() - last < 24 * 60 * 60 * 1000) return
+            localStorage.setItem(KEY, String(Date.now()))
+            fetch(`${API_URL}/metrics/visit`, { method: 'POST', keepalive: true }).catch(() => {})
+        } catch { /* метрика не критична */ }
+    }, [])
+
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 50)
         window.addEventListener('scroll', handleScroll)
