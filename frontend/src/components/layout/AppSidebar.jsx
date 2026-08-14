@@ -462,7 +462,7 @@ export function AppSidebar({
                     {isExpanded && <span>{t('common.logout', 'Выйти')}</span>}
                 </button>
                 {isExpanded && (
-                    <p className="mt-3 text-center text-[10px] text-[var(--text-muted)]">AI Viral Studio v9.9.19</p>
+                    <p className="mt-3 text-center text-[10px] text-[var(--text-muted)]">AI Viral Studio v9.9.20</p>
                 )}
             </div>
         </div>

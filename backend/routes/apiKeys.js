@@ -74,14 +74,23 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
 
     hotReloadApiKey(provider, key)
 
+    let message
+    if (validation.valid) {
+      message = validation.warning ? `⚠️ ${validation.warning}` : '✅ Ключ сохранён и проверен'
+    } else if (validation.warning) {
+      message = `⚠️ ${validation.warning}`
+    } else if (validation.error) {
+      message = `❌ Ключ сохранён, но проверка не пройдена: ${validation.error}`
+    } else {
+      message = '❌ Ключ сохранён, но проверка не пройдена'
+    }
     res.json({
       success: true,
       provider,
       isValid: validation.valid,
+      ok: validation.valid,
       warning: validation.warning || null,
-      message: validation.valid
-        ? (validation.warning ? `⚠️ ${validation.warning}` : '✅ Ключ сохранён и активирован!')
-        : `❌ Ключ сохранён, но проверка не пройдена: ${validation.error}`
+      message
     })
   } catch (err) {
     console.error('[ApiKeys] POST error:', err.message)
@@ -120,10 +129,13 @@ router.post('/test', protect, requireRole('owner'), async (req, res) => {
     }
     const result = await validateApiKey(provider, key)
     if (formatCheck.warning && result.valid) result.warning = formatCheck.warning
-    res.json({ success: true, ...result })
+    const message = result.valid
+      ? (result.warning ? `✅ Ключ работает (${result.warning})` : '✅ Ключ работает')
+      : `❌ ${result.status ? `HTTP ${result.status}: ` : ''}${result.error || 'проверка не пройдена'}`
+    res.json({ success: result.valid, ok: result.valid, message, ...result })
   } catch (err) {
     console.error('[ApiKeys] TEST error:', err.message)
-    res.json({ success: true, valid: false, error: 'Проверка недоступна' })
+    res.json({ success: false, ok: false, message: '❌ Проверка недоступна' })
   }
 })
 

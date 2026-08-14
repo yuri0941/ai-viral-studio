@@ -153,11 +153,10 @@ export default function ApiKeysTab() {
         method: 'POST',
         body: JSON.stringify({ provider: activeProvider.id, key })
       });
-      if (data.valid) {
-        if (data.warning) toast.success(t('apiKeys.keyWorksWarning')?.replace('{{warning}}', data.warning) || `✅ Ключ работает. ${data.warning}`);
-        else toast.success(t('apiKeys.keyWorks') || '✅ Ключ работает');
+      if (data.ok) {
+        toast.success(data.message || (t('apiKeys.keyWorks') || '✅ Ключ работает'));
       } else {
-        toast.error((t('apiKeys.keyError') || '❌ Ошибка: {{error}}').replace('{{error}}', data.error || 'unknown'));
+        toast.error(data.message || (t('apiKeys.keyError') || '❌ Ошибка проверки ключа'));
       }
     } catch (e) {
       toast.error('❌ Проверка не удалась: ' + e.message);
@@ -181,12 +180,12 @@ export default function ApiKeysTab() {
       });
       setSaved(prev => ({ ...prev, [activeProvider.id]: data.isValid ? 'valid' : 'saved' }));
       if (data.isValid) {
-        if (data.warning) toast.success(data.message || `✅ ${data.warning}`);
-        else toast.success(data.message || '✅ Ключ сохранён и активирован!');
+        // backend уже включает warning в message; fallback — чёткое разделение статусов
+        toast.success(data.message || '✅ Ключ сохранён и проверен');
       } else if (data.warning) {
-        toast(data.warning || (t('apiKeys.keySaved') || 'Ключ сохранён'), { icon: '⚠️' });
+        toast(data.warning || 'Ключ сохранён', { icon: '⚠️' });
       } else {
-        toast.error(data.message || '❌ Ключ сохранён, но не проверен');
+        toast.error(data.message || '❌ Ключ сохранён, но проверка не пройдена');
       }
       closeModal();
     } catch (e) {

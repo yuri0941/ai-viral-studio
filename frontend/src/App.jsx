@@ -245,9 +245,9 @@ function RoleRedirect() {
 // APP
 // ============================================
 function App() {
-  const BUILD_ID = 'v9.9.19-2026-08-10'; console.log('[BUILD]', BUILD_ID);
-      // v9.9.19-force-rebuild
-  window.__APP_BUILD__ = 'v9.9.19';
+  const BUILD_ID = 'v9.9.20-2026-08-14'; console.log('[BUILD]', BUILD_ID);
+      // v9.9.20-force-rebuild
+  window.__APP_BUILD__ = 'v9.9.20';
   console.log('[AI VIRAL STUDIO] Build:', window.__APP_BUILD__);
   useOTAUpdate()
   useEffect(() => {
