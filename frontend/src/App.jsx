@@ -142,7 +142,7 @@ function DocumentPage() {
             .finally(() => setLoading(false))
     }, [fileId, fileName])
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading documentвЂ¦</div>
+    if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading document…</div>
 
     return (
         <div className="min-h-screen bg-[var(--bg)] p-4">
@@ -172,7 +172,7 @@ const PAGE_TITLES = {
     '/ai-vs-human': 'AI vs Human',
     '/boardroom': 'AI Boardroom',
     '/business-spawner': 'Business Spawner',
-    '/advertiser-requests': 'Р—Р°СЏРІРєРё РЅР° СЂРµРєР»Р°РјСѓ',
+    '/advertiser-requests': 'Заявки на рекламу',
 }
 
 // ============================================
@@ -246,9 +246,9 @@ function RoleRedirect() {
 // APP
 // ============================================
 function App() {
-  const BUILD_ID = 'v9.9.20-2026-08-14'; console.log('[BUILD]', BUILD_ID);
-      // v9.9.20-force-rebuild
-  window.__APP_BUILD__ = 'v9.9.20';
+  const BUILD_ID = 'v9.9.21-2026-08-14'; console.log('[BUILD]', BUILD_ID);
+      // v9.9.21-ui-polish
+  window.__APP_BUILD__ = 'v9.9.21';
   console.log('[AI VIRAL STUDIO] Build:', window.__APP_BUILD__);
   useOTAUpdate()
   useEffect(() => {

@@ -114,7 +114,7 @@ const ChatInterface = () => {
     }
 
     return (
-        <div className="flex h-screen bg-dark-950">
+        <div className="flex h-[100dvh] bg-dark-950">
             {/* Sidebar with chat history */}
             <AnimatePresence>
                 {showHistory && (

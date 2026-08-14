@@ -185,9 +185,9 @@ export default function LandingPage() {
               value={waitlistEmail}
               onChange={(e) => setWaitlistEmail(e.target.value)}
               placeholder="Email для бета-доступа"
-              className="flex-1 bg-transparent outline-none text-sm px-2"
+              className="flex-1 min-w-0 bg-transparent outline-none text-sm px-2"
             />
-            <button type="submit" className="px-4 py-2 rounded-xl bg-[var(--primary)] text-[var(--text-on-primary)] text-sm font-medium">Ждать доступ</button>
+            <button type="submit" className="px-4 py-2 min-h-[40px] rounded-xl bg-[var(--primary)] text-[var(--text-on-primary)] text-sm font-medium whitespace-nowrap shrink-0">Ждать доступ</button>
           </form>
           {waitlistStatus?.ok && <p className="text-sm text-emerald-400 mt-3">✅ Вы в waitlist, позиция #{waitlistStatus.position}</p>}
           {waitlistStatus?.ok === false && <p className="text-sm text-red-400 mt-3">Ошибка: {waitlistStatus.error}</p>}

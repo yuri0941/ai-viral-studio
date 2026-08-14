@@ -147,7 +147,7 @@ function AIChatPage() {
     }
 
     return (
-        <div className="flex h-[calc(100vh-80px)] gap-4">
+        <div className="flex h-[calc(100dvh-80px)] gap-4">
             {/* Sidebar — Chat History */}
             <div className="hidden lg:flex w-64 flex-col bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden">
                 <div className="p-4 border-b border-white/[0.06]">

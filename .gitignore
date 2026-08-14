@@ -7,3 +7,5 @@ frontend/dist/
 dist/
 *.env
 backend/.env
+reports/
+.tmp-ui-polish/
