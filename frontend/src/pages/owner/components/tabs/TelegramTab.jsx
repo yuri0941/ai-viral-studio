@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronUp, Copy, CheckCircle, AlertTriangle,
   Save, Sparkles, Rocket, BookOpen, Settings2, Eye, EyeOff
 } from 'lucide-react';
-import { request } from '../../../../services/api.js';
+import { request, ownerControlApi } from '../../../../services/api.js';
 
 const TONES = [
   { id: 'expert', label: 'expert' },
@@ -58,6 +58,12 @@ export default function TelegramTab({ data }) {
   const [history, setHistory] = useState([]);
   const [copied, setCopied] = useState(false);
 
+  // [OWNER-REMOTE-CONTROL] owner Telegram chat_id change flow
+  const [tgOwner, setTgOwner] = useState({ chatIdMasked: null, configured: false });
+  const [tgChatId, setTgChatId] = useState('');
+  const [tgCode, setTgCode] = useState('');
+  const [tgCodeSent, setTgCodeSent] = useState(false);
+
   // [v9.6.2-BOT-EVOLUTION] Dynamic menu analytics
   const [menuButtons, setMenuButtons] = useState([]);
   const [menuChanges, setMenuChanges] = useState(null);
@@ -73,7 +79,52 @@ export default function TelegramTab({ data }) {
     fetchStats();
     fetchBotStats();
     fetchMenu();
+    fetchTgOwner();
   }, []);
+
+  const fetchTgOwner = async () => {
+    try {
+      const res = await ownerControlApi.telegramOwner();
+      if (res?.success) setTgOwner({ chatIdMasked: res.chatIdMasked || null, configured: !!res.configured });
+    } catch (err) {
+      console.error('[TelegramTab] tgOwner failed', err);
+    }
+  };
+
+  const handleTgSendCode = async () => {
+    if (!tgChatId.trim()) return;
+    setLoading(prev => ({ ...prev, tgSendCode: true }));
+    try {
+      const res = await ownerControlApi.telegramSendCode(tgChatId.trim());
+      if (res?.success) {
+        setTgCodeSent(true);
+        showToast?.(res.message || t('owner.tgOwner.sendCode'), 'success');
+      }
+    } catch (err) {
+      showToast?.(err.message || t('owner.control.error'), 'error');
+    } finally {
+      setLoading(prev => ({ ...prev, tgSendCode: false }));
+    }
+  };
+
+  const handleTgConfirm = async () => {
+    if (!tgCode.trim()) return;
+    setLoading(prev => ({ ...prev, tgConfirm: true }));
+    try {
+      const res = await ownerControlApi.telegramConfirm(tgChatId.trim(), tgCode.trim());
+      if (res?.success) {
+        setTgOwner({ chatIdMasked: res.chatIdMasked || null, configured: true });
+        setTgCodeSent(false);
+        setTgCode('');
+        setTgChatId('');
+        showToast?.(t('owner.tgOwner.success'), 'success');
+      }
+    } catch (err) {
+      showToast?.(err.message || t('owner.control.error'), 'error');
+    } finally {
+      setLoading(prev => ({ ...prev, tgConfirm: false }));
+    }
+  };
 
   const addLog = useCallback((message) => {
     setLogs(prev => {
@@ -296,6 +347,60 @@ export default function TelegramTab({ data }) {
           {botOnline ? t('telegram.online') : t('telegram.offline')}
         </div>
       </div>
+
+      <Section
+        title={t('owner.tgOwner.title')}
+        icon={MessageSquare}
+        open={activeSection === 'tgOwner'}
+        onToggle={() => setActiveSection(activeSection === 'tgOwner' ? '' : 'tgOwner')}
+      >
+        <div className="mt-4 space-y-4">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-gray-400">{t('owner.tgOwner.current')}:</span>
+            <span className="text-white font-mono break-all">
+              {tgOwner.configured && tgOwner.chatIdMasked ? tgOwner.chatIdMasked : t('owner.tgOwner.notSet')}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 break-words">{t('owner.tgOwner.hint')}</p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              value={tgChatId}
+              onChange={(e) => setTgChatId(e.target.value)}
+              placeholder="123456789"
+              inputMode="numeric"
+              className="flex-1 min-w-0 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm outline-none focus:border-violet-500"
+            />
+            <button
+              onClick={handleTgSendCode}
+              disabled={loading.tgSendCode || !tgChatId.trim()}
+              className="min-h-[40px] px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 text-white text-sm font-medium flex items-center justify-center gap-2"
+            >
+              {loading.tgSendCode ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              {t('owner.tgOwner.sendCode')}
+            </button>
+          </div>
+          {tgCodeSent && (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                value={tgCode}
+                onChange={(e) => setTgCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder={t('owner.tgOwner.codePlaceholder')}
+                inputMode="numeric"
+                maxLength={6}
+                className="flex-1 min-w-0 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm outline-none focus:border-violet-500 tracking-widest"
+              />
+              <button
+                onClick={handleTgConfirm}
+                disabled={loading.tgConfirm || tgCode.trim().length !== 6}
+                className="min-h-[40px] px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 text-white text-sm font-medium flex items-center justify-center gap-2"
+              >
+                {loading.tgConfirm ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                {t('owner.tgOwner.confirm')}
+              </button>
+            </div>
+          )}
+        </div>
+      </Section>
 
       <Section
         title={t('telegram.quickPost')}

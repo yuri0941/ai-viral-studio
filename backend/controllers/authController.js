@@ -27,6 +27,17 @@ const generateTokens = (userId) => {
 // @access  Public
 export const register = async (req, res) => {
     try {
+        // [OWNER-REMOTE-CONTROL] рубильник регистрации (OwnerSettings, hot-reload ≤60 сек)
+        const { getOwnerFlags } = await import('../models/OwnerSettings.js')
+        const { registrationEnabled } = await getOwnerFlags()
+        if (!registrationEnabled) {
+            return res.status(403).json({
+                status: 'error',
+                code: 'registration_closed',
+                message: 'Регистрация временно закрыта. Попробуйте позже.'
+            })
+        }
+
         const { email, password, name, role, acceptedTerms, acceptedPrivacy, acceptedConsent, isAdult, timezone } = req.body
 
         if (!acceptedTerms || !acceptedPrivacy || !acceptedConsent || !isAdult) {

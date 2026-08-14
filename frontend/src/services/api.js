@@ -32,6 +32,15 @@ api.interceptors.response.use(
     async error => {
         const { config, response } = error
         const status = response?.status
+
+        // [OWNER-REMOTE-CONTROL] maintenance mode: notify app, never retry
+        if (status === 503 && response?.data?.maintenance === true) {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('avs:maintenance'))
+            }
+            return Promise.reject(error)
+        }
+
         const isRetryable = error.code === 'ERR_NETWORK' || status === 429 || (status >= 500 && status < 600)
 
         if (!config || !isRetryable) return Promise.reject(error)
@@ -85,6 +94,18 @@ async function request(path, options = {}) {
             return request(path, { ...options, __retryCount: retryCount + 1 })
         }
         throw err
+    }
+
+    // [OWNER-REMOTE-CONTROL] техработы: 503 { maintenance: true } → полноэкранная заглушка, БЕЗ retry
+    if (res.status === 503) {
+        const body = await res.clone().json().catch(() => null)
+        if (body?.maintenance === true) {
+            if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('avs:maintenance'))
+            const error = new Error(body.error || 'Maintenance')
+            error.status = 503
+            error.maintenance = true
+            throw error
+        }
     }
 
     // [MEGA-HOTFIX-2026-08-08] retry 429 / 5xx before parsing body
@@ -216,6 +237,31 @@ export const ownerApi = {
     }),
     remove: (entity, id) => request(`/owner/${entity}/${id}`, {
         method: 'DELETE',
+    }),
+}
+
+// ============================================
+// Owner Remote Control API [OWNER-REMOTE-CONTROL]
+// ============================================
+export const ownerControlApi = {
+    flags: () => request('/owner/control/flags'),
+    updateFlags: (patch) => request('/owner/control/flags', {
+        method: 'PUT',
+        body: JSON.stringify(patch),
+    }),
+    metrics: () => request('/owner/control/metrics'),
+    refund: (identifier) => request('/owner/control/refund', {
+        method: 'POST',
+        body: JSON.stringify({ identifier }),
+    }),
+    telegramOwner: () => request('/owner/telegram-owner'),
+    telegramSendCode: (chatId) => request('/owner/telegram-owner/send-code', {
+        method: 'POST',
+        body: JSON.stringify({ chatId }),
+    }),
+    telegramConfirm: (chatId, code) => request('/owner/telegram-owner/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ chatId, code }),
     }),
 }
 
@@ -755,6 +801,7 @@ export { request }
 export default {
     api,
     ownerApi,
+    ownerControlApi,
     omegaApi,
     launchApi,
     demoApi,

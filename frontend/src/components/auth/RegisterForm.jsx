@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Eye, EyeOff, Mail, RefreshCw } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
@@ -26,6 +27,7 @@ function RegisterForm({ onSuccess }) {
     const [resendLoading, setResendLoading] = useState(false)
     const [turnstileToken, setTurnstileToken] = useState('')
     const { register } = useAuth()
+    const { t } = useTranslation()
 
     // [P16-hotfix] Turnstile disabled on production (error 110200)
     const isTurnstileEnabled = false
@@ -69,7 +71,10 @@ function RegisterForm({ onSuccess }) {
                 setRegistered(true)
                 setResendSeconds(60)
             } else {
-                setError(result.message || 'Ошибка регистрации')
+                // [OWNER-REMOTE-CONTROL] map registration_closed to a friendly localized message
+                setError(result.code === 'registration_closed'
+                    ? t('auth.registrationClosed')
+                    : (result.message || 'Ошибка регистрации'))
             }
         } catch (err) {
             setError('Ошибка сервера')

@@ -1,4 +1,11 @@
 {
+  "maintenance": {
+    "title": "Технические работы",
+    "text": "Мы скоро вернёмся. Спасибо за терпение!"
+  },
+  "auth": {
+    "registrationClosed": "Регистрация временно закрыта. Попробуйте позже."
+  },
   "common": {
     "loading": "Загрузка...",
     "save": "Сохранить",
@@ -61,6 +68,40 @@
     "resendError": "Не удалось отправить, попробуйте позже"
   },
   "owner": {
+    "control": {
+      "title": "Управление",
+      "maintenance": "Техработы",
+      "maintenanceHint": "При включении сайт недоступен для пользователей",
+      "registration": "Регистрация",
+      "registrationHint": "При выключении новые пользователи не смогут зарегистрироваться",
+      "refundTitle": "Возврат платежа",
+      "refundPlaceholder": "Email или ID платежа",
+      "refundButton": "Вернуть",
+      "refundOk": "Платёж возвращён",
+      "refundNotFound": "Платёж не найден",
+      "error": "Ошибка операции"
+    },
+    "metricsWidget": {
+      "title": "Метрики",
+      "mrr": "MRR (в месяц)",
+      "paying": "Платящие",
+      "revenue7d": "Выручка за 7 дней",
+      "visits": "визиты",
+      "signups": "регистрации",
+      "firstPosts": "первый пост",
+      "payments": "оплаты",
+      "error": "Не удалось загрузить метрики"
+    },
+    "tgOwner": {
+      "title": "Telegram владельца",
+      "current": "Текущий chat_id",
+      "notSet": "Не задан",
+      "hint": "Узнайте свой chat_id командой «мой id» в боте",
+      "sendCode": "Отправить код",
+      "codePlaceholder": "Код из Telegram (6 цифр)",
+      "confirm": "Подтвердить",
+      "success": "Telegram владельца обновлён"
+    },
     "subscriptions": {
       "receipt": "Чек",
       "receiptFilterFailed": "Без чека"

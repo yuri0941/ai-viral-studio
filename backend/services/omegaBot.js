@@ -1,4 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api'
+import { getOwnerChatId, getOwnerChatIdSync } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
 import fs from 'fs'
 import { wrapBotHtmlSending } from '../utils/telegramHtml.js'
 import User from '../models/User.js'
@@ -59,7 +60,7 @@ let started = global.omegaBotStarted || false
 let initPromise = global.omegaBotInitPromise || null
 
 const OMEGA_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_OMEGA_BOT_TOKEN
-const OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID
+// [OWNER-REMOTE-CONTROL] chat_id владельца — через getOwnerChatId()/getOwnerChatIdSync() (OwnerSettings → env fallback)
 
 // [v9.9.2-MASTER-FIX] client support state per chat
 const supportState = global.omegaSupportState || new Map()
@@ -192,13 +193,14 @@ export const initOmegaBot = () => {
     const chatId = msg.chat.id
     const adText = match[1]
     const ownerBot = new TelegramBot(process.env.TELEGRAM_OWNER_BOT_TOKEN, { polling: false })
-    ownerBot.sendMessage(process.env.OWNER_CHAT_ID, `🛒 <b>Новый заказ рекламы!</b>\n━━━━━━━━━━━━━━\nКлиент: @${msg.from.username || 'unknown'}\nID: ${chatId}\nТекст: ${adText.slice(0, 100)}...`, { parse_mode: 'HTML' })
+    const adNotifyChatId = await getOwnerChatId() // [OWNER-REMOTE-CONTROL]
+    if (adNotifyChatId) ownerBot.sendMessage(adNotifyChatId, `🛒 <b>Новый заказ рекламы!</b>\n━━━━━━━━━━━━━━\nКлиент: @${msg.from.username || 'unknown'}\nID: ${chatId}\nТекст: ${adText.slice(0, 100)}...`, { parse_mode: 'HTML' })
     bot.sendMessage(chatId, `✅ <b>Заявка отправлена!</b>\n━━━━━━━━━━━━━━\nВладелец рассмотрит и свяжется с вами.`, { parse_mode: 'HTML' })
   })
 
   bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id
-    const isOwner = String(chatId) === String(OWNER_CHAT_ID)
+    const isOwner = String(chatId) === String(getOwnerChatIdSync())
     const help = isOwner
       ? `<b>👑 Owner Commands</b>\n\n/start — Главное меню\n/exec [задача] — Выполнить\n/feature [идея] — ТЗ для новой фичи\n/menu [описание] — Изменить меню\n/improve — Улучшить бота\n/help — Эта справка\n\n<i>Свободный текст — OMEGA выполнит как команду</i>`
       : `<b>🤖 OMEGA Help</b>\n\n/create_post — Создать пост\n/hook — Хук для видео\n/analyze — Анализ конкурента\n/plan — Контент-план\n/cover — AI-обложка\n/ideas — 3 идеи для контента\n/trends — Тренды ниши\n\n<i>Или просто напишите тему!</i>`
@@ -254,7 +256,7 @@ export const initOmegaBot = () => {
   // OWNER MODE — авто-улучшение бота
   bot.onText(/\/improve/, async (msg) => {
     const chatId = msg.chat.id
-    const isOwner = String(chatId) === String(OWNER_CHAT_ID)
+    const isOwner = String(chatId) === String(getOwnerChatIdSync())
     if (!isOwner) { safeSendMessage(chatId, '⛔ Только владелец'); return }
     safeSendMessage(chatId, `🔧 <b>Анализирую код бота...</b>\n\n<i>OMEGA ищет, что можно улучшить</i>`, { parse_mode: 'HTML' })
     try {
@@ -515,7 +517,7 @@ export const initOmegaBot = () => {
     const text = msg.text || msg.caption || '';
 
     // 8.4.4 исключения: владелец канала не модерируется
-    const isExempt = isOwner(from.id) || String(from.id) === String(OWNER_CHAT_ID);
+    const isExempt = isOwner(from.id) || String(from.id) === String(getOwnerChatIdSync());
 
     // 8.4.2-8.4.3 авто-модерация: запрещённые слова → delete + warn → ban
     if (!isExempt && text) {
@@ -759,7 +761,7 @@ export const initOmegaBot = () => {
           const { updateTicketStatus } = await import('./supportService.js');
           await updateTicketStatus(ticketId, 'needs_owner');
           const ownerBot = new TelegramBot(process.env.TELEGRAM_OWNER_BOT_TOKEN, { polling: false });
-          await ownerBot.sendMessage(process.env.OWNER_CHAT_ID, `🔴 <b>Клиент недоволен ответом AI!</b>\n━━━━━━━━━━━━━━\nТикет #${ticketId.slice(-6)}\nТребуется оператор.\n👁 <a href="https://aiviral-studio.ru/owner?tab=tickets">Открыть в Dashboard</a>`, { parse_mode: 'HTML', disable_web_page_preview: true });
+          await ownerBot.sendMessage(await getOwnerChatId(), `🔴 <b>Клиент недоволен ответом AI!</b>\n━━━━━━━━━━━━━━\nТикет #${ticketId.slice(-6)}\nТребуется оператор.\n👁 <a href="https://aiviral-studio.ru/owner?tab=tickets">Открыть в Dashboard</a>`, { parse_mode: 'HTML', disable_web_page_preview: true });
         } catch (e) { console.error('Escalation notify failed:', e); }
       }
       return
@@ -932,7 +934,7 @@ export function getOmegaBot() {
 }
 
 export async function alertOmega(message) {
-  const chatId = OWNER_CHAT_ID
+  const chatId = await getOwnerChatId() // [OWNER-REMOTE-CONTROL]
   const b = getOmegaBot()
   if (!chatId || !b || typeof b.sendMessage !== 'function') return
   try {

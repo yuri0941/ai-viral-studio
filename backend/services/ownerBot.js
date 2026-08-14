@@ -23,6 +23,7 @@ import PlanConfig from '../models/PlanConfig.js'
 import AdPricing from '../models/AdPricing.js'
 import PriceChangeLog from '../models/PriceChangeLog.js'
 import { analyzePricing, marginAfter } from './pricingAnalysis.js'
+import { getOwnerChatId, getOwnerChatIdSync } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -31,7 +32,8 @@ let started = global.ownerBotStarted || false
 let initPromise = global.ownerBotInitPromise || null
 
 const OWNER_TOKEN = process.env.TELEGRAM_OWNER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN
-const OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID || process.env.OWNER_CHAT_ID || process.env.OWNER_USER_ID
+// [OWNER-REMOTE-CONTROL] chat_id владельца — через getOwnerChatId()/getOwnerChatIdSync()
+// (OwnerSettings.ownerTelegramChatId → env fallback), прямых чтений process.env здесь больше нет.
 
 // [v9.6.2-BOT-EVOLUTION] Resolve owner MongoDB id for menu/personalization
 async function getOwnerMongoId() {
@@ -156,13 +158,15 @@ export const initOwnerBot = () => {
     started = true
     global.ownerBotStarted = true
 
-  if (!OWNER_TOKEN || !OWNER_CHAT_ID) {
-    console.warn('[OWNER-BOT] Skip: TELEGRAM_OWNER_BOT_TOKEN or TELEGRAM_OWNER_CHAT_ID missing')
+  if (!OWNER_TOKEN || !getOwnerChatIdSync()) {
+    console.warn('[OWNER-BOT] Skip: TELEGRAM_OWNER_BOT_TOKEN or owner chat id missing')
     bot = createStubBot()
     global.ownerBotInstance = bot
     global.ownerBot = bot
     return
   }
+  // [OWNER-REMOTE-CONTROL] прогреваем кэш chat_id из OwnerSettings (hot-reload смены TG)
+  getOwnerChatId(true).catch(() => {})
 
   bot = new TelegramBot(OWNER_TOKEN, { polling: false })
   wrapBotHtmlSending(bot, 'owner') // [v9.9.19.14] HTML валидация + plain fallback на всех sendMessage
@@ -369,7 +373,7 @@ export const initOwnerBot = () => {
     try {
       const { generateProject } = await import('../ai/omega/projectFactory.js');
       const { exportProject } = await import('../ai/omega/projectFactory.js');
-      const project = await generateProject({ description: desc, type: 'auto', stack: 'Vite+React+Node', ownerId: OWNER_CHAT_ID });
+      const project = await generateProject({ description: desc, type: 'auto', stack: 'Vite+React+Node', ownerId: getOwnerChatIdSync() });
       project.variants.forEach((variant, i) => {
         bot.sendMessage(chatId, `📁 <b>Вариант ${i+1}</b>: ${variant.name}\n👁 Preview: <a href="${variant.preview}">открыть</a>`, { parse_mode: 'HTML' }).catch(() => {});
       });
@@ -818,6 +822,12 @@ export const initOwnerBot = () => {
     const text = msg.text || '';
     if (text.startsWith('/')) return;
 
+    // [OWNER-REMOTE-CONTROL] «мой id» — отвечаем ЛЮБОМУ: нужно для первичной привязки TG владельца
+    if (/^(мой id|мой айди|my id|chat id)[\s!?.]*$/i.test(text.trim())) {
+      safeSendMessage(chatId, `🆔 Ваш chat_id: <code>${chatId}</code>\n\nВпишите его в кабинете владельца: Настройки → Telegram владельца.`, { parse_mode: 'HTML' });
+      return;
+    }
+
     const context = await getOwnerContext(chatId);
 
     // Not owner → simple menu
@@ -884,6 +894,84 @@ export const initOwnerBot = () => {
       return
     }
 
+    // [OWNER-REMOTE-CONTROL] «статус» — карточка состояния (не-владельцы отсечены гейтом isOwner выше)
+    if (/^(статус|status)[\s!?.]*$/i.test(text.trim())) {
+      try {
+        const { getStatusData, formatStatusCard } = await import('./ownerActionsService.js')
+        safeSendMessage(chatId, formatStatusCard(await getStatusData()), { parse_mode: 'HTML' })
+      } catch (e) {
+        console.warn('[OWNER-BOT] status card failed:', e.message)
+        safeSendMessage(chatId, '⚠️ Не удалось собрать статус. Попробуйте позже.')
+      }
+      return
+    }
+
+    // [OWNER-REMOTE-CONTROL] рубильник техработ: «техработы on/off»
+    const maintMatch = text.trim().match(/^техработы\s+(on|off|вкл|выкл)[\s!?.]*$/i)
+    if (maintMatch) {
+      const on = /^(on|вкл)$/i.test(maintMatch[1])
+      try {
+        const { setMaintenance } = await import('./ownerActionsService.js')
+        await setMaintenance(on)
+        safeSendMessage(chatId, on
+          ? '🛠 <b>Техработы ON</b>\nКлиенты видят заглушку, API отдаёт 503. Владельцу и админу всё работает.'
+          : '✅ <b>Техработы OFF</b>\nСервис снова доступен клиентам.', { parse_mode: 'HTML' })
+      } catch (e) { safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`) }
+      return
+    }
+
+    // [OWNER-REMOTE-CONTROL] рубильник регистрации: «регистрация on/off»
+    const regMatch = text.trim().match(/^регистрация\s+(on|off|вкл|выкл)[\s!?.]*$/i)
+    if (regMatch) {
+      const on = /^(on|вкл)$/i.test(regMatch[1])
+      try {
+        const { setRegistration } = await import('./ownerActionsService.js')
+        await setRegistration(on)
+        safeSendMessage(chatId, on
+          ? '✅ <b>Регистрация ON</b>\nНовые пользователи могут регистрироваться.'
+          : '🚧 <b>Регистрация OFF</b>\nSignup возвращает дружелюбный отказ (403, не 500).', { parse_mode: 'HTML' })
+      } catch (e) { safeSendMessage(chatId, `⚠️ Ошибка: ${e.message}`) }
+      return
+    }
+
+    // [OWNER-REMOTE-CONTROL] «верни платёж <email|paymentId>» → карточка подтверждения
+    const refundMatch = text.trim().match(/^(?:верни плат[её]ж|вернуть плат[её]ж|возврат платежа|refund)\s+(\S+)$/i)
+    if (refundMatch) {
+      try {
+        const { findRefundablePayment } = await import('./ownerActionsService.js')
+        const payment = await findRefundablePayment(refundMatch[1])
+        if (!payment) {
+          safeSendMessage(chatId, `🔍 Платёж «${refundMatch[1]}» не найден. Укажите email клиента или id платежа ЮKassa.`)
+          return
+        }
+        if (payment.status === 'refunded') {
+          safeSendMessage(chatId, 'ℹ️ Этот платёж уже возвращён. Повторный возврат не выполняется.')
+          return
+        }
+        const card = [
+          '💳 <b>Возврат платежа</b>',
+          '━━━━━━━━━━━━━━',
+          `Клиент: ${payment.customerEmail || '—'}`,
+          `Тариф: ${payment.planId || '—'}`,
+          `Сумма: ${Number(payment.amount || 0).toLocaleString('ru-RU')} ₽`,
+          `Дата: ${payment.paidAt ? new Date(payment.paidAt).toLocaleString('ru-RU') : '—'}`,
+          `ID: <code>${payment.yookassaPaymentId}</code>`,
+        ].join('\n')
+        safeSendMessage(chatId, card, {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '↩️ Вернуть', callback_data: `refund:yes:${payment.yookassaPaymentId}` },
+              { text: '❌ Отмена', callback_data: 'refund:no' },
+            ]],
+          },
+        })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка поиска платежа: ${e.message}`)
+      }
+      return
+    }
+
     // [P1.5-METRICS] «метрики» / «воронка» — карточка воронки 7д/30д + MRR.
     // Только владелец: не-владельцы отсечены проверкой context.isOwner выше.
     if (/^(метрики|воронка|metrics|funnel)[\s!?.]*$/i.test(text.trim())) {
@@ -928,6 +1016,24 @@ export const initOwnerBot = () => {
 
     // [v9.9.19.3] сразу гасим спиннер кнопки в Telegram-клиенте
     bot.answerCallbackQuery(q.id).catch(() => {});
+
+    // [OWNER-REMOTE-CONTROL] подтверждение возврата из TG (идемпотентность — в ownerActionsService: in-flight lock + проверка статусов)
+    if (data === 'refund:no') {
+      safeSendMessage(chatId, '❌ Возврат отменён.')
+      return
+    }
+    if (data.startsWith('refund:yes:')) {
+      const paymentId = data.slice('refund:yes:'.length)
+      safeSendMessage(chatId, '⏳ Выполняю возврат через ЮKassa...')
+      try {
+        const { refundByPaymentId } = await import('./ownerActionsService.js')
+        const r = await refundByPaymentId(paymentId)
+        safeSendMessage(chatId, r.ok ? `✅ ${r.message}` : `⚠️ ${r.message}`)
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка возврата: ${e.message}`)
+      }
+      return
+    }
 
     // [25-TARIFF-GATES] price change confirmations
     if (data.startsWith('price:apply:')) {
@@ -1138,7 +1244,7 @@ export const initOwnerBot = () => {
   return initPromise
 }
 
-const isOwner = (chatId) => String(chatId) === String(OWNER_CHAT_ID)
+const isOwner = (chatId) => String(chatId) === String(getOwnerChatIdSync())
 const denyAccess = (chatId) => safeSendMessage(chatId, '⛔ <b>Доступ запрещён</b>', { parse_mode: 'HTML' })
 
 const sendOwnerMenu = (chatId) => {
@@ -1184,11 +1290,12 @@ const sendOmegaPanel = (chatId) => {
 }
 
 export const sendOwnerAlert = async (message, type = 'info') => {
-  if (!bot || !OWNER_CHAT_ID) return
+  const ownerChatId = await getOwnerChatId()
+  if (!bot || !ownerChatId) return
   if (!shouldSendAlert(type)) return
   const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '🚨', payment: '💰', newuser: '👤' }
   const text = `${icons[type] || 'ℹ️'} <b>AI Viral Studio Alert</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU')}</i>`
-  try { await safeSendMessage(OWNER_CHAT_ID, text, { parse_mode: 'HTML' }) } catch (e) {}
+  try { await safeSendMessage(ownerChatId, text, { parse_mode: 'HTML' }) } catch (e) {}
 }
 
 // [MASTER-v5.6-FINAL] Alias for paymentController compatibility

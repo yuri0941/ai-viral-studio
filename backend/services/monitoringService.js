@@ -23,9 +23,8 @@ function pushAlert(type) {
     const message = type === 'errorRate' ? '⚠️ Error rate >5% за последние 5 мин.'
         : type === 'latency' ? '⚠️ API response time >2 сек. Проверьте backend.'
             : '⚠️ MongoDB connections приближаются к лимиту.'
-    if (process.env.TELEGRAM_OWNER_CHAT_ID) {
-        sendOwnerAlert(message, type === 'errorRate' ? 'warning' : type).catch(() => {})
-    }
+    // [OWNER-REMOTE-CONTROL] chat_id резолвится внутри sendOwnerAlert через getOwnerChatId()
+    sendOwnerAlert(message, type === 'errorRate' ? 'warning' : type).catch(() => {})
     if (process.env.OWNER_EMAIL) {
         sendEmail({ to: process.env.OWNER_EMAIL, subject: '[AI Viral Studio] Monitoring alert', text: message }).catch(() => {})
     }

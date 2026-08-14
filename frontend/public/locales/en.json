@@ -1,4 +1,11 @@
 {
+  "maintenance": {
+    "title": "Maintenance",
+    "text": "We'll be back soon. Thanks for your patience!"
+  },
+  "auth": {
+    "registrationClosed": "Registration is temporarily closed. Please try again later."
+  },
   "common": {
     "loading": "Loading...",
     "save": "Save",
@@ -61,6 +68,40 @@
     "resendError": "Failed to send, try again later"
   },
   "owner": {
+    "control": {
+      "title": "Control",
+      "maintenance": "Maintenance mode",
+      "maintenanceHint": "When enabled, the site is unavailable to users",
+      "registration": "Registration",
+      "registrationHint": "When disabled, new users cannot sign up",
+      "refundTitle": "Payment refund",
+      "refundPlaceholder": "Email or payment ID",
+      "refundButton": "Refund",
+      "refundOk": "Payment refunded",
+      "refundNotFound": "Payment not found",
+      "error": "Operation failed"
+    },
+    "metricsWidget": {
+      "title": "Metrics",
+      "mrr": "MRR",
+      "paying": "Paying users",
+      "revenue7d": "Revenue (7 days)",
+      "visits": "visits",
+      "signups": "signups",
+      "firstPosts": "first post",
+      "payments": "payments",
+      "error": "Failed to load metrics"
+    },
+    "tgOwner": {
+      "title": "Owner Telegram",
+      "current": "Current chat_id",
+      "notSet": "Not set",
+      "hint": "Find your chat_id with the \"my id\" command in the bot",
+      "sendCode": "Send code",
+      "codePlaceholder": "Code from Telegram (6 digits)",
+      "confirm": "Confirm",
+      "success": "Owner Telegram updated"
+    },
     "subscriptions": {
       "receipt": "Receipt",
       "receiptFilterFailed": "Receipt failed only"

@@ -1,13 +1,13 @@
 import { queryMesh } from './cognitiveMesh.js';
-
-const OWNER_CHAT_ID = process.env.OWNER_CHAT_ID || process.env.TELEGRAM_OWNER_CHAT_ID;
+import { getOwnerChatIdSync } from '../models/OwnerSettings.js'; // [OWNER-REMOTE-CONTROL]
 
 export function isOwner(chatId) {
-  return chatId.toString() === OWNER_CHAT_ID?.toString();
+  return chatId.toString() === getOwnerChatIdSync()?.toString();
 }
 
 export async function getOwnerContext(chatId) {
   if (!isOwner(chatId)) return null;
+  const OWNER_CHAT_ID = getOwnerChatIdSync();
   const rawDecisions = await queryMesh(`decision owner:${OWNER_CHAT_ID}`, 5, 0.7);
   const rawProjects = await queryMesh(`project owner:${OWNER_CHAT_ID}`, 5, 0.7);
   const personality = await queryMesh(`personality_profile owner:${OWNER_CHAT_ID}`, 1, 0.9);

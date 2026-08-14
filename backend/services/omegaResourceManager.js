@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import { sendEmail } from './emailService.js'
 import { getOwnerBot } from './ownerBot.js'
+import { getOwnerChatIdSync } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
 import { getProviderKey } from './aiService.js'
 
 // In-memory toggle for automatic resource upgrades (persisted in DB would be better)
@@ -24,8 +25,9 @@ function addHistory(operation, provider, amount, status, message) {
 function sendOwnerNotice(message) {
     try {
         const bot = getOwnerBot()
-        if (bot && process.env.TELEGRAM_OWNER_CHAT_ID) {
-            bot.sendMessage(process.env.TELEGRAM_OWNER_CHAT_ID, `[AI Viral Studio] ${message}`).catch(() => {})
+        const ownerChatId = getOwnerChatIdSync() // [OWNER-REMOTE-CONTROL]
+        if (bot && ownerChatId) {
+            bot.sendMessage(ownerChatId, `[AI Viral Studio] ${message}`).catch(() => {})
         }
     } catch (e) {}
     try {

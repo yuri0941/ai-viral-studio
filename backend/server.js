@@ -39,6 +39,7 @@ import userRoutes from './routes/users.js'
 import youtubeRoutes from './routes/youtube.js'  // ← НОВОЕ: YouTube API
 import paymentRoutes from './routes/payments.js'  // ← НОВОЕ: Платежи
 import metricsRoutes from './routes/metrics.js'  // [P1.5-METRICS] beacon воронки (публичный, rate-limited)
+import { maintenanceMode } from './middleware/maintenanceMode.js'  // [OWNER-REMOTE-CONTROL]
 import ownerRoutes from './routes/owner.js'  // ← НОВОЕ: Owner Dashboard API
 import auditRoutes from './routes/audit.js'  // ← v6.6-HOTFIX-EXPORT: audit CSV export
 import omegaRoutes from './routes/omega.js'  // ← НОВОЕ: OMEGA Core API
@@ -484,6 +485,8 @@ app.use('/api/omega/chat', omegaChatLimiter)
 app.use('/api/auth/register', authRegisterLimiter)
 app.use('/api/auth/login', authLoginLimiter)
 app.use('/api/', checkBlockedIP, apiLimiter)
+// [OWNER-REMOTE-CONTROL] рубильник техработ: 503 { maintenance: true } для не-владельцев
+app.use('/api/', maintenanceMode)
 
 app.use('/uploads', express.static('uploads'))
 
