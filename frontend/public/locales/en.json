@@ -270,6 +270,18 @@
       "settings": "SETTINGS"
     }
   },
+  "unauthorized": {
+    "title": "Access denied",
+    "text": "Your role doesn't have access to this page. If you think it's a mistake, please contact support.",
+    "toDashboard": "Go to dashboard",
+    "toHome": "Back to home"
+  },
+  "adBanner": {
+    "label": "Advertising",
+    "placeholder": "Your ad could be here",
+    "cta": "Place an ad",
+    "close": "Close"
+  },
   "bottomNav": {
     "dashboard": "Dashboard",
     "chat": "AI Chat",
