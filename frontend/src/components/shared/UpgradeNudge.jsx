@@ -9,9 +9,10 @@ function getSuggestion({ user, generationsUsed, generationsLimit, postsCount, la
             id: 'topup',
             icon: Zap,
             title: '💡 Генерации на исходе',
-            text: `Вы использовали ${generationsUsed} из ${generationsLimit}. Докупите пакет +50 хуков за 190₽ и продолжайте создавать.`,
-            cta: 'Докупить',
-            action: '/checkout?plan=topup-50',
+            // [CHECKOUT-UNIFY] ссылка вела на legacy /checkout с несуществующим планом topup-50 (404) → живой экран тарифов
+            text: `Вы использовали ${generationsUsed} из ${generationsLimit}. Перейдите на Pro — больше генераций каждый день.`,
+            cta: 'Тарифы',
+            action: '/settings?tab=subscription',
         }
     }
     if (lastActiveDays != null && lastActiveDays >= 3) {
@@ -29,9 +30,10 @@ function getSuggestion({ user, generationsUsed, generationsLimit, postsCount, la
             id: 'upgrade',
             icon: Crown,
             title: 'Готовы к росту?',
-            text: 'Перейдите на Creator — аналитика, планировщик, AI-обложки и безлимитные идеи.',
+            // [CHECKOUT-UNIFY] тарифа Creator нет в PlanConfig — актуальный платный тариф Pro
+            text: 'Перейдите на Pro — аналитика, планировщик, AI-обложки и безлимитные идеи.',
             cta: 'Подробнее',
-            action: '/settings?tab=billing',
+            action: '/settings?tab=subscription',
         }
     }
     return null

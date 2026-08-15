@@ -211,7 +211,7 @@ async function checkPage(page, label, width, lang, role = 'public') {
             marker: (h?.innerText || '').trim().slice(0, 80),
         }
     }).catch(() => ({ path: '', title: '', marker: '' }))
-    const redirected = render.path !== label
+    const redirected = render.path !== label.split('?')[0] // [CHECKOUT-UNIFY] label может нести query (?tab=...)
 
     const metrics = await page.evaluate(() => {
         const vw = window.innerWidth

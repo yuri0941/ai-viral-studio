@@ -147,7 +147,14 @@ function YouTubeSettingsTab() {
 function SettingsPage() {
     const { t } = useTranslation();
     const { user, logout, updateUser, updatePreferences } = useAuth();
-    const [activeTab, setActiveTab] = useState('profile');
+    // [CHECKOUT-UNIFY] поддержка ?tab= (billing → subscription): ссылки на оплату/тарифы ведут в нужный раздел
+    const [activeTab, setActiveTab] = useState(() => {
+        const tab = new URLSearchParams(window.location.search).get('tab');
+        const alias = { billing: 'subscription' };
+        const known = ['profile', 'subscription', 'payments', 'integrations', 'youtube', 'notifications', 'security', 'appearance', 'watermark', 'scheduler', 'addons'];
+        const mapped = alias[tab] || tab;
+        return known.includes(mapped) ? mapped : 'profile';
+    });
     const [saved, setSaved] = useState(false);
     const [theme, setTheme] = useState('dark');
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -335,33 +342,65 @@ function SettingsPage() {
         }
     };
 
-    const [subscriptionCurrency, setSubscriptionCurrency] = useState(user?.preferences?.currency || 'RUB');
+    // [CHECKOUT-UNIFY] тарифы RUB-only (PlanConfig): валюта отображения/оплаты зафиксирована в RUB,
+    // селектор валюты скрыт (ниже), legacy USD-цен больше нет
+    const [subscriptionCurrency, setSubscriptionCurrency] = useState('RUB');
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(() => {
         try { return localStorage.getItem('selected_payment_method') || 'yookassa'; } catch { return 'yookassa'; }
     });
     const [paymentError, setPaymentError] = useState(null);
-    // [PLANS-SYNC] added: load plans from backend API
+    // [CHECKOUT-UNIFY] тарифы ТОЛЬКО из PlanConfig (GET /api/plan-config) — как на лендинге.
+    // Legacy /api/plans (Creator 2900₽/Pro 7900₽/Agency 19900₽) больше не используется.
+    // PlanConfig — RUB-only: отображение и оплата приведены к RUB (живой провайдер — ЮKassa),
+    // USD-цены legacy-конфига ($29/$79/$199) не существуют в PlanConfig.
     const [plans, setPlans] = useState([]);
+    const [foundingActive, setFoundingActive] = useState(false);
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/plans?currency=${subscriptionCurrency}`)
+        fetch(`${API_BASE_URL}/plan-config`)
             .then(r => r.json())
             .then(data => {
                 const loaded = (data.plans || []).map(p => ({
-                    ...p,
-                    color: PLAN_COLORS[p.id] || 'from-gray-600 to-gray-700',
-                    popular: p.id === 'pro',
+                    id: p.plan,
+                    name: p.plan,
+                    price: p.price,
+                    quotas: p.quotas || {},
+                    featureFlags: p.features || {},
+                    color: PLAN_COLORS[p.plan] || 'from-gray-600 to-gray-700',
+                    popular: p.plan === 'pro',
                 }));
                 setPlans(loaded);
             })
             .catch(err => {
-                console.warn('[SettingsPage] failed to load plans:', err.message);
-                setPlans(Object.values(PLANS).map(p => ({ ...p, color: PLAN_COLORS[p.id] || 'from-gray-600 to-gray-700', popular: p.id === 'pro' })));
+                console.warn('[SettingsPage] failed to load plan-config:', err.message);
+                setPlans([]);
             });
-    }, [subscriptionCurrency]);
+        fetch(`${API_BASE_URL}/launch/beta/slots`)
+            .then(r => r.json())
+            .then(res => setFoundingActive(!!res?.data?.foundingActive))
+            .catch(() => {});
+    }, []);
 
-    const getYearlyPrice = (monthlyPrice) => monthlyPrice * 10;
+    // [CHECKOUT-UNIFY] строки фич из quotas/features PlanConfig (те же ключи, что на лендинге)
+    const planFeatureLines = (plan) => {
+        const q = plan.quotas || {};
+        const f = plan.featureFlags || {};
+        const lines = [];
+        if (q.generationsPerDay) lines.push(t('landing.plans.genPerDay', { count: q.generationsPerDay }));
+        if (q.youtubeUploadsPerDay) lines.push(t('landing.plans.ytPerDay', { count: q.youtubeUploadsPerDay }));
+        if (q.youtubeChannels) lines.push(t('landing.plans.ytChannels', { count: q.youtubeChannels }));
+        if (q.mediaQueueMB) lines.push(t('landing.plans.mediaMB', { count: q.mediaQueueMB }));
+        if (q.scheduledPostsMax) lines.push(t('landing.plans.scheduledMax', { count: q.scheduledPostsMax }));
+        if (q.aiTagsPerDay) lines.push(t('landing.plans.aiTagsPerDay', { count: q.aiTagsPerDay }));
+        for (const key of ['publishAt', 'playlists', 'brandVoice', 'abTesting', 'analytics', 'whiteLabel']) {
+            if (f[key]) lines.push(t(`landing.plans.feature.${key}`));
+        }
+        return lines;
+    };
+
+    // [CHECKOUT-UNIFY] годовая цена = заряд бэкенда (price*12*0.8, yookassaController), а не ×10
+    const getYearlyPrice = (monthlyPrice) => Math.round(monthlyPrice * 12 * 0.8);
 
     // [MASTER-v5.6] fixed: use API-loaded price, not static config
     const getCurrentPrice = (plan) => {
@@ -398,13 +437,20 @@ function SettingsPage() {
                 const json = await res.json();
                 if (json.success) {
                     const methods = json.paymentMethods || [];
+                    // [CHECKOUT-UNIFY] /subscriptions/config не знает о ЮKassa (живой провайдер, платежи идут
+                    // через /yookassa/pay/subscription) — добавляем его в список сами, иначе кнопка оплаты мертва
+                    if (!methods.find(m => m.id === 'yookassa')) {
+                        methods.unshift({ id: 'yookassa', name: 'ЮKassa', icon: 'yookassa', enabled: true, reason: null, recommended: true });
+                    }
+                    // RUB-only: рекомендуемый метод — ЮKassa
+                    methods.forEach(m => { m.recommended = m.id === 'yookassa'; })
                     setPaymentMethods(methods);
                     const defaultMethod = pickDefaultMethod(methods, subscriptionCurrency, selectedPaymentMethod);
                     if (defaultMethod && defaultMethod !== selectedPaymentMethod) {
                         setSelectedPaymentMethod(defaultMethod);
                         try { localStorage.setItem('selected_payment_method', defaultMethod); } catch {}
                     }
-                    if (json.currency && !user?.preferences?.currency) setSubscriptionCurrency(json.currency);
+                    // [CHECKOUT-UNIFY] geo-валюта больше не переключает тарифы: PlanConfig — RUB-only
                 }
             } catch (err) {
                 console.error('[SettingsPage:loadConfig]', err);
@@ -850,29 +896,15 @@ function SettingsPage() {
                     </button>
                 </div>
 
-                <select
-                    value={subscriptionCurrency}
-                    onChange={e => {
-                        const currency = e.target.value;
-                        setSubscriptionCurrency(currency);
-                        setPaymentError(null);
-                        const defaultMethod = pickDefaultMethod(paymentMethods, currency, selectedPaymentMethod);
-                        if (defaultMethod && defaultMethod !== selectedPaymentMethod) {
-                            setSelectedPaymentMethod(defaultMethod);
-                            try { localStorage.setItem('selected_payment_method', defaultMethod); } catch {}
-                        }
-                    }}
-                    className="min-h-[44px] px-4 py-2 glass rounded-full text-sm text-[var(--text)] bg-transparent outline-none border border-[var(--border)]"
-                >
-                    {CURRENCIES.map(cur => (
-                        <option key={cur.value} value={cur.value} className="bg-[var(--card)]">{cur.label}</option>
-                    ))}
-                </select>
+                {/* [CHECKOUT-UNIFY] селектор валюты скрыт: PlanConfig — RUB-only, legacy USD-цены удалены.
+                    Живой провайдер — ЮKassa (RUB); Stripe/PayPal до перевода на PlanConfig не предлагаем. */}
 
                 {paymentMethods.length > 0 && (
                     <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full py-1 sm:flex-wrap">
                         {paymentMethods.map(method => {
-                            const disabled = !method.enabled;
+                            // [CHECKOUT-UNIFY] методы вне валютного маппинга (RUB → yookassa) недоступны:
+                            // Stripe/PayPal до перевода на PlanConfig показываем, но не даём выбрать
+                            const disabled = !method.enabled || !getAllowedMethods(subscriptionCurrency).includes(method.id);
                             const selected = selectedPaymentMethod === method.id;
                             return (
                                 <label
@@ -933,18 +965,20 @@ function SettingsPage() {
                                 <h4 className="font-bold text-lg text-[var(--text)] capitalize">{plan.name}</h4>
                             </div>
                             <div className="text-2xl font-bold my-2 text-[var(--text)]">
-                                {subscriptionCurrency === 'RUB'
-                                    ? `${currentPrice.toLocaleString('ru-RU')} ₽`
-                                    : `${currentPrice.toLocaleString('en-US')} ${subscriptionCurrency === 'EUR' ? '€' : subscriptionCurrency === 'UAH' ? '₴' : subscriptionCurrency === 'KZT' ? '₸' : '$'}`}
+                                {/* [CHECKOUT-UNIFY] цена PlanConfig — всегда RUB */}
+                                {`${currentPrice.toLocaleString('ru-RU')} ₽`}
                                 <span className="text-sm text-[var(--text-muted)] font-normal">/{isYearly ? t('settings.yearly') : t('settings.monthly')}</span>
                             </div>
+                            {foundingActive && user?.isFoundingMember && basePrice > 0 && !isYearly && (
+                                <p className="text-xs text-emerald-400 mb-2">{t('landing.plans.foundingLine', { price: Math.round(basePrice * 0.7) })}</p>
+                            )}
                             {isGrandfathered && (
                                 <p className="text-xs text-[var(--warning)] mb-2">
                                     {t('settings.priceChange', { oldPrice: userSubscription.lockedPrice, newPrice: basePrice, date: formatDate(userSubscription.nextBillingDate) })}
                                 </p>
                             )}
                             <ul className="space-y-2 mt-4">
-                                {plan.features.map((f, i) => (
+                                {planFeatureLines(plan).map((f, i) => (
                                     <li key={i} className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                                         <Check size={14} className="text-[var(--success)]" /> {f}
                                     </li>
