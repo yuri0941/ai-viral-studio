@@ -1,3 +1,15 @@
+## 2026-08-15 — BACKUP-ALERTS-FIX
+- [BACKEND] disasterRecovery.js: бэкап MongoDB переписан на JS-драйвер (BSON/EJSON → JSONL → gzip → zip), без внешнего mongodump
+- [BACKEND] Бэкап проверен: локальный MongoDB → backup_2026-08-15-20-43-35.zip 537 байт, 1 коллекция, 1 документ; восстановление из zip тоже работает
+- [BACKEND] Бэкап-архив (<50 МБ) отправляется владельцу в Telegram через sendDocument; при превышении — только локально + алерт
+- [BACKEND] Ротация бэкапов: хранятся 30 дней; cron 03:00 и ручной POST /api/admin/backup/trigger используют один runBackup()
+- [BACKEND] monitoringService.js: error rate считает только 5xx; исключён шум от callback_userinfo_warn 401 и vk_disabled
+- [BACKEND] routes/vk.js + routes/youtube.js: флаги res.locals.monitoringSkipError для известного клиентского шума
+- [BACKEND] aiService.js: GITHUB-провайдер убран из PROVIDER_CHAIN и disabled by default (GitHub Models закрыт 2026-07-30, API 410)
+- [CHECKS] node --check OK (5 файлов), npm run build OK
+- [GIT] Commit+push: fix/backup-alerts
+- [NEXT] Проверить на проде: cron 03:00 создаёт zip, stale-алерт молчит, TG-файл приходит
+
 ## 2026-08-13 — 25-TARIFF-GATES + PRICE-MANAGEMENT
 - [BACKEND] PlanConfig: тарифная матрица в БД (free/pro/agency), seed без деплоя
 - [BACKEND] PriceChangeLog: аудит изменений цен

@@ -508,7 +508,7 @@ const PROVIDER_META = {
     cerebras: { name: 'Cerebras', enabledByDefault: true, requiresKey: true },
     cloudflare: { name: 'Cloudflare Workers AI', enabledByDefault: true, requiresKey: true },
     openrouter: { name: 'OpenRouter', enabledByDefault: true, requiresKey: true },
-    github: { name: 'GitHub Models', enabledByDefault: true, requiresKey: true },
+    github: { name: 'GitHub Models', enabledByDefault: false, requiresKey: true }, // [BACKUP-ALERTS-FIX] GitHub Models shut down 2026-07-30, API returns 410
     huggingface: { name: 'HuggingFace', enabledByDefault: true, requiresKey: true },
     pollinations: { name: 'Pollinations AI', enabledByDefault: true, requiresKey: false },
     // Legacy providers (kept for UI/status compatibility, not part of PROVIDER_CHAIN)
@@ -995,7 +995,7 @@ const PROVIDER_CHAIN = [
     { id: 'mistral', name: 'Mistral AI', handler: chatWithMistral, model: MODEL_IDS.mistral },
     { id: 'cohere', name: 'Cohere', handler: chatWithCohere, model: MODEL_IDS.cohere },
     { id: 'cloudflare', name: 'Cloudflare Workers AI', handler: chatWithCloudflare, model: MODEL_IDS.cloudflare },
-    { id: 'github', name: 'GitHub Models', handler: chatWithGitHubModels, model: MODEL_IDS.github },
+    // [BACKUP-ALERTS-FIX] GitHub Models removed from default chain (service closed 2026-07-30)
     { id: 'huggingface', name: 'HuggingFace', handler: chatWithHuggingFace, model: MODEL_IDS.huggingface },
     { id: 'groq_lite', name: 'Groq 8b (last resort)', handler: chatWithGroqLite, model: MODEL_IDS.groq_lite },
     { id: 'pollinations', name: 'Pollinations AI', handler: chatWithPollinationsText, model: MODEL_IDS.pollinations },

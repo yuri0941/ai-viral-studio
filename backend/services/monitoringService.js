@@ -35,10 +35,15 @@ function pruneBuckets(buckets, windowMs) {
     while (buckets.length && buckets[0].timestamp < cutoff) buckets.shift()
 }
 
-export function recordRequest(latencyMs, statusCode) {
+export function recordRequest(latencyMs, statusCode, { skipError = false } = {}) {
     latencyBuckets.push({ timestamp: now(), ms: latencyMs })
     pruneBuckets(latencyBuckets, 60 * 60 * 1000)
-    if (statusCode >= 400) {
+    // [BACKUP-ALERTS-FIX] error rate = server errors (5xx) only.
+    // This excludes known client-side/expected noise such as:
+    //   - callback_userinfo_warn 401 inside YouTube OAuth (internal axios call, route still succeeds)
+    //   - vk_disabled responses (platform globally disabled, returned as 200/skipped)
+    // Real 5xx failures still trigger the alert.
+    if (!skipError && statusCode >= 500) {
         errorBuckets.push({ timestamp: now() })
         pruneBuckets(errorBuckets, 60 * 60 * 1000)
     }
@@ -117,7 +122,8 @@ export function monitoringMiddleware(req, res, next) {
     const start = Date.now()
     res.on('finish', () => {
         const latency = Date.now() - start
-        recordRequest(latency, res.statusCode)
+        const skipError = !!res.locals?.monitoringSkipError
+        recordRequest(latency, res.statusCode, { skipError })
     })
     next()
 }
