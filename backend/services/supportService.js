@@ -47,6 +47,8 @@ export async function createTicket(data) {
     ticket.aiConfidence = 0.3
     ticket.status = 'needs_owner'
   }
+  // [P2.1] первое действие по тикету (AI-разбор) — для метрики time-to-first-action
+  if (!ticket.firstResponseAt) ticket.firstResponseAt = new Date()
   await ticket.save()
 
   try {
@@ -63,23 +65,18 @@ export async function createTicket(data) {
 
   if (ticket.priority === 'urgent' || ticket.priority === 'high' || ticket.aiConfidence < 0.7) {
     try {
+      const summary = await buildTakeoverSummary(ticket)
       const emoji = ticket.priority === 'urgent' ? '🔴' : '🟠'
-      const priorityLabel = ticket.priority === 'urgent' ? 'Срочный' : ticket.priority === 'high' ? 'Высокий' : 'Нормальный'
       await alertOwner([
         `${emoji} <b>Тикет #${ticket._id.toString().slice(-6)} требует внимания!</b>`,
         `━━━━━━━━━━━━━━`,
-        `<b>👤 Клиент:</b> ${data.userName || data.userEmail || '—'}`,
-        `<b>📱 Источник:</b> ${getSourceBadge(source)}`,
-        `<b>🎯 Тема:</b> ${data.subject}`,
-        `<b>⚡ Приоритет:</b> ${priorityLabel}`,
-        `<b>💡 AI-анализ:</b> ${Math.round(ticket.aiConfidence * 100)}% — ${ticket.aiSuggestion?.slice(0, 120)}...`,
-        `📝 <i>${(data.description || '').slice(0, 200)}</i>`,
+        summary,
         `━━━━━━━━━━━━━━`,
         `<a href="https://aiviral-studio.ru/owner?tab=support">Открыть в Dashboard →</a>`
       ].join('\n'), {
         reply_markup: {
           inline_keyboard: [
-            [{ text: '👁 Присоединиться', callback_data: `ticket:join:${ticket._id}` }, { text: '✅ Закрыть', callback_data: `ticket:close:${ticket._id}` }],
+            [{ text: '💬 Взять диалог', callback_data: `ticket:takeover:${ticket._id}` }, { text: '✅ Закрыть', callback_data: `ticket:close:${ticket._id}` }],
             [{ text: '⬆️ Эскалация', callback_data: `ticket:escalate:${ticket._id}` }]
           ]
         }
@@ -90,6 +87,40 @@ export async function createTicket(data) {
   }
 
   return ticket
+}
+
+// [P2.1 TAKEOVER] саммари для владельца: кто клиент, тариф, что хотел, что бот уже пробовал
+export async function buildTakeoverSummary(ticket) {
+  const lines = []
+  let clientLine = `<b>👤 Клиент:</b> ${ticket.userName || ticket.userEmail || '—'}`
+  try {
+    const { default: User } = await import('../models/User.js')
+    const user = ticket.userId
+      ? await User.findById(ticket.userId).select('name email subscription isFoundingMember').lean()
+      : await User.findOne({ telegramChatId: String(ticket.telegramChatId || '') }).select('name email subscription isFoundingMember').lean()
+    if (user) {
+      clientLine = `<b>👤 Клиент:</b> ${user.name || user.email} (${user.email})`
+      lines.push(`<b>💎 Тариф:</b> ${user.subscription || 'free'}${user.isFoundingMember ? ' · founding' : ''}`)
+    }
+  } catch { /* best-effort */ }
+  lines.unshift(clientLine)
+  lines.push(`<b>📱 Источник:</b> ${getSourceBadge(ticket.source)}`)
+  lines.push(`<b>🎯 Хотел:</b> ${(ticket.description || ticket.subject || '').slice(0, 250)}`)
+
+  // что бот уже пробовал — последние реплики диалога из ClientDialogue
+  if (ticket.telegramChatId) {
+    try {
+      const { default: ClientDialogue } = await import('../models/ClientDialogue.js')
+      const doc = await ClientDialogue.findOne({ telegramChatId: String(ticket.telegramChatId) }).sort({ updatedAt: -1 }).lean()
+      const last = (doc?.messages || []).slice(-4)
+      if (last.length) {
+        lines.push('<b>🤖 Бот уже пробовал:</b>')
+        for (const m of last) lines.push(`  ${m.role === 'user' ? '👤' : '🤖'} ${String(m.content).slice(0, 100)}`)
+      }
+    } catch { /* best-effort */ }
+  }
+  if (ticket.aiSuggestion) lines.push(`<b>💡 AI-анализ:</b> ${Math.round((ticket.aiConfidence || 0) * 100)}% — ${ticket.aiSuggestion.slice(0, 120)}`)
+  return lines.join('\n')
 }
 
 export async function addMessage(ticketId, sender, text) {

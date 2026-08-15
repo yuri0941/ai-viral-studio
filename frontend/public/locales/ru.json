@@ -1315,6 +1315,8 @@
     "voiceMode": "Голосовой режим"
   },
   "support": {
+    "continueInTg": "Продолжить в Telegram",
+    "continuesInTg": "продолжается в TG",
     "title": "Поддержка",
     "subtitle": "Единая панель обращений: Telegram, сайт, приложение",
     "newTicket": "Новое обращение",

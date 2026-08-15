@@ -1017,6 +1017,8 @@
     "writeReply": "Write reply"
   },
   "support": {
+    "continueInTg": "Continue in Telegram",
+    "continuesInTg": "continues in TG",
     "title": "Support",
     "subtitle": "Unified support panel: Telegram, web, app",
     "newTicket": "New ticket",

@@ -62,12 +62,35 @@ export async function sendDailyReport() {
   // [v9.9.19.14.4] ежедневная сводка по ключам
   const keySection = await buildKeyDigest();
 
+  // [P2.1] метрики клиентского бота за 24ч: resolution/escalation rate, CSAT, time-to-first-action
+  let botSection = '';
+  try {
+    const { default: SupportTicket } = await import('../models/SupportTicket.js');
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const dayTickets = await SupportTicket.find({ createdAt: { $gte: since } }).select('status csat firstResponseAt createdAt').lean();
+    if (dayTickets.length) {
+      const resolved = dayTickets.filter(t => t.status === 'resolved' || t.status === 'closed').length;
+      const escalated = dayTickets.filter(t => t.status === 'needs_owner').length;
+      const csatScores = dayTickets.filter(t => t.csat).map(t => t.csat);
+      const ttfa = dayTickets.filter(t => t.firstResponseAt).map(t => t.firstResponseAt - t.createdAt).filter(ms => ms >= 0);
+      const avgCsat = csatScores.length ? (csatScores.reduce((a, b) => a + b, 0) / csatScores.length).toFixed(1) : '—';
+      const avgTtfaMin = ttfa.length ? Math.round(ttfa.reduce((a, b) => a + b, 0) / ttfa.length / 60000) : null;
+      botSection = `\n🤖 Бот: тикетов ${dayTickets.length}, решено ${Math.round(resolved / dayTickets.length * 100)}%, эскалаций ${Math.round(escalated / dayTickets.length * 100)}%` +
+        `\n⭐ CSAT: ${avgCsat}${csatScores.length ? ` (${csatScores.length})` : ''}` +
+        (avgTtfaMin !== null ? `\n⏱ Первое действие: ~${avgTtfaMin < 60 ? avgTtfaMin + ' мин' : Math.round(avgTtfaMin / 60) + ' ч'}` : '');
+    } else {
+      botSection = '\n🤖 Бот: тикетов за 24ч нет';
+    }
+  } catch (e) {
+    console.warn('[dailyReport] bot metrics failed:', e.message);
+  }
+
   const report = `📊 <b>Утренний репорт OMEGA</b>
 🗓 ${new Date().toLocaleDateString('ru-RU')}
 
 👤 Новых клиентов за 24ч: ${usersToday}
 💬 Feedback: ${stats.thumbsUp} 👍 / ${stats.thumbsDown} 👎 (удовлетворённость: ${stats.satisfaction}%)
-🎫 Открытых тикетов: ${ticketsOpen}${channelSection}${youtubeSection}${keySection}
+🎫 Открытых тикетов: ${ticketsOpen}${botSection}${channelSection}${youtubeSection}${keySection}
 🤖 Статус: 🟢 Активна
 ⏰ ${new Date().toLocaleString('ru-RU')}`;
 

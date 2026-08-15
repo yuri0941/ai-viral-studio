@@ -40,14 +40,9 @@ async function persistDialogueContext(chatId) {
   } catch (e) { console.warn('[omegaBot] dialogue persist failed:', e.message); }
 }
 
-// Privacy Firewall — запрещённые паттерны для ответов клиентам
-const CLIENT_PRIVACY_PATTERNS = [
-  /владелец|юрий|tvinki013|2130452126/i,
-  /mrr|доход платформы|общий доход|сколько зарабатывает|прибыль проекта|зарплата/i,
-  /стек технологий|на чём написано|исходный код|архитектура|backend|frontend|mongodb|express/i,
-  /другие клиенты|чужой проект|данные клиента|конфиденциальная информация/i,
-  /пароль|токен|api.key|env/i,
-];
+// [P2.1] единый privacy-модуль (запреты + фильтр исходящих + блок для системного промпта)
+import { sanitizeClientReply, PRIVACY_PROMPT_BLOCK } from '../utils/botPrivacy.js'
+import { findFaqAnswer, findFaqCandidates } from './faqService.js'
 import { chatWithAI, extractText } from './aiService.js'
 import { isOwner, getOwnerContext } from './ownerContext.js'
 import { createTicket } from './supportService.js'
@@ -70,6 +65,40 @@ global.omegaSupportState = supportState
 const videoState = global.omegaVideoState || new Map()
 global.omegaVideoState = videoState
 
+// [P2.1 SLA-ЧЕСТНОСТЬ] ночь по МСК (00:00–07:59) — бот честно говорит, что он AI
+export function isNightMsk() {
+  const h = new Date(Date.now() + 3 * 3600 * 1000).getUTCHours()
+  return h >= 0 && h < 8
+}
+export function slaHonestNote() {
+  return isNightMsk()
+    ? '\n\n🌙 <i>Я AI-ассистент OMEGA. Сейчас ночь — специалист подключится утром. Ваш запрос записан — повторять не придётся.</i>'
+    : ''
+}
+
+// [P2.1 TAKEOVER] активный ручной диалог владельца с клиентом (AI молчит). Кэш 30 сек.
+const takeoverCache = global.omegaTakeoverCache || new Map()
+global.omegaTakeoverCache = takeoverCache
+export async function getActiveTakeover(chatId) {
+  const key = String(chatId)
+  const cached = takeoverCache.get(key)
+  if (cached && Date.now() - cached.at < 30000) return cached.ticketId ? cached : null
+  try {
+    const { default: SupportTicket } = await import('../models/SupportTicket.js')
+    const t = await SupportTicket.findOne({ telegramChatId: key, takeoverBy: { $ne: null }, status: 'in_progress' }).select('_id takeoverBy').lean()
+    const entry = { at: Date.now(), ticketId: t?._id?.toString() || null, ownerChatId: t?.takeoverBy || null }
+    takeoverCache.set(key, entry)
+    return entry.ticketId ? entry : null
+  } catch {
+    return null
+  }
+}
+export function invalidateTakeoverCache(chatId) { takeoverCache.delete(String(chatId)) }
+
+// [P2.1] антиспам rate-limit на AI-ответы свободного текста (4 сек на чат)
+const freeTextRate = global.omegaFreeTextRate || new Map()
+global.omegaFreeTextRate = freeTextRate
+
 function createStubBot() {
   return {
     sendMessage: () => Promise.resolve(),
@@ -86,14 +115,16 @@ function createStubBot() {
 
 // [HOTFIX-2026-08-08] stringify objects before sendMessage to avoid "[object Object]"
 function sendClientMenu(chatId) {
-  bot.sendMessage(chatId, `✦ <b>AI Viral Studio</b> ✦\n━━━━━━━━━━━━━━\n<i>OMEGA AI — ваш SMM-отдел</i>\n\nВыберите действие:`, {
+  bot.sendMessage(chatId, `✦ <b>AI Viral Studio</b> ✦\n━━━━━━━━━━━━━━\n<i>OMEGA AI — ваш SMM-отдел</i>\n\nВыберите действие или просто напишите вопрос:`, {
     parse_mode: 'HTML',
     reply_markup: {
       inline_keyboard: [
+        // [P2.1] guided-кнопки первого уровня (до свободного текста)
+        [{ text: '🔌 Подключить соцсеть', callback_data: 'guide:connect' }, { text: '🧾 Где мой чек', callback_data: 'guide:receipt' }],
+        [{ text: '💎 Тарифы', callback_data: 'ad:prices' }, { text: '👤 Человек', callback_data: 'guide:human' }],
         [{ text: '🛒 Реклама в канале', callback_data: 'ad:start' }, { text: '💰 Скидки', callback_data: 'discount:list' }],
         [{ text: '🎬 Видео / Reels', callback_data: 'video:start' }, { text: '💬 Поддержка', callback_data: 'support:start' }],
-        [{ text: '📊 Мои заказы', callback_data: 'ad:myorders' }, { text: '💎 Тарифы', callback_data: 'ad:prices' }],
-        [{ text: '🚀 Перейти в приложение', url: 'https://aiviral-studio.ru' }]
+        [{ text: '📊 Мои заказы', callback_data: 'ad:myorders' }, { text: '🚀 Перейти в приложение', url: 'https://aiviral-studio.ru' }]
       ]
     }
   })
@@ -176,6 +207,28 @@ export const initOmegaBot = () => {
         return;
       } catch (e) {
         console.error('[OMEGA-BOT] start-link error:', e.message);
+      }
+    }
+
+    // [P2.1] deep-link «Продолжить в Telegram» из SupportTab: t.me/aiviral_omega_bot?start=support_<ticketId>
+    if (startParam && /^support_[a-f0-9]{24}$/i.test(startParam)) {
+      try {
+        const ticketId = startParam.replace(/^support_/, '');
+        const { default: SupportTicket } = await import('../models/SupportTicket.js');
+        const ticket = await SupportTicket.findById(ticketId);
+        if (!ticket) {
+          bot.sendMessage(chatId, '⚠️ Обращение не найдено. Напишите ваш вопрос здесь — я помогу.', { parse_mode: 'HTML' });
+          return;
+        }
+        ticket.telegramChatId = String(chatId);
+        ticket.updatedAt = new Date();
+        await ticket.save();
+        const { addMessage } = await import('./supportService.js');
+        await addMessage(ticketId, 'system', 'Диалог продолжен в Telegram');
+        bot.sendMessage(chatId, `💬 <b>Обращение #${ticketId.slice(-6)} продолжается здесь</b>\n━━━━━━━━━━━━━━\nТема: ${ticket.subject}\n\nПишите — я отвечу, а специалист уже видит этот диалог. Ответ придёт в этот чат.${slaHonestNote()}`, { parse_mode: 'HTML' });
+        return;
+      } catch (e) {
+        console.error('[OMEGA-BOT] start support-link error:', e.message);
       }
     }
 
@@ -287,6 +340,11 @@ export const initOmegaBot = () => {
 
   // [v9.9.7-BOT-CONVERSATION] AI chat with privacy firewall, context memory, smart routing, escalation
   async function handleFreeText(chatId, text, username) {
+    // [P2.1] антиспам: не чаще 1 AI-ответа в 4 сек на чат
+    const lastCall = freeTextRate.get(String(chatId)) || 0
+    if (Date.now() - lastCall < 4000) return
+    freeTextRate.set(String(chatId), Date.now())
+
     // [v9.9.19.6] контекст из MongoDB (переживает рестарт), кэш в global
     const dialogue = await getDialogueContext(chatId);
     dialogue.push({ role: 'user', content: text, time: Date.now() });
@@ -321,6 +379,15 @@ export const initOmegaBot = () => {
       emotional: 'Будь максимально эмпатичной, поддерживающей, предложи конкретное решение.',
     };
 
+    // [P2.1] FAQ-кандидаты из базы знаний: бот отвечает ТОЛЬКО из базы + фактов аккаунта, не выдумывает
+    let faqBlock = ''
+    try {
+      const candidates = await findFaqCandidates(text, 3)
+      if (candidates.length) {
+        faqBlock = `\n\nБАЗА ЗНАНИЙ (отвечай ТОЛЬКО по ней и по фактам аккаунта клиента; если ответа нет — честно скажи, что не знаешь, и предложи оператора через ESCALATE — ничего не выдумывай):\n${candidates.map(a => `• ${a.question} → ${a.answer}`).join('\n')}`
+      }
+    } catch { /* база недоступна — не блокируем ответ */ }
+
     const systemPrompt = `Ты — OMEGA AI 🤖, SMM-ассистент AI Viral Studio. Твоя цель №1: помочь клиенту и мягко привести его к действию (демо, тариф, кейс).
 КРИТИЧЕСКИЕ ПРАВИЛА:
 1. Отвечай кратко (2-4 предложения). ${toneInstructions[clientTone] || toneInstructions.casual}
@@ -331,7 +398,8 @@ export const initOmegaBot = () => {
 6. Если клиент пишет 2+ раза про одно и то же без покупки → предложи персональный промокод: "Вот промокод OMEGAPERSONAL20 — скидка 20% только для вас."
 7. НЕ раскрывай: владельца, MRR, стек, других клиентов, пароли.
 8. Если вопрос про оплату/баг/возврат/удаление → ESCALATE.
-9. Подписывайся: "OMEGA 🤖"${successHints}`;
+9. Подписывайся: "OMEGA 🤖"
+10. Я — AI-ассистент, не человек; если просят человека или я не знаю ответ — честно говори об этом и предлагай оператора.${PRIVACY_PROMPT_BLOCK}${faqBlock}${successHints}`;
 
     try {
       bot.sendChatAction(chatId, 'typing');
@@ -346,12 +414,11 @@ export const initOmegaBot = () => {
       const ai = await chatWithAI(systemPrompt + webContext, history, 'ru', { maxTokens: 700, temperature: 0.75 });
       let reply = extractText(ai) || 'Извините, я временно недоступна. Попробуйте позже.';
 
-      // Privacy Firewall — пост-обработка ответа
-      for (const pattern of CLIENT_PRIVACY_PATTERNS) {
-        if (pattern.test(reply)) {
-          reply = 'Это конфиденциальная информация. Давайте лучше поговорим о вашем SMM-стратегии! 💡';
-          break;
-        }
+      // [P2.1] Privacy Firewall — единый модуль utils/botPrivacy (фильтр исходящих)
+      const sanitized = sanitizeClientReply(reply)
+      if (sanitized.blocked) {
+        console.warn('[OMEGA-BOT][PRIVACY] blocked leak in reply:', reply.slice(0, 120))
+        reply = sanitized.text
       }
 
       // Churn Guard — если клиент хочет уйти
@@ -604,6 +671,29 @@ export const initOmegaBot = () => {
       return
     }
 
+    // [P2.1 TAKEOVER] владелец ведёт диалог вручную — AI молчит, сообщения клиента ретранслируются владельцу
+    if (!owner) {
+      const takeover = await getActiveTakeover(chatId)
+      if (takeover) {
+        try {
+          const { default: SupportTicket } = await import('../models/SupportTicket.js')
+          await SupportTicket.findByIdAndUpdate(takeover.ticketId, {
+            $push: { messages: { sender: 'client', text: text.slice(0, 2000), timestamp: new Date() } },
+            $set: { updatedAt: new Date() }
+          })
+          const { default: ClientDialogue } = await import('../models/ClientDialogue.js')
+          await ClientDialogue.findOneAndUpdate(
+            { telegramChatId: String(chatId) },
+            { $push: { messages: { role: 'user', content: text.slice(0, 2000), intent: 'support', timestamp: new Date() } }, $set: { updatedAt: new Date() } },
+            { upsert: true }
+          )
+          const { alertOwner } = await import('./ownerBot.js')
+          await alertOwner(`💬 <b>Клиент (тикет #${takeover.ticketId.slice(-6)}):</b>\n${text.slice(0, 1000)}`)
+        } catch (e) { console.warn('[OMEGA-BOT] takeover relay failed:', e.message) }
+        return
+      }
+    }
+
     // Support ticket flow for non-owners
     if (!owner && supportState.get(chatId)) {
       bot.sendChatAction(chatId, 'typing')
@@ -629,7 +719,7 @@ export const initOmegaBot = () => {
           })
         } else {
           reply += `⏳ Передаю оператору. Ожидайте...`
-          bot.sendMessage(chatId, reply, { parse_mode: 'HTML' })
+          bot.sendMessage(chatId, reply + slaHonestNote(), { parse_mode: 'HTML' })
         }
         supportState.delete(chatId)
       } catch (err) {
@@ -669,6 +759,23 @@ export const initOmegaBot = () => {
 
     if (!owner) {
       if (text && text.trim()) {
+        // [P2.1] сначала база знаний: точное попадание → ответ из FAQ (не выдумка), нет — дальше в AI-поток
+        try {
+          const hit = await findFaqAnswer(text, 2)
+          if (hit) {
+            const dlg = await getDialogueContext(chatId)
+            dlg.push({ role: 'user', content: text, time: Date.now() }, { role: 'assistant', content: hit.article.answer, time: Date.now() })
+            persistDialogueContext(chatId)
+            bot.sendMessage(chatId, `💡 ${hit.article.answer}`, {
+              parse_mode: 'HTML',
+              reply_markup: { inline_keyboard: [
+                [{ text: '👍 Помогло', callback_data: 'faq:helped' }, { text: '👤 Человек', callback_data: 'guide:human' }],
+                [{ text: '📋 Меню', callback_data: 'menu:main' }]
+              ] }
+            })
+            return
+          }
+        } catch (e) { console.warn('[omegaBot] FAQ lookup failed:', e.message) }
         // [v9.9.19.2-v4-CHANNEL-AUTO] FAQ-автоответ из Learning Graph (изученные навыки), не generic-текст.
         // Сложное → дальше в handleFreeText (там эскалация владельцу через тикет).
         if (/цен[аы]|сколько стоит|тариф|как подключить|поддержка/i.test(text)) {
@@ -733,7 +840,26 @@ export const initOmegaBot = () => {
     // [v9.9.2-MASTER-FIX] unified support callbacks (work for everyone)
     if (data === 'support:start') {
       supportState.set(chatId, true)
-      bot.sendMessage(chatId, '💬 <b>Поддержка</b>\nОпишите проблему одним сообщением. OMEGA ответит или передаст оператору.', { parse_mode: 'HTML' })
+      bot.sendMessage(chatId, `💬 <b>Поддержка</b>\nОпишите проблему одним сообщением. OMEGA ответит или передаст оператору.${slaHonestNote()}`, { parse_mode: 'HTML' })
+      return
+    }
+
+    // [P2.1] CSAT 1–5 после закрытия тикета
+    if (data.startsWith('csat:')) {
+      const [, ticketId, scoreRaw] = data.split(':')
+      const score = parseInt(scoreRaw, 10)
+      try {
+        const { default: SupportTicket } = await import('../models/SupportTicket.js')
+        const ticket = await SupportTicket.findByIdAndUpdate(ticketId, { csat: score, csatAt: new Date(), updatedAt: new Date() }, { new: true })
+        bot.sendMessage(chatId, score >= 4 ? '🙏 Спасибо за высокую оценку! Рады помочь.' : '🙏 Спасибо за оценку — мы учтём её, чтобы стать лучше.', { parse_mode: 'HTML' })
+        if (ticket && score <= 2) {
+          const { alertOwner } = await import('./ownerBot.js')
+          const { buildTakeoverSummary } = await import('./supportService.js')
+          const summary = await buildTakeoverSummary(ticket).catch(() => '')
+          await alertOwner(`⚠️ <b>Низкая оценка поддержки: ${score}/5</b>\nТикет #${ticketId.slice(-6)}\n${summary}`)
+        }
+      } catch (e) { console.error('[OMEGA-BOT] csat failed:', e.message) }
+      bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: q.message.message_id }).catch(() => {})
       return
     }
     if (data.startsWith('feedback:up:') || data.startsWith('feedback:down:')) {
@@ -753,10 +879,14 @@ export const initOmegaBot = () => {
         try {
           const { updateTicketStatus } = await import('./supportService.js');
           await updateTicketStatus(ticketId, 'resolved');
+          // [P2.1] CSAT после закрытия
+          bot.sendMessage(chatId, 'Оцените, пожалуйста, помощь (1–5):', {
+            reply_markup: { inline_keyboard: [[1, 2, 3, 4, 5].map(n => ({ text: String(n), callback_data: `csat:${ticketId}:${n}` }))] }
+          });
         } catch (e) { console.error('Ticket resolve failed:', e); }
       }
       else if (action === 'escalate') {
-        bot.sendMessage(chatId, `⏳ Передаю оператору. Ожидайте ответа...`, { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, `⏳ Передаю оператору. Ожидайте ответа...${slaHonestNote()}`, { parse_mode: 'HTML' });
         try {
           const { updateTicketStatus } = await import('./supportService.js');
           await updateTicketStatus(ticketId, 'needs_owner');
@@ -768,6 +898,45 @@ export const initOmegaBot = () => {
     }
 
     // [v9.9.5-TELEGRAM-UNIFIED] client luxury menu callbacks
+    // [P2.1] guided-кнопки первого уровня
+    if (data === 'guide:connect') {
+      bot.sendMessage(chatId, `🔌 <b>Подключение соцсети</b>\n━━━━━━━━━━━━━━\nКабинет → Настройки → YouTube → «Подключить» — откроется окно Google, выберите канал и разрешите доступ.\n\nПосле подключения видео из Планировщика публикуются автоматически.\n\n👇 Открыть настройки:\nhttps://aiviral-studio.ru/settings?tab=youtube`, {
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: [[{ text: '👍 Понятно', callback_data: 'faq:helped' }, { text: '👤 Человек', callback_data: 'guide:human' }], [{ text: '📋 Меню', callback_data: 'menu:main' }]] }
+      })
+      return
+    }
+    if (data === 'guide:receipt') {
+      bot.sendMessage(chatId, `🧾 <b>Где мой чек</b>\n━━━━━━━━━━━━━━\nЧек приходит на email сразу после оплаты (проверьте «Спам»).\nИстория платежей и повторная отправка чека: Кабинет → Настройки → Платежи.\n\nНе пришёл? Напишите нам — поможем.`, {
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: [[{ text: '👍 Понятно', callback_data: 'faq:helped' }, { text: '💬 Написать в поддержку', callback_data: 'support:start' }], [{ text: '📋 Меню', callback_data: 'menu:main' }]] }
+      })
+      return
+    }
+    if (data === 'guide:human') {
+      try {
+        const { createTicket } = await import('./supportService.js')
+        const ticket = await createTicket({
+          userEmail: `tg_${chatId}@aiviral-studio.ru`,
+          userName: q.from?.username || q.from?.first_name || `Telegram ${chatId}`,
+          subject: '👤 Клиент просит оператора',
+          description: 'Клиент нажал «Человек» в меню бота и просит живого оператора.',
+          telegramChatId: String(chatId),
+          source: 'telegram'
+        })
+        bot.sendMessage(chatId, `👤 <b>Записал ваш запрос</b>\n━━━━━━━━━━━━━━\nЯ AI-ассистент OMEGA — специалист подключится к диалогу здесь, в Telegram. Номер обращения: #${ticket._id.toString().slice(-6)}. Повторять не придётся.${slaHonestNote()}`, { parse_mode: 'HTML' })
+      } catch (e) {
+        console.error('[OMEGA-BOT] guide:human ticket failed:', e.message)
+        bot.sendMessage(chatId, '⚠️ Не удалось создать обращение. Напишите ваш вопрос текстом — я передам специалисту.', { parse_mode: 'HTML' })
+      }
+      return
+    }
+    if (data === 'faq:helped') {
+      bot.answerCallbackQuery(q.id, { text: 'Рады помочь! 🙌' }).catch(() => {})
+      bot.editMessageReplyMarkup({ inline_keyboard: [[{ text: '📋 Меню', callback_data: 'menu:main' }]] }, { chat_id: chatId, message_id: q.message.message_id }).catch(() => {})
+      return
+    }
+
     if (!owner) {
       if (data === 'ad:start') {
         const prices = getAdPricing()
