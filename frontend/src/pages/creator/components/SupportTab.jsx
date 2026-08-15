@@ -54,7 +54,7 @@ export default function SupportTab() {
         method: 'POST',
         body: JSON.stringify({ subject: subject.trim(), description: description.trim(), source: 'web' })
       });
-      setSuccess(t('support.created') || 'Обращение создано. OMEGA или оператор ответят вам soon.');
+      setSuccess(t('support.created') || 'Обращение создано. OMEGA или оператор ответят вам.');
       setSubject('');
       setDescription('');
       await loadTickets();
@@ -132,12 +132,27 @@ export default function SupportTab() {
               return (
                 <div key={ticket._id} className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="text-xs font-medium text-[var(--text)]">#{ticket._id?.toString().slice(-6)}</span>
                       <span className="text-xs text-[var(--text-muted)]">{new Date(ticket.createdAt).toLocaleDateString('ru-RU')}</span>
+                      {ticket.telegramChatId && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/20">
+                          💬 {t('support.continuesInTg')}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-[var(--text)] font-medium truncate">{ticket.subject}</p>
                     <p className="text-xs text-[var(--text-muted)] truncate">{ticket.description}</p>
+                    {/* [P2.1] сквозная кнопка: диалог продолжается в TG-боте, ответ владельца придёт туда */}
+                    <a
+                      href={`https://t.me/aiviral_omega_bot?start=support_${ticket._id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 min-h-[36px] rounded-lg bg-sky-500/15 border border-sky-500/25 text-sky-400 text-xs font-medium hover:bg-sky-500/25 transition-colors"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      {t('support.continueInTg')}
+                    </a>
                   </div>
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs">
                     <Icon className="w-3 h-3" />

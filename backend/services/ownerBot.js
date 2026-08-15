@@ -877,6 +877,62 @@ export const initOwnerBot = () => {
       return;
     }
 
+    // [P2.1 TAKEOVER] активный ручной диалог: текст владельца уходит клиенту в OMEGA-бот
+    const takeoverTicketId = global.ownerTakeovers?.get(String(chatId))
+    if (takeoverTicketId) {
+      try {
+        const ticket = await SupportTicket.findById(takeoverTicketId)
+        if (!ticket || ticket.status !== 'in_progress' || !ticket.takeoverBy) {
+          global.ownerTakeovers.delete(String(chatId))
+          safeSendMessage(chatId, 'ℹ️ Ручной диалог уже завершён (тикет закрыт или возвращён боту).')
+        } else {
+          const { sendClientMessage } = await import('./omegaBot.js')
+          await sendClientMessage(ticket.telegramChatId, `👤 <b>Специалист:</b>\n${text.slice(0, 2000)}`, { parse_mode: 'HTML' })
+          ticket.messages.push({ sender: 'owner', text: text.slice(0, 2000), timestamp: new Date() })
+          if (!ticket.firstResponseAt) ticket.firstResponseAt = new Date()
+          ticket.updatedAt = new Date()
+          await ticket.save()
+          const { default: ClientDialogue } = await import('../models/ClientDialogue.js')
+          await ClientDialogue.findOneAndUpdate(
+            { telegramChatId: String(ticket.telegramChatId) },
+            { $push: { messages: { role: 'assistant', content: text.slice(0, 2000), intent: 'support', timestamp: new Date() } }, $set: { updatedAt: new Date() } },
+            { upsert: true }
+          )
+        }
+      } catch (e) {
+        console.error('[OWNER-BOT] takeover relay failed:', e.message)
+        safeSendMessage(chatId, `⚠️ Не удалось отправить клиенту: ${e.message}`)
+      }
+      return
+    }
+
+    // [P2.1] owner правит базу знаний прямо из TG: «добавь в FAQ: вопрос | ответ | ключ1,ключ2»
+    if (/^добавь в faq\s*:/i.test(text.trim())) {
+      const raw = text.replace(/^добавь в faq\s*:\s*/i, '')
+      try {
+        const { addFaqFromOwner } = await import('./faqService.js')
+        const r = await addFaqFromOwner(raw)
+        safeSendMessage(chatId, r.ok
+          ? `✅ <b>Добавлено в FAQ:</b>\n${r.article.question}\nКлючи: ${r.article.keywords.join(', ')}`
+          : '⚠️ Формат: <code>добавь в FAQ: вопрос | ответ | ключ1,ключ2</code> (ключи необязательны)', { parse_mode: 'HTML' })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка добавления в FAQ: ${e.message}`)
+      }
+      return
+    }
+    if (/^(список faq|faq список|покажи faq)$/i.test(text.trim())) {
+      try {
+        const { listFaq } = await import('./faqService.js')
+        const items = await listFaq(30)
+        safeSendMessage(chatId, items.length
+          ? `📚 <b>FAQ (${items.length}):</b>\n` + items.map((a, i) => `${i + 1}. ${a.question}`).join('\n')
+          : '📚 FAQ пока пуст.', { parse_mode: 'HTML' })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка чтения FAQ: ${e.message}`)
+      }
+      return
+    }
+
     // [v9.9.5-TELEGRAM-UNIFIED] owner manual channel post
     if (String(global.ownerPostState) === String(chatId)) {
       // [v9.9.19.3] через единый публикатор: hot-reload токена, проверка результата, ссылка-доказательство
@@ -1054,6 +1110,103 @@ export const initOwnerBot = () => {
 
     // [v9.9.19.3] сразу гасим спиннер кнопки в Telegram-клиенте
     bot.answerCallbackQuery(q.id).catch(() => {});
+
+    // [P2.1 TAKEOVER] взять диалог: AI молчит по клиенту, владелец пишет ему через этот чат
+    if (data.startsWith('ticket:takeover:')) {
+      const ticketId = data.slice('ticket:takeover:'.length)
+      try {
+        const ticket = await SupportTicket.findById(ticketId)
+        if (!ticket) { safeSendMessage(chatId, '⚠️ Тикет не найден'); return }
+        if (!ticket.telegramChatId) { safeSendMessage(chatId, '⚠️ У тикета нет TG-чата клиента — отвечайте через Dashboard.'); return }
+        ticket.status = 'in_progress'
+        ticket.takeoverBy = String(chatId)
+        ticket.takeoverAt = new Date()
+        ticket.updatedAt = new Date()
+        if (!ticket.firstResponseAt) ticket.firstResponseAt = new Date()
+        await ticket.save()
+        global.ownerTakeovers = global.ownerTakeovers || new Map()
+        global.ownerTakeovers.set(String(chatId), ticketId)
+        const { invalidateTakeoverCache, sendClientMessage } = await import('./omegaBot.js')
+        invalidateTakeoverCache(ticket.telegramChatId)
+        await sendClientMessage(ticket.telegramChatId, `👤 <b>Специалист подключился к диалогу</b>\nПишите здесь — я читаю и отвечаю лично. AI-ассистент пока молчит.`, { parse_mode: 'HTML' })
+        safeSendMessage(chatId, `💬 <b>Вы ведёте диалог по тикету #${ticketId.slice(-6)}</b>\nВсё, что напишете сюда, уйдёт клиенту в OMEGA-бот.\n\nКогда закончите:`, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: [
+            [{ text: '🤖 Вернуть боту', callback_data: `ticket:bot:${ticketId}` }, { text: '✅ Закрыть', callback_data: `ticket:close:${ticketId}` }]
+          ] }
+        })
+      } catch (e) {
+        console.error('[OWNER-BOT] takeover failed:', e.message)
+        safeSendMessage(chatId, `⚠️ Ошибка takeover: ${e.message}`)
+      }
+      return
+    }
+
+    // [P2.1] вернуть диалог боту: AI продолжает с сохранённым контекстом
+    if (data.startsWith('ticket:bot:')) {
+      const ticketId = data.slice('ticket:bot:'.length)
+      try {
+        const ticket = await SupportTicket.findById(ticketId)
+        if (ticket) {
+          ticket.takeoverBy = null
+          ticket.takeoverAt = null
+          ticket.status = 'open'
+          ticket.updatedAt = new Date()
+          await ticket.save()
+          const { invalidateTakeoverCache, sendClientMessage } = await import('./omegaBot.js')
+          invalidateTakeoverCache(ticket.telegramChatId)
+          if (ticket.telegramChatId) {
+            await sendClientMessage(ticket.telegramChatId, `🤖 <b>Снова на связи OMEGA!</b>\nЯ помню наш разговор — продолжим с того же места. Чем помочь дальше?`, { parse_mode: 'HTML' })
+          }
+        }
+        global.ownerTakeovers?.delete(String(chatId))
+        safeSendMessage(chatId, `🤖 Диалог по тикету #${ticketId.slice(-6)} возвращён боту (контекст сохранён).`)
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка возврата боту: ${e.message}`)
+      }
+      return
+    }
+
+    // [P2.1] закрыть тикет из TG + CSAT клиенту
+    if (data.startsWith('ticket:close:')) {
+      const ticketId = data.slice('ticket:close:'.length)
+      try {
+        const ticket = await SupportTicket.findById(ticketId)
+        if (!ticket) { safeSendMessage(chatId, '⚠️ Тикет не найден'); return }
+        ticket.status = 'resolved'
+        ticket.closedAt = new Date()
+        ticket.takeoverBy = null
+        ticket.takeoverAt = null
+        ticket.updatedAt = new Date()
+        await ticket.save()
+        global.ownerTakeovers?.delete(String(chatId))
+        const { invalidateTakeoverCache, sendClientMessage } = await import('./omegaBot.js')
+        invalidateTakeoverCache(ticket.telegramChatId)
+        safeSendMessage(chatId, `✅ Тикет #${ticketId.slice(-6)} закрыт.`)
+        if (ticket.telegramChatId) {
+          await sendClientMessage(ticket.telegramChatId, `✅ <b>Обращение #${ticketId.slice(-6)} закрыто</b>\nСпасибо за обращение!`, { parse_mode: 'HTML' })
+          await sendClientMessage(ticket.telegramChatId, 'Оцените, пожалуйста, помощь (1–5):', {
+            reply_markup: { inline_keyboard: [[1, 2, 3, 4, 5].map(n => ({ text: String(n), callback_data: `csat:${ticketId}:${n}` }))] }
+          })
+        }
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка закрытия: ${e.message}`)
+      }
+      return
+    }
+
+    // [P2.1] эскалация из TG (раньше кнопка была мёртвой)
+    if (data.startsWith('ticket:escalate:')) {
+      const ticketId = data.slice('ticket:escalate:'.length)
+      try {
+        const { escalateToOwner } = await import('./supportService.js')
+        await escalateToOwner(ticketId, 'эскалация владельцем из TG')
+        safeSendMessage(chatId, `⬆️ Тикет #${ticketId.slice(-6)} эскалирован (приоритет: срочный).`)
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка эскалации: ${e.message}`)
+      }
+      return
+    }
 
     // [OWNER-REMOTE-CONTROL] подтверждение возврата из TG (идемпотентность — в ownerActionsService: in-flight lock + проверка статусов)
     if (data === 'refund:no') {
