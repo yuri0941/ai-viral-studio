@@ -1307,8 +1307,8 @@ function SchedulerPage() {
                         <Calendar size={20} className="text-white" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold">Планировщик</h1>
-                        <p className="text-gray-400 text-sm">Создавайте, перетаскивайте и планируйте публикации</p>
+                        <h1 className="text-2xl font-bold">{t('scheduler.pageTitle', 'Планировщик')}</h1>
+                        <p className="text-gray-400 text-sm">{t('scheduler.pageSubtitle', 'Создавайте, перетаскивайте и планируйте публикации')}</p>
                     </div>
                 </div>
             </div>
@@ -1347,23 +1347,24 @@ function SchedulerPage() {
 
             {/* Controls */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-                <div className="flex items-center gap-2">
+                {/* [UI-VERIFY] flex-wrap внутри групп: на 360px кнопки уезжали за экран */}
+                <div className="flex flex-wrap items-center gap-2">
                     <button onClick={handlePrevWeek} className="p-2 rounded-lg bg-[#1a1a24] hover:bg-[#252530] transition-colors"><ChevronLeft size={18} /></button>
                     <div className="px-4 py-2 bg-[#1a1a24] rounded-lg font-medium min-w-[200px] text-center">
                         {weekDates[0].getDate()} {MONTH_NAMES[weekDates[0].getMonth()]} — {weekDates[6].getDate()} {MONTH_NAMES[weekDates[6].getMonth()]} {weekDates[6].getFullYear()}
                     </div>
                     <button onClick={handleNextWeek} className="p-2 rounded-lg bg-[#1a1a24] hover:bg-[#252530] transition-colors"><ChevronRight size={18} /></button>
-                    <button onClick={handleToday} className="px-3 py-2 rounded-lg bg-emerald-600/20 text-emerald-400 text-sm font-medium hover:bg-emerald-600/30 transition-colors">Сегодня</button>
+                    <button onClick={handleToday} className="px-3 py-2 rounded-lg bg-emerald-600/20 text-emerald-400 text-sm font-medium hover:bg-emerald-600/30 transition-colors">{t('scheduler.today', 'Сегодня')}</button>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <OneClickPublish content={posts.find(p => p.status === 'draft')?.title || 'Готовый контент от OMEGA'} />
-                    <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition border border-white/10 hover:border-white/20">Месяц</button>
+                    <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition border border-white/10 hover:border-white/20">{t('scheduler.month', 'Месяц')}</button>
                     {/* [P19] added: AI Video generation trigger */}
                     {/* [LUXURY-UI] added: premium gradient button with shadow */}
-                    <button onClick={() => setVideoModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium rounded-xl shadow-lg shadow-pink-500/20 transition-all hover:scale-105"><Film size={18} /> Сгенерировать Reels</button>
+                    <button onClick={() => setVideoModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium rounded-xl shadow-lg shadow-pink-500/20 transition-all hover:scale-105"><Film size={18} /> {t('scheduler.generateReels', 'Сгенерировать Reels')}</button>
                     <button onClick={() => setShowAIVideoCreator(true)} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-cyan-500 text-white font-medium rounded-xl shadow-lg shadow-violet-500/20 transition-all hover:scale-105"><Clapperboard size={18} /> AI Video Creator</button>
                     {/* [LUXURY-UI] added: premium white CTA button */}
-                    <button onClick={() => openModal()} className="flex items-center gap-2 px-5 py-2.5 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-all hover:scale-105"><Plus size={18} /> Новый пост</button>
+                    <button onClick={() => openModal()} className="flex items-center gap-2 px-5 py-2.5 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-all hover:scale-105"><Plus size={18} /> {t('scheduler.newPost', 'Новый пост')}</button>
                 </div>
             </div>
 

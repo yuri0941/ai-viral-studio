@@ -13,7 +13,7 @@ const ALL_TABS = [
     { id: 'dashboard', path: '/dashboard', label: 'sidebar.dashboard', icon: LayoutDashboard, defaultLabel: 'Dashboard' },
     { id: 'analytics', path: '/analytics', label: 'sidebar.analytics', icon: BarChart, defaultLabel: 'Аналитика' },
     { id: 'aiChat', path: '/ai-chat', label: 'sidebar.aiChat', icon: MessageSquare, defaultLabel: 'AI Chat' },
-    { id: 'contentAnalysis', path: '/content-analysis', label: 'sidebar.contentAnalysis', icon: Search, defaultLabel: 'Анализ контента' },
+    { id: 'contentAnalysis', path: '/creative-hub/analyzer', label: 'sidebar.contentAnalysis', icon: Search, defaultLabel: 'Анализ контента' },
     { id: 'aiVsHuman', path: '/ai-vs-human', label: 'sidebar.aiVsHuman', icon: Swords, defaultLabel: 'AI vs Human' },
     { id: 'viralChat', path: '/viral-chat', label: 'sidebar.viralChat', icon: Zap, defaultLabel: 'Viral Chat' },
     { id: 'planner', path: '/scheduler', label: 'sidebar.planner', icon: Calendar, defaultLabel: 'Планировщик' },

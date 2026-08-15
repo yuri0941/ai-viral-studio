@@ -7,7 +7,7 @@ import {
     Users, Monitor, CheckSquare, Bot, Newspaper, Gift, MessageSquare,
     KeyRound, Lock, Scale, ShieldCheck, Server, RefreshCw, Plug,
     BarChart, FileText, Bell, HelpCircle, Heart, Rocket,
-    Crown, LogOut, ChevronLeft, ChevronRight, X, ChevronDown, Globe,
+    Crown, LogOut, X, ChevronDown, Globe,
     Search, TrendingUp, Calendar, Settings, Shield, Briefcase, Home,
     Palette, LayoutTemplate, Flame, Cpu, Swords, Zap, Sparkles,
     Clapperboard, Factory, Telescope, Landmark, Send, MessageCircle, Radio,
@@ -17,71 +17,71 @@ import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 
 const ROLE_MENU = {
     owner: [
-        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
-        { path: '/analytics', label: 'Analytics', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: MessageSquare },
-        { path: '/content-analysis', label: 'Анализ контента', icon: Search },
-        { path: '/ai-vs-human', label: 'AI vs Human', icon: Swords },
-        { path: '/viral-chat', label: 'Viral Chat', icon: Zap },
-        { path: '/scheduler', label: 'Планировщик', icon: Calendar },
-        { path: '/settings', label: 'Settings', icon: Settings },
+        { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
+        { path: '/ai-chat', id: 'aiChat', label: 'AI Chat', icon: MessageSquare },
+        { path: '/creative-hub/analyzer', id: 'contentAnalyzer', label: 'Анализ контента', icon: Search },
+        { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
+        { path: '/viral-chat', id: 'viralChat', label: 'Viral Chat', icon: Zap },
+        { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
+        { path: '/settings', id: 'settings', label: 'Settings', icon: Settings },
     ],
     admin: [
-        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
-        { path: '/analytics', label: 'Analytics', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: MessageSquare },
-        { path: '/content-analysis', label: 'Анализ контента', icon: Search },
-        { path: '/ai-vs-human', label: 'AI vs Human', icon: Swords },
-        { path: '/viral-chat', label: 'Viral Chat', icon: Zap },
-        { path: '/scheduler', label: 'Планировщик', icon: Calendar },
-        { path: '/owner?tab=telegram', label: '📱 Telegram', icon: Send },
-        { path: '/settings', label: 'Settings', icon: Settings },
+        { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
+        { path: '/ai-chat', id: 'aiChat', label: 'AI Chat', icon: MessageSquare },
+        { path: '/creative-hub/analyzer', id: 'contentAnalyzer', label: 'Анализ контента', icon: Search },
+        { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
+        { path: '/viral-chat', id: 'viralChat', label: 'Viral Chat', icon: Zap },
+        { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
+        { path: '/owner?tab=telegram', id: 'telegram', label: '📱 Telegram', icon: Send },
+        { path: '/settings', id: 'settings', label: 'Settings', icon: Settings },
     ],
     staff: [
-        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
-        { path: '/analytics', label: 'Analytics', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: MessageSquare },
-        { path: '/content-analysis', label: 'Анализ контента', icon: Search },
-        { path: '/ai-vs-human', label: 'AI vs Human', icon: Swords },
-        { path: '/viral-chat', label: 'Viral Chat', icon: Zap },
-        { path: '/scheduler', label: 'Планировщик', icon: Calendar },
-        { path: '/settings', label: 'Settings', icon: Settings },
+        { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
+        { path: '/ai-chat', id: 'aiChat', label: 'AI Chat', icon: MessageSquare },
+        { path: '/creative-hub/analyzer', id: 'contentAnalyzer', label: 'Анализ контента', icon: Search },
+        { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
+        { path: '/viral-chat', id: 'viralChat', label: 'Viral Chat', icon: Zap },
+        { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
+        { path: '/settings', id: 'settings', label: 'Settings', icon: Settings },
     ],
     advertiser: [
-        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
-        { path: '/analytics', label: 'Analytics', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: MessageSquare },
-        { path: '/content-analysis', label: 'Анализ контента', icon: Search },
-        { path: '/ai-vs-human', label: 'AI vs Human', icon: Swords },
-        { path: '/viral-chat', label: 'Viral Chat', icon: Zap },
-        { path: '/scheduler', label: 'Планировщик', icon: Calendar },
-        { path: '/settings', label: 'Settings', icon: Settings },
+        { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
+        { path: '/ai-chat', id: 'aiChat', label: 'AI Chat', icon: MessageSquare },
+        { path: '/creative-hub/analyzer', id: 'contentAnalyzer', label: 'Анализ контента', icon: Search },
+        { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
+        { path: '/viral-chat', id: 'viralChat', label: 'Viral Chat', icon: Zap },
+        { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
+        { path: '/settings', id: 'settings', label: 'Settings', icon: Settings },
     ],
     creator: [
-        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
-        { path: '/analytics', label: 'Analytics', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: MessageSquare },
-        { path: '/content-analysis', label: 'Анализ контента', icon: Search },
-        { path: '/ai-vs-human', label: 'AI vs Human', icon: Swords },
-        { path: '/viral-chat', label: 'Viral Chat', icon: Zap },
-        { path: '/scheduler', label: 'Планировщик', icon: Calendar },
-        { path: '/settings', label: 'Settings', icon: Settings },
+        { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
+        { path: '/ai-chat', id: 'aiChat', label: 'AI Chat', icon: MessageSquare },
+        { path: '/creative-hub/analyzer', id: 'contentAnalyzer', label: 'Анализ контента', icon: Search },
+        { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
+        { path: '/viral-chat', id: 'viralChat', label: 'Viral Chat', icon: Zap },
+        { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
+        { path: '/settings', id: 'settings', label: 'Settings', icon: Settings },
     ],
     business: [
-        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
-        { path: '/analytics', label: 'Analytics', icon: BarChart },
-        { path: '/ai-chat', label: 'AI Chat', icon: MessageSquare },
-        { path: '/content-analysis', label: 'Анализ контента', icon: Search },
-        { path: '/ai-vs-human', label: 'AI vs Human', icon: Swords },
-        { path: '/viral-chat', label: 'Viral Chat', icon: Zap },
-        { path: '/scheduler', label: 'Планировщик', icon: Calendar },
-        { path: '/settings', label: 'Settings', icon: Settings },
+        { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
+        { path: '/ai-chat', id: 'aiChat', label: 'AI Chat', icon: MessageSquare },
+        { path: '/creative-hub/analyzer', id: 'contentAnalyzer', label: 'Анализ контента', icon: Search },
+        { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
+        { path: '/viral-chat', id: 'viralChat', label: 'Viral Chat', icon: Zap },
+        { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
+        { path: '/settings', id: 'settings', label: 'Settings', icon: Settings },
     ],
 }
 
@@ -240,7 +240,6 @@ export function AppSidebar({
     const [searchParams] = useSearchParams()
     const ownerTab = searchParams.get('tab')
 
-    const [expanded, setExpanded] = useLocalStorage('sidebar_expanded', true)
     const [hovered, setHovered] = useState(false)
     const [openGroups, setOpenGroups] = useLocalStorage('sidebar_open_groups', {
         overview: true, omega: true, finance: true, team: true, content: true, settings: true,
@@ -248,7 +247,11 @@ export function AppSidebar({
 
     const isOwner = userRole === 'owner'
     const windowWidth = useWindowWidth()
-    const isExpanded = isMobile ? true : (windowWidth >= 1440 || (windowWidth >= 1024 && (expanded || hovered)))
+    // [UI-VERIFY] 1024–1439: сайдбар всегда collapsed (72px), раскрытие только hover-peek поверх контента.
+    // Раньше `(expanded || hovered)` держал его раскрытым на 280px, а main в DashboardShell
+    // на этой ширине имеет paddingLeft 72px → ~208px контента пряталось под сайдбар (все страницы, 1280px).
+    // Тумблер expanded при этом всё равно ничего не менял (на ≥1440 isExpanded всегда true) — убран как мёртвый.
+    const isExpanded = isMobile ? true : (windowWidth >= 1440 || (windowWidth >= 1024 && hovered))
 
     const roleMenu = menuItems || ROLE_MENU[userRole] || ROLE_MENU.creator
 
@@ -291,10 +294,6 @@ export function AppSidebar({
         setOpenGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }))
     }
 
-    const toggleExpanded = () => {
-        setExpanded(prev => !prev)
-    }
-
     const initials = (user?.name || userRole || 'U')
         .split(' ')
         .map(s => s[0])
@@ -329,15 +328,6 @@ export function AppSidebar({
                     )}
                 </div>
                 <div className="flex items-center gap-1">
-                    {!isMobile && (
-                        <button
-                            onClick={toggleExpanded}
-                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                            title={isExpanded ? t('sidebar.collapse', 'Свернуть') : t('sidebar.expand', 'Развернуть')}
-                        >
-                            {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                        </button>
-                    )}
                     {onClose && isMobile && (
                         <button
                             onClick={onClose}

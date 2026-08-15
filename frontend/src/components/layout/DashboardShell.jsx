@@ -225,10 +225,13 @@ export function DashboardShell({
                 </div>
             </main>
 
-            <MobileBottomNav
-                userRole={userRole}
-                onHaptic={() => navigator.vibrate?.(50)}
-            />
+            {/* [UI-VERIFY] на /creative-hub своя нижняя панель режимов — две панели перекрывали кнопки друг друга */}
+            {!location.pathname.startsWith('/creative-hub') && (
+                <MobileBottomNav
+                    userRole={userRole}
+                    onHaptic={() => navigator.vibrate?.(50)}
+                />
+            )}
         </div>
     )
 }
