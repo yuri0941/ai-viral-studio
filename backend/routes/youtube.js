@@ -116,6 +116,8 @@ router.get('/callback', async (req, res) => {
       })
       email = userInfoRes.data?.email || ''
     } catch (err) {
+      // [BACKUP-ALERTS-FIX] missing userinfo scope is expected noise; do not count toward error rate
+      res.locals.monitoringSkipError = true
       log('callback_userinfo_warn', googleErrorPayload(err))
     }
 

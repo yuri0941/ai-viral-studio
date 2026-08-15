@@ -1,5 +1,9 @@
-import { spawn } from 'child_process'
+import { MongoClient, BSON } from 'mongodb'
+import JSZip from 'jszip'
 import fs from 'fs/promises'
+import { createWriteStream } from 'fs'
+import { createGzip, gunzip as gunzipCb } from 'zlib'
+import { promisify } from 'util'
 import path from 'path'
 import cron from 'node-cron'
 import { fileURLToPath } from 'url'
@@ -13,6 +17,9 @@ const __dirname = path.dirname(__filename)
 const BACKUP_DIR = path.resolve(process.env.BACKUP_DIR || path.join(__dirname, '..', '..', 'backups'))
 const MONGODB_URI = process.env.MONGODB_URI
 const OWNER_PIN = process.env.OWNER_PIN || '000000'
+const MAX_TG_FILE_BYTES = 50 * 1024 * 1024
+
+const gunzip = promisify(gunzipCb)
 
 let lastBackup = null
 let lastBackupStatus = 'never'
@@ -25,40 +32,172 @@ async function ensureDir(dir) {
     }
 }
 
+function getDbNameFromUri(uri) {
+    try {
+        const url = new URL(uri)
+        const db = url.pathname.replace(/^\/+/, '').split('/')[0]
+        if (db) return decodeURIComponent(db)
+    } catch {}
+    return process.env.BACKUP_DB_NAME || 'test'
+}
+
+async function backupCollection(db, collectionName, outDir) {
+    const filePath = path.join(outDir, `${collectionName}.jsonl.gz`)
+    const gzip = createGzip()
+    const writeStream = createWriteStream(filePath)
+    gzip.pipe(writeStream)
+
+    const collection = db.collection(collectionName)
+    let count = 0
+    let bytes = 0
+    const cursor = collection.find({}).batchSize(500)
+
+    for await (const doc of cursor) {
+        const line = BSON.EJSON.stringify(doc) + '\n'
+        gzip.write(line)
+        bytes += Buffer.byteLength(line)
+        count++
+    }
+    gzip.end()
+
+    await new Promise((resolve, reject) => {
+        writeStream.on('finish', resolve)
+        writeStream.on('error', reject)
+        gzip.on('error', reject)
+    })
+
+    return { name: collectionName, count, bytes }
+}
+
+async function createZipArchive(sourceDir, zipPath) {
+    const zip = new JSZip()
+    const files = await fs.readdir(sourceDir)
+    for (const file of files) {
+        const filePath = path.join(sourceDir, file)
+        const stat = await fs.stat(filePath)
+        if (stat.isFile()) {
+            zip.file(file, await fs.readFile(filePath))
+        }
+    }
+    const buffer = await zip.generateAsync({
+        type: 'nodebuffer',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 },
+    })
+    await fs.writeFile(zipPath, buffer)
+    return zipPath
+}
+
+async function sendBackupToOwner(zipPath) {
+    try {
+        const bot = getOwnerBot()
+        const ownerChatId = await getOwnerChatId() // [OWNER-REMOTE-CONTROL]
+        if (!bot || !ownerChatId) return false
+
+        const stat = await fs.stat(zipPath)
+        if (stat.size > MAX_TG_FILE_BYTES) {
+            console.log('[disasterRecovery] backup archive too large to send via Telegram (>50 MB)')
+            return false
+        }
+        await bot.sendDocument(ownerChatId, zipPath, {
+            caption: `✅ Бэкап MongoDB\nРазмер: ${(stat.size / 1024 / 1024).toFixed(2)} МБ\nСоздан: ${new Date().toISOString()}`,
+        })
+        return true
+    } catch (e) {
+        console.error('[disasterRecovery] failed to send backup via Telegram:', e.message)
+        return false
+    }
+}
+
+async function restoreCollectionFromGz(db, collectionName, gzPath) {
+    const compressed = await fs.readFile(gzPath)
+    const decompressed = await gunzip(compressed)
+    const lines = decompressed.toString('utf8').split('\n').filter(Boolean)
+    const docs = lines.map(line => BSON.EJSON.parse(line))
+
+    const collection = db.collection(collectionName)
+    await collection.deleteMany({})
+    if (docs.length) {
+        await collection.insertMany(docs, { ordered: false })
+    }
+    return docs.length
+}
+
 export async function runBackup() {
     await ensureDir(BACKUP_DIR)
-    const date = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19)
-    const outDir = path.join(BACKUP_DIR, `backup_${date}`)
-    await ensureDir(outDir)
 
     if (!MONGODB_URI) {
         lastBackupStatus = 'no-mongodb-uri'
         console.warn('[disasterRecovery] MONGODB_URI not set, skipping backup')
+        await sendOwnerAlert('❌ Бэкап MongoDB не удался: MONGODB_URI не задан')
         return { success: false, error: 'MONGODB_URI not set' }
     }
 
+    const date = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19)
+    const outDir = path.join(BACKUP_DIR, `backup_${date}`)
+    const zipPath = `${outDir}.zip`
+    let client
+
     try {
-        await new Promise((resolve, reject) => {
-            const proc = spawn('mongodump', ['--uri', MONGODB_URI, '--out', outDir], { shell: false })
-            let stderr = ''
-            proc.stderr.on('data', d => { stderr += d.toString() })
-            proc.on('close', code => {
-                if (code === 0) resolve()
-                else reject(new Error(`mongodump exited ${code}: ${stderr}`))
-            })
-            proc.on('error', reject)
-        })
+        await ensureDir(outDir)
+
+        client = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 30000 })
+        await client.connect()
+
+        const dbName = getDbNameFromUri(MONGODB_URI)
+        const admin = client.db().admin()
+        const dbInfo = await admin.listDatabases({ nameOnly: true })
+        if (!dbInfo.databases.some(d => d.name === dbName)) {
+            throw new Error(`database ${dbName} not found on server`)
+        }
+
+        const db = client.db(dbName)
+        const collections = await db.listCollections().toArray()
+        const stats = []
+
+        for (const coll of collections) {
+            if (coll.name.startsWith('system.')) continue
+            const s = await backupCollection(db, coll.name, outDir)
+            stats.push(s)
+        }
+
+        await fs.writeFile(
+            path.join(outDir, 'metadata.json'),
+            JSON.stringify({
+                createdAt: new Date().toISOString(),
+                dbName,
+                collections: stats,
+                source: 'js-driver-ejson',
+                version: process.env.npm_package_version || 'unknown',
+            }, null, 2)
+        )
+
+        await createZipArchive(outDir, zipPath)
+        const zipStat = await fs.stat(zipPath)
 
         lastBackup = new Date()
         lastBackupStatus = 'success'
         await cleanupOldBackups()
-        await sendOwnerAlert(`✅ Бэкап MongoDB создан: ${outDir}`)
-        return { success: true, path: outDir, createdAt: lastBackup }
+        await sendBackupToOwner(zipPath)
+
+        const totalDocs = stats.reduce((a, s) => a + s.count, 0)
+        await sendOwnerAlert(
+            `✅ Бэкап MongoDB создан.\n` +
+            `База: ${dbName}\n` +
+            `Коллекций: ${stats.length}\n` +
+            `Документов: ${totalDocs}\n` +
+            `Архив: ${(zipStat.size / 1024 / 1024).toFixed(2)} МБ\n` +
+            `Путь: ${zipPath}`
+        )
+
+        return { success: true, path: zipPath, createdAt: lastBackup, stats }
     } catch (err) {
         lastBackupStatus = 'failed'
         console.error('[disasterRecovery] backup failed:', err.message)
         await sendOwnerAlert(`❌ Бэкап MongoDB не удался: ${err.message}`)
         return { success: false, error: err.message }
+    } finally {
+        try { await client?.close() } catch {}
     }
 }
 
@@ -76,24 +215,51 @@ export async function restoreFromBackup(date, pin) {
         return { success: false, error: 'Backup not found' }
     }
 
-    try {
-        await new Promise((resolve, reject) => {
-            const proc = spawn('mongorestore', ['--uri', MONGODB_URI, '--drop', backup], { shell: false })
-            let stderr = ''
-            proc.stderr.on('data', d => { stderr += d.toString() })
-            proc.on('close', code => {
-                if (code === 0) resolve()
-                else reject(new Error(`mongorestore exited ${code}: ${stderr}`))
-            })
-            proc.on('error', reject)
-        })
+    let client
+    let tempDir = null
 
-        await sendOwnerAlert(`♻️ Восстановление из бэкапа выполнено: ${backup}`)
-        return { success: true, path: backup }
+    try {
+        client = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 30000 })
+        await client.connect()
+
+        const dbName = getDbNameFromUri(MONGODB_URI)
+        const db = client.db(dbName)
+
+        let workDir = backup
+        if (backup.endsWith('.zip')) {
+            tempDir = path.join(BACKUP_DIR, `restore_tmp_${Date.now()}`)
+            await ensureDir(tempDir)
+            const data = await fs.readFile(backup)
+            const zip = await JSZip.loadAsync(data)
+            for (const [name, file] of Object.entries(zip.files)) {
+                if (file.dir) continue
+                const dest = path.join(tempDir, name)
+                await ensureDir(path.dirname(dest))
+                const content = await file.async('nodebuffer')
+                await fs.writeFile(dest, content)
+            }
+            workDir = tempDir
+        }
+
+        const files = (await fs.readdir(workDir)).filter(f => f.endsWith('.jsonl.gz'))
+        const restored = []
+        for (const file of files) {
+            const collectionName = file.replace(/\.jsonl\.gz$/, '')
+            const count = await restoreCollectionFromGz(db, collectionName, path.join(workDir, file))
+            restored.push({ collection: collectionName, count })
+        }
+
+        await sendOwnerAlert(`♻️ Восстановление из бэкапа выполнено: ${backup}\nКоллекций: ${restored.length}`)
+        return { success: true, path: backup, restored }
     } catch (err) {
         console.error('[disasterRecovery] restore failed:', err.message)
         await sendOwnerAlert(`❌ Восстановление из бэкапа не удалось: ${err.message}`)
         return { success: false, error: err.message }
+    } finally {
+        try { await client?.close() } catch {}
+        if (tempDir) {
+            await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
+        }
     }
 }
 
@@ -103,9 +269,15 @@ export async function listBackups() {
     const stats = await Promise.all(entries.map(async name => {
         const full = path.join(BACKUP_DIR, name)
         const stat = await fs.stat(full)
-        return { name, path: full, createdAt: stat.mtime }
+        return {
+            name,
+            path: full,
+            createdAt: stat.mtime,
+            size: stat.size,
+            isDirectory: stat.isDirectory(),
+        }
     }))
-    return stats.filter(s => s.stat.isDirectory()).sort((a, b) => b.createdAt - a.createdAt)
+    return stats.filter(s => s.name.startsWith('backup_')).sort((a, b) => b.createdAt - a.createdAt)
 }
 
 export async function getBackupStatus() {
@@ -143,7 +315,7 @@ export async function checkBackupStale() {
             `⚠️ Бэкап MongoDB не создавался более 24 часов.\n` +
             `Последний статус: ${status.status || 'unknown'}\n` +
             `Бэкапов на диске: ${status.backupsCount}\n` +
-            `Проверьте наличие mongodump на сервере и MONGODB_URI. Ручной запуск: POST /api/admin/backup/trigger`
+            `Ручной запуск: POST /api/admin/backup/trigger`
         )
     }
     return status

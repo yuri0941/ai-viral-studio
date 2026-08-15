@@ -309,6 +309,7 @@ router.post('/vk/community', protect, async (req, res) => {
 router.post('/vk/test', protect, async (req, res) => {
   // [v9.9.19.15.17] kill switch: no VK API calls
   if (!isVkPublishingEnabled()) {
+    res.locals.monitoringSkipError = true // [BACKUP-ALERTS-FIX] expected noise, not a server error
     return res.json({ success: false, skipped: true, reason: 'vk_disabled' });
   }
 
@@ -378,6 +379,7 @@ router.post('/vk/test', protect, async (req, res) => {
 router.post('/vk/test-photo', protect, async (req, res) => {
   // [v9.9.19.15.17] kill switch: no VK API calls
   if (!isVkPublishingEnabled()) {
+    res.locals.monitoringSkipError = true // [BACKUP-ALERTS-FIX] expected noise, not a server error
     return res.json({ success: false, skipped: true, reason: 'vk_disabled' });
   }
 
@@ -420,6 +422,7 @@ router.post('/vk/test-photo', protect, async (req, res) => {
 router.post('/vk/test-video', protect, async (req, res) => {
   // [v9.9.19.15.17] kill switch: no VK API calls
   if (!isVkPublishingEnabled()) {
+    res.locals.monitoringSkipError = true // [BACKUP-ALERTS-FIX] expected noise, not a server error
     return res.json({ success: false, skipped: true, reason: 'vk_disabled' });
   }
 
@@ -508,6 +511,7 @@ router.delete('/vk', protect, async (req, res) => {
 router.post('/vk/publish', protect, async (req, res) => {
   // [v9.9.19.15.17] kill switch: no VK API calls
   if (!isVkPublishingEnabled()) {
+    res.locals.monitoringSkipError = true // [BACKUP-ALERTS-FIX] expected noise, not a server error
     return res.json({ success: false, skipped: true, reason: 'vk_disabled' });
   }
 
