@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
     Home, MessageSquare, PlusCircle, Zap, Menu,
 } from 'lucide-react'
@@ -8,6 +9,7 @@ import { MobileDrawer } from './MobileDrawer.jsx'
 // [v6.6-PART2] 5-tab mobile bottom navigation + drawer with all desktop tabs
 
 export function MobileBottomNav({ userRole = 'creator', onHaptic }) {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const location = useLocation()
     const [drawerOpen, setDrawerOpen] = useState(false)
@@ -15,11 +17,11 @@ export function MobileBottomNav({ userRole = 'creator', onHaptic }) {
     const isActive = (path) => location.pathname === path || (path !== '/' && location.pathname.startsWith(path))
 
     const tabs = [
-        { icon: Home, label: 'Dashboard', path: userRole === 'owner' ? '/owner' : '/dashboard' },
-        { icon: MessageSquare, label: 'AI Chat', path: '/ai-chat' },
-        { icon: PlusCircle, label: 'Создать', path: '/creative-hub', center: true },
-        { icon: Zap, label: 'Viral Chat', path: '/viral-chat' },
-        { icon: Menu, label: 'Меню', action: () => setDrawerOpen(true) },
+        { icon: Home, label: t('bottomNav.dashboard', 'Dashboard'), path: userRole === 'owner' ? '/owner' : '/dashboard' },
+        { icon: MessageSquare, label: t('bottomNav.chat', 'AI Chat'), path: '/ai-chat' },
+        { icon: PlusCircle, label: t('bottomNav.create', 'Создать'), path: '/creative-hub', center: true },
+        { icon: Zap, label: t('bottomNav.viral', 'Viral Chat'), path: '/viral-chat' },
+        { icon: Menu, label: t('bottomNav.menu', 'Меню'), action: () => setDrawerOpen(true) },
     ]
 
     const handleClick = (tab) => {

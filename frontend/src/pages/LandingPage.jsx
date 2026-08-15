@@ -225,7 +225,8 @@ function LandingPage() {
                             </div>
                             <span className="text-xl font-bold gradient-text">AI Viral Studio</span>
                         </div>
-                        <div className="hidden md:flex items-center gap-8">
+                        {/* [UI-VERIFY] md→lg: на 768–1023px меню не помещалось, «Вход» уезжал за экран */}
+                        <div className="hidden lg:flex items-center gap-8">
                             <a href="#features" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Фичи</a>
                             <a href="#how-it-works" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Как работает</a>
                             <a href="#pricing" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-300">Тарифы</a>

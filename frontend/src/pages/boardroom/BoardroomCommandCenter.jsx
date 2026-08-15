@@ -28,10 +28,12 @@ export default function BoardroomCommandCenter() {
     const navigate = useNavigate()
     const { user } = useAuth()
 
-    if (!['owner', 'admin'].includes(user?.role)) {
-        navigate('/dashboard', { replace: true })
-        return null
-    }
+    // [UI-VERIFY] navigate нельзя вызывать в теле рендера — сайд-эффект терялся,
+    // business видел чёрную пустую страницу вместо редиректа
+    const boardroomAllowed = ['owner', 'admin'].includes(user?.role)
+    useEffect(() => {
+        if (user && !boardroomAllowed) navigate('/dashboard', { replace: true })
+    }, [user, boardroomAllowed, navigate])
 
     const [context, setContext] = useState('')
     const [loading, setLoading] = useState(false)
@@ -46,6 +48,8 @@ export default function BoardroomCommandCenter() {
             try { setHistory(JSON.parse(saved)) } catch {}
         }
     }, [])
+
+    if (!boardroomAllowed) return null
 
     const runMeeting = async () => {
         setLoading(true)

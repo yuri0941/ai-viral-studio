@@ -208,6 +208,13 @@
   },
   "sidebar": {
     "menu": "MENU",
+    "dashboard": "Dashboard",
+    "creativeHub": "🚀 Creative Hub",
+    "aiVsHuman": "AI vs Human",
+    "telegram": "📱 Telegram",
+    "settings": "Settings",
+    "contentAnalysis": "Content analysis",
+    "planner": "Planner",
     "collapse": "Collapse",
     "expand": "Expand",
     "overview": "Overview",
@@ -263,11 +270,20 @@
       "settings": "SETTINGS"
     }
   },
+  "bottomNav": {
+    "dashboard": "Dashboard",
+    "chat": "AI Chat",
+    "create": "Create",
+    "viral": "Viral Chat",
+    "menu": "Menu"
+  },
   "header": {
     "searchPlaceholder": "Search...",
     "chooseLanguage": "Choose language",
     "toggleTheme": "Toggle theme",
     "switchRole": "Switch role",
+    "selectProject": "Select project",
+    "project": "Project",
     "openMenu": "Open menu",
     "emergencyStop": "Emergency stop OMEGA? All AI operations will be paused.",
     "emergencyResume": "Release Emergency Stop and resume OMEGA?",
@@ -2473,6 +2489,12 @@
     "yookassaName": "YooKassa"
   },
   "scheduler": {
+    "pageTitle": "Scheduler",
+    "pageSubtitle": "Create, drag and schedule posts",
+    "today": "Today",
+    "month": "Month",
+    "generateReels": "Generate Reels",
+    "newPost": "New post",
     "clearFilters": "Clear filters",
     "confirmDeleteCancel": "Cancel",
     "confirmDeleteConfirm": "Delete",

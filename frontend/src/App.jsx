@@ -119,6 +119,13 @@ import CreativeHub from './components/creative-hub/CreativeHub.jsx'
 import LuxuryDocumentViewer from './components/documents/LuxuryDocumentViewer.jsx'
 
 // [v6.0] added: simple document viewer wrapper for /documents/:fileId route
+// [UI-VERIFY] AIVideoCreator — модальный компонент: на роуте /video-creator его X мёртвый
+// без onClose; даём возврат на /dashboard.
+function AIVideoCreatorRoute() {
+    const navigate = useNavigate()
+    return <AIVideoCreator onClose={() => navigate('/dashboard')} />
+}
+
 function DocumentPage() {
     const { fileId } = useParams()
     const navigate = useNavigate()
@@ -354,7 +361,7 @@ function App() {
                 } />
                 <Route path="/video-creator" element={
                     <ProtectedRoute allowedRoles={['creator', 'pro', 'agency', 'owner', 'admin']}>
-                        <AIVideoCreator />
+                        <AIVideoCreatorRoute />
                     </ProtectedRoute>
                 } />
                 <Route path="/neuro-sales" element={

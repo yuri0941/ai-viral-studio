@@ -208,6 +208,13 @@
   },
   "sidebar": {
     "menu": "МЕНЮ",
+    "dashboard": "Дашборд",
+    "creativeHub": "🚀 Creative Hub",
+    "aiVsHuman": "AI vs Human",
+    "telegram": "📱 Telegram",
+    "settings": "Настройки",
+    "contentAnalysis": "Анализ контента",
+    "planner": "Планировщик",
     "collapse": "Свернуть",
     "expand": "Развернуть",
     "overview": "Обзор",
@@ -263,11 +270,20 @@
       "settings": "НАСТРОЙКИ"
     }
   },
+  "bottomNav": {
+    "dashboard": "Дашборд",
+    "chat": "AI Chat",
+    "create": "Создать",
+    "viral": "Viral Chat",
+    "menu": "Меню"
+  },
   "header": {
     "searchPlaceholder": "Поиск...",
     "chooseLanguage": "Выбрать язык",
     "toggleTheme": "Переключить тему",
     "switchRole": "Сменить роль",
+    "selectProject": "Выбрать проект",
+    "project": "Проект",
     "openMenu": "Открыть меню",
     "emergencyStop": "Аварийно остановить OMEGA? Все AI-операции будут приостановлены.",
     "emergencyResume": "Снять Emergency Stop и возобновить OMEGA?",
@@ -2531,6 +2547,12 @@
     "connectTitle": "Подключить Discord webhook"
   },
   "scheduler": {
+    "pageTitle": "Планировщик",
+    "pageSubtitle": "Создавайте, перетаскивайте и планируйте публикации",
+    "today": "Сегодня",
+    "month": "Месяц",
+    "generateReels": "Сгенерировать Reels",
+    "newPost": "Новый пост",
     "pause": "Пауза",
     "resume": "Возобновить",
     "duplicate": "Дублировать",
