@@ -18,8 +18,8 @@ const WIDTHS = [360, 428, 768, 1280, 1920]
 const LANGS = ['ru', 'en']
 
 const PAGES = {
-    public: ['/', '/login', '/register'],
-    creator: ['/dashboard', '/analytics', '/scheduler', '/video-creator', '/settings', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/checkout'],
+    public: ['/', '/login', '/register', '/unauthorized'],
+    creator: ['/dashboard', '/analytics', '/scheduler', '/video-creator', '/settings', '/settings?tab=subscription', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub'],
     business: ['/dashboard', '/boardroom', '/business-spawner', '/settings'],
     advertiser: ['/advertiser', '/neuro-sales', '/settings'],
 }
@@ -108,7 +108,7 @@ async function checkPage(role, label, width, lang) {
             await page.waitForTimeout(600)
         }
         const finalPath = await page.evaluate(() => location.pathname)
-        if (finalPath !== label) {
+        if (finalPath !== label.split('?')[0]) { // [CHECKOUT-UNIFY] label может нести query (?tab=...)
             summary.push({ role, page: label, width, lang, redirected: finalPath, buttons: [], problems: [] })
             console.log(`${role} ${label} [${width}/${lang}] REDIRECT→${finalPath}`)
             await context.close()

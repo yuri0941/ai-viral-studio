@@ -43,7 +43,7 @@ import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
 import OwnerAppPage from './pages/owner-app/index'
 import PaymentSuccess from './pages/PaymentSuccess'
 import StripeCheckoutPage from './pages/StripeCheckoutPage'
-import CheckoutPage from './pages/CheckoutPage'
+// [CHECKOUT-UNIFY] CheckoutPage удалён: legacy-флоу с ценами не из PlanConfig (redirect на /settings?tab=subscription)
 import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/legal/LegalPage'
 import { CookieConsent } from './components/CookieConsent'
 import GDPRPage from './pages/GDPRPage'
@@ -54,6 +54,7 @@ const BoardroomCommandCenter = lazy(() => import('./pages/boardroom/BoardroomCom
 import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
+import UnauthorizedPage from './pages/UnauthorizedPage'
 import { UpdateModal } from './components/shared/UpdateModal.jsx'
 import { MaintenanceGate } from './components/MaintenanceScreen.jsx'
 import toast, { Toaster } from 'react-hot-toast'
@@ -448,15 +449,20 @@ function App() {
                     </ProtectedRoute>
                 } />
 
+                {/* [CHECKOUT-UNIFY] цель редиректа (/owner?tab=workspaces) owner-only —
+                    business попадал на /unauthorized цепочкой; роут нигде не линкуется */}
                 <Route path="/workspaces" element={
-                    <ProtectedRoute allowedRoles={['owner', 'admin', 'business']}>
+                    <ProtectedRoute allowedRoles={['owner', 'admin']}>
                         <Navigate to="/owner?tab=workspaces" replace />
                     </ProtectedRoute>
                 } />
 
                 <Route path="/payment/success" element={<PaymentSuccess />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
+                {/* [CHECKOUT-UNIFY] legacy /checkout (дубль флоу с ценами Creator 2900₽/Pro 7900₽ из in-memory PLANS)
+                    заменён редиректом на живой экран тарифов (PlanConfig) в кабинете.
+                    Единственная ссылка на него (UpgradeNudge topup) вела на несуществующий план (404). */}
+                <Route path="/checkout" element={<Navigate to="/settings?tab=subscription" replace />} />
                 <Route path="/stripe-checkout" element={
                     <ProtectedRoute>
                         <StripeCheckoutPage />
@@ -482,6 +488,9 @@ function App() {
                 <Route path="/download" element={<DownloadPage />} />
                 <Route path="/onboarding" element={<OnboardingWizard />} />
                 <Route path="/welcome" element={<Navigate to="/onboarding" replace />} />
+
+                {/* [CHECKOUT-UNIFY] дружелюбная «нет доступа» вместо молчаливого лендинга */}
+                <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
                 <Route path="/business" element={
                     <ProtectedRoute allowedRoles={['business', 'owner', 'admin']}>

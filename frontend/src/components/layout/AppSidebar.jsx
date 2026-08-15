@@ -434,8 +434,9 @@ export function AppSidebar({
                     )}
                 </div>
 
-                {/* Ad banner in sidebar (desktop expanded) */}
-                {isExpanded && !isMobile && (
+                {/* Ad banner in sidebar (desktop expanded).
+                    [CHECKOUT-UNIFY] на /settings не показываем: фиксированная карточка наезжает на кнопки «Оплатить» */}
+                {isExpanded && !isMobile && !location.pathname.startsWith('/settings') && (
                     <div className="px-3 pb-3">
                         <ResponsiveAdBanner variant="sidebar" />
                     </div>

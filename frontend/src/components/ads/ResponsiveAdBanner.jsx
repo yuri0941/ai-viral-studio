@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export function ResponsiveAdBanner({ variant = 'auto', className = '' }) {
+    const { t } = useTranslation()
     const [closed, setClosed] = useState(false)
 
     useEffect(() => {
@@ -24,19 +26,19 @@ export function ResponsiveAdBanner({ variant = 'auto', className = '' }) {
             <button
                 onClick={handleClose}
                 className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs hover:scale-110 transition-transform z-50"
-                aria-label="Закрыть"
+                aria-label={t('adBanner.close')}
             >
                 <X size={14} />
             </button>
             <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-gray-400">Реклама</span>
+                <span className="text-xs text-gray-400">{t('adBanner.label')}</span>
             </div>
-            <p className="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">Ваша реклама здесь</p>
+            <p className="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">{t('adBanner.placeholder')}</p>
             <Link
                 to="/advertiser"
                 className="mt-3 block w-full py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all text-center"
             >
-                Разместить рекламу
+                {t('adBanner.cta')}
             </Link>
         </div>
     )
