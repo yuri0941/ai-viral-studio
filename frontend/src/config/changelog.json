@@ -1,0 +1,141 @@
+[
+  {
+    "version": "9.9.21",
+    "date": "2026-08-17",
+    "items": [
+      {
+        "audience": "all",
+        "title": {
+          "ru": "PWA-обновления стали удобнее",
+          "en": "PWA updates are now clearer"
+        },
+        "body": {
+          "ru": "После обновления вы увидите подтверждение версии, а список изменений показывает только то, что важно именно вам.",
+          "en": "After updating you'll see a version confirmation, and the changelog shows only what's relevant to you."
+        }
+      },
+      {
+        "audience": "all",
+        "title": {
+          "ru": "Единый лендинг",
+          "en": "Unified landing page"
+        },
+        "body": {
+          "ru": "Главная страница теперь в одном стиле, с плавными анимациями и корректной работой на всех устройствах.",
+          "en": "The home page is now in a single style, with smooth animations and correct behavior on all devices."
+        }
+      }
+    ]
+  },
+  {
+    "version": "9.9.19.6",
+    "date": "2026-08-12",
+    "items": [
+      {
+        "audience": "client",
+        "title": {
+          "ru": "OMEGA стала умнее",
+          "en": "OMEGA got smarter"
+        },
+        "body": {
+          "ru": "AI лучше понимает задачи, публикует качественные посты и запоминает важные детали вашего проекта.",
+          "en": "AI understands tasks better, publishes higher-quality posts, and remembers important details about your project."
+        }
+      },
+      {
+        "audience": "owner",
+        "title": {
+          "ru": "OMEGA Autonomy Luxe",
+          "en": "OMEGA Autonomy Luxe"
+        },
+        "body": {
+          "ru": "Команды с доказательством выполнения, люкс-посты, навыки, память в MongoDB, ночное самообучение.",
+          "en": "Commands with execution proof, luxury posts, skills, memory in MongoDB, nightly self-learning."
+        }
+      }
+    ]
+  },
+  {
+    "version": "9.9.19.2",
+    "date": "2026-08-10",
+    "items": [
+      {
+        "audience": "all",
+        "title": {
+          "ru": "Обновление приложения не мешает работе",
+          "en": "App updates no longer interrupt you"
+        },
+        "body": {
+          "ru": "Если обновление не применилось сразу, оно отложится и установится при следующем визите — без лишних окон.",
+          "en": "If an update can't apply right away, it is deferred and installs on the next visit without extra pop-ups."
+        }
+      },
+      {
+        "audience": "client",
+        "title": {
+          "ru": "Улучшена визуализация контента",
+          "en": "Content visualization improved"
+        },
+        "body": {
+          "ru": "Схемы связей контента стали понятнее и удобнее на телефоне.",
+          "en": "Content relationship diagrams are clearer and easier to use on mobile."
+        }
+      },
+      {
+        "audience": "owner",
+        "title": {
+          "ru": "Neural Graph",
+          "en": "Neural Graph"
+        },
+        "body": {
+          "ru": "Начальная раскладка + fitToView, монохромная тема, мобильная панель с поиском, фильтрами и статистикой.",
+          "en": "Initial layout + fitToView, monochrome theme, mobile panel with search, filters, and statistics."
+        }
+      },
+      {
+        "audience": "client",
+        "title": {
+          "ru": "Стабильность ответов OMEGA",
+          "en": "OMEGA response stability"
+        },
+        "body": {
+          "ru": "Переключение на резервные AI-провайдеры стало быстрее — реже видите задержки и ошибки.",
+          "en": "Fallback to backup AI providers is faster — you'll see fewer delays and errors."
+        }
+      },
+      {
+        "audience": "owner",
+        "title": {
+          "ru": "AI fallback chain",
+          "en": "AI fallback chain"
+        },
+        "body": {
+          "ru": "Groq 70b → DeepSeek → OpenAI → Groq 8b (последняя). Логирование [AI] provider/model.",
+          "en": "Groq 70b → DeepSeek → OpenAI → Groq 8b (last resort). Logging [AI] provider/model."
+        }
+      },
+      {
+        "audience": "client",
+        "title": {
+          "ru": "Безопасность ключей API",
+          "en": "API key security"
+        },
+        "body": {
+          "ru": "Управление доступом к ключам API теперь в одном месте — проще контролировать подключённые сервисы.",
+          "en": "API key access management is now in one place — easier to control connected services."
+        }
+      },
+      {
+        "audience": "owner",
+        "title": {
+          "ru": "Key Health Monitor",
+          "en": "Key Health Monitor"
+        },
+        "body": {
+          "ru": "Приоритет: Кабинет > env. Выключенный в кабинете ключ = запрет использования.",
+          "en": "Priority: Dashboard > env. A key disabled in the dashboard is forbidden from use."
+        }
+      }
+    ]
+  }
+]

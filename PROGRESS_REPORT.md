@@ -1,4 +1,15 @@
 
+## 2026-08-18 — UPDATE-MODAL-SMART
+- [ПРОБЛЕМА] PWA-модалка обновления: ① после reload нет подтверждения; ② changelog общий для всех — гости видят технический жаргон (провайдеры, fallback-цепочки, Neural Graph); ③ записи версий зашиты в компонент
+- [FRONTEND] Единый источник changelog: frontend/src/config/changelog.json — массив версий с items, каждый item имеет `audience: "all" | "client" | "owner"` и i18n-заголовок/текст (`ru`/`en`). Добавление записи не требует правки компонентов
+- [FRONTEND] UpdateModal.jsx: фильтрация по роли через `useAuth()` — owner/admin видит `all+client+owner`, гость/клиент видит `all+client`; технические детали только owner. Все UI-строки через i18n (`update.*`); записи рендерятся с заголовком и описанием
+- [FRONTEND] App.jsx / VersionCheck: перед reload сохраняет `pending_update_toast_version`; при следующей загрузке, если `APP_VERSION` совпадает с сохранённым, показывает toast «✅ Обновлено до vX.X.X» один раз и удаляет флаг. Fetch changelog с бэкенда убран — источник единый JSON
+- [i18n] ru/en × (src/locales + public/locales): добавлены update.title/whatsNew/stalled/updating/remindLater/updateNow/toast/emptyChangelog; i18n-parity OK, mojibake-scan чисто
+- [CHECKS] npm run build 0 ошибок; главный чанк ~2268 kB gzip ~605 kB (изменения в пределах хеша)
+- [E2E] scripts/e2e-update-modal-smart.mjs на собранном бандле: гость — нет owner-tech (Groq/Key Health/fitToView), owner — есть и client-формулировки, и технические детали, toast «✅ Обновлено до v9.9.21» виден после reload — 3/3 PASS. Скрины: reports/update-modal-smart/
+- [GIT] Commit+push: fix/update-modal-smart, compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/update-modal-smart
+- [NEXT] Владельцу: после выкатки гость/клиент должен видеть в модалке обновления только понятные записи; owner — полный список; после нажатия «Обновить сейчас» появляется toast «✅ Обновлено до v...»
+
 ## 2026-08-18 — LANDING-RESTORE + PROD-HOTFIX
 - [ДИАГНОЗ 1] «Вечный спиннер тарифов»: request() в services/api.js не имел таймаута + до 5 экспоненциальных ретраев (2+4+8+16+30с) на спящем Render — промис не завершался минутами, catch в лендинге не срабатывал. Фикс: опция timeout (AbortSignal.timeout) в request(); лендинг зовёт plan-config/testimonials/beta-slots/legal-info с { timeout: 9000, noRetry: true }; при ошибке/таймауте — встроенный фолбэк FALLBACK_PLANS (дефолты PlanConfig: free 0 / pro 990 / agency 4990, founding −30%) + console.warn. Клиент видит тарифы всегда (E2E: цены через ~4с при полностью мёртвом API)
 - [ДИАГНОЗ 2] TG-ссылки: жёсткий фолбэк в config/bots.js (envOr: пустая/пробельная/'undefined' env-строка → aiviral_alerts_bot / omega_aiviral_bot / aiviralstudio); обязательные VITE_* задокументированы в frontend/.env.example для Cloudflare Pages
