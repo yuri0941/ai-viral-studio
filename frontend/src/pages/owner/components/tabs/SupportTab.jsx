@@ -37,11 +37,11 @@ export function SupportTab() {
 
   useEffect(() => { fetchTickets() }, [t])
 
-  const updateStatus = async (id, status, assignedTo) => {
+  const updateStatus = async (id, status, assignedTo, takeoverBy) => {
     try {
       await request(`/support/${id}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status, assignedTo: assignedTo || undefined })
+        body: JSON.stringify({ status, assignedTo: assignedTo || undefined, takeoverBy: takeoverBy || undefined })
       })
       toast.success('Статус обновлён')
       fetchTickets()
@@ -162,7 +162,7 @@ export function SupportTab() {
                           {meta.emoji} {meta.label}
                         </span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--card)] text-[var(--text-muted)] border border-[var(--border)]">
-                          {t.source === 'free_chat' ? '💬 Диалог' : t.source === 'telegram' ? '📱 TG' : '🌐 Web'}
+                          {t.source === 'chat' ? '💬 Диалог' : t.source === 'telegram' ? '📱 TG' : '🌐 Web'}
                         </span>
                       </div>
                     </td>
@@ -179,7 +179,7 @@ export function SupportTab() {
                       <div className="flex flex-wrap gap-2">
                         {ticket.status !== 'in_progress' && ticket.status !== 'resolved' && ticket.status !== 'closed' && (
                           <button
-                            onClick={() => updateStatus(ticket._id, 'in_progress', 'operator')}
+                            onClick={() => updateStatus(ticket._id, 'in_progress', 'operator', ticket.telegramChatId ? 'operator' : undefined)}
                             className="px-3 py-1.5 rounded-lg bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-xs transition-colors"
                           >
                             {t('support.takeToWork') || 'Взять в работу'}

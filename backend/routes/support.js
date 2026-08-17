@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { protect, requireRole } from '../middleware/auth.js'
 import SupportTicket from '../models/SupportTicket.js'
-import { createTicket, addMessage, updateTicketStatus, getTicketContext, escalateToOwner } from '../services/supportService.js'
+import { createTicket, addMessage, replyToTicket, updateTicketStatus, getTicketContext, escalateToOwner } from '../services/supportService.js'
 
 const router = Router()
 
@@ -70,11 +70,38 @@ router.get('/my', protect, async (req, res) => {
 
 router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), async (req, res) => {
   try {
-    const ticket = await updateTicketStatus(req.params.id, req.body.status, req.body.resolution)
-    if (req.body.assignedTo) {
-      ticket.assignedTo = req.body.assignedTo
-      await ticket.save()
+    const status = req.body.status
+    const ticket = await SupportTicket.findById(req.params.id)
+    if (!ticket) return res.status(404).json({ status: 'error', message: 'Ticket not found' })
+
+    ticket.status = status
+    ticket.updatedAt = new Date()
+    if (req.body.resolution) ticket.resolution = req.body.resolution
+    if (req.body.assignedTo) ticket.assignedTo = req.body.assignedTo
+
+    // [SUBSCRIPTION-CHECKOUT-FIX] Dashboard «Взять в работу» активирует takeover, AI молчит
+    if (status === 'in_progress' && ticket.telegramChatId) {
+      ticket.takeoverBy = req.body.takeoverBy || req.body.assignedTo || 'operator'
+      ticket.takeoverAt = new Date()
+      if (!ticket.firstResponseAt) ticket.firstResponseAt = new Date()
+      try {
+        const { invalidateTakeoverCache } = await import('../services/omegaBot.js')
+        invalidateTakeoverCache(ticket.telegramChatId)
+      } catch (e) { console.warn('[support] invalidate takeover cache failed:', e.message) }
     }
+    // возврат боту или закрытие — снимаем takeover
+    if ((status === 'open' || status === 'resolved' || status === 'closed') && ticket.takeoverBy) {
+      const oldChatId = ticket.telegramChatId
+      ticket.takeoverBy = null
+      ticket.takeoverAt = null
+      if (oldChatId) {
+        try {
+          const { invalidateTakeoverCache } = await import('../services/omegaBot.js')
+          invalidateTakeoverCache(oldChatId)
+        } catch (e) { console.warn('[support] invalidate takeover cache failed:', e.message) }
+      }
+    }
+    await ticket.save()
     res.json({ status: 'success', data: ticket })
   } catch (err) {
     console.error('[support] status update failed:', err.message)
@@ -84,7 +111,8 @@ router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), asy
 
 router.post('/:id/messages', protect, async (req, res) => {
   try {
-    const ticket = await addMessage(req.params.id, req.body.sender || req.user.name || 'user', req.body.text)
+    const sender = req.body.sender || req.user.name || 'user'
+    const ticket = await replyToTicket(req.params.id, sender, req.body.text)
     if (!ticket) return res.status(404).json({ status: 'error', message: 'Ticket not found' })
     res.json({ status: 'success', data: ticket })
   } catch (err) {
