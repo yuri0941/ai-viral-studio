@@ -26,9 +26,9 @@ const PUBLIC_PAGES = ['/', '/login', '/register']
 // PROBE_PAGES — роуты под guard'ами/legacy-редиректами: только проверка «куда редиректит» (1280/ru, 1 снимок).
 const EXTRA_PAGES = {
     public: ['/', '/login', '/register', '/signup', '/privacy', '/terms', '/launch', '/roadmap', '/download'],
-    creator: ['/dashboard', '/analytics', '/scheduler', '/video-creator', '/settings', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/checkout'],
-    business: ['/dashboard', '/analytics', '/scheduler', '/settings', '/business-spawner', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub'],
-    advertiser: ['/advertiser', '/neuro-sales', '/settings', '/creative-hub'],
+    creator: ['/dashboard', '/analytics', '/scheduler', '/video-creator', '/settings', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/creative-hub/chat', '/checkout'],
+    business: ['/dashboard', '/analytics', '/scheduler', '/settings', '/business-spawner', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/creative-hub/chat'],
+    advertiser: ['/advertiser', '/neuro-sales', '/settings', '/creative-hub', '/creative-hub/chat'],
 }
 const PROBE_PAGES = {
     creator: ['/ai-chat', '/neuro-sales', '/omega-supreme', '/project-factory', '/prediction', '/investment', '/boardroom', '/business-spawner', '/workspaces', '/business', '/advertiser', '/advertiser-requests', '/owner', '/admin', '/staff'],
@@ -46,8 +46,13 @@ function tokenFor(role) {
     } catch { return null }
 }
 
-const RAW_KEY_RE = /\b[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*\b/g
+// [CHAT-HOTFIX] 2+ сегмента: ловим и двусегментные сырые ключи (chat.placeholder и т.п.)
+const RAW_KEY_RE = /\b[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*(?:\.[a-z][a-zA-Z]*)*\b/g
 const RAW_KEY_WHITELIST = /^(AI Viral|aiviral-studio|app\.aiviral\.studio|https?:|www\.|node_modules)/
+// [CHAT-HOTFIX] домены/TLD — не i18n-ключи (studio.ru из aiviral-studio.ru, yandex.ru);
+// email (uitest.creator@...) вычищается из текста до матчинга
+const RAW_KEY_DOMAIN_RE = /\.(ru|com|net|org|io|dev|app|me|ai|xyz|studio|guru|email)$/i
+const EMAIL_RE = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g
 
 // [UI-POLISH] прокси продового API: preview на 127.0.0.1 не в CORS-whitelist бэкенда,
 // поэтому перехватываем запросы и отвечаем с Access-Control-Allow-Origin.
@@ -232,8 +237,8 @@ async function checkPage(page, label, width, lang, role = 'public') {
         return { hScroll, offenders, text }
     })
 
-    const rawKeys = [...new Set((metrics.text.match(RAW_KEY_RE) || [])
-        .filter(k => !RAW_KEY_WHITELIST.test(k) && k.split('.').every(p => p.length > 1)))].slice(0, 10)
+    const rawKeys = [...new Set((metrics.text.replace(EMAIL_RE, ' ').match(RAW_KEY_RE) || [])
+        .filter(k => !RAW_KEY_WHITELIST.test(k) && !RAW_KEY_DOMAIN_RE.test(k) && k.split('.').every(p => p.length > 1)))].slice(0, 10)
 
     const safeName = (label === '/' ? 'home' : label.replace(/^\//, '').replace(/[/?=&]/g, '_'))
     const shot = `${role}_${safeName}_${width}_${lang}.png`

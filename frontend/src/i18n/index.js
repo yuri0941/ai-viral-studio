@@ -32,15 +32,28 @@ export function setLanguage(lang) {
   }
 }
 
-export function getTranslation(lang, key) {
+export function getTranslation(lang, key, params) {
   const bundle = i18n.getResourceBundle(lang, 'translation') || {}
-  const parts = key.split('.')
-  let value = bundle
-  for (const part of parts) {
-    value = value?.[part]
-    if (value === undefined) return key
+  // Flat keys ("chat.placeholder") take priority — the locale files mix
+  // dotted flat keys with nested objects, and a nested object with the same
+  // first segment must not shadow them.
+  let value = typeof bundle[key] === 'string' ? bundle[key] : undefined
+  if (value === undefined) {
+    const parts = key.split('.')
+    let node = bundle
+    for (const part of parts) {
+      node = node?.[part]
+      if (node === undefined) break
+    }
+    value = typeof node === 'string' ? node : undefined
   }
-  return typeof value === 'string' ? value : key
+  if (value === undefined) return key
+  if (params && typeof params === 'object') {
+    for (const [name, paramValue] of Object.entries(params)) {
+      value = value.replaceAll(`{{${name}}}`, String(paramValue))
+    }
+  }
+  return value
 }
 
 export function detectLanguage() {
