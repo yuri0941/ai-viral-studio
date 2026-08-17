@@ -1,6 +1,8 @@
 import { useEffect, Suspense, lazy, useState } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { useTranslation } from 'react-i18next'
+import changelog from './config/changelog.json'
 
 // Layout
 import { DashboardShell } from './components/layout/DashboardShell'
@@ -63,32 +65,32 @@ import { API_BASE_URL } from './config.js'
 
 // Version check: warn if backend requires newer frontend
 function VersionCheck() {
+    const { t } = useTranslation()
     const [update, setUpdate] = useState(null)
-    const [changelog, setChangelog] = useState([])
 
     useEffect(() => {
         let cancelled = false
+
+        // [UPDATE-MODAL-SMART] после reload — один раз показываем подтверждение обновления
+        try {
+            const pendingVersion = localStorage.getItem('pending_update_toast_version')
+            if (pendingVersion && pendingVersion === APP_VERSION) {
+                toast.success(t('update.toast', { version: APP_VERSION }), { duration: 4000 })
+                localStorage.removeItem('pending_update_toast_version')
+            }
+        } catch {}
+
         fetch(`${API_BASE_URL}/version`)
             .then(r => r.ok ? r.json() : null)
             .then(data => {
                 if (!data || cancelled) return
                 if (data.requiredFrontend && data.requiredFrontend !== APP_VERSION) {
-                    fetch(`${API_BASE_URL}/version/changelog`)
-                        .then(r => r.ok ? r.json() : { changelog: [] })
-                        .then(cl => {
-                            if (cancelled) return
-                            setChangelog(cl.changelog || [])
-                            setUpdate(data.requiredFrontend)
-                        })
-                        .catch(() => {
-                            if (cancelled) return
-                            setUpdate(data.requiredFrontend)
-                        })
+                    setUpdate(data.requiredFrontend)
                 }
             })
             .catch(() => {})
         return () => { cancelled = true }
-    }, [])
+    }, [t])
 
     if (!update) return null
 
@@ -97,6 +99,7 @@ function VersionCheck() {
     const handleUpdate = () => {
         const token = localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('jwt')
         if (token) localStorage.setItem('pending_auth_token', token)
+        localStorage.setItem('pending_update_toast_version', update)
         const clearCaches = ('caches' in window)
             ? caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {})
             : Promise.resolve()

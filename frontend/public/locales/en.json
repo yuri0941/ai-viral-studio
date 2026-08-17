@@ -449,6 +449,16 @@
     "message": "Some features are unavailable. Check your connection and try again.",
     "reload": "Reload"
   },
+  "update": {
+    "title": "Update available v{{version}}",
+    "whatsNew": "What's new",
+    "stalled": "Update deferred, will apply on next visit",
+    "updating": "Updating...",
+    "remindLater": "Remind me later",
+    "updateNow": "Update now",
+    "toast": "✅ Updated to v{{version}}",
+    "emptyChangelog": "Stability and security improvements"
+  },
   "stripe": {
     "title": "Subscription payment",
     "paySubscription": "Pay subscription",
