@@ -67,7 +67,8 @@ export async function executeAction({ intent, text, chatId, userRole, bot }) {
           userEmail: `tg_${chatId}@aiviral-studio.ru`,
           subject: 'Запрос из Telegram (Action Engine)',
           description: text,
-          telegramChatId: String(chatId)
+          telegramChatId: String(chatId),
+          source: 'telegram'
         });
         safeSend(`🎫 <b>Тикет #${ticket._id.toString().slice(-6)} создан!</b>\nВладелец рассмотрит.`);
         return { success: true, action: 'ticket', ticketId: ticket._id };

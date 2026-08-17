@@ -15,7 +15,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const BACKUP_DIR = path.resolve(process.env.BACKUP_DIR || path.join(__dirname, '..', '..', 'backups'))
-const MONGODB_URI = process.env.MONGODB_URI
+// [SUBSCRIPTION-CHECKOUT-FIX] mongoose.connect использует MONGO_URI || MONGODB_URI; бэкап должен читать ту же переменную
+const getMongoUri = () => process.env.MONGO_URI || process.env.MONGODB_URI
 const OWNER_PIN = process.env.OWNER_PIN || '000000'
 const MAX_TG_FILE_BYTES = 50 * 1024 * 1024
 
@@ -126,11 +127,12 @@ async function restoreCollectionFromGz(db, collectionName, gzPath) {
 export async function runBackup() {
     await ensureDir(BACKUP_DIR)
 
+    const MONGODB_URI = getMongoUri()
     if (!MONGODB_URI) {
         lastBackupStatus = 'no-mongodb-uri'
-        console.warn('[disasterRecovery] MONGODB_URI not set, skipping backup')
-        await sendOwnerAlert('❌ Бэкап MongoDB не удался: MONGODB_URI не задан')
-        return { success: false, error: 'MONGODB_URI not set' }
+        console.warn('[disasterRecovery] MongoDB URI not set, skipping backup')
+        await sendOwnerAlert('❌ Бэкап MongoDB не удался: MONGO_URI/MONGODB_URI не задан')
+        return { success: false, error: 'MongoDB URI not set' }
     }
 
     const date = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19)
@@ -206,8 +208,9 @@ export async function restoreFromBackup(date, pin) {
         return { success: false, error: 'Invalid PIN' }
     }
 
+    const MONGODB_URI = getMongoUri()
     if (!MONGODB_URI) {
-        return { success: false, error: 'MONGODB_URI not set' }
+        return { success: false, error: 'MongoDB URI not set' }
     }
 
     const backup = await findBackup(date)

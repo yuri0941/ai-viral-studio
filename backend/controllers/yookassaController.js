@@ -158,10 +158,13 @@ export const createSubscriptionPayment = async (req, res) => {
       plan: planId,
       status: 'pending',
       price: amount,
+      amount,
       currency: currency.toUpperCase(),
       interval: isYearly ? 'year' : 'month',
       startDate: now,
       endDate,
+      currentPeriodStart: now,
+      currentPeriodEnd: endDate,
       autoRenew: true,
       paymentMethod: 'card',
       provider: 'yookassa',
@@ -333,29 +336,52 @@ export const yookassaWebhook = async (req, res) => {
         });
       }
 
-      // Update subscription
+      // Update subscription + user plan
+      let paidSub = null;
+      let paidInvoice = null;
       if (metadata?.subscriptionId) {
-        await Subscription.findByIdAndUpdate(metadata.subscriptionId, {
-          $set: { status: 'active', providerPaymentId: paymentId },
-        });
         const sub = await Subscription.findById(metadata.subscriptionId).lean();
-        if (sub?.userId && sub?.plan) {
-          await User.findByIdAndUpdate(sub.userId, { $set: { plan: sub.plan } }); // [PAYMENT-v5.2] added
+        const now = new Date();
+        const periodStart = sub?.startDate || now;
+        const periodEnd = sub?.endDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        await Subscription.findByIdAndUpdate(metadata.subscriptionId, {
+          $set: {
+            status: 'active',
+            providerPaymentId: paymentId,
+            currentPeriodStart: periodStart,
+            currentPeriodEnd: periodEnd,
+            amount: sub?.price ?? sub?.amount ?? 0,
+          },
+        });
+        paidSub = await Subscription.findById(metadata.subscriptionId).lean();
+        if (paidSub?.userId && paidSub?.plan) {
+          await User.findByIdAndUpdate(paidSub.userId, { $set: { subscription: paidSub.plan } }); // [PAYMENT-v5.2] обновляем пользовательский тариф
         }
       } else if (metadata?.invoiceId) {
-        const invoice = await Invoice.findById(metadata.invoiceId).lean();
-        if (invoice?.subscriptionId) {
-          await Subscription.findByIdAndUpdate(invoice.subscriptionId, {
-            $set: { status: 'active', providerPaymentId: paymentId },
+        paidInvoice = await Invoice.findById(metadata.invoiceId).lean();
+        if (paidInvoice?.subscriptionId) {
+          const sub = await Subscription.findById(paidInvoice.subscriptionId).lean();
+          const now = new Date();
+          const periodStart = sub?.startDate || now;
+          const periodEnd = sub?.endDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          await Subscription.findByIdAndUpdate(paidInvoice.subscriptionId, {
+            $set: {
+              status: 'active',
+              providerPaymentId: paymentId,
+              currentPeriodStart: periodStart,
+              currentPeriodEnd: periodEnd,
+              amount: sub?.price ?? sub?.amount ?? 0,
+            },
           });
         }
       }
 
       // [P1.6-PREP] founding-слот занимается первой успешной оплатой (идемпотентно, unique userId);
       // метрика слотов НЕ валит webhook
+      let foundingResult = { counted: false };
       try {
         const { markFoundingSlotPaid } = await import('../services/foundingService.js');
-        await markFoundingSlotPaid(metadata?.userId, paymentId);
+        foundingResult = await markFoundingSlotPaid(metadata?.userId, paymentId);
       } catch (fErr) {
         console.warn('[founding] markFoundingSlotPaid failed:', fErr.message);
       }
@@ -363,8 +389,6 @@ export const yookassaWebhook = async (req, res) => {
       // [P1.5-METRICS] paid: идемпотентно по paymentId (guard в metricsService); метрика НЕ валит webhook
       try {
         const { trackPaid } = await import('../services/metricsService.js');
-        const paidSub = metadata?.subscriptionId ? await Subscription.findById(metadata.subscriptionId).lean() : null;
-        const paidInvoice = metadata?.invoiceId ? await Invoice.findById(metadata.invoiceId).lean() : null;
         await trackPaid({ paymentId, amountRub: paidSub?.price ?? paidSub?.amount ?? paidInvoice?.amount ?? 0 });
       } catch (mErr) {
         console.warn('[metrics] paid track failed:', mErr.message);
@@ -375,23 +399,37 @@ export const yookassaWebhook = async (req, res) => {
         console.error('[yookassaController:webhook] recordPaymentAndReceipt failed:', e.message);
       });
 
+      // [SUBSCRIPTION-CHECKOUT-FIX] TG-алерт владельцу об успешной оплате (не валит webhook)
+      try {
+        const { alertOwner } = await import('../services/ownerBot.js');
+        const client = metadata?.userId ? await User.findById(metadata.userId).lean() : null;
+        const plan = paidSub?.plan || metadata?.plan || '—';
+        const amount = paidSub?.price ?? paidSub?.amount ?? paidInvoice?.amount ?? 0;
+        const foundingLine = foundingResult?.counted
+          ? `\n🎟 Founding-слот ${foundingResult.used}/50`
+          : '';
+        await alertOwner(
+          `💰 Оплата: <b>${plan}</b>\n` +
+          `Сумма: ${Number(amount).toLocaleString('ru-RU')} ₽\n` +
+          `Клиент: ${client?.email || client?.name || '—'}\n` +
+          `Платёж: <code>${paymentId}</code>${foundingLine}`,
+          'payment'
+        );
+      } catch (alertErr) {
+        console.warn('[yookassaController:webhook] owner alert failed:', alertErr.message);
+      }
+
       // Send payment success email
       try {
         const userId = metadata?.userId;
         if (userId) {
           const user = await User.findById(userId);
-          const subscription = metadata?.subscriptionId
-            ? await Subscription.findById(metadata.subscriptionId).lean()
-            : null;
-          const invoice = metadata?.invoiceId
-            ? await Invoice.findById(metadata.invoiceId).lean()
-            : null;
-          const plan = subscription?.plan || metadata?.plan || '—';
-          const amount = subscription?.price || invoice?.amount || 0;
+          const plan = paidSub?.plan || metadata?.plan || '—';
+          const amount = paidSub?.price ?? paidSub?.amount ?? paidInvoice?.amount ?? 0;
           if (user) {
             // [19.13-lite-PAYMENTS-NPD] новое письмо «подписка активна до <дата> + чек от ЮKassa»
-            if (subscription?.endDate) {
-              await sendSubscriptionActiveEmail(user.email, user.name, plan, subscription.endDate);
+            if (paidSub?.endDate) {
+              await sendSubscriptionActiveEmail(user.email, user.name, plan, paidSub.endDate);
             } else {
               await sendPaymentSuccessEmail(user.email, user.name, plan, amount);
             }
@@ -401,11 +439,37 @@ export const yookassaWebhook = async (req, res) => {
         console.error('[yookassaController:webhook] payment success email failed:', emailErr.message);
       }
     } else if (action === 'mark_refunded') {
-      // [19.13-lite-PAYMENTS-NPD] refund.succeeded: помечаем платёж возвращённым
-      await Payment.updateOne(
-        { yookassaPaymentId: paymentId },
-        { $set: { status: 'refunded', refundedAt: new Date() } }
-      ).catch(() => {});
+      // [19.13-lite-PAYMENTS-NPD] refund.succeeded: помечаем платёж возвращённым + TG-алерт владельцу
+      let refundResult;
+      try {
+        refundResult = await Payment.updateOne(
+          { yookassaPaymentId: paymentId },
+          { $set: { status: 'refunded', refundedAt: new Date() } }
+        );
+      } catch { refundResult = { modifiedCount: 0 }; }
+
+      if (metadata?.subscriptionId) {
+        await Subscription.findByIdAndUpdate(metadata.subscriptionId, {
+          $set: { status: 'refunded', autoRenew: false },
+        }).catch(() => {});
+      }
+
+      if (refundResult?.modifiedCount > 0) {
+        try {
+          const { alertOwner } = await import('../services/ownerBot.js');
+          const payment = await Payment.findOne({ yookassaPaymentId: paymentId }).lean();
+          const client = payment?.userId ? await User.findById(payment.userId).lean() : null;
+          await alertOwner(
+            `↩️ Возврат платежа\n` +
+            `Сумма: ${Number(payment?.amount || 0).toLocaleString('ru-RU')} ₽\n` +
+            `Клиент: ${client?.email || client?.name || payment?.customerEmail || '—'}\n` +
+            `Тариф: ${payment?.planId || '—'}`,
+            'payment'
+          );
+        } catch (alertErr) {
+          console.warn('[yookassaController:webhook] refund owner alert failed:', alertErr.message);
+        }
+      }
     } else if (action === 'mark_canceled') {
       if (metadata?.invoiceId) {
         await Invoice.findByIdAndUpdate(metadata.invoiceId, {

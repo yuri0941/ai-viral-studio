@@ -17,9 +17,9 @@ export function detectPriority(description) {
 
 export function getSourceBadge(source) {
   if (source === 'telegram') return 'TG'
-  if (source === 'web') return 'Web'
-  if (source === 'widget') return 'Widget'
   if (source === 'chat') return 'Chat'
+  if (source === 'widget') return 'Widget'
+  if (source === 'web') return 'Web'
   return 'Other'
 }
 
@@ -129,6 +129,41 @@ export async function addMessage(ticketId, sender, text) {
   ticket.messages.push({ sender, text, timestamp: new Date() })
   ticket.updatedAt = new Date()
   await ticket.save()
+  return ticket
+}
+
+// [SUBSCRIPTION-CHECKOUT-FIX] ответ оператора/владельца из Dashboard → клиенту в Telegram (если тикет связан с TG)
+export async function replyToTicket(ticketId, sender, text) {
+  const ticket = await SupportTicket.findById(ticketId)
+  if (!ticket) return null
+  ticket.messages.push({ sender, text: text.slice(0, 2000), timestamp: new Date() })
+  ticket.updatedAt = new Date()
+  if (!ticket.firstResponseAt) ticket.firstResponseAt = new Date()
+  await ticket.save()
+
+  if (ticket.telegramChatId && /^(owner|operator)$/i.test(sender)) {
+    try {
+      const { sendClientMessage } = await import('./omegaBot.js')
+      await sendClientMessage(
+        ticket.telegramChatId,
+        `👤 <b>Специалист:</b>\n${text.slice(0, 2000)}`,
+        { parse_mode: 'HTML' }
+      )
+      try {
+        const { default: ClientDialogue } = await import('../models/ClientDialogue.js')
+        await ClientDialogue.findOneAndUpdate(
+          { telegramChatId: String(ticket.telegramChatId) },
+          {
+            $push: { messages: { role: 'assistant', content: text.slice(0, 2000), intent: 'support', timestamp: new Date() } },
+            $set: { updatedAt: new Date() }
+          },
+          { upsert: true }
+        )
+      } catch (e) { console.warn('[supportService] dialogue persist failed:', e.message) }
+    } catch (e) {
+      console.warn('[supportService] telegram reply failed:', e.message)
+    }
+  }
   return ticket
 }
 

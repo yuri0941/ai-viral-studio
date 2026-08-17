@@ -63,8 +63,12 @@ export default function TicketsTab() {
 
   const updateStatus = async (status) => {
     if (!selected) return;
-    await request(`/support/${selected._id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
-    setSelected(prev => prev ? { ...prev, status } : null);
+    const body = { status };
+    if (status === 'in_progress' && selected.telegramChatId) {
+      body.takeoverBy = 'operator';
+    }
+    await request(`/support/${selected._id}/status`, { method: 'PATCH', body: JSON.stringify(body) });
+    setSelected(prev => prev ? { ...prev, status, takeoverBy: body.takeoverBy || prev.takeoverBy } : null);
     await loadTickets();
   };
 

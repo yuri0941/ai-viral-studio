@@ -1509,13 +1509,21 @@ const sendOmegaPanel = (chatId) => {
   safeSendMessage(chatId, `<b>🤖 OMEGA Control</b>`, { parse_mode: 'HTML', ...keyboard })
 }
 
-export const sendOwnerAlert = async (message, type = 'info') => {
+export const sendOwnerAlert = async (message, typeOrOptions = 'info', options = {}) => {
+  // [SUBSCRIPTION-CHECKOUT-FIX] поддерживаем старый вызов (message, type) и новый (message, options)
+  let type = 'info'
+  if (typeof typeOrOptions === 'string') {
+    type = typeOrOptions
+  } else if (typeOrOptions && typeof typeOrOptions === 'object') {
+    options = typeOrOptions
+  }
+
   const ownerChatId = await getOwnerChatId()
   if (!bot || !ownerChatId) return
   if (!shouldSendAlert(type)) return
   const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '🚨', payment: '💰', newuser: '👤' }
   const text = `${icons[type] || 'ℹ️'} <b>AI Viral Studio Alert</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU')}</i>`
-  try { await safeSendMessage(ownerChatId, text, { parse_mode: 'HTML' }) } catch (e) {}
+  try { await safeSendMessage(ownerChatId, text, { parse_mode: 'HTML', ...options }) } catch (e) {}
 }
 
 // [MASTER-v5.6-FINAL] Alias for paymentController compatibility
