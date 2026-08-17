@@ -1,4 +1,17 @@
 
+## 2026-08-18 — SUPPORT-PUSH + PROVIDER-MODELS
+- [BACKEND] supportService.js: один тикет на диалог — findOpenTicket + appendToOpenTicket; второе сообщение клиента дописывается в открытый тикет, новый не создаётся
+- [BACKEND] supportService.js: push-алерт владельцу на КАЖДОЕ новое обращение (summary + inline-кнопки «Взять диалог» / «Закрыть» / «Эскалация»); try/catch не валит тикет-флоу
+- [BACKEND] ownerBot.js: sendOwnerAlert поддерживает type='ticket' — текст as-is + reply_markup без cooldown и без обёртки «AI Viral Studio Alert»
+- [BACKEND] omegaBot.js: source: 'telegram' при создании тикета; OMEGA-совет рендерится через markdownToHtml (linkGuard), убран сырой markdown
+- [BACKEND] aiModels.js / aiService.js: Groq/Cerebras/Together/Fireworks/OpenRouter переведены на живые gpt-oss-модели; MODEL_IDS без хардкода llama-3.3-70b
+- [BACKEND] aiService.js: авто-исключение модели из PROVIDER_CHAIN после 3 подряд 404/410 — modelRemovedFailures + modelsDisabledByRemoval; статус провайдера → 'disabled'; сброс при успешном ответе
+- [CHECKS] node --check OK по backend/config/aiModels.js, backend/services/aiService.js, omegaBot.js, ownerBot.js, supportService.js
+- [CHECKS] npm run build OK (0 errors), dist собран
+- [CHECKS] E2E-юнит (backend/tests/support-push-unit.mjs): createTicket → второй вызов с тем же userEmail вернул t1, messages дописаны, push-разметка содержит кнопки — 10/10 PASS
+- [GIT] Commit+push: fix/support-push-providers (dc75d5c4), compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/support-push-providers
+- [NEXT] Владельцу: проверить push-алерт при новом тикете, «Взять диалог» → ответ клиенту, отсутствие сырого markdown в советах; мониторинг «OMEGA временно недоступна» должна исчезнуть при живом Mistral
+
 ## 2026-08-18 — TELEGRAM-BOT-ROUTING-FIX
 - [BACKEND] backend/config/bots.js: единая точка правды CLIENT_BOT_USERNAME / OWNER_BOT_USERNAME / CHANNEL_USERNAME / OWNER_TELEGRAM_USERNAME / OWNER_NAME с env + fallback
 - [BACKEND] server.js: webhook /bot<TOKEN> теперь направляет клиентский токен → omegaBot, owner-токен → ownerBot (ранее оба шли на ownerBot)
