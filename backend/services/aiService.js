@@ -442,6 +442,11 @@ const keyAlertSent = new Set()
 const modelRemovedAlertSent = new Map()
 const MODEL_REMOVED_ALERT_COOLDOWN_MS = 60 * 60 * 1000
 
+// [SUPPORT-PUSH-PROVIDERS] авто-исключение модели из ротации после 3 подряд 404/410
+const modelRemovedFailures = new Map()
+const modelsDisabledByRemoval = new Set()
+const MODEL_REMOVED_FAILURE_THRESHOLD = 3
+
 function isInvalidKeyError(status, error) {
     if (status === 401 || status === 403) return true
     const msg = `${error?.message || ''} ${JSON.stringify(error?.response?.data || '')}`.toLowerCase()
@@ -541,6 +546,8 @@ const isEnabled = async (provider, ownerId = null) => {
 
     const meta = PROVIDER_META[provider] || { enabledByDefault: false, requiresKey: true }
     const keyId = meta.keyProvider || provider
+    const statusEntry = providerStatusMap.get(provider)
+    if (statusEntry?.status === 'disabled') return false
     try {
         const setting = await AIProviderSetting.findOne({ provider }).lean()
         if (setting && setting.enabled === false) return false
@@ -745,7 +752,7 @@ async function chatWithTogether(prompt, ownerId = null) {
     if (!key) throw new Error('No Together key')
     console.log('🚀 Calling Together...')
     const res = await axios.post('https://api.together.xyz/v1/chat/completions', {
-        model: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+        model: process.env.TOGETHER_MODEL || MODEL_IDS.together,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2048
     }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
@@ -782,7 +789,7 @@ async function chatWithCerebras(prompt, ownerId = null) {
     if (!key) throw new Error('No Cerebras key')
     console.log('🚀 Calling Cerebras...')
     const res = await axios.post('https://api.cerebras.ai/v1/chat/completions', {
-        model: process.env.CEREBRAS_MODEL || 'llama-3.3-70b',
+        model: process.env.CEREBRAS_MODEL || MODEL_IDS.cerebras,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2048
     }, { headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 20000 })
@@ -918,10 +925,10 @@ const MODEL_IDS = {
     // [v9.9.19.14.4] OpenRouter free model id updated 2026-08-11
     // [AI-MODELS-HOTSWAP] default openai/gpt-oss-20b:free, backup nvidia/nemotron-3-super-120b-a12b:free
     openrouter: AI_MODELS.OPENROUTER_MODEL,
-    cerebras: 'llama-3.3-70b',
-    together: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
-    // [v9.9.19.14.4] Fireworks deployed id updated 2026-08-11
-    fireworks: 'accounts/fireworks/models/llama-v3p3-70b-instruct',
+    // [SUPPORT-PUSH-PROVIDERS] Cerebras/Together/Fireworks migrated from llama-3.3-70b to gpt-oss-120b
+    cerebras: 'gpt-oss-120b',
+    together: 'openai/gpt-oss-120b',
+    fireworks: 'accounts/fireworks/models/gpt-oss-120b',
     mistral: 'mistral-large-latest',
     cohere: 'command-r-plus',
     cloudflare: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
@@ -1027,6 +1034,10 @@ const tryProviders = async (messages, ownerId = null) => {
             setProviderStatus(provider.id, 'disabled', '')
             continue
         }
+        if (modelsDisabledByRemoval.has(provider.id)) {
+            console.log(`⏭️ ${provider.name} skipped: model removed (${modelRemovedFailures.get(provider.id) || 0}× 404/410)`)
+            continue
+        }
 
         try {
             // [v9.9.19.14.4] log only when actually trying a live provider
@@ -1037,6 +1048,8 @@ const tryProviders = async (messages, ownerId = null) => {
             console.log(`[AI] provider=${provider.id} model=${provider.model}`)
             setProviderStatus(provider.id, 'active', '')
             setKeyHealthState(provider.id, 'ok')
+            // [SUPPORT-PUSH-PROVIDERS] успешный ответ — сбрасываем серию 404/410
+            modelRemovedFailures.delete(provider.id)
             return { reply: String(text).trim(), provider: provider.id, usage: null }
         } catch (error) {
             const status = error.response?.status
@@ -1049,7 +1062,14 @@ const tryProviders = async (messages, ownerId = null) => {
             }
             // [AI-MODELS-HOTSWAP] model pulled from provider — alert owner but do NOT mark key invalid
             if (isModelRemoved) {
+                const failures = (modelRemovedFailures.get(provider.id) || 0) + 1
+                modelRemovedFailures.set(provider.id, failures)
                 const fallbackModel = provider.id === 'openrouter' ? AI_MODELS.OPENROUTER_MODEL_BACKUP : ''
+                if (failures >= MODEL_REMOVED_FAILURE_THRESHOLD) {
+                    modelsDisabledByRemoval.add(provider.id)
+                    setProviderStatus(provider.id, 'disabled', `model removed ${failures}×: ${provider.model}`)
+                    console.log(`🚫 ${provider.name} disabled after ${failures} consecutive 404/410`)
+                }
                 reportModelRemoved(provider.id, provider.model, fallbackModel).catch(() => {})
                 setKeyHealthState(provider.id, 'error', `model removed: ${provider.model}`)
             }

@@ -23,7 +23,26 @@ export function getSourceBadge(source) {
   return 'Other'
 }
 
+async function findOpenTicket(data) {
+  const or = []
+  if (data.userId) or.push({ userId: data.userId })
+  if (data.telegramChatId) or.push({ telegramChatId: String(data.telegramChatId) })
+  if (data.userEmail) or.push({ userEmail: data.userEmail })
+  if (!or.length) return null
+  return SupportTicket.findOne({
+    $or: or,
+    status: { $in: ['open', 'needs_owner', 'in_progress', 'ai_handled'] }
+  }).sort({ updatedAt: -1 })
+}
+
 export async function createTicket(data) {
+  // [SUPPORT-PUSH-FIX] один тикет на диалог: если у клиента уже есть открытый — дописываем сообщение
+  const existing = await findOpenTicket(data)
+  if (existing) {
+    await addMessage(existing._id, 'client', data.description || data.subject || '—')
+    return existing
+  }
+
   const priority = data.priority || detectPriority(data.description || '')
   const source = data.source || 'web'
   const ticket = await SupportTicket.create({
@@ -63,27 +82,28 @@ export async function createTicket(data) {
     console.warn('[supportService] cognitive mesh node failed:', e.message)
   }
 
-  if (ticket.priority === 'urgent' || ticket.priority === 'high' || ticket.aiConfidence < 0.7) {
-    try {
-      const summary = await buildTakeoverSummary(ticket)
-      const emoji = ticket.priority === 'urgent' ? '🔴' : '🟠'
-      await alertOwner([
-        `${emoji} <b>Тикет #${ticket._id.toString().slice(-6)} требует внимания!</b>`,
-        `━━━━━━━━━━━━━━`,
-        summary,
-        `━━━━━━━━━━━━━━`,
-        `<a href="https://aiviral-studio.ru/owner?tab=support">Открыть в Dashboard →</a>`
-      ].join('\n'), {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '💬 Взять диалог', callback_data: `ticket:takeover:${ticket._id}` }, { text: '✅ Закрыть', callback_data: `ticket:close:${ticket._id}` }],
-            [{ text: '⬆️ Эскалация', callback_data: `ticket:escalate:${ticket._id}` }]
-          ]
-        }
-      })
-    } catch (e) {
-      console.warn('[supportService] owner alert failed:', e.message)
-    }
+  // [SUPPORT-PUSH-FIX] push владельцу на КАЖДОЕ новое обращение (любой source) с кнопками
+  try {
+    const clientName = ticket.userName || ticket.userEmail || '—'
+    const preview = (ticket.description || ticket.subject || '').slice(0, 100)
+    const emoji = ticket.priority === 'urgent' ? '🔴' : ticket.priority === 'high' ? '🟠' : '🆘'
+    const summary = [
+      `${emoji} **Обращение #${ticket._id.toString().slice(-6)}**`,
+      `👤 ${clientName}`,
+      `📱 ${getSourceBadge(ticket.source)}`,
+      `🎯 ${preview}${ticket.description && ticket.description.length > 100 ? '…' : ''}`
+    ].join('\n')
+    await alertOwner(summary, {
+      type: 'ticket',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💬 Взять диалог', callback_data: `ticket:takeover:${ticket._id}` }, { text: '✅ Закрыть', callback_data: `ticket:close:${ticket._id}` }],
+          [{ text: '⬆️ Эскалация', callback_data: `ticket:escalate:${ticket._id}` }]
+        ]
+      }
+    })
+  } catch (e) {
+    console.warn('[supportService] owner alert failed:', e.message)
   }
 
   return ticket
@@ -127,6 +147,19 @@ export async function addMessage(ticketId, sender, text) {
   const ticket = await SupportTicket.findById(ticketId)
   if (!ticket) return null
   ticket.messages.push({ sender, text, timestamp: new Date() })
+  ticket.updatedAt = new Date()
+  await ticket.save()
+  return ticket
+}
+
+// [SUPPORT-PUSH-FIX] дописать сообщение клиента в его открытый тикет (без создания нового)
+export async function appendToOpenTicket(telegramChatId, text) {
+  const ticket = await SupportTicket.findOne({
+    telegramChatId: String(telegramChatId),
+    status: { $in: ['open', 'needs_owner', 'in_progress', 'ai_handled'] }
+  }).sort({ updatedAt: -1 })
+  if (!ticket) return null
+  ticket.messages.push({ sender: 'client', text: text.slice(0, 2000), timestamp: new Date() })
   ticket.updatedAt = new Date()
   await ticket.save()
   return ticket
