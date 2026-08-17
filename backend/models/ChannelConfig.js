@@ -1,8 +1,9 @@
 import mongoose from 'mongoose';
+import { CHANNEL_USERNAME } from '../config/bots.js';
 
 const ChannelConfigSchema = new mongoose.Schema({
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  channelUsername: { type: String, default: '@aiviralstudio' },
+  channelUsername: { type: String, default: () => `@${CHANNEL_USERNAME}` },
   channelId: { type: String, sparse: true },
   niche: { type: String, default: 'general' },
   language: { type: String, default: 'ru' },

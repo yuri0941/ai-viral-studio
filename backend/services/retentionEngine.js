@@ -1,5 +1,6 @@
 import { alertOwner } from './ownerBot.js';
 import ClientDialogue from '../models/ClientDialogue.js';
+import { CLIENT_BOT_TOKEN } from '../config/bots.js';
 
 // Проверить inactive клиентов (не писали 3+ дня)
 export async function checkInactiveClients() {
@@ -13,7 +14,7 @@ export async function checkInactiveClients() {
     // Отправляем через omegaBot (импортировать динамически чтобы избежать цикла)
     try {
       const { default: TelegramBot } = await import('node-telegram-bot-api');
-      const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
+      const bot = new TelegramBot(CLIENT_BOT_TOKEN, { polling: false });
       await bot.sendMessage(d.telegramChatId, `👋 Привет! Пропустили тренд? 🔥\n\nВ вашей нише сейчас вирусит новый формат. Хотите, я покажу?\n\nOMEGA 🤖`, {
         reply_markup: { inline_keyboard: [[{ text: '🔥 Покажи тренд', callback_data: 'content:trend' }], [{ text: '📋 Меню', callback_data: 'menu:main' }]] }
       });

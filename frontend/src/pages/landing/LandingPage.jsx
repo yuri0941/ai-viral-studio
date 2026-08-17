@@ -5,6 +5,7 @@ import { Sparkles, Bot, BarChart3, Factory, Telescope, Calendar, Check, ChevronD
 import { useAuth } from '../../context/AuthContext'
 import { API_BASE_URL } from '../../config.js'
 import { planConfigApi, testimonialsApi, launchApi } from '../../services/api.js' // [P1.6-PREP] живые тарифы и отзывы
+import { CHANNEL_URL } from '../../config/bots.js'
 import FeatureMap from '../../components/landing/FeatureMap.jsx'
 import ViralDemo from './ViralDemo.jsx'
 import BetaCounter from './BetaCounter.jsx'
@@ -332,7 +333,7 @@ export default function LandingPage() {
           </div>
           <div>
             <div className="font-semibold mb-3">Контакты</div>
-            <a href="https://t.me/aiviralstudio" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text)]"><Send className="w-4 h-4" /> Telegram канал</a>
+            <a href={CHANNEL_URL} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text)]"><Send className="w-4 h-4" /> Telegram канал</a>
           </div>
         </div>
         <div className="max-w-6xl mx-auto mt-8 text-center text-xs text-[var(--text-muted)]">© 2026 AI Viral Studio. Все права защищены.</div>

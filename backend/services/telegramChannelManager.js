@@ -2,6 +2,7 @@ import { chatWithAI, extractText, getProviderKey } from './aiService.js';
 import { createNode } from './cognitiveMesh.js';
 import { prepareChannelText, getWhitelistPrompt } from './linkGuard.js';
 import { validateTelegramHTML, stripHtml, isParseEntitiesError } from '../utils/telegramHtml.js';
+import { CLIENT_BOT_USERNAME, CHANNEL_USERNAME } from '../config/bots.js';
 
 // [v9.9.19.3] hot-reload: токен/канал резолвятся в момент вызова (env → cache → MongoDB)
 let channelTargetLogged = false;
@@ -46,7 +47,7 @@ async function alertNoRights(channel) {
   noRightsAlertedAt = Date.now();
   try {
     const { alertOwner } = await import('./ownerBot.js');
-    alertOwner?.(`📢 Не могу опубликовать: бот не админ ${channel} или нет права «Публикация сообщений».\nКанал → Управление → Администраторы → @aiviral_omega_bot → включить «Публикация сообщений» ✅\nПосле включения напишите /posttest`);
+    alertOwner?.(`📢 Не могу опубликовать: бот не админ ${channel} или нет права «Публикация сообщений».\nКанал → Управление → Администраторы → @${CLIENT_BOT_USERNAME} → включить «Публикация сообщений» ✅\nПосле включения напишите /posttest`);
   } catch { /* не критично */ }
 }
 
@@ -58,10 +59,10 @@ function friendlyTelegramError(desc = '') {
     return `Ошибка HTML-разметки поста (400 can't parse entities) — проверьте теги. Детали: ${desc}`;
   }
   if (d.includes('forbidden') || d.includes('not a member') || d.includes('not enough rights') || d.includes('administrator') || d.includes('kicked')) {
-    return 'Бот не админ канала — добавьте бота в администраторы @aiviralstudio с правом публикации.';
+    return `Бот не админ канала — добавьте бота в администраторы @${CHANNEL_USERNAME} с правом публикации.`;
   }
   if (d.includes('chat not found') || d.includes('chat_id is empty')) {
-    return 'Канал не найден (chat not found) — проверьте telegram_chat_id в ApiKeysTab или TELEGRAM_CHANNEL (например @aiviralstudio) в env.';
+    return `Канал не найден (chat not found) — проверьте telegram_chat_id в ApiKeysTab или TELEGRAM_CHANNEL (например @${CHANNEL_USERNAME}) в env.`;
   }
   if (d.includes('unauthorized') || d.includes('401')) {
     return 'Токен бота невалиден — обновите telegram_bot в Кабинет → API Ключи.';
@@ -111,7 +112,7 @@ export async function publishToChannel(post, options = {}) {
     const rights = await checkChannelRights();
     if (!rights.ok && rights.reason === 'no_rights') {
       await alertNoRights(channel);
-      return { success: false, reason: 'no_rights', error: `Бот не админ ${channel} или нет права «Публикация сообщений». Канал → Управление → Администраторы → @aiviral_omega_bot → включить «Публикация сообщений». После включения — /posttest`, mock: false };
+      return { success: false, reason: 'no_rights', error: `Бот не админ ${channel} или нет права «Публикация сообщений». Канал → Управление → Администраторы → @${CLIENT_BOT_USERNAME} → включить «Публикация сообщений». После включения — /posttest`, mock: false };
     }
   }
 

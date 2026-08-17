@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { MessageCircle } from 'lucide-react';
 import { request } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { clientBotUrl } from '../../config/bots.js';
 
 export default function TelegramConnectButton() {
   const { t } = useTranslation();
@@ -19,7 +20,7 @@ export default function TelegramConnectButton() {
 
   // [v9.9.19-MASTER-AUDIT] deep-link привязки: бот получает /start <user_id> и связывает telegramId с аккаунтом
   const userId = user?._id || user?.id || '';
-  const link = status.botLink || `https://t.me/aiviral_omega_bot${userId ? `?start=${userId}` : ''}`;
+  const link = status.botLink || clientBotUrl(userId);
 
   return (
     <a

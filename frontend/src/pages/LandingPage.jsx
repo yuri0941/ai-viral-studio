@@ -9,6 +9,7 @@ import { PWAInstallButton } from '../components/pwa/PWAInstallButton'
 import { ownerLegalInfoApi } from '../services/api.js'
 import { API_URL } from '../config.js'
 import { PLANS, getPrice } from '../config/plans.js'
+import { CHANNEL_URL, CLIENT_BOT_URL } from '../config/bots.js'
 import WaitlistSection from './landing/WaitlistSection'
 import toast from 'react-hot-toast'
 import ViralDemo from './landing/ViralDemo'
@@ -539,7 +540,7 @@ function LandingPage() {
                                 AI-платформа для создания вирусного контента. Генерация скриптов, анализ трендов и автопостинг в одном месте.
                             </p>
                             <div className="flex items-center gap-3">
-                                <a href="https://t.me/aiviralstudio" target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="Telegram">
+                                <a href={CHANNEL_URL} target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="Telegram">
                                     <Send className="w-4 h-4" />
                                 </a>
                                 <a href="https://discord.gg/your_invite" target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="Discord">
@@ -571,7 +572,7 @@ function LandingPage() {
                                 <li><Link to="/privacy-policy" className="hover:text-[var(--primary)] transition-colors">Privacy</Link></li>
                                 <li><Link to="/terms-of-service" className="hover:text-[var(--primary)] transition-colors">Terms</Link></li>
                                 <li><Link to="/consent" className="hover:text-[var(--primary)] transition-colors">Consent</Link></li>
-                                <li><a href="https://t.me/aiviral_omega_bot" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--primary)] transition-colors">Контакты</a></li>
+                                <li><a href={CLIENT_BOT_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--primary)] transition-colors">Контакты</a></li>
                             </ul>
                         </div>
                         <div>

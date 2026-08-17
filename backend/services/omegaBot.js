@@ -48,6 +48,7 @@ import { isOwner, getOwnerContext } from './ownerContext.js'
 import { createTicket } from './supportService.js'
 import { getAdPricing } from './adPricingService.js'
 import { saveFeedback, rateFeedback } from './feedbackService.js'
+import { CLIENT_BOT_USERNAME, CHANNEL_USERNAME, clientBotUrl } from '../config/bots.js'
 
 // [P16-FINAL] singleton to avoid duplicate polling / 409 conflict
 let bot = global.omegaBotInstance || null
@@ -178,7 +179,7 @@ export const initOmegaBot = () => {
     const chatId = msg.chat.id;
     const startParam = match?.[1];
 
-    // [v9.9.19.7-SOCIAL-CONNECT-RESILIENT] deep-link привязка: t.me/aiviral_omega_bot?start=connect_<token>
+    // [v9.9.19.7-SOCIAL-CONNECT-RESILIENT] deep-link привязка: ${clientBotUrl()}?start=connect_<token>
     if (startParam && /^connect_[a-f0-9]{24}$/i.test(startParam)) {
       try {
         const token = startParam.replace(/^connect_/, '');
@@ -210,7 +211,7 @@ export const initOmegaBot = () => {
       }
     }
 
-    // [P2.1] deep-link «Продолжить в Telegram» из SupportTab: t.me/aiviral_omega_bot?start=support_<ticketId>
+    // [P2.1] deep-link «Продолжить в Telegram» из SupportTab: ${clientBotUrl()}?start=support_<ticketId>
     if (startParam && /^support_[a-f0-9]{24}$/i.test(startParam)) {
       try {
         const ticketId = startParam.replace(/^support_/, '');
@@ -566,7 +567,7 @@ export const initOmegaBot = () => {
       }
       await bot.approveChatJoinRequest(req.chat.id, user.id);
       console.log(`[CHANNEL-AUTO] join approved: @${username}`);
-      bot.sendMessage(user.id, 'Добро пожаловать в @aiviralstudio! Я OMEGA — ассистент канала. Задавай вопросы в комментариях или пиши сюда.').catch(() => {});
+      bot.sendMessage(user.id, `Добро пожаловать в @${CHANNEL_USERNAME}! Я OMEGA — ассистент канала. Задавай вопросы в комментариях или пиши сюда.`).catch(() => {});
     } catch (e) {
       console.warn('[CHANNEL-AUTO] join request failed:', e.message);
     }
@@ -607,7 +608,7 @@ export const initOmegaBot = () => {
 
     if (!text) return;
     // 8.5.2 OMEGA отвечает на @упоминания и вопросы
-    const isMention = text.includes('@aiviral_omega_bot');
+    const isMention = text.includes(`@${CLIENT_BOT_USERNAME}`);
     const isQuestion = text.includes('?') || /^(как|почему|зачем|сколько|когда|что|где|какой|какие)\b/i.test(text.trim());
     if (!isMention && !isQuestion) return;
 
@@ -649,7 +650,7 @@ export const initOmegaBot = () => {
         if (last.length) postsContext = `\nПоследние посты канала: ${last.join(' | ')}`;
       } catch { /* не критично */ }
       const ai = await chatWithAI(
-        `Ты OMEGA — экспертный ассистент Telegram-канала @aiviralstudio (AI, SMM, виральный контент). Ответь на комментарий подписчика: кратко (1-3 предложения), экспертно, лаконично, с мягким призывом к действию. Без markdown и звёздочек.${factsBlock}${postsContext}\n\nКомментарий: "${text.slice(0, 500)}"`,
+        `Ты OMEGA — экспертный ассистент Telegram-канала @${CHANNEL_USERNAME} (AI, SMM, виральный контент). Ответь на комментарий подписчика: кратко (1-3 предложения), экспертно, лаконично, с мягким призывом к действию. Без markdown и звёздочек.${factsBlock}${postsContext}\n\nКомментарий: "${text.slice(0, 500)}"`,
         [], 'ru', { maxTokens: 300 }
       );
       const reply = extractText(ai).replace(/\*\*/g, '').trim();
@@ -940,7 +941,7 @@ export const initOmegaBot = () => {
     if (!owner) {
       if (data === 'ad:start') {
         const prices = getAdPricing()
-        let text = `🛒 <b>Реклама в канале @aiviralstudio</b>\n━━━━━━━━━━━━━━\n`
+        let text = `🛒 <b>Реклама в канале @${CHANNEL_USERNAME}</b>\n━━━━━━━━━━━━━━\n`
         Object.entries(prices).forEach(([k, v]) => { text += `\n• ${v.description} — ${v.price.toLocaleString('ru-RU')}₽` })
         text += `\n━━━━━━━━━━━━━━\nНапишите /ad ваш_текст`
         bot.sendMessage(chatId, text, { parse_mode: 'HTML' })

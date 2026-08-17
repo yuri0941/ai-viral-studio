@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
+import { CHANNEL_USERNAME } from '../config/bots.js';
 
 const AdOrderSchema = new mongoose.Schema({
   clientTelegramId: { type: String, required: true },
   clientUsername: String,
   clientName: String,
-  channelUsername: { type: String, default: '@aiviralstudio' },
+  channelUsername: { type: String, default: () => `@${CHANNEL_USERNAME}` },
   niche: String,
   slotType: { type: String, enum: ['1/24', '1/48', 'forever', 'story', 'native'], default: '1/24' },
   price: { type: Number, required: true },

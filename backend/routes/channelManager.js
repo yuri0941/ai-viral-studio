@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { protect, requireRole } from '../middleware/auth.js';
 import { generateChannelPost, publishToChannel, generateWeeklyCalendar, analyzeChannelGrowth } from '../services/channelManager.js';
+import { CHANNEL_USERNAME } from '../config/bots.js';
 
 const router = Router();
 
@@ -10,13 +11,13 @@ router.get('/', protect, async (req, res) => {
     const growth = await analyzeChannelGrowth().catch(() => null);
     res.json({
       success: true,
-      channel: process.env.TELEGRAM_CHANNEL || '@aiviralstudio',
+      channel: process.env.TELEGRAM_CHANNEL || `@${CHANNEL_USERNAME}`,
       configured: Boolean(process.env.TELEGRAM_BOT_TOKEN),
       growth: growth || { subscribers: 0, views: 0, posts: 0, growthRate: 0 }
     });
   } catch (err) {
     console.error('[channelManager/status]', err.message);
-    res.json({ success: true, channel: '@aiviralstudio', configured: false, growth: null });
+    res.json({ success: true, channel: `@${CHANNEL_USERNAME}`, configured: false, growth: null });
   }
 });
 

@@ -5,6 +5,8 @@ import { applyWatermarkToImage, canDisableWatermark } from '../services/watermar
 import { checkQuota } from '../services/usageQuotaService.js'
 import { UsageQuota } from '../models/index.js'
 import User from '../models/User.js'
+import { clientBotUrl } from '../config/bots.js'
+import { createConnectToken } from '../utils/telegramConnectStore.js'
 
 const router = express.Router()
 
@@ -126,16 +128,17 @@ router.get('/telegram-status', protect, async (req, res) => {
     try {
         const user = await User.findById(req.user._id).select('telegramId telegramUsername telegramChatId').lean()
         const userId = String(req.user._id || req.user.id)
+        const token = createConnectToken(userId)
         res.json({
             success: true,
             connected: !!user?.telegramId,
             telegramId: user?.telegramId || null,
             telegramUsername: user?.telegramUsername || null,
-            botLink: `https://t.me/aiviral_omega_bot?start=${userId}`
+            botLink: clientBotUrl(`connect_${token}`)
         })
     } catch (err) {
         console.error('[users/telegram-status]', err.message)
-        res.json({ success: true, connected: false, botLink: 'https://t.me/aiviral_omega_bot' })
+        res.json({ success: true, connected: false, botLink: clientBotUrl() })
     }
 })
 

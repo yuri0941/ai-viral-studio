@@ -24,6 +24,7 @@ import AdPricing from '../models/AdPricing.js'
 import PriceChangeLog from '../models/PriceChangeLog.js'
 import { analyzePricing, marginAfter } from './pricingAnalysis.js'
 import { getOwnerChatId, getOwnerChatIdSync } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
+import { OWNER_BOT_USERNAME, CHANNEL_USERNAME, CLIENT_BOT_USERNAME, OWNER_TELEGRAM_USERNAME, OWNER_NAME } from '../config/bots.js'
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -195,7 +196,7 @@ export const initOwnerBot = () => {
       safeSendMessage(chatId, '⛔ Только для владельца.');
       return;
     }
-    bot.sendMessage(chatId, `✦ <b>Панель управления</b> ✦\n━━━━━━━━━━━━━━\n<i>Владелец: @Tvinki013</i>\n\nВыберите действие:`, {
+    bot.sendMessage(chatId, `✦ <b>Панель управления</b> ✦\n━━━━━━━━━━━━━━\n<i>Владелец: @${OWNER_TELEGRAM_USERNAME}</i>\n\nВыберите действие:`, {
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
@@ -224,7 +225,7 @@ export const initOwnerBot = () => {
       `⏱  Uptime     ${uptimeMin} min`,
       `🧠  RAM        ${memMB} MB`,
       `🤖  OMEGA      ${aiStatus} Active`,
-      `📢  Channel    @aiviralstudio`,
+      `📢  Channel    @${CHANNEL_USERNAME}`,
       `</code></pre>`,
       `━━━━━━━━━━━━━━`,
       `<i>OMEGA Command Center</i>`
@@ -471,7 +472,7 @@ export const initOwnerBot = () => {
       const { checkChannelRights } = await import('./telegramChannelManager.js');
       const rights = await checkChannelRights(true);
       if (!rights.ok && rights.reason === 'no_rights') {
-        safeSendMessage(chatId, '❌ <b>Нет прав на публикацию</b>\n━━━━━━━━━━━━━━\nБот не админ канала или нет права «Публикация сообщений».\nКанал → Управление → Администраторы → @aiviral_omega_bot → включить «Публикация сообщений» ✅\nПосле включения напишите /posttest');
+        safeSendMessage(chatId, `❌ <b>Нет прав на публикацию</b>\n━━━━━━━━━━━━━━\nБот не админ канала или нет права «Публикация сообщений».\nКанал → Управление → Администраторы → @${CLIENT_BOT_USERNAME} → включить «Публикация сообщений» ✅\nПосле включения напишите /posttest`);
         return;
       }
       if (!rights.ok && rights.reason === 'no_config') {
@@ -592,7 +593,7 @@ export const initOwnerBot = () => {
 
       safeSendMessage(chatId,
         `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
-        `📢 Канал: ${pub.channel || '@aiviralstudio'}\n` +
+        `📢 Канал: ${pub.channel || `@${CHANNEL_USERNAME}`}\n` +
         `📝 Тип: ${type}\n` +
         `📝 Тема: ${topic}\n` +
         (pub.url ? `🔗 <a href="${pub.url}">Открыть пост</a>\n` : '') +
@@ -1359,7 +1360,7 @@ export const initOwnerBot = () => {
         const pendingOrders = await AdOrder.countDocuments({ status: 'pending' }).catch(() => 0);
         safeSendMessage(chatId,
           `📊 <b>Статистика</b>\n━━━━━━━━━━━━━━\n` +
-          `📢 Канал: ${stats.channel || '@aiviralstudio'}\n` +
+          `📢 Канал: ${stats.channel || `@${CHANNEL_USERNAME}`}\n` +
           `👥 Подписчики: ${stats.mock ? 'нет данных (проверьте telegram-ключи)' : stats.subscribers}\n` +
           `🎫 Открытые тикеты: ${openTickets}\n` +
           `🛒 Заявки на рекламу: ${pendingOrders}\n` +
@@ -1370,7 +1371,7 @@ export const initOwnerBot = () => {
       return;
     }
     if (data === 'owner:post') {
-      safeSendMessage(chatId, '📢 <b>Публикация</b>\n━━━━━━━━━━━━━━\nНапишите текст поста ответным сообщением.\nOMEGA опубликует в @aiviralstudio.');
+      safeSendMessage(chatId, `📢 <b>Публикация</b>\n━━━━━━━━━━━━━━\nНапишите текст поста ответным сообщением.\nOMEGA опубликует в @${CHANNEL_USERNAME}.`);
       global.ownerPostState = chatId;
       return;
     }

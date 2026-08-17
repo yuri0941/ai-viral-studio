@@ -3,6 +3,7 @@ import { useTranslation } from '../../hooks/useTranslation.js'
 import { request } from '../../services/api.js'
 import { MessageCircle, X, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { CLIENT_BOT_URL } from '../../config/bots.js'
 
 export default function SupportWidget() {
   const { t } = useTranslation()
@@ -86,7 +87,7 @@ export default function SupportWidget() {
               {sending ? <span className="animate-pulse">{t('common.sending') || 'Отправка...'}</span> : <><Send className="w-4 h-4" /> {t('common.send') || 'Отправить'}</>}
             </button>
             <a
-              href="https://t.me/aiviral_omega_bot"
+              href={CLIENT_BOT_URL}
               target="_blank"
               rel="noreferrer"
               className="block text-center text-xs text-violet-400 hover:text-violet-300"

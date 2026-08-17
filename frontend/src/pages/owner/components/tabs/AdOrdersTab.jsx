@@ -3,6 +3,7 @@ import { useTranslation } from '../../../../hooks/useTranslation.js'
 import { request } from '../../../../services/api.js'
 import { Megaphone, Loader2, RefreshCw, CheckCircle, XCircle, DollarSign, Gift, Video } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { OWNER_BOT_URL, CHANNEL_USERNAME } from '../../../../config/bots.js'
 
 const STATUS_META = {
   pending: { label: 'Ожидает', emoji: '⏳', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
@@ -101,7 +102,7 @@ export function AdOrdersTab() {
 
   const openVideoBot = () => {
     const text = encodeURIComponent(`/video ${videoTopic || 'новая тема'}`)
-    window.open(`https://t.me/aiviral_alerts_bot?start=${text}`, '_blank')
+    window.open(`${OWNER_BOT_URL}?start=${text}`, '_blank')
   }
 
   const filtered = useMemo(() => {
@@ -115,7 +116,7 @@ export function AdOrdersTab() {
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-violet-400" /> {t('adOrders.title') || 'Заказы рекламы'}
           </h2>
-          <p className="text-sm text-gray-400 mt-1">Реклама в канале @aiviralstudio</p>
+          <p className="text-sm text-gray-400 mt-1">Реклама в канале @{CHANNEL_USERNAME}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select value={filter} onChange={e => setFilter(e.target.value)} className="px-3 py-2 rounded-xl bg-[#15151c] border border-white/10 text-sm text-white outline-none focus:border-violet-500">

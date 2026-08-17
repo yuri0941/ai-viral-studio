@@ -8,8 +8,9 @@ import { createNode } from './cognitiveMesh.js';
 import { getWhitelist, getWhitelistPrompt, sanitizeLinks, escapeHtml } from './linkGuard.js';
 import { getSkillFactsForContext } from './skillService.js';
 import { validateTelegramHTML, stripHtml } from '../utils/telegramHtml.js';
+import { CHANNEL_USERNAME, CLIENT_BOT_USERNAME } from '../config/bots.js';
 
-const CHANNEL_SIGNATURE = '⚡️ <a href="https://t.me/aiviralstudio">@aiviralstudio</a> · <a href="https://aiviral-studio.ru">aiviral-studio.ru</a>';
+const CHANNEL_SIGNATURE = `⚡️ <a href="https://t.me/${CHANNEL_USERNAME}">@${CHANNEL_USERNAME}</a> · <a href="https://aiviral-studio.ru">aiviral-studio.ru</a>`;
 const MAX_POST_LEN = 900;
 
 function buildPrompt(topic, tone, skillFacts, extraRules = '') {
@@ -57,7 +58,7 @@ function auditPost(html) {
 
 function pickCtaUrl(topic) {
   // По смыслу: про бота — бот, иначе сайт
-  return /бот|bot|omega|попробуй|начать/i.test(topic) ? 'https://t.me/aiviral_omega_bot' : 'https://aiviral-studio.ru';
+  return /бот|bot|omega|попробуй|начать/i.test(topic) ? `https://t.me/${CLIENT_BOT_USERNAME}` : 'https://aiviral-studio.ru';
 }
 
 export async function buildLuxuryPost({ topic, niche = 'general', tone, language = 'ru' } = {}) {
