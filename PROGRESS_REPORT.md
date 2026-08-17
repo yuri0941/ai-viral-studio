@@ -1,4 +1,16 @@
 
+## 2026-08-18 — TG-FREETEXT-HOTFIX
+- [BACKEND] backend/services/omegaBot.js: добавлен статический импорт `isWebSearchQuery` из webSearch.js — устранён `ReferenceError` в `handleFreeText`
+- [BACKEND] backend/services/omegaBot.js: `handleFreeText` вынесена в модульную область и экспортирована; `history` теперь передаётся как `{role, content}`, а не сырые строки
+- [BACKEND] backend/services/omegaBot.js: `getBot()` берёт бота из `global.omegaBotInstance` — юнит-тесты могут подставлять stub; `handleFreeTextDeps` позволяет подменять зависимости (chatWithAI, FAQ, тикеты, диалоги, feedback, webSearch)
+- [BACKEND] backend/services/omegaBot.js: ошибки кода в `handleFreeText` больше не маскируются под «OMEGA временно недоступна» — клиент получает честный текст «Ошибка обработки сообщения», а в лог пишется причина
+- [BACKEND] backend/config/redis.js: `getJSON` проверяет `typeof raw !== 'string'` и возвращает объект как есть — устранён `SyntaxError: "[object Object]" is not valid JSON` из in-memory fallback
+- [CHECKS] node --check OK по backend/services/omegaBot.js, backend/config/redis.js, backend/tests/tg-freetext-unit.mjs
+- [CHECKS] Юнит-прогон (backend/tests/tg-freetext-unit.mjs): обычное сообщение, web-поиск, пустой/странный ввод, getJSON с объектом — 6/6 PASS
+- [CHECKS] npm run build OK (0 ошибок), dist собран
+- [GIT] Commit+push: fix/tg-freetext-hotfix
+- [NEXT] Владельцу: написать «привет» клиентскому боту → ответ без «OMEGA временно недоступна»
+
 ## 2026-08-18 — BOT-LINKS-TICKET-SYNC
 - [BACKEND] config/bots.js: fallback CLIENT_BOT_USERNAME → aiviral_alerts_bot, OWNER_BOT_USERNAME → omega_aiviral_bot (соответствует реальным env Render)
 - [BACKEND] routes/integrations.js: /telegram/url теперь строит deep-link через clientBotUrl из единого конфига, не зависит от TELEGRAM_BOT_LINK
