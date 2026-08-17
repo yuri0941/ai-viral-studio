@@ -19,7 +19,7 @@ const LANGS = ['ru', 'en']
 
 const PAGES = {
     public: ['/', '/login', '/register', '/unauthorized'],
-    creator: ['/dashboard', '/analytics', '/scheduler', '/video-creator', '/settings', '/settings?tab=subscription', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub'],
+    creator: ['/dashboard', '/analytics', '/scheduler', '/video-creator', '/settings', '/settings?tab=subscription', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/creative-hub/chat'],
     business: ['/dashboard', '/boardroom', '/business-spawner', '/settings'],
     advertiser: ['/advertiser', '/neuro-sales', '/settings'],
 }
@@ -76,7 +76,10 @@ async function apiPut(role, body) {
     } catch { /* best-effort */ }
 }
 
-const RAW_KEY_RE = /^[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*(\.|$)/
+// [CHAT-HOTFIX] 2+ сегмента: ловим и двусегментные сырые ключи (chat.placeholder и т.п.)
+const RAW_KEY_RE = /^[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*(\.|$)/
+// [CHAT-HOTFIX] домены/TLD — не i18n-ключи (studio.ru, yandex.ru)
+const RAW_KEY_DOMAIN_RE = /\.(ru|com|net|org|io|dev|app|me|ai|xyz|studio|guru|email)(\.|$)/i
 
 const summary = []
 let browser
@@ -157,7 +160,7 @@ async function checkPage(role, label, width, lang) {
         for (const b of buttons) {
             const flags = []
             if (!b.label && !b.hasIcon) flags.push('EMPTY')
-            if (b.label && RAW_KEY_RE.test(b.label)) flags.push('RAWKEY')
+            if (b.label && RAW_KEY_RE.test(b.label) && !RAW_KEY_DOMAIN_RE.test(b.label)) flags.push('RAWKEY')
             if (b.offscreen) flags.push('OFFSCREEN')
             if (b.tiny) flags.push('TINY')
             if (b.covered && !b.disabled) flags.push('COVERED')

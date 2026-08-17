@@ -3,6 +3,7 @@
 // ============================================
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useTranslation } from '../../hooks/useTranslation.js'
 import useOmegaChat from '../../hooks/useOmegaChat.js'
 import OmegaChat from '../omega/OmegaChat.jsx'
 import {
@@ -16,6 +17,7 @@ import {
     Sparkles,
     X,
     ChevronUp,
+    ChevronRight,
     Target,
     Calendar,
     ImageIcon,
@@ -103,6 +105,7 @@ function getSuggestions(mode) {
 
 export default function CreativeHub() {
     const { user } = useAuth()
+    const { t } = useTranslation()
     const role = user?.role || 'client'
     const roleMeta = getRoleMeta(role)
     const allowedModes = useMemo(() => HUB_ACCESS[role] || HUB_ACCESS.client, [role])
@@ -110,6 +113,7 @@ export default function CreativeHub() {
     const [mode, setMode] = useState(() => allowedModes.includes('chat') ? 'chat' : allowedModes[0] || 'chat')
     const [mobilePanel, setMobilePanel] = useState(null) // 'sessions' | 'menu' | null
     const [showInsightsSheet, setShowInsightsSheet] = useState(false)
+    const [insightsCollapsed, setInsightsCollapsed] = useState(false)
 
     // [v6.0] added: session list (stub; real persistence would live in backend/storage)
     const [sessions, setSessions] = useState([
@@ -262,66 +266,51 @@ export default function CreativeHub() {
         </div>
     )
 
-    // [v6.0] added: insights stat cards and previews
-    const InsightsColumn = () => (
-        <div className="flex flex-col gap-4 h-full overflow-hidden">
-            {/* stat cards */}
-            <div className="grid grid-cols-2 gap-3">
-                <div className="glass-card p-3">
-                    <div className="text-xs text-gray-400 mb-1">Вовлечённость</div>
-                    <div className="text-xl font-bold text-gray-100">4.2%</div>
-                    <div className="text-[10px] text-emerald-400 mt-1">+0.8% за неделю</div>
-                </div>
-                <div className="glass-card p-3">
-                    <div className="text-xs text-gray-400 mb-1">Охваты</div>
-                    <div className="text-xl font-bold text-gray-100">12.4K</div>
-                    <div className="text-[10px] text-emerald-400 mt-1">+1.2K сегодня</div>
-                </div>
-            </div>
+    // [chat-hotfix] unified insights panel: tabs + honest empty states (no stub data)
+    const INSIGHTS_TABS = [
+        { id: 'metrics', icon: PieChart, labelKey: 'hub.tab.metrics', emptyKey: 'hub.empty.metrics' },
+        { id: 'hooks', icon: Target, labelKey: 'hub.tab.hooks', emptyKey: 'hub.empty.hooks' },
+        { id: 'plan', icon: Calendar, labelKey: 'hub.tab.plan', emptyKey: 'hub.empty.plan' },
+        { id: 'preview', icon: ImageIcon, labelKey: 'hub.tab.preview', emptyKey: 'hub.empty.preview' },
+    ]
 
-            {/* hooks */}
-            <div className="glass-card p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
-                <div className="flex items-center gap-2 mb-3">
-                    <Target size={16} className="text-violet-400" />
-                    <h3 className="text-sm font-semibold text-gray-100">Хуки</h3>
+    const InsightsPanel = () => {
+        const [activeTab, setActiveTab] = useState('metrics')
+        const current = INSIGHTS_TABS.find(tab => tab.id === activeTab) || INSIGHTS_TABS[0]
+        const EmptyIcon = current.icon
+        return (
+            <div className="glass-card flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="flex items-center gap-1 p-2 border-b border-white/10">
+                    {INSIGHTS_TABS.map((tab) => {
+                        const TabIcon = tab.icon
+                        const active = tab.id === activeTab
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={[
+                                    'flex-1 flex items-center justify-center gap-1.5 px-2 min-h-[40px] rounded-lg text-xs font-medium transition-all',
+                                    active
+                                        ? 'bg-violet-500/15 text-violet-200 border border-violet-500/30'
+                                        : 'text-gray-400 hover:text-gray-100 hover:bg-white/5 border border-transparent',
+                                ].join(' ')}
+                            >
+                                <TabIcon size={14} />
+                                <span className="hidden 2xl:inline">{t(tab.labelKey)}</span>
+                            </button>
+                        )
+                    })}
                 </div>
-                <div className="space-y-2 overflow-y-auto pr-1">
-                    {['5 ошибок, которые убивают ваш охват', 'Этот трюк изменил мои Reels', 'Почему ваш контент не залипает'].map((h, i) => (
-                        <div key={i} className="p-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200">
-                            {h}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* plan */}
-            <div className="glass-card p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
-                <div className="flex items-center gap-2 mb-3">
-                    <Calendar size={16} className="text-cyan-400" />
-                    <h3 className="text-sm font-semibold text-gray-100">План</h3>
-                </div>
-                <div className="space-y-2 overflow-y-auto pr-1">
-                    {['Пн — разбор тренда', 'Ср — вирусный хук', 'Пт — карусель-гайд'].map((p, i) => (
-                        <div key={i} className="flex items-center gap-2 text-xs text-gray-300">
-                            <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
-                            {p}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* preview placeholder */}
-            <div className="glass-card p-4 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                    <ImageIcon size={16} className="text-amber-400" />
-                    <h3 className="text-sm font-semibold text-gray-100">Превью</h3>
-                </div>
-                <div className="h-24 rounded-xl bg-gradient-to-br from-violet-500/20 via-fuchsia-500/20 to-cyan-500/20 border border-white/10 flex items-center justify-center text-xs text-gray-400">
-                    Preview placeholder
+                <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        <EmptyIcon size={20} className="text-violet-300" />
+                    </div>
+                    <h4 className="text-sm font-semibold text-gray-200">{t(current.labelKey)}</h4>
+                    <p className="text-xs text-gray-500 leading-relaxed max-w-[220px]">{t(current.emptyKey)}</p>
                 </div>
             </div>
-        </div>
-    )
+        )
+    }
 
     return (
         <div className="dark min-h-screen luxury-mesh-bg text-[var(--text)] overflow-hidden">
@@ -356,7 +345,7 @@ export default function CreativeHub() {
 
             {/* [v6.0] added: main responsive grid */}
             <main
-                className="relative grid grid-cols-1 sm:grid-cols-[280px_1fr] lg:grid-cols-[280px_1fr_320px] gap-4 p-4 h-[calc(100vh-64px)] pb-24 sm:pb-4"
+                className={`relative grid grid-cols-1 sm:grid-cols-[280px_1fr] ${insightsCollapsed ? '' : 'xl:grid-cols-[280px_1fr_320px]'} gap-4 p-4 h-[calc(100vh-64px)] pb-24 sm:pb-4`}
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
             >
@@ -417,38 +406,52 @@ export default function CreativeHub() {
                     </div>
                 </section>
 
-                {/* [v6.0] added: right column — desktop only */}
-                <aside className="hidden lg:flex h-full overflow-hidden">
-                    <InsightsColumn />
-                </aside>
+                {/* [chat-hotfix] right column — single unified panel, collapsible, xl+ only */}
+                {!insightsCollapsed && (
+                    <aside className="hidden xl:flex flex-col h-full overflow-hidden">
+                        <div className="flex items-center justify-between mb-2 px-1">
+                            <h3 className="text-sm font-semibold text-gray-100">{t('hub.insights')}</h3>
+                            <button
+                                onClick={() => setInsightsCollapsed(true)}
+                                title={t('hub.collapse')}
+                                aria-label={t('hub.collapse')}
+                                className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
+                        <InsightsPanel />
+                    </aside>
+                )}
             </main>
 
-            {/* [v6.0] added: insights toggle for tablet/mobile */}
+            {/* [chat-hotfix] insights toggle — below xl (bottom sheet) or when desktop panel is collapsed */}
             <button
-                onClick={() => setShowInsightsSheet(true)}
-                className="fixed bottom-20 left-4 z-30 lg:hidden flex items-center gap-2 px-3 py-2 rounded-xl bg-violet-600 text-white text-xs font-medium shadow-lg shadow-violet-600/30 sm:bottom-4 sm:left-auto sm:right-4"
+                onClick={() => insightsCollapsed ? setInsightsCollapsed(false) : setShowInsightsSheet(true)}
+                className={`fixed bottom-20 left-4 z-30 items-center gap-2 px-4 min-h-[44px] rounded-xl bg-violet-600 text-white text-xs font-medium shadow-lg shadow-violet-600/30 hover:bg-violet-500 active:scale-95 transition sm:bottom-4 sm:left-auto sm:right-4 ${insightsCollapsed ? 'hidden xl:flex' : 'flex xl:hidden'}`}
             >
                 <PieChart size={14} />
-                Insights
+                {t('hub.insights')}
             </button>
 
             {/* [v6.0] added: insights bottom sheet */}
             {showInsightsSheet && (
-                <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setShowInsightsSheet(false)}>
+                <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm xl:hidden" onClick={() => setShowInsightsSheet(false)}>
                     <div
                         className="absolute bottom-16 sm:bottom-0 left-0 right-0 sm:max-w-2xl sm:mx-auto max-h-[70vh] bg-[var(--bg-secondary)]/95 border border-white/10 rounded-t-2xl p-4 overflow-y-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-sm font-semibold text-gray-100">Insights</h3>
+                            <h3 className="text-sm font-semibold text-gray-100">{t('hub.insights')}</h3>
                             <button
                                 onClick={() => setShowInsightsSheet(false)}
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300"
+                                aria-label={t('hub.collapse')}
+                                className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-gray-300"
                             >
                                 <ChevronUp size={16} />
                             </button>
                         </div>
-                        <InsightsColumn />
+                        <InsightsPanel />
                     </div>
                 </div>
             )}
@@ -551,7 +554,7 @@ export default function CreativeHub() {
                             className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-200 text-sm font-medium"
                         >
                             <PieChart size={16} />
-                            Insights
+                            {t('hub.insights')}
                         </button>
                     </div>
                 </div>

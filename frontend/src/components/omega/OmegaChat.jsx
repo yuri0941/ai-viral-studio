@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye } from "lucide-react";
+import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import OnboardingTour from "../onboarding/OnboardingTour.jsx";
@@ -222,6 +222,8 @@ export default function OmegaChat({
   const [feedbackGiven, setFeedbackGiven] = useState(null);
   const [previewHtml, setPreviewHtml] = useState(null);
   const [previewPlatform, setPreviewPlatform] = useState('instagram');
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const dragDepthRef = useRef(0);
   const fileInputRef = useRef(null);
   const { speak, stop, playingId, loadingId, settings, setSettings } = useTTS();
 
@@ -404,22 +406,52 @@ export default function OmegaChat({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('Пожалуйста, выберите изображение');
+      toast(t('chat.fileSoon'), { duration: 4000, icon: '📎' });
       return;
     }
+    attachImageFile(file);
+  };
+
+  const attachImageFile = (file) => {
     const reader = new FileReader();
     reader.onload = (ev) => setAttachment({ name: file.name, type: file.type, base64: ev.target.result });
     reader.readAsDataURL(file);
   };
 
-  const handleDrop = (e) => {
+  const hasDraggedFiles = (e) => Array.from(e.dataTransfer?.types || []).includes('Files');
+
+  const handleDragEnter = (e) => {
+    if (!hasDraggedFiles(e)) return;
     e.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDraggingFile(true);
+  };
+
+  const handleDragOver = (e) => {
+    if (!hasDraggedFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleDragLeave = (e) => {
+    if (!hasDraggedFiles(e)) return;
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDraggingFile(false);
+  };
+
+  const handleDrop = (e) => {
+    if (!hasDraggedFiles(e)) return;
+    e.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDraggingFile(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setAttachment({ name: file.name, type: file.type, base64: ev.target.result });
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (file.type.startsWith('image/')) {
+      attachImageFile(file);
+      return;
     }
+    // Backend /api/upload принимает и видео, но чат пока не анализирует файлы — честно говорим об этом
+    toast(t('chat.fileSoon'), { duration: 4000, icon: '📎' });
   };
 
   const openPlatformPreview = (html) => {
@@ -435,7 +467,21 @@ export default function OmegaChat({
   };
 
   return (
-    <div className={`flex flex-col bg-[#0a0a0f] text-white ${variant === 'fullscreen' ? 'h-[100dvh] md:h-[calc(100vh-80px)]' : 'h-full min-h-0'}`}>
+    <div
+      className={`relative flex flex-col bg-[#0a0a0f] text-white ${variant === 'fullscreen' ? 'h-[100dvh] md:h-[calc(100vh-80px)]' : 'h-full min-h-0'}`}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDraggingFile && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-violet-950/60 backdrop-blur-sm border-2 border-dashed border-violet-400/70 rounded-none pointer-events-none">
+          <div className="flex flex-col items-center gap-3 px-6 py-8 rounded-2xl bg-[#0a0a0f]/80 border border-violet-400/30 shadow-xl shadow-violet-500/20">
+            <FileUp className="w-10 h-10 text-violet-300 animate-bounce" />
+            <p className="text-sm font-medium text-violet-200 text-center">{t('chat.dropHint')}</p>
+          </div>
+        </div>
+      )}
       {!embedded && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
           <div className="flex items-center gap-3">
@@ -539,14 +585,14 @@ export default function OmegaChat({
         {feedbackId && !feedbackGiven && (
           <div className="flex justify-center mt-2">
             <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/[0.04] border border-white/[0.08]">
-              <span className="text-xs text-gray-400">Оцените ответ:</span>
+              <span className="text-xs text-gray-400">{t('chat.ratePrompt')}</span>
               <button onClick={() => submitFeedback(feedbackId, '👍')} className="text-lg hover:scale-110 transition">👍</button>
               <button onClick={() => submitFeedback(feedbackId, '👎')} className="text-lg hover:scale-110 transition">👎</button>
             </div>
           </div>
         )}
         {feedbackGiven && (
-          <div className="text-center text-xs text-gray-500 mt-1">Спасибо за оценку! {feedbackGiven}</div>
+          <div className="text-center text-xs text-gray-500 mt-1">{t('chat.feedbackThanks')} {feedbackGiven}</div>
         )}
         <div ref={bottomRef} />
       </div>
@@ -631,14 +677,14 @@ export default function OmegaChat({
             <button
               type="button"
               onClick={() => setSupportMode(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-xs text-gray-300 hover:text-white transition"
+              className="flex items-center gap-1.5 px-3 min-h-[40px] rounded-lg bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] text-xs text-gray-300 hover:text-white transition"
             >
               <MessageCircle className="w-3.5 h-3.5" /> {t('chat.support') || 'Поддержка'}
             </button>
             <button
               type="button"
               onClick={() => window.open('https://t.me/aiviral_omega_bot', '_blank')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-xs text-gray-300 hover:text-white transition"
+              className="flex items-center gap-1.5 px-3 min-h-[40px] rounded-lg bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] text-xs text-gray-300 hover:text-white transition"
             >
               <TelegramIcon className="w-3.5 h-3.5" /> {t('chat.telegram') || 'Telegram'}
             </button>
@@ -648,7 +694,7 @@ export default function OmegaChat({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.06] transition"
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.12] transition"
             title={t('chat.attach') || 'Прикрепить'}
           >
             <Paperclip className="w-5 h-5" />
@@ -667,7 +713,7 @@ export default function OmegaChat({
             onKeyDown={handleKeyDown}
             placeholder={t('chat.placeholder')}
             disabled={loading}
-            className="flex-1 h-12 bg-transparent text-base outline-none text-white placeholder-gray-500 disabled:opacity-50"
+            className="flex-1 min-w-0 h-12 bg-transparent text-base outline-none text-white placeholder-gray-500 disabled:opacity-50"
           />
           <select
             value={recognitionLang}

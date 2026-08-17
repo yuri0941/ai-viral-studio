@@ -1,3 +1,15 @@
+## 2026-08-17 — CHAT-HOTFIX
+- [FRONTEND] OmegaChat: сырые i18n-ключи заменены переводами (chat.* в ru/en, src + public), fallback-логика useTranslation/i18n
+- [FRONTEND] CreativeHub: единая панель (chat/analyzer/viral/planner), полировка мобильной раскладки
+- [FRONTEND] OmegaChat: drag&drop картинок в чат (dragenter/over/leave/drop, оверлей-подсказка, превью-чип с ✕)
+- [FRONTEND] OmegaChat: composer overflow fix — input flex-1 без min-w-0 выталкивал кнопку «Отправить» за viewport на 360/428 (найдено пересъёмом, проверено probe)
+- [SCRIPTS] ui-audit.mjs/ui-buttons.mjs: фильтр false-positive RAW-KEYS (домены studio.ru/yandex.ru, email uitest.creator@...)
+- [CHECKS] npm run build OK; ui-audit 378 снимков (все роли × 360/428/768/1280/1920 × RU/EN): 0 сырых ключей, 0 скроллов, 0 console errors, 21 ожидаемый probe-редирект; ui-buttons 220 страниц: 0 RAWKEY/EMPTY/TINY
+- [CHECKS] Drag&drop: playwright-скрипт (.tmp-ui-polish/dnd-test.mjs) — drop PNG на 360/1280, превью-чип виден, 0 console errors
+- [CHECKS] COVERED/OFFSCREEN флаги кнопок разобраны: composer кликабелен реальными кликами (360/1280), чипы — скроллящаяся полоса (overflow-x-auto, by design); scheduler «Удалить»/«Загрузить» OFFSCREEN — pre-existing, вне scope
+- [GIT] Commit+push: fix/chat-hotfix (fea6f309), compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/chat-hotfix
+- [NEXT] Владельцу: ручная проверка drag&drop на телефоне после деплоя, merge PR
+
 ## 2026-08-15 — BACKUP-ALERTS-FIX
 - [BACKEND] disasterRecovery.js: бэкап MongoDB переписан на JS-драйвер (BSON/EJSON → JSONL → gzip → zip), без внешнего mongodump
 - [BACKEND] Бэкап проверен: локальный MongoDB → backup_2026-08-15-20-43-35.zip 537 байт, 1 коллекция, 1 документ; восстановление из zip тоже работает
