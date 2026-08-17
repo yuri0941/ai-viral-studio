@@ -9,6 +9,7 @@ import { omegaApi, voiceApi, request } from "../../services/api.js";
 import { playSound } from "../../hooks/useSound.js";
 import { useTTS } from "../../hooks/useTTS.js";
 import toast from "react-hot-toast";
+import { CLIENT_BOT_URL } from "../../config/bots.js";
 const ACTION_BUTTONS = [
   { id: 'hook', label: 'chat.action.hook', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для вирусного контента' },
   { id: 'script', label: 'chat.action.script', icon: '📝', prompt: 'Напиши сценарий Reels/Shorts для AI Viral Studio' },
@@ -653,7 +654,7 @@ export default function OmegaChat({
             <button onClick={() => setSupportMode(false)} className="px-4 py-2 rounded-lg bg-white/5 text-gray-300 text-sm hover:text-white transition">{t('chat.cancel')}</button>
           </div>
           <p className="mt-2 text-[10px] text-gray-500">
-            {t('chat.orTelegram')} <a href="https://t.me/aiviral_omega_bot" target="_blank" rel="noreferrer" className="text-violet-400 hover:underline">Telegram</a>
+            {t('chat.orTelegram')} <a href={CLIENT_BOT_URL} target="_blank" rel="noreferrer" className="text-violet-400 hover:underline">Telegram</a>
           </p>
         </div>
       )}
@@ -683,7 +684,7 @@ export default function OmegaChat({
             </button>
             <button
               type="button"
-              onClick={() => window.open('https://t.me/aiviral_omega_bot', '_blank')}
+              onClick={() => window.open(CLIENT_BOT_URL, '_blank')}
               className="flex items-center gap-1.5 px-3 min-h-[40px] rounded-lg bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] text-xs text-gray-300 hover:text-white transition"
             >
               <TelegramIcon className="w-3.5 h-3.5" /> {t('chat.telegram') || 'Telegram'}

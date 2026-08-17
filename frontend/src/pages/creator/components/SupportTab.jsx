@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, MessageCircle, History, Loader2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { request } from '../../../services/api.js';
+import { CLIENT_BOT_URL, clientBotUrl } from '../../../config/bots.js';
 
 const STATUS_LABELS = {
   open: 'Открыт',
@@ -76,7 +77,7 @@ export default function SupportTab() {
           <p className="text-sm text-[var(--text-muted)] mt-1">{t('support.subtitle') || 'Создайте тикет — OMEGA или команда ответит вам.'}</p>
         </div>
         <a
-          href="https://t.me/aiviral_omega_bot"
+          href={CLIENT_BOT_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] text-sm hover:border-[var(--primary)]/50 transition-colors"
@@ -145,7 +146,7 @@ export default function SupportTab() {
                     <p className="text-xs text-[var(--text-muted)] truncate">{ticket.description}</p>
                     {/* [P2.1] сквозная кнопка: диалог продолжается в TG-боте, ответ владельца придёт туда */}
                     <a
-                      href={`https://t.me/aiviral_omega_bot?start=support_${ticket._id}`}
+                      href={clientBotUrl(`support_${ticket._id}`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 min-h-[36px] rounded-lg bg-sky-500/15 border border-sky-500/25 text-sky-400 text-xs font-medium hover:bg-sky-500/25 transition-colors"

@@ -3,6 +3,7 @@ import { publishLuxuryPost } from '../../services/postBuilder.js';
 import { createTicket } from '../../services/supportService.js';
 import { analyzeDailyPerformance } from '../../services/selfReflection.js';
 import { generateOptimizationReport } from '../../services/performanceMonitor.js';
+import { CHANNEL_USERNAME } from '../../config/bots.js';
 
 export async function executeAction({ intent, text, chatId, userRole, bot }) {
   const safeSend = (msg, opts) => bot.sendMessage(chatId, msg, { parse_mode: 'HTML', ...opts });
@@ -17,7 +18,7 @@ export async function executeAction({ intent, text, chatId, userRole, bot }) {
         if (!pub?.success) throw new Error(pub?.error || 'Публикация не удалась');
         safeSend(
           `✅ <b>Пост опубликован!</b>\n━━━━━━━━━━━━━━\n` +
-          `📢 Канал: ${pub.channel || '@aiviralstudio'}\n📝 Тема: ${topic}\n🖼 Медиа: ${pub.mediaType || 'text'}\n⏰ ${new Date().toLocaleString('ru-RU')}` +
+          `📢 Канал: ${pub.channel || `@${CHANNEL_USERNAME}`}\n📝 Тема: ${topic}\n🖼 Медиа: ${pub.mediaType || 'text'}\n⏰ ${new Date().toLocaleString('ru-RU')}` +
           (pub.appliedSkills?.length ? `\n🧠 Применены навыки: ${pub.appliedSkills.join(', ')}` : '') +
           (pub.url ? `\n\n🔗 <a href="${pub.url}">Открыть пост</a>` : `\n\n🔎 Проверьте канал — message_id: ${pub.messageId}`)
         );
@@ -32,7 +33,7 @@ export async function executeAction({ intent, text, chatId, userRole, bot }) {
       const mongoStatus = mongoose.connection.readyState === 1 ? '🟢 OK' : '🔴 Нет связи';
       const uptimeMin = Math.floor(process.uptime() / 60);
       const memMB = Math.round(process.memoryUsage().rss / 1024 / 1024);
-      safeSend(`📊 <b>Статус OMEGA</b>\n🗄 MongoDB: ${mongoStatus}\n⏱ Uptime: ${uptimeMin} мин\n🧠 RAM: ${memMB} MB\n🤖 OMEGA: 🟢 Активна\n📢 Канал: @aiviralstudio`);
+      safeSend(`📊 <b>Статус OMEGA</b>\n🗄 MongoDB: ${mongoStatus}\n⏱ Uptime: ${uptimeMin} мин\n🧠 RAM: ${memMB} MB\n🤖 OMEGA: 🟢 Активна\n📢 Канал: @${CHANNEL_USERNAME}`);
       return { success: true, action: 'status' };
     }
     case 'improve': {

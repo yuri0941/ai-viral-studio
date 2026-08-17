@@ -1,7 +1,8 @@
 import { chatWithAI, extractText } from './aiService.js';
+import { CHANNEL_USERNAME } from '../config/bots.js';
 
 const FORMATS = {
-  post: 'Пост в Telegram-канале @aiviralstudio',
+  post: `Пост в Telegram-канале @${CHANNEL_USERNAME}`,
   story: 'Сторис с тегом',
   banner: 'Баннер в приложении',
   newsletter: 'Email-рассылка',

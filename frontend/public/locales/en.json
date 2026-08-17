@@ -2435,6 +2435,17 @@
       "market": "market access"
     }
   },
+  "instruction": {
+    "vk": {
+      "title": "How to get a VK community key",
+      "step1": "Open community management → Settings → API access.",
+      "step2": "Create a key with wall, photos, video, docs, stories permissions.",
+      "step3": "Allow community management access.",
+      "step4": "Copy the key (starts with vk1.a…).",
+      "step5": "Paste the key into the «Community key» field and click «Save».",
+      "step6": "Click «Test» to verify publishing works."
+    }
+  },
   "discord": {
     "connectTitle": "Connect Discord webhook"
   },

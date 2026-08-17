@@ -6,6 +6,7 @@ import { useDashboardData } from '../../hooks/useDashboardData'
 import { useNotifications } from '../../hooks/useNotifications'
 import { ownerApi } from '../../services/api'
 import { API_URL } from '../../config'
+import { ownerBotUrl } from '../../config/bots.js'
 import toast from 'react-hot-toast'
 
 export default function OwnerAppPage() {
@@ -71,7 +72,7 @@ export default function OwnerAppPage() {
     }
 
     const handleTelegramStatus = () => {
-        window.open('https://t.me/your_bot_username?start=status', '_blank')
+        window.open(ownerBotUrl('status'), '_blank')
     }
 
     const handleRedeploy = () => {

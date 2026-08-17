@@ -2,14 +2,16 @@
 // Только рабочие ссылки: whitelist проекта или HEAD-проверка (200). Остальные → сайт проекта.
 // Убирает сырой markdown (**звёздочки**) из текстов канала — parse_mode HTML везде.
 
+import { CLIENT_BOT_USERNAME, CHANNEL_USERNAME } from '../config/bots.js';
+
 const FALLBACK_URL = 'https://aiviral-studio.ru';
 
 export function getWhitelist() {
   const list = [
     'https://aiviral-studio.ru',
     'https://www.aiviral-studio.ru',
-    'https://t.me/aiviralstudio',
-    'https://t.me/aiviral_omega_bot',
+    `https://t.me/${CHANNEL_USERNAME}`,
+    `https://t.me/${CLIENT_BOT_USERNAME}`,
   ];
   if (process.env.FRONTEND_URL) list.push(process.env.FRONTEND_URL.replace(/\/$/, ''));
   const channel = process.env.TELEGRAM_CHANNEL || process.env.TELEGRAM_CHANNEL_ID || '';

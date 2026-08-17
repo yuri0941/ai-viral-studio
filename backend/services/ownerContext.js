@@ -1,5 +1,6 @@
 import { queryMesh } from './cognitiveMesh.js';
 import { getOwnerChatIdSync } from '../models/OwnerSettings.js'; // [OWNER-REMOTE-CONTROL]
+import { OWNER_NAME, clientBotUrl } from '../config/bots.js';
 
 export function isOwner(chatId) {
   return chatId.toString() === getOwnerChatIdSync()?.toString();
@@ -24,7 +25,7 @@ export async function getOwnerContext(chatId) {
 
   return {
     isOwner: true,
-    name: 'Юрий',
+    name: OWNER_NAME,
     recentDecisions,
     activeProjects,
     style: personality[0]?.metadata?.profile || {},
@@ -38,7 +39,7 @@ export async function getSmartGreeting(context) {
       text: '👋 Добро пожаловать в AI Viral Studio!\n\nЗдесь вы можете узнать о наших услугах или связаться с владельцем.',
       buttons: [
         [{ text: '🌐 Перейти на сайт', url: 'https://aiviral-studio.ru' }],
-        [{ text: '💬 Написать владельцу', url: 'https://t.me/owner_username' }]
+        [{ text: '💬 Написать владельцу', url: clientBotUrl() }]
       ]
     };
   }
@@ -48,7 +49,7 @@ export async function getSmartGreeting(context) {
   if (style === 'energetic') greeting += ' 🔥';
   if (style === 'calm') greeting += ' ☕';
 
-  let text = `👑 <b>${greeting}, Юрий!</b>\n\n`;
+  let text = `👑 <b>${greeting}, ${OWNER_NAME}!</b>\n\n`;
   text += `🤖 OMEGA готова к работе. `;
   if (context.activeProjects?.length > 0) {
     text += `Активных проектов: ${context.activeProjects.length}. `;

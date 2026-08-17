@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Key, Check, Trash2, Zap, Globe, Sparkles, Brain, Cpu, Flame, Cloud, MessageSquare, Mic, Youtube, Search, Bot, Image, Server, RefreshCw, X, Eye, EyeOff, Send, CreditCard, Mail, Bell, Database, Hash, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { request } from '../../../../services/api.js';
+import { CLIENT_BOT_USERNAME, OWNER_BOT_USERNAME } from '../../../../config/bots.js';
 
 function VKIcon({ className }) {
   return (
@@ -38,8 +39,8 @@ const PROVIDERS = [
   { id: 'vk', name: 'VK Client ID', desc: 'ID приложения VK (например: 54714375)', placeholder: '54714375', icon: VKIcon, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', group: 'social' },
   { id: 'vk_secret', name: 'VK Client Secret', desc: 'Защищённый ключ из приложения VK', placeholder: 'Вставьте защищённый ключ', icon: VKIcon, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', group: 'social' },
   // === Telegram ===
-  { id: 'telegram_bot', name: 'Telegram Bot Token', desc: 'Клиентский бот @aiviral_omega_bot', placeholder: '123456:ABC-DEF...', icon: Send, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'telegram' },
-  { id: 'telegram_owner_bot', name: 'Owner Bot Token', desc: 'Бот владельца @aiviral_alerts_bot', placeholder: '123456:ABC-DEF...', icon: Send, color: 'text-sky-300', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'telegram' },
+  { id: 'telegram_bot', name: 'Telegram Bot Token', desc: `Клиентский бот @${CLIENT_BOT_USERNAME}`, placeholder: '123456:ABC-DEF...', icon: Send, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'telegram' },
+  { id: 'telegram_owner_bot', name: 'Owner Bot Token', desc: `Бот владельца @${OWNER_BOT_USERNAME}`, placeholder: '123456:ABC-DEF...', icon: Send, color: 'text-sky-300', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'telegram' },
   { id: 'telegram_chat_id', name: 'Owner Chat ID', desc: 'Telegram ID владельца для алертов', placeholder: '2130452126', icon: Hash, color: 'text-sky-200', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'telegram' },
   // === Платежи ===
   { id: 'yookassa_shop_id', name: 'ЮKassa Shop ID', desc: 'ID магазина ЮKassa', placeholder: '123456', icon: Wallet, color: 'text-violet-300', bg: 'bg-violet-500/10', border: 'border-violet-500/20', group: 'payments' },

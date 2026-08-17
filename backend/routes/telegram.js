@@ -5,9 +5,10 @@ import { generateChannelPost, publishToChannel, getChannelStats, generateWeeklyC
 import { getMenu, generateMenuImprovements, applyMenuChanges, addCustomButton, toggleButton } from '../services/telegramMenuService.js';
 import { integrationStatus } from '../utils/integrationStatus.js';
 import { createConnectToken } from '../utils/telegramConnectStore.js';
+import { clientBotUrl } from '../config/bots.js';
 
 const router = Router();
-const BOT_LINK = process.env.TELEGRAM_BOT_LINK || process.env.TELEGRAM_OMEGA_BOT_LINK || 'https://t.me/aiviral_omega_bot';
+const BOT_LINK = clientBotUrl();
 
 function getOwnerId(req) {
   return req.user?.id || req.user?._id;
