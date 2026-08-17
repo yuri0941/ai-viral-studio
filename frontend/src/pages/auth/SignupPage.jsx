@@ -262,7 +262,8 @@ export default function SignupPage() {
 
           {step < 5 && (
             <div className="flex items-center justify-between mt-8">
-              <button disabled={step === 1} onClick={() => setStep(s => s - 1)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-sm disabled:opacity-30">
+              {/* [LANDING-RESTORE] на шаге 1 «Назад» ведёт на лендинг (раньше кнопка была disabled — назад уйти было нельзя) */}
+              <button onClick={() => (step === 1 ? navigate('/') : setStep(s => s - 1))} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-sm hover:border-[var(--primary)]/40 transition-colors">
                 <ArrowLeft className="w-4 h-4" /> Назад
               </button>
               <button onClick={submit} disabled={!stepValid() || loading} className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--primary)] text-[var(--text-on-primary)] text-sm font-medium disabled:opacity-50">

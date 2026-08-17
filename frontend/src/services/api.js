@@ -69,7 +69,9 @@ function getAuthHeaders() {
 async function request(path, options = {}) {
     const url = `${API_BASE}${path}`
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-    const { noRetry = false, ...fetchOptions } = options
+    // [LANDING-RESTORE] опция timeout (мс): fetch прерывается через AbortSignal.timeout —
+    // публичные данные лендинга не висят вечно на спящем/упавшем API
+    const { noRetry = false, timeout, ...fetchOptions } = options
     const retryCount = options.__retryCount || 0
     const MAX_RETRY = 5
 
@@ -79,6 +81,7 @@ async function request(path, options = {}) {
     try {
         res = await fetch(url, {
             ...fetchOptions,
+            ...(timeout ? { signal: AbortSignal.timeout(timeout) } : {}),
             headers: {
                 'Content-Type': 'application/json',
                 ...(token && { Authorization: `Bearer ${token}` }),
@@ -354,7 +357,7 @@ export const launchApi = {
     waitlistPosition: (email) => request(`/launch/waitlist/position/${encodeURIComponent(email)}`),
     applyReferral: (email, referralCode) => request('/launch/waitlist/referral', { method: 'POST', body: JSON.stringify({ email, referralCode }) }),
     boost: (email, action) => request('/launch/waitlist/boost', { method: 'POST', body: JSON.stringify({ email, action }) }),
-    betaSlots: () => request('/launch/beta/slots'),
+    betaSlots: (opts) => request('/launch/beta/slots', opts),
     foundingMembers: () => request('/launch/waitlist/founding-members'),
 }
 
@@ -362,12 +365,13 @@ export const launchApi = {
 // [P1.6-PREP] PlanConfig (живые тарифы) + отзывы лендинга
 // ============================================
 export const planConfigApi = {
-    list: () => request('/plan-config'),
+    // [LANDING-RESTORE] opts: лендинг передаёт { timeout, noRetry } — тарифы не висят спиннером
+    list: (opts) => request('/plan-config', opts),
     update: (plan, payload) => request(`/plan-config/${encodeURIComponent(plan)}`, { method: 'PUT', body: JSON.stringify(payload) }),
 }
 
 export const testimonialsApi = {
-    list: () => request('/testimonials'),
+    list: (opts) => request('/testimonials', opts),
     listAll: () => request('/testimonials/all'),
     create: (data) => request('/testimonials', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => request(`/testimonials/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -493,7 +497,7 @@ export const ownerRequisitesApi = {
 export const ownerLegalInfoApi = {
     get: () => request('/owner/legal-info'),
     save: (data) => request('/owner/legal-info', { method: 'PUT', body: JSON.stringify(data) }),
-    public: () => request('/owner/legal-info/public'),
+    public: (opts) => request('/owner/legal-info/public', opts),
 }
 
 // ============================================

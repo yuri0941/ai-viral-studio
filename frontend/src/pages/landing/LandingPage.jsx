@@ -6,12 +6,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Sparkles, Bot, BarChart3, Factory, Telescope, Calendar, Check, ChevronDown, ArrowRight, Send, Mail, Menu, X, Loader2 } from 'lucide-react'
+import { Sparkles, Bot, BarChart3, Factory, Telescope, Calendar, Check, ChevronDown, ArrowRight, Send, Mail, Menu, X, Loader2, Twitter, Youtube } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
-import { API_BASE_URL } from '../../config.js'
-import { planConfigApi, testimonialsApi, launchApi } from '../../services/api.js'
+import { API_BASE_URL, API_URL } from '../../config.js'
+import { planConfigApi, testimonialsApi, launchApi, ownerLegalInfoApi } from '../../services/api.js'
 import { clientBotUrl, channelUrl } from '../../config/bots.js'
 import AuthModal from '../../components/auth/AuthModal'
+import { PWAInstallButton } from '../../components/pwa/PWAInstallButton'
 import ViralDemo from './ViralDemo.jsx'
 import BetaCounter from '../../components/landing/BetaCounter.jsx'
 import WaitlistSection from './WaitlistSection.jsx'
@@ -20,6 +21,18 @@ const FEATURE_ICONS = { aiContent: Bot, tgBot: Send, analytics: BarChart3, facto
 const FEATURE_KEYS = ['aiContent', 'tgBot', 'analytics', 'factory', 'forecasts', 'autoPublish']
 const STEP_KEYS = ['s1', 's2', 's3', 's4']
 const FAQ_KEYS = ['q1', 'q2', 'q3', 'q4']
+
+// [LANDING-RESTORE] таймаут публичных запросов лендинга: спящий/упавший API не должен
+// давать вечный спиннер — через 9с показываем встроенный фолбэк
+const PUBLIC_FETCH_OPTS = { timeout: 9000, noRetry: true }
+
+// [LANDING-RESTORE] фолбэк-тарифы = дефолты backend/models/PlanConfig.js (free 0 / pro 990 / agency 4990).
+// Используются ТОЛЬКО когда PlanConfig API недоступен; факт уходит в console.warn.
+const FALLBACK_PLANS = [
+  { plan: 'free', price: 0, currency: 'RUB', quotas: { generationsPerDay: 20, youtubeUploadsPerDay: 2, youtubeChannels: 1, mediaQueueMB: 500, scheduledPostsMax: 10, aiTagsPerDay: 5 }, features: { publishAt: true } },
+  { plan: 'pro', price: 990, currency: 'RUB', quotas: { generationsPerDay: 200, youtubeUploadsPerDay: 5, youtubeChannels: 3, mediaQueueMB: 5120, scheduledPostsMax: 100, aiTagsPerDay: 50 }, features: { publishAt: true, playlists: true, brandVoice: true, abTesting: true, analytics: true } },
+  { plan: 'agency', price: 4990, currency: 'RUB', quotas: { generationsPerDay: 1000, youtubeUploadsPerDay: 10, youtubeChannels: 10, mediaQueueMB: 25600, scheduledPostsMax: 0, aiTagsPerDay: 200 }, features: { publishAt: true, playlists: true, brandVoice: true, abTesting: true, analytics: true, whiteLabel: true } },
+]
 
 // [LANDING-UNIFY] лёгкий scroll-reveal на IntersectionObserver (без тяжёлых библиотек)
 function Reveal({ children, className = '', delay = 0 }) {
@@ -52,27 +65,51 @@ export default function LandingPage({ authMode = null }) {
   const [waitlistEmail, setWaitlistEmail] = useState('')
   const [waitlistLoading, setWaitlistLoading] = useState(false)
   const [waitlistStatus, setWaitlistStatus] = useState(null)
-  // [LANDING-UNIFY] /login отдаёт этот же лендинг с открытой модалкой входа (форма не тронута)
+  // [LANDING-UNIFY] /login и /register отдают этот же лендинг с открытой модалкой (форма не тронута)
+  // [LANDING-RESTORE] фикс прод-бага «Войти не открывает модалку»: переход / → /login
+  // обновляет пропс authMode БЕЗ ремонта (тот же тип компонента), useState не перечитывался —
+  // синхронизируем открытие модалки через useEffect
   const [authOpen, setAuthOpen] = useState(!!authMode)
+  useEffect(() => { if (authMode) setAuthOpen(true) }, [authMode])
 
   // [P1.6-PREP] живые данные: тарифы из PlanConfig, отзывы из БД, founding-статус
   const [plans, setPlans] = useState(null)
-  const [plansError, setPlansError] = useState(false)
   const [testimonials, setTestimonials] = useState([])
   const [foundingActive, setFoundingActive] = useState(false)
+  // [LANDING-RESTORE] правовая строка владельца (auto-update из его кабинета) — в legacy
+  // запрос был, но данные не рендерились; теперь рендерится в футере
+  const [legalInfo, setLegalInfo] = useState(null)
 
   useEffect(() => {
     let mounted = true
-    planConfigApi.list()
-      .then(res => { if (mounted) setPlans(Array.isArray(res?.plans) ? res.plans : []) })
-      .catch(() => { if (mounted) { setPlans([]); setPlansError(true) } })
-    testimonialsApi.list()
+    planConfigApi.list(PUBLIC_FETCH_OPTS)
+      .then(res => { if (mounted) setPlans(Array.isArray(res?.plans) && res.plans.length ? res.plans : FALLBACK_PLANS) })
+      .catch((err) => {
+        console.warn('[landing] PlanConfig недоступен, показываю встроенный фолбэк тарифов:', err?.message || err)
+        if (mounted) setPlans(FALLBACK_PLANS)
+      })
+    testimonialsApi.list(PUBLIC_FETCH_OPTS)
       .then(res => { if (mounted) setTestimonials(Array.isArray(res?.testimonials) ? res.testimonials : []) })
       .catch(() => { if (mounted) setTestimonials([]) })
-    launchApi.betaSlots()
+    launchApi.betaSlots(PUBLIC_FETCH_OPTS)
       .then(res => { if (mounted) setFoundingActive(!!res?.data?.foundingActive) })
-      .catch(() => { if (mounted) setFoundingActive(false) })
+      .catch(() => { if (mounted) setFoundingActive(true) }) // [LANDING-RESTORE] фолбэк: founding −30% отображается и при упавшем API
+    ownerLegalInfoApi.public(PUBLIC_FETCH_OPTS)
+      .then(res => { if (mounted) setLegalInfo(res?.legalInfo || null) })
+      .catch(() => { if (mounted) setLegalInfo(null) })
     return () => { mounted = false }
+  }, [])
+
+  // [LANDING-RESTORE] P1.5-METRICS visit beacon (был в legacy, потерян при Б2):
+  // не чаще 1 раза/сутки с браузера, без персональных данных
+  useEffect(() => {
+    try {
+      const KEY = 'avs_visit_ts'
+      const last = Number(localStorage.getItem(KEY) || 0)
+      if (Date.now() - last < 24 * 60 * 60 * 1000) return
+      localStorage.setItem(KEY, String(Date.now()))
+      fetch(`${API_URL}/metrics/visit`, { method: 'POST', keepalive: true }).catch(() => {})
+    } catch { /* метрика не критична */ }
   }, [])
 
   // [P1.6-PREP] строки фич тарифа из quotas/features PlanConfig
@@ -165,11 +202,14 @@ export default function LandingPage({ authMode = null }) {
             ))}
           </nav>
           <div className="flex items-center gap-3">
+            {/* [LANDING-RESTORE] PWAInstallButton — был в legacy-шапке, рендерится только когда установка доступна */}
+            <div className="hidden md:block"><PWAInstallButton /></div>
             {isAuthenticated ? (
               <button onClick={() => navigate('/dashboard')} className="px-4 py-2 rounded-xl bg-[var(--primary)] text-black text-sm font-semibold hover:opacity-90 transition-opacity">{t('landing.dashboard')}</button>
             ) : (
               <>
-                <Link to="/login" className="hidden md:block text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">{t('landing.login')}</Link>
+                {/* [LANDING-RESTORE] контраст «Войти»: читаемая кнопка вместо бледного текста */}
+                <Link to="/login" className="hidden md:block px-4 py-2 rounded-xl text-sm font-medium text-[var(--text)] border border-[var(--border)] glass-card hover:border-[var(--primary)]/50 hover:text-[var(--primary)] transition-colors">{t('landing.login')}</Link>
                 <Link to="/signup" className="btn-lux px-4 py-2 rounded-xl text-sm font-semibold">{t('landing.start')}</Link>
               </>
             )}
@@ -308,19 +348,16 @@ export default function LandingPage({ authMode = null }) {
             <p className="section-subtitle">{t('landing.pricing.subtitle')}</p>
             <div className="flex justify-center mb-10"><BetaCounter /></div>
           </Reveal>
-          {plansError && (
-            <div className="glass-card rounded-2xl p-6 border border-[var(--border)] text-center text-[var(--text-muted)]">
-              {t('landing.plans.error')}
-            </div>
-          )}
-          {!plansError && plans === null && (
+          {/* [LANDING-RESTORE] карточки-скелетоны — только пока идёт короткий (≤9с) запрос;
+              при ошибке/таймауте рендерятся фолбэк-тарифы, error-ветка больше не нужна */}
+          {plans === null && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[0, 1, 2].map(i => (
                 <div key={i} className="rounded-2xl p-6 border border-[var(--border)] glass-card animate-pulse h-64" />
               ))}
             </div>
           )}
-          {!plansError && plans !== null && (
+          {plans !== null && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
               {plans.map((p, i) => {
                 const isPopular = p.plan === 'pro'
@@ -450,8 +487,18 @@ export default function LandingPage({ authMode = null }) {
             <div className="flex items-center gap-2 font-bold text-lg mb-4"><Sparkles className="w-5 h-5 text-[var(--primary)]" /> AI Viral Studio</div>
             <p className="text-[var(--text-muted)] leading-relaxed mb-6">{t('landing.footer.tagline')}</p>
             <div className="flex items-center gap-3">
+              {/* [LANDING-RESTORE] TG через конфиг ботов; VK/YouTube/X — реальные ссылки из legacy-футера (Discord-заглушка your_invite удалена в Б2 навсегда) */}
               <a href={channelUrl()} target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="Telegram">
                 <Send className="w-4 h-4" />
+              </a>
+              <a href="https://vk.com/aiviralstudio" target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="VK">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.862-.523-2.049-1.714-1.033-1.033-1.49-1.171-1.744-1.171-.356 0-.458.102-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4 8.994 4 8.604c0-.254.102-.491.593-.491h1.744c.44 0 .61.203.78.678.863 2.49 2.303 4.675 2.896 4.675.22 0 .322-.102.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.17-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .372.17.508.271.508.22 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.27.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .78.186.254.796.779 1.203 1.253.745.847 1.32 1.558 1.473 2.049.17.475-.085.72-.576.72z"/></svg>
+              </a>
+              <a href="https://youtube.com/@aiviralstudio" target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="YouTube">
+                <Youtube className="w-4 h-4" />
+              </a>
+              <a href="https://x.com/aiviralstudio" target="_blank" rel="noreferrer" className="p-2.5 rounded-full glass-card text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors" aria-label="X / Twitter">
+                <Twitter className="w-4 h-4" />
               </a>
             </div>
           </div>
@@ -461,6 +508,9 @@ export default function LandingPage({ authMode = null }) {
               <a href="#features" className="block hover:text-[var(--primary)] transition-colors">{t('landing.nav.features')}</a>
               <a href="#pricing" className="block hover:text-[var(--primary)] transition-colors">{t('landing.nav.pricing')}</a>
               <a href="#how" className="block hover:text-[var(--primary)] transition-colors">{t('landing.nav.how')}</a>
+              {/* [LANDING-RESTORE] Roadmap/Скачать — были в legacy-шапке и футере */}
+              <Link to="/roadmap" className="block hover:text-[var(--primary)] transition-colors">{t('landing.footer.roadmap')}</Link>
+              <Link to="/download" className="block hover:text-[var(--primary)] transition-colors">{t('landing.footer.download')}</Link>
             </div>
           </div>
           <div>
@@ -469,6 +519,7 @@ export default function LandingPage({ authMode = null }) {
               <Link to="/docs" className="block hover:text-[var(--primary)] transition-colors">{t('landing.footer.apiDocs')}</Link>
               <Link to="/privacy" className="block hover:text-[var(--primary)] transition-colors">{t('landing.footer.privacy')}</Link>
               <Link to="/terms" className="block hover:text-[var(--primary)] transition-colors">{t('landing.footer.terms')}</Link>
+              <Link to="/consent" className="block hover:text-[var(--primary)] transition-colors">{t('landing.footer.consent')}</Link>
             </div>
           </div>
           <div>
@@ -482,6 +533,14 @@ export default function LandingPage({ authMode = null }) {
         <div className="max-w-6xl mx-auto rounded-2xl border border-[var(--border)] p-5 mb-8">
           <p className="text-xs text-[var(--text-muted)] leading-relaxed">{t('landing.footer.disclaimer')}</p>
         </div>
+        {/* [LANDING-RESTORE] правовая строка владельца: auto-update из его кабинета (OwnerLegalInfo API) */}
+        {legalInfo?.operatorName && (
+          <div className="max-w-6xl mx-auto text-center text-xs text-[var(--text-muted)] mb-3">
+            {legalInfo.operatorName}
+            {legalInfo.operatorType ? ` · ${legalInfo.operatorType}` : ''}
+            {legalInfo.inn ? ` · ${t('landing.footer.innLabel')} ${legalInfo.inn}` : ''}
+          </div>
+        )}
         <div className="max-w-6xl mx-auto text-center text-xs text-[var(--text-muted)]">{t('landing.footer.copyright')}</div>
       </footer>
 
