@@ -1,4 +1,17 @@
 
+## 2026-08-18 — TG-FREETEXT-HOTFIX+
+- [BACKEND] backend/config/cors.js: CORS whitelist вынесен в конфиг; defaults — aiviral-studio.ru, www.aiviral-studio.ru, ai-viral-studio.pages.dev, localhost; дополнительно FRONTEND_URL и CORS_ORIGINS через env
+- [BACKEND] backend/server.js: импорт corsOptions из config/cors.js; CORS-ошибки возвращают 403 JSON, а не 500 HTML; отклонённый origin логируется `[CORS] denied origin: <origin>`
+- [BACKEND] backend/.env.example: добавлена переменная CORS_ORIGINS
+- [BACKEND] backend/tests/cors-unit.mjs: preflight/POST для 6 разрешённых origin → 200/204; левый origin → 403 + лог `[CORS] denied origin: ...` — 20/20 PASS
+- [FRONTEND] frontend/src/pages/SettingsPage.jsx: в раздел «Подписка» добавлена карточка поддержки с кнопкой Telegram, href = clientBotUrl() (fallback aiviral_alerts_bot)
+- [FRONTEND] frontend/src/components/support/SupportWidget.jsx: при CORS/сетевой ошибке вместо маскирующего toast показывается честный текст «Ошибка соединения, напишите в Telegram: <CLIENT_BOT_URL>»
+- [i18n] ru/en (src/i18n + src/locales + public/locales): добавлены settings.subscriptionSupportTitle/Desc
+- [CHECKS] node --check OK по backend/services/omegaBot.js, backend/config/redis.js, backend/config/cors.js, backend/server.js, backend/tests/tg-freetext-unit.mjs, backend/tests/cors-unit.mjs
+- [CHECKS] npm run build OK (0 ошибок), i18n-parity OK, dist собран
+- [GIT] Commit+push: fix/tg-freetext-hotfix
+- [NEXT] Владельцу: Подписка → поддержка → t.me/aiviral_alerts_bot; обращение из SupportWidget с левого домена показывает ошибку соединения и ссылку на бота
+
 ## 2026-08-18 — TG-FREETEXT-HOTFIX
 - [BACKEND] backend/services/omegaBot.js: добавлен статический импорт `isWebSearchQuery` из webSearch.js — устранён `ReferenceError` в `handleFreeText`
 - [BACKEND] backend/services/omegaBot.js: `handleFreeText` вынесена в модульную область и экспортирована; `history` теперь передаётся как `{role, content}`, а не сырые строки

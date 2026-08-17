@@ -12,11 +12,13 @@ export default function SupportWidget() {
   const [description, setDescription] = useState('')
   const [screenshot, setScreenshot] = useState('')
   const [sending, setSending] = useState(false)
+  const [error, setError] = useState(null)
 
   const submit = async (e) => {
     e.preventDefault()
     if (!subject.trim() || !description.trim()) return
     setSending(true)
+    setError(null)
     try {
       await request('/support', {
         method: 'POST',
@@ -33,7 +35,8 @@ export default function SupportWidget() {
       setScreenshot('')
       setOpen(false)
     } catch (err) {
-      toast.error(err.message || 'Ошибка отправки')
+      // [TG-FREETEXT-HOTFIX+] при CORS/сетевой ошибке показываем честный текст + ссылку на TG-бота
+      setError(`Ошибка соединения, напишите в Telegram: ${CLIENT_BOT_URL}`)
     } finally {
       setSending(false)
     }
@@ -79,6 +82,11 @@ export default function SupportWidget() {
               placeholder={t('support.screenshotUrl') || 'Ссылка на скриншот (необязательно)'}
               className="w-full px-3 py-2 rounded-xl bg-[#1b1b24] border border-white/10 text-white text-sm outline-none focus:border-violet-500"
             />
+            {error && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs break-words">
+                {error}
+              </div>
+            )}
             <button
               type="submit"
               disabled={sending}
