@@ -422,31 +422,20 @@ if (isConnected) {
     }
 }
 
-const ALLOWED_ORIGINS = [
-    'https://aiviral-studio.ru',
-    'https://www.aiviral-studio.ru',
-    'http://localhost:5173',
-    'http://localhost:3000'
-]
-
-// [HOTFIX-2026-08-08] CORS: allow aiviral-studio.ru frontend only
-const corsOptions = {
-    origin: function (origin, callback) {
-        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-            callback(null, true)
-        } else {
-            callback(new Error('Not allowed by CORS'))
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-}
+import { corsOptions } from './config/cors.js'
 
 app.use(cors(corsOptions))
 
 // Preflight for all routes
 app.options('*', cors(corsOptions))
+
+// [TG-FREETEXT-HOTFIX+] CORS-ошибки → 403 JSON, а не стандартный Express 500 HTML
+app.use((err, req, res, next) => {
+    if (err && err.message === 'Not allowed by CORS') {
+        return res.status(403).json({ error: 'CORS', message: 'Origin not allowed' })
+    }
+    next(err)
+})
 
 // Helmet after CORS so security headers apply without blocking preflight
 app.use(helmet())

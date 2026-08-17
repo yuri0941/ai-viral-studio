@@ -315,7 +315,9 @@
     "positionTopLeft": "Top left",
     "positionCenter": "Center",
     "supportContact": "Telegram",
-    "writeSupport": "Contact support"
+    "writeSupport": "Contact support",
+    "subscriptionSupportTitle": "Questions about subscription?",
+    "subscriptionSupportDesc": "If anything is unclear about the plan or payment, contact us on Telegram."
   },
   "paymentMethods": {
     "yookassaName": "YooKassa (YooMoney)",

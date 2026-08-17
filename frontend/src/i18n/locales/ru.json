@@ -317,7 +317,9 @@
     "positionTopLeft": "Верхний левый угол",
     "positionCenter": "Центр",
     "supportContact": "Telegram",
-    "writeSupport": "Написать в поддержку"
+    "writeSupport": "Написать в поддержку",
+    "subscriptionSupportTitle": "Вопросы по подписке?",
+    "subscriptionSupportDesc": "Если что-то неясно с тарифом или оплатой — напишите нам в Telegram."
   },
   "paymentMethods": {
     "yookassaName": "ЮKassa (ЮMoney)",

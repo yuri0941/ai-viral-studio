@@ -510,6 +510,8 @@
     "active": "Активна",
     "cancelSubscription": "Отменить подписку",
     "subscriptionHistory": "История подписки",
+    "subscriptionSupportTitle": "Вопросы по подписке?",
+    "subscriptionSupportDesc": "Если что-то неясно с тарифом или оплатой — напишите нам в Telegram.",
     "cancelled": "Отменена",
     "popular": "Популярный",
     "choosePlan": "Выбрать",
