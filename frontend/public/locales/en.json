@@ -82,7 +82,27 @@
     },
     "faq": {
       "priceAnswer": "There's a free plan. Pro — {{pro}} ₽/mo, Agency — {{agency}} ₽/mo.",
-      "priceAnswerFallback": "There's a free plan and paid tiers — see current prices in the pricing section above."
+      "priceAnswerFallback": "There's a free plan and paid tiers — see current prices in the pricing section above.",
+      "title": "FAQ",
+      "priceQuestion": "How much does it cost?",
+      "items": {
+        "q1": {
+          "q": "What is AI Viral Studio?",
+          "a": "A platform with the OMEGA AI assistant that creates, publishes and analyzes viral content."
+        },
+        "q2": {
+          "q": "Do I need coding skills?",
+          "a": "No. The interface is simple, and the Telegram bot guides you step by step."
+        },
+        "q3": {
+          "q": "Which social networks are supported?",
+          "a": "TikTok, Instagram, YouTube, Telegram, VK and more via integrations."
+        },
+        "q4": {
+          "q": "How do I get into the beta?",
+          "a": "Join the waitlist — we send invitations every week."
+        }
+      }
     },
     "ctaNote": "No hidden fees · Cancel anytime",
     "ctaSubtitle": "Join the first AI Viral Studio users and automate your content creation",
@@ -91,7 +111,105 @@
     "highlightAI": "AI content generation",
     "highlightBeta": "Beta access",
     "highlightSchedule": "Auto-posting",
-    "highlightTrends": "Trend analysis"
+    "highlightTrends": "Trend analysis",
+    "dashboard": "Dashboard",
+    "nav": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "how": "How it works",
+      "faq": "FAQ"
+    },
+    "hero": {
+      "launched": "Launched in 2026",
+      "titlePre": "Create",
+      "titleAccent": "viral",
+      "titlePost": "content in 60 seconds",
+      "subtitle": "OMEGA generates scripts, analyzes trends and publishes to socials — all automatically. Focus on creating.",
+      "ctaPrimary": "Join the beta",
+      "waitlistPlaceholder": "Email for beta access",
+      "waitlistButton": "Get access",
+      "waitlistSuccess": "You're on the waitlist, position #{{position}}",
+      "waitlistError": "Error: {{error}}"
+    },
+    "features": {
+      "title": "Everything for viral content",
+      "subtitle": "From idea to publishing — in one platform",
+      "items": {
+        "aiContent": {
+          "title": "AI Content",
+          "desc": "OMEGA generates posts, videos and ideas for your niche."
+        },
+        "tgBot": {
+          "title": "Telegram Bot",
+          "desc": "Manage projects and get reports right in Telegram."
+        },
+        "analytics": {
+          "title": "Analytics",
+          "desc": "Track reach, conversions and growth in real time."
+        },
+        "factory": {
+          "title": "Project Factory",
+          "desc": "Spin up full projects with one click."
+        },
+        "forecasts": {
+          "title": "Forecasts",
+          "desc": "AI Boardroom spots trends before they go mainstream."
+        },
+        "autoPublish": {
+          "title": "Auto-Publish",
+          "desc": "Schedule posts across all channels from one window."
+        }
+      }
+    },
+    "pricing": {
+      "title": "Pricing",
+      "subtitle": "Start free, scale when ready"
+    },
+    "how": {
+      "title": "How it works",
+      "subtitle": "4 steps to autopilot",
+      "steps": {
+        "s1": {
+          "title": "Connect your socials",
+          "desc": "TikTok, Instagram, YouTube, Telegram, VK."
+        },
+        "s2": {
+          "title": "OMEGA analyzes",
+          "desc": "AI studies your audience, niche and competitors."
+        },
+        "s3": {
+          "title": "Generates content",
+          "desc": "Posts, scripts, images and videos."
+        },
+        "s4": {
+          "title": "Publishes",
+          "desc": "Auto-posting, analytics, growth."
+        }
+      }
+    },
+    "ctaButton": "Start for free",
+    "footer": {
+      "tagline": "Viral content automation with OMEGA AI.",
+      "product": "Product",
+      "company": "Company",
+      "contacts": "Contacts",
+      "apiDocs": "API Docs",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "contactBot": "Support bot on Telegram",
+      "channel": "Telegram channel",
+      "disclaimer": "The service provides content generation tools. Results are advisory only. We do not guarantee virality, reach or sales. All content is published by the client. Please check content compliance with your local laws before publishing.",
+      "copyright": "© 2026 AI Viral Studio. All rights reserved."
+    },
+    "auth": {
+      "close": "Close",
+      "welcomeBack": "Welcome back",
+      "createAccount": "Create account",
+      "loginSub": "Sign in to your AI Viral Studio account",
+      "registerSub": "Start creating viral content for free",
+      "tabLogin": "Sign in",
+      "tabRegister": "Sign up"
+    }
   },
   "signup": {
     "title": "Sign up",
@@ -1881,7 +1999,8 @@
     "freeBadge": "Free • 10 seconds • No signup",
     "viralPotential": "Viral potential",
     "copy": "Copy",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "error": "Failed to generate hooks. Please try again later."
   },
   "waitlist": {
     "title": "Early access",

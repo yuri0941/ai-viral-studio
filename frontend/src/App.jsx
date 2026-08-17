@@ -14,7 +14,7 @@ import { useDashboardData } from './hooks/useDashboardData'
 import { useOTAUpdate } from './hooks/useOTAUpdate.js'
 
 // Pages
-import LegacyLandingPage from './pages/LandingPage'
+// [LANDING-UNIFY] legacy pages/LandingPage удалён: вторая версия лендинга со старыми ценами (config/plans.js) больше не отдаётся
 import PublicLandingPage from './pages/landing/LandingPage'
 import SignupPage from './pages/auth/SignupPage'
 import ApiDocsPage from './pages/docs/ApiDocsPage'
@@ -289,8 +289,9 @@ function App() {
                 <ErrorBoundary>
                 <Routes>
                 <Route path="/" element={<PublicLandingPage />} />
-                <Route path="/login" element={<LegacyLandingPage showLogin={true} />} />
-                <Route path="/register" element={<LegacyLandingPage showRegister={true} />} />
+                {/* [LANDING-UNIFY] /login и /register — тот же единый лендинг с модалкой входа/регистрации (формы не тронуты) */}
+                <Route path="/login" element={<PublicLandingPage authMode="login" />} />
+                <Route path="/register" element={<PublicLandingPage authMode="register" />} />
                 <Route path="/signup" element={<SignupPage />} />
                 <Route path="/docs" element={<ApiDocsPage />} />
                 <Route path="/redirect" element={<RoleRedirect />} />

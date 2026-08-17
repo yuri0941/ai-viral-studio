@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import LoginForm from './LoginForm'
 import RegisterForm from './RegisterForm'
 
 function AuthModal({ isOpen, onClose, defaultMode = 'login', onSuccess }) {
+    const { t } = useTranslation()
     const [mode, setMode] = useState(defaultMode)
 
     if (!isOpen) return null
@@ -20,18 +22,16 @@ function AuthModal({ isOpen, onClose, defaultMode = 'login', onSuccess }) {
                     type="button"
                     onClick={onClose}
                     className="absolute right-4 top-4 w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
-                    aria-label="Закрыть"
+                    aria-label={t('landing.auth.close')}
                 >
                     <X size={22} />
                 </button>
 
                 <h2 className="text-2xl font-bold mb-1 text-center text-white">
-                    {mode === 'login' ? 'С возвращением' : 'Создать аккаунт'}
+                    {mode === 'login' ? t('landing.auth.welcomeBack') : t('landing.auth.createAccount')}
                 </h2>
                 <p className="text-gray-400 text-center mb-6 text-sm">
-                    {mode === 'login'
-                        ? 'Войди в свой аккаунт AI Viral Studio'
-                        : 'Начни создавать вирусный контент бесплатно'}
+                    {mode === 'login' ? t('landing.auth.loginSub') : t('landing.auth.registerSub')}
                 </p>
 
                 {/* Tabs */}
@@ -45,7 +45,7 @@ function AuthModal({ isOpen, onClose, defaultMode = 'login', onSuccess }) {
                                 : 'text-gray-400 hover:text-white'
                         }`}
                     >
-                        Вход
+                        {t('landing.auth.tabLogin')}
                     </button>
                     <button
                         type="button"
@@ -56,7 +56,7 @@ function AuthModal({ isOpen, onClose, defaultMode = 'login', onSuccess }) {
                                 : 'text-gray-400 hover:text-white'
                         }`}
                     >
-                        Регистрация
+                        {t('landing.auth.tabRegister')}
                     </button>
                 </div>
 

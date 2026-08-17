@@ -52,7 +52,7 @@ function ViralDemo() {
                 setRequiresEmail(true)
             }
         } catch (err) {
-            setError(err.message || 'Не удалось сгенерировать хуки. Попробуйте позже.')
+            setError(err.message || t('viralDemo.error'))
         } finally {
             setLoading(false)
         }
