@@ -1,4 +1,19 @@
 
+## 2026-08-18 — TELEGRAM-BOT-ROUTING-FIX
+- [BACKEND] backend/config/bots.js: единая точка правды CLIENT_BOT_USERNAME / OWNER_BOT_USERNAME / CHANNEL_USERNAME / OWNER_TELEGRAM_USERNAME / OWNER_NAME с env + fallback
+- [BACKEND] server.js: webhook /bot<TOKEN> теперь направляет клиентский токен → omegaBot, owner-токен → ownerBot (ранее оба шли на ownerBot)
+- [BACKEND] omegaBot.js, ownerBot.js, ownerContext.js, telegramChannelManager.js, postBuilder.js, linkGuard.js, actionEngine.js, advertiserSuite.js, ChannelConfig.js, AdOrder.js: хардкод @aiviral_omega_bot / @aiviral_alerts_bot / @aiviralstudio / @Tvinki013 заменён на импорт из config
+- [BACKEND] routes/users.js: /user/telegram-status возвращает deep-link с connect_<token>, который omegaBot /start связывает с аккаунтом
+- [BACKEND] routes/telegram.js, routes/channelManager.js, retentionEngine.js: ссылки и токены берутся из единого config
+- [FRONTEND] frontend/src/config/bots.js: VITE_CLIENT_BOT_USERNAME / VITE_OWNER_BOT_USERNAME / VITE_TELEGRAM_CHANNEL_USERNAME с fallback
+- [FRONTEND] TelegramConnectButton, SupportWidget, OmegaChat, SupportTab, SettingsPage, LandingPage, landing/LandingPage, OwnerAppPage, ApiKeysTab, AdOrdersTab: хардкод t.me-ссылок заменён на импорт config
+- [i18n] frontend/public/locales/ru.json + en.json: добавлены instruction.vk.title и step1–step6 (исправляет сырой ключ в настройках VK)
+- [CHECKS] node --check OK по затронутым backend-файлам; npm run build OK (0 errors)
+- [CHECKS] scripts/i18n-parity.mjs: 1832 статических ключа, 24 шаблонных префикса — OK, diff пустой
+- [CHECKS] Поиск InstructionBlock titleKey/stepKeys: только instruction.vk.*, больше сырых ключей в настройках не найдено
+- [GIT] Commit+push: fix/bot-routing (7b324a7a), compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/bot-routing
+- [NEXT] Владельцу: обновить CLIENT_BOT_USERNAME / OWNER_BOT_USERNAME / TELEGRAM_CHANNEL_USERNAME в Render env; перепроверить «Поддержка» и «Подключить» ведут в правильного бота; убедиться, что VK-карточка показывает инструкцию, а не сырой ключ
+
 ## 2026-08-17 — SUBSCRIPTION-CHECKOUT-FIX
 - [BACKEND] SubscriptionSchema: status enum += pending/inactive/expired; добавлены поля price, interval, startDate, endDate, autoRenew, paymentMethod, providerPaymentId, isTrial, trialEndsAt, reminderSent, urgentReminderSent (strict-режим их раньше молча стирал)
 - [BACKEND] yookassaController: createSubscriptionPayment пишет amount + currentPeriodStart/currentPeriodEnd рядом с новыми полями; webhook mark_paid синхронизирует currentPeriodStart/End из startDate/endDate, обновляет user.subscription (вместо несуществующего plan)
