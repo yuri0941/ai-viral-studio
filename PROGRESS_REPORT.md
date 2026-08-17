@@ -1,4 +1,21 @@
 
+## 2026-08-18 — BOT-LINKS-TICKET-SYNC
+- [BACKEND] config/bots.js: fallback CLIENT_BOT_USERNAME → aiviral_alerts_bot, OWNER_BOT_USERNAME → omega_aiviral_bot (соответствует реальным env Render)
+- [BACKEND] routes/integrations.js: /telegram/url теперь строит deep-link через clientBotUrl из единого конфига, не зависит от TELEGRAM_BOT_LINK
+- [FRONTEND] src/config/bots.js: те же fallback-username
+- [FRONTEND] .env.example + backend/.env.example: актуальные username по умолчанию
+- [FRONTEND] i18n ru/en: убран хардкод @ai_viral_support из common.supportContact
+- [BACKEND] supportService.js: replyToTicket принимает options.role; сообщения от owner/operator/admin/staff доставляются клиенту в TG и пишутся в ClientDialogue; сохраняется имя отправителя
+- [BACKEND] routes/support.js: PATCH /:id/messages передаёт req.user.role в replyToTicket
+- [BACKEND] ownerBot.js: takeover-ответы владельца теперь идут через replyToTicket; системные события (takeover/bot back/close) сохраняются в ticket.messages через addMessage
+- [BACKEND] supportService.js: mirrorClientMessageToTelegram — сообщения клиента из web/widget дублируются в привязанный TG-бот
+- [CHECKS] node --check OK по backend/config/bots.js, routes/integrations.js, routes/support.js, services/ownerBot.js, supportService.js
+- [CHECKS] npm run build OK (0 ошибок), dist пересобран
+- [CHECKS] E2E ссылки (Playwright, .tmp-ui-polish/bot-links-check.mjs): public landing канал = t.me/aiviralstudio, /login /register "Контакты" = t.me/aiviral_alerts_bot, Settings → Profile TelegramConnect = t.me/aiviral_alerts_bot — 5/5 PASS
+- [CHECKS] Юнит-прогон ticket-sync (backend/tests/ticket-sync-unit.mjs): staff/owner → сообщение сохранено, role определён, TG-путь активен; user → без TG-релея — 6/6 PASS
+- [GIT] Commit+push: fix/bot-links-ticket-sync (dab960a8), compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/bot-links-ticket-sync
+- [NEXT] Владельцу: проверить, что клиент из web видит ответ в TG; ответ из owner-бота виден в кабинете; все клиентские ссылки ведут на @aiviral_alerts_bot
+
 ## 2026-08-18 — SUPPORT-PUSH + PROVIDER-MODELS
 - [BACKEND] supportService.js: один тикет на диалог — findOpenTicket + appendToOpenTicket; второе сообщение клиента дописывается в открытый тикет, новый не создаётся
 - [BACKEND] supportService.js: push-алерт владельцу на КАЖДОЕ новое обращение (summary + inline-кнопки «Взять диалог» / «Закрыть» / «Эскалация»); try/catch не валит тикет-флоу

@@ -887,18 +887,8 @@ export const initOwnerBot = () => {
           global.ownerTakeovers.delete(String(chatId))
           safeSendMessage(chatId, 'ℹ️ Ручной диалог уже завершён (тикет закрыт или возвращён боту).')
         } else {
-          const { sendClientMessage } = await import('./omegaBot.js')
-          await sendClientMessage(ticket.telegramChatId, `👤 <b>Специалист:</b>\n${text.slice(0, 2000)}`, { parse_mode: 'HTML' })
-          ticket.messages.push({ sender: 'owner', text: text.slice(0, 2000), timestamp: new Date() })
-          if (!ticket.firstResponseAt) ticket.firstResponseAt = new Date()
-          ticket.updatedAt = new Date()
-          await ticket.save()
-          const { default: ClientDialogue } = await import('../models/ClientDialogue.js')
-          await ClientDialogue.findOneAndUpdate(
-            { telegramChatId: String(ticket.telegramChatId) },
-            { $push: { messages: { role: 'assistant', content: text.slice(0, 2000), intent: 'support', timestamp: new Date() } }, $set: { updatedAt: new Date() } },
-            { upsert: true }
-          )
+          const { replyToTicket } = await import('./supportService.js')
+          await replyToTicket(takeoverTicketId, 'owner', text.slice(0, 2000), { role: 'owner' })
         }
       } catch (e) {
         console.error('[OWNER-BOT] takeover relay failed:', e.message)
@@ -1128,6 +1118,8 @@ export const initOwnerBot = () => {
         global.ownerTakeovers = global.ownerTakeovers || new Map()
         global.ownerTakeovers.set(String(chatId), ticketId)
         const { invalidateTakeoverCache, sendClientMessage } = await import('./omegaBot.js')
+        const { addMessage } = await import('./supportService.js')
+        await addMessage(ticketId, 'system', '👤 Специалист подключился к диалогу. AI-ассистент пока молчит.')
         invalidateTakeoverCache(ticket.telegramChatId)
         await sendClientMessage(ticket.telegramChatId, `👤 <b>Специалист подключился к диалогу</b>\nПишите здесь — я читаю и отвечаю лично. AI-ассистент пока молчит.`, { parse_mode: 'HTML' })
         safeSendMessage(chatId, `💬 <b>Вы ведёте диалог по тикету #${ticketId.slice(-6)}</b>\nВсё, что напишете сюда, уйдёт клиенту в OMEGA-бот.\n\nКогда закончите:`, {
@@ -1155,6 +1147,8 @@ export const initOwnerBot = () => {
           ticket.updatedAt = new Date()
           await ticket.save()
           const { invalidateTakeoverCache, sendClientMessage } = await import('./omegaBot.js')
+          const { addMessage } = await import('./supportService.js')
+          await addMessage(ticketId, 'system', '🤖 Диалог возвращён OMEGA. AI продолжает с сохранённым контекстом.')
           invalidateTakeoverCache(ticket.telegramChatId)
           if (ticket.telegramChatId) {
             await sendClientMessage(ticket.telegramChatId, `🤖 <b>Снова на связи OMEGA!</b>\nЯ помню наш разговор — продолжим с того же места. Чем помочь дальше?`, { parse_mode: 'HTML' })
@@ -1182,6 +1176,8 @@ export const initOwnerBot = () => {
         await ticket.save()
         global.ownerTakeovers?.delete(String(chatId))
         const { invalidateTakeoverCache, sendClientMessage } = await import('./omegaBot.js')
+        const { addMessage } = await import('./supportService.js')
+        await addMessage(ticketId, 'system', `✅ Обращение #${ticketId.slice(-6)} закрыто.`)
         invalidateTakeoverCache(ticket.telegramChatId)
         safeSendMessage(chatId, `✅ Тикет #${ticketId.slice(-6)} закрыт.`)
         if (ticket.telegramChatId) {

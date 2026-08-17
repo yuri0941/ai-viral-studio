@@ -18,6 +18,7 @@ import {
 } from '../controllers/integrationsController.js'
 import Integration from '../models/Integration.js'
 import { encrypt, decrypt } from '../utils/crypto.js'
+import { clientBotUrl } from '../config/bots.js'
 
 const router = express.Router()
 
@@ -53,13 +54,13 @@ router.get('/my', protect, async (req, res) => {
     }
 })
 
-// [v5.9] added: real Telegram bot deep-link for OAuth-style connect
+// [BOT-LINKS-TICKET-SYNC] клиентский deep-link всегда из единого конфига ботов
 router.get('/telegram/url', protect, (req, res) => {
-    const botLink = process.env.TELEGRAM_BOT_LINK || process.env.TELEGRAM_OMEGA_BOT_LINK
-    if (!botLink) {
-        return res.status(503).json({ error: 'TELEGRAM_BOT_LINK not configured' })
+    const url = clientBotUrl(`connect_${req.user.id}`)
+    if (url === '#') {
+        return res.status(503).json({ error: 'CLIENT_BOT_USERNAME not configured' })
     }
-    res.json({ url: `${botLink}?start=connect_${req.user.id}`, botLink })
+    res.json({ url, botLink: url })
 })
 
 router.post('/telegram/connect', protect, async (req, res) => {

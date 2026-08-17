@@ -23,6 +23,27 @@ export function getSourceBadge(source) {
   return 'Other'
 }
 
+// [BOT-LINKS-TICKET-SYNC] если клиент пишет из web/widget, но привязан к TG — дублируем сообщение в бот
+async function mirrorClientMessageToTelegram(ticket, data) {
+  if (data.source === 'telegram') return
+  if (!data.userId) return
+  try {
+    const { default: User } = await import('../models/User.js')
+    const user = await User.findById(data.userId).select('telegramChatId').lean()
+    if (!user?.telegramChatId) return
+    const chatId = String(user.telegramChatId)
+    if (!ticket.telegramChatId) {
+      ticket.telegramChatId = chatId
+      await ticket.save()
+    }
+    const { sendClientMessage } = await import('./omegaBot.js')
+    const text = data.description || data.subject || ''
+    await sendClientMessage(chatId, `🎫 <b>Обращение #${ticket._id.toString().slice(-6)}</b>\n${text.slice(0, 2000)}`, { parse_mode: 'HTML' })
+  } catch (e) {
+    console.warn('[supportService] mirror to telegram failed:', e.message)
+  }
+}
+
 async function findOpenTicket(data) {
   const or = []
   if (data.userId) or.push({ userId: data.userId })
@@ -40,6 +61,7 @@ export async function createTicket(data) {
   const existing = await findOpenTicket(data)
   if (existing) {
     await addMessage(existing._id, 'client', data.description || data.subject || '—')
+    await mirrorClientMessageToTelegram(existing, data)
     return existing
   }
 
@@ -69,6 +91,7 @@ export async function createTicket(data) {
   // [P2.1] первое действие по тикету (AI-разбор) — для метрики time-to-first-action
   if (!ticket.firstResponseAt) ticket.firstResponseAt = new Date()
   await ticket.save()
+  await mirrorClientMessageToTelegram(ticket, data)
 
   try {
     await createNode({
@@ -165,16 +188,18 @@ export async function appendToOpenTicket(telegramChatId, text) {
   return ticket
 }
 
-// [SUBSCRIPTION-CHECKOUT-FIX] ответ оператора/владельца из Dashboard → клиенту в Telegram (если тикет связан с TG)
-export async function replyToTicket(ticketId, sender, text) {
+// [BOT-LINKS-TICKET-SYNC] зеркалирование: ответ оператора/владельца сохраняется в тикет и доставляется клиенту во все каналы
+export async function replyToTicket(ticketId, sender, text, options = {}) {
   const ticket = await SupportTicket.findById(ticketId)
   if (!ticket) return null
-  ticket.messages.push({ sender, text: text.slice(0, 2000), timestamp: new Date() })
+  const senderRole = options.role || sender
+  ticket.messages.push({ sender, text: text.slice(0, 2000), timestamp: new Date(), role: senderRole })
   ticket.updatedAt = new Date()
   if (!ticket.firstResponseAt) ticket.firstResponseAt = new Date()
   await ticket.save()
 
-  if (ticket.telegramChatId && /^(owner|operator)$/i.test(sender)) {
+  const isOperator = /^(owner|operator|admin|staff)$/i.test(senderRole)
+  if (ticket.telegramChatId && isOperator) {
     try {
       const { sendClientMessage } = await import('./omegaBot.js')
       await sendClientMessage(
