@@ -11,7 +11,8 @@ function BetaCounter() {
 
     useEffect(() => {
         let mounted = true
-        launchApi.betaSlots()
+        // [LANDING-RESTORE] таймаут 9с: при спящем/упавшем API счётчик не висит в «Загрузка...»
+        launchApi.betaSlots({ timeout: 9000, noRetry: true })
             .then(res => {
                 if (!mounted) return
                 const data = res.data || {}

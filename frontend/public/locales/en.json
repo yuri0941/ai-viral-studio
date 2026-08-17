@@ -199,7 +199,11 @@
       "contactBot": "Support bot on Telegram",
       "channel": "Telegram channel",
       "disclaimer": "The service provides content generation tools. Results are advisory only. We do not guarantee virality, reach or sales. All content is published by the client. Please check content compliance with your local laws before publishing.",
-      "copyright": "© 2026 AI Viral Studio. All rights reserved."
+      "copyright": "© 2026 AI Viral Studio. All rights reserved.",
+      "roadmap": "Roadmap",
+      "download": "Download",
+      "consent": "Consent",
+      "innLabel": "INN"
     },
     "auth": {
       "close": "Close",
