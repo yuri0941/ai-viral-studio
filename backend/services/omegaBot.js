@@ -45,10 +45,11 @@ import { sanitizeClientReply, PRIVACY_PROMPT_BLOCK } from '../utils/botPrivacy.j
 import { findFaqAnswer, findFaqCandidates } from './faqService.js'
 import { chatWithAI, extractText } from './aiService.js'
 import { isOwner, getOwnerContext } from './ownerContext.js'
-import { createTicket } from './supportService.js'
+import { createTicket, appendToOpenTicket } from './supportService.js'
 import { getAdPricing } from './adPricingService.js'
 import { saveFeedback, rateFeedback } from './feedbackService.js'
 import { CLIENT_BOT_USERNAME, CHANNEL_USERNAME, clientBotUrl } from '../config/bots.js'
+import { markdownToHtml } from './linkGuard.js'
 
 // [P16-FINAL] singleton to avoid duplicate polling / 409 conflict
 let bot = global.omegaBotInstance || null
@@ -704,11 +705,12 @@ export const initOmegaBot = () => {
           userName: msg.chat.username || msg.chat.first_name || `Telegram ${chatId}`,
           subject: 'Telegram Support',
           description: text,
-          telegramChatId: String(chatId)
+          telegramChatId: String(chatId),
+          source: 'telegram'
         })
         let reply = `🎫 <b>Обращение #${ticket._id.toString().slice(-6)} создано</b>\n`
         if (ticket.aiSuggestion && ticket.status === 'ai_handled') {
-          reply += `💡 <b>OMEGA совет:</b>\n${ticket.aiSuggestion}\n\nПомогло?`
+          reply += `💡 <b>OMEGA совет:</b>\n${markdownToHtml(ticket.aiSuggestion)}\n\nПомогло?`
           bot.sendMessage(chatId, reply, {
             parse_mode: 'HTML',
             reply_markup: {
@@ -728,6 +730,17 @@ export const initOmegaBot = () => {
         safeSendMessage(chatId, '⚠️ Не удалось создать обращение. Попробуйте позже.', { parse_mode: 'HTML' })
       }
       return
+    }
+
+    // [SUPPORT-PUSH-FIX] если у клиента уже есть открытый тикет — новые сообщения идут в него, AI молчит
+    if (!owner) {
+      try {
+        const openTicket = await appendToOpenTicket(chatId, text)
+        if (openTicket && openTicket.status !== 'ai_handled') {
+          safeSendMessage(chatId, `✅ Сообщение добавлено к обращению #${openTicket._id.toString().slice(-6)}. Специалист увидит его в этом чате.`, { parse_mode: 'HTML' })
+          return
+        }
+      } catch (e) { console.warn('[OMEGA-BOT] append to open ticket failed:', e.message) }
     }
 
     // [v9.9.5-TELEGRAM-UNIFIED] client video topic collection

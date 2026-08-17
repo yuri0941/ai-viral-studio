@@ -1517,13 +1517,20 @@ export const sendOwnerAlert = async (message, typeOrOptions = 'info', options = 
     type = typeOrOptions
   } else if (typeOrOptions && typeof typeOrOptions === 'object') {
     options = typeOrOptions
+    type = options.type || 'info'
   }
 
   const ownerChatId = await getOwnerChatId()
   if (!bot || !ownerChatId) return
-  if (!shouldSendAlert(type)) return
-  const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '🚨', payment: '💰', newuser: '👤' }
-  const text = `${icons[type] || 'ℹ️'} <b>AI Viral Studio Alert</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU')}</i>`
+  // [SUPPORT-PUSH-FIX] push о тикете — без cooldown, иначе повторные обращения не дойдут
+  if (type !== 'ticket' && !shouldSendAlert(type)) return
+  let text
+  if (type === 'ticket') {
+    text = message
+  } else {
+    const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '🚨', payment: '💰', newuser: '👤' }
+    text = `${icons[type] || 'ℹ️'} <b>AI Viral Studio Alert</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU')}</i>`
+  }
   try { await safeSendMessage(ownerChatId, text, { parse_mode: 'HTML', ...options }) } catch (e) {}
 }
 
