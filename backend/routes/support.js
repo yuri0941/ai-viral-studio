@@ -88,6 +88,10 @@ router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), asy
         const { invalidateTakeoverCache } = await import('../services/omegaBot.js')
         invalidateTakeoverCache(ticket.telegramChatId)
       } catch (e) { console.warn('[support] invalidate takeover cache failed:', e.message) }
+      try {
+        const { addMessage } = await import('../services/supportService.js')
+        await addMessage(ticket._id, 'system', `👤 Специалист (${req.user.role || 'operator'}) взял обращение в работу.`)
+      } catch (e) { console.warn('[support] system message failed:', e.message) }
     }
     // возврат боту или закрытие — снимаем takeover
     if ((status === 'open' || status === 'resolved' || status === 'closed') && ticket.takeoverBy) {
@@ -112,7 +116,8 @@ router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), asy
 router.post('/:id/messages', protect, async (req, res) => {
   try {
     const sender = req.body.sender || req.user.name || 'user'
-    const ticket = await replyToTicket(req.params.id, sender, req.body.text)
+    const role = ['owner', 'admin', 'staff'].includes(req.user.role) ? req.user.role : 'user'
+    const ticket = await replyToTicket(req.params.id, sender, req.body.text, { role })
     if (!ticket) return res.status(404).json({ status: 'error', message: 'Ticket not found' })
     res.json({ status: 'success', data: ticket })
   } catch (err) {

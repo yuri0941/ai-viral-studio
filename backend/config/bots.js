@@ -16,12 +16,12 @@ export const OWNER_BOT_TOKEN =
 export const CLIENT_BOT_USERNAME =
   process.env.CLIENT_BOT_USERNAME ||
   process.env.TELEGRAM_BOT_USERNAME ||
-  'aiviral_omega_bot'
+  'aiviral_alerts_bot'
 
 export const OWNER_BOT_USERNAME =
   process.env.OWNER_BOT_USERNAME ||
   process.env.TELEGRAM_OWNER_BOT_USERNAME ||
-  'aiviral_alerts_bot'
+  'omega_aiviral_bot'
 
 export const CHANNEL_USERNAME =
   process.env.TELEGRAM_CHANNEL_USERNAME ||
