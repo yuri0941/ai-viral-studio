@@ -19,7 +19,9 @@ export async function del(key) {
 
 export async function getJSON(key) {
   const raw = await get(key)
-  if (!raw) return null
+  if (raw == null) return null
+  // [TG-FREETEXT-HOTFIX] in-memory fallback может вернуть уже распарсенный объект
+  if (typeof raw !== 'string') return raw
   try {
     return JSON.parse(raw)
   } catch {

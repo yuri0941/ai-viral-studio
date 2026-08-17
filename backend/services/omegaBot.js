@@ -46,10 +46,219 @@ import { findFaqAnswer, findFaqCandidates } from './faqService.js'
 import { chatWithAI, extractText } from './aiService.js'
 import { isOwner, getOwnerContext } from './ownerContext.js'
 import { createTicket, appendToOpenTicket } from './supportService.js'
+import { isWebSearchQuery, searchWeb, formatWebResultsLuxury } from './webSearch.js'
 import { getAdPricing } from './adPricingService.js'
 import { saveFeedback, rateFeedback } from './feedbackService.js'
 import { CLIENT_BOT_USERNAME, CHANNEL_USERNAME, clientBotUrl } from '../config/bots.js'
 import { markdownToHtml } from './linkGuard.js'
+
+// [TG-FREETEXT-HOTFIX] доступ к singleton-боту через global, чтобы юнит-тесты могли подставлять stub
+function getBot() { return global.omegaBotInstance || bot }
+
+// [TG-FREETEXT-HOTFIX] точки подмены зависимостей для handleFreeText (юнит-тесты)
+const handleFreeTextDeps = {
+  chatWithAI,
+  extractText,
+  findFaqCandidates,
+  findSimilarSuccess,
+  createTicket,
+  appendToOpenTicket,
+  saveDialogue,
+  updateDialogueOutcome,
+  sanitizeClientReply,
+  saveFeedback,
+  persistDialogueContext,
+  searchWeb,
+  formatWebResultsLuxury,
+}
+export function setHandleFreeTextDeps(deps) { Object.assign(handleFreeTextDeps, deps) }
+
+// [v9.9.7-BOT-CONVERSATION] AI chat with privacy firewall, context memory, smart routing, escalation
+export async function handleFreeText(chatId, text, username) {
+  // [P2.1] антиспам: не чаще 1 AI-ответа в 4 сек на чат
+  const lastCall = freeTextRate.get(String(chatId)) || 0
+  if (Date.now() - lastCall < 4000) return
+  freeTextRate.set(String(chatId), Date.now())
+
+  // [v9.9.19.6] контекст из MongoDB (переживает рестарт), кэш в global
+  const dialogue = await getDialogueContext(chatId);
+  dialogue.push({ role: 'user', content: text, time: Date.now() });
+  if (dialogue.length > 10) dialogue.splice(0, dialogue.length - 10);
+  handleFreeTextDeps.persistDialogueContext(chatId); // не блокируем ответ
+
+  // [TG-FREETEXT-HOTFIX] передаём объекты {role, content}, как ожидает chatWithAI
+  const history = dialogue.map(m => ({ role: m.role, content: m.content }));
+
+  // Определяем intent и тон
+  const intent = detectIntent(text);
+  const clientTone = detectClientTone(text);
+  const actionIntent = detectActionIntent(text);
+
+  // Auto-Escalation: confidence <0.6 или явно support/churn/pricing
+  const needsEscalationByConfidence = actionIntent && actionIntent.confidence <= 0.6 && actionIntent.intent === 'UNKNOWN_ACTION';
+
+  // Churn Guard — агрессивная защита от оттока
+  const CHURN_PATTERNS = /удалить аккаунт|отменить подписку|отписаться|не нужен|перестать|возврат денег|удалить профиль/i;
+  const isChurnRisk = CHURN_PATTERNS.test(text);
+
+  // Ищем похожие успешные диалоги
+  const similarSuccess = await handleFreeTextDeps.findSimilarSuccess(text, 'general', 2);
+  const successHints = similarSuccess.length > 0
+    ? `\n\nУспешные кейсы похожих диалогов:\n${similarSuccess.map(s => `- ${s.text ? s.text.slice(0, 150) : s.content ? s.content.slice(0, 150) : ''}...`).join('\n')}`
+    : '';
+
+  const toneInstructions = {
+    formal: 'Обращайтесь на "Вы", используйте деловой стиль, избегайте сленга.',
+    casual: 'Обращайся на "ты", используй разговорный стиль, эмодзи, лёгкий юмор.',
+    ironic: 'Используй лёгкую иронию, умный юмор, не будь занудой.',
+    technical: 'Давай точные термины, сравнения, структурируй ответ (1, 2, 3).',
+    emotional: 'Будь максимально эмпатичной, поддерживающей, предложи конкретное решение.',
+  };
+
+  // [P2.1] FAQ-кандидаты из базы знаний: бот отвечает ТОЛЬКО из базы + фактов аккаунта, не выдумывает
+  let faqBlock = ''
+  try {
+    const candidates = await handleFreeTextDeps.findFaqCandidates(text, 3)
+    if (candidates.length) {
+      faqBlock = `\n\nБАЗА ЗНАНИЙ (отвечай ТОЛЬКО по ней и по фактам аккаунта клиента; если ответа нет — честно скажи, что не знаешь, и предложи оператора через ESCALATE — ничего не выдумывай):\n${candidates.map(a => `• ${a.question} → ${a.answer}`).join('\n')}`
+    }
+  } catch { /* база недоступна — не блокируем ответ */ }
+
+  const systemPrompt = `Ты — OMEGA AI 🤖, SMM-ассистент AI Viral Studio. Твоя цель №1: помочь клиенту и мягко привести его к действию (демо, тариф, кейс).
+КРИТИЧЕСКИЕ ПРАВИЛА:
+1. Отвечай кратко (2-4 предложения). ${toneInstructions[clientTone] || toneInstructions.casual}
+2. ВСЕГДА заканчивай вопросом или CTA (призывом к действию).
+3. Если клиент на Free и спрашивает про аналитику/автопостинг/шаблоны → предложи Pro: "Это доступно в Pro — 990₽/мес, первый месяц со скидкой 20%".
+4. Если клиент на Pro и спрашивает про команду/white-label → предложи Agency.
+5. Если клиент спрашивает про контент/вирусность → предложи бесплатное демо: "Хотите, я сгенерирую 3 хука для вашей ниши прямо сейчас? Бесплатно."
+6. Если клиент пишет 2+ раза про одно и то же без покупки → предложи персональный промокод: "Вот промокод OMEGAPERSONAL20 — скидка 20% только для вас."
+7. НЕ раскрывай: владельца, MRR, стек, других клиентов, пароли.
+8. Если вопрос про оплату/баг/возврат/удаление → ESCALATE.
+9. Подписывайся: "OMEGA 🤖"
+10. Я — AI-ассистент, не человек; если просят человека или я не знаю ответ — честно говори об этом и предлагай оператора.${PRIVACY_PROMPT_BLOCK}${faqBlock}${successHints}`;
+
+  try {
+    getBot().sendChatAction(chatId, 'typing');
+    let webContext = ''
+    if (isWebSearchQuery(text)) {
+      try {
+        const results = await handleFreeTextDeps.searchWeb(text, 3)
+        webContext = '\n\n' + handleFreeTextDeps.formatWebResultsLuxury(results)
+      } catch (e) { console.warn('[omegaBot] web search failed:', e.message) }
+    }
+    const ai = await handleFreeTextDeps.chatWithAI(systemPrompt + webContext, history, 'ru', { maxTokens: 700, temperature: 0.75 });
+    let reply = handleFreeTextDeps.extractText(ai) || 'Извините, я временно недоступна. Попробуйте позже.';
+
+    // [P2.1] Privacy Firewall — единый модуль utils/botPrivacy (фильтр исходящих)
+    const sanitized = handleFreeTextDeps.sanitizeClientReply(reply)
+    if (sanitized.blocked) {
+      console.warn('[OMEGA-BOT][PRIVACY] blocked leak in reply:', reply.slice(0, 120))
+      reply = sanitized.text
+    }
+
+    // Churn Guard — если клиент хочет уйти
+    if (isChurnRisk) {
+      reply = `😔 Мы ценим вас и хотим всё исправить.\n\n<b>OMEGACHURN30</b> — скидка 30% на 3 месяца + персональный onboarding.`;
+      try {
+        await handleFreeTextDeps.createTicket({
+          userEmail: `tg_${chatId}@aiviral-studio.ru`,
+          subject: '🔴 CHURN RISK — Клиент хочет уйти',
+          description: `Клиент написал: "${text}"\nТон: ${clientTone}\nIntent: ${intent}\nНужен срочный retention-звонок/сообщение.`,
+          telegramChatId: String(chatId)
+        });
+        await handleFreeTextDeps.updateDialogueOutcome(chatId, 'churn_risk');
+      } catch (e) { console.error('Churn ticket failed:', e); }
+
+      await getBot().sendMessage(chatId, `🛡 <b>Churn Guard</b>\n━━━━━━━━━━━━━━\n${reply}`, {
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: [
+          [{ text: '🎁 Активировать OMEGACHURN30', callback_data: 'discount:churn30' }],
+          [{ text: '💬 Поговорить со специалистом', callback_data: 'support:urgent' }],
+          [{ text: '📋 Меню', callback_data: 'menu:main' }]
+        ]}
+      });
+      return;
+    }
+
+    // Smart Routing — определяем intent для inline keyboard
+    const lowerReply = reply.toLowerCase();
+    const lowerText = text.toLowerCase();
+    const keyboard = [];
+    let needsEscalation = reply.includes('ESCALATE') || needsEscalationByConfidence;
+
+    if (lowerText.includes('реклам') || lowerReply.includes('реклам') || lowerText.includes('разместить')) {
+      keyboard.push([{ text: '🛒 Заказать рекламу', callback_data: 'ad:start' }]);
+    }
+    if (lowerText.includes('скидк') || lowerText.includes('промокод') || lowerText.includes('дешевле') || lowerReply.includes('скидк')) {
+      keyboard.push([{ text: '💰 Активные промокоды', callback_data: 'discount:list' }]);
+    }
+    if (lowerText.includes('видео') || lowerText.includes('reels') || lowerText.includes('тикток') || lowerText.includes('shorts') || lowerReply.includes('видео')) {
+      keyboard.push([{ text: '🎬 Создать видео', callback_data: 'video:start' }]);
+    }
+    if (lowerText.includes('поддержк') || lowerText.includes('помощ') || lowerText.includes('не работает') || lowerText.includes('баг') || lowerText.includes('ошибк') || needsEscalation) {
+      keyboard.push([{ text: '💬 Написать в поддержку', callback_data: 'support:start' }]);
+    }
+
+    // Если escalation — создаём тикет
+    if (needsEscalation) {
+      reply = reply.replace(/ESCALATE/g, '').trim();
+      try {
+        await handleFreeTextDeps.createTicket({
+          userEmail: `tg_${chatId}@aiviral-studio.ru`,
+          subject: 'AI Escalation',
+          description: `Клиент написал: "${text}"\nOMEGA не смогла ответить или вопрос требует оператора.`,
+          telegramChatId: String(chatId)
+        });
+        await handleFreeTextDeps.updateDialogueOutcome(chatId, 'escalated');
+      } catch (e) { console.error('Escalation ticket failed:', e); }
+    }
+
+    keyboard.push([{ text: '📋 Главное меню', callback_data: 'menu:main' }]);
+
+    // Сохраняем ответ в историю (+ персист в MongoDB)
+    global.clientDialogues[chatId].push({ role: 'assistant', content: reply, intent, time: Date.now() });
+    handleFreeTextDeps.persistDialogueContext(chatId);
+
+    const formattedReply = reply
+      .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+      .replace(/\*(.+?)\*/g, '<i>$1</i>')
+      .replace(/^(\d+)\.\s/gm, '$1️⃣ ')
+
+    await getBot().sendMessage(chatId, `✦ <b>OMEGA</b> ✦\n━━━━━━━━━━━━━━\n${formattedReply}`, {
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: keyboard }
+    });
+
+    // [v9.9.17-ANTI-FAIL] feedback buttons
+    try {
+      const fb = await handleFreeTextDeps.saveFeedback({ userId: String(chatId), role: 'client', message: text, response: reply, context: 'telegram' });
+      getBot().sendMessage(chatId, 'Оцените ответ:', {
+        reply_markup: { inline_keyboard: [[
+          { text: '👍', callback_data: `feedback:up:${fb._id}` },
+          { text: '👎', callback_data: `feedback:down:${fb._id}` }
+        ]]}
+      });
+    } catch (e) { console.error('Feedback save error:', e); }
+
+    // Сохраняем диалог для обучения
+    try {
+      const dialogueMessages = global.clientDialogues[chatId].slice(-6).map(m => ({
+        role: m.role,
+        content: m.content,
+        intent: m.role === 'user' ? detectIntent(m.content) : 'sales'
+      }));
+      await handleFreeTextDeps.saveDialogue(chatId, dialogueMessages, needsEscalation ? 'escalated' : 'pending', 'general');
+    } catch (e) { console.error('Dialogue save error:', e); }
+
+  } catch (e) {
+    // [TG-FREETEXT-HOTFIX] ошибки кода не маскируем под «все провайдеры лежат» — лог + честный текст
+    console.error('Free text chat error:', e);
+    getBot().sendMessage(chatId, `⚠️ <b>Ошибка обработки сообщения</b>\n━━━━━━━━━━━━━━\nМы уже видим лог. Попробуйте ещё раз или обратитесь в поддержку.\n\n💬 Написать в поддержку — нажмите кнопку ниже.`, {
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [[{ text: '💬 Поддержка', callback_data: 'support:start' }], [{ text: '📋 Меню', callback_data: 'menu:main' }]] }
+    });
+  }
+}
 
 // [P16-FINAL] singleton to avoid duplicate polling / 409 conflict
 let bot = global.omegaBotInstance || null
@@ -340,193 +549,7 @@ export const initOmegaBot = () => {
     }
   })
 
-  // [v9.9.7-BOT-CONVERSATION] AI chat with privacy firewall, context memory, smart routing, escalation
-  async function handleFreeText(chatId, text, username) {
-    // [P2.1] антиспам: не чаще 1 AI-ответа в 4 сек на чат
-    const lastCall = freeTextRate.get(String(chatId)) || 0
-    if (Date.now() - lastCall < 4000) return
-    freeTextRate.set(String(chatId), Date.now())
-
-    // [v9.9.19.6] контекст из MongoDB (переживает рестарт), кэш в global
-    const dialogue = await getDialogueContext(chatId);
-    dialogue.push({ role: 'user', content: text, time: Date.now() });
-    if (dialogue.length > 10) dialogue.splice(0, dialogue.length - 10);
-    persistDialogueContext(chatId); // не блокируем ответ
-
-    const history = dialogue.map(m => m.content);
-
-    // Определяем intent и тон
-    const intent = detectIntent(text);
-    const clientTone = detectClientTone(text);
-    const actionIntent = detectActionIntent(text);
-
-    // Auto-Escalation: confidence <0.6 или явно support/churn/pricing
-    const needsEscalationByConfidence = actionIntent && actionIntent.confidence <= 0.6 && actionIntent.intent === 'UNKNOWN_ACTION';
-
-    // Churn Guard — агрессивная защита от оттока
-    const CHURN_PATTERNS = /удалить аккаунт|отменить подписку|отписаться|не нужен|перестать|возврат денег|удалить профиль/i;
-    const isChurnRisk = CHURN_PATTERNS.test(text);
-
-    // Ищем похожие успешные диалоги
-    const similarSuccess = await findSimilarSuccess(text, 'general', 2);
-    const successHints = similarSuccess.length > 0
-      ? `\n\nУспешные кейсы похожих диалогов:\n${similarSuccess.map(s => `- ${s.text ? s.text.slice(0, 150) : s.content ? s.content.slice(0, 150) : ''}...`).join('\n')}`
-      : '';
-
-    const toneInstructions = {
-      formal: 'Обращайтесь на "Вы", используйте деловой стиль, избегайте сленга.',
-      casual: 'Обращайся на "ты", используй разговорный стиль, эмодзи, лёгкий юмор.',
-      ironic: 'Используй лёгкую иронию, умный юмор, не будь занудой.',
-      technical: 'Давай точные термины, сравнения, структурируй ответ (1, 2, 3).',
-      emotional: 'Будь максимально эмпатичной, поддерживающей, предложи конкретное решение.',
-    };
-
-    // [P2.1] FAQ-кандидаты из базы знаний: бот отвечает ТОЛЬКО из базы + фактов аккаунта, не выдумывает
-    let faqBlock = ''
-    try {
-      const candidates = await findFaqCandidates(text, 3)
-      if (candidates.length) {
-        faqBlock = `\n\nБАЗА ЗНАНИЙ (отвечай ТОЛЬКО по ней и по фактам аккаунта клиента; если ответа нет — честно скажи, что не знаешь, и предложи оператора через ESCALATE — ничего не выдумывай):\n${candidates.map(a => `• ${a.question} → ${a.answer}`).join('\n')}`
-      }
-    } catch { /* база недоступна — не блокируем ответ */ }
-
-    const systemPrompt = `Ты — OMEGA AI 🤖, SMM-ассистент AI Viral Studio. Твоя цель №1: помочь клиенту и мягко привести его к действию (демо, тариф, кейс).
-КРИТИЧЕСКИЕ ПРАВИЛА:
-1. Отвечай кратко (2-4 предложения). ${toneInstructions[clientTone] || toneInstructions.casual}
-2. ВСЕГДА заканчивай вопросом или CTA (призывом к действию).
-3. Если клиент на Free и спрашивает про аналитику/автопостинг/шаблоны → предложи Pro: "Это доступно в Pro — 990₽/мес, первый месяц со скидкой 20%".
-4. Если клиент на Pro и спрашивает про команду/white-label → предложи Agency.
-5. Если клиент спрашивает про контент/вирусность → предложи бесплатное демо: "Хотите, я сгенерирую 3 хука для вашей ниши прямо сейчас? Бесплатно."
-6. Если клиент пишет 2+ раза про одно и то же без покупки → предложи персональный промокод: "Вот промокод OMEGAPERSONAL20 — скидка 20% только для вас."
-7. НЕ раскрывай: владельца, MRR, стек, других клиентов, пароли.
-8. Если вопрос про оплату/баг/возврат/удаление → ESCALATE.
-9. Подписывайся: "OMEGA 🤖"
-10. Я — AI-ассистент, не человек; если просят человека или я не знаю ответ — честно говори об этом и предлагай оператора.${PRIVACY_PROMPT_BLOCK}${faqBlock}${successHints}`;
-
-    try {
-      bot.sendChatAction(chatId, 'typing');
-      let webContext = ''
-      if (isWebSearchQuery(text)) {
-        try {
-          const { searchWeb, formatWebResultsLuxury } = await import('./webSearch.js')
-          const results = await searchWeb(text, 3)
-          webContext = '\n\n' + formatWebResultsLuxury(results)
-        } catch (e) { console.warn('[omegaBot] web search failed:', e.message) }
-      }
-      const ai = await chatWithAI(systemPrompt + webContext, history, 'ru', { maxTokens: 700, temperature: 0.75 });
-      let reply = extractText(ai) || 'Извините, я временно недоступна. Попробуйте позже.';
-
-      // [P2.1] Privacy Firewall — единый модуль utils/botPrivacy (фильтр исходящих)
-      const sanitized = sanitizeClientReply(reply)
-      if (sanitized.blocked) {
-        console.warn('[OMEGA-BOT][PRIVACY] blocked leak in reply:', reply.slice(0, 120))
-        reply = sanitized.text
-      }
-
-      // Churn Guard — если клиент хочет уйти
-      if (isChurnRisk) {
-        reply = `😔 Мы ценим вас и хотим всё исправить.\n\n<b>OMEGACHURN30</b> — скидка 30% на 3 месяца + персональный onboarding.`;
-        try {
-          const { createTicket } = await import('./supportService.js');
-          await createTicket({
-            userEmail: `tg_${chatId}@aiviral-studio.ru`,
-            subject: '🔴 CHURN RISK — Клиент хочет уйти',
-            description: `Клиент написал: "${text}"\nТон: ${clientTone}\nIntent: ${intent}\nНужен срочный retention-звонок/сообщение.`,
-            telegramChatId: String(chatId)
-          });
-          await updateDialogueOutcome(chatId, 'churn_risk');
-        } catch (e) { console.error('Churn ticket failed:', e); }
-
-        await bot.sendMessage(chatId, `🛡 <b>Churn Guard</b>\n━━━━━━━━━━━━━━\n${reply}`, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: [
-            [{ text: '🎁 Активировать OMEGACHURN30', callback_data: 'discount:churn30' }],
-            [{ text: '💬 Поговорить со специалистом', callback_data: 'support:urgent' }],
-            [{ text: '📋 Меню', callback_data: 'menu:main' }]
-          ]}
-        });
-        return;
-      }
-
-      // Smart Routing — определяем intent для inline keyboard
-      const lowerReply = reply.toLowerCase();
-      const lowerText = text.toLowerCase();
-      const keyboard = [];
-      let needsEscalation = reply.includes('ESCALATE') || needsEscalationByConfidence;
-
-      if (lowerText.includes('реклам') || lowerReply.includes('реклам') || lowerText.includes('разместить')) {
-        keyboard.push([{ text: '🛒 Заказать рекламу', callback_data: 'ad:start' }]);
-      }
-      if (lowerText.includes('скидк') || lowerText.includes('промокод') || lowerText.includes('дешевле') || lowerReply.includes('скидк')) {
-        keyboard.push([{ text: '💰 Активные промокоды', callback_data: 'discount:list' }]);
-      }
-      if (lowerText.includes('видео') || lowerText.includes('reels') || lowerText.includes('тикток') || lowerText.includes('shorts') || lowerReply.includes('видео')) {
-        keyboard.push([{ text: '🎬 Создать видео', callback_data: 'video:start' }]);
-      }
-      if (lowerText.includes('поддержк') || lowerText.includes('помощ') || lowerText.includes('не работает') || lowerText.includes('баг') || lowerText.includes('ошибк') || needsEscalation) {
-        keyboard.push([{ text: '💬 Написать в поддержку', callback_data: 'support:start' }]);
-      }
-
-      // Если escalation — создаём тикет
-      if (needsEscalation) {
-        reply = reply.replace(/ESCALATE/g, '').trim();
-        try {
-          const { createTicket } = await import('./supportService.js');
-          await createTicket({
-            userEmail: `tg_${chatId}@aiviral-studio.ru`,
-            subject: 'AI Escalation',
-            description: `Клиент написал: "${text}"\nOMEGA не смогла ответить или вопрос требует оператора.`,
-            telegramChatId: String(chatId)
-          });
-          await updateDialogueOutcome(chatId, 'escalated');
-        } catch (e) { console.error('Escalation ticket failed:', e); }
-      }
-
-      keyboard.push([{ text: '📋 Главное меню', callback_data: 'menu:main' }]);
-
-      // Сохраняем ответ в историю (+ персист в MongoDB)
-      global.clientDialogues[chatId].push({ role: 'assistant', content: reply, intent, time: Date.now() });
-      persistDialogueContext(chatId);
-
-      const formattedReply = reply
-        .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-        .replace(/\*(.+?)\*/g, '<i>$1</i>')
-        .replace(/^(\d+)\.\s/gm, '$1️⃣ ')
-
-      await bot.sendMessage(chatId, `✦ <b>OMEGA</b> ✦\n━━━━━━━━━━━━━━\n${formattedReply}`, {
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard: keyboard }
-      });
-
-      // [v9.9.17-ANTI-FAIL] feedback buttons
-      try {
-        const fb = await saveFeedback({ userId: String(chatId), role: 'client', message: text, response: reply, context: 'telegram' });
-        bot.sendMessage(chatId, 'Оцените ответ:', {
-          reply_markup: { inline_keyboard: [[
-            { text: '👍', callback_data: `feedback:up:${fb._id}` },
-            { text: '👎', callback_data: `feedback:down:${fb._id}` }
-          ]]}
-        });
-      } catch (e) { console.error('Feedback save error:', e); }
-
-      // Сохраняем диалог для обучения
-      try {
-        const dialogueMessages = global.clientDialogues[chatId].slice(-6).map(m => ({
-          role: m.role,
-          content: m.content,
-          intent: m.role === 'user' ? detectIntent(m.content) : 'sales'
-        }));
-        await saveDialogue(chatId, dialogueMessages, needsEscalation ? 'escalated' : 'pending', 'general');
-      } catch (e) { console.error('Dialogue save error:', e); }
-
-    } catch (e) {
-      console.error('Free text chat error:', e);
-      bot.sendMessage(chatId, `🤖 <b>OMEGA</b>\n━━━━━━━━━━━━━━\nИзвините, я временно недоступна. Попробуйте позже.\n\n💬 Написать в поддержку — нажмите кнопку ниже.`, {
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard: [[{ text: '💬 Поддержка', callback_data: 'support:start' }], [{ text: '📋 Меню', callback_data: 'menu:main' }]] }
-      });
-    }
-  }
+  // handleFreeText moved to module scope and exported above
 
   // [v9.9.19-MASTER-AUDIT] голосовые сообщения → Whisper STT (Groq/OpenAI) → обычный текстовый поток
   bot.on('voice', async (msg) => {
