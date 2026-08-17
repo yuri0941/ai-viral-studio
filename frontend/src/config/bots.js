@@ -25,3 +25,8 @@ export function clientBotUrl(startParam) {
 export function ownerBotUrl(startParam) {
   return buildUrl(OWNER_BOT_USERNAME, startParam)
 }
+
+// [LANDING-UNIFY] функциональный доступ к каналу — единый стиль с clientBotUrl()/ownerBotUrl()
+export function channelUrl() {
+  return buildUrl(CHANNEL_USERNAME)
+}

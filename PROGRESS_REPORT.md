@@ -1,4 +1,18 @@
 
+## 2026-08-18 — LANDING-UNIFY (Б2)
+- [ПРОБЛЕМА] На домене жили два лендинга: `/` → pages/landing/LandingPage.jsx (новый), `/login` + `/register` → pages/LandingPage.jsx (legacy, другой дизайн и ПРОТУХШИЕ цены Creator 2900₽/Pro 7900₽/Agency 19900₽ из config/plans.js). Клиент по клику «Войти» попадал на старую версию
+- [FRONTEND] Единый лендинг: pages/landing/LandingPage.jsx переписан (люкс: parallax-орбы в герое, scroll-reveal на IntersectionObserver, .btn-lux с hover/active/loading, bento-фичи, дисклеймер в футере); тарифы как раньше — живые из PlanConfig + founding −30% + счётчик слотов (BetaCounter)
+- [FRONTEND] App.jsx: /login и /register отдают тот же единый лендинг с AuthModal (режим login/register); формы LoginForm/RegisterForm/SignupPage не тронуты; legacy pages/LandingPage.jsx УДАЛЁН из отдачи и из репо (−627 строк)
+- [FRONTEND] config/bots.js: добавлена channelUrl() (единый стиль с clientBotUrl()); все TG-ссылки лендинга — через clientBotUrl('landing')/channelUrl(), хардкода TG нет
+- [FRONTEND] AuthModal: обвязка (заголовки/табы/aria) переведена на i18n landing.auth.* — на /login EN больше не показывает RU
+- [FRONTEND] ViralDemo: хардкод ошибки генерации → t('viralDemo.error')
+- [i18n] ru/en × (src/locales + public/locales): +~60 ключей landing.* (nav/hero/features/pricing/how/faq/footer/auth), viralDemo.error; i18n-parity OK, mojibake-scan чисто
+- [УДАЛЕНО ИЗ ОТДАЧИ] legacy-лендинг целиком: старые цены config/plans.js на публичной странице, годовой тумблер −20% (не из PlanConfig), confetti без keyframes (мёртвый код), Discord-заглушка your_invite, рекламная CTA с ClientChatWidget (props игнорировались — не работала), OmegaCompetitorRadar, FeatureMap, pages/landing/BetaCounter (RU-хардкод)
+- [CHECKS] npm run build 0 ошибок; главный чанк 2292.75→2257.96 kB (gzip 609.61→584.04 kB, −25.6 kB); precache 4041.93→4007.80 KiB
+- [CHECKS] ui-audit public (/, /login, /register × 360/428/768/1280/1920 × RU/EN): 0 горизонтальных скроллов, 0 сырых ключей, 0 console errors; ui-buttons public: см. reports/landing-unify/buttons
+- [GIT] Commit+push: feature/landing-unify, compare: https://github.com/yuri0941/ai-viral-studio/compare/main...feature/landing-unify
+- [NEXT] Владельцу: открыть aiviral-studio.ru с телефона и компа после выкатки — один лендинг везде (включая /login и /register), цены как раньше (Pro 990₽ / Agency 4990₽, founding −30%); для гарантии обновления у клиентов — сбросить PWA-кэш/версию sw
+
 ## 2026-08-18 — TG-FREETEXT-HOTFIX+
 - [BACKEND] backend/config/cors.js: CORS whitelist вынесен в конфиг; defaults — aiviral-studio.ru, www.aiviral-studio.ru, ai-viral-studio.pages.dev, localhost; дополнительно FRONTEND_URL и CORS_ORIGINS через env
 - [BACKEND] backend/server.js: импорт corsOptions из config/cors.js; CORS-ошибки возвращают 403 JSON, а не 500 HTML; отклонённый origin логируется `[CORS] denied origin: <origin>`
