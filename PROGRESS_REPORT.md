@@ -1,3 +1,19 @@
+## 2026-08-17 — SUBSCRIPTION-CHECKOUT-FIX
+- [BACKEND] SubscriptionSchema: status enum += pending/inactive/expired; добавлены поля price, interval, startDate, endDate, autoRenew, paymentMethod, providerPaymentId, isTrial, trialEndsAt, reminderSent, urgentReminderSent (strict-режим их раньше молча стирал)
+- [BACKEND] yookassaController: createSubscriptionPayment пишет amount + currentPeriodStart/currentPeriodEnd рядом с новыми полями; webhook mark_paid синхронизирует currentPeriodStart/End из startDate/endDate, обновляет user.subscription (вместо несуществующего plan)
+- [BACKEND] yookassaWebhook: TG-алерт владельцу на payment.succeeded (тариф, сумма, клиент, founding-слот) и refund.succeeded; идемпотентность через early-return на активной подписке и modifiedCount у refund
+- [BACKEND] ownerBot.sendOwnerAlert: поддерживает вызовы (message, options) с reply_markup — кнопки «Взять диалог» теперь доходят до владельца
+- [BACKEND] disasterRecovery.js: getMongoUri() читает MONGO_URI || MONGODB_URI (как database.js); ручной триггер POST /api/admin/backup/trigger снова создаёт zip
+- [BACKEND] supportService: replyToTicket — ответ из Dashboard доходит до клиента в Telegram и пишется в ClientDialogue; PATCH /support/:id/status активирует takeover при status='in_progress'
+- [FRONTEND] SupportTab/TicketsTab: «Взять в работу» / «In Progress» передают takeoverBy='operator' при наличии telegramChatId; бейдж source исправлен с 'free_chat' на 'chat'
+- [BACKEND] actionEngine: тикеты из Telegram помечаются source='telegram'
+- [CHECKS] node --check OK по backend; npm run build OK (0 errors)
+- [CHECKS] E2E-юнит (backend/.tmp-subscription-e2e.mjs): pending-подписка создаётся без ValidationError; webhook → status active, providerPaymentId, user.subscription=pro, founding-слот, metrics paidCount=1, revenueRub=1000 — ALL CHECKS PASSED
+- [CHECKS] Backup URI test (backend/.tmp-backup-test.mjs): MONGO_URI задан, MONGODB_URI не задан → runBackup success, zip 11672 bytes — PASSED
+- [CHECKS] Ticket-reply test (backend/.tmp-ticket-reply-test.mjs): сообщение оператора добавлено, TG-отправка best-effort без токена не падает — PASSED
+- [GIT] Commit+push: fix/subscription-checkout (27529eeb), compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/subscription-checkout
+- [NEXT] Владельцу: протестировать «Оплатить Pro» на проде, ручной триггер бэкапа, клиент→«Человек»→«Взять диалог»
+
 ## 2026-08-15 — BACKUP-ALERTS-FIX
 - [BACKEND] disasterRecovery.js: бэкап MongoDB переписан на JS-драйвер (BSON/EJSON → JSONL → gzip → zip), без внешнего mongodump
 - [BACKEND] Бэкап проверен: локальный MongoDB → backup_2026-08-15-20-43-35.zip 537 байт, 1 коллекция, 1 документ; восстановление из zip тоже работает
