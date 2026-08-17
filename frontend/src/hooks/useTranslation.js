@@ -11,7 +11,7 @@ export const useTranslation = () => {
     }
   }, [lang])
 
-  const t = (key) => getTranslation(lang, key)
+  const t = (key, params) => getTranslation(lang, key, params)
 
   return { t, lang, setLang }
 }
