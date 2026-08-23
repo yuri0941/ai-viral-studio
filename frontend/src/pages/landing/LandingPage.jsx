@@ -56,7 +56,7 @@ function Reveal({ children, className = '', delay = 0 }) {
 }
 
 export default function LandingPage({ authMode = null }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
@@ -76,6 +76,7 @@ export default function LandingPage({ authMode = null }) {
   const [plans, setPlans] = useState(null)
   const [testimonials, setTestimonials] = useState([])
   const [foundingActive, setFoundingActive] = useState(false)
+  const [foundingDiscountPercent, setFoundingDiscountPercent] = useState(30) // [PLANCONFIG-ADMIN] из FoundingConfig, фолбэк 30
   // [LANDING-RESTORE] правовая строка владельца (auto-update из его кабинета) — в legacy
   // запрос был, но данные не рендерились; теперь рендерится в футере
   const [legalInfo, setLegalInfo] = useState(null)
@@ -92,8 +93,13 @@ export default function LandingPage({ authMode = null }) {
       .then(res => { if (mounted) setTestimonials(Array.isArray(res?.testimonials) ? res.testimonials : []) })
       .catch(() => { if (mounted) setTestimonials([]) })
     launchApi.betaSlots(PUBLIC_FETCH_OPTS)
-      .then(res => { if (mounted) setFoundingActive(!!res?.data?.foundingActive) })
-      .catch(() => { if (mounted) setFoundingActive(true) }) // [LANDING-RESTORE] фолбэк: founding −30% отображается и при упавшем API
+      .then(res => {
+        if (!mounted) return
+        setFoundingActive(!!res?.data?.foundingActive)
+        // [PLANCONFIG-ADMIN] процент скидки — из FoundingConfig (БД), без хардкода 0.7
+        if (Number.isFinite(res?.data?.discountPercent)) setFoundingDiscountPercent(res.data.discountPercent)
+      })
+      .catch(() => { if (mounted) setFoundingActive(true) }) // [LANDING-RESTORE] фолбэк: founding-скидка отображается и при упавшем API
     ownerLegalInfoApi.public(PUBLIC_FETCH_OPTS)
       .then(res => { if (mounted) setLegalInfo(res?.legalInfo || null) })
       .catch(() => { if (mounted) setLegalInfo(null) })
@@ -113,7 +119,11 @@ export default function LandingPage({ authMode = null }) {
   }, [])
 
   // [P1.6-PREP] строки фич тарифа из quotas/features PlanConfig
+  // [PLANCONFIG-ADMIN] если владелец задал featureList RU/EN — рендерим его (приоритет)
   const planFeatureLines = (p) => {
+    const lang = (i18n.language || 'ru').slice(0, 2)
+    const custom = p.featureList?.[lang] || []
+    if (custom.length) return custom
     const q = p.quotas || {}
     const f = p.features || {}
     const lines = []
@@ -368,7 +378,7 @@ export default function LandingPage({ authMode = null }) {
                       <h3 className="text-xl font-bold mb-2 capitalize">{p.plan}</h3>
                       <div className="text-3xl font-black mb-1">{p.price} <span className="text-sm text-[var(--text-muted)] font-normal">{t('landing.plans.perMonth')}</span></div>
                       {foundingActive && p.price > 0 && (
-                        <div className="text-xs text-emerald-400 mb-3 break-words">{t('landing.plans.foundingLine', { price: Math.round(p.price * 0.7) })}</div>
+                        <div className="text-xs text-emerald-400 mb-3 break-words">{t('landing.plans.foundingLine', { price: Math.round(p.price * (1 - foundingDiscountPercent / 100)) })}</div>
                       )}
                       <ul className="space-y-2 mb-6 mt-4 flex-1">
                         {planFeatureLines(p).map((feat, j) => (

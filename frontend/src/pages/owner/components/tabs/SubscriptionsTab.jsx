@@ -6,7 +6,7 @@ import { useSmartData } from '../../../../hooks/useSmartData'
 import { API_BASE_URL } from '../../../../config.js'
 import { useTranslation } from 'react-i18next'
 import { playSound } from '../../../../hooks/useSound.js'
-import { PLANS, getPrice } from '../../../../config/plans.js' // [P24] fixed: unified plans config
+import { planConfigApi } from '../../../../services/api.js'
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
     ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil, Check,
@@ -14,17 +14,11 @@ import {
 } from 'lucide-react'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx' // [v6.0] added
 
-// [P24] fixed: backend-shape fallback built from unified PLANS config
-// [MONETIZE-2026-08-04] fixed: pass plan id, not object
-const DEMO_PLANS = Object.values(PLANS).filter(p => p.id !== 'free').map(p => ({
-    id: p.id,
-    name: p.name,
-    price: getPrice(p.id, 'RUB'),
-    period: 'month',
-    currency: 'RUB',
-    features: p.features,
-    popular: p.id === 'pro'
-}))
+// [PLANCONFIG-ADMIN] fallback-фолбэк = дефолты PlanConfig (legacy config/plans.js удалён)
+const DEMO_PLANS = [
+    { id: 'pro', name: 'Pro', price: 990, period: 'month', currency: 'RUB', features: [], popular: true },
+    { id: 'agency', name: 'Agency', price: 4990, period: 'month', currency: 'RUB', features: [], popular: false },
+]
 
 const COLORS = {
     free: '#6b7280',
@@ -112,13 +106,26 @@ export function SubscriptionsTab({ data }) {
     // [19.13-lite-PAYMENTS-NPD] receipt filter: 'all' | 'failed'
     const [receiptFilter, setReceiptFilter] = useState('all')
 
-    // [PLANS-SYNC] added: load plans from unified /api/plans endpoint
+    // [PLANCONFIG-ADMIN] тарифы — из /api/plan-config (БД, единый источник); legacy /api/plans удалён
     const plansUrl = useMemo(() => {
-        return `${API_BASE_URL}/plans${currency ? `?currency=${currency}` : ''}`
-    }, [currency])
+        return `${API_BASE_URL}/plan-config`
+    }, [])
 
-    const { data: plans, isDemo } = useSmartData(plansUrl, DEMO_PLANS, token)
-    const safePlans = Array.isArray(plans) ? plans : []
+    const { data: plansRaw, isDemo } = useSmartData(plansUrl, DEMO_PLANS, token)
+    // адаптер PlanConfig → форма вкладки ({id, name, price, period, currency, features, popular})
+    const safePlans = (() => {
+        const arr = Array.isArray(plansRaw) ? plansRaw : plansRaw?.plans
+        if (!Array.isArray(arr) || !arr.length) return DEMO_PLANS
+        return arr.filter(p => (p.plan || p.id) !== 'free').map(p => ({
+            id: p.plan || p.id,
+            name: (p.plan || p.id || '').replace(/^./, c => c.toUpperCase()),
+            price: p.price ?? 0,
+            period: 'month',
+            currency: p.currency || 'RUB',
+            features: p.featureList?.ru?.length ? p.featureList.ru : [],
+            popular: (p.plan || p.id) === 'pro',
+        }))
+    })()
     const safeHistory = Array.isArray(history) ? history : []
 
     useEffect(() => {
@@ -253,32 +260,20 @@ export function SubscriptionsTab({ data }) {
         }
         setSavingPlanId(planId)
         try {
-            const token = localStorage.getItem('token')
-            // [PLANS-SYNC] added: update in-memory unified plans config
-            const res = await fetch(`${API_BASE_URL}/plans/${planId}`, {
-                method: 'PATCH',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(currency === 'USD' ? { priceUSD: price } : { priceRUB: price }),
-            })
-            const json = await res.json()
-            if (json.success) {
-                setPlanOverrides(prev => ({ ...prev, [planId]: price }))
-                setEditingPlanId(null)
-                pushToast('success', t('subscriptions.priceUpdated'))
-            } else {
-                pushToast('error', json.error || json.message || 'Ошибка сохранения')
-            }
-        } catch (err) {
+            // [PLANCONFIG-ADMIN] цена — через PlanConfig API (БД, hot-reload); legacy PATCH /api/plans удалён
+            await planConfigApi.update(planId, { price })
             setPlanOverrides(prev => ({ ...prev, [planId]: price }))
             setEditingPlanId(null)
             pushToast('success', t('subscriptions.priceUpdated'))
+        } catch (err) {
+            pushToast('error', err?.message || 'Ошибка сохранения')
         } finally {
             setSavingPlanId(null)
         }
     }
 
     async function handleSubscribe(planId) {
-        const plan = (Array.isArray(plans) ? plans : []).find(p => p.id === planId)
+        const plan = safePlans.find(p => p.id === planId)
         if (!plan || plan.price <= 0) {
             pushToast('error', t('subscriptions.freePlanNoPayment'))
             return

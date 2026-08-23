@@ -3,6 +3,9 @@
 // Версия: 1.0 Lite (фундамент для OMEGA v5)
 // ============================================
 
+// [PLANCONFIG-ADMIN] кэш тарифов для customer_support (5 мин)
+let omegaSkillsPlanCache = null
+
 /**
  * Фабрика простых навыков OMEGA.
  * Каждый навык содержит метаданные + execute(params, omega).
@@ -92,7 +95,17 @@ export const OMEGA_SKILLS = [
         execute: async (params) => {
             const q = (params.question || '').toLowerCase()
             if (q.includes('цена') || q.includes('тариф')) {
-                return { reply: 'Наши тарифы: Free, Creator ($10), Pro ($43), Agency ($143), Enterprise ($475).', category: 'billing' }
+                // [PLANCONFIG-ADMIN] тарифы — живые из PlanConfig (кэш 5 мин), без хардкода цен
+                try {
+                    const { planConfigApi } = await import('../../services/api.js')
+                    if (!omegaSkillsPlanCache || Date.now() - omegaSkillsPlanCache.at > 5 * 60 * 1000) {
+                        const res = await planConfigApi.list()
+                        omegaSkillsPlanCache = { at: Date.now(), plans: res?.plans || [] }
+                    }
+                    const lines = omegaSkillsPlanCache.plans.map(p => `${p.plan === 'free' ? 'Free' : p.plan === 'pro' ? 'Pro' : 'Agency'} — ${p.price}₽/мес`)
+                    if (lines.length) return { reply: `Наши тарифы: ${lines.join(', ')}. Подробнее — на странице подписки.`, category: 'billing' }
+                } catch { /* фолбэк ниже */ }
+                return { reply: 'Актуальные тарифы — на странице подписки в личном кабинете.', category: 'billing' }
             }
             if (q.includes('api') || q.includes('ключ')) {
                 return { reply: 'API-ключи можно управлять в разделе OMEGA → API Keys.', category: 'technical' }
