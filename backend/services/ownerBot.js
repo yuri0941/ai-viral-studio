@@ -793,6 +793,29 @@ export const initOwnerBot = () => {
       return true
     }
 
+    // [PLANCONFIG-ADMIN] "проанализируй тарифы" — AI-советчик по реальным данным (только совет)
+    if (/проанализируй тарифы|анализ тарифов|советчик тарифов/.test(lower)) {
+      try {
+        safeSendMessage(chatId, '🤖 Собираю данные и анализирую тарифы, это займёт до минуты…')
+        const { getAdvisorReport } = await import('./planAdvisorService.js')
+        const report = await getAdvisorReport()
+        const d = report.data
+        const head = `📊 <b>AI-советчик тарифов</b> ${report.aiUsed ? '(OMEGA)' : '(эвристика, AI недоступен)'}\n` +
+          `MRR: ${d.mrr?.mrr ?? '—'}₽ · платящих: ${d.mrr?.paying ?? '—'}\n` +
+          `Пользователи: ${Object.entries(d.planDistribution || {}).map(([p, c]) => `${p}: ${c}`).join(', ')}\n` +
+          `Founding: ${d.founding ? `${d.founding.used}/${d.founding.total} слотов, −${d.founding.discountPercent}%` : '—'}\n` +
+          `Оплаты 30д: ${(d.payments30d || []).map(p => `${p.plan}: ${p.count} (${p.revenueRub}₽)`).join(', ') || 'нет'}\n\n`
+        const full = head + report.recommendations
+        // Telegram лимит 4096 — режем на части
+        for (let i = 0; i < full.length; i += 3900) {
+          safeSendMessage(chatId, full.slice(i, i + 3900), { parse_mode: 'HTML' })
+        }
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ AI-советчик недоступен: ${e.message}`)
+      }
+      return true
+    }
+
     // "проанализируй цены" / "проанализируй цену pro"
     if (/проанализируй|анализ цен|анализ цены/.test(lower)) {
       const targets = ['tariff.pro', 'tariff.agency', 'ad.channel.cpm']
@@ -1270,6 +1293,13 @@ export const initOwnerBot = () => {
           const plan = await PlanConfig.findOne({ plan: target })
           oldPrice = plan?.price || 0
           if (plan) { plan.price = newPrice; await plan.save() }
+          // [PLANCONFIG-ADMIN] fix: после смены цены тарифа сбрасываем кэши (раньше цена залипала до TTL)
+          try {
+            const { invalidatePlanCache } = await import('../middleware/enforceQuota.js')
+            invalidatePlanCache()
+            const { invalidatePlanDisplayCache } = await import('./planDisplayService.js')
+            invalidatePlanDisplayCache?.()
+          } catch { /* best-effort */ }
         } else if (type === 'ad' && target === 'channel') {
           const pricing = await AdPricing.findOne()
           oldPrice = pricing?.[field] || 0

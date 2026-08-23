@@ -219,6 +219,18 @@ router.post('/pricing/change', protect, authorize('owner', 'admin'), async (req,
     }
 })
 
+// [PLANCONFIG-ADMIN] AI-советчик тарифов: реальные данные + рекомендации OMEGA (только совет)
+router.get('/pricing/advisor', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { getAdvisorReport } = await import('../services/planAdvisorService.js')
+        const report = await getAdvisorReport()
+        res.json({ success: true, data: report })
+    } catch (err) {
+        console.error('[owner:pricing/advisor]', err.message)
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
 router.get('/pricing/history', protect, authorize('owner', 'admin'), async (req, res) => {
     try {
         const history = await PriceChangeLog.find().sort({ createdAt: -1 }).limit(50).lean()
