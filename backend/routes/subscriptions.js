@@ -49,6 +49,20 @@ router.get('/config', async (req, res) => {
     const country = ip && (ip === '127.0.0.1' || ip === '::1') ? 'RU' : null;
     const currency = detectCurrencyByIP(ip);
     const paymentMethods = await getPaymentMethods(country, currency);
+    // [PLANCONFIG-ADMIN] PlanConfig — RUB-only, ЮKassa — живой провайдер: включаем её в methods всегда,
+    // даже когда geo определил не-RU (иначе у части клиентов кнопка оплаты мертва)
+    if (!paymentMethods.some(m => m.id === 'yookassa')) {
+      const { getProviderKey } = await import('../services/aiService.js');
+      const yookassaEnabled = !!(await getProviderKey('yookassa_shop_id')) && !!(await getProviderKey('yookassa_secret'));
+      paymentMethods.unshift({
+        id: 'yookassa',
+        name: 'Банковская карта / ЮKassa',
+        icon: 'card',
+        enabled: yookassaEnabled,
+        reason: yookassaEnabled ? null : 'Не настроено: Кабинет → API Ключи → yookassa_shop_id + yookassa_secret',
+        recommended: true,
+      });
+    }
     return res.json({ success: true, currency, country, paymentMethods });
   } catch (err) {
     console.error('[subscriptions:config]', err.message);
@@ -77,15 +91,13 @@ router.get('/exchange-rate', async (req, res) => {
 });
 
 // [v8.0-PART1] added: dynamic pricing endpoints
+// [PLANCONFIG-ADMIN] базовые цены — из PlanConfig (кэш), legacy-хардкод 7900/19900 удалён
+import { getPlansSync, getPlanSync } from '../services/planConfigCache.js';
+
 router.get('/plans-dynamic', protect, async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
-    // Mock base plans; in production fetch from plans service
-    const basePlans = [
-      { id: 'free', name: 'Free', basePrice: 0 },
-      { id: 'pro', name: 'Pro', basePrice: 7900 },
-      { id: 'agency', name: 'Agency', basePrice: 19900 },
-    ];
+    const basePlans = getPlansSync().map(p => ({ id: p.plan, name: p.plan, basePrice: p.price }));
     const data = await Promise.all(
       basePlans.map(async plan => {
         const pricing = await adjustPrice(plan.basePrice, plan.id, userId);
@@ -103,7 +115,7 @@ router.get('/my-price', protect, async (req, res) => {
   try {
     const { plan = 'pro' } = req.query;
     const userId = req.user?._id || req.user?.id;
-    const basePrice = plan === 'agency' ? 19900 : plan === 'pro' ? 7900 : 0;
+    const basePrice = getPlanSync(plan).price;
     const pricing = await adjustPrice(basePrice, plan, userId);
     return res.json({ success: true, data: pricing });
   } catch (err) {

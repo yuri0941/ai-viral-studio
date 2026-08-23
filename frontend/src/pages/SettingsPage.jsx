@@ -6,7 +6,10 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { youtubeApi, paymentsApi } from '../services/api.js'; // [19.13-lite-PAYMENTS-NPD] payments history API
 import i18n from '../i18n';
-import { PLANS, getPrice } from '../config/plans.js'; // [P24] fixed: unified plans config
+// [PLANCONFIG-ADMIN] legacy config/plans.js удалён; фолбэки = дефолты PlanConfig (free 20 ген/день, 0/990/4990₽)
+const DEFAULT_FREE_GENERATIONS = 20;
+const DEFAULT_PLAN_PRICES = { free: 0, pro: 990, agency: 4990 };
+const fallbackPlanPrice = (plan) => plan?.price ?? DEFAULT_PLAN_PRICES[plan?.id] ?? 0;
 import IntegrationsTab from './settings/IntegrationsTab.jsx'; // [SOCIAL-v5.1] added
 import AddonMarketplace from '../components/subscriptions/AddonMarketplace.jsx'; // [v7.0-PART2] addon marketplace
 import TelegramConnectButton from '../components/social/TelegramConnectButton.jsx'; // [v9.9.19-MASTER-AUDIT] клиентский Telegram Connect
@@ -182,7 +185,7 @@ function SettingsPage() {
         return saved ? JSON.parse(saved) : null;
     });
     // [MONETIZE-2026-08-04] added: quota state for subscription card
-    const [quota, setQuota] = useState({ used: 0, limit: PLANS.free.generations });
+    const [quota, setQuota] = useState({ used: 0, limit: DEFAULT_FREE_GENERATIONS });
     const [quotaLoading, setQuotaLoading] = useState(false);
     const [notifications, setNotifications] = useState({
         email: true,
@@ -299,9 +302,9 @@ function SettingsPage() {
             .then(r => r.ok ? r.json() : null)
             .then(d => {
                 const q = d?.data || d || {};
-                setQuota({ used: q.generationsUsed || 0, limit: q.generationsLimit || PLANS.free.generations });
+                setQuota({ used: q.generationsUsed || 0, limit: q.generationsLimit || DEFAULT_FREE_GENERATIONS });
             })
-            .catch(() => setQuota({ used: 0, limit: PLANS.free.generations }))
+            .catch(() => setQuota({ used: 0, limit: DEFAULT_FREE_GENERATIONS }))
             .finally(() => setQuotaLoading(false));
     }, []);
 
@@ -357,6 +360,7 @@ function SettingsPage() {
     // USD-цены legacy-конфига ($29/$79/$199) не существуют в PlanConfig.
     const [plans, setPlans] = useState([]);
     const [foundingActive, setFoundingActive] = useState(false);
+    const [foundingDiscountPercent, setFoundingDiscountPercent] = useState(30);
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/plan-config`)
@@ -368,6 +372,7 @@ function SettingsPage() {
                     price: p.price,
                     quotas: p.quotas || {},
                     featureFlags: p.features || {},
+                    featureList: p.featureList || { ru: [], en: [] },
                     color: PLAN_COLORS[p.plan] || 'from-gray-600 to-gray-700',
                     popular: p.plan === 'pro',
                 }));
@@ -379,12 +384,20 @@ function SettingsPage() {
             });
         fetch(`${API_BASE_URL}/launch/beta/slots`)
             .then(r => r.json())
-            .then(res => setFoundingActive(!!res?.data?.foundingActive))
+            .then(res => {
+                setFoundingActive(!!res?.data?.foundingActive);
+                // [PLANCONFIG-ADMIN] процент скидки — из FoundingConfig (БД), фолбэк 30
+                if (Number.isFinite(res?.data?.discountPercent)) setFoundingDiscountPercent(res.data.discountPercent);
+            })
             .catch(() => {});
     }, []);
 
     // [CHECKOUT-UNIFY] строки фич из quotas/features PlanConfig (те же ключи, что на лендинге)
+    // [PLANCONFIG-ADMIN] если владелец задал featureList RU/EN — рендерим его (приоритет над дефолтом)
     const planFeatureLines = (plan) => {
+        const lang = (i18n.language || 'ru').slice(0, 2);
+        const custom = plan.featureList?.[lang] || [];
+        if (custom.length) return custom;
         const q = plan.quotas || {};
         const f = plan.featureFlags || {};
         const lines = [];
@@ -405,7 +418,7 @@ function SettingsPage() {
 
     // [MASTER-v5.6] fixed: use API-loaded price, not static config
     const getCurrentPrice = (plan) => {
-        const basePrice = plan?.price ?? getPrice(plan, subscriptionCurrency);
+        const basePrice = fallbackPlanPrice(plan);
         if (userSubscription && userSubscription.planId === plan.id && userSubscription.isActive) {
             const now = new Date();
             const nextBilling = new Date(userSubscription.nextBillingDate);
@@ -438,12 +451,8 @@ function SettingsPage() {
                 const json = await res.json();
                 if (json.success) {
                     const methods = json.paymentMethods || [];
-                    // [CHECKOUT-UNIFY] /subscriptions/config не знает о ЮKassa (живой провайдер, платежи идут
-                    // через /yookassa/pay/subscription) — добавляем его в список сами, иначе кнопка оплаты мертва
-                    if (!methods.find(m => m.id === 'yookassa')) {
-                        methods.unshift({ id: 'yookassa', name: 'ЮKassa', icon: 'yookassa', enabled: true, reason: null, recommended: true });
-                    }
-                    // RUB-only: рекомендуемый метод — ЮKassa
+                    // [PLANCONFIG-ADMIN] ЮKassa теперь приходит с бэкенда (/subscriptions/config) — костыль убран;
+                    // оставляем только рекомендацию RUB-only
                     methods.forEach(m => { m.recommended = m.id === 'yookassa'; })
                     setPaymentMethods(methods);
                     const defaultMethod = pickDefaultMethod(methods, subscriptionCurrency, selectedPaymentMethod);
@@ -573,7 +582,7 @@ function SettingsPage() {
     };
 
     const handleSubscribe = (plan) => {
-        if (getPrice(plan, subscriptionCurrency) > 0) {
+        if (fallbackPlanPrice(plan) > 0) {
             handlePayment(plan);
             return;
         }
@@ -942,7 +951,7 @@ function SettingsPage() {
                 {plans.map(plan => {
                     const currentPrice = getCurrentPrice(plan);
                     const subscribed = isSubscribedTo(plan.id);
-                    const basePrice = plan?.price ?? getPrice(plan, subscriptionCurrency); // [MASTER-v5.6] use API price
+                    const basePrice = fallbackPlanPrice(plan); // [PLANCONFIG-ADMIN] цена PlanConfig
                     const isGrandfathered = userSubscription && userSubscription.planId === plan.id &&
                         userSubscription.lockedPrice !== basePrice && userSubscription.isActive;
                     const isFree = basePrice === 0;
@@ -971,8 +980,16 @@ function SettingsPage() {
                                 <span className="text-sm text-[var(--text-muted)] font-normal">/{isYearly ? t('settings.yearly') : t('settings.monthly')}</span>
                             </div>
                             {foundingActive && user?.isFoundingMember && basePrice > 0 && !isYearly && (
-                                <p className="text-xs text-emerald-400 mb-2">{t('landing.plans.foundingLine', { price: Math.round(basePrice * 0.7) })}</p>
+                                <p className="text-xs text-emerald-400 mb-2">{t('landing.plans.foundingLine', { price: Math.round(basePrice * (1 - foundingDiscountPercent / 100)), percent: foundingDiscountPercent })}</p>
                             )}
+                            {/* [PLANCONFIG-ADMIN] «хватит на»: перевод лимитов PlanConfig в понятные единицы */}
+                            <p className="text-xs text-[var(--text-muted)] mb-2">
+                                {t('landing.plans.enoughFor', {
+                                    posts: plan.quotas?.scheduledPostsMax > 0 ? plan.quotas.scheduledPostsMax : '∞',
+                                    videos: (plan.quotas?.youtubeUploadsPerDay || 0) * 30,
+                                    ai: (plan.quotas?.generationsPerDay || 0) * 30,
+                                })}
+                            </p>
                             {isGrandfathered && (
                                 <p className="text-xs text-[var(--warning)] mb-2">
                                     {t('settings.priceChange', { oldPrice: userSubscription.lockedPrice, newPrice: basePrice, date: formatDate(userSubscription.nextBillingDate) })}

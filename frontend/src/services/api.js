@@ -229,6 +229,8 @@ export const ownerApi = {
         body: JSON.stringify(data),
     }),
     pricingHistory: () => request('/owner/pricing/history'),
+    // [PLANCONFIG-ADMIN] AI-советчик тарифов (реальные данные + рекомендации OMEGA)
+    pricingAdvisor: () => request('/owner/pricing/advisor'),
 
     create: (entity, data) => request(`/owner/${entity}`, {
         method: 'POST',
@@ -368,6 +370,10 @@ export const planConfigApi = {
     // [LANDING-RESTORE] opts: лендинг передаёт { timeout, noRetry } — тарифы не висят спиннером
     list: (opts) => request('/plan-config', opts),
     update: (plan, payload) => request(`/plan-config/${encodeURIComponent(plan)}`, { method: 'PUT', body: JSON.stringify(payload) }),
+    // [PLANCONFIG-ADMIN] история изменений тарифа + откат + founding-настройки
+    history: (plan, limit = 20) => request(`/plan-config/history?plan=${encodeURIComponent(plan || '')}&limit=${limit}`),
+    rollback: (plan, logId) => request(`/plan-config/${encodeURIComponent(plan)}/rollback`, { method: 'POST', body: JSON.stringify({ logId }) }),
+    updateFounding: (payload) => request('/plan-config/founding', { method: 'PUT', body: JSON.stringify(payload) }),
 }
 
 export const testimonialsApi = {

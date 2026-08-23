@@ -54,7 +54,7 @@ const PUBLIC_API_ROUTES = [
     '/api/owner/legal-info/public',
     '/api/public',
     '/api/public/legal-info',
-    '/api/plans',
+    '/api/plan-config',
     '/api/geo/currency',
 ]
 

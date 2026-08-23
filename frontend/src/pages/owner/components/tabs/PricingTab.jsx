@@ -38,17 +38,56 @@ export function PricingTab() {
     const [testimonialDraft, setTestimonialDraft] = useState({ name: '', role: '', text: '' })
     const [testimonialBusy, setTestimonialBusy] = useState(false)
 
+    // [PLANCONFIG-ADMIN] цена, список «что входит» RU/EN, founding, история+откат, превью, AI-советчик
+    const [priceDraft, setPriceDraft] = useState('')
+    const [featureListDraft, setFeatureListDraft] = useState({ ru: '', en: '' })
+    const [showPreview, setShowPreview] = useState(false)
+    const [founding, setFounding] = useState({ discountPercent: 30, totalSlots: 50 })
+    const [foundingDraft, setFoundingDraft] = useState({ discountPercent: '30', totalSlots: '50' })
+    const [savingFounding, setSavingFounding] = useState(false)
+    const [planHistory, setPlanHistory] = useState([])
+    const [rollbackBusy, setRollbackBusy] = useState(null)
+    const [advisor, setAdvisor] = useState(null)
+    const [advisorLoading, setAdvisorLoading] = useState(false)
+
+    const loadPlanHistory = async (planId) => {
+        try {
+            const res = await planConfigApi.history(planId, 20)
+            setPlanHistory(Array.isArray(res?.history) ? res.history : [])
+        } catch (err) {
+            console.error('[PricingTab] plan history failed:', err)
+        }
+    }
+
     const startEditPlan = (plan) => {
         setEditPlanId(plan.plan)
         setQuotaDraft({ ...QUOTA_FIELDS.reduce((acc, f) => ({ ...acc, [f]: plan.quotas?.[f] ?? 0 }), {}) })
         setFeatureDraft({ ...FEATURE_FIELDS.reduce((acc, f) => ({ ...acc, [f]: !!plan.features?.[f] }), {}) })
+        setPriceDraft(String(plan.price ?? 0))
+        setFeatureListDraft({
+            ru: (plan.featureList?.ru || []).join('\n'),
+            en: (plan.featureList?.en || []).join('\n'),
+        })
+        setShowPreview(false)
+        loadPlanHistory(plan.plan)
     }
 
     const savePlan = async (planId) => {
+        const price = Number(priceDraft)
+        if (!Number.isFinite(price) || price < 0 || (planId !== 'free' && price <= 0)) {
+            toast.error(t('pricing.invalidPrice'))
+            return
+        }
+        const oldPrice = plans.find(p => p.plan === planId)?.price ?? 0
+        if (price < oldPrice && !window.confirm(t('pricing.confirmPriceDown', { oldPrice, price }))) return
         setSavingPlan(true)
         try {
             const quotas = Object.fromEntries(QUOTA_FIELDS.map(f => [f, Number(quotaDraft[f]) || 0]))
-            await planConfigApi.update(planId, { quotas, features: featureDraft })
+            const featureList = {
+                ru: featureListDraft.ru.split('\n').map(s => s.trim()).filter(Boolean),
+                en: featureListDraft.en.split('\n').map(s => s.trim()).filter(Boolean),
+            }
+            await planConfigApi.update(planId, { price, quotas, features: featureDraft, featureList })
             toast.success(t('pricing.saved'))
             setEditPlanId(null)
             await load()
@@ -57,6 +96,62 @@ export function PricingTab() {
             toast.error(t('pricing.saveError'))
         } finally {
             setSavingPlan(false)
+        }
+    }
+
+    const saveFounding = async () => {
+        const discountPercent = Number(foundingDraft.discountPercent)
+        const totalSlots = Number(foundingDraft.totalSlots)
+        if (!Number.isFinite(discountPercent) || discountPercent < 1 || discountPercent > 90) {
+            toast.error(t('pricing.founding.invalidDiscount'))
+            return
+        }
+        if (!Number.isInteger(totalSlots) || totalSlots < 0) {
+            toast.error(t('pricing.founding.invalidSlots'))
+            return
+        }
+        setSavingFounding(true)
+        try {
+            await planConfigApi.updateFounding({ discountPercent, totalSlots })
+            setFounding({ discountPercent, totalSlots })
+            toast.success(t('pricing.saved'))
+        } catch (err) {
+            console.error('[PricingTab] founding save failed:', err)
+            toast.error(t('pricing.saveError'))
+        } finally {
+            setSavingFounding(false)
+        }
+    }
+
+    const rollbackEntry = async (entry) => {
+        const m = String(entry.what).match(/^tariff\.([a-z]+)\./)
+        if (!m) return
+        if (!window.confirm(t('pricing.rollbackConfirm', { what: entry.what, oldPrice: entry.oldPrice }))) return
+        setRollbackBusy(entry._id)
+        try {
+            await planConfigApi.rollback(m[1], entry._id)
+            toast.success(t('pricing.rolledBack'))
+            await load()
+            if (editPlanId) loadPlanHistory(editPlanId)
+        } catch (err) {
+            console.error('[PricingTab] rollback failed:', err)
+            toast.error(t('pricing.saveError'))
+        } finally {
+            setRollbackBusy(null)
+        }
+    }
+
+    const runAdvisor = async () => {
+        setAdvisorLoading(true)
+        setAdvisor(null)
+        try {
+            const res = await ownerApi.pricingAdvisor()
+            setAdvisor(res?.data || res)
+        } catch (err) {
+            console.error('[PricingTab] advisor failed:', err)
+            toast.error(t('pricing.advisorError'))
+        } finally {
+            setAdvisorLoading(false)
         }
     }
 
@@ -110,13 +205,19 @@ export function PricingTab() {
     const load = async () => {
         setLoading(true)
         try {
-            const [pricingRes, historyRes] = await Promise.all([
+            const [pricingRes, historyRes, planConfigRes] = await Promise.all([
                 ownerApi.pricing(),
                 ownerApi.pricingHistory(),
+                planConfigApi.list().catch(() => null),
             ])
             setPlans(pricingRes?.data?.plans || pricingRes?.plans || [])
             setAdPricing(pricingRes?.data?.adPricing || pricingRes?.adPricing || {})
             setHistory(historyRes?.data || [])
+            const f = planConfigRes?.founding
+            if (f) {
+                setFounding(f)
+                setFoundingDraft({ discountPercent: String(f.discountPercent ?? 30), totalSlots: String(f.totalSlots ?? 50) })
+            }
         } catch (err) {
             console.error('[PricingTab] load failed:', err)
         } finally {
@@ -161,9 +262,64 @@ export function PricingTab() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
                 <Banknote size={20} className="text-emerald-400" />
                 <h2 className="text-xl font-bold text-[var(--text)]">{t('pricing.title')}</h2>
+                {/* [PLANCONFIG-ADMIN] AI-советчик тарифов (только совет, применяет владелец вручную) */}
+                <button
+                    onClick={runAdvisor}
+                    disabled={advisorLoading}
+                    className="ml-auto min-h-[40px] px-4 py-2 rounded-xl bg-purple-500/20 border border-purple-500/30 text-sm text-purple-300 hover:bg-purple-500/30 transition disabled:opacity-50 flex items-center gap-2"
+                >
+                    {advisorLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+                    {advisorLoading ? t('pricing.advisorLoading') : t('pricing.aiAdvisor')}
+                </button>
+            </div>
+
+            {advisor && (
+                <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-purple-500/30">
+                    <h3 className="font-bold text-[var(--text)] mb-2">
+                        {t('pricing.advisorTitle')} {advisor.aiUsed ? '(OMEGA)' : `(${t('pricing.advisorHeuristic')})`}
+                    </h3>
+                    <pre className="whitespace-pre-wrap break-words text-sm text-[var(--text-muted)] font-sans">{advisor.recommendations}</pre>
+                    <button onClick={() => setAdvisor(null)} className="mt-2 text-xs text-[var(--text-muted)] hover:underline">✕</button>
+                </div>
+            )}
+
+            {/* [PLANCONFIG-ADMIN] founding-программа: скидка и слоты (hot-reload, FoundingConfig) */}
+            <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
+                <h3 className="font-bold text-[var(--text)] mb-3">{t('pricing.founding.title')}</h3>
+                <div className="grid grid-cols-2 gap-3 max-w-md">
+                    <label className="text-xs text-[var(--text-muted)]">
+                        {t('pricing.founding.discount')}
+                        <input
+                            type="number"
+                            min="1"
+                            max="90"
+                            value={foundingDraft.discountPercent}
+                            onChange={e => setFoundingDraft(d => ({ ...d, discountPercent: e.target.value }))}
+                            className="mt-1 w-full px-2 py-1.5 min-h-[40px] bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm text-[var(--text)]"
+                        />
+                    </label>
+                    <label className="text-xs text-[var(--text-muted)]">
+                        {t('pricing.founding.slots')}
+                        <input
+                            type="number"
+                            min="0"
+                            value={foundingDraft.totalSlots}
+                            onChange={e => setFoundingDraft(d => ({ ...d, totalSlots: e.target.value }))}
+                            className="mt-1 w-full px-2 py-1.5 min-h-[40px] bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm text-[var(--text)]"
+                        />
+                    </label>
+                </div>
+                <button
+                    onClick={saveFounding}
+                    disabled={savingFounding}
+                    className="mt-3 min-h-[40px] px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-400 hover:bg-emerald-500/30 transition disabled:opacity-50 flex items-center gap-2"
+                >
+                    {savingFounding ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    {t('pricing.founding.save')}
+                </button>
             </div>
 
             {/* Plans grid */}
@@ -182,6 +338,17 @@ export function PricingTab() {
                         {/* [P1.6-PREP] редактирование состава тарифа */}
                         {editPlanId === plan.plan ? (
                             <div className="mt-3 space-y-2">
+                                {/* [PLANCONFIG-ADMIN] цена тарифа */}
+                                <label className="block text-xs text-[var(--text-muted)]">
+                                    {t('pricing.priceLabel')}
+                                    <input
+                                        type="number"
+                                        min={plan.plan === 'free' ? 0 : 1}
+                                        value={priceDraft}
+                                        onChange={e => setPriceDraft(e.target.value)}
+                                        className="mt-1 w-full px-2 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm text-[var(--text)]"
+                                    />
+                                </label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {QUOTA_FIELDS.map(f => (
                                         <label key={f} className="text-xs text-[var(--text-muted)] break-words">
@@ -209,6 +376,54 @@ export function PricingTab() {
                                         </label>
                                     ))}
                                 </div>
+                                {/* [PLANCONFIG-ADMIN] список «что входит» RU/EN, по строке на пункт */}
+                                <label className="block text-xs text-[var(--text-muted)]">
+                                    {t('pricing.featureListRu')}
+                                    <textarea
+                                        rows={4}
+                                        value={featureListDraft.ru}
+                                        onChange={e => setFeatureListDraft(d => ({ ...d, ru: e.target.value }))}
+                                        className="mt-1 w-full px-2 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm text-[var(--text)]"
+                                    />
+                                </label>
+                                <label className="block text-xs text-[var(--text-muted)]">
+                                    {t('pricing.featureListEn')}
+                                    <textarea
+                                        rows={4}
+                                        value={featureListDraft.en}
+                                        onChange={e => setFeatureListDraft(d => ({ ...d, en: e.target.value }))}
+                                        className="mt-1 w-full px-2 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm text-[var(--text)]"
+                                    />
+                                </label>
+                                {/* превью «как увидит клиент» */}
+                                <button
+                                    onClick={() => setShowPreview(v => !v)}
+                                    className="w-full min-h-[40px] py-2 rounded-lg bg-white/5 text-sm text-[var(--text)] hover:bg-white/10 transition flex items-center justify-center gap-2"
+                                >
+                                    <Eye size={14} />
+                                    {t('pricing.preview')}
+                                </button>
+                                {showPreview && (
+                                    <div className="p-3 rounded-xl bg-[var(--bg)] border border-emerald-500/30 text-sm">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-bold text-[var(--text)] capitalize">{plan.plan}</span>
+                                            <span className="font-bold text-emerald-400">{priceDraft || 0}₽/мес</span>
+                                        </div>
+                                        {founding.discountPercent > 0 && Number(priceDraft) > 0 && (
+                                            <div className="text-xs text-amber-400 mt-1">
+                                                {t('pricing.foundingLine', { price: Math.round(Number(priceDraft) * (1 - founding.discountPercent / 100)), percent: founding.discountPercent })}
+                                            </div>
+                                        )}
+                                        <ul className="mt-2 space-y-1 text-xs text-[var(--text-muted)] list-disc list-inside">
+                                            {(featureListDraft.ru.split('\n').map(s => s.trim()).filter(Boolean)).map((line, i) => (
+                                                <li key={i} className="break-words">{line}</li>
+                                            ))}
+                                        </ul>
+                                        {FEATURE_FIELDS.filter(f => featureDraft[f]).map(f => (
+                                            <div key={f} className="text-xs text-emerald-400 mt-0.5">✓ {t(`pricing.feature.${f}`)}</div>
+                                        ))}
+                                    </div>
+                                )}
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => savePlan(plan.plan)}
@@ -224,6 +439,30 @@ export function PricingTab() {
                                     >
                                         ✕
                                     </button>
+                                </div>
+                                {/* [PLANCONFIG-ADMIN] история изменений тарифа + откат */}
+                                <div className="mt-2 border-t border-[var(--border)] pt-2">
+                                    <div className="text-xs font-bold text-[var(--text-muted)] mb-1">{t('pricing.planHistory')}</div>
+                                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                                        {planHistory.length === 0 && <div className="text-xs text-[var(--text-muted)]">{t('pricing.noHistory')}</div>}
+                                        {planHistory.map(h => (
+                                            <div key={h._id} className="flex items-center justify-between gap-2 text-xs p-1.5 rounded bg-white/5">
+                                                <span className="text-[var(--text-muted)] break-words min-w-0">
+                                                    {h.what.replace(`tariff.${plan.plan}.`, '')}: {String(h.oldPrice)} → {String(h.newPrice)}
+                                                    {h.changedBy ? ` · ${h.changedBy}` : ''}
+                                                    {h.createdAt ? ` · ${new Date(h.createdAt).toLocaleString('ru-RU')}` : ''}
+                                                </span>
+                                                <button
+                                                    onClick={() => rollbackEntry(h)}
+                                                    disabled={rollbackBusy === h._id}
+                                                    title={t('pricing.rollback')}
+                                                    className="shrink-0 min-h-[32px] px-2 rounded bg-white/5 text-amber-400 hover:bg-white/10 disabled:opacity-50"
+                                                >
+                                                    {rollbackBusy === h._id ? '…' : '↩'}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         ) : (

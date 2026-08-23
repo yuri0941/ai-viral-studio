@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import User from '../models/User.js'
 import { createNode } from './cognitiveMesh.js'
 import { getProviderKey } from './aiService.js'
+import PlanConfig from '../models/PlanConfig.js'
 
 // [v9.9.19-MASTER-AUDIT] hot-reload: mailers создаются лениво, ключ через getProviderKey (env → cache → MongoDB)
 let resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -12,7 +13,6 @@ let transporter = null
 async function ensureMailers() {
     if (resend || transporter) return
     try {
-        await ensureMailers()
     if (!resend) {
             const resendKey = await getProviderKey('resend')
             if (resendKey) resend = new Resend(resendKey)
@@ -278,7 +278,7 @@ export async function sendEmail({ to, subject, text, html }) {
         }
     }
     // 3. Log fallback
-    console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${(html || text || '').slice(0, 100)}...`);
+    console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${(html || text || '').slice(0, 400)}...`);
     await createNode({ type: 'system', content: `Email queued: ${subject} to ${to}`, confidence: 1, source: 'email_service', metadata: { to, subject, type: 'email_queued' } });
     return { sent: false, provider: 'none', error: 'No email provider configured. Add RESEND_API_KEY or SMTP_* to .env' };
 }
@@ -288,6 +288,13 @@ export async function resendVerificationEmail(userId) {
     if (!user) return { sent: false, error: 'User not found' };
     const token = crypto.randomBytes(32).toString('hex');
     user.verificationToken = token;
+    // [PLANCONFIG-ADMIN] число генераций — из PlanConfig (free.quotas.generationsPerDay);
+    // при недоступности БД — фолбэк 10, письмо регистрации не должно ломаться
+    let freeGenerations = 10
+    try {
+        const freePlan = await PlanConfig.getPlan('free')
+        freeGenerations = freePlan?.quotas?.generationsPerDay || 10
+    } catch { /* fallback 10 */ }
     user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await user.save();
     const result = await sendEmail({
@@ -295,9 +302,9 @@ export async function resendVerificationEmail(userId) {
         subject: 'Подтвердите email — AI Viral Studio',
         html: `<div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:40px;background:#0a0a1f;color:#fff;border-radius:16px;">
           <h2 style="color:#00ff41;">👋 Добро пожаловать!</h2>
-          <p>Подтвердите email, чтобы получить 10 бесплатных генераций:</p>
-          <a href="https://aiviral-studio.ru/verify-email/${token}" style="display:inline-block;padding:14px 28px;background:#00ff41;color:#000;text-decoration:none;border-radius:8px;font-weight:600;margin:20px 0;">Подтвердить email</a>
-          <p style="color:#94a3b8;font-size:12px;">Если кнопка не работает, скопируйте ссылку:<br/>https://aiviral-studio.ru/verify-email/${token}</p>
+          <p>Подтвердите email, чтобы получить ${freeGenerations} бесплатных генераций:</p>
+          <a href="${FRONTEND_URL}/verify-email/${token}" style="display:inline-block;padding:14px 28px;background:#00ff41;color:#000;text-decoration:none;border-radius:8px;font-weight:600;margin:20px 0;">Подтвердить email</a>
+          <p style="color:#94a3b8;font-size:12px;">Если кнопка не работает, скопируйте ссылку:<br/>${FRONTEND_URL}/verify-email/${token}</p>
           <hr style="border-color:#1e293b;margin:30px 0;">
           <p style="font-size:12px;color:#64748b;">AI Viral Studio | OMEGA AI</p>
         </div>`

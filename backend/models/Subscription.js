@@ -38,6 +38,8 @@ const SubscriptionSchema = new mongoose.Schema({
   currency: { type: String, default: 'RUB' },
   paymentHistory: [PaymentHistorySchema],
   metadata: mongoose.Schema.Types.Mixed,
+  // [PLANCONFIG-ADMIN] grandfathering: условия тарифа на момент покупки (цена/квоты/фичи)
+  planSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

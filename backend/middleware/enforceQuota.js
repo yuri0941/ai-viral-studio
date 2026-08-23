@@ -18,6 +18,10 @@ async function getPlan(planId) {
 
 export function invalidatePlanCache() {
     planCache.clear()
+    // [PLANCONFIG-ADMIN] синхронный кэш (canUse/usageQuota) тоже обновляется
+    import('../services/planConfigCache.js')
+        .then(m => m.invalidatePlanConfigCache())
+        .catch(() => { /* best-effort */ })
 }
 
 function isPrivileged(user) {
@@ -74,7 +78,10 @@ export function enforceQuota(resource) {
 
             const planId = user.subscription || 'free'
             const plan = await getPlan(planId)
-            const limit = plan.quotas?.[resource]
+            // [PLANCONFIG-ADMIN] fix: ключи квот PlanConfig — generationsPerDay/youtubeUploadsPerDay/scheduledPostsMax,
+            // раньше читались как generations/youtubeUploads → лимит всегда был undefined (unlimited)
+            const QUOTA_KEY = { generations: 'generationsPerDay', youtubeUploads: 'youtubeUploadsPerDay', scheduledPosts: 'scheduledPostsMax', mediaQueueMB: 'mediaQueueMB' }
+            const limit = plan.quotas?.[QUOTA_KEY[resource] || resource]
 
             if (limit === undefined || limit === 0) {
                 // 0 = unlimited (agency scheduledPosts) or not applicable

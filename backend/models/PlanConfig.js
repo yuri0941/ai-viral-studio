@@ -22,6 +22,11 @@ const planConfigSchema = new mongoose.Schema(
       analytics: { type: Boolean, default: false },
       whiteLabel: { type: Boolean, default: false },
     },
+    // [PLANCONFIG-ADMIN] редактируемый владельцем список «что входит» (RU/EN); пустой → фронт рендерит по boolean-фичам
+    featureList: {
+      ru: { type: [String], default: [] },
+      en: { type: [String], default: [] },
+    },
   },
   { timestamps: true }
 )
@@ -67,4 +72,5 @@ planConfigSchema.statics.getAll = async function () {
 }
 
 const PlanConfig = mongoose.models.PlanConfig || mongoose.model('PlanConfig', planConfigSchema)
+export const PLAN_SEED = SEED
 export default PlanConfig

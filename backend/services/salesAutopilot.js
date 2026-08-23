@@ -13,6 +13,7 @@ const DRIP_SEQUENCE = [
   { step: 7, delayDays: 14, type: 'last_chance', name: 'Последний шанс' }
 ];
 
+// [PLANCONFIG-ADMIN] триггер генераций: 80% от free-лимита PlanConfig (считается в checkUpsellTriggers), фолбэк 8
 const UPSELL_TRIGGERS = {
   posts: { threshold: 5, message: 'Вы уже создали 5 постов — пора автоматизировать публикацию с Pro.' },
   generations: { threshold: 8, message: '8 генераций — лимит free скоро закончится. Переходи на Pro.' },
@@ -71,10 +72,19 @@ export async function checkUpsellTriggers(userId, metrics = {}) {
   const user = await User.findById(userId);
   if (!canSendTo(user)) return { triggered: false };
 
+  // [PLANCONFIG-ADMIN] порог по генерациям — 80% текущего free-лимита PlanConfig
+  const { getPlanSync } = await import('./planConfigCache.js');
+  const freeLimit = getPlanSync('free').quotas?.generationsPerDay || 10;
+  const genThreshold = Math.max(1, Math.floor(freeLimit * 0.8));
+
   const triggered = [];
   for (const [key, cfg] of Object.entries(UPSELL_TRIGGERS)) {
-    if ((metrics[key] || 0) >= cfg.threshold) {
-      triggered.push({ key, message: cfg.message });
+    const threshold = key === 'generations' ? genThreshold : cfg.threshold;
+    if ((metrics[key] || 0) >= threshold) {
+      const message = key === 'generations'
+        ? `${genThreshold} генераций — лимит free скоро закончится. Переходи на Pro.`
+        : cfg.message;
+      triggered.push({ key, message });
     }
   }
   return { triggered: triggered.length > 0, triggers: triggered };

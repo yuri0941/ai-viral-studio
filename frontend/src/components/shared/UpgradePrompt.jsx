@@ -44,7 +44,7 @@ export default function UpgradePrompt() {
           <div className="flex-1">
             <h3 className="font-semibold text-sm md:text-base flex items-center gap-2"><Sparkles className="w-4 h-4" /> {t('freeToPaid.title') || 'Осталось мало генераций'}</h3>
             <p className="text-xs md:text-sm text-[var(--text-muted)] mt-1">
-              {t('freeToPaid.banner', { remaining: limits?.remaining || 0 }) || `Осталось ${limits?.remaining || 0} генераций. Pro — скидка 30%.`}
+              {t('freeToPaid.banner', { remaining: limits?.remaining || 0 }) || `Осталось ${limits?.remaining || 0} генераций.`}
             </p>
             <div className="flex gap-3 mt-3">
               <a href="/subscriptions" className="flex-1 py-2 rounded-lg bg-[var(--primary)] text-white text-xs md:text-sm font-medium flex items-center justify-center gap-1 hover:bg-[var(--primary)]/90 transition-colors">

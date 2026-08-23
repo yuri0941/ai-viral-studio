@@ -67,7 +67,7 @@ import paypalRoutes from './routes/paypal.js'  // ← PayPal
 import launchRoutes from './routes/launch.js'  // ← Product Hunt waitlist
 import demoRoutes from './routes/demo.js'  // ← Pre-launch viral demo hooks
 import integrationsRoutes from './routes/integrations.js'  // ← External integrations
-import plansRoutes from './routes/plans.js'  // [PLANS-SYNC] added
+// [PLANCONFIG-ADMIN] routes/plans.js удалён (legacy in-memory цены); источник истины — /api/plan-config
 import videoRoutes from './routes/video.js'  // [v8.0-PART1] AI Video Creator
 import voiceRoutes from './routes/voice.js'  // [v8.0-PART1] TTS/STT
 import neuroSalesRoutes from './routes/neuroSales.js'  // [v8.0-PART1] Neuro-Sales
@@ -86,7 +86,7 @@ import conciergeRoutes from './routes/concierge.js'  // [v9.9.20] Concierge
 import growthLoopRoutes from './routes/growthLoop.js'  // [v9.9.20] Growth loop
 import businessDevRoutes from './routes/businessDev.js'  // [v9.9.20] Business development
 import freeToPaidRoutes from './routes/freeToPaid.js'  // [v9.9.20] Free to paid bridge
-import checkoutRoutes from './routes/checkout.js'  // [PAYMENT-v5.2] added
+// [PLANCONFIG-ADMIN] routes/checkout.js удалён (мёртвый legacy-флоу с ценами не из PlanConfig)
 import qrRoutes from './routes/qr.js'  // ← P11: QR codes
 import printRoutes from './routes/print.js'  // ← P11: Print orders
 import bookingRoutes from './routes/booking.js'  // ← P11: Studio booking
@@ -172,6 +172,10 @@ await connectRedis() // [P24] fixed: connect Redis with in-memory fallback
 
 // [HOTFIX-v9.9.19] load API keys into memory for hot-reload
 loadApiKeysToMemory().catch(err => console.warn('[server] loadApiKeysToMemory failed:', err.message))
+
+// [PLANCONFIG-ADMIN] прогрев синхронного кэша PlanConfig (canUse/usageQuota читают лимиты синхронно)
+const { refreshPlanCache } = await import('./services/planConfigCache.js')
+refreshPlanCache().catch(err => console.warn('[server] refreshPlanCache failed:', err.message))
 
 // [MASTER-v5.6-CONT] init Telegram bots after DB connect
 initOwnerBot()
@@ -626,8 +630,7 @@ app.use('/api/paypal', paypalRoutes)
 app.use('/api/launch', launchRoutes)
 app.use('/api/demo', demoRoutes)
 app.use('/api/integrations', integrationsRoutes)
-app.use('/api/plans', plansRoutes)  // [PLANS-SYNC] added
-app.use('/api/checkout', checkoutRoutes)  // [PAYMENT-v5.2] added
+// [PLANCONFIG-ADMIN] /api/plans и /api/checkout удалены (legacy), единый источник — /api/plan-config
 app.use('/api/qr', qrRoutes)
 app.use('/api/print', printRoutes)
 app.use('/api/booking', bookingRoutes)

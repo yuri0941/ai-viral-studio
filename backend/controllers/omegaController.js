@@ -106,9 +106,11 @@ export async function chat(req, res) {
         const isInfoQuery = infoKeywords.some(k => message.toLowerCase().includes(k))
 
         // [MONETIZE-2026-08-04] added: consume quota before AI call
+        let quotaConsumed = false // [PLANCONFIG-ADMIN] для возврата квоты при ошибке генерации
         if (userId && !UNLIMITED_ROLES.includes(effectiveRole)) {
             try {
                 const quota = await consumeGeneration(userId, effectiveRole, { isInfoQuery })
+                quotaConsumed = !isInfoQuery
                 if (!quota.allowed || quota.blocked) {
                     return res.status(402).json({
                         status: 'error',
@@ -214,6 +216,16 @@ export async function chat(req, res) {
                 lang,
                 { userId, ownerId: userId, userRole, extraSystem: roleContext, chatUserId }
             )
+
+        // [PLANCONFIG-ADMIN] честное списание: генерация упала (нет ответа/fallback/ошибка провайдера) — возвращаем квоту клиенту
+        if (quotaConsumed && userId && (!result || result.success === false || result.provider === 'fallback' || !result.reply)) {
+            try {
+                const { refundGeneration } = await import('../services/usageQuotaService.js')
+                const rf = await refundGeneration(userId)
+                if (rf.refunded) console.log('[omegaController] quota refunded after failed generation:', userId)
+                quotaConsumed = false
+            } catch { /* best-effort */ }
+        }
 
         let reasoning = ''
         try {

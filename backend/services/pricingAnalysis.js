@@ -24,9 +24,10 @@ async function getCostPerUnit(planId) {
 async function getSales30d(planId) {
     try {
         const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        // [PLANCONFIG-ADMIN] fix: поле Payment называется planId (top-level), metadata.planId не существовало → всегда 0
         return await Payment.countDocuments({
             status: 'succeeded',
-            'metadata.planId': planId,
+            planId,
             createdAt: { $gte: since }
         })
     } catch {
@@ -38,7 +39,7 @@ async function getConversionFreeToPaid() {
     try {
         const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
         const total = await Payment.countDocuments({ createdAt: { $gte: since }, status: 'succeeded' })
-        const free = await Payment.countDocuments({ createdAt: { $gte: since }, 'metadata.planId': 'free' })
+        const free = await Payment.countDocuments({ createdAt: { $gte: since }, planId: 'free' })
         if (total === 0) return 0
         return Math.round(((total - free) / total) * 100)
     } catch {

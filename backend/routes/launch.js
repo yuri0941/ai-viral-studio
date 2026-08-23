@@ -231,6 +231,7 @@ router.get('/beta/slots', async (req, res) => {
                 used: stats.used,
                 remaining: stats.remaining,
                 foundingActive: stats.active,
+                discountPercent: stats.discountPercent, // [PLANCONFIG-ADMIN] из FoundingConfig (БД)
                 nextWaveInDays: 0,
             },
         })

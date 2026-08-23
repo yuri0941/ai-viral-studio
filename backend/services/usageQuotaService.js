@@ -1,14 +1,13 @@
 import { UsageQuota } from '../models/index.js'
 import User from '../models/User.js'
-import { PLANS } from '../config/plans.js'
+import { getPlanSync } from './planConfigCache.js'
 import { isOwner } from '../utils/canUse.js'
 
-// [MONETIZE-2026-08-04] updated: unified plan limits from config
-const DEFAULT_LIMITS = {
-    free: PLANS.free.generations,
-    creator: PLANS.creator.generations,
-    pro: PLANS.pro.generations,
-    agency: PLANS.agency.generations,
+// [PLANCONFIG-ADMIN] лимиты генераций — из PlanConfig (БД) через синхронный кэш; legacy config/plans.js удалён.
+// Лимит фиксируется в UsageQuota на момент создания/сброса цикла — действующий цикл доезжает на своих условиях (grandfathering).
+function generationsLimitFor(planId) {
+    const doc = getPlanSync(planId)
+    return doc.quotas?.generationsPerDay ?? getPlanSync('free').quotas.generationsPerDay
 }
 
 export async function getOrCreateQuota(userId, plan = null) {
@@ -23,11 +22,12 @@ export async function getOrCreateQuota(userId, plan = null) {
                 effectivePlan = 'free'
             }
         }
-        if (!PLANS[effectivePlan]) effectivePlan = 'free'
+        const planDoc = getPlanSync(effectivePlan)
+        effectivePlan = planDoc.plan // нормализация легаси-алиасов (creator→pro и т.д.) и неизвестных → free
         quota = await UsageQuota.create({
             userId,
             plan: effectivePlan,
-            generationsLimit: DEFAULT_LIMITS[effectivePlan] || PLANS.free.generations,
+            generationsLimit: generationsLimitFor(effectivePlan),
             cycleStartedAt: new Date(),
             cycleEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         })
@@ -113,6 +113,34 @@ export async function topUpGenerations(userId, packs = 1) {
     return checkQuota(userId)
 }
 
+// [PLANCONFIG-ADMIN] честное списание: при ошибке AI-генерации квота возвращается клиенту
+export async function refundGeneration(userId) {
+    try {
+        const quota = await UsageQuota.findOne({ userId })
+        if (!quota) return { refunded: false }
+        if (quota.plan === 'free' || !quota.plan) {
+            if ((quota.trialUsed || 0) > 0) {
+                quota.trialTokens = (quota.trialTokens || 0) + 1
+                quota.trialUsed = Math.max(0, quota.trialUsed - 1)
+                await quota.save()
+                return { refunded: true, via: 'trial' }
+            }
+        }
+        if (quota.generationsUsed > 0) {
+            quota.generationsUsed -= 1
+        } else if ((quota.overageUsed || 0) > 0) {
+            quota.overageUsed -= 1
+        } else {
+            return { refunded: false }
+        }
+        await quota.save()
+        return { refunded: true, via: 'quota' }
+    } catch (err) {
+        console.warn('[usageQuotaService] refundGeneration failed:', err.message)
+        return { refunded: false, error: err.message }
+    }
+}
+
 export async function resetQuotaCycle(userId) {
     const quota = await getOrCreateQuota(userId)
     quota.generationsUsed = 0
@@ -138,6 +166,7 @@ export default {
     getOrCreateQuota,
     checkQuota,
     consumeGeneration,
+    refundGeneration,
     topUpGenerations,
     resetQuotaCycle,
     updateQuotaSettings,
