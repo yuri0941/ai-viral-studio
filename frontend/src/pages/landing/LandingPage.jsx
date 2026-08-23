@@ -377,8 +377,16 @@ export default function LandingPage({ authMode = null }) {
                       {isPopular && <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[var(--primary)] text-black text-xs font-bold whitespace-nowrap">{t('landing.plans.popular')}</span>}
                       <h3 className="text-xl font-bold mb-2 capitalize">{p.plan}</h3>
                       <div className="text-3xl font-black mb-1">{p.price} <span className="text-sm text-[var(--text-muted)] font-normal">{t('landing.plans.perMonth')}</span></div>
+                      {/* [PLANCONFIG-ADMIN] «хватит на»: перевод лимитов PlanConfig в понятные единицы (авто-пересчёт) */}
+                      <div className="text-xs text-[var(--text-muted)] mb-2 break-words">
+                        {t('landing.plans.enoughFor', {
+                          posts: p.quotas?.scheduledPostsMax > 0 ? p.quotas.scheduledPostsMax : '∞',
+                          videos: (p.quotas?.youtubeUploadsPerDay || 0) * 30,
+                          ai: (p.quotas?.generationsPerDay || 0) * 30,
+                        })}
+                      </div>
                       {foundingActive && p.price > 0 && (
-                        <div className="text-xs text-emerald-400 mb-3 break-words">{t('landing.plans.foundingLine', { price: Math.round(p.price * (1 - foundingDiscountPercent / 100)) })}</div>
+                        <div className="text-xs text-emerald-400 mb-3 break-words">{t('landing.plans.foundingLine', { price: Math.round(p.price * (1 - foundingDiscountPercent / 100)), percent: foundingDiscountPercent })}</div>
                       )}
                       <ul className="space-y-2 mb-6 mt-4 flex-1">
                         {planFeatureLines(p).map((feat, j) => (
@@ -419,31 +427,27 @@ export default function LandingPage({ authMode = null }) {
         </div>
       </section>
 
-      {/* Testimonials — реальные отзывы из БД; при отсутствии — честная заглушка */}
+      {/* Testimonials — реальные отзывы из БД; [PLANCONFIG-ADMIN] при пустой БД секция скрывается (вернём после первых клиентов) */}
+      {testimonials.length > 0 && (
       <section className="py-24 px-4">
         <div className="max-w-5xl mx-auto">
           <Reveal>
             <h2 className="section-title">{t('landing.testimonials.title')}</h2>
           </Reveal>
-          {testimonials.length === 0 ? (
-            <div className="glass-card rounded-2xl p-8 border border-[var(--border)] text-center text-[var(--text-muted)] break-words">
-              {t('landing.testimonials.empty')}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {testimonials.map((item, i) => (
-                <Reveal key={item._id} delay={i * 80}>
-                  <div className="glass-card rounded-2xl p-6 border border-[var(--border)] h-full">
-                    <p className="text-sm text-[var(--text)] mb-4 break-words">“{item.text}”</p>
-                    <div className="text-sm font-semibold break-words">{item.name}</div>
-                    {item.role && <div className="text-xs text-[var(--text-muted)] break-words">{item.role}</div>}
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {testimonials.map((item, i) => (
+              <Reveal key={item._id} delay={i * 80}>
+                <div className="glass-card rounded-2xl p-6 border border-[var(--border)] h-full">
+                  <p className="text-sm text-[var(--text)] mb-4 break-words">“{item.text}”</p>
+                  <div className="text-sm font-semibold break-words">{item.name}</div>
+                  {item.role && <div className="text-xs text-[var(--text-muted)] break-words">{item.role}</div>}
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
+      )}
 
       {/* FAQ */}
       <section id="faq" className="py-24 px-4">

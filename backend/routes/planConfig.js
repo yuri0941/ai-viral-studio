@@ -5,6 +5,7 @@ import PlanConfig from '../models/PlanConfig.js'
 import PriceChangeLog from '../models/PriceChangeLog.js'
 import { protect, authorize } from '../middleware/auth.js'
 import { invalidatePlanCache } from '../middleware/enforceQuota.js'
+import { invalidatePlanDisplayCache } from '../services/planDisplayService.js'
 
 const router = express.Router()
 
@@ -147,6 +148,7 @@ router.post('/:plan/rollback', protect, authorize('owner'), async (req, res) => 
 
         await doc.save()
         invalidatePlanCache()
+        try { invalidatePlanDisplayCache?.() } catch {}
         await PriceChangeLog.create({
             what: log.what,
             oldPrice: log.newPrice,
@@ -236,6 +238,7 @@ router.put('/:plan', protect, authorize('owner'), async (req, res) => {
 
         await doc.save()
         invalidatePlanCache()
+        try { invalidatePlanDisplayCache?.() } catch {}
 
         const actor = `cabinet:${req.user?.email || req.user?._id}`
         await PriceChangeLog.insertMany(changes.map(c => ({

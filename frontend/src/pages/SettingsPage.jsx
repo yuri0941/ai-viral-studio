@@ -451,12 +451,8 @@ function SettingsPage() {
                 const json = await res.json();
                 if (json.success) {
                     const methods = json.paymentMethods || [];
-                    // [CHECKOUT-UNIFY] /subscriptions/config не знает о ЮKassa (живой провайдер, платежи идут
-                    // через /yookassa/pay/subscription) — добавляем его в список сами, иначе кнопка оплаты мертва
-                    if (!methods.find(m => m.id === 'yookassa')) {
-                        methods.unshift({ id: 'yookassa', name: 'ЮKassa', icon: 'yookassa', enabled: true, reason: null, recommended: true });
-                    }
-                    // RUB-only: рекомендуемый метод — ЮKassa
+                    // [PLANCONFIG-ADMIN] ЮKassa теперь приходит с бэкенда (/subscriptions/config) — костыль убран;
+                    // оставляем только рекомендацию RUB-only
                     methods.forEach(m => { m.recommended = m.id === 'yookassa'; })
                     setPaymentMethods(methods);
                     const defaultMethod = pickDefaultMethod(methods, subscriptionCurrency, selectedPaymentMethod);
@@ -984,8 +980,16 @@ function SettingsPage() {
                                 <span className="text-sm text-[var(--text-muted)] font-normal">/{isYearly ? t('settings.yearly') : t('settings.monthly')}</span>
                             </div>
                             {foundingActive && user?.isFoundingMember && basePrice > 0 && !isYearly && (
-                                <p className="text-xs text-emerald-400 mb-2">{t('landing.plans.foundingLine', { price: Math.round(basePrice * (1 - foundingDiscountPercent / 100)) })}</p>
+                                <p className="text-xs text-emerald-400 mb-2">{t('landing.plans.foundingLine', { price: Math.round(basePrice * (1 - foundingDiscountPercent / 100)), percent: foundingDiscountPercent })}</p>
                             )}
+                            {/* [PLANCONFIG-ADMIN] «хватит на»: перевод лимитов PlanConfig в понятные единицы */}
+                            <p className="text-xs text-[var(--text-muted)] mb-2">
+                                {t('landing.plans.enoughFor', {
+                                    posts: plan.quotas?.scheduledPostsMax > 0 ? plan.quotas.scheduledPostsMax : '∞',
+                                    videos: (plan.quotas?.youtubeUploadsPerDay || 0) * 30,
+                                    ai: (plan.quotas?.generationsPerDay || 0) * 30,
+                                })}
+                            </p>
                             {isGrandfathered && (
                                 <p className="text-xs text-[var(--warning)] mb-2">
                                     {t('settings.priceChange', { oldPrice: userSubscription.lockedPrice, newPrice: basePrice, date: formatDate(userSubscription.nextBillingDate) })}

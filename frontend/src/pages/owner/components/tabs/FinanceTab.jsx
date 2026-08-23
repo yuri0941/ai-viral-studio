@@ -11,13 +11,13 @@ import {
     Receipt, Plus, Loader2, ExternalLink, CreditCard
 } from 'lucide-react'
 
-// [P16-FIX] added: demo data remains unchanged, only presentation updated
+// [PLANCONFIG-ADMIN] demo-данные приведены к реальным тарифам PlanConfig (Pro 990 / Agency 4990)
 const DEMO_TRANSACTIONS = [
-    { date: '25.07.2026', source: 'Подписки Pro', amount: 5600, status: 'В обработке' },
-    { date: '24.07.2026', source: 'Подписки Creator', amount: 2900, status: 'Успешно' },
+    { date: '25.07.2026', source: 'Подписки Pro', amount: 990, status: 'В обработке' },
+    { date: '24.07.2026', source: 'Подписки Pro', amount: 990, status: 'Успешно' },
     { date: '23.07.2026', source: 'Реклама', amount: -1200, status: 'Выполнено' },
-    { date: '22.07.2026', source: 'Подписки Pro', amount: 5600, status: 'Успешно' },
-    { date: '21.07.2026', source: 'Подписки Agency', amount: 14300, status: 'Успешно' },
+    { date: '22.07.2026', source: 'Подписки Agency', amount: 4990, status: 'Успешно' },
+    { date: '21.07.2026', source: 'Подписки Agency', amount: 4990, status: 'Успешно' },
 ]
 
 function normalizeTransaction(t) {

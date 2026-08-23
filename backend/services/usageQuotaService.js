@@ -113,6 +113,34 @@ export async function topUpGenerations(userId, packs = 1) {
     return checkQuota(userId)
 }
 
+// [PLANCONFIG-ADMIN] честное списание: при ошибке AI-генерации квота возвращается клиенту
+export async function refundGeneration(userId) {
+    try {
+        const quota = await UsageQuota.findOne({ userId })
+        if (!quota) return { refunded: false }
+        if (quota.plan === 'free' || !quota.plan) {
+            if ((quota.trialUsed || 0) > 0) {
+                quota.trialTokens = (quota.trialTokens || 0) + 1
+                quota.trialUsed = Math.max(0, quota.trialUsed - 1)
+                await quota.save()
+                return { refunded: true, via: 'trial' }
+            }
+        }
+        if (quota.generationsUsed > 0) {
+            quota.generationsUsed -= 1
+        } else if ((quota.overageUsed || 0) > 0) {
+            quota.overageUsed -= 1
+        } else {
+            return { refunded: false }
+        }
+        await quota.save()
+        return { refunded: true, via: 'quota' }
+    } catch (err) {
+        console.warn('[usageQuotaService] refundGeneration failed:', err.message)
+        return { refunded: false, error: err.message }
+    }
+}
+
 export async function resetQuotaCycle(userId) {
     const quota = await getOrCreateQuota(userId)
     quota.generationsUsed = 0
@@ -138,6 +166,7 @@ export default {
     getOrCreateQuota,
     checkQuota,
     consumeGeneration,
+    refundGeneration,
     topUpGenerations,
     resetQuotaCycle,
     updateQuotaSettings,

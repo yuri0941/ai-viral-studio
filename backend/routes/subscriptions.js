@@ -49,6 +49,20 @@ router.get('/config', async (req, res) => {
     const country = ip && (ip === '127.0.0.1' || ip === '::1') ? 'RU' : null;
     const currency = detectCurrencyByIP(ip);
     const paymentMethods = await getPaymentMethods(country, currency);
+    // [PLANCONFIG-ADMIN] PlanConfig — RUB-only, ЮKassa — живой провайдер: включаем её в methods всегда,
+    // даже когда geo определил не-RU (иначе у части клиентов кнопка оплаты мертва)
+    if (!paymentMethods.some(m => m.id === 'yookassa')) {
+      const { getProviderKey } = await import('../services/aiService.js');
+      const yookassaEnabled = !!(await getProviderKey('yookassa_shop_id')) && !!(await getProviderKey('yookassa_secret'));
+      paymentMethods.unshift({
+        id: 'yookassa',
+        name: 'Банковская карта / ЮKassa',
+        icon: 'card',
+        enabled: yookassaEnabled,
+        reason: yookassaEnabled ? null : 'Не настроено: Кабинет → API Ключи → yookassa_shop_id + yookassa_secret',
+        recommended: true,
+      });
+    }
     return res.json({ success: true, currency, country, paymentMethods });
   } catch (err) {
     console.error('[subscriptions:config]', err.message);

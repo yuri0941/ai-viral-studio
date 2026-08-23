@@ -62,15 +62,20 @@ export const createStripeSession = async ({ planId, userId, email, currency = 'u
     const stripe = getStripe()
     if (!stripe) throw new Error('Stripe not configured')
 
-    const prices = { creator: 2900, pro: 7900, agency: 19900 }
+    // [PLANCONFIG-ADMIN] цены — из PlanConfig (БД) через кэш (алиасы creator→pro и т.д.),
+    // а не in-memory legacy-таблица 2900/7900/19900. Stripe выключен по умолчанию; если включат — цены реальные.
+    const { getPlanSync } = await import('./planConfigCache.js')
+    const planDoc = getPlanSync(planId)
+    const unitAmount = planDoc.price
+    if (!(unitAmount > 0)) throw new Error(`Unknown or free plan: ${planId}`)
 
     const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [{
             price_data: {
                 currency,
-                product_data: { name: `AI Viral Studio — ${planId}` },
-                unit_amount: prices[planId]
+                product_data: { name: `AI Viral Studio — ${planDoc.plan}` },
+                unit_amount: unitAmount
             },
             quantity: 1
         }],

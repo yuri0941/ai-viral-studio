@@ -278,7 +278,7 @@ export async function sendEmail({ to, subject, text, html }) {
         }
     }
     // 3. Log fallback
-    console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${(html || text || '').slice(0, 100)}...`);
+    console.info(`[EMAIL MOCK] To: ${to}, Subject: ${subject}, Body: ${(html || text || '').slice(0, 400)}...`);
     await createNode({ type: 'system', content: `Email queued: ${subject} to ${to}`, confidence: 1, source: 'email_service', metadata: { to, subject, type: 'email_queued' } });
     return { sent: false, provider: 'none', error: 'No email provider configured. Add RESEND_API_KEY or SMTP_* to .env' };
 }
