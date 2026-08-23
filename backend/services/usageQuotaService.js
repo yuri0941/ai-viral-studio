@@ -1,14 +1,13 @@
 import { UsageQuota } from '../models/index.js'
 import User from '../models/User.js'
-import { PLANS } from '../config/plans.js'
+import { getPlanSync } from './planConfigCache.js'
 import { isOwner } from '../utils/canUse.js'
 
-// [MONETIZE-2026-08-04] updated: unified plan limits from config
-const DEFAULT_LIMITS = {
-    free: PLANS.free.generations,
-    creator: PLANS.creator.generations,
-    pro: PLANS.pro.generations,
-    agency: PLANS.agency.generations,
+// [PLANCONFIG-ADMIN] лимиты генераций — из PlanConfig (БД) через синхронный кэш; legacy config/plans.js удалён.
+// Лимит фиксируется в UsageQuota на момент создания/сброса цикла — действующий цикл доезжает на своих условиях (grandfathering).
+function generationsLimitFor(planId) {
+    const doc = getPlanSync(planId)
+    return doc.quotas?.generationsPerDay ?? getPlanSync('free').quotas.generationsPerDay
 }
 
 export async function getOrCreateQuota(userId, plan = null) {
@@ -23,11 +22,12 @@ export async function getOrCreateQuota(userId, plan = null) {
                 effectivePlan = 'free'
             }
         }
-        if (!PLANS[effectivePlan]) effectivePlan = 'free'
+        const planDoc = getPlanSync(effectivePlan)
+        effectivePlan = planDoc.plan // нормализация легаси-алиасов (creator→pro и т.д.) и неизвестных → free
         quota = await UsageQuota.create({
             userId,
             plan: effectivePlan,
-            generationsLimit: DEFAULT_LIMITS[effectivePlan] || PLANS.free.generations,
+            generationsLimit: generationsLimitFor(effectivePlan),
             cycleStartedAt: new Date(),
             cycleEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         })
