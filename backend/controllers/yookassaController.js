@@ -8,11 +8,11 @@ import PlanConfig from '../models/PlanConfig.js';
 const RETURN_URL = (process.env.FRONTEND_URL || 'https://aiviral-studio.ru').replace(/\/$/, '');
 
 // [19.13-lite-PAYMENTS-NPD] 54-ФЗ receipt builder (НПД: без НДС, услуга, полная оплата)
-function buildReceipt({ email, amount, planId, isYearly, isFounding }) {
+function buildReceipt({ email, amount, planId, isYearly, isFounding, foundingDiscountPercent = 30 }) {
   const planLabel = planId === 'agency' ? 'Agency' : 'Pro';
   let itemDescription = `Подписка AI Viral Studio ${planLabel}, 1 мес`;
   if (isYearly) itemDescription = `Подписка AI Viral Studio ${planLabel}, 1 год`;
-  if (isFounding) itemDescription += ' — скидка основателя 30%';
+  if (isFounding) itemDescription += ` — скидка основателя ${foundingDiscountPercent}%`;
   return {
     customer: { email },
     items: [{
@@ -126,13 +126,17 @@ export const createSubscriptionPayment = async (req, res) => {
       amount = Math.round(basePrice * 12 * 0.8); // -20% discount
     }
 
-    // [19.13-lite-PAYMENTS-NPD] founding member −30% от текущей цены тарифа
-    // [P1.6-PREP] скидка действует, пока есть свободные founding-слоты (авто-выкл при 50/50 без деплоя)
+    // [19.13-lite-PAYMENTS-NPD] founding member скидка от текущей цены тарифа
+    // [P1.6-PREP] скидка действует, пока есть свободные founding-слоты (авто-выкл без деплоя)
+    // [PLANCONFIG-ADMIN] процент скидки — из FoundingConfig (БД, hot-reload), фолбэк 30%
     const payer = await User.findById(userId).lean();
-    const { isFoundingDiscountEligible } = await import('../services/foundingService.js');
+    const { isFoundingDiscountEligible, getFoundingConfig } = await import('../services/foundingService.js');
     const isFounding = await isFoundingDiscountEligible(payer);
+    let foundingDiscountPercent = 30;
     if (isFounding) {
-      amount = Math.round(amount * 0.7);
+      const { discountPercent } = await getFoundingConfig();
+      foundingDiscountPercent = discountPercent;
+      amount = Math.round(amount * (1 - discountPercent / 100));
     }
 
     if (amount <= 0) {
@@ -168,6 +172,8 @@ export const createSubscriptionPayment = async (req, res) => {
       autoRenew: true,
       paymentMethod: 'card',
       provider: 'yookassa',
+      // [PLANCONFIG-ADMIN] grandfathering: снапшот условий тарифа на момент покупки
+      planSnapshot: { price: basePrice, quotas: planConfig.quotas || {}, features: planConfig.features || {} },
     });
 
     // Create draft invoice
@@ -192,7 +198,7 @@ export const createSubscriptionPayment = async (req, res) => {
 
     // [19.13-lite-PAYMENTS-NPD] 54-ФЗ receipt (за рубильником YOOKASSA_RECEIPTS внутри createPayment)
     const receipt = payer?.email
-      ? buildReceipt({ email: payer.email, amount, planId, isYearly, isFounding })
+      ? buildReceipt({ email: payer.email, amount, planId, isYearly, isFounding, foundingDiscountPercent })
       : null;
 
     // Create YooKassa payment
@@ -406,7 +412,7 @@ export const yookassaWebhook = async (req, res) => {
         const plan = paidSub?.plan || metadata?.plan || '—';
         const amount = paidSub?.price ?? paidSub?.amount ?? paidInvoice?.amount ?? 0;
         const foundingLine = foundingResult?.counted
-          ? `\n🎟 Founding-слот ${foundingResult.used}/50`
+          ? `\n🎟 Founding-слот ${foundingResult.used}/${(foundingResult.used || 0) + (foundingResult.remaining || 0)}`
           : '';
         await alertOwner(
           `💰 Оплата: <b>${plan}</b>\n` +

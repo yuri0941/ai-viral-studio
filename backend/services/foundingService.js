@@ -1,14 +1,27 @@
-// [P1.6-PREP] founding-программа: 50 слотов −30%, слот = первая успешная оплата.
-// Авто-выкл скидки при 50/50 без деплоя; TG-алерты владельцу на 40 и 50 слоте.
+// [P1.6-PREP] founding-программа: слот = первая успешная оплата.
+// Авто-выкл скидки при заполнении слотов без деплоя; TG-алерты владельцу.
+// [PLANCONFIG-ADMIN] скидка и число слотов — из FoundingConfig (БД, hot-reload); дефолты 30%/50.
 import FoundingSlot from '../models/FoundingSlot.js'
+import FoundingConfig from '../models/FoundingConfig.js'
 
-export const FOUNDING_TOTAL_SLOTS = 50
+export const FOUNDING_TOTAL_SLOTS = 50 // legacy-экспорт для обратной совместимости; реальное значение — FoundingConfig
 const ALERT_THRESHOLDS = [40, 50]
 
+export async function getFoundingConfig() {
+  try {
+    const cfg = await FoundingConfig.getConfig()
+    return { discountPercent: cfg.discountPercent ?? 30, totalSlots: cfg.totalSlots ?? 50 }
+  } catch (err) {
+    console.warn('[founding] config read failed, fallback 30%/50:', err.message)
+    return { discountPercent: 30, totalSlots: 50 }
+  }
+}
+
 export async function getFoundingStats() {
+    const { totalSlots, discountPercent } = await getFoundingConfig()
     const used = await FoundingSlot.countDocuments()
-    const remaining = Math.max(0, FOUNDING_TOTAL_SLOTS - used)
-    return { total: FOUNDING_TOTAL_SLOTS, used, remaining, active: remaining > 0 }
+    const remaining = Math.max(0, totalSlots - used)
+    return { total: totalSlots, used, remaining, active: remaining > 0, discountPercent }
 }
 
 // Право на скидку: флаг isFoundingMember + (слот уже занят этим пользователем ИЛИ слоты ещё есть)
@@ -36,13 +49,13 @@ export async function markFoundingSlotPaid(userId, paymentId = '') {
         throw e
     }
 
-    const { used, remaining } = await getFoundingStats()
-    if (ALERT_THRESHOLDS.includes(used)) {
+    const { used, remaining, total } = await getFoundingStats()
+    if (ALERT_THRESHOLDS.includes(used) || used === total) {
         try {
             const { alertOwner } = await import('./ownerBot.js')
-            const msg = used >= FOUNDING_TOTAL_SLOTS
-                ? `🔥 Founding-программа ЗАВЕРШЕНА: занято ${used}/${FOUNDING_TOTAL_SLOTS} слотов.\nСкидка −30% для новых оплат отключена автоматически.`
-                : `⚡ Founding-слоты: занято ${used}/${FOUNDING_TOTAL_SLOTS} (осталось ${remaining}).\nСледующий алерт — на ${FOUNDING_TOTAL_SLOTS} (авто-выкл скидки).`
+            const msg = used >= total
+                ? `🔥 Founding-программа ЗАВЕРШЕНА: занято ${used}/${total} слотов.\nСкидка основателя для новых оплат отключена автоматически.`
+                : `⚡ Founding-слоты: занято ${used}/${total} (осталось ${remaining}).\nСледующий алерт — на ${total} (авто-выкл скидки).`
             alertOwner?.(msg, 'payment').catch(() => {})
         } catch { /* алерт best-effort */ }
     }

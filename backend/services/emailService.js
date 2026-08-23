@@ -13,7 +13,6 @@ let transporter = null
 async function ensureMailers() {
     if (resend || transporter) return
     try {
-        await ensureMailers()
     if (!resend) {
             const resendKey = await getProviderKey('resend')
             if (resendKey) resend = new Resend(resendKey)
@@ -289,8 +288,13 @@ export async function resendVerificationEmail(userId) {
     if (!user) return { sent: false, error: 'User not found' };
     const token = crypto.randomBytes(32).toString('hex');
     user.verificationToken = token;
-    const planConfig = await PlanConfig.findOne().lean();
-    const freeGenerations = planConfig?.free?.generationsPerDay || 10;
+    // [PLANCONFIG-ADMIN] число генераций — из PlanConfig (free.quotas.generationsPerDay);
+    // при недоступности БД — фолбэк 10, письмо регистрации не должно ломаться
+    let freeGenerations = 10
+    try {
+        const freePlan = await PlanConfig.getPlan('free')
+        freeGenerations = freePlan?.quotas?.generationsPerDay || 10
+    } catch { /* fallback 10 */ }
     user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await user.save();
     const result = await sendEmail({
