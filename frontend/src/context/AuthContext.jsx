@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const checkAuth = async () => {
             const token = localStorage.getItem('token')
+            let authed = false
             if (token) {
                 try {
                     const response = await fetch(`${API_URL}/auth/me`, {
@@ -35,14 +36,30 @@ export const AuthProvider = ({ children }) => {
                     if (data.success) {
                         setUser(data.user)
                         setIsAuthenticated(true)
+                        authed = true
+                        localStorage.setItem('user_profile', JSON.stringify(data.user))
                         if (!data.user?.preferences?.timezone) {
                             updatePreferences({ timezone: detectTimezone() })
                         }
-                    } else {
+                    } else if (response.status === 401) {
+                        // [DOP-4] только настоящий 401 = сессия мертва
                         localStorage.removeItem('token')
                     }
+                    // [DOP-4] 5xx/прочее — НЕ выкидываем: восстанавливаем кэш профиля ниже
                 } catch (error) {
-                    localStorage.removeItem('token')
+                    // [DOP-4] сетевая ошибка/cold start Render (PWA на телефоне) — НЕ выкидываем:
+                    // раньше здесь затирался токен → владельца выбрасывало из кабинета
+                    console.warn('[Auth] /auth/me недоступен, используем кэш профиля:', error.message)
+                }
+                // [DOP-4] если сессия не подтверждена, но токен жив — восстанавливаем из кэша
+                if (!authed && localStorage.getItem('token')) {
+                    try {
+                        const cached = JSON.parse(localStorage.getItem('user_profile') || 'null')
+                        if (cached) {
+                            setUser(cached)
+                            setIsAuthenticated(true)
+                        }
+                    } catch { /* битый кэш — игнорируем */ }
                 }
             }
             setLoading(false)
