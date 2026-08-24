@@ -89,6 +89,10 @@ async function enableApiProxy(context, role, lang) {
             if (u.pathname === '/api/users/me' && req.method() === 'GET') return json({ success: true, user, data: user })
             if (u.pathname === '/api/users/me' && req.method() === 'PUT') return json({ success: true, user })
             if (u.pathname === '/api/users/me/quota') return json({ status: 'success', data: { trialTokens: 10 } })
+            // [CHAT-UNIFY] любой другой запрос ушёл бы в прод с мёртвым токеном → 401 →
+            // api.js делает жёсткий location.href='/login' и страница превращается в лендинг.
+            // Поэтому при MOCK_AUTH остальное API стабим пустым success (layout-аудит, не данные).
+            return json({ status: 'success', success: true, data: {} })
         }
         try {
             const headers = { ...req.headers() }
