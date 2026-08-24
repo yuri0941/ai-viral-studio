@@ -44,6 +44,9 @@ export function useOmegaChat(options = {}) {
                 cached: data.cached,
                 decision: data.decision,
                 reasoning: data.reasoning || '', // [P17] added
+                // [CHAT-UNIFY] карточка анализа и действия (обложка/драфт/best time) из ответа OMEGA
+                videoAnalysis: data.videoAnalysis || null,
+                action: data.action || null,
                 timestamp: new Date().toISOString(),
             }
             setMessages(prev => [...prev, reply])
@@ -81,6 +84,9 @@ export function useOmegaChat(options = {}) {
                         cached: data.cached,
                         decision: data.decision,
                         reasoning: data.reasoning || '',
+                        // [CHAT-UNIFY] карточка анализа и действия — и в retry-ветке
+                        videoAnalysis: data.videoAnalysis || null,
+                        action: data.action || null,
                         timestamp: new Date().toISOString(),
                     }
                     setMessages(prev => [...prev.filter(m => m.id !== retryId), reply])
