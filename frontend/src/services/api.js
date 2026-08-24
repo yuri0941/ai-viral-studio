@@ -139,20 +139,31 @@ async function request(path, options = {}) {
         error.details = err.details || null
         error.hint = err.hint || null
         error.missing = err.missing || null
-        // [v6.6-PART2] added: redirect to login on 401 to stop infinite loops
-        if (res.status === 401 || /401|Unauthorized|TOKEN_EXPIRED/i.test(message)) {
+        // [DOP-4] только настоящий 401 по статусу (regex по тексту ловил ложные срабатывания)
+        if (res.status === 401) {
             console.warn('[API] 401 Unauthorized — redirecting to login')
-            if (typeof window !== 'undefined') {
-                localStorage.removeItem('token')
-                localStorage.removeItem('authToken')
-                localStorage.removeItem('jwt')
-                window.location.href = '/login'
-            }
+            forceLogout()
         }
         throw error
     }
 
     return res.json()
+}
+
+// [DOP-4] Единая точка принудительного logout по 401.
+// Выкидывает ТОЛЬКО при реальном статусе 401 и только если токен был
+// (фоновый запрос без токена не должен сносить сессию); с публичных страниц — без редиректа.
+function forceLogout() {
+    if (typeof window === 'undefined') return
+    const hadToken = !!localStorage.getItem('token')
+    localStorage.removeItem('token')
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('jwt')
+    localStorage.removeItem('user_profile')
+    const publicPaths = ['/', '/login', '/register', '/signup']
+    if (hadToken && !publicPaths.includes(window.location.pathname)) {
+        window.location.href = '/login'
+    }
 }
 
 // [19.17.5-UPLOAD-SCHEDULER] multipart/form-data requests (no JSON Content-Type)
@@ -181,12 +192,7 @@ async function requestForm(path, formData, options = {}) {
         const error = new Error(message)
         error.status = res.status
         error.code = data.code || null
-        if (res.status === 401 && typeof window !== 'undefined') {
-            localStorage.removeItem('token')
-            localStorage.removeItem('authToken')
-            localStorage.removeItem('jwt')
-            window.location.href = '/login'
-        }
+        if (res.status === 401) forceLogout()
         throw error
     }
 

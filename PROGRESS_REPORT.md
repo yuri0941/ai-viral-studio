@@ -1,4 +1,14 @@
 
+## 2026-08-24 — ДОП-FINAL (DOP-3 referral-rate-12 + DOP-4 session-kick fix)
+- [ВЕТКА] PR fix/chat-unify-luxe (#33) уже смёржен → новая ветка fix/dop-final от свежего origin/main. ДОП-1/2 (переименование OMEGA, тур, чипы) в main — НЕ дублировались
+- [DOP-3] backend/services/referralService.js: награда тира partner «40% комиссии» → «12% комиссии» — только значение; логика начисления (markReferralPaid: +$4 за оплату) не тронута
+- [DOP-4 — ПРИЧИНА → ФИКС] Владельца выкидывало из кабинета (3 подряд Login attempt в логе Render). Две кодовые причины:
+  ① frontend/src/services/api.js — ЛЮБОЙ 401 (включая фоновые запросы без токена) И даже regex «401» в ТЕКСТЕ ошибки → затирал токен и делал жёсткий window.location.href='/login'. Фикс: forceLogout() срабатывает только при res.status===401, только если токен был, и без редиректа с публичных страниц
+  ② frontend/src/context/AuthContext.jsx — checkAuth затирал токен при ЛЮБОЙ ошибке /auth/me, включая сетевой сбой/cold start Render (PWA на телефоне: открыл кабинет при спящем backend → fetch упал → токен стёрт → лендинг → повторный логин). Фикс: токен снимается только при настоящем 401; при сетевой ошибке/5xx сессия восстанавливается из кэша user_profile
+  Проверить владельцу после выкатки: открыть кабинет на телефоне при спящем Render — сессия должна держаться; если выбросы продолжатся — смотреть JWT_SECRET на инстансах Render (drift секрета между инстансами = 401 не от кода) и isActive аккаунта
+- [CHECKS] node --check/esbuild затронутых OK; npm run build 0 ошибок; i18n-parity OK; mojibake чисто; BOM нет; смоук ui-audit (dashboard+hub × 5 ширин × RU/EN): 20 снимков, 0 проблем
+- [GIT] Ветка fix/dop-final; compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/dop-final; diff --stat: 3 файла, +40/−17
+
 ## 2026-08-24 — CHAT-UNIFY + LUXE-CARD + ДОП (OMEGA)
 - [ЗАДАЧА 1 — ЕДИНЫЙ ЧАТ] Один вход в меню: «Ω OMEGA» (ключ sidebar.creativeHub сохранён, значения RU/EN = «Ω OMEGA»; название выбрано в ДОП-1 владельцем). Пункты «AI Chat»/«Viral Chat»/«Анализ контента» убраны из ROLE_MENU всех 6 ролей и из OWNER_GROUPS; CommandPalette и MobileBottomNav ведут на /creative-hub/*. БАГ навигации «Анализ контента»: CreativeHub игнорировал :mode из URL — теперь режим живёт в роуте (/creative-hub/:mode, useParams+navigate, back/forward работают, невалидный режим → /chat). Старые роуты /ai-chat, /viral-chat, /analyzer, /chat, /omega-chat — редиректы (были), мёртвый дубль Route /ai-chat в App.jsx удалён
 - [ЗАДАЧА 2 — РОЛЕВЫЕ КНОПКИ] ACTION_BUTTONS в OmegaChat: «Сгенерировать код» и «Создать сайт» помечены roles:['owner','admin'] и фильтруются actionButtonsForRole(); под creator их нет (проверено кадром creator_link-to-card_360_en.png: только hook/script/ad-variants/niche/support), под owner — есть
