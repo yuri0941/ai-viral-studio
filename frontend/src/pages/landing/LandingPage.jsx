@@ -29,7 +29,9 @@ const PUBLIC_FETCH_OPTS = { timeout: 9000, noRetry: true }
 // [LANDING-RESTORE] фолбэк-тарифы = дефолты backend/models/PlanConfig.js (free 0 / pro 990 / agency 4990).
 // Используются ТОЛЬКО когда PlanConfig API недоступен; факт уходит в console.warn.
 const FALLBACK_PLANS = [
-  { plan: 'free', price: 0, currency: 'RUB', quotas: { generationsPerDay: 20, youtubeUploadsPerDay: 2, youtubeChannels: 1, mediaQueueMB: 500, scheduledPostsMax: 10, aiTagsPerDay: 5 }, features: { publishAt: true } },
+  // [CLIENT-JOURNEY-QA] free features приведены к seed PlanConfig (все false) —
+  // раньше фолбэк обещал free «Отложенный постинг», которого в тарифе нет
+  { plan: 'free', price: 0, currency: 'RUB', quotas: { generationsPerDay: 20, youtubeUploadsPerDay: 2, youtubeChannels: 1, mediaQueueMB: 500, scheduledPostsMax: 10, aiTagsPerDay: 5 }, features: {} },
   { plan: 'pro', price: 990, currency: 'RUB', quotas: { generationsPerDay: 200, youtubeUploadsPerDay: 5, youtubeChannels: 3, mediaQueueMB: 5120, scheduledPostsMax: 100, aiTagsPerDay: 50 }, features: { publishAt: true, playlists: true, brandVoice: true, abTesting: true, analytics: true } },
   { plan: 'agency', price: 4990, currency: 'RUB', quotas: { generationsPerDay: 1000, youtubeUploadsPerDay: 10, youtubeChannels: 10, mediaQueueMB: 25600, scheduledPostsMax: 0, aiTagsPerDay: 200 }, features: { publishAt: true, playlists: true, brandVoice: true, abTesting: true, analytics: true, whiteLabel: true } },
 ]

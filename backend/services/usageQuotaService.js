@@ -45,7 +45,13 @@ export async function checkQuota(userId) {
     const quota = await getOrCreateQuota(userId)
     const remaining = Math.max(0, quota.generationsLimit - quota.generationsUsed)
     const overageAllowed = quota.plan === 'agency' || quota.plan === 'enterprise'
-    const blocked = remaining === 0 && !overageAllowed
+    // [CLIENT-JOURNEY-QA] free живёт на trial-токенах: blocked только когда кончились И токены, И лимит.
+    // Раньше при generationsLimit=0 (создаётся при регистрации) blocked=true даже с живыми trialTokens →
+    // каждый чат-запрос нового free-клиента получал 402 при фактическом списании токена.
+    const isFree = quota.plan === 'free' || !quota.plan
+    const blocked = isFree
+        ? remaining === 0 && (quota.trialTokens || 0) === 0
+        : remaining === 0 && !overageAllowed
     return {
         used: quota.generationsUsed,
         limit: quota.generationsLimit,
