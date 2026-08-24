@@ -25,16 +25,20 @@ export default function UpsellModal({ open, onClose, reason, limit, usage, upsel
                 </div>
 
                 <p className="text-sm text-[var(--text-muted)] mb-4">
-                    {t('upsell.limitReached', { reason, usage, limit })}
+                    {/* [CLIENT-JOURNEY-QA] без реальных цифр не показываем битое «(0 из 0)» */}
+                    {limit > 0 ? t('upsell.limitReached', { reason, usage, limit }) : reason}
                 </p>
 
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 mb-4">
                     <div className="text-sm text-[var(--text)]">
                         <span className="font-bold">{upsellPlan}</span> — {t('upsell.moreFeatures')}
                     </div>
-                    <div className="text-2xl font-bold text-[var(--text)] mt-2">
-                        {upsellPrice}₽<span className="text-sm font-normal text-[var(--text-muted)]">/{t('upsell.month')}</span>
-                    </div>
+                    {/* [CLIENT-JOURNEY-QA] цена может подгружаться из PlanConfig — не показываем «null₽» */}
+                    {upsellPrice != null && (
+                        <div className="text-2xl font-bold text-[var(--text)] mt-2">
+                            {upsellPrice}₽<span className="text-sm font-normal text-[var(--text-muted)]">/{t('upsell.month')}</span>
+                        </div>
+                    )}
                 </div>
 
                 <Link

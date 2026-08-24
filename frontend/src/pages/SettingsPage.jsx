@@ -399,7 +399,8 @@ function SettingsPage() {
         const custom = plan.featureList?.[lang] || [];
         if (custom.length) return custom;
         const q = plan.quotas || {};
-        const f = plan.featureFlags || {};
+        // [CLIENT-JOURNEY-QA] поле PlanConfig — features; featureFlags не существует → список фич тарифа был пуст
+        const f = plan.features || plan.featureFlags || {};
         const lines = [];
         if (q.generationsPerDay) lines.push(t('landing.plans.genPerDay', { count: q.generationsPerDay }));
         if (q.youtubeUploadsPerDay) lines.push(t('landing.plans.ytPerDay', { count: q.youtubeUploadsPerDay }));
