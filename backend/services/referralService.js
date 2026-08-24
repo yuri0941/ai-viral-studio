@@ -10,7 +10,7 @@ const TIER_REWARDS = {
     friend: { label: 'Друг', minReferrals: 1, reward: '$10 кредитов' },
     popular: { label: 'Популярный', minReferrals: 3, reward: 'Agentic Mode на 1 месяц' },
     vip: { label: 'VIP', minReferrals: 5, reward: 'Скидка 20% навсегда' },
-    partner: { label: 'Affiliate Partner', minReferrals: 10, reward: '40% комиссии' },
+    partner: { label: 'Affiliate Partner', minReferrals: 10, reward: '12% комиссии' }, // [DOP-3] 40% → 12%
 }
 
 function calculateTier(count) {
