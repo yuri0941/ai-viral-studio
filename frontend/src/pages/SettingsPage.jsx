@@ -1003,6 +1003,12 @@ function SettingsPage() {
                                     </li>
                                 ))}
                             </ul>
+                            {/* [CLIENT-JOURNEY-QA] политика возврата 14 дней — текстом в тарифе (точка оплаты) */}
+                            {!isFree && (
+                                <p className="text-[11px] text-[var(--text-muted)] mt-3">
+                                    {t('settings.refundPolicy')}
+                                </p>
+                            )}
 
                             {!isFree && !subscribed ? (
                                 <div className="mt-4 space-y-2">
