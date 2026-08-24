@@ -31,6 +31,20 @@ function actionButtonsForRole(role) {
   return UNIQUE_ACTION_BUTTONS.filter(a => !a.roles || a.roles.includes(role));
 }
 
+// [CHAT-UNIFY ДОП-2б] чипы приветственного экрана пустого чата; code/site — только owner/admin
+const WELCOME_CHIPS = [
+  { id: 'analyze', label: 'chat.welcome.chipAnalyze', icon: '🔍', prompt: 'Проанализируй видео: ' },
+  { id: 'hook', label: 'chat.welcome.chipHook', icon: '🪝', prompt: 'Придумай вирусный хук для моего контента' },
+  { id: 'cover', label: 'chat.welcome.chipCover', icon: '🎨', prompt: 'Сделай обложку для поста' },
+  { id: 'bestTime', label: 'chat.welcome.chipBestTime', icon: '⏰', prompt: 'Когда лучше постить на YouTube?' },
+  { id: 'code', label: 'chat.action.code', icon: '💻', roles: ['owner', 'admin'], prompt: ACTION_BUTTONS.find(a => a.id === 'code').prompt },
+  { id: 'site', label: 'chat.action.site', icon: '🌐', roles: ['owner', 'admin'], prompt: ACTION_BUTTONS.find(a => a.id === 'site').prompt },
+];
+
+function welcomeChipsForRole(role) {
+  return WELCOME_CHIPS.filter(c => !c.roles || c.roles.includes(role));
+}
+
 function getSectionMeta(title) {
   const lower = (title || '').toLowerCase();
   if (lower.includes('хук')) return { icon: '🪝', color: 'violet' };
@@ -298,10 +312,11 @@ export default function OmegaChat({
     setInput(prompt);
   };
 
-  const handleSendMessage = async (e) => {
+  const handleSendMessage = async (e, forcedText) => {
     if (e) e.preventDefault();
 
-    const text = input.trim();
+    // [CHAT-UNIFY ДОП-2б] forcedText — отправка по клику на чип приветственного экрана
+    const text = (forcedText ?? input).trim();
     if (!text && !attachment) return;
 
     if (isExternal) {
@@ -524,6 +539,31 @@ export default function OmegaChat({
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden omega-chat-scroll touch-pan-y scroll-smooth p-4 space-y-4"
         style={{ overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' }}
       >
+        {/* [CHAT-UNIFY ДОП-2б] пустой чат у новичка НЕ пустой: «Что умею» + кликабельные чипы-примеры (по роли) */}
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center min-h-[55%] text-center gap-4 py-8 animate-fade-in-up">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <Brain className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">{t('chat.welcome.title')}</h3>
+              <p className="text-sm text-gray-400 mt-1 max-w-[420px] mx-auto">{t('chat.welcome.subtitle')}</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2 max-w-[520px]">
+              {welcomeChipsForRole(userRole).map(chip => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleSendMessage(null, chip.prompt)}
+                  className="px-4 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-200 hover:bg-violet-500/20 hover:text-violet-200 hover:border-violet-500/30 transition-all disabled:opacity-50"
+                >
+                  {chip.icon} {t(chip.label)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {messages.map((msg, i) => (
           <div key={msg.id || i} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
             {isAiMessage(msg) ? (
