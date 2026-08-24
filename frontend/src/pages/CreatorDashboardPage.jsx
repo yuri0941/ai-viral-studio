@@ -194,7 +194,7 @@ function CreatorDashboardPage() {
                             <Plus size={18} /> {t('creator.createFirstPost')}
                         </button>
                         <button
-                            onClick={() => navigate('/ai-chat')}
+                            onClick={() => navigate('/creative-hub/chat')}
                             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-xl text-[var(--text)] font-medium hover:bg-white/5 transition-colors"
                         >
                             <Bot size={18} /> {t('creator.askOmega')}
@@ -361,7 +361,7 @@ function CreatorDashboardPage() {
                     <QuickAction icon={Clapperboard} label={t('creator.aiVideo', 'AI Video')} color="from-violet-500 to-cyan-600" onClick={() => setShowAIVideoCreator(true)} />
                     <QuickAction icon={Calendar} label={t('creator.schedule')} color="from-blue-500 to-blue-700" onClick={() => navigate('/scheduler')} />
                     <QuickAction icon={BarChartIcon} label={t('creator.competitorAnalysis')} color="from-purple-500 to-pink-600" onClick={() => navigate('/analyzer')} />
-                    <QuickAction icon={Bot} label={t('creator.aiChat')} color="from-amber-500 to-orange-600" onClick={() => navigate('/ai-chat')} />
+                    <QuickAction icon={Bot} label={t('creator.aiChat')} color="from-amber-500 to-orange-600" onClick={() => navigate('/creative-hub/chat')} />
                     {/* [P20] added: leaderboard quick action */}
                     <QuickAction icon={Trophy} label="Leaderboard" color="from-yellow-500 to-orange-600" onClick={() => window.location.href = '/leaderboard'} />
                     {/* [P20] added: challenge quick action */}
