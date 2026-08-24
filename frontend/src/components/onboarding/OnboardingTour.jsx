@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
-import { useTranslation } from '../hooks/useTranslation.js'
+import { useTranslation } from '../../hooks/useTranslation.js'
 
 // [CHAT-UNIFY ДОП-2а] тур ведёт в единый вход «OMEGA» и подсвечивает переключатели режимов
 // внутри него; ссылки на удалённые пункты меню (AI Chat / Viral Chat / Анализ контента) убраны.
