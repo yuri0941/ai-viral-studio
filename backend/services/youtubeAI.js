@@ -11,49 +11,38 @@ async function getYouTubeClient() {
 export async function analyzeChannel(channelId) {
   const youtube = await getYouTubeClient()
   if (!youtube || !channelId) {
+    // [YT-DATA-REAL-STATS] честный отказ вместо демо-цифр (12500 подписчиков и т.п. — удалены)
     return {
       success: false,
-      error: 'YouTube API key or channelId not configured',
+      error: 'YouTube Data API ключ не подключён — статистика канала недоступна. Добавьте ключ в Кабинет → API Ключи → YouTube Data API.',
       needsKey: 'youtube',
-      demo: {
-        subscribers: 12500,
-        views: 2400000,
-        ctr: 8.4,
-        topVideos: [
-          { title: 'Тренды 2026', views: 340000, likes: 12000 },
-          { title: 'Обзор инструментов', views: 210000, likes: 8900 },
-        ],
-      },
     }
   }
 
   try {
-    const channelRes = await youtube.channels.list({
-      part: 'statistics,snippet',
-      id: channelId,
-    })
-    const channel = channelRes.data.items?.[0]
-    if (!channel) return { success: false, error: 'Channel not found' }
+    // [YT-DATA-REAL-STATS] через youtubeDataService: кэш канала 6 ч, поиск 6 ч (search.list = 100 ед квоты)
+    const { fetchChannelStats, searchYoutubeVideos } = await import('./youtubeDataService.js')
+    const ch = await fetchChannelStats(channelId)
+    if (!ch.available) return { success: false, error: ch.error?.message || 'Channel not found', code: ch.error?.code }
 
-    const stats = channel.statistics
-    const videosRes = await youtube.search.list({
-      channelId,
-      part: 'snippet',
-      order: 'viewCount',
-      maxResults: 5,
-      type: 'video',
-    })
+    const searchRes = await searchYoutubeVideos('', { maxResults: 5 }).catch(() => null)
+    // поиск по каналу через search.list недоступен в youtubeDataService без query — берём топ через search по названию канала
+    let topVideos = []
+    const byChannel = await import('./youtubeDataService.js').then(m => m.searchYoutubeVideos(ch.title, { maxResults: 5 })).catch(() => null)
+    const searchData = byChannel?.available ? byChannel : (searchRes?.available ? searchRes : null)
+    if (searchData) {
+      topVideos = searchData.videos.map(v => ({
+        title: v.title,
+        videoId: v.videoId,
+        publishedAt: v.publishedAt,
+      }))
+    }
 
-    const topVideos = videosRes.data.items?.map(v => ({
-      title: v.snippet.title,
-      videoId: v.id.videoId,
-      publishedAt: v.snippet.publishedAt,
-    })) || []
-
+    const stats = { subscriberCount: ch.subscribers, viewCount: ch.totalViews, videoCount: ch.videoCount }
     return {
       success: true,
       channel: {
-        title: channel.snippet.title,
+        title: ch.title,
         subscribers: Number(stats.subscriberCount || 0),
         views: Number(stats.viewCount || 0),
         videos: Number(stats.videoCount || 0),
