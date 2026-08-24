@@ -2,6 +2,7 @@
 // CreativeHub — v6.0 unified creative cockpit
 // ============================================
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation.js'
 import useOmegaChat from '../../hooks/useOmegaChat.js'
@@ -106,11 +107,17 @@ function getSuggestions(mode) {
 export default function CreativeHub() {
     const { user } = useAuth()
     const { t } = useTranslation()
+    const { mode: routeMode } = useParams()
+    const navigate = useNavigate()
     const role = user?.role || 'client'
     const roleMeta = getRoleMeta(role)
     const allowedModes = useMemo(() => HUB_ACCESS[role] || HUB_ACCESS.client, [role])
 
-    const [mode, setMode] = useState(() => allowedModes.includes('chat') ? 'chat' : allowedModes[0] || 'chat')
+    // [CHAT-UNIFY] стартовый режим — из URL (:mode), иначе первый доступный
+    const [mode, setMode] = useState(() => {
+        if (routeMode && MODE_META[routeMode] && allowedModes.includes(routeMode)) return routeMode
+        return allowedModes.includes('chat') ? 'chat' : allowedModes[0] || 'chat'
+    })
     const [mobilePanel, setMobilePanel] = useState(null) // 'sessions' | 'menu' | null
     const [showInsightsSheet, setShowInsightsSheet] = useState(false)
     const [insightsCollapsed, setInsightsCollapsed] = useState(false)
@@ -135,11 +142,27 @@ export default function CreativeHub() {
         }
     }, [allowedModes, mode])
 
+    // [CHAT-UNIFY] режим Hub живёт в URL (/creative-hub/:mode): боковое меню, back/forward, прямые ссылки.
+    // Без этого клик «Анализ контента» менял адрес, но страница не переключалась.
+    useEffect(() => {
+        if (!routeMode) return
+        if (!MODE_META[routeMode]) {
+            navigate('/creative-hub/chat', { replace: true })
+            return
+        }
+        if (!allowedModes.includes(routeMode)) {
+            navigate(`/creative-hub/${allowedModes.includes('chat') ? 'chat' : allowedModes[0]}`, { replace: true })
+            return
+        }
+        if (routeMode !== mode) setMode(routeMode)
+    }, [routeMode, allowedModes, mode, navigate])
+
     const handleModeChange = useCallback((next) => {
         if (!allowedModes.includes(next)) return
         setMode(next)
+        if (routeMode !== next) navigate(`/creative-hub/${next}`)
         setMobilePanel(null)
-    }, [allowedModes])
+    }, [allowedModes, routeMode, navigate])
 
     const handleNewSession = useCallback(() => {
         const id = Date.now().toString()

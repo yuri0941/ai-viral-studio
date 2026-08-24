@@ -18,9 +18,9 @@ export function MobileBottomNav({ userRole = 'creator', onHaptic }) {
 
     const tabs = [
         { icon: Home, label: t('bottomNav.dashboard', 'Dashboard'), path: userRole === 'owner' ? '/owner' : '/dashboard' },
-        { icon: MessageSquare, label: t('bottomNav.chat', 'AI Chat'), path: '/ai-chat' },
+        { icon: MessageSquare, label: t('bottomNav.chat', 'AI Chat'), path: '/creative-hub/chat' },
         { icon: PlusCircle, label: t('bottomNav.create', 'Создать'), path: '/creative-hub', center: true },
-        { icon: Zap, label: t('bottomNav.viral', 'Viral Chat'), path: '/viral-chat' },
+        { icon: Zap, label: t('bottomNav.viral', 'Viral Chat'), path: '/creative-hub/viral' },
         { icon: Menu, label: t('bottomNav.menu', 'Меню'), action: () => setDrawerOpen(true) },
     ]
 
