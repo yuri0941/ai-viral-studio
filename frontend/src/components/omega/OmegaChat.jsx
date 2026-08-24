@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
+import { YouTubeAnalysisCard } from "./YouTubeAnalysisCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import OnboardingTour from "../onboarding/OnboardingTour.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -336,6 +337,9 @@ export default function OmegaChat({
         text: res?.data?.response || res?.text || res?.message || '...',
         provider: res?.provider || res?.data?.provider,
         reasoning,
+        // [YT-DATA-REAL-STATS] люкс-карточка анализа + результат действия (обложка/драфт/best time)
+        videoAnalysis: res?.data?.videoAnalysis || null,
+        action: res?.data?.action || null,
         timestamp: Date.now(),
         id: `a-${Date.now()}`,
       };
@@ -518,6 +522,12 @@ export default function OmegaChat({
             {isAiMessage(msg) ? (
               <>
                 <AiMessageContent text={msg.text} t={t} />
+                {msg.videoAnalysis && <YouTubeAnalysisCard data={msg.videoAnalysis} variant="compact" />}
+                {msg.action?.type === 'cover' && msg.action.success && msg.action.url && (
+                  <div className="w-full max-w-[95%] mx-auto mb-3">
+                    <img src={msg.action.url} alt="AI cover" className="w-full rounded-2xl border border-white/10" loading="lazy" />
+                  </div>
+                )}
                 <ReasoningSteps reasoning={msg.reasoning} t={t} />
                 <div className="flex flex-wrap items-center gap-2 mt-2 max-w-[95%] mx-auto">
                   <button

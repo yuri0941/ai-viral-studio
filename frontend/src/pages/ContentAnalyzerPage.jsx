@@ -9,6 +9,7 @@ import {
 import { omegaApi } from '../services/api'
 import { API_BASE_URL } from '../config.js'
 import AICoverGenerator from '../components/content/AICoverGenerator'
+import YouTubeAnalysisCard from '../components/omega/YouTubeAnalysisCard'
 
 const LANGUAGES = [
     { id: 'ru', name: 'Русский', flag: '🇷🇺' },
@@ -234,27 +235,40 @@ function ContentAnalyzerPage() {
 
     const buildAnalysisFromApi = useCallback((apiData, videoUrl) => {
         // [VALUE-2026-08-04] added: build analysis result from AI video breakdown
+        // [YT-DATA-REAL-STATS] реальные цифры из YouTube Data API; statsAvailable=false → честно без метрик
         const info = extractVideoId(videoUrl) || { platform: apiData.platform || 'unknown', id: 'unknown' }
-        const thumb = info.platform === 'youtube'
+        const thumb = apiData.thumbnail || (info.platform === 'youtube'
             ? `https://img.youtube.com/vi/${info.id}/0.jpg`
-            : 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=600&fit=crop'
+            : 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=600&fit=crop')
+        const real = apiData.statsAvailable && apiData.stats
+        const views = real ? Number(apiData.stats.views || 0) : 0
+        const likes = real && apiData.stats.likes !== null ? Number(apiData.stats.likes) : 0
+        const comments = real && apiData.stats.comments !== null ? Number(apiData.stats.comments) : 0
+        const engagementRate = real && views > 0 ? +(((likes + comments) / views) * 100).toFixed(1) : 0
+        const rating = apiData.rating || null
+        const durationSec = apiData.durationSeconds
+        const durationStr = durationSec ? `${Math.floor(durationSec / 60)}:${String(durationSec % 60).padStart(2, '0')}` : (apiData.duration || '—')
         return {
             url: videoUrl,
             platform: apiData.platform || info.platform,
-            title: `Анализ видео ${info.id || ''}`,
-            author: '@creator',
+            title: apiData.title || `Анализ видео ${info.id || ''}`,
+            author: apiData.author || '@creator',
             thumbnail: thumb,
-            duration: apiData.duration || '—',
+            duration: durationStr,
             stats: {
-                views: 0,
-                likes: 0,
-                comments: 0,
+                views,
+                likes,
+                comments,
                 shares: 0,
                 saves: 0,
-                engagementRate: 0,
-                viralityScore: 0,
+                engagementRate,
+                viralityScore: rating ? +(rating.bars.virality / 10).toFixed(1) : 0,
                 watchTime: '—',
             },
+            statsAvailable: !!real,
+            statsError: apiData.statsError || null,
+            publishedAt: apiData.publishedAt || null,
+            videoId: apiData.videoId || info.id,
             audience: {
                 age: { '18-24': 0, '25-34': 0, '35-44': 0, '45+': 0 },
                 gender: { male: 0, female: 0, other: 0 },
@@ -274,7 +288,8 @@ function ContentAnalyzerPage() {
                 recommendations: apiData.improvements?.length ? apiData.improvements : ['—'],
                 similarVideos: [],
             },
-            aiScore: 0,
+            aiScore: rating ? +(rating.score / 10).toFixed(1) : 0,
+            rating,
             aiSummary: apiData.aiText || 'AI-разбор видео',
             aiBreakdown: apiData,
         }
@@ -540,6 +555,30 @@ function ContentAnalyzerPage() {
             {/* Results */}
             {result && !loading && (
                 <div className="space-y-6">
+                    {/* [YT-DATA-REAL-STATS] LUXE-CARD: превью клиента + реальные цифры + рейтинг + действия + PDF */}
+                    {result.platform?.startsWith('youtube') && (
+                        <YouTubeAnalysisCard
+                            variant="full"
+                            data={{
+                                videoId: result.videoId,
+                                url: result.url,
+                                title: result.title,
+                                channelTitle: result.author,
+                                thumbnail: result.thumbnail,
+                                publishedAt: result.publishedAt,
+                                stats: result.statsAvailable ? {
+                                    views: result.stats.views,
+                                    likes: result.stats.likes,
+                                    comments: result.stats.comments,
+                                    subscribers: result.aiBreakdown?.stats?.subscribers ?? null,
+                                } : null,
+                                statsAvailable: result.statsAvailable,
+                                statsError: result.statsError,
+                                rating: result.rating,
+                                tips: result.analysis?.recommendations?.filter(r => r && r !== '—') || [],
+                            }}
+                        />
+                    )}
                     {videoInfo && (
                         <div className="bg-[#1a1a24] rounded-2xl border border-white/[0.06] p-5 flex items-start gap-4">
                             {videoInfo.thumbnail && (
