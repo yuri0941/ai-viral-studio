@@ -50,54 +50,51 @@ const HUB_ACCESS = {
     guest: ['chat'],
 }
 
-// [v6.0] added: mode metadata
+// [v6.0] added: mode metadata (labelKey/subtitleKey — i18n, [CHAT-UNIFY])
 const MODE_META = {
     chat: {
-        label: 'AI Chat',
+        labelKey: 'hub.mode.chat',
         icon: MessageSquare,
-        subtitle: 'Универсальный ассистент OMEGA',
-        placeholder: 'Спроси что угодно...',
+        subtitleKey: 'hub.sub.chat',
     },
     analyzer: {
-        label: 'Content Analyzer',
+        labelKey: 'hub.mode.analyzer',
         icon: BarChart2,
-        subtitle: 'Анализ контента, ниши и конкурентов',
-        placeholder: 'Вставь текст, ссылку или опиши нишу...',
+        subtitleKey: 'hub.sub.analyzer',
     },
     viral: {
-        label: 'Viral Studio',
+        labelKey: 'hub.mode.viral',
         icon: TrendingUp,
-        subtitle: 'Генерация хуков, постов и вирусных идей',
-        placeholder: 'Введи тему или ссылку на тренд...',
+        subtitleKey: 'hub.sub.viral',
     },
 }
 
-// [v6.0] added: creative toolbar templates
+// [v6.0] added: creative toolbar templates (prompt — инструкция для OMEGA, остаётся RU; label — i18n)
 const TOOLBAR_TEMPLATES = [
-    { id: 'post', emoji: '✍️', label: 'Пост', prompt: 'Напиши вирусный пост для соцсетей на тему: ' },
-    { id: 'hook', emoji: '🔥', label: 'Хук', prompt: 'Придумай 10 цепляющих хуков для: ' },
-    { id: 'cover', emoji: '🎨', label: 'Обложка', prompt: 'Создай концепцию обложки для: ' },
-    { id: 'plan', emoji: '📅', label: 'План', prompt: 'Составь контент-план на неделю для: ' },
-    { id: 'analyze', emoji: '🔍', label: 'Анализ', prompt: 'Проанализируй контент: ' },
-    { id: 'stats', emoji: '📊', label: 'Статистика', prompt: 'Собери статистику и метрики по: ' },
+    { id: 'post', emoji: '✍️', labelKey: 'hub.toolbar.post', prompt: 'Напиши вирусный пост для соцсетей на тему: ' },
+    { id: 'hook', emoji: '🔥', labelKey: 'hub.toolbar.hook', prompt: 'Придумай 10 цепляющих хуков для: ' },
+    { id: 'cover', emoji: '🎨', labelKey: 'hub.toolbar.cover', prompt: 'Создай концепцию обложки для: ' },
+    { id: 'plan', emoji: '📅', labelKey: 'hub.toolbar.plan', prompt: 'Составь контент-план на неделю для: ' },
+    { id: 'analyze', emoji: '🔍', labelKey: 'hub.toolbar.analyze', prompt: 'Проанализируй контент: ' },
+    { id: 'stats', emoji: '📊', labelKey: 'hub.toolbar.stats', prompt: 'Собери статистику и метрики по: ' },
 ]
 
-// [v6.0] added: quick suggestion chips per mode
+// [v6.0] added: quick suggestion chips per mode (labelKey — i18n; prompt — RU-инструкция для OMEGA)
 function getSuggestions(mode) {
     const chat = [
-        { label: 'Идеи для Reels', prompt: 'Подбери 5 идей для Reels в моей нише' },
-        { label: 'Вирусный пост', prompt: 'Создай вирусный пост на актуальную тему' },
-        { label: 'Оптимизировать хук', prompt: 'Сделай этот заголовок более цепляющим' },
+        { labelKey: 'hub.sug.reelsIdeas', prompt: 'Подбери 5 идей для Reels в моей нише' },
+        { labelKey: 'hub.sug.viralPost', prompt: 'Создай вирусный пост на актуальную тему' },
+        { labelKey: 'hub.sug.optimizeHook', prompt: 'Сделай этот заголовок более цепляющим' },
     ]
     const analyzer = [
-        { label: 'Анализ ниши', prompt: 'Проанализируй мою нишу и конкурентов' },
-        { label: 'Проверить текст', prompt: 'Проанализируй текст на вовлечённость' },
-        { label: 'Тренды', prompt: 'Какие тренды актуальны для моей аудитории' },
+        { labelKey: 'hub.sug.nicheAnalysis', prompt: 'Проанализируй мою нишу и конкурентов' },
+        { labelKey: 'hub.sug.checkText', prompt: 'Проанализируй текст на вовлечённость' },
+        { labelKey: 'hub.sug.trends', prompt: 'Какие тренды актуальны для моей аудитории' },
     ]
     const viral = [
-        { label: 'Трендовый хук', prompt: 'Создай хук на основе актуального тренда' },
-        { label: 'Обложка Shorts', prompt: 'Создай концепцию обложки для Shorts' },
-        { label: 'План публикаций', prompt: 'Составь вирусный план на неделю' },
+        { labelKey: 'hub.sug.trendHook', prompt: 'Создай хук на основе актуального тренда' },
+        { labelKey: 'hub.sug.shortsCover', prompt: 'Создай концепцию обложки для Shorts' },
+        { labelKey: 'hub.sug.postingPlan', prompt: 'Составь вирусный план на неделю' },
     ]
     if (mode === 'analyzer') return analyzer
     if (mode === 'viral') return viral
@@ -124,9 +121,9 @@ export default function CreativeHub() {
 
     // [v6.0] added: session list (stub; real persistence would live in backend/storage)
     const [sessions, setSessions] = useState([
-        { id: '1', title: 'Новый чат', mode: 'chat', updatedAt: 'только что' },
-        { id: '2', title: 'Анализ ниши', mode: 'analyzer', updatedAt: '2 мин назад' },
-        { id: '3', title: 'Вирусная идея', mode: 'viral', updatedAt: 'вчера' },
+        { id: '1', title: t('hub.newChat'), mode: 'chat', updatedAt: '—' },
+        { id: '2', title: t('hub.sug.nicheAnalysis'), mode: 'analyzer', updatedAt: '—' },
+        { id: '3', title: t('hub.sug.viralPost'), mode: 'viral', updatedAt: '—' },
     ])
     const [activeSessionId, setActiveSessionId] = useState('1')
 
@@ -167,13 +164,13 @@ export default function CreativeHub() {
     const handleNewSession = useCallback(() => {
         const id = Date.now().toString()
         setSessions(prev => [
-            { id, title: 'Новый чат', mode, updatedAt: 'только что' },
+            { id, title: t('hub.newChat'), mode, updatedAt: '—' },
             ...prev,
         ])
         setActiveSessionId(id)
         chat.clearHistory()
         setMobilePanel(null)
-    }, [chat, mode])
+    }, [chat, mode, t])
 
     const handleSelectSession = useCallback((s) => {
         setActiveSessionId(s.id)
@@ -246,7 +243,7 @@ export default function CreativeHub() {
                         ].join(' ')}
                     >
                         <Icon size={18} />
-                        {m.label}
+                        {t(m.labelKey)}
                     </button>
                 )
             })}
@@ -257,11 +254,11 @@ export default function CreativeHub() {
     const SessionsCard = () => (
         <div className="glass-card flex flex-col gap-3 p-4 h-[55%] overflow-hidden">
             <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-100">Сессии</h3>
+                <h3 className="text-sm font-semibold text-gray-100">{t('hub.sessions')}</h3>
                 <button
                     onClick={handleNewSession}
                     className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 transition-colors"
-                    title="Новый чат"
+                    title={t('hub.newChat')}
                 >
                     <Plus size={16} />
                 </button>
@@ -282,7 +279,7 @@ export default function CreativeHub() {
                             <span className="text-sm font-medium truncate">{s.title}</span>
                             <span className="text-[10px] text-gray-500">{s.updatedAt}</span>
                         </div>
-                        <div className="text-xs text-gray-500 mt-0.5">{MODE_META[s.mode].label}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">{t(MODE_META[s.mode].labelKey)}</div>
                     </button>
                 ))}
             </div>
@@ -345,7 +342,7 @@ export default function CreativeHub() {
                     </div>
                     <div>
                         <h1 className="text-lg font-bold text-gray-100">Creative Hub</h1>
-                        <p className="text-[10px] text-gray-400 hidden sm:block">Версия 6.0 · OMEGA Engine</p>
+                        <p className="text-[10px] text-gray-400 hidden sm:block">{t('hub.version')}</p>
                     </div>
                 </div>
 
@@ -376,7 +373,7 @@ export default function CreativeHub() {
                 <aside className="hidden sm:flex flex-col gap-4 h-full overflow-hidden">
                     <SessionsCard />
                     <div className="glass-card p-4 flex-1 overflow-hidden flex flex-col">
-                        <h3 className="text-sm font-semibold text-gray-100 mb-3">Режимы</h3>
+                        <h3 className="text-sm font-semibold text-gray-100 mb-3">{t('hub.modes')}</h3>
                         <ModeTabs />
                     </div>
                 </aside>
@@ -389,8 +386,8 @@ export default function CreativeHub() {
                                 <ModeIcon size={18} className="text-violet-400" />
                             </div>
                             <div>
-                                <h2 className="text-sm font-semibold text-gray-100">{meta.label}</h2>
-                                <p className="text-xs text-gray-400">{meta.subtitle}</p>
+                                <h2 className="text-sm font-semibold text-gray-100">{t(meta.labelKey)}</h2>
+                                <p className="text-xs text-gray-400">{t(meta.subtitleKey)}</p>
                             </div>
                         </div>
 
@@ -402,7 +399,7 @@ export default function CreativeHub() {
                                     onClick={() => handleSuggestion(s.prompt)}
                                     className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 hover:border-violet-500/30 transition-all whitespace-nowrap"
                                 >
-                                    {s.label}
+                                    {t(s.labelKey)}
                                 </button>
                             ))}
                         </div>
@@ -415,14 +412,14 @@ export default function CreativeHub() {
                     {/* [v6.0] added: AI Creative Toolbar */}
                     <div className="mt-3 glass-card p-2 sm:p-3">
                         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                            {TOOLBAR_TEMPLATES.map((t) => (
+                            {TOOLBAR_TEMPLATES.map((tpl) => (
                                 <button
-                                    key={t.id}
-                                    onClick={() => handleToolbar(t.prompt)}
+                                    key={tpl.id}
+                                    onClick={() => handleToolbar(tpl.prompt)}
                                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-200 hover:bg-violet-500/10 hover:border-violet-500/30 hover:text-violet-200 transition-all whitespace-nowrap flex-shrink-0"
                                 >
-                                    <span>{t.emoji}</span>
-                                    <span>{t.label}</span>
+                                    <span>{tpl.emoji}</span>
+                                    <span>{t(tpl.labelKey)}</span>
                                 </button>
                             ))}
                         </div>
@@ -487,14 +484,14 @@ export default function CreativeHub() {
                         className={`flex flex-col items-center justify-center gap-1 text-xs ${mobilePanel === 'sessions' ? 'text-violet-400' : 'text-gray-400'}`}
                     >
                         <LayoutDashboard size={20} />
-                        Hub
+                        {t('hub.bottom.hub')}
                     </button>
                     <button
                         onClick={() => handleModeChange('chat')}
                         className={`flex flex-col items-center justify-center gap-1 text-xs ${mode === 'chat' ? 'text-violet-400' : 'text-gray-400'}`}
                     >
                         <MessageSquare size={20} />
-                        Chat
+                        {t('hub.bottom.chat')}
                     </button>
                     <button
                         onClick={() => handleModeChange('analyzer')}
@@ -502,7 +499,7 @@ export default function CreativeHub() {
                         className={`flex flex-col items-center justify-center gap-1 text-xs ${mode === 'analyzer' ? 'text-violet-400' : 'text-gray-400'} ${!allowedModes.includes('analyzer') ? 'opacity-30 pointer-events-none' : ''}`}
                     >
                         <BarChart2 size={20} />
-                        Analyzer
+                        {t('hub.bottom.analyzer')}
                     </button>
                     <button
                         onClick={() => handleModeChange('viral')}
@@ -510,14 +507,14 @@ export default function CreativeHub() {
                         className={`flex flex-col items-center justify-center gap-1 text-xs ${mode === 'viral' ? 'text-violet-400' : 'text-gray-400'} ${!allowedModes.includes('viral') ? 'opacity-30 pointer-events-none' : ''}`}
                     >
                         <TrendingUp size={20} />
-                        Viral
+                        {t('hub.bottom.viral')}
                     </button>
                     <button
                         onClick={() => setMobilePanel(p => p === 'menu' ? null : 'menu')}
                         className={`flex flex-col items-center justify-center gap-1 text-xs ${mobilePanel === 'menu' ? 'text-violet-400' : 'text-gray-400'}`}
                     >
                         <Menu size={20} />
-                        Menu
+                        {t('hub.bottom.menu')}
                     </button>
                 </div>
             </nav>
@@ -526,7 +523,7 @@ export default function CreativeHub() {
             <button
                 onClick={handleNewSession}
                 className="fixed bottom-20 right-4 z-40 sm:hidden w-12 h-12 rounded-full bg-violet-600 text-white flex items-center justify-center shadow-lg shadow-violet-600/30 hover:scale-105 transition-transform"
-                title="Новый чат"
+                title={t('hub.newChat')}
             >
                 <Plus size={22} />
             </button>
@@ -541,7 +538,7 @@ export default function CreativeHub() {
                         </div>
                         <SessionsCard />
                         <div className="glass-card p-4 flex-1 overflow-hidden flex flex-col">
-                            <h3 className="text-sm font-semibold text-gray-100 mb-3">Режимы</h3>
+                            <h3 className="text-sm font-semibold text-gray-100 mb-3">{t('hub.modes')}</h3>
                             <ModeTabs />
                         </div>
                     </div>
@@ -553,11 +550,11 @@ export default function CreativeHub() {
                 <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setMobilePanel(null)}>
                     <div className="absolute inset-y-0 right-0 w-[260px] bg-[var(--bg-secondary)]/95 backdrop-blur-xl border-l border-white/10 p-4 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-100">Меню</h2>
+                            <h2 className="text-lg font-bold text-gray-100">{t('hub.menu')}</h2>
                             <button onClick={() => setMobilePanel(null)} className="p-2 rounded-lg bg-white/5 text-gray-300"><X size={18} /></button>
                         </div>
                         <div className="glass-card p-4">
-                            <div className="text-xs text-gray-400 mb-2">Роль</div>
+                            <div className="text-xs text-gray-400 mb-2">{t('hub.role')}</div>
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border ${roleMeta.color}`}>
                                 <span>{roleMeta.emoji}</span>
                                 <span>{roleMeta.label}</span>
