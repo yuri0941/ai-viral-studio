@@ -57,6 +57,18 @@ const EMAIL_RE = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g
 // [UI-POLISH] прокси продового API: preview на 127.0.0.1 не в CORS-whitelist бэкенда,
 // поэтому перехватываем запросы и отвечаем с Access-Control-Allow-Origin.
 const API_ORIGIN = 'https://aiviral-backend.onrender.com'
+// [CHAT-UNIFY] тестовые токены прода протухли и перевыпустить их нечем (регистрация закрыта,
+// сид-креды не подходят). UI_AUDIT_MOCK_AUTH=1 — стабим ТОЛЬКО auth/me и users/me (профиль с ролью прогона),
+// остальное API идёт в прод как раньше. Без флага поведение не меняется.
+const MOCK_AUTH = process.env.UI_AUDIT_MOCK_AUTH === '1'
+function mockUserFor(role, lang = 'ru') {
+    return {
+        _id: `audit-${role}`, id: `audit-${role}`,
+        email: `audit.${role}@test.com`, name: `Audit ${role}`,
+        role, trialTokens: 10,
+        preferences: { language: lang, timezone: 'Europe/Moscow' },
+    }
+}
 function corsHeaders() {
     return {
         'access-control-allow-origin': '*',
@@ -64,10 +76,24 @@ function corsHeaders() {
         'access-control-allow-headers': 'authorization,content-type,x-requested-with',
     }
 }
-async function enableApiProxy(context) {
+async function enableApiProxy(context, role, lang) {
     await context.route(`${API_ORIGIN}/**`, async (route) => {
         const req = route.request()
         if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: corsHeaders() })
+        // [CHAT-UNIFY] mock-auth: профиль/квота из заглушки, всё остальное — в прод
+        if (MOCK_AUTH && role && role !== 'public') {
+            const u = new URL(req.url())
+            const user = mockUserFor(role, lang)
+            const json = (obj, status = 200) => route.fulfill({ status, headers: { ...corsHeaders(), 'content-type': 'application/json' }, body: JSON.stringify(obj) })
+            if (u.pathname === '/api/auth/me' && req.method() === 'GET') return json({ success: true, user })
+            if (u.pathname === '/api/users/me' && req.method() === 'GET') return json({ success: true, user, data: user })
+            if (u.pathname === '/api/users/me' && req.method() === 'PUT') return json({ success: true, user })
+            if (u.pathname === '/api/users/me/quota') return json({ status: 'success', data: { trialTokens: 10 } })
+            // [CHAT-UNIFY] любой другой запрос ушёл бы в прод с мёртвым токеном → 401 →
+            // api.js делает жёсткий location.href='/login' и страница превращается в лендинг.
+            // Поэтому при MOCK_AUTH остальное API стабим пустым success (layout-аудит, не данные).
+            return json({ status: 'success', success: true, data: {} })
+        }
         try {
             const headers = { ...req.headers() }
             delete headers.host
@@ -116,13 +142,14 @@ async function newContext(role, width, lang) {
         localStorage.setItem('omega_onboarding_tour_done', 'true') // onboarding tour (driver.js)
         localStorage.setItem('cookie_consent', 'accepted') // cookie-баннер
     }, [token, lang])
-    await enableApiProxy(context)
+    await enableApiProxy(context, role, lang)
     return context
 }
 
 // [UI-VERIFY] роль аккаунта выставляем через API (P16 role switching),
 // иначе прогоны business/advertiser идут под creator и покрытие иллюзорно
 async function setUserRole(role) {
+    if (MOCK_AUTH) return // роль уже в mock-профиле, прод не трогаем
     const token = tokenFor(role)
     if (!token) return
     try {
@@ -137,6 +164,7 @@ async function setUserRole(role) {
 }
 
 async function setUserLanguage(role, lang) {
+    if (MOCK_AUTH) return // язык выставляется через localStorage в newContext
     const token = tokenFor(role)
     if (!token) return
     try {

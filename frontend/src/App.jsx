@@ -25,7 +25,6 @@ import AdminDashboardPage from './pages/AdminDashboardPage'
 import StaffDashboardPage from './pages/StaffDashboardPage'
 import AdvertiserDashboardPage from './pages/AdvertiserDashboardPage'
 import CreatorDashboardPage from './pages/CreatorDashboardPage'
-const AIChatPage = lazy(() => import('./pages/AIChatPage'))
 const AIVideoCreator = lazy(() => import('./components/video/AIVideoCreator.jsx'))
 const NeuroSalesDashboard = lazy(() => import('./components/analytics/NeuroSalesDashboard.jsx'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
@@ -33,12 +32,10 @@ const SchedulerPage = lazy(() => import('./pages/SchedulerPage'))
 import SettingsPage from './pages/SettingsPage'
 import VkCallbackPage from './pages/VkCallbackPage'
 import DownloadPage from './pages/DownloadPage'
-const ContentAnalyzerPage = lazy(() => import('./pages/ContentAnalyzerPage'))
 const AIvsHumanPage = lazy(() => import('./pages/owner/AIvsHumanPage'))
 const BoardroomPage = lazy(() => import('./pages/owner/BoardroomPage'))
 const BusinessSpawnerPage = lazy(() => import('./pages/owner/BusinessSpawnerPage'))
 const SupremeStatusPage = lazy(() => import('./pages/omega-supreme/SupremeStatusPage.jsx'))
-const ViralChatPage = lazy(() => import('./pages/ViralChatPage'))
 import LeaderboardPage from './pages/LeaderboardPage'
 import ChallengePage from './pages/ChallengePage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
@@ -349,11 +346,7 @@ function App() {
                         <CreatorDashboardPage />
                     </ProtectedRoute>
                 } />
-                <Route path="/ai-chat" element={
-                    <ProtectedRoute>
-                        <AIChatPage />
-                    </ProtectedRoute>
-                } />
+                {/* [CHAT-UNIFY] мёртвый дубль роута /ai-chat удалён — выше (л.~309) уже стоит редирект на /creative-hub/chat */}
                 <Route path="/analytics" element={
                     <ProtectedRoute>
                         <AnalyticsPage />

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
+import { MarkdownText } from "./MarkdownText.jsx";
 import { YouTubeAnalysisCard } from "./YouTubeAnalysisCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import OnboardingTour from "../onboarding/OnboardingTour.jsx";
@@ -14,8 +15,9 @@ import { CLIENT_BOT_URL } from "../../config/bots.js";
 const ACTION_BUTTONS = [
   { id: 'hook', label: 'chat.action.hook', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для вирусного контента' },
   { id: 'script', label: 'chat.action.script', icon: '📝', prompt: 'Напиши сценарий Reels/Shorts для AI Viral Studio' },
-  { id: 'code', label: 'chat.action.code', icon: '💻', prompt: 'Сгенерируй production-ready React/Node.js код для AI Viral Studio. Стек: React 18, Vite, Tailwind, Node.js, Express, MongoDB. Не используй mock.' },
-  { id: 'site', label: 'chat.action.site', icon: '🌐', prompt: 'Создай landing page для AI Viral Studio: HTML, CSS, структура, тексты, CTA. Верни полный HTML файл.' },
+  // [CHAT-UNIFY] «Сгенерировать код» и «Создать сайт» — функции владельца, клиенту не показываем
+  { id: 'code', label: 'chat.action.code', icon: '💻', roles: ['owner', 'admin'], prompt: 'Сгенерируй production-ready React/Node.js код для AI Viral Studio. Стек: React 18, Vite, Tailwind, Node.js, Express, MongoDB. Не используй mock.' },
+  { id: 'site', label: 'chat.action.site', icon: '🌐', roles: ['owner', 'admin'], prompt: 'Создай landing page для AI Viral Studio: HTML, CSS, структура, тексты, CTA. Верни полный HTML файл.' },
   { id: 'ad-variants', label: 'chat.action.adVariants', icon: '📢', prompt: 'Сгенируй {n} варианта рекламного креатива для AI Viral Studio: заголовок, текст, CTA, целевая аудитория, прогноз CTR и engagement. Верни результат в виде markdown-таблицы.' },
   { id: 'niche', label: 'chat.action.niche', icon: '🔍', prompt: 'Проанализируй нишу AI-инструментов для вирусного контента: тренды, конкуренты, аудитория, возможности.' },
   { id: 'support', label: 'chat.action.support', icon: '💬', action: 'support' }
@@ -23,6 +25,25 @@ const ACTION_BUTTONS = [
 
 // Защита от дублирующихся кнопок (по id)
 const UNIQUE_ACTION_BUTTONS = Array.from(new Map(ACTION_BUTTONS.map(a => [a.id, a])).values());
+
+// [CHAT-UNIFY] ролевой фильтр быстрых действий: code/site — только owner/admin
+function actionButtonsForRole(role) {
+  return UNIQUE_ACTION_BUTTONS.filter(a => !a.roles || a.roles.includes(role));
+}
+
+// [CHAT-UNIFY ДОП-2б] чипы приветственного экрана пустого чата; code/site — только owner/admin
+const WELCOME_CHIPS = [
+  { id: 'analyze', label: 'chat.welcome.chipAnalyze', icon: '🔍', prompt: 'Проанализируй видео: ' },
+  { id: 'hook', label: 'chat.welcome.chipHook', icon: '🪝', prompt: 'Придумай вирусный хук для моего контента' },
+  { id: 'cover', label: 'chat.welcome.chipCover', icon: '🎨', prompt: 'Сделай обложку для поста' },
+  { id: 'bestTime', label: 'chat.welcome.chipBestTime', icon: '⏰', prompt: 'Когда лучше постить на YouTube?' },
+  { id: 'code', label: 'chat.action.code', icon: '💻', roles: ['owner', 'admin'], prompt: ACTION_BUTTONS.find(a => a.id === 'code').prompt },
+  { id: 'site', label: 'chat.action.site', icon: '🌐', roles: ['owner', 'admin'], prompt: ACTION_BUTTONS.find(a => a.id === 'site').prompt },
+];
+
+function welcomeChipsForRole(role) {
+  return WELCOME_CHIPS.filter(c => !c.roles || c.roles.includes(role));
+}
 
 function getSectionMeta(title) {
   const lower = (title || '').toLowerCase();
@@ -77,7 +98,7 @@ function AiMessageContent({ text, t }) {
           sandbox="allow-scripts"
           className="w-full h-64 rounded-xl border border-white/10 bg-white"
         />
-        <div className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">{text.replace(htmlMatch[0], '')}</div>
+        <div className="text-sm text-gray-100 leading-relaxed"><MarkdownText text={text.replace(htmlMatch[0], '')} /></div>
       </div>
     );
   }
@@ -102,7 +123,7 @@ function AiMessageContent({ text, t }) {
                   const meta = getSectionMeta(title);
                   return (
                     <LuxuryMessageCard key={idx} title={title} icon={meta.icon} color={meta.color}>
-                      {body}
+                      <MarkdownText text={body} />
                     </LuxuryMessageCard>
                   );
                 })}
@@ -111,7 +132,7 @@ function AiMessageContent({ text, t }) {
           }
           return part ? (
             <div key={i} className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm">
-              <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">{part}</p>
+              <MarkdownText text={part} className="text-gray-100" />
             </div>
           ) : null;
         })}
@@ -130,7 +151,7 @@ function AiMessageContent({ text, t }) {
           const meta = getSectionMeta(title);
           return (
             <LuxuryMessageCard key={idx} title={title} icon={meta.icon} color={meta.color}>
-              {body}
+              <MarkdownText text={body} />
             </LuxuryMessageCard>
           );
         })}
@@ -141,7 +162,7 @@ function AiMessageContent({ text, t }) {
   return (
     <div className="group flex flex-col items-start max-w-[95%] mx-auto">
       <div className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm">
-        <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">{text}</p>
+        <MarkdownText text={text} className="text-gray-100" />
       </div>
     </div>
   );
@@ -291,10 +312,11 @@ export default function OmegaChat({
     setInput(prompt);
   };
 
-  const handleSendMessage = async (e) => {
+  const handleSendMessage = async (e, forcedText) => {
     if (e) e.preventDefault();
 
-    const text = input.trim();
+    // [CHAT-UNIFY ДОП-2б] forcedText — отправка по клику на чип приветственного экрана
+    const text = (forcedText ?? input).trim();
     if (!text && !attachment) return;
 
     if (isExternal) {
@@ -517,6 +539,31 @@ export default function OmegaChat({
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden omega-chat-scroll touch-pan-y scroll-smooth p-4 space-y-4"
         style={{ overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' }}
       >
+        {/* [CHAT-UNIFY ДОП-2б] пустой чат у новичка НЕ пустой: «Что умею» + кликабельные чипы-примеры (по роли) */}
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center min-h-[55%] text-center gap-4 py-8 animate-fade-in-up">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <Brain className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">{t('chat.welcome.title')}</h3>
+              <p className="text-sm text-gray-400 mt-1 max-w-[420px] mx-auto">{t('chat.welcome.subtitle')}</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2 max-w-[520px]">
+              {welcomeChipsForRole(userRole).map(chip => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleSendMessage(null, chip.prompt)}
+                  className="px-4 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-200 hover:bg-violet-500/20 hover:text-violet-200 hover:border-violet-500/30 transition-all disabled:opacity-50"
+                >
+                  {chip.icon} {t(chip.label)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {messages.map((msg, i) => (
           <div key={msg.id || i} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
             {isAiMessage(msg) ? (
@@ -572,7 +619,7 @@ export default function OmegaChat({
                   )}
                 </div>
                 <div data-tour="quick-actions" className="flex flex-wrap gap-2 mt-3 max-w-[95%] mx-auto">
-                  {UNIQUE_ACTION_BUTTONS.map(action => (
+                  {actionButtonsForRole(userRole).map(action => (
                     <button
                       key={action.id}
                       onClick={() => runQuickAction(action)}

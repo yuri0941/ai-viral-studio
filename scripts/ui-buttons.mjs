@@ -38,10 +38,30 @@ function corsHeaders() {
         'access-control-allow-headers': 'authorization,content-type,x-requested-with',
     }
 }
-async function enableApiProxy(context) {
+// [CHAT-UNIFY] как в ui-audit.mjs: UI_AUDIT_MOCK_AUTH=1 — стаб auth/me + users/me + пустой success
+// для остального /api/* (прод-токены протухли, 401 → api.js редиректит на /login)
+const MOCK_AUTH = process.env.UI_AUDIT_MOCK_AUTH === '1'
+function mockUserFor(role, lang = 'ru') {
+    return {
+        _id: `audit-${role}`, id: `audit-${role}`,
+        email: `audit.${role}@test.com`, name: `Audit ${role}`,
+        role, trialTokens: 10,
+        preferences: { language: lang, timezone: 'Europe/Moscow' },
+    }
+}
+async function enableApiProxy(context, role, lang) {
     await context.route(`${API_ORIGIN}/**`, async (route) => {
         const req = route.request()
         if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: corsHeaders() })
+        if (MOCK_AUTH && role && role !== 'public') {
+            const u = new URL(req.url())
+            const user = mockUserFor(role, lang)
+            const json = (obj, status = 200) => route.fulfill({ status, headers: { ...corsHeaders(), 'content-type': 'application/json' }, body: JSON.stringify(obj) })
+            if (u.pathname === '/api/auth/me' && req.method() === 'GET') return json({ success: true, user })
+            if (u.pathname === '/api/users/me' && req.method() === 'GET') return json({ success: true, user, data: user })
+            if (u.pathname === '/api/users/me' && req.method() === 'PUT') return json({ success: true, user })
+            return json({ status: 'success', success: true, data: {} })
+        }
         try {
             const headers = { ...req.headers() }
             delete headers.host; delete headers.origin; delete headers.referer
@@ -65,6 +85,7 @@ async function enableApiProxy(context) {
 }
 
 async function apiPut(role, body) {
+    if (MOCK_AUTH) return
     const token = tokenFor(role)
     if (!token) return
     try {
@@ -99,7 +120,7 @@ async function checkPage(role, label, width, lang) {
         localStorage.setItem('omega_onboarding_tour_done', 'true')
         localStorage.setItem('cookie_consent', 'accepted')
     }, [token, lang])
-    await enableApiProxy(context)
+    await enableApiProxy(context, role, lang)
     const page = await context.newPage()
     try {
         await page.goto(`${BASE}${label}`, { waitUntil: 'domcontentloaded', timeout: 60000 })

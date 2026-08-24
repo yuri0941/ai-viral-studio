@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, lazy } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useOwnerData } from './hooks/useOwnerData'
 import { TAB_LABELS } from './data/initialData'
@@ -84,10 +84,8 @@ const ProjectFactoryPage = lazy(() => import('../project-factory/ProjectFactoryP
 const PredictionDashboard = lazy(() => import('../prediction/PredictionDashboard.jsx'))
 const InvestmentPanel = lazy(() => import('../investment/InvestmentPanel.jsx'))
 const BoardroomCommandCenter = lazy(() => import('../boardroom/BoardroomCommandCenter.jsx'))
-const AIChatPage = lazy(() => import('../AIChatPage'))
-const ContentAnalyzerPage = lazy(() => import('../ContentAnalyzerPage'))
 const SchedulerPage = lazy(() => import('../SchedulerPage'))
-const ViralChatPage = lazy(() => import('../ViralChatPage'))
+// [CHAT-UNIFY] owner-вкладки aiChat/contentAnalyzer/viralChat — редиректы на единый Creative Hub (см. renderTab)
 const SupremeStatusPage = lazy(() => import('../omega-supreme/SupremeStatusPage.jsx'))
 
 // Modals
@@ -343,7 +341,7 @@ function DashboardHeader({ data }) {
                     {greeting}, {user?.name || 'Owner'}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2">
-                    <QuickAction icon={Rocket} label="Creative Hub" onClick={() => navigate('/creative-hub')} />
+                    <QuickAction icon={Rocket} label="OMEGA" onClick={() => navigate('/creative-hub')} />
                     <QuickAction icon={BarChart3} label="Analytics" onClick={() => navigate('/owner?tab=aiAnalytics')} />
                     <QuickAction icon={Settings} label="Settings" onClick={() => navigate('/settings')} />
                     <QuickAction icon={Users} label="Team" onClick={() => navigate('/owner?tab=team')} />
@@ -452,10 +450,12 @@ export default function OwnerDashboardPage() {
             case 'approvalQueue': return <OmegaApprovalQueue />
             case 'factory': return <ProjectFactoryPage />
             case 'analytics': return <AnalyticsPage />
-            case 'aiChat': return <AIChatPage />
-            case 'contentAnalyzer': return <ContentAnalyzerPage />
+            // [CHAT-UNIFY] старые ссылки ?tab=aiChat|contentAnalyzer|viralChat → единый Creative Hub
+            case 'aiChat': return <Navigate to="/creative-hub/chat" replace />
+            case 'contentAnalyzer': return <Navigate to="/creative-hub/analyzer" replace />
+            case 'contentAnalysis': return <Navigate to="/creative-hub/analyzer" replace />
+            case 'viralChat': return <Navigate to="/creative-hub/viral" replace />
             case 'scheduler': return <SchedulerPage />
-            case 'viralChat': return <ViralChatPage />
             default: return <OverviewTab data={ownerData} />
         }
     }
