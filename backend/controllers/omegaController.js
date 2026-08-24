@@ -210,6 +210,8 @@ export async function chat(req, res) {
                     statsAvailable: !!ytV?.available,
                     statsError: !ytV?.available && ytV?.error ? ytV.error.message : null,
                     rating: rt,
+                    // [CHAT-UNIFY] реальные теги видео для кнопки «SEO-теги» в карточке
+                    tags: Array.isArray(ytV?.tags) ? ytV.tags.slice(0, 15) : [],
                 }
                 ytChatContext = ytV?.available
                     ? `Реальная статистика видео из YouTube Data API (используй ТОЛЬКО эти цифры, ничего не выдумывай): "${ytV.title}" канала "${ytV.channelTitle}". Просмотры=${ytV.views}, лайки=${ytV.likes ?? 'скрыты автором'}, комментарии=${ytV.comments ?? 'скрыты автором'}, подписчики=${ytC?.available ? ytC.subscribers : 'неизвестно'}, опубликовано=${ytV.publishedAt}.${rt ? ` AI-рейтинг=${rt.score}/100 (виральность=${rt.bars.virality}, вовлечённость=${rt.bars.engagement}, удержание=${rt.bars.retention}, seo=${rt.bars.seo}, рост=${rt.bars.growth}).` : ''}`

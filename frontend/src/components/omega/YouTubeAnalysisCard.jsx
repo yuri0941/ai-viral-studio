@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Eye, Heart, MessageCircle, Users, Download, Copy, Check, Image as ImageIcon, CalendarPlus, Clock, Loader2, AlertTriangle } from 'lucide-react';
+import { Eye, Heart, MessageCircle, Users, Download, Copy, Check, Image as ImageIcon, CalendarPlus, Clock, Loader2, AlertTriangle, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from '../../hooks/useTranslation.js';
 import { omegaApi, request } from '../../services/api.js';
@@ -48,7 +48,7 @@ function StatMini({ icon: Icon, label, value, accent }) {
 }
 
 // Донат «AI-рейтинг» — рейтинг посчитан на бэкенде из реальных метрик (формула в youtubeDataService.computeVideoRating)
-function RatingDonut({ score, size = 88 }) {
+function RatingDonut({ score, size = 88, formula }) {
   const animated = useCountUp(score, 1100);
   const stroke = 7;
   const r = (size - stroke) / 2;
@@ -56,12 +56,19 @@ function RatingDonut({ score, size = 88 }) {
   const offset = circ - (animated / 100) * circ;
   const color = score >= 70 ? '#34d399' : score >= 40 ? '#fbbf24' : '#f87171';
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
+    <div className="relative shrink-0" style={{ width: size, height: size }} title={formula || undefined}>
       <svg width={size} height={size} className="-rotate-90">
+        <defs>
+          <linearGradient id="ytRatingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#8b5cf6" />
+            <stop offset="55%" stopColor="#d946ef" />
+            <stop offset="100%" stopColor="#22d3ee" />
+          </linearGradient>
+        </defs>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke={color} strokeWidth={stroke} strokeLinecap="round"
+          stroke="url(#ytRatingGrad)" strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={circ} strokeDashoffset={offset}
           style={{ transition: 'stroke-dashoffset 0.1s linear' }}
         />
@@ -74,16 +81,24 @@ function RatingDonut({ score, size = 88 }) {
   );
 }
 
-function RatingBar({ label, value, color }) {
-  const animated = useCountUp(value, 1000);
+// [CHAT-UNIFY] честные цвета: слабые метрики — красным/янтарным, а не «всё красиво»
+function barColor(value) {
+  if (value === null || value === undefined) return 'bg-white/20';
+  if (value < 40) return 'bg-gradient-to-r from-red-500 to-rose-400';
+  if (value < 70) return 'bg-gradient-to-r from-amber-500 to-yellow-400';
+  return 'bg-gradient-to-r from-emerald-500 to-teal-400';
+}
+
+function RatingBar({ label, value }) {
+  const animated = useCountUp(value ?? 0, 1000);
   return (
     <div>
       <div className="flex justify-between text-[11px] mb-1">
         <span className="text-gray-400">{label}</span>
-        <span className="text-white font-medium tabular-nums">{animated}%</span>
+        <span className={`font-medium tabular-nums ${value < 40 ? 'text-rose-300' : 'text-white'}`}>{value === null || value === undefined ? '—' : `${animated}%`}</span>
       </div>
       <div className="h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
-        <div className={`h-full rounded-full ${color} transition-all duration-700`} style={{ width: `${animated}%` }} />
+        <div className={`h-full rounded-full ${barColor(value)} transition-all duration-700`} style={{ width: `${animated}%` }} />
       </div>
     </div>
   );
@@ -128,9 +143,23 @@ export function YouTubeAnalysisCard({ data, variant = 'compact', onAction }) {
   const [busy, setBusy] = useState('');
   const [coverUrl, setCoverUrl] = useState(null);
   const [bestTime, setBestTime] = useState(null);
+  const [showTags, setShowTags] = useState(false);
 
   if (!data) return null;
   const { stats, rating, statsAvailable } = data;
+
+  // [CHAT-UNIFY] «💡 Советы»: приоритет — советы с бэкенда; иначе честно выводим из 2 самых слабых баров (те же реальные метрики)
+  const tips = (() => {
+    if (Array.isArray(data.tips) && data.tips.length > 0) return data.tips;
+    if (!rating?.bars) return [];
+    const order = ['virality', 'engagement', 'retention', 'seo', 'growth'];
+    return order
+      .map(key => ({ key, value: rating.bars[key] }))
+      .filter(b => b.value !== null && b.value !== undefined)
+      .sort((a, b) => a.value - b.value)
+      .slice(0, 2)
+      .map(b => t(`ytCard.tip.${b.key}`));
+  })();
 
   const copyLink = async () => {
     try {
@@ -221,8 +250,11 @@ export function YouTubeAnalysisCard({ data, variant = 'compact', onAction }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-3">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold uppercase">YouTube</span>
+            {statsAvailable && (
+              <span className="px-2 py-0.5 rounded bg-emerald-500/90 text-white text-[10px] font-bold">{t('ytCard.realData')}</span>
+            )}
             {data.publishedAt && (
               <span className="text-[10px] text-gray-300">{new Date(data.publishedAt).toLocaleDateString()}</span>
             )}
@@ -248,36 +280,53 @@ export function YouTubeAnalysisCard({ data, variant = 'compact', onAction }) {
           </div>
         )}
 
-        {/* Донат AI-рейтинг + бары (полный вариант — бары; компакт — только донат) */}
+        {/* Донат AI-рейтинг + 5 баров (в обоих вариантах — карточка живёт в чате) */}
         {rating && (
-          <div className="flex items-start gap-4">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
             <div className="flex flex-col items-center gap-1">
-              <RatingDonut score={rating.score} />
+              <RatingDonut score={rating.score} formula={rating.formula} />
               <span className="text-[10px] text-gray-400">{t('ytCard.aiRating')}</span>
+              {rating.formula && (
+                <span className="text-[9px] text-gray-600 text-center max-w-[110px] leading-tight">{rating.formula}</span>
+              )}
             </div>
-            {variant === 'full' && (
-              <div className="flex-1 space-y-2 min-w-0">
-                <RatingBar label={t('ytCard.virality')} value={rating.bars.virality} color="bg-gradient-to-r from-rose-500 to-orange-400" />
-                <RatingBar label={t('ytCard.engagement')} value={rating.bars.engagement} color="bg-gradient-to-r from-emerald-500 to-teal-400" />
-                <RatingBar label={t('ytCard.retention')} value={rating.bars.retention} color="bg-gradient-to-r from-sky-500 to-cyan-400" />
-                <RatingBar label={t('ytCard.seo')} value={rating.bars.seo} color="bg-gradient-to-r from-violet-500 to-fuchsia-400" />
-                <RatingBar label={t('ytCard.growth')} value={rating.bars.growth} color="bg-gradient-to-r from-amber-500 to-yellow-400" />
-              </div>
-            )}
+            <div className="flex-1 w-full space-y-2 min-w-0">
+              <RatingBar label={t('ytCard.virality')} value={rating.bars.virality} />
+              <RatingBar label={t('ytCard.engagement')} value={rating.bars.engagement} />
+              <RatingBar label={t('ytCard.retention')} value={rating.bars.retention} />
+              <RatingBar label={t('ytCard.seo')} value={rating.bars.seo} />
+              <RatingBar label={t('ytCard.growth')} value={rating.bars.growth} />
+            </div>
           </div>
         )}
 
-        {/* Советы для улучшения (AI по реальным данным, приходят с бэкенда) */}
-        {variant === 'full' && Array.isArray(data.tips) && data.tips.length > 0 && (
+        {/* Советы для улучшения (с бэкенда или из самых слабых метрик — без выдумок) */}
+        {tips.length > 0 && (
           <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-3">
-            <h4 className="text-xs font-semibold text-white/90 mb-2">{t('ytCard.tips')}</h4>
+            <h4 className="text-xs font-semibold text-white/90 mb-2">💡 {t('ytCard.tips')}</h4>
             <ul className="space-y-1.5">
-              {data.tips.map((tip, i) => (
+              {tips.map((tip, i) => (
                 <li key={i} className="text-xs text-gray-300 flex gap-2">
                   <span className="text-violet-400 shrink-0">{i + 1}.</span>{tip}
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* Реальные SEO-теги видео (snippet.tags с бэкенда) */}
+        {showTags && (
+          <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-3">
+            <h4 className="text-xs font-semibold text-white/90 mb-2">🔖 {t('ytCard.seoTags')}</h4>
+            {Array.isArray(data.tags) && data.tags.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {data.tags.map((tag, i) => (
+                  <span key={i} className="px-2 py-1 rounded-full bg-violet-500/10 border border-violet-500/25 text-[11px] text-violet-200">{tag}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500">{t('ytCard.noTags')}</p>
+            )}
           </div>
         )}
 
@@ -311,6 +360,7 @@ export function YouTubeAnalysisCard({ data, variant = 'compact', onAction }) {
           {actionBtn('cover', <ImageIcon size={13} />, t('ytCard.makeCover'), makeCover)}
           {actionBtn('draft', <CalendarPlus size={13} />, t('ytCard.createPost'), () => createDraft())}
           {actionBtn('bestTime', <Clock size={13} />, t('ytCard.bestTime'), askBestTime)}
+          {actionBtn('seo', <Tag size={13} />, t('ytCard.seoTags'), () => setShowTags(v => !v), showTags ? 'bg-violet-500/20 text-violet-200' : undefined)}
           {actionBtn('pdf', <Download size={13} />, t('ytCard.exportPdf'), () => exportPdf(data, rating, t))}
           {actionBtn('copy', copied ? <Check size={13} /> : <Copy size={13} />, copied ? t('ytCard.copied') : t('ytCard.copyLink'), copyLink)}
         </div>

@@ -2845,6 +2845,16 @@
     "seo": "SEO",
     "growth": "Growth potential",
     "tips": "Improvement tips",
+    "realData": "✅ Real data",
+    "seoTags": "SEO tags",
+    "noTags": "This video has no tags — add 5–10 relevant ones",
+    "tip": {
+      "virality": "Virality is low: strengthen the first 3 seconds with a hook and add an emotional trigger to the title",
+      "engagement": "Engagement is low: add a clear CTA (a question at the end, ask viewers to comment)",
+      "retention": "Retention is low: cut the long intro, show the video's value right away",
+      "seo": "SEO is weak: add 5–10 tags, expand the description with keywords, a number or question in the title helps",
+      "growth": "Growth potential is low: publish at the best time and cross-post to Shorts/Telegram"
+    },
     "makeCover": "Make cover",
     "createPost": "Create post",
     "bestTime": "Best time to post",
