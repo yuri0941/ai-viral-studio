@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
+import { MarkdownText } from "./MarkdownText.jsx";
 import { YouTubeAnalysisCard } from "./YouTubeAnalysisCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import OnboardingTour from "../onboarding/OnboardingTour.jsx";
@@ -83,7 +84,7 @@ function AiMessageContent({ text, t }) {
           sandbox="allow-scripts"
           className="w-full h-64 rounded-xl border border-white/10 bg-white"
         />
-        <div className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">{text.replace(htmlMatch[0], '')}</div>
+        <div className="text-sm text-gray-100 leading-relaxed"><MarkdownText text={text.replace(htmlMatch[0], '')} /></div>
       </div>
     );
   }
@@ -108,7 +109,7 @@ function AiMessageContent({ text, t }) {
                   const meta = getSectionMeta(title);
                   return (
                     <LuxuryMessageCard key={idx} title={title} icon={meta.icon} color={meta.color}>
-                      {body}
+                      <MarkdownText text={body} />
                     </LuxuryMessageCard>
                   );
                 })}
@@ -117,7 +118,7 @@ function AiMessageContent({ text, t }) {
           }
           return part ? (
             <div key={i} className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm">
-              <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">{part}</p>
+              <MarkdownText text={part} className="text-gray-100" />
             </div>
           ) : null;
         })}
@@ -136,7 +137,7 @@ function AiMessageContent({ text, t }) {
           const meta = getSectionMeta(title);
           return (
             <LuxuryMessageCard key={idx} title={title} icon={meta.icon} color={meta.color}>
-              {body}
+              <MarkdownText text={body} />
             </LuxuryMessageCard>
           );
         })}
@@ -147,7 +148,7 @@ function AiMessageContent({ text, t }) {
   return (
     <div className="group flex flex-col items-start max-w-[95%] mx-auto">
       <div className="bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] border-l-2 border-violet-400/50 rounded-2xl rounded-tl-none p-4 backdrop-blur-sm">
-        <p className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">{text}</p>
+        <MarkdownText text={text} className="text-gray-100" />
       </div>
     </div>
   );
