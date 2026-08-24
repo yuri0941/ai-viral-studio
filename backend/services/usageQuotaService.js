@@ -109,7 +109,8 @@ export async function consumeGeneration(userId, userRole = null, { isInfoQuery =
         quota.overageUsed += 1
     }
     await quota.save()
-    return checkQuota(userId)
+    // [CLIENT-JOURNEY-QA] checkQuota не содержит allowed — pro/agency получали 402 на КАЖДЫЙ запрос
+    return { ...await checkQuota(userId), allowed: true, consumed: true }
 }
 
 export async function topUpGenerations(userId, packs = 1) {
