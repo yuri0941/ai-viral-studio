@@ -100,9 +100,14 @@ function OnboardingWizard() {
         localStorage.setItem(DATA_KEY, JSON.stringify(data))
         const syncBackend = async () => {
             try {
+                // [CLIENT-JOURNEY-QA] без Authorization сервер отвечал 401/404 — онбординг не сохранялся
+                const token = localStorage.getItem('token')
                 await fetch(`${API_BASE_URL}/users/me/onboarding`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
                     body: JSON.stringify({ step, data, completed: false }),
                 })
             } catch (err) {
@@ -194,9 +199,14 @@ function OnboardingWizard() {
         localStorage.setItem('omega_first_post_badge', 'true')
         await createFirstPost()
         try {
+            // [CLIENT-JOURNEY-QA] без Authorization сервер отвечал 401/404 — онбординг не сохранялся
+            const token = localStorage.getItem('token')
             await fetch(`${API_BASE_URL}/users/me/onboarding`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({ step, data, completed: true }),
             })
         } catch (err) {
