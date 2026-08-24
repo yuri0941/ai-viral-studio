@@ -14,8 +14,9 @@ import { CLIENT_BOT_URL } from "../../config/bots.js";
 const ACTION_BUTTONS = [
   { id: 'hook', label: 'chat.action.hook', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для вирусного контента' },
   { id: 'script', label: 'chat.action.script', icon: '📝', prompt: 'Напиши сценарий Reels/Shorts для AI Viral Studio' },
-  { id: 'code', label: 'chat.action.code', icon: '💻', prompt: 'Сгенерируй production-ready React/Node.js код для AI Viral Studio. Стек: React 18, Vite, Tailwind, Node.js, Express, MongoDB. Не используй mock.' },
-  { id: 'site', label: 'chat.action.site', icon: '🌐', prompt: 'Создай landing page для AI Viral Studio: HTML, CSS, структура, тексты, CTA. Верни полный HTML файл.' },
+  // [CHAT-UNIFY] «Сгенерировать код» и «Создать сайт» — функции владельца, клиенту не показываем
+  { id: 'code', label: 'chat.action.code', icon: '💻', roles: ['owner', 'admin'], prompt: 'Сгенерируй production-ready React/Node.js код для AI Viral Studio. Стек: React 18, Vite, Tailwind, Node.js, Express, MongoDB. Не используй mock.' },
+  { id: 'site', label: 'chat.action.site', icon: '🌐', roles: ['owner', 'admin'], prompt: 'Создай landing page для AI Viral Studio: HTML, CSS, структура, тексты, CTA. Верни полный HTML файл.' },
   { id: 'ad-variants', label: 'chat.action.adVariants', icon: '📢', prompt: 'Сгенируй {n} варианта рекламного креатива для AI Viral Studio: заголовок, текст, CTA, целевая аудитория, прогноз CTR и engagement. Верни результат в виде markdown-таблицы.' },
   { id: 'niche', label: 'chat.action.niche', icon: '🔍', prompt: 'Проанализируй нишу AI-инструментов для вирусного контента: тренды, конкуренты, аудитория, возможности.' },
   { id: 'support', label: 'chat.action.support', icon: '💬', action: 'support' }
@@ -23,6 +24,11 @@ const ACTION_BUTTONS = [
 
 // Защита от дублирующихся кнопок (по id)
 const UNIQUE_ACTION_BUTTONS = Array.from(new Map(ACTION_BUTTONS.map(a => [a.id, a])).values());
+
+// [CHAT-UNIFY] ролевой фильтр быстрых действий: code/site — только owner/admin
+function actionButtonsForRole(role) {
+  return UNIQUE_ACTION_BUTTONS.filter(a => !a.roles || a.roles.includes(role));
+}
 
 function getSectionMeta(title) {
   const lower = (title || '').toLowerCase();
@@ -572,7 +578,7 @@ export default function OmegaChat({
                   )}
                 </div>
                 <div data-tour="quick-actions" className="flex flex-wrap gap-2 mt-3 max-w-[95%] mx-auto">
-                  {UNIQUE_ACTION_BUTTONS.map(action => (
+                  {actionButtonsForRole(userRole).map(action => (
                     <button
                       key={action.id}
                       onClick={() => runQuickAction(action)}
