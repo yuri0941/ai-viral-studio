@@ -22,6 +22,7 @@ import User from '../models/User.js'
 import axios from 'axios'
 import { checkQuota, consumeGeneration } from '../services/usageQuotaService.js'
 import { scrapeVideo } from '../services/youtubeScraper.js'
+import { fetchVideoStats, fetchChannelStats, computeVideoRating } from '../services/youtubeDataService.js'
 import dialogueEvolution from '../ai/omega/dialogueEvolution.js'
 import { findNiche, NICHE_REGISTRY } from '../data/niches.js'
 
@@ -183,6 +184,106 @@ export async function chat(req, res) {
             console.warn('[omegaController:chat] neuralGraph failed:', err.message)
         }
 
+        // [YT-DATA-REAL-STATS] ссылка на YouTube в чате → реальный fetch статистики (кэш 1 ч/6 ч)
+        const ytUrlMatch = message.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?[^\s]*v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+        let ytChatAnalysis = null
+        let ytChatContext = ''
+        if (ytUrlMatch) {
+            try {
+                const ytV = await fetchVideoStats(ytUrlMatch[1], { ownerId: userId })
+                let ytC = null
+                if (ytV?.available && ytV.channelId) ytC = await fetchChannelStats(ytV.channelId, { ownerId: userId })
+                const rt = computeVideoRating(ytV, ytC)
+                ytChatAnalysis = {
+                    videoId: ytUrlMatch[1],
+                    url: ytUrlMatch[0].startsWith('http') ? ytUrlMatch[0] : `https://youtu.be/${ytUrlMatch[1]}`,
+                    title: ytV?.title || '',
+                    channelTitle: ytV?.channelTitle || '',
+                    thumbnail: ytV?.thumbnail || `https://img.youtube.com/vi/${ytUrlMatch[1]}/hqdefault.jpg`,
+                    publishedAt: ytV?.publishedAt || null,
+                    stats: ytV?.available ? {
+                        views: ytV.views,
+                        likes: ytV.likes,
+                        comments: ytV.comments,
+                        subscribers: ytC?.available ? ytC.subscribers : null,
+                    } : null,
+                    statsAvailable: !!ytV?.available,
+                    statsError: !ytV?.available && ytV?.error ? ytV.error.message : null,
+                    rating: rt,
+                }
+                ytChatContext = ytV?.available
+                    ? `Реальная статистика видео из YouTube Data API (используй ТОЛЬКО эти цифры, ничего не выдумывай): "${ytV.title}" канала "${ytV.channelTitle}". Просмотры=${ytV.views}, лайки=${ytV.likes ?? 'скрыты автором'}, комментарии=${ytV.comments ?? 'скрыты автором'}, подписчики=${ytC?.available ? ytC.subscribers : 'неизвестно'}, опубликовано=${ytV.publishedAt}.${rt ? ` AI-рейтинг=${rt.score}/100 (виральность=${rt.bars.virality}, вовлечённость=${rt.bars.engagement}, удержание=${rt.bars.retention}, seo=${rt.bars.seo}, рост=${rt.bars.growth}).` : ''}`
+                    : `Пользователь прислал ссылку на YouTube-видео, но статистика недоступна (${ytV?.error?.message || 'нет API-ключа'}). Скажи честно, что статистика недоступна, и НЕ выдумывай цифры. Качественный разбор (хуки/CTA/структура) — можно, без метрик.`
+            } catch (err) {
+                console.warn('[omegaController:chat] youtube fetch failed:', err.message)
+            }
+        }
+
+        // [YT-DATA-REAL-STATS] действия из чата: «сделай обложку» / «создай пост» / «когда постить»
+        // Реальные вызовы сервисов (imageGeneration / ScheduledPost / bestTimeService), невозможно → честное сообщение
+        let chatAction = null
+        {
+            const lowerMsg = message.toLowerCase()
+            const videoTopic = ytChatAnalysis?.title || ''
+            const wantsCover = /(сделай|создай|сгенерируй|придумай)\S*\s+обложк|обложку (для|к)|make.{0,15}cover|generate.{0,15}(cover|thumbnail)/i.test(message)
+            const wantsPost = /(создай|запланируй|сохрани)\S*\s+(пост|драфт|draft)|создай пост|create.{0,10}(post|draft)/i.test(message)
+            const wantsBestTime = /когда (постить|публиковать|выкладывать|лучше)|лучшее время|best time/i.test(message)
+
+            if (wantsCover) {
+                try {
+                    const topic = videoTopic || message.replace(/(сделай|создай|сгенерируй|придумай)\S*\s+обложк\S*/i, '').trim() || 'viral video'
+                    const cover = await generateCover({
+                        prompt: `YouTube thumbnail, bold text, high contrast, eye-catching: ${topic}`,
+                        style: 'realistic',
+                        size: '1920x1080',
+                    })
+                    chatAction = cover?.url
+                        ? { type: 'cover', success: true, url: cover.url, prompt: cover.prompt, provider: cover.provider, topic }
+                        : { type: 'cover', success: false, message: 'Генератор обложек не вернул картинку — попробуйте ещё раз' }
+                } catch (err) {
+                    console.warn('[omegaController:chat] cover action failed:', err.message)
+                    chatAction = { type: 'cover', success: false, message: 'Генерация обложки сейчас недоступна: ' + err.message }
+                }
+            } else if (wantsPost) {
+                if (!userId) {
+                    chatAction = { type: 'draft', success: false, message: 'Войдите в аккаунт, чтобы создать драфт поста в Планировщике' }
+                } else {
+                    try {
+                        const { ScheduledPost } = await import('../models/index.js')
+                        const draftTitle = videoTopic ? `Пост по видео: ${videoTopic}`.slice(0, 120) : message.slice(0, 120)
+                        const post = await ScheduledPost.create({
+                            userId,
+                            title: draftTitle,
+                            content: videoTopic ? `Идея из анализа видео: ${videoTopic}\n${ytChatAnalysis?.url || ''}` : message,
+                            platforms: ytChatAnalysis ? ['youtube'] : ['telegram'],
+                            types: ['post'],
+                            mediaUrl: '',
+                            scheduledAt: new Date(Date.now() + 24 * 3600 * 1000),
+                            status: 'draft',
+                        })
+                        chatAction = { type: 'draft', success: true, postId: String(post._id), title: post.title, schedulerUrl: '/scheduler' }
+                    } catch (err) {
+                        console.warn('[omegaController:chat] draft action failed:', err.message)
+                        chatAction = { type: 'draft', success: false, message: 'Не удалось создать драфт: ' + err.message }
+                    }
+                }
+            } else if (wantsBestTime) {
+                try {
+                    const bt = await analyzeBestTime({
+                        platform: ytChatAnalysis ? 'youtube' : (req.body.platform || 'youtube'),
+                        audienceTimezone: req.user?.preferences?.timezone || 'Europe/Moscow',
+                        niche: req.user?.preferences?.niche || '',
+                    })
+                    chatAction = bt?.bestTime
+                        ? { type: 'bestTime', success: true, bestTime: bt.bestTime, reason: bt.reason, alternativeTimes: bt.alternativeTimes || [], source: bt.source }
+                        : { type: 'bestTime', success: false, message: 'Сервис best time не вернул результат' }
+                } catch (err) {
+                    console.warn('[omegaController:chat] bestTime action failed:', err.message)
+                    chatAction = { type: 'bestTime', success: false, message: 'Best time сейчас недоступен: ' + err.message }
+                }
+            }
+        }
+
         let searchContextString = ''
         const searchIntent = /\b(поиск|найди|search|google|новости|тренд|reddit|twitter|новост)/i.test(message)
         if (searchIntent) {
@@ -197,7 +298,25 @@ export async function chat(req, res) {
             }
         }
 
-        const extraSystemContext = [systemContext, graphContextString, searchContextString].filter(Boolean).join('\n\n')
+        // [YT-DATA-REAL-STATS] сообщаем AI реальный исход действия — он не должен имитировать успех/провал
+        let chatActionContext = ''
+        if (chatAction) {
+            if (chatAction.type === 'cover') {
+                chatActionContext = chatAction.success
+                    ? `Действие выполнено: обложка сгенерирована (url: ${chatAction.url}). Сообщи пользователю, что обложка готова и показана в чате.`
+                    : `Действие НЕ выполнено: обложка не сгенерирована (${chatAction.message}). Честно скажи об этом.`
+            } else if (chatAction.type === 'draft') {
+                chatActionContext = chatAction.success
+                    ? `Действие выполнено: драфт поста "${chatAction.title}" создан в Планировщике (id: ${chatAction.postId}). Сообщи пользователю.`
+                    : `Действие НЕ выполнено: драфт не создан (${chatAction.message}). Честно скажи об этом.`
+            } else if (chatAction.type === 'bestTime') {
+                chatActionContext = chatAction.success
+                    ? `Действие выполнено: лучшее время публикации — ${chatAction.bestTime} (${chatAction.reason}). Альтернативы: ${(chatAction.alternativeTimes || []).join(', ')}.`
+                    : `Действие НЕ выполнено: best time недоступен (${chatAction.message}). Честно скажи об этом.`
+            }
+        }
+
+        const extraSystemContext = [systemContext, graphContextString, searchContextString, ytChatContext, chatActionContext].filter(Boolean).join('\n\n')
 
         const result = userId
             ? await selectResponse({
@@ -276,6 +395,10 @@ export async function chat(req, res) {
                 usage: result.usage || null,
                 cached: result.cached || false,
                 reasoning,
+                // [YT-DATA-REAL-STATS] структурированные данные для люкс-карточки анализа в чате
+                videoAnalysis: ytChatAnalysis,
+                // [YT-DATA-REAL-STATS] результат действия из чата (обложка/драфт/best time)
+                action: chatAction,
             },
         })
     } catch (err) {
@@ -519,7 +642,24 @@ export async function analyzeVideo(req, res) {
             return res.status(400).json({ status: 'error', message: metadata.error || 'Проверьте ссылку или попробуйте позже' })
         }
 
-        const prompt = `Проанализируй видео "${metadata.title || ''}" автора "${metadata.author || ''}" по ссылке ${url}. Выдай: 1) Хук (первые 3 сек) 2) CTA 3) Вирусные моменты с таймкодами 4) Что улучшить. Ниша: ${niche}. На ${language === 'ru' ? 'русском' : 'английском'}.`
+        // [YT-DATA-REAL-STATS] реальная статистика YouTube Data API (кэш: видео 1 ч, канал 6 ч)
+        let ytVideo = null
+        let ytChannel = null
+        let rating = null
+        if ((platform === 'youtube' || platform === 'youtube-shorts') && metadata.videoId) {
+            const ownerId = req.user?._id || req.user?.id
+            ytVideo = await fetchVideoStats(metadata.videoId, { ownerId })
+            if (ytVideo?.available && ytVideo.channelId) {
+                ytChannel = await fetchChannelStats(ytVideo.channelId, { ownerId })
+            }
+            rating = computeVideoRating(ytVideo, ytChannel)
+        }
+        const statsAvailable = !!ytVideo?.available
+        const statsContext = statsAvailable
+            ? `Реальная статистика YouTube Data API (используй ТОЛЬКО её, ничего не выдумывай): просмотры=${ytVideo.views}, лайки=${ytVideo.likes ?? 'скрыты автором'}, комментарии=${ytVideo.comments ?? 'скрыты автором'}, подписчики канала=${ytChannel?.available ? ytChannel.subscribers : 'неизвестно'}, опубликовано=${ytVideo.publishedAt}, теги=${ytVideo.tags.slice(0, 15).join(', ')}`
+            : 'Статистика YouTube недоступна (нет API-ключа или ошибка API). КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать цифры просмотров/лайков/подписчиков — делай только качественный разбор (хуки/CTA/структура) без метрик.'
+
+        const prompt = `Проанализируй видео "${metadata.title || ''}" автора "${metadata.author || ''}" по ссылке ${url}. ${statsContext} Выдай: 1) Хук (первые 3 сек) 2) CTA 3) Вирусные моменты с таймкодами 4) Что улучшить. Ниша: ${niche}. На ${language === 'ru' ? 'русском' : 'английском'}.`
 
         let aiText = ''
         let provider = 'demo'
@@ -579,9 +719,22 @@ export async function analyzeVideo(req, res) {
                 demo: isDemo,
                 url,
                 niche,
-                title: metadata.title || '',
-                author: metadata.author || '',
-                thumbnail: metadata.thumbnail || '',
+                title: ytVideo?.title || metadata.title || '',
+                author: ytVideo?.channelTitle || metadata.author || '',
+                thumbnail: ytVideo?.thumbnail || metadata.thumbnail || '',
+                // [YT-DATA-REAL-STATS] только реальные цифры; stats:null = статистика недоступна
+                stats: statsAvailable ? {
+                    views: ytVideo.views,
+                    likes: ytVideo.likes,
+                    comments: ytVideo.comments,
+                    subscribers: ytChannel?.available ? ytChannel.subscribers : null,
+                } : null,
+                statsAvailable,
+                statsError: !statsAvailable && ytVideo?.error ? ytVideo.error.message : null,
+                rating,
+                durationSeconds: ytVideo?.durationSeconds ?? null,
+                publishedAt: ytVideo?.publishedAt || null,
+                videoId: ytVideo?.videoId || metadata.videoId || null,
             }
         })
     } catch (err) {

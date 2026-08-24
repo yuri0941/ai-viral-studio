@@ -220,8 +220,14 @@ async function validateApiKey(provider, key) {
         return { valid: r.status === 200, provider }
       }
       case 'youtube': {
-        const r = await axios.get(`https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true&access_token=${key}`, { timeout: 10000 })
-        return { valid: r.status === 200, provider }
+        // [YT-DATA-REAL-STATS] YouTube Data API key (AIza...) — это НЕ OAuth access token.
+        // Раньше валидация слала ключ как access_token с mine=true → Google отвечал 401
+        // и валидный ключ отклонялся. Дешёвая проверка: videos.list?part=id (1 ед. квоты).
+        const r = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+          params: { part: 'id', id: 'dQw4w9WgXcQ', maxResults: 1, key },
+          timeout: 10000,
+        })
+        return { valid: r.status === 200 && Array.isArray(r.data?.items), provider }
       }
       case 'replicate': {
         const r = await axios.get('https://api.replicate.com/v1/models', { headers: { Authorization: `Token ${key}` }, timeout: 10000 })
@@ -264,7 +270,22 @@ async function validateApiKey(provider, key) {
     }
   } catch (e) {
     const status = e.response?.status
-    const message = e.response?.data?.error?.message || e.response?.data?.message || e.message
+    let message = e.response?.data?.error?.message || e.response?.data?.message || e.message
+    // [YT-DATA-REAL-STATS] человеческие причины от Google для YouTube Data API ключа
+    if (provider === 'youtube') {
+      const reasons = (e.response?.data?.error?.errors || []).map(x => x?.reason).filter(Boolean)
+      const reason = reasons[0] || ''
+      if (reason === 'accessNotConfigured' || /has not been used|is disabled/i.test(message)) {
+        message = 'YouTube Data API v3 не включён в проекте — включите его: https://console.cloud.google.com/apis/library/youtube.googleapis.com'
+      } else if (reason === 'keyInvalid' || status === 400) {
+        message = 'Ключ недействителен — проверьте его в Google Cloud → Credentials'
+      } else if (reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
+        message = 'Дневная квота YouTube API исчерпана — сброс после 10:00 МСК'
+      } else if (reason === 'ipRefererBlocked' || reason === 'forbidden' || status === 403) {
+        message = 'Ключ заблокирован ограничениями — в Google Cloud → Credentials снимите ограничения (Application restrictions → None)'
+      }
+      return { valid: false, provider, error: message, status, reason }
+    }
     return { valid: false, provider, error: message, status }
   }
 }

@@ -10,90 +10,54 @@ import { getProviderKey, generateContent } from './aiService.js'
 import { alertOwner } from './ownerBot.js'
 import { sendClientMessage } from './omegaBot.js'
 
-const YOUTUBE_API_KEY = 'AIzaSyD1SH9WizR4zgi7JUshXfTuzHsJagmu4zU'
-const youtube = google.youtube({ version: 'v3', auth: YOUTUBE_API_KEY })
+// [YT-DATA-REAL-STATS] ключ из кабинета (ApiKey provider='youtube') + кэш квоты через youtubeDataService.
+// Хардкод-ключ убран: раньше каждый вызов шёл мимо кабинета и без кэша сжигал квоту.
+import { fetchVideoStats, fetchChannelStats, searchYoutubeVideos, fetchTrendingVideos, getYoutubeApiKey } from './youtubeDataService.js'
 
-// Поиск видео по ключевым словам
+// Поиск видео по ключевым словам (search.list = 100 ед квоты — строго с кэшем 6 ч внутри сервиса)
 export const searchVideos = async (query, maxResults = 10) => {
-    try {
-        const response = await youtube.search.list({
-            part: 'snippet',
-            q: query,
-            type: 'video',
-            order: 'viewCount', // по просмотрам
-            maxResults,
-            publishedAfter: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() // за 30 дней
-        })
-        return {
-            success: true,
-            videos: response.data.items.map(item => ({
-                id: item.id.videoId,
-                title: item.snippet.title,
-                description: item.snippet.description,
-                thumbnail: item.snippet.thumbnails.high?.url,
-                publishedAt: item.snippet.publishedAt,
-                channelTitle: item.snippet.channelTitle
-            }))
-        }
-    } catch (error) {
-        console.error('YouTube Search Error:', error.message)
-        return { success: false, error: error.message }
-    }
+    const result = await searchYoutubeVideos(query, { maxResults })
+    if (!result.available) return { success: false, error: result.error?.message || 'unavailable', code: result.error?.code }
+    return { success: true, videos: result.videos.map(v => ({
+        id: v.videoId,
+        title: v.title,
+        description: '',
+        thumbnail: v.thumbnail,
+        publishedAt: v.publishedAt,
+        channelTitle: v.channelTitle,
+    })) }
 }
 
-// Получить статистику видео
+// Получить статистику видео (кэш 1 ч)
 export const getVideoStats = async (videoId) => {
-    try {
-        const response = await youtube.videos.list({
-            part: 'statistics,snippet,contentDetails',
-            id: videoId
-        })
-        const video = response.data.items[0]
-        return {
-            success: true,
-            stats: {
-                title: video.snippet.title,
-                views: video.statistics.viewCount,
-                likes: video.statistics.likeCount,
-                comments: video.statistics.commentCount,
-                tags: video.snippet.tags || [],
-                duration: video.contentDetails.duration,
-                thumbnail: video.snippet.thumbnails.maxres?.url || video.snippet.thumbnails.high?.url
-            }
+    const result = await fetchVideoStats(videoId)
+    if (!result.available) return { success: false, error: result.error?.message || 'unavailable', code: result.error?.code }
+    return {
+        success: true,
+        stats: {
+            title: result.title,
+            views: String(result.views),
+            likes: result.likes !== null ? String(result.likes) : null,
+            comments: result.comments !== null ? String(result.comments) : null,
+            tags: result.tags,
+            duration: result.durationSeconds,
+            thumbnail: result.thumbnail,
         }
-    } catch (error) {
-        console.error('YouTube Stats Error:', error.message)
-        return { success: false, error: error.message }
     }
 }
 
-// Получить тренды по региону
+// Получить тренды по региону (кэш 6 ч)
 export const getTrending = async (regionCode = 'RU', categoryId = undefined) => {
-    try {
-        const params = {
-            part: 'snippet,statistics',
-            chart: 'mostPopular',
-            regionCode,
-            maxResults: 10
-        }
-        if (categoryId) params.videoCategoryId = categoryId
-
-        const response = await youtube.videos.list(params)
-        return {
-            success: true,
-            videos: response.data.items.map(item => ({
-                id: item.id,
-                title: item.snippet.title,
-                channel: item.snippet.channelTitle,
-                views: item.statistics.viewCount,
-                likes: item.statistics.likeCount,
-                thumbnail: item.snippet.thumbnails.high?.url
-            }))
-        }
-    } catch (error) {
-        console.error('YouTube Trends Error:', error.message)
-        return { success: false, error: error.message }
-    }
+    const result = await fetchTrendingVideos(regionCode, { categoryId })
+    if (!result.available) return { success: false, error: result.error?.message || 'unavailable', code: result.error?.code }
+    return { success: true, videos: result.videos.map(v => ({
+        id: v.videoId,
+        title: v.title,
+        channel: v.channelTitle,
+        views: String(v.views),
+        likes: String(v.likes),
+        thumbnail: v.thumbnail,
+    })) }
 }
 
 // Анализировать топовые видео по ниши и дать рекомендации
@@ -105,6 +69,9 @@ export const analyzeNiche = async (query) => {
     const statsResults = await Promise.all(statsPromises)
 
     const validStats = statsResults.filter(r => r.success).map(r => r.stats)
+    if (!validStats.length) {
+        return { success: false, error: 'Статистика видео недоступна (квота или ключ)' }
+    }
 
     // Собираем аналитику
     const analysis = {
