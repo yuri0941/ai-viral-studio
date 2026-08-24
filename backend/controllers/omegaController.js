@@ -219,6 +219,71 @@ export async function chat(req, res) {
             }
         }
 
+        // [YT-DATA-REAL-STATS] действия из чата: «сделай обложку» / «создай пост» / «когда постить»
+        // Реальные вызовы сервисов (imageGeneration / ScheduledPost / bestTimeService), невозможно → честное сообщение
+        let chatAction = null
+        {
+            const lowerMsg = message.toLowerCase()
+            const videoTopic = ytChatAnalysis?.title || ''
+            const wantsCover = /(сделай|создай|сгенерируй|придумай)\S*\s+обложк|обложку (для|к)|make.{0,15}cover|generate.{0,15}(cover|thumbnail)/i.test(message)
+            const wantsPost = /(создай|запланируй|сохрани)\S*\s+(пост|драфт|draft)|создай пост|create.{0,10}(post|draft)/i.test(message)
+            const wantsBestTime = /когда (постить|публиковать|выкладывать|лучше)|лучшее время|best time/i.test(message)
+
+            if (wantsCover) {
+                try {
+                    const topic = videoTopic || message.replace(/(сделай|создай|сгенерируй|придумай)\S*\s+обложк\S*/i, '').trim() || 'viral video'
+                    const cover = await generateCover({
+                        prompt: `YouTube thumbnail, bold text, high contrast, eye-catching: ${topic}`,
+                        style: 'realistic',
+                        size: '1920x1080',
+                    })
+                    chatAction = cover?.url
+                        ? { type: 'cover', success: true, url: cover.url, prompt: cover.prompt, provider: cover.provider, topic }
+                        : { type: 'cover', success: false, message: 'Генератор обложек не вернул картинку — попробуйте ещё раз' }
+                } catch (err) {
+                    console.warn('[omegaController:chat] cover action failed:', err.message)
+                    chatAction = { type: 'cover', success: false, message: 'Генерация обложки сейчас недоступна: ' + err.message }
+                }
+            } else if (wantsPost) {
+                if (!userId) {
+                    chatAction = { type: 'draft', success: false, message: 'Войдите в аккаунт, чтобы создать драфт поста в Планировщике' }
+                } else {
+                    try {
+                        const { ScheduledPost } = await import('../models/index.js')
+                        const draftTitle = videoTopic ? `Пост по видео: ${videoTopic}`.slice(0, 120) : message.slice(0, 120)
+                        const post = await ScheduledPost.create({
+                            userId,
+                            title: draftTitle,
+                            content: videoTopic ? `Идея из анализа видео: ${videoTopic}\n${ytChatAnalysis?.url || ''}` : message,
+                            platforms: ytChatAnalysis ? ['youtube'] : ['telegram'],
+                            types: ['post'],
+                            mediaUrl: '',
+                            scheduledAt: new Date(Date.now() + 24 * 3600 * 1000),
+                            status: 'draft',
+                        })
+                        chatAction = { type: 'draft', success: true, postId: String(post._id), title: post.title, schedulerUrl: '/scheduler' }
+                    } catch (err) {
+                        console.warn('[omegaController:chat] draft action failed:', err.message)
+                        chatAction = { type: 'draft', success: false, message: 'Не удалось создать драфт: ' + err.message }
+                    }
+                }
+            } else if (wantsBestTime) {
+                try {
+                    const bt = await analyzeBestTime({
+                        platform: ytChatAnalysis ? 'youtube' : (req.body.platform || 'youtube'),
+                        audienceTimezone: req.user?.preferences?.timezone || 'Europe/Moscow',
+                        niche: req.user?.preferences?.niche || '',
+                    })
+                    chatAction = bt?.bestTime
+                        ? { type: 'bestTime', success: true, bestTime: bt.bestTime, reason: bt.reason, alternativeTimes: bt.alternativeTimes || [], source: bt.source }
+                        : { type: 'bestTime', success: false, message: 'Сервис best time не вернул результат' }
+                } catch (err) {
+                    console.warn('[omegaController:chat] bestTime action failed:', err.message)
+                    chatAction = { type: 'bestTime', success: false, message: 'Best time сейчас недоступен: ' + err.message }
+                }
+            }
+        }
+
         let searchContextString = ''
         const searchIntent = /\b(поиск|найди|search|google|новости|тренд|reddit|twitter|новост)/i.test(message)
         if (searchIntent) {
@@ -233,7 +298,25 @@ export async function chat(req, res) {
             }
         }
 
-        const extraSystemContext = [systemContext, graphContextString, searchContextString, ytChatContext].filter(Boolean).join('\n\n')
+        // [YT-DATA-REAL-STATS] сообщаем AI реальный исход действия — он не должен имитировать успех/провал
+        let chatActionContext = ''
+        if (chatAction) {
+            if (chatAction.type === 'cover') {
+                chatActionContext = chatAction.success
+                    ? `Действие выполнено: обложка сгенерирована (url: ${chatAction.url}). Сообщи пользователю, что обложка готова и показана в чате.`
+                    : `Действие НЕ выполнено: обложка не сгенерирована (${chatAction.message}). Честно скажи об этом.`
+            } else if (chatAction.type === 'draft') {
+                chatActionContext = chatAction.success
+                    ? `Действие выполнено: драфт поста "${chatAction.title}" создан в Планировщике (id: ${chatAction.postId}). Сообщи пользователю.`
+                    : `Действие НЕ выполнено: драфт не создан (${chatAction.message}). Честно скажи об этом.`
+            } else if (chatAction.type === 'bestTime') {
+                chatActionContext = chatAction.success
+                    ? `Действие выполнено: лучшее время публикации — ${chatAction.bestTime} (${chatAction.reason}). Альтернативы: ${(chatAction.alternativeTimes || []).join(', ')}.`
+                    : `Действие НЕ выполнено: best time недоступен (${chatAction.message}). Честно скажи об этом.`
+            }
+        }
+
+        const extraSystemContext = [systemContext, graphContextString, searchContextString, ytChatContext, chatActionContext].filter(Boolean).join('\n\n')
 
         const result = userId
             ? await selectResponse({
@@ -314,6 +397,8 @@ export async function chat(req, res) {
                 reasoning,
                 // [YT-DATA-REAL-STATS] структурированные данные для люкс-карточки анализа в чате
                 videoAnalysis: ytChatAnalysis,
+                // [YT-DATA-REAL-STATS] результат действия из чата (обложка/драфт/best time)
+                action: chatAction,
             },
         })
     } catch (err) {
