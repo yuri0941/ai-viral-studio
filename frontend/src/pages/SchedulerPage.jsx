@@ -536,6 +536,17 @@ function SchedulerPage() {
                     body: JSON.stringify(backendPayload),
                 });
                 createdPost = await res.json().catch(() => null);
+                // [CLIENT-JOURNEY-QA] раньше 402 квоты глотался молча — пост не создавался без объяснений
+                if (!res.ok) {
+                    if (res.status === 402) {
+                        const reason = createdPost?.reason || t('chat.limitReached');
+                        const price = createdPost?.upsell?.price;
+                        toast.error(`${reason}${price ? ` — ${createdPost.upsell.plan?.toUpperCase()} ${price}₽/мес` : ''}`, { duration: 6000, icon: '⚡' });
+                    } else {
+                        toast.error(createdPost?.error || `Ошибка сохранения (${res.status})`);
+                    }
+                    return;
+                }
             }
             // [SOCIAL-v5.1] added: publish immediately if requested
             // [v9.9.19.15.10] no retry + disabled button to prevent duplicate wall.posts
