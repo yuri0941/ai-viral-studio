@@ -341,7 +341,7 @@ function DashboardHeader({ data }) {
                     {greeting}, {user?.name || 'Owner'}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2">
-                    <QuickAction icon={Rocket} label="Creative Hub" onClick={() => navigate('/creative-hub')} />
+                    <QuickAction icon={Rocket} label="OMEGA" onClick={() => navigate('/creative-hub')} />
                     <QuickAction icon={BarChart3} label="Analytics" onClick={() => navigate('/owner?tab=aiAnalytics')} />
                     <QuickAction icon={Settings} label="Settings" onClick={() => navigate('/settings')} />
                     <QuickAction icon={Users} label="Team" onClick={() => navigate('/owner?tab=team')} />

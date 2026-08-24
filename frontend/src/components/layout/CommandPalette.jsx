@@ -15,7 +15,7 @@ const ALL_ACTIONS = [
     { id: 'owner', label: 'Owner Dashboard', icon: Crown, route: '/owner?tab=overview', section: 'pages' },
     { id: 'admin', label: 'Admin Panel', icon: Shield, route: '/admin', section: 'pages' },
     { id: 'analytics', label: 'Аналитика', icon: BarChart, route: '/analytics', section: 'pages' },
-    { id: 'creative-hub', label: 'Creative Hub', icon: Rocket, route: '/creative-hub', section: 'pages' },
+    { id: 'creative-hub', label: 'OMEGA', icon: Rocket, route: '/creative-hub', section: 'pages' },
     { id: 'ai-chat', label: 'AI Chat', icon: Bot, route: '/creative-hub/chat', section: 'pages' },
     { id: 'analyzer', label: 'Анализ контента', icon: Search, route: '/creative-hub/analyzer', section: 'pages' },
     { id: 'viral-chat', label: 'Viral Chat', icon: MessageSquare, route: '/creative-hub/viral', section: 'pages' },

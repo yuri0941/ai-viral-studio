@@ -341,7 +341,7 @@ export default function CreativeHub() {
                         <Sparkles size={18} className="text-white" />
                     </div>
                     <div>
-                        <h1 className="text-lg font-bold text-gray-100">Creative Hub</h1>
+                        <h1 className="text-lg font-bold text-gray-100">{t('hub.title')}</h1>
                         <p className="text-[10px] text-gray-400 hidden sm:block">{t('hub.version')}</p>
                     </div>
                 </div>
@@ -372,7 +372,7 @@ export default function CreativeHub() {
                 {/* [v6.0] added: left column — desktop/tablet only */}
                 <aside className="hidden sm:flex flex-col gap-4 h-full overflow-hidden">
                     <SessionsCard />
-                    <div className="glass-card p-4 flex-1 overflow-hidden flex flex-col">
+                    <div className="glass-card p-4 flex-1 overflow-hidden flex flex-col" data-tour="hub-modes">
                         <h3 className="text-sm font-semibold text-gray-100 mb-3">{t('hub.modes')}</h3>
                         <ModeTabs />
                     </div>
@@ -533,11 +533,11 @@ export default function CreativeHub() {
                 <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setMobilePanel(null)}>
                     <div className="absolute inset-y-0 left-0 w-[280px] bg-[var(--bg-secondary)]/95 backdrop-blur-xl border-r border-white/10 p-4 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-100">Creative Hub</h2>
+                            <h2 className="text-lg font-bold text-gray-100">{t('hub.title')}</h2>
                             <button onClick={() => setMobilePanel(null)} className="p-2 rounded-lg bg-white/5 text-gray-300"><X size={18} /></button>
                         </div>
                         <SessionsCard />
-                        <div className="glass-card p-4 flex-1 overflow-hidden flex flex-col">
+                        <div className="glass-card p-4 flex-1 overflow-hidden flex flex-col" data-tour="hub-modes">
                             <h3 className="text-sm font-semibold text-gray-100 mb-3">{t('hub.modes')}</h3>
                             <ModeTabs />
                         </div>

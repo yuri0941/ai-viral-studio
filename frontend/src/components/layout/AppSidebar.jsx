@@ -18,7 +18,7 @@ import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
 const ROLE_MENU = {
     owner: [
         { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/creative-hub', id: 'creativeHub', label: 'Ω OMEGA', icon: Rocket, badge: 'AI' },
         { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
         { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
         { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
@@ -26,7 +26,7 @@ const ROLE_MENU = {
     ],
     admin: [
         { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/creative-hub', id: 'creativeHub', label: 'Ω OMEGA', icon: Rocket, badge: 'AI' },
         { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
         { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
         { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
@@ -35,7 +35,7 @@ const ROLE_MENU = {
     ],
     staff: [
         { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/creative-hub', id: 'creativeHub', label: 'Ω OMEGA', icon: Rocket, badge: 'AI' },
         { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
         { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
         { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
@@ -43,7 +43,7 @@ const ROLE_MENU = {
     ],
     advertiser: [
         { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/creative-hub', id: 'creativeHub', label: 'Ω OMEGA', icon: Rocket, badge: 'AI' },
         { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
         { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
         { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
@@ -51,7 +51,7 @@ const ROLE_MENU = {
     ],
     creator: [
         { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/creative-hub', id: 'creativeHub', label: 'Ω OMEGA', icon: Rocket, badge: 'AI' },
         { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
         { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
         { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
@@ -59,7 +59,7 @@ const ROLE_MENU = {
     ],
     business: [
         { path: '/dashboard', id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/creative-hub', id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI' },
+        { path: '/creative-hub', id: 'creativeHub', label: 'Ω OMEGA', icon: Rocket, badge: 'AI' },
         { path: '/analytics', id: 'analytics', label: 'Analytics', icon: BarChart },
         { path: '/ai-vs-human', id: 'aiVsHuman', label: 'AI vs Human', icon: Swords },
         { path: '/scheduler', id: 'scheduler', label: 'Планировщик', icon: Calendar },
@@ -73,7 +73,7 @@ const OWNER_GROUPS = [
         title: 'ОБЗОР',
         items: [
             { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'creativeHub', label: '🚀 Creative Hub', icon: Rocket, badge: 'AI', path: '/creative-hub' },
+            { id: 'creativeHub', label: 'Ω OMEGA', icon: Rocket, badge: 'AI', path: '/creative-hub' },
             { id: 'analytics', label: '📊 Аналитика', icon: BarChart },
             { path: '/project-factory', label: '🏭 Project Factory', icon: Factory },
         ],
