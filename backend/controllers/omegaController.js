@@ -22,6 +22,7 @@ import User from '../models/User.js'
 import axios from 'axios'
 import { checkQuota, consumeGeneration } from '../services/usageQuotaService.js'
 import { scrapeVideo } from '../services/youtubeScraper.js'
+import { fetchVideoStats, fetchChannelStats, computeVideoRating } from '../services/youtubeDataService.js'
 import dialogueEvolution from '../ai/omega/dialogueEvolution.js'
 import { findNiche, NICHE_REGISTRY } from '../data/niches.js'
 
@@ -183,6 +184,41 @@ export async function chat(req, res) {
             console.warn('[omegaController:chat] neuralGraph failed:', err.message)
         }
 
+        // [YT-DATA-REAL-STATS] ссылка на YouTube в чате → реальный fetch статистики (кэш 1 ч/6 ч)
+        const ytUrlMatch = message.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?[^\s]*v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+        let ytChatAnalysis = null
+        let ytChatContext = ''
+        if (ytUrlMatch) {
+            try {
+                const ytV = await fetchVideoStats(ytUrlMatch[1], { ownerId: userId })
+                let ytC = null
+                if (ytV?.available && ytV.channelId) ytC = await fetchChannelStats(ytV.channelId, { ownerId: userId })
+                const rt = computeVideoRating(ytV, ytC)
+                ytChatAnalysis = {
+                    videoId: ytUrlMatch[1],
+                    url: ytUrlMatch[0].startsWith('http') ? ytUrlMatch[0] : `https://youtu.be/${ytUrlMatch[1]}`,
+                    title: ytV?.title || '',
+                    channelTitle: ytV?.channelTitle || '',
+                    thumbnail: ytV?.thumbnail || `https://img.youtube.com/vi/${ytUrlMatch[1]}/hqdefault.jpg`,
+                    publishedAt: ytV?.publishedAt || null,
+                    stats: ytV?.available ? {
+                        views: ytV.views,
+                        likes: ytV.likes,
+                        comments: ytV.comments,
+                        subscribers: ytC?.available ? ytC.subscribers : null,
+                    } : null,
+                    statsAvailable: !!ytV?.available,
+                    statsError: !ytV?.available && ytV?.error ? ytV.error.message : null,
+                    rating: rt,
+                }
+                ytChatContext = ytV?.available
+                    ? `Реальная статистика видео из YouTube Data API (используй ТОЛЬКО эти цифры, ничего не выдумывай): "${ytV.title}" канала "${ytV.channelTitle}". Просмотры=${ytV.views}, лайки=${ytV.likes ?? 'скрыты автором'}, комментарии=${ytV.comments ?? 'скрыты автором'}, подписчики=${ytC?.available ? ytC.subscribers : 'неизвестно'}, опубликовано=${ytV.publishedAt}.${rt ? ` AI-рейтинг=${rt.score}/100 (виральность=${rt.bars.virality}, вовлечённость=${rt.bars.engagement}, удержание=${rt.bars.retention}, seo=${rt.bars.seo}, рост=${rt.bars.growth}).` : ''}`
+                    : `Пользователь прислал ссылку на YouTube-видео, но статистика недоступна (${ytV?.error?.message || 'нет API-ключа'}). Скажи честно, что статистика недоступна, и НЕ выдумывай цифры. Качественный разбор (хуки/CTA/структура) — можно, без метрик.`
+            } catch (err) {
+                console.warn('[omegaController:chat] youtube fetch failed:', err.message)
+            }
+        }
+
         let searchContextString = ''
         const searchIntent = /\b(поиск|найди|search|google|новости|тренд|reddit|twitter|новост)/i.test(message)
         if (searchIntent) {
@@ -197,7 +233,7 @@ export async function chat(req, res) {
             }
         }
 
-        const extraSystemContext = [systemContext, graphContextString, searchContextString].filter(Boolean).join('\n\n')
+        const extraSystemContext = [systemContext, graphContextString, searchContextString, ytChatContext].filter(Boolean).join('\n\n')
 
         const result = userId
             ? await selectResponse({
@@ -276,6 +312,8 @@ export async function chat(req, res) {
                 usage: result.usage || null,
                 cached: result.cached || false,
                 reasoning,
+                // [YT-DATA-REAL-STATS] структурированные данные для люкс-карточки анализа в чате
+                videoAnalysis: ytChatAnalysis,
             },
         })
     } catch (err) {
@@ -519,7 +557,24 @@ export async function analyzeVideo(req, res) {
             return res.status(400).json({ status: 'error', message: metadata.error || 'Проверьте ссылку или попробуйте позже' })
         }
 
-        const prompt = `Проанализируй видео "${metadata.title || ''}" автора "${metadata.author || ''}" по ссылке ${url}. Выдай: 1) Хук (первые 3 сек) 2) CTA 3) Вирусные моменты с таймкодами 4) Что улучшить. Ниша: ${niche}. На ${language === 'ru' ? 'русском' : 'английском'}.`
+        // [YT-DATA-REAL-STATS] реальная статистика YouTube Data API (кэш: видео 1 ч, канал 6 ч)
+        let ytVideo = null
+        let ytChannel = null
+        let rating = null
+        if ((platform === 'youtube' || platform === 'youtube-shorts') && metadata.videoId) {
+            const ownerId = req.user?._id || req.user?.id
+            ytVideo = await fetchVideoStats(metadata.videoId, { ownerId })
+            if (ytVideo?.available && ytVideo.channelId) {
+                ytChannel = await fetchChannelStats(ytVideo.channelId, { ownerId })
+            }
+            rating = computeVideoRating(ytVideo, ytChannel)
+        }
+        const statsAvailable = !!ytVideo?.available
+        const statsContext = statsAvailable
+            ? `Реальная статистика YouTube Data API (используй ТОЛЬКО её, ничего не выдумывай): просмотры=${ytVideo.views}, лайки=${ytVideo.likes ?? 'скрыты автором'}, комментарии=${ytVideo.comments ?? 'скрыты автором'}, подписчики канала=${ytChannel?.available ? ytChannel.subscribers : 'неизвестно'}, опубликовано=${ytVideo.publishedAt}, теги=${ytVideo.tags.slice(0, 15).join(', ')}`
+            : 'Статистика YouTube недоступна (нет API-ключа или ошибка API). КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать цифры просмотров/лайков/подписчиков — делай только качественный разбор (хуки/CTA/структура) без метрик.'
+
+        const prompt = `Проанализируй видео "${metadata.title || ''}" автора "${metadata.author || ''}" по ссылке ${url}. ${statsContext} Выдай: 1) Хук (первые 3 сек) 2) CTA 3) Вирусные моменты с таймкодами 4) Что улучшить. Ниша: ${niche}. На ${language === 'ru' ? 'русском' : 'английском'}.`
 
         let aiText = ''
         let provider = 'demo'
@@ -579,9 +634,22 @@ export async function analyzeVideo(req, res) {
                 demo: isDemo,
                 url,
                 niche,
-                title: metadata.title || '',
-                author: metadata.author || '',
-                thumbnail: metadata.thumbnail || '',
+                title: ytVideo?.title || metadata.title || '',
+                author: ytVideo?.channelTitle || metadata.author || '',
+                thumbnail: ytVideo?.thumbnail || metadata.thumbnail || '',
+                // [YT-DATA-REAL-STATS] только реальные цифры; stats:null = статистика недоступна
+                stats: statsAvailable ? {
+                    views: ytVideo.views,
+                    likes: ytVideo.likes,
+                    comments: ytVideo.comments,
+                    subscribers: ytChannel?.available ? ytChannel.subscribers : null,
+                } : null,
+                statsAvailable,
+                statsError: !statsAvailable && ytVideo?.error ? ytVideo.error.message : null,
+                rating,
+                durationSeconds: ytVideo?.durationSeconds ?? null,
+                publishedAt: ytVideo?.publishedAt || null,
+                videoId: ytVideo?.videoId || metadata.videoId || null,
             }
         })
     } catch (err) {
