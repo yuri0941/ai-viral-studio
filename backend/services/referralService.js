@@ -56,7 +56,7 @@ export async function getReferralData(userId) {
             name: r.userId?.name || '—',
             email: r.userId?.email || '—',
             date: r.createdAt,
-            status: r.paidReferralCount > 0 ? 'оплатил' : 'зарегистрировался',
+            status: r.paidMarked ? 'оплатил' : 'зарегистрировался',
         })),
     }
 }

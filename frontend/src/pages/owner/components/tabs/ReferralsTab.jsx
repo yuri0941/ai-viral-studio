@@ -63,7 +63,7 @@ export function ReferralsTab() {
                 headers: { Authorization: `Bearer ${token}` },
             })
             const json = await res.json()
-            if (json.status === 'success') {
+            if (json.status === 'success' || json.success) {
                 const d = json.data
                 // normalize fields
                 setData({
