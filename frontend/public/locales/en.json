@@ -744,7 +744,8 @@
     "recommended": "Recommended",
     "schedulerAutoCleanTitle": "File auto-cleanup",
     "schedulerTab": "Scheduler",
-    "myAddons": "My add-ons"
+    "myAddons": "My add-ons",
+    "refundPolicy": "Refunds within 14 days of payment if the service was not used. Details: /terms (sec. 7)."
   },
   "subscriptions": {
     "title": "Subscriptions",
