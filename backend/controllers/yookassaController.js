@@ -38,7 +38,7 @@ async function recordPaymentAndReceipt({ paymentId, metadata, result }) {
   const invoice = metadata?.invoiceId
     ? await Invoice.findById(metadata.invoiceId).lean()
     : null;
-  const amount = subscription?.price ?? invoice?.amount ?? 0;
+  const amount = subscription?.price ?? invoice?.amount ?? Number(metadata?.addonPrice) ?? 0;
 
   const paymentDoc = await Payment.findOneAndUpdate(
     { yookassaPaymentId: paymentId },
@@ -389,10 +389,29 @@ export const yookassaWebhook = async (req, res) => {
         }
       }
 
+      // [CLIENT-JOURNEY-QA] оплата аддона: активация pending-записи (идемпотентно по paymentId)
+      if (metadata?.addonId) {
+        try {
+          const { default: UserAddon } = await import('../models/UserAddon.js');
+          const ua = await UserAddon.findOne({ userId: metadata.userId, addonId: metadata.addonId }).lean();
+          if (ua?.status === 'active' && ua?.paymentId === paymentId) {
+            return res.status(200).json({ success: true, idempotent: true });
+          }
+          const now = new Date();
+          await UserAddon.findOneAndUpdate(
+            { userId: metadata.userId, addonId: metadata.addonId },
+            { $set: { status: 'active', paymentId, paymentProvider: 'yookassa', purchasedAt: now, expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) } },
+            { upsert: true }
+          );
+        } catch (aErr) {
+          console.error('[yookassaController:webhook] addon activation failed:', aErr.message);
+        }
+      }
+
       // [P1.6-PREP] founding-слот занимается первой успешной оплатой (идемпотентно, unique userId);
-      // метрика слотов НЕ валит webhook
+      // метрика слотов НЕ валит webhook. [CLIENT-JOURNEY-QA] только подписки, не аддоны.
       let foundingResult = { counted: false };
-      try {
+      if (!metadata?.addonId) try {
         const { markFoundingSlotPaid } = await import('../services/foundingService.js');
         foundingResult = await markFoundingSlotPaid(metadata?.userId, paymentId);
       } catch (fErr) {
@@ -402,7 +421,7 @@ export const yookassaWebhook = async (req, res) => {
       // [P1.5-METRICS] paid: идемпотентно по paymentId (guard в metricsService); метрика НЕ валит webhook
       try {
         const { trackPaid } = await import('../services/metricsService.js');
-        await trackPaid({ paymentId, amountRub: paidSub?.price ?? paidSub?.amount ?? paidInvoice?.amount ?? 0 });
+        await trackPaid({ paymentId, amountRub: paidSub?.price ?? paidSub?.amount ?? paidInvoice?.amount ?? Number(metadata?.addonPrice) ?? 0 });
       } catch (mErr) {
         console.warn('[metrics] paid track failed:', mErr.message);
       }
