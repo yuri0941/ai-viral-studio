@@ -57,6 +57,13 @@ async function recordPaymentAndReceipt({ paymentId, metadata, result }) {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
+  // [CLIENT-JOURNEY-QA] реферальное начисление за первую оплату ($4 рефереру).
+  // markReferralPaid был написан, но нигде не вызывался. Best-effort: на платёж не влияет.
+  try {
+    const { markReferralPaid } = await import('../services/referralService.js')
+    await markReferralPaid(userId)
+  } catch { /* рефералка не должна валить платёж */ }
+
   if (String(process.env.YOOKASSA_RECEIPTS || '').toLowerCase() !== 'true') return;
 
   try {

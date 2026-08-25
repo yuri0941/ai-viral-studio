@@ -112,6 +112,11 @@ export default function LandingPage({ authMode = null }) {
   // не чаще 1 раза/сутки с браузера, без персональных данных
   useEffect(() => {
     try {
+      // [CLIENT-JOURNEY-QA] реферальный параметр ?ref=CODE → localStorage (учитывается при регистрации)
+      const refCode = new URLSearchParams(window.location.search).get('ref')
+      if (refCode) localStorage.setItem('referral_code', refCode.trim().toUpperCase())
+    } catch { /* ref не критичен */ }
+    try {
       const KEY = 'avs_visit_ts'
       const last = Number(localStorage.getItem(KEY) || 0)
       if (Date.now() - last < 24 * 60 * 60 * 1000) return

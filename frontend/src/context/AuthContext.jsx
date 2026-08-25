@@ -91,6 +91,8 @@ export const AuthProvider = ({ children }) => {
     const register = async (name, email, password, consent = {}, turnstileToken = '') => {
         try {
             const timezone = detectTimezone()
+            // [CLIENT-JOURNEY-QA] реферальный код из ?ref= (сохраняется лендингом в localStorage)
+            const referralCode = localStorage.getItem('referral_code') || ''
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -102,6 +104,7 @@ export const AuthProvider = ({ children }) => {
                     acceptedConsent: !!consent.acceptedConsent,
                     isAdult: !!consent.isAdult,
                     turnstileToken,
+                    ...(referralCode ? { referralCode } : {}),
                 })
             })
             const data = await response.json()
