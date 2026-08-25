@@ -165,13 +165,30 @@ export function ReferralsTab() {
         setTimeout(() => setCopiedPost(false), 2000)
     }
 
-    const withdraw = () => {
-        if ((data?.available || 0) < 50) return
+    // [CLIENT-JOURNEY-QA] честная заявка на вывод: создаёт реальный тикет в поддержку
+    // (владелец видит в SupportTab и выплачивает вручную через ЮKassa).
+    // Раньше был setTimeout-фейк без API. Порог $5 ≈ 500₽ — из MASTER_PLAN («вывод на ЮKassa, мин. 500₽»).
+    const MIN_PAYOUT_USD = 5
+    const withdraw = async () => {
+        if ((data?.available || 0) < MIN_PAYOUT_USD) return
         setWithdrawing(true)
-        setTimeout(() => {
+        try {
+            const token = localStorage.getItem('token')
+            const res = await fetch(`${API_BASE_URL}/support`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    subject: 'Заявка на вывод реферальных средств',
+                    description: `Доступно к выводу: $${data.available}. Прошу вывести на ЮKassa. Реквизиты уточню в переписке.`,
+                }),
+            })
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            toast.success('Заявка на вывод отправлена в поддержку')
+        } catch {
+            toast.error('Не удалось отправить заявку. Попробуйте позже.')
+        } finally {
             setWithdrawing(false)
-            toast.success('Заявка на вывод создана')
-        }, 1000)
+        }
     }
 
     if (loading) return <div className="text-center py-12 text-[var(--text-muted)]">Загрузка…</div>
@@ -323,7 +340,8 @@ export function ReferralsTab() {
                     <button
                         type="button"
                         onClick={withdraw}
-                        disabled={withdrawing || (data.available || 0) < 50}
+                        disabled={withdrawing || (data.available || 0) < MIN_PAYOUT_USD}
+                        title="Минимальная сумма вывода — 500₽ (выплата через ЮKassa после заявки в поддержку)"
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
                     >
                         {withdrawing ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />} Вывести
