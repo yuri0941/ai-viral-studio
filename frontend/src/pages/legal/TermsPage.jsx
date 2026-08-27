@@ -55,7 +55,7 @@ export default function TermsPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 mb-4 shadow-lg shadow-purple-500/20">
             <Scale size={32} className="text-white" />
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2 break-words">
             {t('legal.terms.title')}
           </h1>
           <p className="text-slate-500">{t('legal.terms.subtitle')}</p>
