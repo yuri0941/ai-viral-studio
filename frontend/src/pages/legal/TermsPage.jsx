@@ -25,6 +25,8 @@ export default function TermsPage() {
     ? t('legal.operatorLine', { operator: legalInfo.operatorName, inn: legalInfo.inn || '—' })
     : t('legal.operatorPending');
 
+  const contactEmail = legalInfo?.contactEmail || 'tihonovu560@gmail.com';
+
   const linkify = (text) => {
     const m = String(text).match(/(https?:\/\/[^\s)]+|[\w.+-]+@[\w-]+\.[\w.]+)/);
     if (!m) return text;
@@ -117,7 +119,7 @@ export default function TermsPage() {
 
           <Section icon={<CheckCircle size={18} />} title={t('legal.terms.s7t')}>
             <p>{t('legal.terms.s7p1')}</p>
-            <p>{linkify(t('legal.terms.s7p2'))}</p>
+            <p>{linkify(t('legal.terms.s7p2', { email: contactEmail }))}</p>
             <p>{t('legal.terms.s7p3')}</p>
           </Section>
 
@@ -128,7 +130,7 @@ export default function TermsPage() {
 
           <Section icon={<MessageCircle size={18} />} title={t('legal.terms.s9t')}>
             <p>{t('legal.terms.s9p1')}</p>
-            <p>{linkify(t('legal.terms.s9p2'))}</p>
+            <p>{linkify(t('legal.terms.s9p2', { email: contactEmail }))}</p>
           </Section>
 
           <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">

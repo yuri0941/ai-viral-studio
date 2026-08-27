@@ -2996,15 +2996,15 @@
       "s8t": "8. Your rights",
       "s8i1": "Access: request a copy of your data.",
       "s8i2": "Rectification: edit data in your dashboard.",
-      "s8i3": "Erasure: delete your account — email tihonovu560@gmail.com.",
-      "s8i4": "Withdraw consent: email tihonovu560@gmail.com. Data is deleted within 30 days; access to the Service ends.",
+      "s8i3": "Erasure: delete your account — email {{email}}.",
+      "s8i4": "Withdraw consent: email {{email}}. Data is deleted within 30 days; access to the Service ends.",
       "s9t": "9. Cookies",
       "s9p": "Only technical cookies (JWT session, language and theme settings). No advertising or third-party analytics cookies.",
       "s10t": "10. Security",
       "s10p": "Passwords are hashed, connections use HTTPS, social tokens are stored encrypted. Data access is restricted.",
       "s11t": "11. Changes",
       "s11p1": "We will update the date on this page and notify you in the Service.",
-      "s11p2": "Questions: tihonovu560@gmail.com"
+      "s11p2": "Questions: {{email}}"
     },
     "terms": {
       "title": "Terms of Service",
@@ -3035,14 +3035,14 @@
       "s6p4": "6.4. In case of non-payment, paid features are suspended until payment; your account and data are preserved.",
       "s7t": "7. Refunds",
       "s7p1": "7.1. Refunds are possible within 14 days of payment if paid features were not substantially used (generations, publishing); each case is reviewed individually, with priority given to the client in case of good-faith use.",
-      "s7p2": "7.2. To request a refund, email tihonovu560@gmail.com or contact support in the Service — include your account email and payment date.",
+      "s7p2": "7.2. To request a refund, email {{email}} or contact support in the Service — include your account email and payment date.",
       "s7p3": "7.3. Refunds are issued to the original payment method within 10 business days.",
       "s8t": "8. Limitation of liability",
       "s8p1": "8.1. The Service is provided \"as is\". We are not liable for actions of platforms (YouTube, Telegram, etc.), including bans and rule changes.",
       "s8p2": "8.2. Aggregate liability is limited to the amount you paid for the last billing period.",
       "s9t": "9. Changes to the terms",
       "s9p1": "The Operator may update these Terms; the current version is on this page. Continued use of the Service constitutes acceptance.",
-      "s9p2": "Questions: tihonovu560@gmail.com"
+      "s9p2": "Questions: {{email}}"
     }
   }
 }
