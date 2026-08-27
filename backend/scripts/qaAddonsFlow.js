@@ -20,7 +20,11 @@ const step = (n, ok, d = '') => console.log(`${ok ? '✅' : '❌'} ${n}${d ? ' �
 const client = await User.findOne({ email: 'qa.referrer@test.dev' })
 const owner = await User.findOne({ email: 'qa.owner@test.dev' })
 const ct = client.generateToken(), ot = owner.generateToken()
-await UserAddon.deleteMany({ userId: { $in: [client._id, owner._id] }, addonId: 'ai-designer' })
+// чистим записи qa-пользователей + «сироты» (userId null/отсутствует — мусор от бага с req.user._id)
+await UserAddon.deleteMany({
+  $or: [{ userId: { $in: [client._id, owner._id] } }, { userId: null }, { userId: { $exists: false } }],
+  addonId: { $in: ['ai-designer', 'ai-video'] },
+})
 
 // 1. Клиент: manual (бесплатная активация) → 403
 const r1 = await fetch(`${API}/api/subscriptions/addons/ai-designer/purchase`, { method: 'POST', headers: H(ct), body: JSON.stringify({ provider: 'manual' }) })
@@ -54,5 +58,21 @@ if (r2.status === 400) {
 // 5. Owner: manual активация работает (демо/тест)
 const r5 = await fetch(`${API}/api/subscriptions/addons/ai-designer/purchase`, { method: 'POST', headers: H(ot), body: JSON.stringify({ provider: 'manual' }) })
 step('owner: manual активация разрешена', r5.status === 200, String(r5.status))
+
+// 6. Webhook-активация (работает и без ключей ЮKassa — handleWebhook локальный парсер)
+const payId = 'qa-addon-pay-' + Date.now()
+await UserAddon.findOneAndUpdate(
+  { userId: client._id, addonId: 'ai-video' },
+  { $set: { price: 990, currency: 'RUB', paymentProvider: 'yookassa', paymentId: payId, status: 'pending' } },
+  { upsert: true, new: true }
+)
+const hookBody = JSON.stringify({ event: 'payment.succeeded', object: { id: payId, status: 'succeeded', paid: true, description: 'Аддон AI Видео — AI Viral Studio', metadata: { userId: String(client._id), addonId: 'ai-video', addonPrice: 990 } } })
+const r6 = await fetch(`${API}/api/yookassa/webhook`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: hookBody })
+const uaPaid = await UserAddon.findOne({ userId: client._id, addonId: 'ai-video' }).lean()
+step('webhook payment.succeeded → аддон active', r6.status === 200 && uaPaid?.status === 'active', uaPaid?.status)
+step('срок действия ~30 дней', !!uaPaid && Math.abs(new Date(uaPaid.expiresAt) - Date.now() - 30 * 864e5) < 60e3)
+const r7 = await fetch(`${API}/api/yookassa/webhook`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: hookBody })
+const j7 = await r7.json().catch(() => ({}))
+step('повторный webhook → idempotent', r7.status === 200 && j7.idempotent === true)
 
 await mongoose.disconnect()

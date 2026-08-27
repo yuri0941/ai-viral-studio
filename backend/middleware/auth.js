@@ -54,8 +54,12 @@ export const protect = async (req, res, next) => {
             }
 
             // Add user to request
+            // [CLIENT-JOURNEY-QA] _id обязателен: без него запросы вида
+            // { userId: req.user._id } превращались в { userId: undefined }
+            // и матчили ЧУЖИЕ записи (баг: чужой активный аддон блокировал покупку).
             req.user = {
                 id: user._id,
+                _id: user._id,
                 email: user.email,
                 role: user.role,
                 subscription: user.subscription,
