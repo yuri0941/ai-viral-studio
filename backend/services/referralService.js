@@ -96,7 +96,7 @@ export async function registerReferral(newUserId, referralCode) {
     return referrer
 }
 
-export async function markReferralPaid(userId) {
+export async function markReferralPaid(userId, amount) {
     const ref = await Referral.findOne({ userId })
     if (!ref || !ref.referredBy) return null
 
@@ -106,7 +106,13 @@ export async function markReferralPaid(userId) {
     if (!ref.paidMarked) {
         ref.paidMarked = true
         referrer.paidReferralCount += 1
-        referrer.referralEarnings += 4
+        // [REF-12PCT] 12% от суммы платежа (было фикс $4 — решение владельца 27.08)
+        if (Number.isFinite(amount) && amount > 0) {
+            referrer.referralEarnings += Math.round(amount * 0.12)
+        } else {
+            // сумма не передана — не молча: лог + не начисляем
+            console.warn(`[referralService] markReferralPaid: amount missing/invalid for userId=${userId} (amount=${amount}) — начисление пропущено`)
+        }
         referrer.tier = calculateTier(referrer.referralCount)
         await ref.save()
         await referrer.save()

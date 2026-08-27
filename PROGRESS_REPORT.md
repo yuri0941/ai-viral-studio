@@ -4750,3 +4750,12 @@
 - [TEST] npm run build ✅ (0 ошибок); i18n-parity OK (diff пустой) ✅; mojibake чист ✅; BOM нет (6 файлов проверены) ✅; прямые заходы /privacy, /terms, /privacy-policy, /terms-of-service → 200 (SPA _redirects `/* /index.html 200` на месте) ✅; ui-audit 2 страницы × 5 ширин (360/428/768/1280/1920) × RU/EN = 20 снимков, 0 проблем (0 h-scroll, 0 сырых ключей, 0 console errors, 0 редиректов) ✅; скрины: reports/legal-pages/ (не коммитятся). Оператор на скринах — реальные данные из прод-API (Тихонов Ю.С., ИНН 344212910482).
 - [GIT] 7 файлов, +643/−186 (210407fc..HEAD). Compare: https://github.com/yuri0941/ai-viral-studio/compare/210407fc...fix/legal-pages
 - [NOTE] Ручная проверка владельцем после деплоя: 1) https://aiviral-studio.ru/privacy и /terms открываются напрямую (200) и по ссылкам из футера лендинга; 2) переключатель EN/RU в шапке страниц меняет язык; 3) в таблице провайдеров нет GitHub Models/HuggingFace; 4) дата — 27 августа 2026 г.; 5) /consent ссылается на /privacy и /terms.
+
+## 2026-08-27 — REF-12PCT — честная реферальная комиссия 12% от платежа (ветка fix/ref-12pct)
+- [ПРОБЛЕМА] Подпись тира partner обещала «12% комиссии», но markReferralPaid начислял фикс +$4: на founding-оплате Pro 693₽ это ~50%, а не 12% — обещание и механика рассинхронизированы. Решение владельца: платить реальные 12% от суммы платежа.
+- [ШАГ 0] Убит зависший preview-сервер :4173 (PID 28964) и ещё 3 осиротевших vite preview (2936, 2492, 33100); порт свободен, чужие процессы не тронуты.
+- [FIX] `backend/services/referralService.js` markReferralPaid(userId, amount): `referralEarnings += Math.round(amount * 0.12)` (было фикс $4). Сумма не передана/невалидна → console.warn + без начисления (факт оплаты фиксируется). Идемпотентность (paidMarked) сохранена. Комментарий [REF-12PCT] с датой решения.
+- [FIX] `backend/controllers/yookassaController.js`: передаёт amount из recordPaymentAndReceipt (subscription.price ?? invoice.amount ?? addonPrice) в markReferralPaid.
+- [НЕ ТРОНУТО] +10 кредитов за регистрацию, генерации обеим сторонам, порог вывода $5, вебхуки, PlanConfig, платёжная логика.
+- [TEST] `qaReferralFlow` 15/15 ✅: 693₽→+83 (12%), 3493₽→+419 (12%), итого 502 за двоих; дубль webhook — без повторного начисления; no-amount — лог, без начисления, paidCount+1; self-guard и кабинет — ок. node --check по всем затронутым файлам ✅.
+- [GIT] 2 коммита (fix + test), compare: https://github.com/yuri0941/ai-viral-studio/compare/53636123...fix/ref-12pct
