@@ -25,6 +25,8 @@ export default function PrivacyPage() {
     ? t('legal.operatorLine', { operator: legalInfo.operatorName, inn: legalInfo.inn || '—' })
     : t('legal.operatorPending');
 
+  const contactEmail = legalInfo?.contactEmail || 'tihonovu560@gmail.com';
+
   const linkify = (text) => {
     const m = String(text).match(/(https?:\/\/[^\s)]+|[\w.+-]+@[\w-]+\.[\w.]+)/);
     if (!m) return text;
@@ -141,7 +143,7 @@ export default function PrivacyPage() {
 
           <Section icon={<Trash2 size={18} />} title={t('legal.privacy.s8t')}>
             <ul className="list-disc pl-5 space-y-1">
-              {[1, 2, 3, 4].map(n => <li key={n}>{linkify(t(`legal.privacy.s8i${n}`))}</li>)}
+              {[1, 2, 3, 4].map(n => <li key={n}>{linkify(t(`legal.privacy.s8i${n}`, { email: contactEmail }))}</li>)}
             </ul>
           </Section>
 
@@ -155,7 +157,7 @@ export default function PrivacyPage() {
 
           <Section icon={<MessageCircle size={18} />} title={t('legal.privacy.s11t')}>
             <p>{t('legal.privacy.s11p1')}</p>
-            <p>{linkify(t('legal.privacy.s11p2'))}</p>
+            <p>{linkify(t('legal.privacy.s11p2', { email: contactEmail }))}</p>
           </Section>
 
           <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
