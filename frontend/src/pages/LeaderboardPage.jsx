@@ -97,7 +97,7 @@ export default function LeaderboardPage() {
             })
             const data = await res.json()
             if (data.status === 'success') {
-                setLeaderboard(data.data || [])
+                setLeaderboard(Array.isArray(data.data) ? data.data : [])
             }
         } catch (err) {
             console.warn('[Leaderboard] load failed:', err.message)

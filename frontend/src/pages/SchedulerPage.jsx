@@ -858,19 +858,20 @@ function SchedulerPage() {
         }
     }, []);
 
-    useEffect(() => {
-        loadYtVideos();
-    }, [loadYtVideos]);
-
-    // [19.17.9-DIRECT-UPLOAD] load playlists + feature flags once (silent fail — optional fields)
+    // [CLIENT-JOURNEY-QA] списки видео/плейлистов — только при подключённом канале,
+    // иначе каждый визит на /scheduler давал честные, но шумные 400 youtube_not_connected.
     useEffect(() => {
         youtubeApi.status()
-            .then(s => setYtPublicEnabled(!!s?.publicEnabled))
+            .then(s => {
+                setYtPublicEnabled(!!s?.publicEnabled);
+                if (!s?.connected) { setYtVideos([]); setYtPlaylists([]); return; }
+                loadYtVideos();
+                youtubeApi.playlists()
+                    .then(r => setYtPlaylists(Array.isArray(r?.playlists) ? r.playlists : []))
+                    .catch(() => setYtPlaylists([]));
+            })
             .catch(() => {});
-        youtubeApi.playlists()
-            .then(r => setYtPlaylists(Array.isArray(r?.playlists) ? r.playlists : []))
-            .catch(() => setYtPlaylists([]));
-    }, []);
+    }, [loadYtVideos]);
 
     // [19.17.9-DIRECT-UPLOAD] stop polling / abort upload when leaving the page
     useEffect(() => () => {
