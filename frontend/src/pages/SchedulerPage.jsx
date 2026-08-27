@@ -536,6 +536,17 @@ function SchedulerPage() {
                     body: JSON.stringify(backendPayload),
                 });
                 createdPost = await res.json().catch(() => null);
+                // [CLIENT-JOURNEY-QA] раньше 402 квоты глотался молча — пост не создавался без объяснений
+                if (!res.ok) {
+                    if (res.status === 402) {
+                        const reason = createdPost?.reason || t('chat.limitReached');
+                        const price = createdPost?.upsell?.price;
+                        toast.error(`${reason}${price ? ` — ${createdPost.upsell.plan?.toUpperCase()} ${price}₽/мес` : ''}`, { duration: 6000, icon: '⚡' });
+                    } else {
+                        toast.error(createdPost?.error || `Ошибка сохранения (${res.status})`);
+                    }
+                    return;
+                }
             }
             // [SOCIAL-v5.1] added: publish immediately if requested
             // [v9.9.19.15.10] no retry + disabled button to prevent duplicate wall.posts
@@ -847,19 +858,20 @@ function SchedulerPage() {
         }
     }, []);
 
-    useEffect(() => {
-        loadYtVideos();
-    }, [loadYtVideos]);
-
-    // [19.17.9-DIRECT-UPLOAD] load playlists + feature flags once (silent fail — optional fields)
+    // [CLIENT-JOURNEY-QA] списки видео/плейлистов — только при подключённом канале,
+    // иначе каждый визит на /scheduler давал честные, но шумные 400 youtube_not_connected.
     useEffect(() => {
         youtubeApi.status()
-            .then(s => setYtPublicEnabled(!!s?.publicEnabled))
+            .then(s => {
+                setYtPublicEnabled(!!s?.publicEnabled);
+                if (!s?.connected) { setYtVideos([]); setYtPlaylists([]); return; }
+                loadYtVideos();
+                youtubeApi.playlists()
+                    .then(r => setYtPlaylists(Array.isArray(r?.playlists) ? r.playlists : []))
+                    .catch(() => setYtPlaylists([]));
+            })
             .catch(() => {});
-        youtubeApi.playlists()
-            .then(r => setYtPlaylists(Array.isArray(r?.playlists) ? r.playlists : []))
-            .catch(() => setYtPlaylists([]));
-    }, []);
+    }, [loadYtVideos]);
 
     // [19.17.9-DIRECT-UPLOAD] stop polling / abort upload when leaving the page
     useEffect(() => () => {

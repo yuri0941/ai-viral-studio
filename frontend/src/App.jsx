@@ -81,7 +81,18 @@ function VersionCheck() {
             .then(r => r.ok ? r.json() : null)
             .then(data => {
                 if (!data || cancelled) return
-                if (data.requiredFrontend && data.requiredFrontend !== APP_VERSION) {
+                // [CLIENT-JOURNEY-QA] показываем модалку только когда фронт СТАРЕЕ требуемого
+                // (semver). Раньше любое !== давало вечную модалку «Доступно обновление»:
+                // фронт 9.9.21 новее backend 9.9.19 — обновлять нечего, reload не помогает.
+                const newer = (a, b) => {
+                    const pa = String(a).split('.').map(Number)
+                    const pb = String(b).split('.').map(Number)
+                    for (let i = 0; i < 3; i++) {
+                        if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0)
+                    }
+                    return false
+                }
+                if (data.requiredFrontend && newer(data.requiredFrontend, APP_VERSION)) {
                     setUpdate(data.requiredFrontend)
                 }
             })

@@ -7,7 +7,7 @@ const userAddonSchema = new mongoose.Schema({
     currency: { type: String, default: 'RUB' },
     purchasedAt: { type: Date, default: Date.now },
     expiresAt: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
-    status: { type: String, enum: ['active', 'canceled', 'refunded'], default: 'active' },
+    status: { type: String, enum: ['active', 'pending', 'canceled', 'refunded'], default: 'active' },
     paymentProvider: { type: String, enum: ['yookassa', 'stripe', 'paypal', 'manual'], default: 'manual' },
     paymentId: { type: String, default: '' },
 }, { timestamps: true })

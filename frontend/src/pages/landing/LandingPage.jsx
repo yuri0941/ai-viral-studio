@@ -29,7 +29,9 @@ const PUBLIC_FETCH_OPTS = { timeout: 9000, noRetry: true }
 // [LANDING-RESTORE] фолбэк-тарифы = дефолты backend/models/PlanConfig.js (free 0 / pro 990 / agency 4990).
 // Используются ТОЛЬКО когда PlanConfig API недоступен; факт уходит в console.warn.
 const FALLBACK_PLANS = [
-  { plan: 'free', price: 0, currency: 'RUB', quotas: { generationsPerDay: 20, youtubeUploadsPerDay: 2, youtubeChannels: 1, mediaQueueMB: 500, scheduledPostsMax: 10, aiTagsPerDay: 5 }, features: { publishAt: true } },
+  // [CLIENT-JOURNEY-QA] free features приведены к seed PlanConfig (все false) —
+  // раньше фолбэк обещал free «Отложенный постинг», которого в тарифе нет
+  { plan: 'free', price: 0, currency: 'RUB', quotas: { generationsPerDay: 20, youtubeUploadsPerDay: 2, youtubeChannels: 1, mediaQueueMB: 500, scheduledPostsMax: 10, aiTagsPerDay: 5 }, features: {} },
   { plan: 'pro', price: 990, currency: 'RUB', quotas: { generationsPerDay: 200, youtubeUploadsPerDay: 5, youtubeChannels: 3, mediaQueueMB: 5120, scheduledPostsMax: 100, aiTagsPerDay: 50 }, features: { publishAt: true, playlists: true, brandVoice: true, abTesting: true, analytics: true } },
   { plan: 'agency', price: 4990, currency: 'RUB', quotas: { generationsPerDay: 1000, youtubeUploadsPerDay: 10, youtubeChannels: 10, mediaQueueMB: 25600, scheduledPostsMax: 0, aiTagsPerDay: 200 }, features: { publishAt: true, playlists: true, brandVoice: true, abTesting: true, analytics: true, whiteLabel: true } },
 ]
@@ -109,6 +111,11 @@ export default function LandingPage({ authMode = null }) {
   // [LANDING-RESTORE] P1.5-METRICS visit beacon (был в legacy, потерян при Б2):
   // не чаще 1 раза/сутки с браузера, без персональных данных
   useEffect(() => {
+    try {
+      // [CLIENT-JOURNEY-QA] реферальный параметр ?ref=CODE → localStorage (учитывается при регистрации)
+      const refCode = new URLSearchParams(window.location.search).get('ref')
+      if (refCode) localStorage.setItem('referral_code', refCode.trim().toUpperCase())
+    } catch { /* ref не критичен */ }
     try {
       const KEY = 'avs_visit_ts'
       const last = Number(localStorage.getItem(KEY) || 0)

@@ -78,6 +78,18 @@ router.post('/register', validateRegister, verifyTurnstile, async (req, res) => 
       }
     })
 
+    // [CLIENT-JOURNEY-QA] реферальный код с лендинга (?ref=CODE → localStorage → register body).
+    // Раньше код никуда не передавался — рефералка не трекалась при веб-регистрации.
+    try {
+      const referralCode = String(req.body.referralCode || '').trim().toUpperCase()
+      if (referralCode) {
+        const { registerReferral } = await import('../services/referralService.js')
+        await registerReferral(user._id, referralCode)
+      }
+    } catch (refErr) {
+      console.warn('[auth:register] referral link failed:', refErr.message)
+    }
+
     try {
       await sendVerificationEmail(user.email, user.name, user.verificationToken)
     } catch (emailErr) {

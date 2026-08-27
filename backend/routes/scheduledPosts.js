@@ -3,6 +3,7 @@ import multer from 'multer'
 import fs from 'fs'
 import path from 'path'
 import { protect } from '../middleware/auth.js'
+import { enforceQuota } from '../middleware/enforceQuota.js'
 import ScheduledPost from '../models/ScheduledPost.js'
 import User from '../models/User.js'
 import { publishToTelegram } from '../services/telegramPublish.js'
@@ -74,7 +75,7 @@ router.get('/', protect, async (req, res) => {
 
 // [19.17.5-UPLOAD-SCHEDULER] schedule a YouTube video upload
 // public запрещён до аудита Google — только private / unlisted
-router.post('/youtube', protect, ytScheduledUpload.fields([
+router.post('/youtube', protect, enforceQuota('youtubeUploads'), ytScheduledUpload.fields([
     { name: 'video', maxCount: 1 },
     { name: 'thumbnail', maxCount: 1 }
 ]), async (req, res) => {
@@ -122,7 +123,8 @@ router.post('/youtube', protect, ytScheduledUpload.fields([
     }
 })
 
-router.post('/', protect, async (req, res) => {
+// [CLIENT-JOURNEY-QA] enforceQuota был написан, но нигде не подключён — лимит планировщика не работал
+router.post('/', protect, enforceQuota('scheduledPosts'), async (req, res) => {
     try {
         const userId = req.user?._id || req.user?.id
         const { title, content, platform, platforms, status, mediaUrl, mediaName, mediaType, hashtags, types } = req.body || {}

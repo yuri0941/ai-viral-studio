@@ -54,7 +54,8 @@ export function useOmegaChat(options = {}) {
             // [MONETIZE-2026-08-04] added: handle quota exceeded (402)
             const isQuota = /402|QUOTA_EXCEEDED|Генерации исчерпаны|Лимит/i.test(err.message || '')
             if (isQuota) {
-                setQuotaError({ used: 0, limit: 0 })
+                // [CLIENT-JOURNEY-QA] реальные цифры квоты из тела 402 (для UpsellModal с живой ценой)
+                setQuotaError({ used: err?.data?.used ?? 0, limit: err?.data?.limit ?? 0, upsell: err?.data?.upsell || null })
                 setMessages(prev => [...prev, {
                     id: generateId(),
                     role: 'omega',

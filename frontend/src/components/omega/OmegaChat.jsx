@@ -7,7 +7,8 @@ import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import OnboardingTour from "../onboarding/OnboardingTour.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
-import { omegaApi, voiceApi, request } from "../../services/api.js";
+import { omegaApi, voiceApi, request, planConfigApi } from "../../services/api.js";
+import UpsellModal from "../UpsellModal.jsx";
 import { playSound } from "../../hooks/useSound.js";
 import { useTTS } from "../../hooks/useTTS.js";
 import toast from "react-hot-toast";
@@ -243,6 +244,28 @@ export default function OmegaChat({
   const [ticketForm, setTicketForm] = useState({ subject: '', description: '', screenshot: null });
   const [feedbackId, setFeedbackId] = useState(null);
   const [feedbackGiven, setFeedbackGiven] = useState(null);
+  // [CLIENT-JOURNEY-QA] UpsellModal с живой ценой из PlanConfig при 402 (квота исчерпана)
+  const [upsell, setUpsell] = useState(null);
+  const openUpsell = (d = {}, reasonText = null) => {
+    setUpsell({
+      reason: reasonText || t('chat.limitReached'),
+      limit: d.limit ?? null,
+      usage: d.used ?? null,
+      upsellPlan: d.upsell?.plan || 'pro',
+      upsellPrice: d.upsell?.price ?? null,
+    });
+    planConfigApi.list({ timeout: 9000, noRetry: true })
+      .then(res => {
+        const plans = Array.isArray(res?.plans) ? res.plans : []
+        const next = plans.find(p => p.plan === 'pro') || plans.find(p => p.plan !== 'free')
+        if (next) setUpsell(prev => prev && ({ ...prev, upsellPlan: next.plan, upsellPrice: next.price }))
+      })
+      .catch(() => {})
+  };
+  // [CLIENT-JOURNEY-QA] внешний (useOmegaChat/CreativeHub) 402 тоже открывает UpsellModal
+  useEffect(() => {
+    if (externalQuotaError) openUpsell(externalQuotaError);
+  }, [externalQuotaError]);
   const [previewHtml, setPreviewHtml] = useState(null);
   const [previewPlatform, setPreviewPlatform] = useState('instagram');
   const [isDraggingFile, setIsDraggingFile] = useState(false);
@@ -391,6 +414,8 @@ export default function OmegaChat({
       }]);
       if (isQuotaError) {
         toast.error(errMessage || t('chat.limitReached'), { duration: 5000, icon: '⚡' });
+        // [CLIENT-JOURNEY-QA] UpsellModal с живой ценой из PlanConfig (фолбэк — pro из ответа)
+        openUpsell(err?.data || {}, errMessage);
       }
       playSound('error');
     } finally {
@@ -903,6 +928,16 @@ export default function OmegaChat({
         </div>
       )}
       <OnboardingTour />
+      {/* [CLIENT-JOURNEY-QA] исчерпание квоты → UpsellModal с живой ценой */}
+      <UpsellModal
+        open={!!upsell}
+        onClose={() => setUpsell(null)}
+        reason={upsell?.reason}
+        limit={upsell?.limit}
+        usage={upsell?.usage}
+        upsellPlan={upsell?.upsellPlan}
+        upsellPrice={upsell?.upsellPrice}
+      />
     </div>
   );
 }

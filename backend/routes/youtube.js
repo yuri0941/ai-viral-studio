@@ -9,6 +9,7 @@ import os from 'os'
 import User from '../models/User.js'
 import YouTubeToken from '../models/YouTubeToken.js'
 import { protect, requireRole } from '../middleware/auth.js'
+import { enforceQuota } from '../middleware/enforceQuota.js'
 import { getProviderKey } from '../services/aiService.js'
 import { startYoutubeTokenHealthCron, startYoutubeReminderCron } from '../cron/youtubeNotifyCron.js'
 
@@ -456,7 +457,7 @@ function handleYoutubeRouteError(res, err, context) {
   return res.status(500).json({ success: false, error: payload.message || err.message, code: payload.code || '' })
 }
 
-router.post('/upload', requireRole('owner', 'admin', 'creator'), ytUpload.fields([
+router.post('/upload', requireRole('owner', 'admin', 'creator'), enforceQuota('youtubeUploads'), ytUpload.fields([
   { name: 'video', maxCount: 1 },
   { name: 'thumbnail', maxCount: 1 }
 ]), async (req, res) => {
@@ -545,7 +546,7 @@ router.delete('/videos/:id', requireRole('owner', 'admin', 'creator'), async (re
 const YT_DIRECT_EXTS = new Set(['.mp4', '.mov', '.webm'])
 
 // Creates a resumable session; frontend then PUTs chunks straight to Google
-router.post('/upload-session', requireRole('owner', 'admin', 'creator'), async (req, res) => {
+router.post('/upload-session', requireRole('owner', 'admin', 'creator'), enforceQuota('youtubeUploads'), async (req, res) => {
   try {
     const { fileSize, fileName = '', fileHash = '', meta = {}, allowDuplicate = false } = req.body || {}
     const size = Number(fileSize)

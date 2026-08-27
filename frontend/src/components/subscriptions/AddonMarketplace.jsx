@@ -4,7 +4,6 @@ import { API_BASE_URL } from '../../config.js'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import PaymentMethodSelector from '../payments/PaymentMethodSelector.jsx'
 
 const CATEGORIES = {
     all: 'all',
@@ -106,7 +105,7 @@ export default function AddonMarketplace() {
     const [saving, setSaving] = useState({})
     const [analyzing, setAnalyzing] = useState({})
     const [modal, setModal] = useState(null)
-    const [paymentAddon, setPaymentAddon] = useState(null)
+    const [purchasing, setPurchasing] = useState(null)
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
     const isOwner = user?.role === 'owner' || user?.role === 'admin'
@@ -143,9 +142,28 @@ export default function AddonMarketplace() {
 
     const isActive = (id) => myAddons.some(a => a.addonId === id && a.status === 'active' && new Date(a.expiresAt) > new Date())
 
-    const handlePurchase = (addon) => {
+    // [CLIENT-JOURNEY-QA] реальная оплата аддона через ЮKassa (paymentUrl → редирект).
+    // Раньше открывался generic PaymentMethodSelector с фейковым quickpay/tестовым crypto.
+    const handlePurchase = async (addon) => {
         if (!token) return toast.error(t('common.login'))
-        setPaymentAddon({ ...addon, price: displayPrice(addon) })
+        setPurchasing(addon.id)
+        try {
+            const res = await fetch(`${API_BASE_URL}/subscriptions/addons/${addon.id}/purchase`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ provider: 'yookassa' }),
+            })
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) throw new Error(data.error || 'Payment failed')
+            if (data.paymentUrl) {
+                window.location.href = data.paymentUrl
+                return
+            }
+            throw new Error(data.error || 'Payment session not created')
+        } catch (err) {
+            toast.error(err.message)
+            setPurchasing(null)
+        }
     }
 
     const handleCancel = async (id) => {
@@ -332,7 +350,9 @@ export default function AddonMarketplace() {
                                 active ? (
                                     <button type="button" onClick={() => handleCancel(addon.id)} className="btn btn-secondary w-full min-h-[44px]">{t('addons.connected')}</button>
                                 ) : (
-                                    <button type="button" onClick={() => handlePurchase(addon)} className="btn btn-primary w-full min-h-[44px]">{t('addons.connect')}</button>
+                                    <button type="button" onClick={() => handlePurchase(addon)} disabled={purchasing === addon.id} className="btn btn-primary w-full min-h-[44px] disabled:opacity-50">
+                                        {purchasing === addon.id ? `${t('common.loading')}…` : t('addons.connect')}
+                                    </button>
                                 )
                             )}
                         </div>
@@ -361,15 +381,6 @@ export default function AddonMarketplace() {
                     currency={currency}
                     onClose={() => setModal(null)}
                     onApply={(price) => setEdits(prev => ({ ...prev, [modal.addon.id]: { ...prev[modal.addon.id], price } }))}
-                />
-            )}
-
-            {paymentAddon && (
-                <PaymentMethodSelector
-                    plan={{ id: paymentAddon.id, price: paymentAddon.price, name: paymentAddon.name }}
-                    onClose={() => setPaymentAddon(null)}
-                    userId={user?._id}
-                    email={user?.email}
                 />
             )}
         </div>

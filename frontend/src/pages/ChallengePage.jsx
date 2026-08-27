@@ -63,7 +63,7 @@ export default function ChallengePage() {
             })
             const data = await res.json()
             if (data.status === 'success') {
-                setArchive(data.data || [])
+                setArchive(Array.isArray(data.data) ? data.data : [])
             }
         } catch (err) {
             console.warn('[Challenge] archive failed:', err.message)

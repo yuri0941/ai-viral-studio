@@ -139,6 +139,8 @@ async function request(path, options = {}) {
         error.details = err.details || null
         error.hint = err.hint || null
         error.missing = err.missing || null
+        // [CLIENT-JOURNEY-QA] тело data (quota/upsell) — для UpsellModal и гейтов тарифов
+        error.data = err.data || null
         // [DOP-4] только настоящий 401 по статусу (regex по тексту ловил ложные срабатывания)
         if (res.status === 401) {
             console.warn('[API] 401 Unauthorized — redirecting to login')
