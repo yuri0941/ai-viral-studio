@@ -7,7 +7,7 @@ import { API_BASE_URL } from '../../../../config.js'
 import {
     DollarSign, Users, Brain, Calendar, BarChart, Bell, Zap,
     ArrowUpRight, Server, CreditCard, CheckSquare, AlertTriangle, UserX,
-    FileText, BarChart2, KeyRound, Settings2, Undo2, Loader2,
+    FileText, BarChart2, KeyRound, Settings2, Undo2, Loader2, CalendarClock,
 } from 'lucide-react'
 import { formatCurrency } from '../../utils/helpers'
 import '../../../../styles/animations.css'
@@ -51,6 +51,11 @@ function OwnerControlCard() {
     const [metricsError, setMetricsError] = useState(false)
     const [refundId, setRefundId] = useState('')
     const [refundLoading, setRefundLoading] = useState(false)
+    // [OWNER-OMEGA] продление подписки из кабинета (паритет с TG «продли email на N дней»)
+    const [extEmail, setExtEmail] = useState('')
+    const [extDays, setExtDays] = useState('30')
+    const [extPreview, setExtPreview] = useState(null)
+    const [extLoading, setExtLoading] = useState(false)
 
     useEffect(() => {
         let mounted = true
@@ -92,6 +97,36 @@ function OwnerControlCard() {
 
     const pct = (part, total) => (total > 0 ? Math.round((part / total) * 100) : 0)
     const funnel = metrics?.funnel7d
+
+    // [OWNER-OMEGA] продление: сначала превью (тариф + окончание), затем подтверждение — как ✅/❌ в TG
+    const handleExtPreview = async () => {
+        if (!extEmail.trim() || extLoading) return
+        setExtLoading(true)
+        try {
+            const res = await ownerControlApi.extendPreview(extEmail.trim())
+            setExtPreview(res?.client || null)
+        } catch (err) {
+            setExtPreview(null)
+            toast.error(err.status === 404 ? t('owner.control.extendNotFound') : (err.message || t('owner.control.error')))
+        } finally {
+            setExtLoading(false)
+        }
+    }
+
+    const handleExtApply = async () => {
+        if (!extPreview?.userId || extLoading) return
+        setExtLoading(true)
+        try {
+            const res = await ownerControlApi.extendSubscription(extPreview.userId, Number(extDays))
+            toast.success(t('owner.control.extendOk', { date: new Date(res?.result?.newEnd).toLocaleDateString() }))
+            setExtPreview(null)
+            setExtEmail('')
+        } catch (err) {
+            toast.error(err.message || t('owner.control.error'))
+        } finally {
+            setExtLoading(false)
+        }
+    }
 
     const ToggleRow = ({ label, hint, value, flagKey }) => (
         <div className="flex items-center justify-between gap-3 py-1">
@@ -153,6 +188,65 @@ function OwnerControlCard() {
                         {t('owner.control.refundButton')}
                     </button>
                 </div>
+            </div>
+
+            {/* [OWNER-OMEGA] Extend subscription (паритет с TG) */}
+            <div className="mt-4 pt-4 border-t border-white/10">
+                <div className="text-sm text-[var(--text)] mb-2 break-words">{t('owner.control.extendTitle')}</div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                        value={extEmail}
+                        onChange={e => { setExtEmail(e.target.value); setExtPreview(null) }}
+                        placeholder={t('owner.control.extendPlaceholder')}
+                        className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)]"
+                    />
+                    <input
+                        value={extDays}
+                        onChange={e => { setExtDays(e.target.value.replace(/\D/g, '').slice(0, 4)); }}
+                        inputMode="numeric"
+                        placeholder={t('owner.control.extendDays')}
+                        className="w-full sm:w-24 px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)]"
+                    />
+                    <button
+                        type="button"
+                        onClick={handleExtPreview}
+                        disabled={extLoading || !extEmail.trim() || !Number(extDays)}
+                        className="min-h-[40px] px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-medium flex items-center justify-center gap-2"
+                    >
+                        {extLoading && !extPreview ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CalendarClock className="w-3.5 h-3.5" />}
+                        {t('owner.control.extendFind')}
+                    </button>
+                </div>
+                {extPreview && (
+                    <div className="mt-3 p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs space-y-1">
+                        <div className="text-[var(--text)] break-words">
+                            {extPreview.email} — {t('owner.control.extendPlan')}: <b>{extPreview.plan}</b>
+                        </div>
+                        <div className="text-[var(--text-muted)] break-words">
+                            {t('owner.control.extendUntil')}: {extPreview.currentPeriodEnd
+                                ? new Date(extPreview.currentPeriodEnd).toLocaleDateString()
+                                : t('owner.control.extendNoSub')}
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                            <button
+                                type="button"
+                                onClick={handleExtApply}
+                                disabled={extLoading}
+                                className="min-h-[40px] px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium flex items-center gap-2"
+                            >
+                                {extLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                                {t('owner.control.extendApply', { days: Number(extDays) || 0 })}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setExtPreview(null)}
+                                className="min-h-[40px] px-4 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)]"
+                            >
+                                {t('owner.control.extendCancel')}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Metrics widget */}

@@ -2685,6 +2685,17 @@
       "refundButton": "Refund",
       "refundOk": "Payment refunded",
       "refundNotFound": "Payment not found",
+      "extendTitle": "Extend subscription",
+      "extendPlaceholder": "Client email",
+      "extendDays": "Days",
+      "extendFind": "Find",
+      "extendNotFound": "Client not found",
+      "extendPlan": "plan",
+      "extendUntil": "Current period ends",
+      "extendNoSub": "no subscription (will be created)",
+      "extendApply": "Extend by {{days}} days",
+      "extendCancel": "Cancel",
+      "extendOk": "Subscription extended until {{date}}",
       "error": "Operation failed"
     },
     "metricsWidget": {

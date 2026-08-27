@@ -2869,6 +2869,17 @@
       "refundButton": "Вернуть",
       "refundOk": "Платёж возвращён",
       "refundNotFound": "Платёж не найден",
+      "extendTitle": "Продление подписки",
+      "extendPlaceholder": "Email клиента",
+      "extendDays": "Дней",
+      "extendFind": "Найти",
+      "extendNotFound": "Клиент не найден",
+      "extendPlan": "тариф",
+      "extendUntil": "Текущее окончание",
+      "extendNoSub": "нет подписки (будет создана)",
+      "extendApply": "Продлить на {{days}} дн.",
+      "extendCancel": "Отмена",
+      "extendOk": "Подписка продлена до {{date}}",
       "error": "Ошибка операции"
     },
     "metricsWidget": {

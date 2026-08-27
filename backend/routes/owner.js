@@ -325,6 +325,51 @@ router.post('/control/refund', protect, authorize('owner'), async (req, res) => 
     }
 })
 
+// [OWNER-OMEGA] Продление подписки из кабинета — та же обёртка, что и TG «продли email на N дней»
+router.post('/control/extend-preview', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { findClientSubscription } = await import('../services/ownerActionsService.js')
+        const email = String(req.body?.email || '').trim()
+        if (!email) return res.status(400).json({ error: 'Укажите email клиента' })
+        const found = await findClientSubscription(email)
+        if (!found) return res.status(404).json({ error: 'Клиент не найден' })
+        const { user, sub } = found
+        res.json({
+            success: true,
+            client: {
+                userId: String(user._id),
+                email: user.email,
+                name: user.name || '',
+                plan: sub?.plan || user.subscription || 'free',
+                currentPeriodEnd: sub?.currentPeriodEnd || sub?.endDate || null,
+                hasSubscription: !!sub,
+            },
+        })
+    } catch (err) {
+        console.error('[owner/control/extend-preview]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.post('/control/extend-subscription', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { extendSubscriptionDays } = await import('../services/ownerActionsService.js')
+        const userId = String(req.body?.userId || '').trim()
+        const days = Number(req.body?.days)
+        if (!userId) return res.status(400).json({ error: 'Укажите userId' })
+        const actor = `cabinet:${req.user?.email || req.user?._id}`
+        const r = await extendSubscriptionDays(userId, days, actor)
+        if (!r.ok) {
+            const status = r.reason === 'not_found' ? 404 : r.reason === 'bad_days' ? 400 : 500
+            return res.status(status).json({ error: r.message })
+        }
+        res.json({ success: true, result: r })
+    } catch (err) {
+        console.error('[owner/control/extend-subscription]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
 // ---- Смена Telegram владельца (код 6 цифр, 10 минут, 3 попытки, rate-limit 1/мин) ----
 const tgChangeState = global.ownerTgChangeState || new Map()
 global.ownerTgChangeState = tgChangeState

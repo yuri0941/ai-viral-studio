@@ -267,6 +267,15 @@ export const ownerControlApi = {
         method: 'POST',
         body: JSON.stringify({ identifier }),
     }),
+    // [OWNER-OMEGA] продление подписки (паритет с TG «продли email на N дней»)
+    extendPreview: (email) => request('/owner/control/extend-preview', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+    }),
+    extendSubscription: (userId, days) => request('/owner/control/extend-subscription', {
+        method: 'POST',
+        body: JSON.stringify({ userId, days }),
+    }),
     telegramOwner: () => request('/owner/telegram-owner'),
     telegramSendCode: (chatId) => request('/owner/telegram-owner/send-code', {
         method: 'POST',
