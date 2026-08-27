@@ -15,8 +15,9 @@ const CONSENT_TEXT = `<h1>Согласие на обработку персон�
 <li>Технические данные (IP, cookies).</li>
 </ul>
 <p>Цель обработки: предоставление доступа к функциям Сервиса, генерация контента, отправка уведомлений, техническая поддержка.</p>
-<p>Я осознаю и согласен с тем, что мои персональные данные будут передаваться и обрабатываться за пределами Российской Федерации (США, Европейский союз) провайдерами: MongoDB Atlas, GitHub Models, Cloudflare, HuggingFace.</p>
-<p>Согласие действует до момента его отзыва путём направления письма на [CONTACT_EMAIL]. В случае отзыва согласия мой аккаунт и данные будут удалены в течение 30 дней.</p>`
+<p>Я осознаю и согласен с тем, что мои персональные данные будут передаваться и обрабатываться за пределами Российской Федерации (США, Европейский союз) провайдерами: MongoDB Atlas, Cloudflare, Render, Groq/OpenRouter. Обработка платежей — YooKassa (РФ).</p>
+<p>Согласие действует до момента его отзыва путём направления письма на [CONTACT_EMAIL]. В случае отзыва согласия мой аккаунт и данные будут удалены в течение 30 дней.</p>
+<p>Подробнее: <a href="/privacy" class="text-purple-400 underline">Политика конфиденциальности</a> и <a href="/terms" class="text-purple-400 underline">Условия использования</a>.</p>`
 
 const CONTENT = {
   consent: { title: 'Согласие на обработку ПДн', html: CONSENT_TEXT },
@@ -50,7 +51,7 @@ export function LegalPage({ type }) {
     contactEmail: 'tvinki05@yandex.ru',
     email: 'tvinki05@yandex.ru',
     operatorAddress: 'г.Волгоград, Волгоградская обл',
-    siteUrl: 'app.aiviral.studio'
+    siteUrl: 'aiviral-studio.ru'
   }
 
   const contactEmail = info?.contactEmail || info?.email || FALLBACK.contactEmail
