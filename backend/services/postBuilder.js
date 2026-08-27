@@ -156,7 +156,51 @@ async function buildCover(topic) {
       }
     } catch (e) { console.warn('[postBuilder] video cover failed, fallback to photo:', e.message); }
   }
-  return { type: 'photo', url: `https://image.pollinations.ai/prompt/${prompt}?width=1024&height=1024&nologo=true&seed=${Date.now() % 100000}` };
+  return { type: 'photo', url: `https://image.pollinations.ai/prompt/${prompt}?width=1024&height=1024&nologo=true&seed=${Date.now() % 100000}`, provider: 'pollinations' };
+}
+
+// [OWNER-OMEGA] резерв обложки: если Pollinations 500/таймаут — пробуем Cloudflare Workers AI
+// (уже подключённый провайдер, бинарный PNG → multipart sendPhoto). Новых платных провайдеров не добавляем.
+async function buildCoverSecondary(topic) {
+  const key = await getProviderKey('cloudflare').catch(() => null);
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  if (!key || !accountId) return null;
+  const style = 'dark luxury minimalist poster, deep black background, glowing white neon lines, premium tech aesthetic, no text';
+  const resp = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/stabilityai/stable-diffusion-xl-base-1.0`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: `${style}, theme: ${String(topic).slice(0, 120)}` }),
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!resp.ok) throw new Error(`Cloudflare Workers AI: HTTP ${resp.status}`);
+  const buf = Buffer.from(await resp.arrayBuffer());
+  if (buf.length < 10000) throw new Error('Cloudflare Workers AI: empty image');
+  return { type: 'photo', binary: buf, provider: 'cloudflare' };
+}
+
+// [OWNER-OMEGA] отправка бинарной обложки (для провайдеров без публичного URL)
+async function tgSendPhotoBinary(token, chatId, buf, caption) {
+  const cap = validateTelegramHTML(caption);
+  const fd = new FormData();
+  fd.append('chat_id', String(chatId));
+  fd.append('caption', cap.fixed);
+  fd.append('parse_mode', 'HTML');
+  fd.append('photo', new Blob([buf], { type: 'image/png' }), 'cover.png');
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: fd });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.description || 'sendPhoto(binary) failed');
+  return data.result;
+}
+
+// [OWNER-OMEGA] алерт «обложка не сгенерирована» — не чаще раза в час
+let coverFailAlertedAt = 0;
+async function alertCoverFailed() {
+  if (Date.now() - coverFailAlertedAt < 3600 * 1000) return;
+  coverFailAlertedAt = Date.now();
+  try {
+    const { alertOwner } = await import('./ownerBot.js');
+    await alertOwner('🎨 Обложка не сгенерирована: Pollinations и резервный генератор недоступны. Пост ушёл текстом.');
+  } catch { /* не критично */ }
 }
 
 async function tgApi(token, method, payload) {
@@ -217,7 +261,18 @@ export async function publishLuxuryPost(params = {}) {
         }
         mediaType = cover.type;
       } else {
-        console.warn(`[postBuilder] media URL failed validation (${validated.reason}), falling back to text-only: ${cover.url}`);
+        console.warn(`[postBuilder] media URL failed validation (${validated.reason}), trying secondary cover: ${cover.url}`);
+        // [OWNER-OMEGA] Pollinations недоступен → вторичный генератор (Cloudflare Workers AI)
+        try {
+          const secondary = await buildCoverSecondary(post.topic);
+          if (secondary?.binary) {
+            result = await tgSendPhotoBinary(token, channel, secondary.binary, caption);
+            mediaType = 'photo';
+            console.log('[postBuilder] secondary cover sent (cloudflare)');
+          }
+        } catch (e2) {
+          console.warn('[postBuilder] secondary cover failed:', e2.message);
+        }
       }
     } else {
       console.warn('[postBuilder] cover has no URL, falling back to text-only');
@@ -229,6 +284,7 @@ export async function publishLuxuryPost(params = {}) {
     try {
       result = await tgApi(token, 'sendMessage', { chat_id: channel, text: post.text, parse_mode: 'HTML' });
       mediaType = 'none';
+      alertCoverFailed(); // [OWNER-OMEGA] пометка владельцу: пост без обложки
     } catch (e2) {
       return { success: false, error: friendlyError(e2.message), rawError: e2.message };
     }
