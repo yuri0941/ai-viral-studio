@@ -74,6 +74,18 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
 
     hotReloadApiKey(provider, key)
 
+    // [OWNER-OMEGA] токены ботов: hot-reload живого инстанса + переустановка webhook (deleteWebhook → setWebhook)
+    let botReload = null
+    if (provider === 'telegram_bot' || provider === 'telegram_owner_bot') {
+      try {
+        const { reloadBotToken } = await import('../services/botReloader.js')
+        botReload = await reloadBotToken(provider, key)
+      } catch (e) {
+        console.error('[ApiKeys] bot reload failed:', e.message)
+        botReload = { ok: false, reason: 'exception', message: e.message }
+      }
+    }
+
     let message
     if (validation.valid) {
       message = validation.warning ? `⚠️ ${validation.warning}` : '✅ Ключ сохранён и проверен'
@@ -84,12 +96,14 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
     } else {
       message = '❌ Ключ сохранён, но проверка не пройдена'
     }
+    if (botReload) message += botReload.ok ? ` · 🤖 ${botReload.message}` : ` · ⚠️ Переподключение бота: ${botReload.message || botReload.reason}`
     res.json({
       success: true,
       provider,
       isValid: validation.valid,
       ok: validation.valid,
       warning: validation.warning || null,
+      botReload,
       message
     })
   } catch (err) {
@@ -157,6 +171,11 @@ function checkKeyFormat(provider, key) {
   if (provider === 'telegram_bot' || provider === 'telegram_owner_bot') {
     if (!/^\d+:[A-Za-z0-9_-]+$/.test(trimmed)) {
       return { ok: true, warning: 'Bot Token выглядит как 123456:ABC-DEF... из @BotFather' }
+    }
+  }
+  if (provider === 'telegram_channel') {
+    if (!/^@?[A-Za-z0-9_]{5,64}$/.test(trimmed) && !/^-?\d{5,20}$/.test(trimmed)) {
+      return { ok: true, warning: 'Канал выглядит как @username или числовой ID (-100...)' }
     }
   }
   if (provider === 'youtube_oauth') {
@@ -244,6 +263,12 @@ async function validateApiKey(provider, key) {
       }
       case 'telegram_chat_id': {
         return { valid: /^-?\d+$/.test(String(key).trim()), provider, error: /^-?\d+$/.test(String(key).trim()) ? undefined : 'Chat ID должен быть числом' }
+      }
+      case 'telegram_channel': {
+        // [OWNER-OMEGA] username канала (@name) или числовой ID; онлайн-проверка — через публикацию
+        const v = String(key).trim()
+        const ok = /^@?[A-Za-z0-9_]{5,64}$/.test(v) || /^-?\d{5,20}$/.test(v)
+        return { valid: ok, provider, error: ok ? undefined : 'Канал: @username или числовой ID' }
       }
       case 'stripe': {
         const r = await axios.get('https://api.stripe.com/v1/balance', { headers: { Authorization: `Bearer ${key}` }, timeout: 10000 })

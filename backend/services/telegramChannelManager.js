@@ -10,6 +10,7 @@ export async function resolveTelegramTarget() {
   const token = await getProviderKey('telegram_bot')
     || process.env.TELEGRAM_OMEGA_BOT_TOKEN || process.env.OMEGA_BOT_TOKEN || process.env.OWNER_BOT_TOKEN || null;
   const channel = process.env.TELEGRAM_CHANNEL || process.env.TELEGRAM_CHANNEL_ID
+    || await getProviderKey('telegram_channel') // [OWNER-OMEGA] username канала из кабинета
     || await getProviderKey('telegram_chat_id') || null;
   // [v9.9.19.14] 5.2 лог источника chat_id один раз (getProviderKey логирует source=mongodb|env отдельно)
   if (!channelTargetLogged && channel) {

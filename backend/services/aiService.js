@@ -297,6 +297,7 @@ const envMap = {
     telegram_bot: 'TELEGRAM_BOT_TOKEN',
     telegram_owner_bot: 'TELEGRAM_OWNER_BOT_TOKEN',
     telegram_chat_id: 'TELEGRAM_OWNER_CHAT_ID',
+    telegram_channel: 'TELEGRAM_CHANNEL', // [OWNER-OMEGA] username/ID автоканала из кабинета
     yookassa_shop_id: 'YOOKASSA_SHOP_ID',
     yookassa_secret: 'YOOKASSA_SECRET_KEY',
     stripe: 'STRIPE_SECRET_KEY',

@@ -70,6 +70,7 @@ export function shouldSendAlert(alertType, cooldownMs) {
 
 function createStubBot() {
   return {
+    __isStub: true, // [OWNER-OMEGA] маркер заглушки — botReloader не трогает stub
     sendMessage: () => Promise.resolve(),
     onText: () => {},
     on: () => {},
