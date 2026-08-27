@@ -8,7 +8,7 @@ const AiUsageLogSchema = new mongoose.Schema({
     completionChars: { type: Number, default: 0 },
     estTokens: { type: Number, default: 0 },
     estCostUsd: { type: Number, default: 0 },
-    createdAt: { type: Date, default: Date.now, index: true },
+    createdAt: { type: Date, default: Date.now },
 })
 
 // TTL 90 дней — лайт-учёт не должен раздувать БД
