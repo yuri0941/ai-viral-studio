@@ -1264,6 +1264,37 @@ export const initOwnerBot = () => {
       return
     }
 
+    // [OWNER-OMEGA] кнопка «↩️ Возврат…» из проактивного алерта об оплате → карточка подтверждения
+    if (data.startsWith('refund:ask:')) {
+      const paymentId = data.slice('refund:ask:'.length)
+      try {
+        const { findRefundablePayment } = await import('./ownerActionsService.js')
+        const payment = await findRefundablePayment(paymentId)
+        if (!payment) { safeSendMessage(chatId, '🔍 Платёж не найден.'); return }
+        if (payment.status === 'refunded') { safeSendMessage(chatId, 'ℹ️ Этот платёж уже возвращён.'); return }
+        const card = [
+          '💳 <b>Возврат платежа</b>',
+          '━━━━━━━━━━━━━━',
+          `Клиент: ${payment.customerEmail || '—'}`,
+          `Тариф: ${payment.planId || '—'}`,
+          `Сумма: ${Number(payment.amount || 0).toLocaleString('ru-RU')} ₽`,
+          `ID: <code>${payment.yookassaPaymentId}</code>`,
+        ].join('\n')
+        safeSendMessage(chatId, card, {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '↩️ Вернуть', callback_data: `refund:yes:${payment.yookassaPaymentId}` },
+              { text: '❌ Отмена', callback_data: 'refund:no' },
+            ]],
+          },
+        })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка поиска платежа: ${e.message}`)
+      }
+      return
+    }
+
     // [OWNER-REMOTE-CONTROL] подтверждение возврата из TG (идемпотентность — в ownerActionsService: in-flight lock + проверка статусов)
     if (data === 'refund:no') {
       safeSendMessage(chatId, '❌ Возврат отменён.')

@@ -445,7 +445,12 @@ export const yookassaWebhook = async (req, res) => {
           `Сумма: ${Number(amount).toLocaleString('ru-RU')} ₽\n` +
           `Клиент: ${client?.email || client?.name || '—'}\n` +
           `Платёж: <code>${paymentId}</code>${foundingLine}`,
-          'payment'
+          'payment',
+          // [OWNER-OMEGA] проактив: важные события — с кнопками действий, а не просто текстом
+          { reply_markup: { inline_keyboard: [[
+            { text: '↩️ Возврат…', callback_data: `refund:ask:${paymentId}` },
+            { text: '👥 Клиенты', url: 'https://aiviral-studio.ru/owner?tab=clients' },
+          ]] } }
         );
       } catch (alertErr) {
         console.warn('[yookassaController:webhook] owner alert failed:', alertErr.message);
