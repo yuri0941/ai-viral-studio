@@ -24,11 +24,28 @@ const PUBLIC_PAGES = ['/', '/login', '/register']
 
 // [UI-VERIFY] EXTRA_PAGES — роуты, которые роль должна РЕНДЕРИТЬ (полная матрица 5 ширин × RU/EN).
 // PROBE_PAGES — роуты под guard'ами/legacy-редиректами: только проверка «куда редиректит» (1280/ru, 1 снимок).
+// [OWNER-OMEGA] все вкладки owner-кабинета (sync с TAB_LABELS в initialData.js)
+const OWNER_TABS = [
+    'overview', 'team', 'cabinets', 'finance', 'legal', 'audit', 'subscriptions', 'payments',
+    'subscribers', 'requisites', 'clients', 'monetization', 'servers', 'updates', 'promo', 'news',
+    'referrals', 'advertising', 'pricing', 'security', 'integrations', 'aiAnalytics', 'logs',
+    'agents', 'chat', 'omega', 'neural', 'tasks', 'apiKeys', 'externalKeys', 'supreme',
+    'personality', 'dream', 'notifications', 'help', 'feedback', 'devStudio', 'devstudio',
+    'omegaFinance', 'omegaSkills', 'omegaMemory', 'legalSettings', 'analytics', 'scheduler',
+    'brandVoice', 'templates', 'scout', 'whiteLabel', 'workspaces', 'developer', 'qr',
+    'franchise', 'fleet', 'selfHealing', 'sandbox', 'approvalQueue', 'swarm', 'autofix',
+    'autoImprove', 'learning', 'research', 'abTest', 'monitoring', 'resources', 'roadmap',
+    'brainviz', 'memory', 'boardroom', 'factory', 'prediction', 'investment', 'selfOptimize',
+    'support', 'channelManager', 'adOrders', 'salesMetrics',
+]
+const OWNER_PAGES = OWNER_TABS.map(t => `/owner?tab=${t}`)
+
 const EXTRA_PAGES = {
     public: ['/', '/login', '/register', '/signup', '/privacy', '/terms', '/launch', '/roadmap', '/download'],
     creator: ['/dashboard', '/analytics', '/scheduler', '/video-creator', '/settings', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/creative-hub/chat', '/checkout'],
     business: ['/dashboard', '/analytics', '/scheduler', '/settings', '/business-spawner', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/creative-hub/chat'],
     advertiser: ['/advertiser', '/neuro-sales', '/settings', '/creative-hub', '/creative-hub/chat'],
+    owner: OWNER_PAGES,
 }
 const PROBE_PAGES = {
     creator: ['/ai-chat', '/neuro-sales', '/omega-supreme', '/project-factory', '/prediction', '/investment', '/boardroom', '/business-spawner', '/workspaces', '/business', '/advertiser', '/advertiser-requests', '/owner', '/admin', '/staff'],

@@ -4,6 +4,8 @@ import { X, Zap, Gift, Crown } from 'lucide-react'
 const STORAGE_KEY = 'omega_upgrade_nudge_dismissed'
 
 function getSuggestion({ user, generationsUsed, generationsLimit, postsCount, lastActiveDays }) {
+    // [OWNER-OMEGA] владельцу и команде (owner/admin/staff) upsell не показываем — для них это шум
+    if (['owner', 'admin', 'staff'].includes(user?.role)) return null
     if (generationsUsed != null && generationsLimit != null && generationsLimit > 0 && generationsUsed / generationsLimit > 0.8) {
         return {
             id: 'topup',

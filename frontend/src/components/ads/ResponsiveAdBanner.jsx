@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../../context/AuthContext.jsx'
 
 export function ResponsiveAdBanner({ variant = 'auto', className = '' }) {
     const { t } = useTranslation()
+    const { user } = useAuth()
     const [closed, setClosed] = useState(false)
 
     useEffect(() => {
@@ -19,7 +21,8 @@ export function ResponsiveAdBanner({ variant = 'auto', className = '' }) {
         try { localStorage.setItem('ad_banner_closed_' + variant, '1') } catch {}
     }
 
-    if (closed) return null
+    // [OWNER-OMEGA] владельцу и команде промо-баннер не показываем — это шум
+    if (closed || ['owner', 'admin', 'staff'].includes(user?.role)) return null
 
     return (
         <div className={`fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 w-[300px] max-w-[calc(100vw-2rem)] glass-card rounded-xl p-4 shadow-2xl shadow-black/40 transition-opacity duration-300 ${className}`}>
