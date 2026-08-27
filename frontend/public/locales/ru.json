@@ -2956,6 +2956,39 @@
     "subscriptions": {
       "receipt": "Чек",
       "receiptFilterFailed": "Без чека"
+    },
+    "changelog": {
+      "title": "Редактор changelog (модалка обновлений)",
+      "liveHint": "Записи из этой таблицы заменяют встроенный список в модалке обновлений. Пусто — показывается встроенный.",
+      "version": "Версия (например 9.9.22)",
+      "itemTitleRu": "Заголовок (RU)",
+      "itemTitleEn": "Заголовок (EN)",
+      "itemBodyRu": "Текст (RU)",
+      "itemBodyEn": "Текст (EN)",
+      "audAll": "Все",
+      "audClient": "Клиенты",
+      "audOwner": "Владелец",
+      "addVersion": "Добавить версию",
+      "delete": "Удалить",
+      "saved": "Запись changelog сохранена",
+      "deleted": "Запись changelog удалена",
+      "empty": "Записей нет — показывается встроенный changelog"
+    },
+    "expenses": {
+      "title": "Расходы (лайт)",
+      "aiTotal": "AI-вызовы",
+      "calls": "вызовов",
+      "infraTitle": "Инфраструктура (Render, MongoDB, Cloudflare)",
+      "servicePh": "Сервис (Render…)",
+      "amountPh": "₽/мес",
+      "add": "Добавить",
+      "remove": "Удалить",
+      "saved": "Расход сохранён",
+      "range": {
+        "day": "День",
+        "week": "Неделя",
+        "month": "Месяц"
+      }
     }
   },
   "payment": {

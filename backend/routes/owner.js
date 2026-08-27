@@ -470,4 +470,117 @@ router.post('/telegram-owner/confirm', protect, authorize('owner'), async (req, 
     }
 })
 
+// ============ [OWNER-OMEGA] Сбор расходов лайт: AI-usage (факт вызовов) + инфраструктура (ручной ввод) ============
+
+router.get('/expenses/summary', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { getExpensesSummary } = await import('../services/expenseTracker.js')
+        res.json({ success: true, summary: await getExpensesSummary() })
+    } catch (err) {
+        console.error('[owner/expenses/summary]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.put('/expenses/infra', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { upsertInfraExpense } = await import('../services/expenseTracker.js')
+        const { logOwnerAction } = await import('../services/ownerActionsService.js')
+        const service = String(req.body?.service || '').trim()
+        if (!service) return res.status(400).json({ error: 'Укажите сервис (Render, MongoDB, Cloudflare…)' })
+        const doc = await upsertInfraExpense(service, req.body?.amountRub, req.body?.note, `cabinet:${req.user?.email || ''}`)
+        await logOwnerAction('owner.expense.infra', { service, amountRub: Number(req.body?.amountRub) || 0 }, 'ok', `cabinet:${req.user?.email || ''}`)
+        res.json({ success: true, entry: doc })
+    } catch (err) {
+        console.error('[owner/expenses/infra:put]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.delete('/expenses/infra/:service', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { deleteInfraExpense } = await import('../services/expenseTracker.js')
+        await deleteInfraExpense(decodeURIComponent(req.params.service))
+        res.json({ success: true })
+    } catch (err) {
+        console.error('[owner/expenses/infra:delete]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+// ============ [OWNER-OMEGA] Changelog-редактор (модалка обновлений без правки кода) ============
+
+router.get('/changelog', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { default: ChangelogVersion } = await import('../models/ChangelogVersion.js')
+        const entries = await ChangelogVersion.find().sort({ createdAt: -1 }).limit(50).lean()
+        res.json({ success: true, entries })
+    } catch (err) {
+        console.error('[owner/changelog:get]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.post('/changelog', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { default: ChangelogVersion } = await import('../models/ChangelogVersion.js')
+        const { logOwnerAction } = await import('../services/ownerActionsService.js')
+        const version = String(req.body?.version || '').trim()
+        if (!version) return res.status(400).json({ error: 'Укажите версию (например 9.9.22)' })
+        const items = Array.isArray(req.body?.items) ? req.body.items.slice(0, 20).map(it => ({
+            audience: ['all', 'client', 'owner'].includes(it?.audience) ? it.audience : 'all',
+            title: { ru: String(it?.title?.ru || '').slice(0, 200), en: String(it?.title?.en || '').slice(0, 200) },
+            body: { ru: String(it?.body?.ru || '').slice(0, 1000), en: String(it?.body?.en || '').slice(0, 1000) },
+        })) : []
+        const entry = await ChangelogVersion.create({
+            version,
+            date: String(req.body?.date || '').trim() || new Date().toISOString().slice(0, 10),
+            items,
+        })
+        await logOwnerAction('owner.changelog.create', { version }, 'ok', `cabinet:${req.user?.email || req.user?._id}`)
+        res.json({ success: true, entry })
+    } catch (err) {
+        console.error('[owner/changelog:post]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.put('/changelog/:id', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { default: ChangelogVersion } = await import('../models/ChangelogVersion.js')
+        const { logOwnerAction } = await import('../services/ownerActionsService.js')
+        const patch = {}
+        if (req.body?.version !== undefined) patch.version = String(req.body.version).trim()
+        if (req.body?.date !== undefined) patch.date = String(req.body.date).trim()
+        if (Array.isArray(req.body?.items)) {
+            patch.items = req.body.items.slice(0, 20).map(it => ({
+                audience: ['all', 'client', 'owner'].includes(it?.audience) ? it.audience : 'all',
+                title: { ru: String(it?.title?.ru || '').slice(0, 200), en: String(it?.title?.en || '').slice(0, 200) },
+                body: { ru: String(it?.body?.ru || '').slice(0, 1000), en: String(it?.body?.en || '').slice(0, 1000) },
+            }))
+        }
+        const entry = await ChangelogVersion.findByIdAndUpdate(req.params.id, { $set: patch }, { new: true })
+        if (!entry) return res.status(404).json({ error: 'Запись не найдена' })
+        await logOwnerAction('owner.changelog.update', { id: req.params.id, version: entry.version }, 'ok', `cabinet:${req.user?.email || req.user?._id}`)
+        res.json({ success: true, entry })
+    } catch (err) {
+        console.error('[owner/changelog:put]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
+router.delete('/changelog/:id', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { default: ChangelogVersion } = await import('../models/ChangelogVersion.js')
+        const { logOwnerAction } = await import('../services/ownerActionsService.js')
+        const entry = await ChangelogVersion.findByIdAndDelete(req.params.id)
+        if (!entry) return res.status(404).json({ error: 'Запись не найдена' })
+        await logOwnerAction('owner.changelog.delete', { id: req.params.id, version: entry.version }, 'ok', `cabinet:${req.user?.email || req.user?._id}`)
+        res.json({ success: true })
+    } catch (err) {
+        console.error('[owner/changelog:delete]', err.message)
+        res.status(500).json({ error: err.message })
+    }
+})
+
 export default router

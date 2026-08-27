@@ -2772,6 +2772,39 @@
     "subscriptions": {
       "receipt": "Receipt",
       "receiptFilterFailed": "Receipt failed only"
+    },
+    "changelog": {
+      "title": "Changelog editor (update modal)",
+      "liveHint": "Entries from this table replace the bundled list in the update modal. Empty — bundled list is shown.",
+      "version": "Version (e.g. 9.9.22)",
+      "itemTitleRu": "Title (RU)",
+      "itemTitleEn": "Title (EN)",
+      "itemBodyRu": "Text (RU)",
+      "itemBodyEn": "Text (EN)",
+      "audAll": "All",
+      "audClient": "Clients",
+      "audOwner": "Owner",
+      "addVersion": "Add version",
+      "delete": "Delete",
+      "saved": "Changelog entry saved",
+      "deleted": "Changelog entry deleted",
+      "empty": "No entries — bundled changelog is shown"
+    },
+    "expenses": {
+      "title": "Expenses (lite)",
+      "aiTotal": "AI calls",
+      "calls": "calls",
+      "infraTitle": "Infrastructure (Render, MongoDB, Cloudflare)",
+      "servicePh": "Service (Render…)",
+      "amountPh": "₽/mo",
+      "add": "Add",
+      "remove": "Remove",
+      "saved": "Expense saved",
+      "range": {
+        "day": "Day",
+        "week": "Week",
+        "month": "Month"
+      }
     }
   },
   "payment": {

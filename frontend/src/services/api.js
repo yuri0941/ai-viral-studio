@@ -288,6 +288,34 @@ export const ownerControlApi = {
 }
 
 // ============================================
+// [OWNER-OMEGA] Сбор расходов лайт
+// ============================================
+export const ownerExpensesApi = {
+    summary: () => request('/owner/expenses/summary'),
+    upsertInfra: (payload) => request('/owner/expenses/infra', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+    }),
+    removeInfra: (service) => request(`/owner/expenses/infra/${encodeURIComponent(service)}`, { method: 'DELETE' }),
+}
+
+// ============================================
+// [OWNER-OMEGA] Changelog-редактор (модалка обновлений)
+// ============================================
+export const ownerChangelogApi = {
+    list: () => request('/owner/changelog'),
+    create: (payload) => request('/owner/changelog', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    }),
+    update: (id, payload) => request(`/owner/changelog/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+    }),
+    remove: (id) => request(`/owner/changelog/${id}`, { method: 'DELETE' }),
+}
+
+// ============================================
 // OMEGA API
 // ============================================
 export const omegaApi = {

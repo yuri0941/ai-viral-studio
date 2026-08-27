@@ -64,6 +64,20 @@ import { API_BASE_URL } from './config.js'
 function VersionCheck() {
     const { t } = useTranslation()
     const [update, setUpdate] = useState(null)
+    // [OWNER-OMEGA] changelog из БД (редактор владельца); при пустой БД — встроенный changelog.json
+    const [liveChangelog, setLiveChangelog] = useState(null)
+
+    useEffect(() => {
+        let cancelled = false
+        fetch(`${API_BASE_URL}/version/structured-changelog`)
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (!data || cancelled) return
+                if (Array.isArray(data.entries) && data.entries.length) setLiveChangelog(data.entries)
+            })
+            .catch(() => {})
+        return () => { cancelled = true }
+    }, [])
 
     useEffect(() => {
         let cancelled = false
@@ -118,7 +132,7 @@ function VersionCheck() {
     return (
         <UpdateModal
             version={update}
-            changelog={changelog}
+            changelog={liveChangelog || changelog}
             onUpdate={handleUpdate}
             onRemind={() => setUpdate(null)}
             onSkip={() => setUpdate(null)}

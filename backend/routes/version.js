@@ -36,4 +36,20 @@ router.get('/changelog', (req, res) => {
     })
 })
 
+// [OWNER-OMEGA] структурированный changelog из БД (редактируется из кабинета владельца).
+// Пустая БД → entries: [] (фронт показывает встроенный changelog.json).
+router.get('/structured-changelog', async (req, res) => {
+    try {
+        const { default: ChangelogVersion } = await import('../models/ChangelogVersion.js')
+        const entries = await ChangelogVersion.find().sort({ createdAt: -1 }).limit(20).lean()
+        res.json({
+            success: true,
+            entries: entries.map(e => ({ version: e.version, date: e.date, items: e.items || [] })),
+        })
+    } catch (err) {
+        console.error('[version/structured-changelog]', err.message)
+        res.json({ success: true, entries: [] }) // публичный роут — не светим ошибку, фронт на fallback
+    }
+})
+
 export default router
