@@ -29,7 +29,9 @@ export function AdOrdersTab() {
     setLoading(true)
     try {
       const res = await request('/ad-orders/all')
-      setOrders(res?.orders || res?.data || res || [])
+      // [OWNER-OMEGA] не-массив из API ({} при моке/ошибке) — не падаем
+      const list = res?.orders ?? res?.data ?? res
+      setOrders(Array.isArray(list) ? list : [])
     } catch (err) {
       console.error('[AdOrdersTab] fetch orders failed', err)
       toast.error(t('common.error') || 'Ошибка загрузки заказов')

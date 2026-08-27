@@ -52,7 +52,7 @@ export default function PredictionDashboard() {
             if (niche && niche !== 'all') params.set('niche', niche)
             params.set('horizon', horizon)
             const data = await request(`/prediction/trends?${params.toString()}`)
-            setTrends(data.trends || [])
+            setTrends(Array.isArray(data.trends) ? data.trends : [])
         } catch (err) {
             setError(err.message || t('prediction.error', 'Ошибка'))
         } finally {
@@ -97,7 +97,7 @@ export default function PredictionDashboard() {
         setError('')
         try {
             const data = await request(`/prediction/niches?budget=${budget}`)
-            setNiches(data.niches || [])
+            setNiches(Array.isArray(data.niches) ? data.niches : [])
         } catch (err) {
             setError(err.message || t('prediction.error', 'Ошибка'))
         } finally {

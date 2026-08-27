@@ -36,7 +36,7 @@ export default function OmegaAutoFixDashboard() {
             const statusData = await statusRes.json()
             const logsData = await logsRes.json()
             if (statusData.status === 'success') setStatus(statusData.data || {})
-            if (logsData.status === 'success') setLogs(logsData.data || [])
+            if (logsData.status === 'success') setLogs(Array.isArray(logsData.data) ? logsData.data : [])
         } catch (err) {
             console.warn('[OmegaAutoFixDashboard] load failed:', err.message)
         } finally {

@@ -73,8 +73,8 @@ export default function SupremeStatusPage() {
       setMesh({ nodeCount, connCount, fillPct: Math.min(nodeCount / 1000 * 100, 100) });
       setSwarm(swarmRes);
       setMemory({ l2, l3, archived });
-      setScale({ current: scaleRes?.current, prices: pricesRes || [], migration: scaleRes });
-      setWallet({ usdt: walletRes?.usdt || 0, history: histRes || [] });
+      setScale({ current: scaleRes?.current, prices: Array.isArray(pricesRes) ? pricesRes : [], migration: scaleRes });
+      setWallet({ usdt: walletRes?.usdt || 0, history: Array.isArray(histRes) ? histRes : [] });
     } catch (err) {
       console.error('[SupremeStatusPage] fetch failed', err);
       setError(err.message);

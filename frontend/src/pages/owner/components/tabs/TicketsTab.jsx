@@ -40,7 +40,7 @@ export default function TicketsTab() {
     setLoading(true);
     try {
       const data = await request('/support');
-      setTickets(data.data || []);
+      setTickets(Array.isArray(data.data) ? data.data : []);
     } catch (err) {
       console.error('[TicketsTab] load:', err);
     } finally {

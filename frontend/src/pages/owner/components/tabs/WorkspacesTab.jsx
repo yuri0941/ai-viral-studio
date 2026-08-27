@@ -13,7 +13,7 @@ export function WorkspacesTab({ data }) {
         try {
             setLoading(true)
             const res = await workspaceApi.list()
-            setWorkspaces(res.data || [])
+            setWorkspaces(Array.isArray(res.data) ? res.data : [])
         } catch (err) {
             setError(err.message)
         } finally {

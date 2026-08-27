@@ -12,7 +12,13 @@ export default function SalesMetricsTab() {
 
   useEffect(() => {
     request('/admin/sales-metrics')
-      .then(d => { setData(d); setLoading(false); })
+      .then(d => {
+        // [OWNER-OMEGA] нормализация: поля-массивы могут отсутствовать в ответе — не падаем на .map
+        const safe = d && typeof d === 'object' ? { ...d } : {};
+        if (!Array.isArray(safe.intents)) safe.intents = [];
+        setData(safe);
+        setLoading(false);
+      })
       .catch((err) => {
         console.error('[SalesMetricsTab] fetch failed', err);
         toast.error('Не удалось загрузить метрики');

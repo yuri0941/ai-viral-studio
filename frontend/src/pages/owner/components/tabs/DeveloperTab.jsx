@@ -15,7 +15,7 @@ export function DeveloperTab({ data }) {
         try {
             setLoading(true)
             const [kRes, dRes] = await Promise.all([developerApi.keys(), developerApi.docs()])
-            setKeys(kRes.data || [])
+            setKeys(Array.isArray(kRes.data) ? kRes.data : [])
             setDocs(dRes.data)
         } catch (err) {
             setError(err.message)
