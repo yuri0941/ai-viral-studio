@@ -31,7 +31,7 @@ export default function PrivacyPage() {
     email: 'tvinki05@yandex.ru',
     operatorAddress: 'г.Волгоград, Волгоградская обл',
     phone: '+79623164478',
-    siteUrl: 'app.aiviral.studio'
+    siteUrl: 'aiviral-studio.ru'
   };
 
   const operatorBlock = legal
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-700/50">
             <Eye size={20} className="text-emerald-400" />
-            <span className="text-sm text-slate-400">Дата вступления в силу: 30 июля 2026 г.</span>
+            <span className="text-sm text-slate-400">Дата вступления в силу: 27 августа 2026 г.</span>
           </div>
 
           <div className="mb-6 bg-slate-800/50 rounded-xl p-4 border-l-4 border-emerald-500">
@@ -66,7 +66,7 @@ export default function PrivacyPage() {
               <span><strong>Оператор:</strong> {operatorBlock}</span>
             </p>
             <p className="text-slate-400 text-sm mt-2 m-0 flex items-center gap-2">
-              <Server size={16} className="text-emerald-400" /> Сайт: {legal?.siteUrl || 'app.aiviral.studio'}
+              <Server size={16} className="text-emerald-400" /> Сайт: {legal?.siteUrl || 'aiviral-studio.ru'}
             </p>
             {legal?.phone && (
               <p className="text-slate-400 text-sm mt-2 m-0 flex items-center gap-2">
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
           </div>
 
           <Section icon={<Eye size={18} />} title="1. Кто мы">
-            <p>Оператор сервиса: {operatorBlock}. Сайт: {legal?.siteUrl || 'app.aiviral.studio'}.</p>
+            <p>Оператор сервиса: {operatorBlock}. Сайт: {legal?.siteUrl || 'aiviral-studio.ru'}.</p>
             <p>Сервис AI Viral Studio (далее — «Сервис») предоставляет инструменты для генерации контента с использованием искусственного интеллекта.</p>
           </Section>
 
@@ -109,18 +109,18 @@ export default function PrivacyPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-700/50">
                   <tr><td className="p-2">MongoDB Atlas</td><td className="p-2">США</td><td className="p-2">Хранение базы данных</td></tr>
-                  <tr><td className="p-2">GitHub Models</td><td className="p-2">США</td><td className="p-2">Обработка AI-запросов</td></tr>
-                  <tr><td className="p-2">Cloudflare Workers AI</td><td className="p-2">США / ЕС</td><td className="p-2">Обработка AI-запросов (резерв)</td></tr>
-                  <tr><td className="p-2">HuggingFace</td><td className="p-2">США / ЕС</td><td className="p-2">Обработка AI-запросов (резерв)</td></tr>
+                  <tr><td className="p-2">Groq</td><td className="p-2">США</td><td className="p-2">Обработка AI-запросов</td></tr>
+                  <tr><td className="p-2">OpenRouter</td><td className="p-2">США</td><td className="p-2">Обработка AI-запросов (резерв)</td></tr>
+                  <tr><td className="p-2">Cloudflare</td><td className="p-2">США / ЕС</td><td className="p-2">CDN и хостинг</td></tr>
+                  <tr><td className="p-2">Render</td><td className="p-2">США</td><td className="p-2">Хостинг backend</td></tr>
                   <tr><td className="p-2">ЮKassa</td><td className="p-2">РФ</td><td className="p-2">Обработка платежей</td></tr>
-                  <tr><td className="p-2">Nodemailer / Email-провайдер</td><td className="p-2">РФ / ЕС</td><td className="p-2">Отправка email</td></tr>
                 </tbody>
               </table>
             </div>
           </Section>
 
           <Section icon={<MapPin size={18} />} title="5. Трансраничная передача">
-            <p>Ваши персональные данные могут передаваться и обрабатываться в США и Европейском союзе (сервера MongoDB Atlas, GitHub, Cloudflare, HuggingFace). Мы обеспечиваем защиту данных на уровне, соответствующем требованиям 152-ФЗ РФ, и запрашиваем ваше явное согласие на трансграничную передачу при регистрации.</p>
+            <p>Ваши персональные данные могут передаваться и обрабатываться в США и Европейском союзе (серверы MongoDB Atlas, Cloudflare, Render, Groq, OpenRouter). Мы обеспечиваем защиту данных на уровне, соответствующем требованиям 152-ФЗ РФ, и запрашиваем ваше явное согласие на трансграничную передачу при регистрации.</p>
           </Section>
 
           <Section icon={<Database size={18} />} title="6. Сроки хранения">

@@ -56,7 +56,7 @@ export default function TermsPage() {
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-700/50">
             <Shield size={20} className="text-purple-400" />
-            <span className="text-sm text-slate-400">Дата вступления в силу: 30 июля 2026 г.</span>
+            <span className="text-sm text-slate-400">Дата вступления в силу: 27 августа 2026 г.</span>
           </div>
 
           <div className="mb-6 bg-slate-800/50 rounded-xl p-4 border-l-4 border-purple-500">
