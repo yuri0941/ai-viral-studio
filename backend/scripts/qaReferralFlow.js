@@ -58,15 +58,48 @@ step('счётчик реферера +1', parentRef?.referralCount === 1, `coun
 step('бонус рефереру за 1-го реферала ($10 кредитов)', parentRef?.creditBalance >= 10, `credit=${parentRef?.creditBalance}`)
 
 // 3. Оплата: тот же вызов, что делает yookassaController.recordPaymentAndReceipt
-await markReferralPaid(newUserId)
+// [REF-12PCT] 12% от суммы платежа (было фикс $4 — решение владельца 27.08)
+await markReferralPaid(newUserId, 693) // founding-оплата Pro 693₽
 const afterPay = await Referral.findOne({ userId: referrer._id }).lean()
 step('markReferralPaid: paidCount=1', afterPay?.paidReferralCount === 1)
-step('markReferralPaid: earnings += $4 (фикс)', afterPay?.referralEarnings === 4, `earnings=${afterPay?.referralEarnings}`)
+step('markReferralPaid: 12% от 693₽ = +83', afterPay?.referralEarnings === 83, `earnings=${afterPay?.referralEarnings}`)
 
-// 4. Идемпотентность: повторная «оплата» не должна платить дважды
-await markReferralPaid(newUserId)
+// 4. Идемпотентность: повторная «оплата» (дубль webhook) не должна платить дважды
+await markReferralPaid(newUserId, 693)
 const afterSecond = await Referral.findOne({ userId: referrer._id }).lean()
-step('идемпотентность: повторная оплата не удваивает', afterSecond?.referralEarnings === 4 && afterSecond?.paidReferralCount === 1)
+step('идемпотентность: повторный webhook не дублирует начисление', afterSecond?.referralEarnings === 83 && afterSecond?.paidReferralCount === 1)
+
+// 4b. Второй реферал: founding-оплата Agency 3493₽ → +419 (12%), сумма накапливается
+const reg2Email = `qa.referred.b.${stamp}@test.dev`
+const reg2 = await (await fetch(`${API}/api/auth/register`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'QA Referred B', email: reg2Email, password: 'QaRef12345',
+    acceptedTerms: true, acceptedPrivacy: true, acceptedConsent: true, isAdult: true,
+    referralCode: refDoc.referralCode,
+  }),
+})).json()
+const user2Id = reg2?.user?.id || reg2?.user?._id || reg2?.data?._id || reg2?.userId
+step('второй реферал зарегистрирован (API)', !!user2Id, reg2Email)
+await markReferralPaid(user2Id, 3493)
+const afterAgency = await Referral.findOne({ userId: referrer._id }).lean()
+step('markReferralPaid: 12% от 3493₽ = +419 (итого 502)', afterAgency?.referralEarnings === 502 && afterAgency?.paidReferralCount === 2, `earnings=${afterAgency?.referralEarnings}, paidCount=${afterAgency?.paidReferralCount}`)
+
+// 4c. Оплата без суммы: лог + БЕЗ начисления, но факт оплаты фиксируется
+const reg3Email = `qa.referred.c.${stamp}@test.dev`
+const reg3 = await (await fetch(`${API}/api/auth/register`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'QA Referred C', email: reg3Email, password: 'QaRef12345',
+    acceptedTerms: true, acceptedPrivacy: true, acceptedConsent: true, isAdult: true,
+    referralCode: refDoc.referralCode,
+  }),
+})).json()
+const user3Id = reg3?.user?.id || reg3?.user?._id || reg3?.data?._id || reg3?.userId
+step('третий реферал зарегистрирован (API)', !!user3Id, reg3Email)
+await markReferralPaid(user3Id) // amount не передан
+const afterNoAmount = await Referral.findOne({ userId: referrer._id }).lean()
+step('без суммы: начисление пропущено, paidCount+1', afterNoAmount?.referralEarnings === 502 && afterNoAmount?.paidReferralCount === 3, `earnings=${afterNoAmount?.referralEarnings}, paidCount=${afterNoAmount?.paidReferralCount}`)
 
 // 5. Self-referral защита: регистрация с собственным кодом
 const selfEmail = `qa.referred.self.${stamp}@test.dev`
@@ -88,7 +121,7 @@ const dash = await (await fetch(`${API}/api/analytics/referrals`, {
   headers: { Authorization: `Bearer ${referrerToken}` },
 })).json()
 const d = dash?.data || {}
-step('кабинет: paidCount=1, earnings=4', d.paidCount === 1 && d.earnings === 4, JSON.stringify({ paidCount: d.paidCount, earnings: d.earnings, count: d.count }))
+step('кабинет: paidCount=3, earnings=502', d.paidCount === 3 && d.earnings === 502, JSON.stringify({ paidCount: d.paidCount, earnings: d.earnings, count: d.count }))
 step('кабинет: реферал в списке со статусом «оплатил»', (d.referredUsers || []).some(u => u.status === 'оплатил'))
 
 await mongoose.disconnect()
