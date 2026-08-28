@@ -44,7 +44,7 @@ export function DashboardHeader({
     onDeleteNotification,
 }) {
     const { t } = useTranslation()
-    const { updateUser } = useAuth()
+    const { updateUser, setViewAs } = useAuth()
     const navigate = useNavigate()
     const [roleOpen, setRoleOpen] = useState(false)
     const [langOpen, setLangOpen] = useState(false)
@@ -148,7 +148,9 @@ export function DashboardHeader({
         }
     }
 
-    const availableRoles = getAvailableRoles(user?.role)
+    // [VIEW-AS-PERSIST] список ролей от РЕАЛЬНОЙ роли (realRole), текущая — эффективная (view-as)
+    const realRole = user?.realRole || user?.role
+    const availableRoles = getAvailableRoles(realRole)
     const currentRole = ROLE_CONFIG[user?.role] || ROLE_CONFIG.creator
     const CurrentIcon = currentRole.icon
 
@@ -163,15 +165,11 @@ export function DashboardHeader({
             setRoleOpen(false)
             return
         }
-        // [ROLE-SWITCH-FLASH] кэш профиля пишем СИНХРОННО до навигации:
-        // updateUser пишет localStorage внутри setState-апдейтера, который React
-        // может отложить → после reload гард ловил старую роль и шлёпал /unauthorized
-        try {
-            const cached = JSON.parse(localStorage.getItem('user_profile') || 'null')
-            localStorage.setItem('user_profile', JSON.stringify({ ...(cached || user || {}), role }))
-            localStorage.setItem('role_switch_at', String(Date.now()))
-        } catch { /* битый кэш — updateUser ниже всё равно обновит стейт */ }
-        updateUser({ role })
+        // [VIEW-AS-PERSIST] выбор владельца хранится в view_as ОТДЕЛЬНО от реальной роли:
+        // user_profile не затираем, JWT не трогаем. role_switch_at — маркер для
+        // ProtectedRoute-спиннера (фикс role-switch-flash сохранён)
+        localStorage.setItem('role_switch_at', String(Date.now()))
+        setViewAs(role === realRole ? null : role)
         setRoleOpen(false)
         window.location.href = config.route
     }

@@ -13,6 +13,28 @@ export const useAuth = () => {
     return context
 }
 
+// [VIEW-AS-PERSIST] допустимые роли для view-as режима владельца (owner не входит — это выход из режима)
+const VIEW_AS_ROLES = ['admin', 'staff', 'creator', 'business', 'advertiser']
+
+// [VIEW-AS-PERSIST] читаем сохранённый view-as (только для владельца, применяется в AuthProvider)
+function readViewAs() {
+    try {
+        const v = localStorage.getItem('view_as')
+        return VIEW_AS_ROLES.includes(v) ? v : null
+    } catch { return null }
+}
+
+// [VIEW-AS-PERSIST] эффективный юзер: реальная роль owner + view_as → фронт работает в роли view_as,
+// JWT и серверные права остаются owner. realRole хранит настоящую роль.
+function applyViewAs(user) {
+    if (!user) return user
+    const viewAs = readViewAs()
+    if (user.role === 'owner' && viewAs) {
+        return { ...user, realRole: 'owner', role: viewAs }
+    }
+    return user
+}
+
 // Провайдер
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
@@ -40,7 +62,7 @@ export const AuthProvider = ({ children }) => {
                     })
                     const data = await response.json()
                     if (data.success) {
-                        setUser(data.user)
+                        setUser(applyViewAs(data.user))
                         setIsAuthenticated(true)
                         authed = true
                         localStorage.setItem('user_profile', JSON.stringify(data.user))
@@ -62,7 +84,7 @@ export const AuthProvider = ({ children }) => {
                     try {
                         const cached = JSON.parse(localStorage.getItem('user_profile') || 'null')
                         if (cached) {
-                            setUser(cached)
+                            setUser(applyViewAs(cached))
                             setIsAuthenticated(true)
                         }
                     } catch { /* битый кэш — игнорируем */ }
@@ -132,15 +154,36 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         localStorage.removeItem('token')
         localStorage.removeItem('role_switch_at')
+        localStorage.removeItem('view_as')
         setUser(null)
         setIsAuthenticated(false)
+    }
+
+    // [VIEW-AS-PERSIST] владелец смотрит приложение глазами роли: фронт-режим, JWT не меняется.
+    // role=null/'owner' — выход из режима. Сохраняется в localStorage отдельно от user_profile.
+    const setViewAs = (role) => {
+        const next = role && role !== 'owner' && VIEW_AS_ROLES.includes(role) ? role : null
+        try {
+            if (next) localStorage.setItem('view_as', next)
+            else localStorage.removeItem('view_as')
+        } catch { /* quota — режим просто не переживёт reload */ }
+        setUser(prev => {
+            if (!prev) return prev
+            const real = prev.realRole || prev.role
+            if (real !== 'owner') return prev
+            return next ? { ...prev, realRole: 'owner', role: next } : { ...prev, role: 'owner', realRole: undefined }
+        })
     }
 
     const updateUser = (updates) => {
         setUser(prev => {
             if (!prev) return prev
             const next = { ...prev, ...updates }
-            localStorage.setItem('user_profile', JSON.stringify(next))
+            // [VIEW-AS-PERSIST] в кэш пишем РЕАЛЬНЫЙ профиль (без view-as оверлея),
+            // иначе после reload владелец навсегда "превратился" бы в просматриваемую роль
+            const real = next.realRole || next.role
+            const { realRole, ...cacheable } = next
+            localStorage.setItem('user_profile', JSON.stringify({ ...cacheable, role: real }))
             return next
         })
     }
@@ -173,7 +216,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, loading, roleSwitching, login, register, logout, updateUser, updatePreferences }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, loading, roleSwitching, login, register, logout, updateUser, updatePreferences, setViewAs }}>
             {children}
         </AuthContext.Provider>
     )
