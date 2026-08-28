@@ -230,6 +230,23 @@ export function handleWebhook(body) {
   return result;
 }
 
+// [security-hardening Б5-З2.2] верификация webhook-уведомления через GET к API ЮKassa.
+// Поддельный webhook не пройдёт: платёж должен существовать в ЮKassa, статус и metadata совпасть.
+// Для refund.succeeded object — это возврат, реальный платёж в object.payment_id.
+export async function verifyWebhookNotification({ action, paymentId, metadata = {}, payload = null }) {
+  const verifyId = action === 'mark_refunded' ? (payload?.object?.payment_id || paymentId) : paymentId;
+  const real = await checkPayment(verifyId);
+  const realStatus = real?.status;
+  const realMeta = real?.metadata || {};
+  const statusOk = action === 'mark_paid'
+    ? realStatus === 'succeeded' && real?.paid !== false
+    : (realStatus === 'canceled' || realStatus === 'succeeded');
+  const metaOk = ['userId', 'subscriptionId', 'invoiceId'].every(
+    k => !metadata?.[k] || String(realMeta?.[k] || '') === String(metadata[k])
+  );
+  return { ok: statusOk && metaOk, statusOk, metaOk, realStatus, verifyId };
+}
+
 export async function createInvoicePayment({ invoiceId, amount, description, returnUrl, metadata = {} }) {
   return createPayment({
     amount,

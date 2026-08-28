@@ -452,10 +452,12 @@ app.use(compression())
 app.use(monitoringMiddleware)  // [v7.0-PART2] track API latency and errors
 
 // Telegram webhook handlers
+// [security-hardening Б5-З2.1] верификация X-Telegram-Bot-Api-Secret-Token (если TELEGRAM_WEBHOOK_SECRET задан)
+import { verifyTgWebhookSecret } from './utils/tgWebhookSecret.js'
 if (process.env.NODE_ENV === 'production') {
     // [BOT-ROUTING-FIX] client token → omegaBot, owner token → ownerBot
     if (CLIENT_BOT_TOKEN) {
-        app.post(`/bot${CLIENT_BOT_TOKEN}`, express.json(), (req, res) => {
+        app.post(`/bot${CLIENT_BOT_TOKEN}`, express.json(), verifyTgWebhookSecret, (req, res) => {
             if (global.omegaBot && typeof global.omegaBot.processUpdate === 'function') {
                 global.omegaBot.processUpdate(req.body)
             }
@@ -463,7 +465,7 @@ if (process.env.NODE_ENV === 'production') {
         })
     }
     if (OWNER_BOT_TOKEN && OWNER_BOT_TOKEN !== CLIENT_BOT_TOKEN) {
-        app.post(`/bot${OWNER_BOT_TOKEN}`, express.json(), (req, res) => {
+        app.post(`/bot${OWNER_BOT_TOKEN}`, express.json(), verifyTgWebhookSecret, (req, res) => {
             if (global.ownerBot && typeof global.ownerBot.processUpdate === 'function') {
                 global.ownerBot.processUpdate(req.body)
             }
@@ -472,14 +474,14 @@ if (process.env.NODE_ENV === 'production') {
     }
 }
 
-app.post('/webhook/owner', express.json(), (req, res) => {
+app.post('/webhook/owner', express.json(), verifyTgWebhookSecret, (req, res) => {
     if (global.ownerBot && typeof global.ownerBot.processUpdate === 'function') {
         global.ownerBot.processUpdate(req.body)
     }
     res.sendStatus(200)
 })
 
-app.post('/webhook/omega', express.json(), (req, res) => {
+app.post('/webhook/omega', express.json(), verifyTgWebhookSecret, (req, res) => {
     if (global.omegaBot && typeof global.omegaBot.processUpdate === 'function') {
         global.omegaBot.processUpdate(req.body)
     }

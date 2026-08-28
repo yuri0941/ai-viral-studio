@@ -1,4 +1,4 @@
-import { createPayment, checkPayment, handleWebhook, createInvoicePayment, getReceiptsByPayment } from '../services/yookassaService.js';
+import { createPayment, checkPayment, handleWebhook, verifyWebhookNotification, createInvoicePayment, getReceiptsByPayment } from '../services/yookassaService.js';
 import { Subscription, Invoice, User } from '../models/index.js';
 import Payment from '../models/Payment.js';
 import { sendPaymentSuccessEmail, sendReceiptFailedEmail, sendSubscriptionActiveEmail } from '../services/emailService.js';
@@ -326,6 +326,29 @@ export const yookassaWebhook = async (req, res) => {
 
     const { paymentId, action, metadata } = result;
     console.log(`[YOOKASSA-WEBHOOK] payment=${paymentId} status=${result.status}`);
+
+    // [security-hardening Б5-З2.2] верификация уведомления: перед начислением/возвратом
+    // сверяем платёж напрямую с API ЮKassa (GET /payments/{id}) — поддельный webhook не пройдёт.
+    // Флоу оплаты не меняется; при провале верификации платёж НЕ засчитывается, владельцу алерт.
+    if (action === 'mark_paid' || action === 'mark_refunded') {
+      try {
+        const v = await verifyWebhookNotification({ action, paymentId, metadata, payload });
+        if (!v.ok) {
+          console.warn(`[YOOKASSA-WEBHOOK] ⚠️ поддельное/расходящееся уведомление: payment=${v.verifyId} status=${v.realStatus} statusOk=${v.statusOk} metaOk=${v.metaOk}`);
+          import('../services/ownerBot.js')
+            .then(m => m.alertOwner?.(`🚨 <b>Поддельный webhook ЮKassa</b>\nПлатёж: <code>${v.verifyId}</code>\nРеальный статус: ${v.realStatus || 'не найден'}\nНачисление ОТКЛОНЕНО.`, 'payment'))
+            .catch(() => {});
+          return res.status(200).json({ success: true, ignored: true, reason: 'verification_failed' });
+        }
+      } catch (vErr) {
+        // API ЮKassa недоступен/платёж не найден — fail-closed: не начисляем, алерт владельцу
+        console.error(`[YOOKASSA-WEBHOOK] верификация не удалась: payment=${paymentId}:`, vErr.message);
+        import('../services/ownerBot.js')
+          .then(m => m.alertOwner?.(`🚨 <b>Webhook ЮKassa не прошёл верификацию</b>\nПлатёж: <code>${paymentId}</code>\nОшибка: ${String(vErr.message).slice(0, 150)}\nНачисление ОТКЛОНЕНО — проверьте платёж вручную.`, 'payment'))
+          .catch(() => {});
+        return res.status(200).json({ success: true, ignored: true, reason: 'verification_error' });
+      }
+    }
 
     if (action === 'mark_paid') {
       // [v9.9.19.14] идемпотентность: повторная доставка не создаёт дубль
