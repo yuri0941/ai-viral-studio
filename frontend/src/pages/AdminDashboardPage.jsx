@@ -66,7 +66,9 @@ function AdminDashboardPage() {
             })
             if (!res.ok) throw new Error('Failed to fetch users')
             const json = await res.json()
-            const list = Array.isArray(json) ? json : (json.clients || json.data || [])
+            const list = Array.isArray(json) ? json
+                : (Array.isArray(json.clients) ? json.clients
+                    : (Array.isArray(json.data) ? json.data : []))
             setUsers(list.map(u => ({
                 id: u._id || u.id,
                 name: u.name || '',
