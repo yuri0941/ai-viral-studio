@@ -65,10 +65,12 @@ function tokenFor(role) {
 
 // [CHAT-HOTFIX] 2+ сегмента: ловим и двусегментные сырые ключи (chat.placeholder и т.п.)
 const RAW_KEY_RE = /\b[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*(?:\.[a-z][a-zA-Z]*)*\b/g
-const RAW_KEY_WHITELIST = /^(AI Viral|aiviral-studio|app\.aiviral\.studio|https?:|www\.|node_modules)/
+const RAW_KEY_WHITELIST = /^(AI Viral|aiviral-studio|app\.aiviral\.studio|https?:|www\.|node_modules|document\.)/
 // [CHAT-HOTFIX] домены/TLD — не i18n-ключи (studio.ru из aiviral-studio.ru, yandex.ru);
 // email (uitest.creator@...) вычищается из текста до матчинга
-const RAW_KEY_DOMAIN_RE = /\.(ru|com|net|org|io|dev|app|me|ai|xyz|studio|guru|email)$/i
+const RAW_KEY_DOMAIN_RE = /\.(ru|com|net|org|io|dev|app|me|ai|xyz|co|studio|guru|email)$/i
+// [OWNER-OMEGA] имена файлов в коде/демо-сниппетах (package.json, main.jsx) — не i18n-ключи
+const RAW_KEY_FILE_RE = /\.(json|jsx?|tsx?|mjs|css|html?|svg|png|mjs)$/i
 const EMAIL_RE = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g
 
 // [UI-POLISH] прокси продового API: preview на 127.0.0.1 не в CORS-whitelist бэкенда,
@@ -283,7 +285,7 @@ async function checkPage(page, label, width, lang, role = 'public') {
     })
 
     const rawKeys = [...new Set((metrics.text.replace(EMAIL_RE, ' ').match(RAW_KEY_RE) || [])
-        .filter(k => !RAW_KEY_WHITELIST.test(k) && !RAW_KEY_DOMAIN_RE.test(k) && k.split('.').every(p => p.length > 1)))].slice(0, 10)
+        .filter(k => !RAW_KEY_WHITELIST.test(k) && !RAW_KEY_DOMAIN_RE.test(k) && !RAW_KEY_FILE_RE.test(k) && k.split('.').every(p => p.length > 1)))].slice(0, 10)
 
     const safeName = (label === '/' ? 'home' : label.replace(/^\//, '').replace(/[/?=&]/g, '_'))
     const shot = `${role}_${safeName}_${width}_${lang}.png`
