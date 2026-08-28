@@ -1277,7 +1277,10 @@
         "title": "How to change plan",
         "content": "Go to Settings → Subscription. Choose a new plan and click \"Select\"."
       }
-    }
+    },
+    "contextTotal": "Total tickets from this client",
+    "contextLast": "last",
+    "aiHint": "AI hint"
   },
   "support": {
     "continueInTg": "Continue in Telegram",

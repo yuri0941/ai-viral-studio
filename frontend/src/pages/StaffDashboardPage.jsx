@@ -103,6 +103,14 @@ function StaffDashboardPage() {
         }
     }
 
+    const openTicket = (ticket) => {
+        setSelectedTicket(ticket)
+        setReplyText('')
+        setShowTicketModal(true)
+        setTicketContext(null)
+        apiCall(`/support/${ticket.id}/context`).then(json => setTicketContext(json?.data || null)).catch(() => {})
+    }
+
     useEffect(() => {
         const fetchTickets = async () => {
             try {
@@ -122,6 +130,8 @@ function StaffDashboardPage() {
     // --- MODALS ---
     const [showTicketModal, setShowTicketModal] = useState(false)
     const [selectedTicket, setSelectedTicket] = useState(null)
+    // [STAFF-DOP] контекст клиента в модалке тикета (GET /api/support/:id/context)
+    const [ticketContext, setTicketContext] = useState(null)
     const [showKnowledgeModal, setShowKnowledgeModal] = useState(false)
     const [showEscalationModal, setShowEscalationModal] = useState(false)
     const [escalationForm, setEscalationForm] = useState({ reason: '', priority: 'medium', notes: '' })
@@ -308,7 +318,7 @@ function StaffDashboardPage() {
             sortable: false,
             cell: (ticket) => (
                 <button
-                    onClick={() => { setSelectedTicket(ticket); setReplyText(''); setShowTicketModal(true) }}
+                    onClick={() => openTicket(ticket)}
                     className="px-3 py-1.5 rounded-lg bg-[var(--success)]/10 text-[var(--success)] text-xs font-medium hover:bg-[var(--success)]/20 transition-colors flex items-center gap-1"
                 >
                     <ArrowUpRight size={12} /> {t('staff.openTicket')}
@@ -318,12 +328,6 @@ function StaffDashboardPage() {
     ], [changePriority, changeStatus]) // [P24] fixed: renamed cell param from 't' to 'ticket' to avoid shadowing translation function
 
     // --- TICKET ACTIONS ---
-    const openTicket = (ticket) => {
-        setSelectedTicket(ticket)
-        setReplyText('')
-        setShowTicketModal(true)
-    }
-
     // [STAFF-DOP] ответ уходит в backend → клиент получает его во все каналы (TG/виджет), а не только в localStorage
     const sendReply = async () => {
         if (!replyText.trim() || !selectedTicket) return
@@ -707,6 +711,16 @@ function StaffDashboardPage() {
                                     </>
                                 )}
                             </div>
+                            {ticketContext && (
+                                <div className="mb-4 p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-muted)] space-y-1">
+                                    <p>{t('staff.contextTotal', 'Всего обращений клиента')}: <span className="text-[var(--text)]">{ticketContext.metrics?.totalUserTickets ?? '—'}</span>
+                                        {ticketContext.metrics?.lastTicketAt && <> · {t('staff.contextLast', 'последнее')}: {new Date(ticketContext.metrics.lastTicketAt).toLocaleString('ru-RU')}</>}
+                                    </p>
+                                    {ticketContext.recommendations?.[0] && (
+                                        <p>💡 {t('staff.aiHint', 'Подсказка AI')}: <span className="text-[var(--text)]">{ticketContext.recommendations[0]}</span></p>
+                                    )}
+                                </div>
+                            )}
                             {selectedTicket.messages.map((msg, i) => (
                                 <div key={i} className={`flex gap-3 ${msg.from === 'staff' ? 'flex-row-reverse' : ''}`}>
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${msg.from === 'staff' ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'bg-[var(--accent)]/20 text-[var(--accent)]'
