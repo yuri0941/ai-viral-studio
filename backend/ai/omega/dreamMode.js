@@ -72,7 +72,9 @@ class DreamMode {
 
     // [v9.9.19.6] Ночная смена: изучаем 1-2 новые темы → skill-узлы → сразу применяются в постах
     async runNightLearning(trends) {
-        const trendTopics = (trends || []).map(t => t.topic || t.title || '').filter(Boolean).slice(0, 2)
+        // [security-hardening] Array.isArray-гард: getTrends возвращает объект {trends:[]}, не массив
+        const list = Array.isArray(trends) ? trends : (Array.isArray(trends?.trends) ? trends.trends : [])
+        const trendTopics = list.map(t => t?.topic || t?.title || '').filter(Boolean).slice(0, 2)
         const topics = trendTopics.length ? trendTopics : NIGHT_STUDY_POOL.sort(() => Math.random() - 0.5).slice(0, 2)
         this.lastNightLearning = []
         for (const topic of topics) {
@@ -104,11 +106,21 @@ class DreamMode {
 
         try {
             // 1. Scan 50+ trend sources (aggregated via getTrends)
-            const trends = await getTrends('', 50)
+            // [security-hardening] getTrends({niche}) → {trends:[], cached, source}; нормализуем в массив,
+            // чтобы плохой ответ сканера не ронял всю ночную смену
+            const trendsRaw = await getTrends({ niche: '' }).catch(err => {
+                console.warn('[DreamMode] getTrends failed:', err.message)
+                return null
+            })
+            const trends = Array.isArray(trendsRaw) ? trendsRaw : (Array.isArray(trendsRaw?.trends) ? trendsRaw.trends : [])
             this.metrics.trendsScanned += trends.length || 0
 
             // 1.5 [v9.9.19.6] Непрерывное самообучение: 1-2 темы за ночь → skill-узлы в MongoDB
-            await this.runNightLearning(trends)
+            try {
+                await this.runNightLearning(trends)
+            } catch (err) {
+                console.warn('[DreamMode] night learning step failed:', err.message)
+            }
 
             // 2. Generate 10 post ideas for each active client
             const users = await User.find({ role: 'client', status: { $ne: 'inactive' } }).limit(100).lean()
@@ -168,7 +180,8 @@ class DreamMode {
     }
 
     async generateIdeas(user, niche, trends, count = 10) {
-        const trendHints = trends.slice(0, 5).map(t => t.topic || t.title || t).filter(Boolean).join('; ')
+        const trendList = Array.isArray(trends) ? trends : []
+        const trendHints = trendList.slice(0, 5).map(t => t?.topic || t?.title || t).filter(Boolean).join('; ')
         const prompt = `Ты OMEGA. Для клиента в нише "${niche || 'контент'}" сгенерируй ${count} идей постов/роликов на завтра.
 Учти актуальные тренды: ${trendHints || 'общие тренды соцсетей'}.
 Верни ТОЛЬКО JSON массив:
