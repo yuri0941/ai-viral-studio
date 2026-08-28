@@ -30,9 +30,10 @@ export async function deleteClientAccount(clientId, ownerId, reason = '') {
 }
 
 export async function blockClient(clientId, ownerId, reason = '') {
+  // [STAFF-DOP] бан должен реально блокировать: login (auth.js) и protect (middleware/auth.js) смотрят на isActive
   const client = await User.findByIdAndUpdate(
     clientId,
-    { status: 'blocked', blockedAt: new Date(), blockedReason: reason, blockedBy: ownerId },
+    { status: 'blocked', isActive: false, blockedAt: new Date(), blockedReason: reason, blockedBy: ownerId },
     { new: true }
   );
   if (!client) throw new Error('Client not found');
@@ -42,7 +43,7 @@ export async function blockClient(clientId, ownerId, reason = '') {
 export async function unblockClient(clientId, ownerId) {
   const client = await User.findByIdAndUpdate(
     clientId,
-    { status: 'active', blockedAt: null, blockedReason: null, blockedBy: null },
+    { status: 'active', isActive: true, blockedAt: null, blockedReason: null, blockedBy: null },
     { new: true }
   );
   if (!client) throw new Error('Client not found');

@@ -129,6 +129,27 @@ router.post('/reports/intelligence', protect, authorize('owner', 'admin', 'busin
     }
 })
 
+// [STAFF-DOP] Создание staff-аккаунта из owner-кабинета (email + временный пароль + роль), без seed-скриптов.
+// Только owner: staff/admin не могут создавать privileged-аккаунты (белый список ролей Б3).
+// ВАЖНО: объявлен ВЫШЕ generic router.post('/:entity') — иначе 'staff' улетает в createEntity.
+router.post('/staff', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { createManagedUser } = await import('../services/userManager.js')
+        const { email, name, password, role } = req.body || {}
+        const { user, tempPassword } = await createManagedUser({ email, name, password, role }, `cabinet:${req.user?.email || req.user?._id}`)
+        res.status(201).json({
+            success: true,
+            staff: { id: String(user._id), email: user.email, name: user.name, role: user.role },
+            ...(tempPassword ? { tempPassword } : {}),
+        })
+    } catch (err) {
+        console.error('[owner/staff:create]', err.message)
+        const msg = err.message || 'Ошибка сервера'
+        const status = /уже существует/.test(msg) ? 409 : /Некорректный|Недопустим|Пароль/.test(msg) ? 400 : 500
+        res.status(status).json({ success: false, error: msg })
+    }
+})
+
 // Generic CRUD for owner entities
 router.post('/:entity', protect, authorize('owner', 'admin'), createEntity)
 router.patch('/:entity/:id', protect, authorize('owner', 'admin'), updateEntity)
@@ -324,26 +345,6 @@ router.post('/control/refund', protect, authorize('owner'), async (req, res) => 
     } catch (err) {
         console.error('[owner/control/refund]', err.message)
         res.status(500).json({ error: err.message })
-    }
-})
-
-// [STAFF-DOP] Создание staff-аккаунта из owner-кабинета (email + временный пароль + роль), без seed-скриптов.
-// Только owner: staff/admin не могут создавать privileged-аккаунты (белый список ролей Б3).
-router.post('/staff', protect, authorize('owner'), async (req, res) => {
-    try {
-        const { createManagedUser } = await import('../services/userManager.js')
-        const { email, name, password, role } = req.body || {}
-        const { user, tempPassword } = await createManagedUser({ email, name, password, role }, `cabinet:${req.user?.email || req.user?._id}`)
-        res.status(201).json({
-            success: true,
-            staff: { id: String(user._id), email: user.email, name: user.name, role: user.role },
-            ...(tempPassword ? { tempPassword } : {}),
-        })
-    } catch (err) {
-        console.error('[owner/staff:create]', err.message)
-        const msg = err.message || 'Ошибка сервера'
-        const status = /уже существует/.test(msg) ? 409 : /Некорректный|Недопустим|Пароль/.test(msg) ? 400 : 500
-        res.status(status).json({ success: false, error: msg })
     }
 })
 
