@@ -212,7 +212,7 @@ const PAGE_TITLES = {
 // PROTECTED ROUTE
 // ============================================
 function ProtectedRoute({ children, allowedRoles }) {
-    const { user, isAuthenticated, loading, logout } = useAuth()
+    const { user, isAuthenticated, loading, roleSwitching, logout } = useAuth()
     const location = useLocation()
     const navigate = useNavigate()
 
@@ -225,7 +225,9 @@ function ProtectedRoute({ children, allowedRoles }) {
         navigate('/')
     }
 
-    if (loading) {
+    // [ROLE-SWITCH-FLASH] roleSwitching: идёт refresh профиля после смены роли —
+    // показываем спиннер; /unauthorized — только при подтверждённой чужой роли
+    if (loading || roleSwitching) {
         return (
             <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
                 <div className="animate-spin w-8 h-8 border-2 border-[#00ff41] border-t-transparent rounded-full" />

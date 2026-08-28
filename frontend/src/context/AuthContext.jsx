@@ -18,6 +18,12 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
+    // [ROLE-SWITCH-FLASH] свежий маркер смены роли → профиль мог не догрузиться,
+    // ProtectedRoute в это время показывает спиннер вместо /unauthorized
+    const [roleSwitching, setRoleSwitching] = useState(() => {
+        const at = Number(localStorage.getItem('role_switch_at') || 0)
+        return at > 0 && Date.now() - at < 15000
+    })
 
     const detectTimezone = () => {
         try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return 'UTC' }
@@ -63,6 +69,9 @@ export const AuthProvider = ({ children }) => {
                 }
             }
             setLoading(false)
+            // [ROLE-SWITCH-FLASH] профиль применён (сервер или кэш) — роль подтверждена
+            localStorage.removeItem('role_switch_at')
+            setRoleSwitching(false)
         }
         checkAuth()
     }, [])
@@ -122,6 +131,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = () => {
         localStorage.removeItem('token')
+        localStorage.removeItem('role_switch_at')
         setUser(null)
         setIsAuthenticated(false)
     }
@@ -163,7 +173,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, register, logout, updateUser, updatePreferences }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, loading, roleSwitching, login, register, logout, updateUser, updatePreferences }}>
             {children}
         </AuthContext.Provider>
     )
