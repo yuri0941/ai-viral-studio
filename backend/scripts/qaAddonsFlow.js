@@ -42,24 +42,25 @@ if (r2.status === 400) {
   step('аддон в статусе pending (НЕ active до оплаты)', uaAfter?.status === 'pending', uaAfter?.status)
   step('my-addons пуст до оплаты', true)
 
-  // 3. Webhook payment.succeeded активирует аддон
+  // 3. [security-hardening Б5-З2.2] Webhook БЕЗ подтверждения API ЮKassa → аддон НЕ активируется.
+  // Платёж создан, но не оплачен (status=pending в ЮKassa) — верификация отклоняет начисление.
   const hookBody = JSON.stringify({ event: 'payment.succeeded', object: { id: j2.paymentId, status: 'succeeded', paid: true, metadata: { userId: String(client._id), addonId: 'ai-designer', addonPrice: 290 } } })
   const r3 = await fetch(`${API}/api/payments/webhook/yookassa`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: hookBody })
   const uaPaid = await UserAddon.findOne({ userId: client._id, addonId: 'ai-designer' }).lean()
-  step('webhook payment.succeeded → аддон active', r3.status === 200 && uaPaid?.status === 'active', uaPaid?.status)
-  step('срок действия ~30 дней', uaPaid && Math.abs(new Date(uaPaid.expiresAt) - Date.now() - 30 * 864e5) < 60e3)
+  step('webhook без оплаты в ЮKassa → аддон НЕ active (верификация через API)', r3.status === 200 && uaPaid?.status !== 'active', uaPaid?.status || 'нет записи')
 
-  // 4. Повторный webhook → идемпотентно
+  // 4. Повторный поддельный webhook → по-прежнему не активирует (идемпотентный отказ)
   const r4 = await fetch(`${API}/api/payments/webhook/yookassa`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: hookBody })
-  const j4 = await r4.json().catch(() => ({}))
-  step('повторный webhook → idempotent', r4.status === 200 && j4.idempotent === true)
+  const uaAfter2 = await UserAddon.findOne({ userId: client._id, addonId: 'ai-designer' }).lean()
+  step('повторный webhook → аддон по-прежнему НЕ active', r4.status === 200 && uaAfter2?.status !== 'active', uaAfter2?.status || 'нет записи')
 }
 
 // 5. Owner: manual активация работает (демо/тест)
 const r5 = await fetch(`${API}/api/subscriptions/addons/ai-designer/purchase`, { method: 'POST', headers: H(ot), body: JSON.stringify({ provider: 'manual' }) })
 step('owner: manual активация разрешена', r5.status === 200, String(r5.status))
 
-// 6. Webhook-активация (работает и без ключей ЮKassa — handleWebhook локальный парсер)
+// 6. [security-hardening Б5-З2.2] Webhook с выдуманным paymentId → верификация через API ЮKassa
+// отклоняет (платёж не существует / не оплачен) → аддон НЕ активируется. Подделка невозможна.
 const payId = 'qa-addon-pay-' + Date.now()
 await UserAddon.findOneAndUpdate(
   { userId: client._id, addonId: 'ai-video' },
@@ -69,10 +70,9 @@ await UserAddon.findOneAndUpdate(
 const hookBody = JSON.stringify({ event: 'payment.succeeded', object: { id: payId, status: 'succeeded', paid: true, description: 'Аддон AI Видео — AI Viral Studio', metadata: { userId: String(client._id), addonId: 'ai-video', addonPrice: 990 } } })
 const r6 = await fetch(`${API}/api/yookassa/webhook`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: hookBody })
 const uaPaid = await UserAddon.findOne({ userId: client._id, addonId: 'ai-video' }).lean()
-step('webhook payment.succeeded → аддон active', r6.status === 200 && uaPaid?.status === 'active', uaPaid?.status)
-step('срок действия ~30 дней', !!uaPaid && Math.abs(new Date(uaPaid.expiresAt) - Date.now() - 30 * 864e5) < 60e3)
+step('поддельный webhook (несуществующий платёж) → аддон НЕ active', r6.status === 200 && uaPaid?.status !== 'active', uaPaid?.status || 'нет записи')
 const r7 = await fetch(`${API}/api/yookassa/webhook`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: hookBody })
-const j7 = await r7.json().catch(() => ({}))
-step('повторный webhook → idempotent', r7.status === 200 && j7.idempotent === true)
+const uaPaid2 = await UserAddon.findOne({ userId: client._id, addonId: 'ai-video' }).lean()
+step('повторный поддельный webhook → по-прежнему НЕ active', r7.status === 200 && uaPaid2?.status !== 'active', uaPaid2?.status || 'нет записи')
 
 await mongoose.disconnect()
