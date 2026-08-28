@@ -13,6 +13,58 @@ function isWhitelisted(req) {
     return getClientIp(req) === ownerIp
 }
 
+// [fix/ratelimit-vpn] нормализация email для ключа лимита
+function normalizeEmail(email) {
+    return String(email || '').trim().toLowerCase()
+}
+
+// [fix/ratelimit-vpn] userId из JWT payload БЕЗ верификации — только для бакета rate-limit;
+// верификацию выполняет protect дальше по цепочке. Худший случай — атакующий выберет себе бакет.
+function userIdFromToken(req) {
+    const auth = req.headers.authorization
+    if (!auth || !auth.startsWith('Bearer ')) return null
+    try {
+        const part = auth.slice(7).split('.')[1]
+        const payload = JSON.parse(Buffer.from(part, 'base64url').toString('utf8'))
+        return payload.id || payload._id || payload.sub || null
+    } catch {
+        return null
+    }
+}
+
+// [fix/ratelimit-vpn] auth-эндпоинты (login/register/forgot-password): ключ = IP + email.
+// Общий IP VPN/оператора больше не режет разных пользователей друг друга.
+function authKeyGenerator(req) {
+    const email = normalizeEmail(req.body?.email)
+    return email ? `${getClientIp(req)}|${email}` : getClientIp(req)
+}
+
+// [fix/ratelimit-vpn] авторизованные эндпоинты (генерации, тикеты): ключ = userId,
+// IP — только fallback для анонимных (для публичных форм — IP + email).
+function userKeyGenerator(req) {
+    const userId = req.user?.id || req.user?._id || userIdFromToken(req)
+    if (userId) return `user:${userId}`
+    const email = normalizeEmail(req.body?.email)
+    return email ? `${getClientIp(req)}|${email}` : getClientIp(req)
+}
+
+// [fix/ratelimit-vpn] 429-ответ: RU/EN + через сколько минут повторить
+function retryAfterMinutes(req) {
+    const resetTime = req.rateLimit?.resetTime
+    if (!resetTime) return null
+    return Math.max(1, Math.ceil((new Date(resetTime).getTime() - Date.now()) / 60000))
+}
+
+function handler429(routeLabel, ruBase, enBase) {
+    return (req, res) => {
+        console.warn(`[RateLimit] ${routeLabel} limit exceeded: ${getClientIp(req)}`)
+        const mins = retryAfterMinutes(req)
+        const retryRu = mins ? ` Повторите через ~${mins} мин.` : ' Попробуйте позже.'
+        const retryEn = mins ? ` Try again in ~${mins} min.` : ' Try again later.'
+        res.status(429).json({ success: false, error: `${ruBase}${retryRu} / ${enBase}${retryEn}` })
+    }
+}
+
 export async function checkBlockedIP(req, res, next) {
     try {
         if (isWhitelisted(req)) return next()
@@ -26,25 +78,6 @@ export async function checkBlockedIP(req, res, next) {
     } catch (err) {
         next(err)
     }
-}
-
-async function blockIP(ip, reason = 'Превышен лимит запросов') {
-    try {
-        await BlockedIP.create({
-            ip,
-            reason,
-            bannedAt: new Date(),
-            expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-            count: 1000,
-        })
-    } catch (err) {
-        console.error('[rateLimiter] blockIP failed:', err.message)
-    }
-}
-
-function tokenPresent(req) {
-    const auth = req.headers.authorization
-    return auth && auth.startsWith('Bearer ')
 }
 
 // Публичные роуты, которые не должны лимитироваться при загрузке сайта
@@ -67,15 +100,12 @@ export const apiLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: getClientIp,
+    keyGenerator: userKeyGenerator, // [fix/ratelimit-vpn] с токеном — бакет по userId, не по общему IP VPN
     skip: (req) => {
         if (req.path === '/health' || req.path === '/api/health') return true
         return PUBLIC_API_ROUTES.some(route => req.path.startsWith(route))
     },
-    handler: async (req, res, next) => {
-        console.warn(`[RateLimit] /api limit exceeded: ${getClientIp(req)} ${req.method} ${req.path}`)
-        res.status(429).json({ success: false, error: 'Слишком много запросов. Попробуйте позже.' })
-    },
+    handler: handler429('/api', 'Слишком много запросов.', 'Too many requests.'),
 })
 
 export const omegaChatLimiter = rateLimit({
@@ -83,13 +113,9 @@ export const omegaChatLimiter = rateLimit({
     max: 50,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: getClientIp,
-    handler: async (req, res, next) => {
-        const ip = getClientIp(req)
-        console.warn(`[RateLimit] /api/omega/chat limit exceeded: ${ip}`)
-        await blockIP(ip, 'Превышен лимит /api/omega/chat')
-        res.status(429).json({ success: false, error: 'Лимит сообщений исчерпан. Попробуйте позже.' })
-    },
+    keyGenerator: userKeyGenerator, // [fix/ratelimit-vpn] по userId из токена; IP — fallback
+    // [fix/ratelimit-vpn] blockIP (бан IP на 1ч) убран: за общим IP VPN пострадали бы другие пользователи — достаточно 429
+    handler: handler429('/api/omega/chat', 'Лимит сообщений исчерпан.', 'Message limit reached.'),
 })
 
 export const authLoginLimiter = rateLimit({
@@ -97,11 +123,8 @@ export const authLoginLimiter = rateLimit({
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: getClientIp,
-    handler: (req, res) => {
-        console.warn(`[RateLimit] login limit exceeded: ${getClientIp(req)}`)
-        res.status(429).json({ success: false, error: 'Слишком много попыток входа. Попробуйте позже.' })
-    },
+    keyGenerator: authKeyGenerator, // [fix/ratelimit-vpn] IP + email
+    handler: handler429('login', 'Слишком много попыток входа.', 'Too many login attempts.'),
 })
 
 export const authRegisterLimiter = rateLimit({
@@ -109,40 +132,36 @@ export const authRegisterLimiter = rateLimit({
     max: 5,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: getClientIp,
-    handler: (req, res) => {
-        console.warn(`[RateLimit] register limit exceeded: ${getClientIp(req)}`)
-        res.status(429).json({ success: false, error: 'Слишком много попыток регистрации. Попробуйте позже. / Too many registration attempts. Try again later.' })
-    },
+    keyGenerator: authKeyGenerator, // [fix/ratelimit-vpn] IP + email
+    handler: handler429('register', 'Слишком много попыток регистрации.', 'Too many registration attempts.'),
 })
 
-// [security-hardening Б5-З5] сброс пароля — 5 запросов/час с IP (anti-abuse почты)
+// [security-hardening Б5-З5] сброс пароля — 5 запросов/час на пару IP+email (anti-abuse почты)
 export const passwordResetLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 5,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: getClientIp,
-    handler: (req, res) => {
-        console.warn(`[RateLimit] password-reset limit exceeded: ${getClientIp(req)}`)
-        res.status(429).json({ success: false, error: 'Слишком много запросов на сброс пароля. Попробуйте через час. / Too many password reset requests. Try again in an hour.' })
-    },
+    keyGenerator: authKeyGenerator, // [fix/ratelimit-vpn] было голый IP → IP + email
+    handler: handler429('password-reset', 'Слишком много запросов на сброс пароля.', 'Too many password reset requests.'),
 })
 
-// [security-hardening Б5-З5] создание support-тикетов — 10/15 мин с IP (anti-spam)
+// [security-hardening Б5-З5] создание support-тикетов — 10/15 мин на пользователя (anti-spam)
 export const supportTicketLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: getClientIp,
-    handler: (req, res) => {
-        console.warn(`[RateLimit] support ticket limit exceeded: ${getClientIp(req)}`)
-        res.status(429).json({ success: false, error: 'Слишком много обращений в поддержку. Попробуйте позже. / Too many support tickets. Try again later.' })
-    },
+    keyGenerator: userKeyGenerator, // [fix/ratelimit-vpn] авторизованный — по userId; публичная форма — IP + email
+    handler: handler429('support ticket', 'Слишком много обращений в поддержку.', 'Too many support tickets.'),
 })
 
-// Autoban middleware: counts requests per IP per minute and blocks if >1000
+function tokenPresent(req) {
+    const auth = req.headers.authorization
+    return auth && auth.startsWith('Bearer ')
+}
+
+// Autoban middleware: counts requests per IP per minute and blocks if >1000 (anti-DDoS, не сессионная привязка)
 const ipMinCounter = new Map()
 setInterval(() => {
     const cutoff = Date.now() - 60 * 1000
@@ -164,7 +183,13 @@ export async function autoBanMiddleware(req, res, next) {
         entry.count++
         ipMinCounter.set(ip, entry)
         if (entry.count > 1000) {
-            await blockIP(ip, 'Более 1000 запросов в минуту')
+            await BlockedIP.create({
+                ip,
+                reason: 'Более 1000 запросов в минуту',
+                bannedAt: new Date(),
+                expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+                count: 1000,
+            }).catch(err => console.error('[rateLimiter] blockIP failed:', err.message))
             return res.status(403).json({ success: false, error: 'IP заблокирован за DDoS' })
         }
         next()
