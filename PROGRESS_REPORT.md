@@ -4824,3 +4824,10 @@
 - [TEST] qa-staff-dop-e2e 21/21 ✅; qaSecurityFlow вся матрица ✅; qaRateLimitVpn 4/4 ✅; npm run build 0 ошибок ✅; i18n-parity OK ✅; mojibake чист ✅; BOM нет ✅.
 - [НЕ ТРОНУТО] Платежи/ЮKassa, PlanConfig и значения тарифов, боты (только новые уведомления из Б4-ДОП), лендинг, модалка обновлений, рубильники, реф-экономика 12%, юрстраницы (только точка в linkify), белый список ролей Б3, rate-limit из fix/ratelimit-vpn.
 - [GIT] ветка fix/staff-audit-dop: 13 коммитов, 24 файла, +1151/−237. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/staff-audit-dop
+
+## 2026-08-28 — ROLE-SWITCH-FLASH: микрофикс «Нет доступа» при переключении ролей (ветка fix/role-switch-flash)
+- [ПРОБЛЕМА] owner переключается на staff/admin → ProtectedRoute ловил старую роль до обновления профиля → мигание «Нет доступа»; после F5 всё ок. Гонка role-switch vs route guard.
+- [ФИКС 1] `DashboardHeader.handleRoleChange`: `user_profile` в localStorage пишется СИНХРОННО до навигации (раньше запись шла внутри setState-апдейтера, который React мог отложить) + маркер `role_switch_at` (`frontend/src/components/layout/DashboardHeader.jsx`).
+- [ФИКС 2] ProtectedRoute: новый флаг `roleSwitching` в AuthContext (ставится при свежем `role_switch_at`, снимается после применения профиля) — пока идёт refresh, показывается спиннер; /unauthorized только при подтверждённой чужой роли (`frontend/src/context/AuthContext.jsx`, `frontend/src/App.jsx`).
+- [TEST] e2e `scripts/qa-role-switch-flash.mjs`: owner→staff и обратно БЕЗ «Нет доступа» × {360, 1280} × {RU, EN} — 16/16 ✅; гонка (протухший кэш creator + свежий маркер) → спиннер, затем /staff, ни разу /unauthorized ✅; реальный creator на /owner → /unauthorized (гард НЕ ослаблен) ✅; qaSecurityFlow вся матрица ✅; node --check ✅. Скрины: reports/role-switch-flash/.
+- [GIT] ветка fix/role-switch-flash. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/role-switch-flash
