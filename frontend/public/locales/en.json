@@ -1250,7 +1250,33 @@
     "warn": "Warn",
     "warningSent": "Warning sent",
     "writeReply": "Write reply",
-    "escalationNoTicket": "Open a ticket first"
+    "escalationNoTicket": "Open a ticket first",
+    "kb": {
+      "1": {
+        "title": "Cannot sign in",
+        "content": "Try resetting your password via \"Forgot password?\". If that does not help, double-check the email address."
+      },
+      "2": {
+        "title": "Plan payment error",
+        "content": "Check your card balance and limits. Try another payment method (PayPal, Crypto)."
+      },
+      "3": {
+        "title": "AI Chat is not responding",
+        "content": "Check your internet connection. Try switching the provider in chat settings (Groq / OpenRouter)."
+      },
+      "4": {
+        "title": "How to connect YouTube",
+        "content": "Go to Settings → Social networks → YouTube. Click \"Connect\" and authorize via Google."
+      },
+      "5": {
+        "title": "Post was not published",
+        "content": "Check the publication date and time. Make sure at least one platform is selected."
+      },
+      "6": {
+        "title": "How to change plan",
+        "content": "Go to Settings → Subscription. Choose a new plan and click \"Select\"."
+      }
+    }
   },
   "support": {
     "continueInTg": "Continue in Telegram",

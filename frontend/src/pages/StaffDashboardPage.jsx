@@ -4,7 +4,7 @@ import { AutoTicketHelper } from '../components/staff/AutoTicketHelper.jsx'
 import { useAuth } from '../context/AuthContext'
 import { API_BASE_URL } from '../config.js'
 import {
-    Headphones, TicketCheck, Clock, Star, Shield, BookOpen, Zap,
+    Headphones, TicketCheck, Clock, Star, BookOpen, Zap,
     Search, Send, Check, X, AlertCircle, MessageSquare, User,
     ChevronDown, ChevronUp, Tag, ArrowUpRight, Filter,
     AlertTriangle, CheckCircle2, Clock4, Lock, Unlock, Layout, List,
@@ -122,7 +122,6 @@ function StaffDashboardPage() {
     // --- MODALS ---
     const [showTicketModal, setShowTicketModal] = useState(false)
     const [selectedTicket, setSelectedTicket] = useState(null)
-    const [showModerationModal, setShowModerationModal] = useState(false)
     const [showKnowledgeModal, setShowKnowledgeModal] = useState(false)
     const [showEscalationModal, setShowEscalationModal] = useState(false)
     const [escalationForm, setEscalationForm] = useState({ reason: '', priority: 'medium', notes: '' })
@@ -385,13 +384,14 @@ function StaffDashboardPage() {
     // --- KNOWLEDGE BASE ---
     const [kbSearch, setKbSearch] = useState('')
     const [kbCategory, setKbCategory] = useState('all')
+    // [STAFF-DOP] KB-статьи через i18n (были хардкодом RU — в EN-локали сырой русский текст)
     const kbArticles = [
-        { id: 1, category: 'auth', title: 'Не могу войти в аккаунт', content: 'Попробуйте сбросить пароль через кнопку "Забыли пароль?". Если не помогает — проверьте правильность email.', views: 234 },
-        { id: 2, category: 'payments', title: 'Ошибка оплаты тарифа', content: 'Проверьте баланс карты и лимиты. Попробуйте другой способ оплаты (PayPal, Crypto).', views: 189 },
-        { id: 3, category: 'ai', title: 'AI Chat не отвечает', content: 'Проверьте подключение к интернету. Попробуйте переключить провайдера в настройках чата (Groq / OpenRouter).', views: 456 },
-        { id: 4, category: 'scheduler', title: 'Как подключить YouTube', content: 'Перейдите в Настройки → Соцсети → YouTube. Нажмите "Подключить" и авторизуйтесь через Google.', views: 312 },
-        { id: 5, category: 'scheduler', title: 'Пост не опубликовался', content: 'Проверьте дату и время публикации. Убедитесь что выбрана хотя бы одна платформа.', views: 178 },
-        { id: 6, category: 'account', title: 'Как сменить тариф', content: 'Перейдите в Настройки → Подписка. Выберите новый тариф и нажмите "Выбрать".', views: 267 },
+        { id: 1, category: 'auth', title: t('staff.kb.1.title', 'Не могу войти в аккаунт'), content: t('staff.kb.1.content', 'Попробуйте сбросить пароль через кнопку "Забыли пароль?". Если не помогает — проверьте правильность email.'), views: 234 },
+        { id: 2, category: 'payments', title: t('staff.kb.2.title', 'Ошибка оплаты тарифа'), content: t('staff.kb.2.content', 'Проверьте баланс карты и лимиты. Попробуйте другой способ оплаты (PayPal, Crypto).'), views: 189 },
+        { id: 3, category: 'ai', title: t('staff.kb.3.title', 'AI Chat не отвечает'), content: t('staff.kb.3.content', 'Проверьте подключение к интернету. Попробуйте переключить провайдера в настройках чата (Groq / OpenRouter).'), views: 456 },
+        { id: 4, category: 'scheduler', title: t('staff.kb.4.title', 'Как подключить YouTube'), content: t('staff.kb.4.content', 'Перейдите в Настройки → Соцсети → YouTube. Нажмите "Подключить" и авторизуйтесь через Google.'), views: 312 },
+        { id: 5, category: 'scheduler', title: t('staff.kb.5.title', 'Пост не опубликовался'), content: t('staff.kb.5.content', 'Проверьте дату и время публикации. Убедитесь что выбрана хотя бы одна платформа.'), views: 178 },
+        { id: 6, category: 'account', title: t('staff.kb.6.title', 'Как сменить тариф'), content: t('staff.kb.6.content', 'Перейдите в Настройки → Подписка. Выберите новый тариф и нажмите "Выбрать".'), views: 267 },
     ]
 
     const kbCategories = [
@@ -411,24 +411,8 @@ function StaffDashboardPage() {
     })
 
     // --- MODERATION REPORTS ---
-    const [reports, setReports] = useState([
-        { id: 1, user: 'user1@mail.com', content: 'Нецензурный контент в комментариях', platform: 'YouTube', date: '10 мин назад', status: 'pending' },
-        { id: 2, user: 'spammer@bot.ru', content: 'Массовая рассылка спама', platform: 'Telegram', date: '1 час назад', status: 'pending' },
-        { id: 3, user: 'creator99@mail.com', content: 'Нарушение авторских прав (музыка)', platform: 'TikTok', date: '3 часа назад', status: 'reviewed' },
-    ])
-
-    const handleReportAction = (reportId, action) => {
-        if (action === 'ban') {
-            setReports(reports.filter(r => r.id !== reportId))
-            showToast(t('staff.userBlocked'))
-        } else if (action === 'dismiss') {
-            setReports(reports.filter(r => r.id !== reportId))
-            showToast(t('staff.reportDismissed'))
-        } else if (action === 'warn') {
-            setReports(reports.map(r => r.id === reportId ? { ...r, status: 'warned' } : r))
-            showToast(t('staff.warningSent'))
-        }
-    }
+    // [STAFF-DOP] моковая секция модерации удалена: ban/dismiss/warn не ходили в API (ложный UI).
+    // Реальный бан клиента живёт в admin/owner-кабинете (POST /api/admin/users/:id/block).
 
     return (
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] p-4 md:p-6">
@@ -648,9 +632,8 @@ function StaffDashboardPage() {
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                    { label: t('staff.moderation'), icon: Shield, desc: t('staff.moderationDesc', '5 жалоб на рассмотрении'), color: 'from-red-500/20 to-red-600/10', border: 'border-[var(--danger)]/20', onClick: () => setShowModerationModal(true) },
                     { label: t('staff.knowledge'), icon: BookOpen, desc: t('staff.knowledgeDesc', 'Ответы на частые вопросы'), color: 'from-blue-500/20 to-blue-600/10', border: 'border-[var(--accent)]/20', onClick: () => setShowKnowledgeModal(true) },
                     { label: t('staff.escalation'), icon: Zap, desc: t('staff.escalationDesc', 'Передать администратору'), color: 'from-yellow-500/20 to-yellow-600/10', border: 'border-[var(--accent-warm)]/20', onClick: () => setShowEscalationModal(true) }
                 ].map((action, i) => {
@@ -799,50 +782,6 @@ function StaffDashboardPage() {
                             <button onClick={() => { setShowTicketModal(false); setShowEscalationModal(true) }} className="flex-1 px-4 py-2 bg-[var(--accent-warm)]/10 text-[var(--accent-warm)] rounded-lg hover:bg-[var(--accent-warm)]/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                                 <Zap size={14} /> {t('staff.escalate')}
                             </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Moderation Modal */}
-            {showModerationModal && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold flex items-center gap-2"><Shield size={20} className="text-[var(--danger)]" /> {t('staff.moderation')}</h2>
-                                <button onClick={() => setShowModerationModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text)]"><X size={20} /></button>
-                            </div>
-                            <div className="space-y-3">
-                                {reports.map(report => (
-                                    <div key={report.id} className="luxury-card p-4">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="text-sm font-medium">{report.user}</span>
-                                                    <span className="text-xs text-[var(--text-muted)]">{report.platform}</span>
-                                                    <span className={`text-xs px-1.5 py-0.5 rounded ${report.status === 'pending' ? 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]' : 'bg-[var(--success)]/10 text-[var(--success)]'}`}>
-                                                        {report.status === 'pending' ? t('staff.reportPending') : t('staff.reviewed')}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-[var(--text-muted)]">{report.content}</p>
-                                                <p className="text-xs text-[var(--text-muted)] mt-1">{report.date}</p>
-                                            </div>
-                                            <div className="flex gap-1 flex-shrink-0">
-                                                <button onClick={() => handleReportAction(report.id, 'warn')} className="px-2 py-1 rounded bg-[var(--accent-warm)]/10 text-[var(--accent-warm)] text-xs hover:bg-[var(--accent-warm)]/20">{t('staff.warn')}</button>
-                                                <button onClick={() => handleReportAction(report.id, 'ban')} className="px-2 py-1 rounded bg-[var(--danger)]/10 text-[var(--danger)] text-xs hover:bg-[var(--danger)]/20">{t('staff.ban')}</button>
-                                                <button onClick={() => handleReportAction(report.id, 'dismiss')} className="px-2 py-1 rounded bg-[var(--border-strong)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface)]">{t('staff.dismiss')}</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {reports.length === 0 && (
-                                    <div className="text-center text-[var(--text-muted)] py-8">
-                                        <CheckCircle2 size={32} className="mx-auto mb-3 text-[var(--success)]" />
-                                        <p>{t('staff.allProcessed')}</p>
-                                    </div>
-                                )}
-                            </div>
                         </div>
                     </div>
                 </div>
