@@ -37,16 +37,18 @@ import { invalidatePlanCache } from '../middleware/enforceQuota.js'
 const router = express.Router()
 
 // Owner dashboard data
-router.get('/overview', getOverview)
-router.get('/finance', getFinance)
-router.get('/team', getTeam)
-router.get('/servers', getServers)
-router.get('/integrations', getIntegrations)
-router.get('/audit', getAudit)
-router.get('/agents', getAgents)
-router.get('/promos', getPromos)
-router.get('/news', getNews)
-router.get('/subscriptions', getSubscriptions)
+// [security-hardening Б5-З3] раньше эти маршруты были БЕЗ авторизации — любой аноним читал
+// финансы/команду/аудит/подписки владельца. Теперь owner/admin only.
+router.get('/overview', protect, authorize('owner', 'admin'), getOverview)
+router.get('/finance', protect, authorize('owner', 'admin'), getFinance)
+router.get('/team', protect, authorize('owner', 'admin'), getTeam)
+router.get('/servers', protect, authorize('owner', 'admin'), getServers)
+router.get('/integrations', protect, authorize('owner', 'admin'), getIntegrations)
+router.get('/audit', protect, authorize('owner', 'admin'), getAudit)
+router.get('/agents', protect, authorize('owner', 'admin'), getAgents)
+router.get('/promos', protect, authorize('owner', 'admin'), getPromos)
+router.get('/news', protect, authorize('owner', 'admin'), getNews)
+router.get('/subscriptions', protect, authorize('owner', 'admin'), getSubscriptions)
 router.patch('/subscription-plans/:planId', protect, authorize('owner', 'admin'), (req, res, next) => {
     req.body = { ...req.body, planId: req.params.planId }
     return updatePlanPrice(req, res, next)
@@ -128,9 +130,9 @@ router.post('/reports/intelligence', protect, authorize('owner', 'admin', 'busin
 })
 
 // Generic CRUD for owner entities
-router.post('/:entity', createEntity)
-router.patch('/:entity/:id', updateEntity)
-router.delete('/:entity/:id', deleteEntity)
+router.post('/:entity', protect, authorize('owner', 'admin'), createEntity)
+router.patch('/:entity/:id', protect, authorize('owner', 'admin'), updateEntity)
+router.delete('/:entity/:id', protect, authorize('owner', 'admin'), deleteEntity)
 
 // [P17] added: owner-scoped API key storage
 router.patch('/api-keys/:provider', protect, authorize('owner', 'admin'), async (req, res) => {

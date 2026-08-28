@@ -1,5 +1,5 @@
 import { Payment } from '../models/index.js'
-import { createPayment } from '../services/yookassaService.js'
+import { createPayment, verifyWebhookNotification } from '../services/yookassaService.js'
 import { sendPaymentSuccessEmail } from '../services/emailService.js'
 import { alertOwner } from '../services/ownerBot.js'
 
@@ -64,6 +64,20 @@ export const yookassaWebhookHandler = async (req, res) => {
         const metadata = object.metadata || {}
 
         if (event === 'payment.succeeded' && status === 'succeeded') {
+            // [security-hardening Б5-З2.2] сверка с API ЮKassa перед начислением — подделка не пройдёт
+            try {
+                const v = await verifyWebhookNotification({ action: 'mark_paid', paymentId, metadata, payload: req.body })
+                if (!v.ok) {
+                    console.warn(`[YOOKASSA-WEBHOOK-legacy] ⚠️ поддельное уведомление: payment=${paymentId} status=${v.realStatus} metaOk=${v.metaOk}`)
+                    alertOwner?.(`🚨 <b>Поддельный webhook ЮKassa (legacy)</b>\nПлатёж: <code>${paymentId}</code>\nНачисление ОТКЛОНЕНО.`, 'payment').catch?.(() => {})
+                    return res.json({ success: true, ignored: true, reason: 'verification_failed' })
+                }
+            } catch (vErr) {
+                console.error(`[YOOKASSA-WEBHOOK-legacy] верификация не удалась: payment=${paymentId}:`, vErr.message)
+                alertOwner?.(`🚨 <b>Webhook ЮKassa (legacy) не прошёл верификацию</b>\nПлатёж: <code>${paymentId}</code>\nНачисление ОТКЛОНЕНО — проверьте вручную.`, 'payment').catch?.(() => {})
+                return res.json({ success: true, ignored: true, reason: 'verification_error' })
+            }
+
             const paymentDoc = await Payment.findOne({ yookassaPaymentId: paymentId })
             if (paymentDoc) {
                 paymentDoc.status = 'succeeded'

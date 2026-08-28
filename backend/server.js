@@ -1,10 +1,13 @@
 import './config/env.js'
+import { initSentry, sentryErrorHandler } from './config/sentry.js' // [security-hardening Б5-З6]
+initSentry() // без SENTRY_DSN — молча off
 import { CLIENT_BOT_TOKEN, OWNER_BOT_TOKEN } from './config/bots.js'
 
 // ============ ИМПОРТЫ ============
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
+import mongoSanitize from 'express-mongo-sanitize' // [security-hardening Б5-З5]
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
 import mongoose from 'mongoose'
@@ -12,7 +15,7 @@ import { connectDB, isConnected } from './config/database.js'
 import { connectRedis } from './config/redisClient.js' // [P24] fixed: Redis import
 import { errorHandler } from './middleware/errorHandler.js'
 import { protect } from './middleware/auth.js' // [HOTFIX-2026-08-04] added — protect for fallback routes
-import { apiLimiter, omegaChatLimiter, authLoginLimiter, authRegisterLimiter, checkBlockedIP, autoBanMiddleware } from './middleware/rateLimiter.js'  // [v7.0-PART2] rate limiting v2
+import { apiLimiter, omegaChatLimiter, authLoginLimiter, authRegisterLimiter, passwordResetLimiter, checkBlockedIP, autoBanMiddleware } from './middleware/rateLimiter.js'  // [v7.0-PART2] rate limiting v2
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import { initOwnerBot, sendOwnerAlert, alertOwner } from './services/ownerBot.js'
 import { initOmegaBot } from './services/omegaBot.js'
@@ -444,6 +447,9 @@ app.use((err, req, res, next) => {
 // Helmet after CORS so security headers apply without blocking preflight
 app.use(helmet())
 
+// [security-hardening Б5-З5] NoSQL-инъекции: вырезаем $-операторы и точки из body/query/params
+app.use(mongoSanitize({ replaceWith: '_' }))
+
 // Body parsing — BEFORE routes
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
@@ -452,10 +458,12 @@ app.use(compression())
 app.use(monitoringMiddleware)  // [v7.0-PART2] track API latency and errors
 
 // Telegram webhook handlers
+// [security-hardening Б5-З2.1] верификация X-Telegram-Bot-Api-Secret-Token (если TELEGRAM_WEBHOOK_SECRET задан)
+import { verifyTgWebhookSecret } from './utils/tgWebhookSecret.js'
 if (process.env.NODE_ENV === 'production') {
     // [BOT-ROUTING-FIX] client token → omegaBot, owner token → ownerBot
     if (CLIENT_BOT_TOKEN) {
-        app.post(`/bot${CLIENT_BOT_TOKEN}`, express.json(), (req, res) => {
+        app.post(`/bot${CLIENT_BOT_TOKEN}`, express.json(), verifyTgWebhookSecret, (req, res) => {
             if (global.omegaBot && typeof global.omegaBot.processUpdate === 'function') {
                 global.omegaBot.processUpdate(req.body)
             }
@@ -463,7 +471,7 @@ if (process.env.NODE_ENV === 'production') {
         })
     }
     if (OWNER_BOT_TOKEN && OWNER_BOT_TOKEN !== CLIENT_BOT_TOKEN) {
-        app.post(`/bot${OWNER_BOT_TOKEN}`, express.json(), (req, res) => {
+        app.post(`/bot${OWNER_BOT_TOKEN}`, express.json(), verifyTgWebhookSecret, (req, res) => {
             if (global.ownerBot && typeof global.ownerBot.processUpdate === 'function') {
                 global.ownerBot.processUpdate(req.body)
             }
@@ -472,14 +480,14 @@ if (process.env.NODE_ENV === 'production') {
     }
 }
 
-app.post('/webhook/owner', express.json(), (req, res) => {
+app.post('/webhook/owner', express.json(), verifyTgWebhookSecret, (req, res) => {
     if (global.ownerBot && typeof global.ownerBot.processUpdate === 'function') {
         global.ownerBot.processUpdate(req.body)
     }
     res.sendStatus(200)
 })
 
-app.post('/webhook/omega', express.json(), (req, res) => {
+app.post('/webhook/omega', express.json(), verifyTgWebhookSecret, (req, res) => {
     if (global.omegaBot && typeof global.omegaBot.processUpdate === 'function') {
         global.omegaBot.processUpdate(req.body)
     }
@@ -491,6 +499,7 @@ app.use(autoBanMiddleware)
 app.use('/api/omega/chat', omegaChatLimiter)
 app.use('/api/auth/register', authRegisterLimiter)
 app.use('/api/auth/login', authLoginLimiter)
+app.use('/api/auth/forgot-password', passwordResetLimiter)  // [security-hardening Б5-З5]
 app.use('/api/', checkBlockedIP, apiLimiter)
 // [OWNER-REMOTE-CONTROL] рубильник техработ: 503 { maintenance: true } для не-владельцев
 app.use('/api/', maintenanceMode)
@@ -706,6 +715,8 @@ app.get('/api/tickets', protect, async (req, res) => {
 app.get('/qr/:shortCode', qrController.redirectScan)
 
 // Error handling
+// [security-hardening Б5-З6] Sentry error handler ДО кастомного (шлёт событие, потом наш формат ответа)
+sentryErrorHandler(app)
 app.use(errorHandler)
 
 // 404 handler

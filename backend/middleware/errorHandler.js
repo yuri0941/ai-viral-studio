@@ -1,3 +1,6 @@
+import { captureError } from '../config/sentry.js' // [security-hardening Б5-З6]
+import { track5xx } from '../services/securityAlerts.js' // [security-hardening Б5-З6]
+
 export const errorHandler = (err, req, res, next) => {
     let error = { ...err }
     error.message = err.message
@@ -34,7 +37,14 @@ export const errorHandler = (err, req, res, next) => {
         error = { ...error, message, statusCode: 401 }
     }
 
-    res.status(error.statusCode || 500).json({
+    // [security-hardening Б5-З6] 5xx → Sentry (без PII) + TG-алерт владельцу при волне (кулдаун 10 мин)
+    const statusCode = error.statusCode || 500
+    if (statusCode >= 500) {
+        track5xx(req.originalUrl || req.url, statusCode)
+        captureError(err, { path: req.originalUrl, method: req.method })
+    }
+
+    res.status(statusCode).json({
         status: 'error',
         message: error.message || 'Server Error',
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack })

@@ -450,10 +450,17 @@ const MODEL_REMOVED_FAILURE_THRESHOLD = 3
 
 function isInvalidKeyError(status, error) {
     if (status === 401 || status === 403) return true
+    // [security-hardening Б5-З0.2] 402 Payment Required (DeepSeek «Insufficient Balance» и аналоги):
+    // баланс/ключ мёртв → invalid, владелец видит это в ApiKeysTab/панели готовности
+    if (status === 402) return true
     const msg = `${error?.message || ''} ${JSON.stringify(error?.response?.data || '')}`.toLowerCase()
     return msg.includes('invalid api key') || msg.includes('invalid_api_key') || msg.includes('incorrect api key')
-        || msg.includes('insufficient_quota') || msg.includes('authentication failed') || msg.includes('unauthorized')
+        || msg.includes('insufficient_quota') || msg.includes('insufficient balance') || msg.includes('insufficient_balance')
+        || msg.includes('exceeded your current quota') || msg.includes('authentication failed') || msg.includes('unauthorized')
 }
+
+// [security-hardening Б5-З0.2] экспорт для юнит-теста (tests/key-health-unit.mjs)
+export { isInvalidKeyError }
 
 export async function reportKeyFailure(providerId, status, error) {
     const keyProvider = providerId === 'groq_lite' ? 'groq' : providerId

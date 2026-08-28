@@ -1,4 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api'
+import { getTgWebhookSecret } from '../utils/tgWebhookSecret.js' // [security-hardening Б5-З2.1]
 import { getOwnerChatId, getOwnerChatIdSync } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
 import fs from 'fs'
 import { wrapBotHtmlSending } from '../utils/telegramHtml.js'
@@ -1076,7 +1077,9 @@ export const initOmegaBot = () => {
   async function trySetWebhook(attempt = 1) {
     try {
       await bot.deleteWebhook({ drop_pending_updates: true })
-      await bot.setWebhook(WEBHOOK_URL)
+      // [security-hardening Б5-З2.1] secret_token — чужие запросы отсекаются на приёме (403)
+      const secret = getTgWebhookSecret()
+      await bot.setWebhook(WEBHOOK_URL, secret ? { secret_token: secret } : {})
       console.log('[OMEGA-BOT] Webhook set to', WEBHOOK_URL)
       return true
     } catch (e) {
@@ -1100,7 +1103,9 @@ export const initOmegaBot = () => {
         console.log('[OMEGA-BOT] cron: retrying webhook from polling fallback')
         try {
           await bot.deleteWebhook({ drop_pending_updates: true })
-          await bot.setWebhook(WEBHOOK_URL)
+          // [security-hardening Б5-З2.1] secret_token при восстановлении webhook из polling
+          const secret = getTgWebhookSecret()
+          await bot.setWebhook(WEBHOOK_URL, secret ? { secret_token: secret } : {})
           console.log('[OMEGA-BOT] Webhook restored from polling')
           bot.stopPolling?.()
           global.omegaWebhookRestoreCron.stop?.()

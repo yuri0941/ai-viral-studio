@@ -4,6 +4,8 @@
 // переустанавливается корректной последовательностью deleteWebhook → setWebhook.
 // env остаётся fallback: если ключ в кабинете не задан, боты стартуют на env (config/bots.js).
 
+import { getTgWebhookSecret } from '../utils/tgWebhookSecret.js' // [security-hardening Б5-З2.1]
+
 const BASE_URL = () => (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com')
 
 const KINDS = {
@@ -38,7 +40,9 @@ export async function reloadBotToken(kind, newToken) {
     const url = `${BASE_URL()}${cfg.webhook}`
     try {
         await instance.deleteWebhook({ drop_pending_updates: false })
-        await instance.setWebhook(url)
+        // [security-hardening Б5-З2.1] переустановка webhook с тем же secret_token, иначе приём начнёт отдавать 403
+        const secret = getTgWebhookSecret()
+        await instance.setWebhook(url, secret ? { secret_token: secret } : {})
     } catch (e) {
         console.error(`[BOT-RELOAD] ${kind}: webhook failed:`, e.message)
         return { ok: false, reason: 'webhook_failed', message: `Токен применён, но webhook не установлен: ${e.message}` }

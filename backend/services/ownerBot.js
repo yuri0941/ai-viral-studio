@@ -1,4 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api'
+import { getTgWebhookSecret } from '../utils/tgWebhookSecret.js' // [security-hardening Б5-З2.1]
 import fs from 'fs'
 import mongoose from 'mongoose'
 import { chatWithAI, extractText } from './aiService.js'
@@ -1563,7 +1564,9 @@ export const initOwnerBot = () => {
   // [WEBHOOK-2026-08-05] set webhook instead of polling to avoid 409 conflicts
   const WEBHOOK_URL = (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com') + '/webhook/owner'
   bot.deleteWebhook({ drop_pending_updates: true }).catch(() => {}).then(() => {
-    return bot.setWebhook(WEBHOOK_URL)
+    // [security-hardening Б5-З2.1] secret_token — чужие запросы отсекаются на приёме (403)
+    const secret = getTgWebhookSecret()
+    return bot.setWebhook(WEBHOOK_URL, secret ? { secret_token: secret } : {})
   }).then(() => {
     console.log('[OWNER-BOT] Webhook set to', WEBHOOK_URL)
   }).catch(e => {

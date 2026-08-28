@@ -86,13 +86,15 @@ const agents = [
     { id: 'content', name: 'Content Agent', role: 'Модерация', status: 'active', icon: 'Eye', description: 'Модерирует контент на наличие нарушений' },
 ]
 
+// [security-hardening Б5-З4] значения ключей УДАЛЕНЫ из репозитория (были засвечены в git → на ротацию).
+// Seed подхватывает ключи из env; без env seed ключей пропускается.
 const apiKeys = [
-    { provider: 'groq', label: 'Groq', key: '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', status: 'active' },
-    { provider: 'openrouter', label: 'OpenRouter', key: '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', status: 'active' },
-    { provider: 'gemini', label: 'Google Gemini', key: 'AQ.Ab8RN6KxDhjKXMOL0HjpBAPJghd5ojWwk1IxYBcvI1qgx9bnbA', status: 'active' },
-    { provider: 'youtube', label: 'YouTube Data API', key: 'AIzaSyD1SH9WizR4zgi7JUshXfTuzHsJagmu4zU', status: 'active' },
-    { provider: 'github', label: 'GitHub Models', key: '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', status: 'active' },
-]
+    { provider: 'groq', label: 'Groq', key: process.env.GROQ_API_KEY || '', status: 'active' },
+    { provider: 'openrouter', label: 'OpenRouter', key: process.env.OPENROUTER_API_KEY || '', status: 'active' },
+    { provider: 'gemini', label: 'Google Gemini', key: process.env.GEMINI_API_KEY || '', status: 'active' },
+    { provider: 'youtube', label: 'YouTube Data API', key: process.env.YOUTUBE_API_KEY || '', status: 'active' },
+    { provider: 'github', label: 'GitHub Models', key: process.env.GITHUB_API_KEY || '', status: 'active' },
+].filter(k => k.key)
 
 async function upsertApiKeys() {
     for (const k of apiKeys) {

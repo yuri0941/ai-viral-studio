@@ -30,6 +30,11 @@ router.get('/viral-score', protect, async (req, res) => {
 
 router.get('/churn-risk/:userId', protect, async (req, res) => {
   try {
+    // [security-hardening Б5-З3] IDOR-фикс: чужой userId — только owner/admin/staff
+    const isPrivileged = ['owner', 'admin', 'staff'].includes(req.user?.role)
+    if (!isPrivileged && String(req.user?._id || req.user?.id) !== String(req.params.userId)) {
+      return res.status(403).json({ success: false, error: 'Access denied' })
+    }
     const result = await churnPrediction14(req.params.userId);
     return res.json({ success: true, data: result });
   } catch (err) {

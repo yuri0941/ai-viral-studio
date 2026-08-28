@@ -1,11 +1,13 @@
 import { Router } from 'express'
 import { protect, requireRole } from '../middleware/auth.js'
+import { supportTicketLimiter } from '../middleware/rateLimiter.js' // [security-hardening Б5-З5]
 import SupportTicket from '../models/SupportTicket.js'
 import { createTicket, addMessage, replyToTicket, updateTicketStatus, getTicketContext, escalateToOwner } from '../services/supportService.js'
 
 const router = Router()
 
-router.post('/public', async (req, res) => {
+// [security-hardening Б5-З5] антиспам на создание тикетов (публичный и авторизованный)
+router.post('/public', supportTicketLimiter, async (req, res) => {
   try {
     const { email, name, subject, description, screenshot } = req.body || {}
     const ticket = await createTicket({
@@ -27,7 +29,7 @@ router.post('/public', async (req, res) => {
   }
 })
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, supportTicketLimiter, async (req, res) => {
   try {
     const ticket = await createTicket({
       ...req.body,
