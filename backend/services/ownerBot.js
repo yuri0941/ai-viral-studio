@@ -70,6 +70,7 @@ export function shouldSendAlert(alertType, cooldownMs) {
 
 function createStubBot() {
   return {
+    __isStub: true, // [OWNER-OMEGA] маркер заглушки — botReloader не трогает stub
     sendMessage: () => Promise.resolve(),
     onText: () => {},
     on: () => {},
@@ -1080,6 +1081,41 @@ export const initOwnerBot = () => {
       return
     }
 
+    // [OWNER-OMEGA] «продли email@x.com на N дней» → карточка с тарифом/окончанием + подтверждение ✅/❌
+    const extendMatch = text.trim().match(/^(?:продли|продлить|extend)\s+(\S+@\S+)\s+(?:на\s+)?(\d{1,4})\s*(?:дн(?:я|ей)?|д|days?)?[.\s!]*$/i)
+    if (extendMatch) {
+      try {
+        const { findClientSubscription } = await import('./ownerActionsService.js')
+        const found = await findClientSubscription(extendMatch[1])
+        if (!found) {
+          safeSendMessage(chatId, `🔍 Клиент «${extendMatch[1]}» не найден. Проверьте email.`)
+          return
+        }
+        const { user, sub } = found
+        const curEnd = sub?.currentPeriodEnd || sub?.endDate
+        const card = [
+          '⏳ <b>Продление подписки</b>',
+          '━━━━━━━━━━━━━━',
+          `Клиент: ${user.email}`,
+          `Тариф: <b>${sub?.plan || user.subscription || 'free'}</b>`,
+          `Текущее окончание: ${curEnd ? new Date(curEnd).toLocaleDateString('ru-RU') : '— (подписки нет, будет создана)'}`,
+          `Продлить на: <b>${extendMatch[2]} дн.</b>`,
+        ].join('\n')
+        safeSendMessage(chatId, card, {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '✅ Продлить', callback_data: `extend:yes:${user._id}:${extendMatch[2]}` },
+              { text: '❌ Отмена', callback_data: 'extend:no' },
+            ]],
+          },
+        })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка поиска клиента: ${e.message}`)
+      }
+      return
+    }
+
     // [P1.5-METRICS] «метрики» / «воронка» — карточка воронки 7д/30д + MRR.
     // Только владелец: не-владельцы отсечены проверкой context.isOwner выше.
     if (/^(метрики|воронка|metrics|funnel)[\s!?.]*$/i.test(text.trim())) {
@@ -1228,6 +1264,37 @@ export const initOwnerBot = () => {
       return
     }
 
+    // [OWNER-OMEGA] кнопка «↩️ Возврат…» из проактивного алерта об оплате → карточка подтверждения
+    if (data.startsWith('refund:ask:')) {
+      const paymentId = data.slice('refund:ask:'.length)
+      try {
+        const { findRefundablePayment } = await import('./ownerActionsService.js')
+        const payment = await findRefundablePayment(paymentId)
+        if (!payment) { safeSendMessage(chatId, '🔍 Платёж не найден.'); return }
+        if (payment.status === 'refunded') { safeSendMessage(chatId, 'ℹ️ Этот платёж уже возвращён.'); return }
+        const card = [
+          '💳 <b>Возврат платежа</b>',
+          '━━━━━━━━━━━━━━',
+          `Клиент: ${payment.customerEmail || '—'}`,
+          `Тариф: ${payment.planId || '—'}`,
+          `Сумма: ${Number(payment.amount || 0).toLocaleString('ru-RU')} ₽`,
+          `ID: <code>${payment.yookassaPaymentId}</code>`,
+        ].join('\n')
+        safeSendMessage(chatId, card, {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '↩️ Вернуть', callback_data: `refund:yes:${payment.yookassaPaymentId}` },
+              { text: '❌ Отмена', callback_data: 'refund:no' },
+            ]],
+          },
+        })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка поиска платежа: ${e.message}`)
+      }
+      return
+    }
+
     // [OWNER-REMOTE-CONTROL] подтверждение возврата из TG (идемпотентность — в ownerActionsService: in-flight lock + проверка статусов)
     if (data === 'refund:no') {
       safeSendMessage(chatId, '❌ Возврат отменён.')
@@ -1242,6 +1309,26 @@ export const initOwnerBot = () => {
         safeSendMessage(chatId, r.ok ? `✅ ${r.message}` : `⚠️ ${r.message}`)
       } catch (e) {
         safeSendMessage(chatId, `⚠️ Ошибка возврата: ${e.message}`)
+      }
+      return
+    }
+
+    // [OWNER-OMEGA] подтверждение продления подписки из TG (обёртка общая с кабинетом)
+    if (data === 'extend:no') {
+      safeSendMessage(chatId, '❌ Продление отменено.')
+      return
+    }
+    if (data.startsWith('extend:yes:')) {
+      const [, , userId, days] = data.split(':')
+      safeSendMessage(chatId, '⏳ Продлеваю подписку...')
+      try {
+        const { extendSubscriptionDays } = await import('./ownerActionsService.js')
+        const r = await extendSubscriptionDays(userId, days)
+        safeSendMessage(chatId, r.ok
+          ? `✅ Подписка продлена: ${r.email}\nТариф: <b>${r.plan}</b>\nНовая дата окончания: <b>${new Date(r.newEnd).toLocaleDateString('ru-RU')}</b>\nКлиент уведомлён.`
+          : `⚠️ ${r.message}`, { parse_mode: 'HTML' })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка продления: ${e.message}`)
       }
       return
     }

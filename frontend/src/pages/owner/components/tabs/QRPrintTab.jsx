@@ -42,7 +42,7 @@ export function QRPrintTab() {
     const loadQRs = async () => {
         try {
             const res = await physicalApi.qr.list()
-            setQrs(res.data || [])
+            setQrs(Array.isArray(res.data) ? res.data : [])
         } catch (err) {
             console.error('loadQRs:', err)
         }
@@ -75,7 +75,7 @@ export function QRPrintTab() {
         setLoading(true)
         try {
             const res = await physicalApi.booking.studios({ city: bookingCity, type: 'photo_studio' })
-            setStudios(res.data?.studios || [])
+            setStudios(Array.isArray(res.data?.studios) ? res.data.studios : [])
         } catch (err) {
             console.error(err)
         } finally {

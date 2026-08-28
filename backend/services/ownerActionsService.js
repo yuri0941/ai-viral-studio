@@ -5,6 +5,7 @@ import Subscription from '../models/Subscription.js'
 import ScheduledPost from '../models/ScheduledPost.js'
 import SupportTicket from '../models/SupportTicket.js'
 import AuditLog from '../models/AuditLog.js'
+import User from '../models/User.js'
 import { getOwnerFlags, setOwnerFlag } from '../models/OwnerSettings.js'
 import { calcMRR, getFunnel } from './metricsService.js'
 
@@ -155,4 +156,72 @@ export async function setRegistration(on, actor = 'owner-telegram') {
 export async function getOwnerMetricsWidget() {
     const [f7, { mrr, paying }] = await Promise.all([getFunnel(7), calcMRR()])
     return { funnel7d: f7, mrr, paying }
+}
+
+// ============ [OWNER-OMEGA] «продли email на N дней»: единая обёртка для TG-бота и кабинета ============
+export async function findClientSubscription(email) {
+    const id = String(email || '').trim()
+    if (!id.includes('@')) return null
+    const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const user = await User.findOne({ email: new RegExp(`^${escaped}$`, 'i') }).lean()
+    if (!user) return null
+    const sub = await Subscription.findOne({
+        userId: user._id,
+        status: { $in: ['active', 'trialing', 'past_due', 'expired'] },
+    }).sort({ currentPeriodEnd: -1, endDate: -1, updatedAt: -1 }).lean()
+    return { user, sub }
+}
+
+export async function extendSubscriptionDays(userId, days, actor = 'owner-telegram') {
+    const n = Math.floor(Number(days))
+    if (!Number.isFinite(n) || n < 1 || n > 3660) {
+        return { ok: false, reason: 'bad_days', message: 'Количество дней должно быть от 1 до 3660.' }
+    }
+    try {
+        const user = await User.findById(userId)
+        if (!user) return { ok: false, reason: 'not_found', message: 'Клиент не найден.' }
+        const now = new Date()
+        let sub = await Subscription.findOne({
+            userId: user._id,
+            status: { $in: ['active', 'trialing', 'past_due', 'expired'] },
+        }).sort({ currentPeriodEnd: -1, endDate: -1, updatedAt: -1 })
+        if (!sub) {
+            // подписки нет — создаём ручную на текущем тарифе пользователя (free → pro как осмысленный дефолт)
+            sub = await Subscription.create({
+                userId: user._id,
+                plan: user.subscription && user.subscription !== 'free' ? user.subscription : 'pro',
+                status: 'active',
+                provider: 'manual',
+                startDate: now,
+                currentPeriodStart: now,
+            })
+        }
+        const curEnd = new Date(Math.max(new Date(sub.currentPeriodEnd || sub.endDate || 0).getTime() || 0, now.getTime()))
+        const newEnd = new Date(curEnd.getTime() + n * 864e5)
+        sub.currentPeriodEnd = newEnd
+        sub.endDate = newEnd
+        sub.status = 'active'
+        await sub.save()
+        if (user.subscription !== sub.plan) {
+            user.subscription = sub.plan
+            await user.save()
+        }
+        await logOwnerAction('owner.extend', { userId: String(user._id), email: user.email, days: n, newEnd }, 'ok', actor)
+        // уведомление клиенту: TG (если привязан) + email (best-effort, не валят продление)
+        const dateStr = newEnd.toLocaleDateString('ru-RU')
+        if (user.telegramChatId) {
+            try {
+                const { sendClientNotification } = await import('./omegaBot.js')
+                await sendClientNotification(user.telegramChatId, `🎉 Ваша подписка ${sub.plan} продлена до ${dateStr}.`)
+            } catch (e) { console.warn('[ownerActions] extend tg notify failed:', e.message) }
+        }
+        try {
+            const { sendSubscriptionActiveEmail } = await import('./emailService.js')
+            await sendSubscriptionActiveEmail(user.email, user.name, sub.plan, newEnd, user.preferences?.language === 'en' ? 'en' : 'ru')
+        } catch (e) { console.warn('[ownerActions] extend email notify failed:', e.message) }
+        return { ok: true, email: user.email, plan: sub.plan, newEnd, days: n }
+    } catch (e) {
+        await logOwnerAction('owner.extend', { userId: String(userId), days }, `exception: ${e.message}`, actor)
+        return { ok: false, reason: 'exception', message: `Ошибка: ${e.message}` }
+    }
 }

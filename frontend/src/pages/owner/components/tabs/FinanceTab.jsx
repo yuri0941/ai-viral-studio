@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { DataTable } from '../common/DataTable'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx' // [v6.0] added
 import { formatCurrency, formatDate, getSparklineData } from '../../utils/helpers'
-import { invoicesApi, yookassaApi } from '../../../../services/api.js'
+import { invoicesApi, yookassaApi, ownerExpensesApi } from '../../../../services/api.js'
+import toast from 'react-hot-toast'
 import { useSmartData } from '../../../../hooks/useSmartData'
 import { API_BASE_URL } from '../../../../config.js'
 import {
     TrendingDown, TrendingUp, Wallet,
-    Receipt, Plus, Loader2, ExternalLink, CreditCard
+    Receipt, Plus, Loader2, ExternalLink, CreditCard, Trash2
 } from 'lucide-react'
 
 // [PLANCONFIG-ADMIN] demo-данные приведены к реальным тарифам PlanConfig (Pro 990 / Agency 4990)
@@ -377,6 +378,122 @@ export function FinanceTab({ data }) {
                         })}
                     </div>
                 )}
+            </div>
+
+            {/* [OWNER-OMEGA] Сбор расходов лайт: AI-вызовы (день/неделя/месяц) + инфраструктура */}
+            <ExpensesCard />
+        </div>
+    )
+}
+
+// [OWNER-OMEGA] карточка расходов: AI по факту вызовов + инфраструктура (ручной ввод ₽/мес)
+function ExpensesCard() {
+    const { t } = useTranslation()
+    const [summary, setSummary] = useState(null)
+    const [range, setRange] = useState('month')
+    const [service, setService] = useState('')
+    const [amount, setAmount] = useState('')
+    const [busy, setBusy] = useState(false)
+
+    const load = () => {
+        ownerExpensesApi.summary()
+            .then(res => setSummary(res?.summary || null))
+            .catch(() => setSummary(null))
+    }
+    useEffect(load, [])
+
+    const addInfra = async () => {
+        if (!service.trim() || busy) return
+        setBusy(true)
+        try {
+            await ownerExpensesApi.upsertInfra({ service: service.trim(), amountRub: Number(amount) || 0 })
+            toast.success(t('owner.expenses.saved'))
+            setService('')
+            setAmount('')
+            load()
+        } catch (e) {
+            toast.error(e.message || t('owner.control.error'))
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    const removeInfra = async (name) => {
+        if (busy) return
+        setBusy(true)
+        try {
+            await ownerExpensesApi.removeInfra(name)
+            load()
+        } catch (e) {
+            toast.error(e.message || t('owner.control.error'))
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    const ai = summary?.ai?.[range]
+    const inp = 'px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] outline-none focus:border-violet-500/30'
+
+    return (
+        <div className="space-y-4 p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)]">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-[var(--text)]">{t('owner.expenses.title')}</h3>
+                <div className="flex gap-1">
+                    {['day', 'week', 'month'].map(r => (
+                        <button key={r} type="button" onClick={() => setRange(r)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${range === r ? 'bg-violet-600 text-white border-violet-500' : 'bg-[var(--bg)] text-[var(--text-muted)] border-[var(--border)]'}`}>
+                            {t(`owner.expenses.range.${r}`)}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* AI-расходы по факту вызовов */}
+            {!summary && <div className="h-16 shimmer rounded-2xl" />}
+            {summary && (
+                <div>
+                    <div className="text-xs text-[var(--text-muted)] mb-2">
+                        {t('owner.expenses.aiTotal')}: <b className="text-[var(--text)]">${(ai?.costUsd ?? 0).toFixed(2)}</b> · {ai?.calls ?? 0} {t('owner.expenses.calls')}
+                    </div>
+                    {(ai?.byProvider || []).length > 0 && (
+                        <div className="space-y-1">
+                            {ai.byProvider.map(p => (
+                                <div key={p.provider} className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                                    <span>{p.provider}</span>
+                                    <span>{p.calls} {t('owner.expenses.calls')} · ${p.costUsd.toFixed(4)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Инфраструктура — ручной ввод */}
+            <div className="pt-3 border-t border-[var(--border)] space-y-2">
+                <div className="text-xs text-[var(--text-muted)]">
+                    {t('owner.expenses.infraTitle')}: <b className="text-[var(--text)]">{(summary?.infraTotalRub ?? 0).toLocaleString('ru-RU')} ₽/мес</b>
+                </div>
+                {(summary?.infra || []).map(e => (
+                    <div key={e.service} className="flex items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+                        <span className="break-words">{e.service}</span>
+                        <span className="flex items-center gap-2">
+                            <b className="text-[var(--text)]">{Number(e.amountRub).toLocaleString('ru-RU')} ₽</b>
+                            <button type="button" onClick={() => removeInfra(e.service)} aria-label={t('owner.expenses.remove')}
+                                className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
+                                <Trash2 size={12} />
+                            </button>
+                        </span>
+                    </div>
+                ))}
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <input value={service} onChange={e => setService(e.target.value)} placeholder={t('owner.expenses.servicePh')} className={`flex-1 min-w-0 ${inp}`} />
+                    <input value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, '').slice(0, 7))} inputMode="numeric" placeholder={t('owner.expenses.amountPh')} className={`w-full sm:w-28 ${inp}`} />
+                    <button type="button" onClick={addInfra} disabled={busy || !service.trim()}
+                        className="min-h-[40px] px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-medium flex items-center justify-center gap-2">
+                        {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                        {t('owner.expenses.add')}
+                    </button>
+                </div>
             </div>
         </div>
     )

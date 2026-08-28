@@ -25,7 +25,8 @@ export function OmegaApprovalQueue() {
         headers: { Authorization: `Bearer ${token}` },
       })
       const json = await res.json()
-      setItems(json.data || [])
+      // [OWNER-OMEGA] API может вернуть не-массив ({} при ошибке) — не падаем в ErrorBoundary
+      setItems(Array.isArray(json.data) ? json.data : [])
     } catch (err) {
       console.warn('[OmegaApprovalQueue] load failed:', err.message)
       setItems([])

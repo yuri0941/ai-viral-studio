@@ -228,6 +228,8 @@ export default function OmegaChat({
   embedded = false,
 }) {
   const { user } = useAuth();
+  // [OWNER-OMEGA] owner/admin/staff не получают CTA продаж — 402/квоты без UpsellModal
+  const isPrivileged = ['owner', 'admin', 'staff'].includes(user?.role);
   const { t } = useTranslation();
   const [internalInput, setInternalInput] = useState("");
   const [internalMessages, setInternalMessages] = useState([]);
@@ -247,6 +249,8 @@ export default function OmegaChat({
   // [CLIENT-JOURNEY-QA] UpsellModal с живой ценой из PlanConfig при 402 (квота исчерпана)
   const [upsell, setUpsell] = useState(null);
   const openUpsell = (d = {}, reasonText = null) => {
+    // [OWNER-OMEGA] владельцу/команде модалку «купи Pro» не открываем
+    if (isPrivileged) return;
     setUpsell({
       reason: reasonText || t('chat.limitReached'),
       limit: d.limit ?? null,

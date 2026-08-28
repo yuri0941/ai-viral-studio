@@ -267,6 +267,15 @@ export const ownerControlApi = {
         method: 'POST',
         body: JSON.stringify({ identifier }),
     }),
+    // [OWNER-OMEGA] продление подписки (паритет с TG «продли email на N дней»)
+    extendPreview: (email) => request('/owner/control/extend-preview', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+    }),
+    extendSubscription: (userId, days) => request('/owner/control/extend-subscription', {
+        method: 'POST',
+        body: JSON.stringify({ userId, days }),
+    }),
     telegramOwner: () => request('/owner/telegram-owner'),
     telegramSendCode: (chatId) => request('/owner/telegram-owner/send-code', {
         method: 'POST',
@@ -276,6 +285,34 @@ export const ownerControlApi = {
         method: 'POST',
         body: JSON.stringify({ chatId, code }),
     }),
+}
+
+// ============================================
+// [OWNER-OMEGA] Сбор расходов лайт
+// ============================================
+export const ownerExpensesApi = {
+    summary: () => request('/owner/expenses/summary'),
+    upsertInfra: (payload) => request('/owner/expenses/infra', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+    }),
+    removeInfra: (service) => request(`/owner/expenses/infra/${encodeURIComponent(service)}`, { method: 'DELETE' }),
+}
+
+// ============================================
+// [OWNER-OMEGA] Changelog-редактор (модалка обновлений)
+// ============================================
+export const ownerChangelogApi = {
+    list: () => request('/owner/changelog'),
+    create: (payload) => request('/owner/changelog', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    }),
+    update: (id, payload) => request(`/owner/changelog/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+    }),
+    remove: (id) => request(`/owner/changelog/${id}`, { method: 'DELETE' }),
 }
 
 // ============================================

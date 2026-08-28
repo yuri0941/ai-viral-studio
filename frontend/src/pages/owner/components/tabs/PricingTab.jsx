@@ -210,9 +210,9 @@ export function PricingTab() {
                 ownerApi.pricingHistory(),
                 planConfigApi.list().catch(() => null),
             ])
-            setPlans(pricingRes?.data?.plans || pricingRes?.plans || [])
+            setPlans(Array.isArray(pricingRes?.data?.plans) ? pricingRes.data.plans : (Array.isArray(pricingRes?.plans) ? pricingRes.plans : []))
             setAdPricing(pricingRes?.data?.adPricing || pricingRes?.adPricing || {})
-            setHistory(historyRes?.data || [])
+            setHistory(Array.isArray(historyRes?.data) ? historyRes.data : [])
             const f = planConfigRes?.founding
             if (f) {
                 setFounding(f)

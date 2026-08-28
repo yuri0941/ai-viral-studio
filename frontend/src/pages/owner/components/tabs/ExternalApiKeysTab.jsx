@@ -86,7 +86,7 @@ export default function ExternalApiKeysTab({ data }) {
     try {
       const res = await request('/admin/external-keys');
       const map = {};
-      (res?.data || []).forEach(k => { map[k.provider] = k; });
+      (Array.isArray(res?.data) ? res.data : []).forEach(k => { map[k.provider] = k; });
       setKeys(map);
     } catch (err) {
       console.error('[ExternalApiKeysTab] fetch failed', err);

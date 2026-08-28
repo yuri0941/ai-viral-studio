@@ -32,7 +32,7 @@ export default function OmegaSwarmDashboard() {
                 headers: { Authorization: `Bearer ${token}` }
             })
             const data = await res.json()
-            if (data.status === 'success') setAgents(data.data || [])
+            if (data.status === 'success') setAgents(Array.isArray(data.data) ? data.data : [])
         } catch (err) {
             console.warn('[OmegaSwarmDashboard] load failed:', err.message)
         }
@@ -101,7 +101,7 @@ export default function OmegaSwarmDashboard() {
                 headers: { Authorization: `Bearer ${token}` }
             })
             const data = await res.json()
-            setLogs(data.data || [])
+            setLogs(Array.isArray(data.data) ? data.data : [])
         } catch (err) {
             setLogs([])
         }

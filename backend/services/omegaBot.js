@@ -320,6 +320,7 @@ global.omegaFreeTextRate = freeTextRate
 
 function createStubBot() {
   return {
+    __isStub: true, // [OWNER-OMEGA] маркер заглушки — botReloader не трогает stub
     sendMessage: () => Promise.resolve(),
     on: () => {},
     onText: () => {},

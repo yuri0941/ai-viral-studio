@@ -24,11 +24,28 @@ const PUBLIC_PAGES = ['/', '/login', '/register']
 
 // [UI-VERIFY] EXTRA_PAGES — роуты, которые роль должна РЕНДЕРИТЬ (полная матрица 5 ширин × RU/EN).
 // PROBE_PAGES — роуты под guard'ами/legacy-редиректами: только проверка «куда редиректит» (1280/ru, 1 снимок).
+// [OWNER-OMEGA] все вкладки owner-кабинета (sync с TAB_LABELS в initialData.js)
+const OWNER_TABS = [
+    'overview', 'team', 'cabinets', 'finance', 'legal', 'audit', 'subscriptions', 'payments',
+    'subscribers', 'requisites', 'clients', 'monetization', 'servers', 'updates', 'promo', 'news',
+    'referrals', 'advertising', 'pricing', 'security', 'integrations', 'aiAnalytics', 'logs',
+    'agents', 'chat', 'omega', 'neural', 'tasks', 'apiKeys', 'externalKeys', 'supreme',
+    'personality', 'dream', 'notifications', 'help', 'feedback', 'devStudio', 'devstudio',
+    'omegaFinance', 'omegaSkills', 'omegaMemory', 'legalSettings', 'analytics', 'scheduler',
+    'brandVoice', 'templates', 'scout', 'whiteLabel', 'workspaces', 'developer', 'qr',
+    'franchise', 'fleet', 'selfHealing', 'sandbox', 'approvalQueue', 'swarm', 'autofix',
+    'autoImprove', 'learning', 'research', 'abTest', 'monitoring', 'resources', 'roadmap',
+    'brainviz', 'memory', 'boardroom', 'factory', 'prediction', 'investment', 'selfOptimize',
+    'support', 'channelManager', 'adOrders', 'salesMetrics',
+]
+const OWNER_PAGES = OWNER_TABS.map(t => `/owner?tab=${t}`)
+
 const EXTRA_PAGES = {
     public: ['/', '/login', '/register', '/signup', '/privacy', '/terms', '/launch', '/roadmap', '/download'],
     creator: ['/dashboard', '/analytics', '/scheduler', '/video-creator', '/settings', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/creative-hub/chat', '/checkout'],
     business: ['/dashboard', '/analytics', '/scheduler', '/settings', '/business-spawner', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/creative-hub/chat'],
     advertiser: ['/advertiser', '/neuro-sales', '/settings', '/creative-hub', '/creative-hub/chat'],
+    owner: OWNER_PAGES,
 }
 const PROBE_PAGES = {
     creator: ['/ai-chat', '/neuro-sales', '/omega-supreme', '/project-factory', '/prediction', '/investment', '/boardroom', '/business-spawner', '/workspaces', '/business', '/advertiser', '/advertiser-requests', '/owner', '/admin', '/staff'],
@@ -48,10 +65,12 @@ function tokenFor(role) {
 
 // [CHAT-HOTFIX] 2+ сегмента: ловим и двусегментные сырые ключи (chat.placeholder и т.п.)
 const RAW_KEY_RE = /\b[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*(?:\.[a-z][a-zA-Z]*)*\b/g
-const RAW_KEY_WHITELIST = /^(AI Viral|aiviral-studio|app\.aiviral\.studio|https?:|www\.|node_modules)/
+const RAW_KEY_WHITELIST = /^(AI Viral|aiviral-studio|app\.aiviral\.studio|https?:|www\.|node_modules|document\.)/
 // [CHAT-HOTFIX] домены/TLD — не i18n-ключи (studio.ru из aiviral-studio.ru, yandex.ru);
 // email (uitest.creator@...) вычищается из текста до матчинга
-const RAW_KEY_DOMAIN_RE = /\.(ru|com|net|org|io|dev|app|me|ai|xyz|studio|guru|email)$/i
+const RAW_KEY_DOMAIN_RE = /\.(ru|com|net|org|io|dev|app|me|ai|xyz|co|studio|guru|email)$/i
+// [OWNER-OMEGA] имена файлов в коде/демо-сниппетах (package.json, main.jsx) — не i18n-ключи
+const RAW_KEY_FILE_RE = /\.(json|jsx?|tsx?|mjs|css|html?|svg|png|mjs)$/i
 const EMAIL_RE = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g
 
 // [UI-POLISH] прокси продового API: preview на 127.0.0.1 не в CORS-whitelist бэкенда,
@@ -266,7 +285,7 @@ async function checkPage(page, label, width, lang, role = 'public') {
     })
 
     const rawKeys = [...new Set((metrics.text.replace(EMAIL_RE, ' ').match(RAW_KEY_RE) || [])
-        .filter(k => !RAW_KEY_WHITELIST.test(k) && !RAW_KEY_DOMAIN_RE.test(k) && k.split('.').every(p => p.length > 1)))].slice(0, 10)
+        .filter(k => !RAW_KEY_WHITELIST.test(k) && !RAW_KEY_DOMAIN_RE.test(k) && !RAW_KEY_FILE_RE.test(k) && k.split('.').every(p => p.length > 1)))].slice(0, 10)
 
     const safeName = (label === '/' ? 'home' : label.replace(/^\//, '').replace(/[/?=&]/g, '_'))
     const shot = `${role}_${safeName}_${width}_${lang}.png`

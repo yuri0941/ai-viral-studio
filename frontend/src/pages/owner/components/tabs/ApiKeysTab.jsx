@@ -16,32 +16,33 @@ function VKIcon({ className }) {
 
 const PROVIDERS = [
   // === AI-провайдеры ===
-  { id: 'groq', name: 'Groq AI', desc: 'Быстрый LLM inference', icon: Zap, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', group: 'ai' },
-  { id: 'openrouter', name: 'OpenRouter', desc: 'Доступ к 100+ моделям', icon: Globe, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', group: 'ai' },
-  { id: 'openai', name: 'OpenAI', desc: 'GPT-4, Whisper, DALL-E', icon: Sparkles, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', group: 'ai' },
-  { id: 'gemini', name: 'Google Gemini', desc: 'Google AI', icon: Brain, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', group: 'ai' },
-  { id: 'elevenlabs', name: 'ElevenLabs', desc: 'Голосовой AI / TTS', icon: Mic, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', group: 'ai' },
-  { id: 'replicate', name: 'Replicate', desc: 'AI Video / Images', icon: Image, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', group: 'ai' },
-  { id: 'serpapi', name: 'SerpAPI', desc: 'Поиск Google / Maps', icon: Search, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', group: 'ai' },
-  { id: 'youtube', name: 'YouTube Data API', desc: 'Аналитика YouTube', icon: Youtube, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', group: 'ai' },
-  { id: 'cloudflare', name: 'Cloudflare AI', desc: 'Workers AI', icon: Cloud, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'ai' },
-  { id: 'fireworks', name: 'Fireworks AI', desc: 'Fast inference', icon: Flame, color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', group: 'ai' },
-  { id: 'mistral', name: 'Mistral AI', desc: 'Европейские LLM', icon: Cpu, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20', group: 'ai' },
-  { id: 'cohere', name: 'Cohere', desc: 'Embed / Generate', icon: MessageSquare, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', group: 'ai' },
-  { id: 'deepseek', name: 'DeepSeek', desc: 'Китайские LLM', icon: Brain, color: 'text-cyan-300', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', group: 'ai' },
-  { id: 'github', name: 'GitHub Models', desc: 'GitHub AI', icon: Bot, color: 'text-gray-300', bg: 'bg-gray-500/10', border: 'border-gray-500/20', group: 'ai' },
-  { id: 'huggingface', name: 'HuggingFace', desc: 'Open models', icon: Server, color: 'text-yellow-300', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', group: 'ai' },
-  { id: 'pollinations', name: 'Pollinations', desc: 'Free AI images', icon: Image, color: 'text-emerald-300', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', group: 'ai' },
-  { id: 'together', name: 'Together AI', desc: 'Open-source LLM hosting', icon: Server, color: 'text-indigo-300', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', group: 'ai' },
-  { id: 'cerebras', name: 'Cerebras', desc: 'Ultra-fast inference', icon: Cpu, color: 'text-orange-300', bg: 'bg-orange-500/10', border: 'border-orange-500/20', group: 'ai' },
-  { id: 'chroma', name: 'Chroma Cloud', desc: 'Векторная память OMEGA', icon: Database, color: 'text-teal-300', bg: 'bg-teal-500/10', border: 'border-teal-500/20', group: 'ai' },
+  { id: 'groq', name: 'Groq AI', desc: 'Быстрый LLM inference', icon: Zap, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', group: 'ai_text' },
+  { id: 'openrouter', name: 'OpenRouter', desc: 'Доступ к 100+ моделям', icon: Globe, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', group: 'ai_text' },
+  { id: 'openai', name: 'OpenAI', desc: 'GPT-4, Whisper, DALL-E', icon: Sparkles, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', group: 'ai_text' },
+  { id: 'gemini', name: 'Google Gemini', desc: 'Google AI', icon: Brain, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', group: 'ai_text' },
+  { id: 'elevenlabs', name: 'ElevenLabs', desc: 'Голосовой AI / TTS', icon: Mic, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', group: 'ai_text' },
+  { id: 'replicate', name: 'Replicate', desc: 'AI Video / Images', icon: Image, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', group: 'ai_image' },
+  { id: 'serpapi', name: 'SerpAPI', desc: 'Поиск Google / Maps', icon: Search, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', group: 'ai_text' },
+  { id: 'youtube', name: 'YouTube Data API', desc: 'Аналитика YouTube', icon: Youtube, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', group: 'social' },
+  { id: 'cloudflare', name: 'Cloudflare AI', desc: 'Workers AI', icon: Cloud, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'ai_image' },
+  { id: 'fireworks', name: 'Fireworks AI', desc: 'Fast inference', icon: Flame, color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', group: 'ai_text' },
+  { id: 'mistral', name: 'Mistral AI', desc: 'Европейские LLM', icon: Cpu, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20', group: 'ai_text' },
+  { id: 'cohere', name: 'Cohere', desc: 'Embed / Generate', icon: MessageSquare, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', group: 'ai_text' },
+  { id: 'deepseek', name: 'DeepSeek', desc: 'Китайские LLM', icon: Brain, color: 'text-cyan-300', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', group: 'ai_text' },
+  { id: 'github', name: 'GitHub Models', desc: 'GitHub AI', icon: Bot, color: 'text-gray-300', bg: 'bg-gray-500/10', border: 'border-gray-500/20', group: 'ai_text' },
+  { id: 'huggingface', name: 'HuggingFace', desc: 'Open models', icon: Server, color: 'text-yellow-300', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', group: 'ai_text' },
+  { id: 'pollinations', name: 'Pollinations', desc: 'Free AI images', icon: Image, color: 'text-emerald-300', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', group: 'ai_image' },
+  { id: 'together', name: 'Together AI', desc: 'Open-source LLM hosting', icon: Server, color: 'text-indigo-300', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', group: 'ai_text' },
+  { id: 'cerebras', name: 'Cerebras', desc: 'Ultra-fast inference', icon: Cpu, color: 'text-orange-300', bg: 'bg-orange-500/10', border: 'border-orange-500/20', group: 'ai_text' },
+  { id: 'chroma', name: 'Chroma Cloud', desc: 'Векторная память OMEGA', icon: Database, color: 'text-teal-300', bg: 'bg-teal-500/10', border: 'border-teal-500/20', group: 'ai_text' },
   // === Соцсети ===
   { id: 'vk', name: 'VK Client ID', desc: 'ID приложения VK (например: 54714375)', placeholder: '54714375', icon: VKIcon, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', group: 'social' },
   { id: 'vk_secret', name: 'VK Client Secret', desc: 'Защищённый ключ из приложения VK', placeholder: 'Вставьте защищённый ключ', icon: VKIcon, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', group: 'social' },
   // === Telegram ===
-  { id: 'telegram_bot', name: 'Telegram Bot Token', desc: `Клиентский бот @${CLIENT_BOT_USERNAME}`, placeholder: '123456:ABC-DEF...', icon: Send, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'telegram' },
-  { id: 'telegram_owner_bot', name: 'Owner Bot Token', desc: `Бот владельца @${OWNER_BOT_USERNAME}`, placeholder: '123456:ABC-DEF...', icon: Send, color: 'text-sky-300', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'telegram' },
-  { id: 'telegram_chat_id', name: 'Owner Chat ID', desc: 'Telegram ID владельца для алертов', placeholder: '2130452126', icon: Hash, color: 'text-sky-200', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'telegram' },
+  { id: 'telegram_bot', name: 'Telegram Bot Token', desc: `Клиентский бот @${CLIENT_BOT_USERNAME}`, placeholder: '123456:ABC-DEF...', icon: Send, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'bots' },
+  { id: 'telegram_owner_bot', name: 'Owner Bot Token', desc: `Бот владельца @${OWNER_BOT_USERNAME}`, placeholder: '123456:ABC-DEF...', icon: Send, color: 'text-sky-300', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'bots' },
+  { id: 'telegram_chat_id', name: 'Owner Chat ID', desc: 'Telegram ID владельца для алертов', placeholder: '2130452126', icon: Hash, color: 'text-sky-200', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'bots' },
+  { id: 'telegram_channel', name: 'Telegram Channel', desc: 'Канал автопостинга', placeholder: '@aiviralstudio', icon: Send, color: 'text-cyan-300', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', group: 'bots' },
   // === Платежи ===
   { id: 'yookassa_shop_id', name: 'ЮKassa Shop ID', desc: 'ID магазина ЮKassa', placeholder: '123456', icon: Wallet, color: 'text-violet-300', bg: 'bg-violet-500/10', border: 'border-violet-500/20', group: 'payments' },
   { id: 'yookassa_secret', name: 'ЮKassa Secret', desc: 'Секретный ключ ЮKassa', placeholder: 'live_...', icon: Wallet, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', group: 'payments' },
@@ -60,13 +61,14 @@ const PROVIDERS = [
 ];
 
 const GROUPS = [
-  { id: 'all', label: 'Все' },
-  { id: 'ai', label: '🧠 AI' },
-  { id: 'telegram', label: '📱 Telegram' },
-  { id: 'social', label: '🔗 Соцсети' },
-  { id: 'payments', label: '💳 Платежи' },
-  { id: 'push', label: '🔔 Push' },
-  { id: 'email', label: '✉️ Email' },
+  { id: 'all', labelKey: 'apiKeys.group.all', fallback: 'Все' },
+  { id: 'ai_text', labelKey: 'apiKeys.group.aiText', fallback: '🧠 AI-текст' },
+  { id: 'ai_image', labelKey: 'apiKeys.group.aiImage', fallback: '🎨 AI-картинки' },
+  { id: 'social', labelKey: 'apiKeys.group.social', fallback: '🔗 Соцсети' },
+  { id: 'payments', labelKey: 'apiKeys.group.payments', fallback: '💳 Платежи' },
+  { id: 'bots', labelKey: 'apiKeys.group.bots', fallback: '🤖 Боты' },
+  { id: 'push', labelKey: 'apiKeys.group.push', fallback: '🔔 Push' },
+  { id: 'email', labelKey: 'apiKeys.group.email', fallback: '✉️ Email' },
 ];
 
 export default function ApiKeysTab() {
@@ -342,7 +344,7 @@ export default function ApiKeysTab() {
         {GROUPS.map(g => (
           <button key={g.id} onClick={() => setGroupFilter(g.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${groupFilter === g.id ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border)] hover:border-cyan-500/40'}`}>
-            {g.label}
+            {t(g.labelKey, { defaultValue: g.fallback })}
           </button>
         ))}
       </div>
@@ -367,6 +369,8 @@ export default function ApiKeysTab() {
               </div>
               <h3 className="font-semibold text-base mb-0.5 relative z-10">{p.name}</h3>
               <p className="text-xs text-[var(--text-muted)] mb-1 relative z-10">{p.desc}</p>
+              {/* [OWNER-OMEGA] подпись «куда вставить» (i18n) */}
+              <p className="text-[11px] text-[var(--text-muted)]/70 mb-1 relative z-10 break-words">{t(`apiKeys.where.${p.id}`, { defaultValue: '' })}</p>
               {keyMasked[p.id] && (
                 <p className="text-xs text-[var(--text-muted)] mb-4 relative z-10 font-mono truncate" title={keyMasked[p.id]}>{keyMasked[p.id]}</p>
               )}
@@ -522,6 +526,12 @@ export default function ApiKeysTab() {
             {(activeProvider.id === 'yookassa_shop_id' || activeProvider.id === 'yookassa_secret') && (
               <p className="text-xs text-violet-300 bg-violet-500/10 border border-violet-500/20 rounded-lg p-2.5">
                 {t('apiKeys.yookassaHint') || 'ЮKassa: shopId (6 цифр) + Secret test_/live_ из кабинета → Интеграция → API'}
+              </p>
+            )}
+            {/* [OWNER-OMEGA] токены ботов применяются сразу: токен подменяется на живом инстансе, webhook переустанавливается */}
+            {(activeProvider.id === 'telegram_bot' || activeProvider.id === 'telegram_owner_bot') && (
+              <p className="text-xs text-sky-300 bg-sky-500/10 border border-sky-500/20 rounded-lg p-2.5">
+                {t('apiKeys.botHotReloadHint', { defaultValue: 'После сохранения бот переподключится автоматически (webhook обновится без деплоя). Env-токен останется запасным.' })}
               </p>
             )}
             <div className="relative">

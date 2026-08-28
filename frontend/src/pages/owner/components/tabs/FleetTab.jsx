@@ -37,7 +37,7 @@ export function FleetTab() {
         setLoading(true)
         try {
             const res = await fleetApi.summary()
-            setProjects(res.data || [])
+            setProjects(Array.isArray(res.data) ? res.data : [])
         } catch (err) {
             console.error(err)
         } finally {

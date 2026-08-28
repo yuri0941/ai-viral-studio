@@ -20,7 +20,7 @@ export function SandboxPanel() {
                 headers: { Authorization: `Bearer ${token}` },
             })
             const json = await res.json()
-            if (json.status === 'success') setItems(json.data || [])
+            if (json.status === 'success') setItems(Array.isArray(json.data) ? json.data : [])
         } catch (err) {
             console.error('[SandboxPanel]', err)
         } finally {

@@ -297,6 +297,7 @@ const envMap = {
     telegram_bot: 'TELEGRAM_BOT_TOKEN',
     telegram_owner_bot: 'TELEGRAM_OWNER_BOT_TOKEN',
     telegram_chat_id: 'TELEGRAM_OWNER_CHAT_ID',
+    telegram_channel: 'TELEGRAM_CHANNEL', // [OWNER-OMEGA] username/ID автоканала из кабинета
     yookassa_shop_id: 'YOOKASSA_SHOP_ID',
     yookassa_secret: 'YOOKASSA_SECRET_KEY',
     stripe: 'STRIPE_SECRET_KEY',
@@ -1050,6 +1051,10 @@ const tryProviders = async (messages, ownerId = null) => {
             setKeyHealthState(provider.id, 'ok')
             // [SUPPORT-PUSH-PROVIDERS] успешный ответ — сбрасываем серию 404/410
             modelRemovedFailures.delete(provider.id)
+            // [OWNER-OMEGA] лайт-учёт расходов: лог вызова (fire-and-forget, не ломает ответ)
+            import('./expenseTracker.js')
+                .then(m => m.logAiUsage(provider.id, prompt, text))
+                .catch(() => {})
             return { reply: String(text).trim(), provider: provider.id, usage: null }
         } catch (error) {
             const status = error.response?.status

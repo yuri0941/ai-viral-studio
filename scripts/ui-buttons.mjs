@@ -17,11 +17,27 @@ const API_ORIGIN = 'https://aiviral-backend.onrender.com'
 const WIDTHS = [360, 428, 768, 1280, 1920]
 const LANGS = ['ru', 'en']
 
+// [OWNER-OMEGA] все вкладки owner-кабинета (sync с TAB_LABELS в initialData.js)
+const OWNER_TABS = [
+    'overview', 'team', 'cabinets', 'finance', 'legal', 'audit', 'subscriptions', 'payments',
+    'subscribers', 'requisites', 'clients', 'monetization', 'servers', 'updates', 'promo', 'news',
+    'referrals', 'advertising', 'pricing', 'security', 'integrations', 'aiAnalytics', 'logs',
+    'agents', 'chat', 'omega', 'neural', 'tasks', 'apiKeys', 'externalKeys', 'supreme',
+    'personality', 'dream', 'notifications', 'help', 'feedback', 'devStudio', 'devstudio',
+    'omegaFinance', 'omegaSkills', 'omegaMemory', 'legalSettings', 'analytics', 'scheduler',
+    'brandVoice', 'templates', 'scout', 'whiteLabel', 'workspaces', 'developer', 'qr',
+    'franchise', 'fleet', 'selfHealing', 'sandbox', 'approvalQueue', 'swarm', 'autofix',
+    'autoImprove', 'learning', 'research', 'abTest', 'monitoring', 'resources', 'roadmap',
+    'brainviz', 'memory', 'boardroom', 'factory', 'prediction', 'investment', 'selfOptimize',
+    'support', 'channelManager', 'adOrders', 'salesMetrics',
+]
+
 const PAGES = {
     public: ['/', '/login', '/register', '/unauthorized'],
     creator: ['/dashboard', '/analytics', '/scheduler', '/video-creator', '/settings', '/settings?tab=subscription', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/creative-hub/chat'],
     business: ['/dashboard', '/boardroom', '/business-spawner', '/settings'],
     advertiser: ['/advertiser', '/neuro-sales', '/settings'],
+    owner: OWNER_TABS.map(t => `/owner?tab=${t}`),
 }
 
 function tokenFor(role) {

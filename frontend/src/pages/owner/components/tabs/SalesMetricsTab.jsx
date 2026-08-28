@@ -12,7 +12,15 @@ export default function SalesMetricsTab() {
 
   useEffect(() => {
     request('/admin/sales-metrics')
-      .then(d => { setData(d); setLoading(false); })
+      .then(d => {
+        // [OWNER-OMEGA] нормализация: поля могут отсутствовать в ответе — не падаем на .map/.total
+        const safe = d && typeof d === 'object' ? { ...d } : {};
+        if (!Array.isArray(safe.intents)) safe.intents = [];
+        if (!Array.isArray(safe.daily)) safe.daily = [];
+        safe.summary = { total: 0, converted: 0, conversionRate: 0, churnRisk: 0, ...(safe.summary && typeof safe.summary === 'object' ? safe.summary : {}) };
+        setData(safe);
+        setLoading(false);
+      })
       .catch((err) => {
         console.error('[SalesMetricsTab] fetch failed', err);
         toast.error('Не удалось загрузить метрики');
