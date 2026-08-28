@@ -11,6 +11,7 @@
         "seed": "node scripts/seedUsers.js"
     },
     "dependencies": {
+        "@sentry/node": "^10.71.0",
         "axios": "^1.7.2",
         "bcryptjs": "^2.4.3",
         "bull": "^4.16.0",

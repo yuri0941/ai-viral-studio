@@ -45,6 +45,31 @@ try {
     console.warn('[Rollbar] init failed:', err) // [P16-FIX] guard Rollbar init
 }
 
+// [security-hardening Б5-З6] Sentry frontend: без VITE_SENTRY_DSN — молча off; PII/секреты фильтруем
+const sentryDsn = import.meta.env.VITE_SENTRY_DSN
+if (sentryDsn) {
+    import('@sentry/react').then((Sentry) => {
+        Sentry.init({
+            dsn: sentryDsn,
+            environment: import.meta.env.MODE || 'production',
+            sendDefaultPii: false,
+            beforeSend(event) {
+                if (event.request) {
+                    delete event.request.cookies
+                    if (event.request.headers) {
+                        for (const h of Object.keys(event.request.headers)) {
+                            if (/authorization|cookie|token|secret|key/i.test(h)) event.request.headers[h] = '[Filtered]'
+                        }
+                    }
+                }
+                if (event.user) event.user = { id: event.user.id }
+                return event
+            },
+        })
+        console.log('[Sentry] frontend инициализирован')
+    }).catch((err) => console.warn('[Sentry] frontend init failed, продолжаем без него:', err))
+}
+
 // [v6.4-kill-cache] Aggressively unregister old service workers and wipe caches on startup
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(r => r.forEach(x => x.unregister()));
@@ -66,4 +91,3 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </QueryClientProvider>
     </React.StrictMode>
 )
-

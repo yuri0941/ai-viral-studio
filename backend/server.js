@@ -1,4 +1,6 @@
 import './config/env.js'
+import { initSentry, sentryErrorHandler } from './config/sentry.js' // [security-hardening Б5-З6]
+initSentry() // без SENTRY_DSN — молча off
 import { CLIENT_BOT_TOKEN, OWNER_BOT_TOKEN } from './config/bots.js'
 
 // ============ ИМПОРТЫ ============
@@ -713,6 +715,8 @@ app.get('/api/tickets', protect, async (req, res) => {
 app.get('/qr/:shortCode', qrController.redirectScan)
 
 // Error handling
+// [security-hardening Б5-З6] Sentry error handler ДО кастомного (шлёт событие, потом наш формат ответа)
+sentryErrorHandler(app)
 app.use(errorHandler)
 
 // 404 handler

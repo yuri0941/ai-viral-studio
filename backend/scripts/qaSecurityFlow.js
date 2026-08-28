@@ -132,5 +132,14 @@ for (const [label, tkn, expected] of [['client', ct, client._id], ['staff', st, 
 }
 
 console.log(`\n${failed === 0 ? '✅ qaSecurityFlow: ВСЯ МАТРИЦА ЗЕЛЁНАЯ' : `❌ qaSecurityFlow: ${failed} провалов`}`)
+
+// [security-hardening Б5-З6] провал guard-теста в проде → TG-алерт владельцу (кулдаун 10 мин внутри)
+if (failed > 0 && process.env.QA_ALERT === '1') {
+  try {
+    const { alertCritical } = await import('../services/securityAlerts.js')
+    await alertCritical('guard_breach', `qaSecurityFlow: ${failed} провалов против ${API}`)
+  } catch { /* алерт best-effort */ }
+}
+
 await mongoose.disconnect()
 process.exit(failed === 0 ? 0 : 1)
