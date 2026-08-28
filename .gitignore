@@ -5,7 +5,20 @@ frontend/stats.html
 TEST_ACCOUNTS.md
 frontend/dist/
 dist/
+
+# [security-hardening Б5-З4.2] все .env в любых подпапках; в git ходят только *.example-шаблоны
+.env
+.env.*
 *.env
+*.env.*
+!*.env.example
+!*.env.sample
+!*.env.template
 backend/.env
 reports/
 .tmp-ui-polish/
+
+# [security-hardening Б5-З4.2] внутренние планы/roadmap не коммитим (уже лежат локально)
+MASTER_PLAN*.md
+OMEGA_*PLAN*.md
+agent-reports/

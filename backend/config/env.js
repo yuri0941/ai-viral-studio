@@ -10,9 +10,14 @@ const envPath = path.join(__dirname, '..', '.env')
 dotenv.config({ path: envPath })
 
 // ============ FALLBACK ЗНАЧЕНИЯ ============
+// [security-hardening Б5-З4] JWT_SECRET без fallback в production: hardcoded secret = подделка токенов
 if (!process.env.JWT_SECRET) {
-    console.log('⚠️  JWT_SECRET not found in .env, using fallback')
-    process.env.JWT_SECRET = 'supersecretkey2026_ai_viral_studio_jwt'
+    if ((process.env.NODE_ENV || '') === 'production') {
+        console.error('❌ JWT_SECRET не задан в env — запуск в production запрещён (безопасность)')
+        process.exit(1)
+    }
+    console.log('⚠️  JWT_SECRET not found in .env, using DEV-ONLY fallback')
+    process.env.JWT_SECRET = 'dev_only_insecure_jwt_secret_change_me'
 }
 
 if (!process.env.MONGO_URI && !process.env.MONGODB_URI) {
@@ -21,24 +26,12 @@ if (!process.env.MONGO_URI && !process.env.MONGODB_URI) {
     process.env.MONGODB_URI = 'mongodb://localhost:27017/ai_viral_studio'
 }
 
-if (!process.env.GROQ_API_KEY) {
-    console.log('⚠️  GROQ_API_KEY not found in .env, using fallback')
-    process.env.GROQ_API_KEY = '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'
-}
-
-if (!process.env.OPENROUTER_API_KEY) {
-    console.log('⚠️  OPENROUTER_API_KEY not found in .env, using fallback')
-    process.env.OPENROUTER_API_KEY = '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'
-}
-
-if (!process.env.DEEPSEEK_API_KEY) {
-    console.log('⚠️  DEEPSEEK_API_KEY not found in .env, using fallback')
-    process.env.DEEPSEEK_API_KEY = 'sk-bc6b9d2b72b04438bb14cee22bdb17e4'
-}
-
-if (!process.env.YOUTUBE_API_KEY) {
-    console.log('⚠️  YOUTUBE_API_KEY not found in .env, using fallback')
-    process.env.YOUTUBE_API_KEY = 'AIzaSyD1SH9WizR4zgi7JUshXfTuzHsJagmu4zU'
+// [security-hardening Б5-З4] hardcoded AI-ключи УДАЛЕНЫ из репозитория (были засвечены в git).
+// Ключи — только из env или Кабинета (MongoDB, hot-reload Б4). Старые значения → на ротацию владельцу.
+for (const varName of ['GROQ_API_KEY', 'OPENROUTER_API_KEY', 'DEEPSEEK_API_KEY', 'YOUTUBE_API_KEY']) {
+    if (!process.env[varName]) {
+        console.log(`ℹ️  ${varName} не задан в env — возьмётся из Кабинета (API Ключи) при наличии`)
+    }
 }
 
 // Stripe/Coinbase fallbacks — без warning-спама; статус выводим одной info-строкой ниже
