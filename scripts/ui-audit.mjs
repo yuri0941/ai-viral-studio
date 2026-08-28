@@ -46,6 +46,9 @@ const EXTRA_PAGES = {
     business: ['/dashboard', '/analytics', '/scheduler', '/settings', '/business-spawner', '/ai-vs-human', '/leaderboard', '/challenge', '/creative-hub', '/creative-hub/chat'],
     advertiser: ['/advertiser', '/neuro-sales', '/settings', '/creative-hub', '/creative-hub/chat'],
     owner: OWNER_PAGES,
+    // [STAFF-DOP] кабинеты сотрудников: admin и staff (mock-auth выдаёт профиль с ролью прогона)
+    admin: ['/admin'],
+    staff: ['/staff'],
 }
 const PROBE_PAGES = {
     creator: ['/ai-chat', '/neuro-sales', '/omega-supreme', '/project-factory', '/prediction', '/investment', '/boardroom', '/business-spawner', '/workspaces', '/business', '/advertiser', '/advertiser-requests', '/owner', '/admin', '/staff'],

@@ -27,10 +27,13 @@ export default function TermsPage() {
 
   const contactEmail = legalInfo?.contactEmail || 'tihonovu560@gmail.com';
 
+  // [LINKIFY-DOT] завершающая пунктуация (. , ; : ! ?) не входит в href, но остаётся в тексте
   const linkify = (text) => {
     const m = String(text).match(/(https?:\/\/[^\s)]+|[\w.+-]+@[\w-]+\.[\w.]+)/);
     if (!m) return text;
-    const target = m[0];
+    const trailing = m[0].match(/[.,;:!?]+$/)?.[0] || '';
+    const target = trailing ? m[0].slice(0, -trailing.length) : m[0];
+    if (!target) return text;
     const href = target.startsWith('http') ? target : `mailto:${target}`;
     return (
       <>

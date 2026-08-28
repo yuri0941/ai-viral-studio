@@ -38,6 +38,9 @@ const PAGES = {
     business: ['/dashboard', '/boardroom', '/business-spawner', '/settings'],
     advertiser: ['/advertiser', '/neuro-sales', '/settings'],
     owner: OWNER_TABS.map(t => `/owner?tab=${t}`),
+    // [STAFF-DOP] кабинеты сотрудников: admin и staff
+    admin: ['/admin'],
+    staff: ['/staff'],
 }
 
 function tokenFor(role) {

@@ -108,6 +108,23 @@ const fakeTicket = new mongoose.Types.ObjectId()
 const rSup = await req('PATCH', `/api/support/${fakeTicket}/status`, st, { status: 'in_progress' })
 check('C: staff PATCH /api/support/:id/status → не 403 (белый список)', rSup.status !== 403 && rSup.status !== 401, rSup.status)
 
+// ============ C2. [STAFF-DOP] POST /api/owner/staff — создание сотрудника из кабинета ============
+// staff не может создавать аккаунты сотрудников
+const rStaffDeny = await req('POST', '/api/owner/staff', st, { email: `qa-deny-${Date.now()}@test.ru`, name: 'QA Deny' })
+check('C2: staff POST /api/owner/staff → 403', rStaffDeny.status === 403, rStaffDeny.status)
+// client — тоже
+const rClientDeny = await req('POST', '/api/owner/staff', ct, { email: `qa-deny2-${Date.now()}@test.ru`, name: 'QA Deny' })
+check('C2: client POST /api/owner/staff → 403', rClientDeny.status === 403, rClientDeny.status)
+// owner может: 201 + временный пароль; дубль email → 409; role:'owner' отклоняется
+const staffEmail = `qa-staff-${Date.now()}@test.ru`
+const rCreate = await req('POST', '/api/owner/staff', ot, { email: staffEmail, name: 'QA Staff', role: 'staff' })
+check('C2: owner POST /api/owner/staff → 201 + tempPassword', rCreate.status === 201 && !!rCreate.json?.tempPassword, rCreate.status)
+const rDup = await req('POST', '/api/owner/staff', ot, { email: staffEmail, name: 'QA Staff 2' })
+check('C2: дубль email → 409', rDup.status === 409, rDup.status)
+const rOwnerRole = await req('POST', '/api/owner/staff', ot, { email: `qa-owner-${Date.now()}@test.ru`, name: 'QA Owner', role: 'owner' })
+check('C2: role=owner отклоняется → 400', rOwnerRole.status === 400, rOwnerRole.status)
+await User.deleteOne({ email: staffEmail })
+
 // ============ D. IDOR ============
 const rIdor1 = await req('GET', `/api/analytics/churn-risk/${owner._id}`, ct)
 check('D: client → чужой churn-risk (owner) → 403', rIdor1.status === 403, rIdor1.status)

@@ -4,7 +4,7 @@ import { AutoTicketHelper } from '../components/staff/AutoTicketHelper.jsx'
 import { useAuth } from '../context/AuthContext'
 import { API_BASE_URL } from '../config.js'
 import {
-    Headphones, TicketCheck, Clock, Star, Shield, BookOpen, Zap,
+    Headphones, TicketCheck, Clock, Star, BookOpen, Zap,
     Search, Send, Check, X, AlertCircle, MessageSquare, User,
     ChevronDown, ChevronUp, Tag, ArrowUpRight, Filter,
     AlertTriangle, CheckCircle2, Clock4, Lock, Unlock, Layout, List,
@@ -56,19 +56,67 @@ function StaffDashboardPage() {
     // --- TICKETS STATE ---
     const [tickets, setTickets] = useState([])
 
+    // [STAFF-DOP] живые обращения — /api/support (SupportTicket), а не legacy /api/tickets (другая коллекция).
+    // Нормализация: _id→id, userName/userEmail→user, subject→topic, needs_owner/ai_handled→open, resolved→closed.
+    const normalizeTicket = (t) => ({
+        id: t._id || t.id,
+        user: t.userName || t.userEmail || '—',
+        email: t.userEmail || '',
+        topic: t.subject || '',
+        subject: t.subject || '',
+        description: t.description || '',
+        status: (t.status === 'ai_handled' || t.status === 'needs_owner') ? 'open' : t.status === 'resolved' ? 'closed' : (t.status || 'open'),
+        priority: t.priority === 'normal' ? 'low' : (t.priority || 'low'),
+        assignedTo: t.assignedTo || null,
+        createdAt: t.createdAt,
+        time: t.createdAt ? new Date(t.createdAt).toLocaleString('ru-RU') : '',
+        messages: (t.messages || []).map(m => ({
+            from: m.sender === 'client' ? 'user' : m.sender === 'system' ? 'system' : 'staff',
+            text: m.text,
+            time: m.timestamp ? new Date(m.timestamp).toLocaleString('ru-RU') : '',
+        })),
+    })
+
+    const apiCall = async (path, method = 'GET', body) => {
+        const token = localStorage.getItem('token')
+        const res = await fetch(`${API_BASE_URL}${path}`, {
+            method,
+            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), 'Content-Type': 'application/json' },
+            ...(body ? { body: JSON.stringify(body) } : {}),
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(json.message || json.error || `HTTP ${res.status}`)
+        return json
+    }
+
+    // единый патч тикета: backend → нормализация → обновление списка и открытой модалки
+    const patchTicket = async (ticketId, body) => {
+        try {
+            const res = await apiCall(`/support/${ticketId}/status`, 'PATCH', body)
+            const updated = normalizeTicket(res.data)
+            setTickets(prev => prev.map(t => t.id === ticketId ? updated : t))
+            setSelectedTicket(prev => (prev && prev.id === ticketId) ? updated : prev)
+            return updated
+        } catch (e) {
+            showToast(e.message, 'error')
+            return null
+        }
+    }
+
+    const openTicket = (ticket) => {
+        setSelectedTicket(ticket)
+        setReplyText('')
+        setShowTicketModal(true)
+        setTicketContext(null)
+        apiCall(`/support/${ticket.id}/context`).then(json => setTicketContext(json?.data || null)).catch(() => {})
+    }
+
     useEffect(() => {
         const fetchTickets = async () => {
-            const token = localStorage.getItem('token')
             try {
-                const res = await fetch(`${API_BASE_URL}/tickets`, {
-                    headers: {
-                        ...(token ? { Authorization: `Bearer ${token}` } : {})
-                    }
-                })
-                if (!res.ok) return
-                const json = await res.json()
+                const json = await apiCall('/support')
                 const list = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : [])
-                setTickets(list)
+                setTickets(list.map(normalizeTicket))
             } catch (err) {
                 // eslint-disable-next-line no-console
                 console.error('Failed to fetch tickets:', err)
@@ -82,7 +130,8 @@ function StaffDashboardPage() {
     // --- MODALS ---
     const [showTicketModal, setShowTicketModal] = useState(false)
     const [selectedTicket, setSelectedTicket] = useState(null)
-    const [showModerationModal, setShowModerationModal] = useState(false)
+    // [STAFF-DOP] контекст клиента в модалке тикета (GET /api/support/:id/context)
+    const [ticketContext, setTicketContext] = useState(null)
     const [showKnowledgeModal, setShowKnowledgeModal] = useState(false)
     const [showEscalationModal, setShowEscalationModal] = useState(false)
     const [escalationForm, setEscalationForm] = useState({ reason: '', priority: 'medium', notes: '' })
@@ -97,39 +146,48 @@ function StaffDashboardPage() {
         satisfaction: 94
     }
 
+    // [STAFF-DOP] все действия с тикетом идут в backend; статус in_progress = takeover (AI молчит)
     const changeStatus = (ticketId, newStatus) => {
-        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus, assignedTo: t.assignedTo || (user?.email || 'staff@ai-viral.com') } : t))
-        showToast(t('staff.statusChanged', 'Статус изменён на {{status}}', { status: getStatusLabel(newStatus) }))
+        const body = { status: newStatus }
+        if (newStatus === 'in_progress') body.assignedTo = user?.email || 'staff'
+        patchTicket(ticketId, body).then(u => {
+            if (u) showToast(t('staff.statusChanged', 'Статус изменён на {{status}}', { status: getStatusLabel(newStatus) }))
+        })
     }
 
     const changePriority = (ticketId, newPriority) => {
-        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, priority: newPriority } : t))
-        showToast(t('staff.priorityChanged', 'Приоритет изменён на {{priority}}', { priority: getPriorityLabel(newPriority) }))
+        const cur = tickets.find(t => t.id === ticketId)
+        patchTicket(ticketId, { status: cur?.status || 'open', priority: newPriority }).then(u => {
+            if (u) showToast(t('staff.priorityChanged', 'Приоритет изменён на {{priority}}', { priority: getPriorityLabel(newPriority) }))
+        })
     }
 
     const assignToMe = (ticketId) => {
-        const me = user?.email || 'staff@ai-viral.com'
-        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignedTo: me } : t))
-        showToast(t('staff.assignedToMe'))
+        const me = user?.email || 'staff'
+        patchTicket(ticketId, { status: 'in_progress', assignedTo: me }).then(u => {
+            if (u) showToast(t('staff.assignedToMe'))
+        })
     }
 
     const setTicketStatus = (newStatus) => {
-        setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, status: newStatus } : t))
-        setSelectedTicket({ ...selectedTicket, status: newStatus })
-        showToast(t('staff.statusChanged', { status: getStatusLabel(newStatus) }))
+        if (!selectedTicket) return
+        const body = { status: newStatus }
+        if (newStatus === 'in_progress') body.assignedTo = user?.email || 'staff'
+        patchTicket(selectedTicket.id, body).then(u => {
+            if (u) showToast(t('staff.statusChanged', { status: getStatusLabel(newStatus) }))
+        })
     }
 
     const setTicketPriority = (newPriority) => {
-        setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, priority: newPriority } : t))
-        setSelectedTicket({ ...selectedTicket, priority: newPriority })
-        showToast(t('staff.priorityChanged', { priority: getPriorityLabel(newPriority) }))
+        if (!selectedTicket) return
+        patchTicket(selectedTicket.id, { status: selectedTicket.status, priority: newPriority }).then(u => {
+            if (u) showToast(t('staff.priorityChanged', { priority: getPriorityLabel(newPriority) }))
+        })
     }
 
     const assignSelectedToMe = () => {
-        const me = user?.email || 'staff@ai-viral.com'
-        setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, assignedTo: me } : t))
-        setSelectedTicket({ ...selectedTicket, assignedTo: me })
-        showToast(t('staff.assignedToMe'))
+        if (!selectedTicket) return
+        assignToMe(selectedTicket.id)
     }
 
     const insertQuickReply = (text) => {
@@ -216,7 +274,7 @@ function StaffDashboardPage() {
 
     const ticketColumns = useMemo(() => [
         { key: 'id', header: t('staff.id'), width: '70px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">#{ticket?.id || '—'}</span> },
-        { key: 'user', header: t('staff.user'), width: '1.5fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket?.user || '—'}</span> },
+        { key: 'user', header: t('staff.user'), width: '1.5fr', cell: (ticket) => <span className="text-[var(--text)] text-sm truncate block" title={ticket?.user || ''}>{ticket?.user || '—'}</span> },
         { key: 'subject', header: t('staff.subject'), width: '2fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket?.topic || ticket?.title || ticket?.subject || '—'}</span> },
         {
             key: 'priority',
@@ -260,7 +318,7 @@ function StaffDashboardPage() {
             sortable: false,
             cell: (ticket) => (
                 <button
-                    onClick={() => { setSelectedTicket(ticket); setReplyText(''); setShowTicketModal(true) }}
+                    onClick={() => openTicket(ticket)}
                     className="px-3 py-1.5 rounded-lg bg-[var(--success)]/10 text-[var(--success)] text-xs font-medium hover:bg-[var(--success)]/20 transition-colors flex items-center gap-1"
                 >
                     <ArrowUpRight size={12} /> {t('staff.openTicket')}
@@ -270,81 +328,74 @@ function StaffDashboardPage() {
     ], [changePriority, changeStatus]) // [P24] fixed: renamed cell param from 't' to 'ticket' to avoid shadowing translation function
 
     // --- TICKET ACTIONS ---
-    const openTicket = (ticket) => {
-        setSelectedTicket(ticket)
-        setReplyText('')
-        setShowTicketModal(true)
-    }
-
-    const sendReply = () => {
-        if (!replyText.trim()) return
-        const updatedTickets = tickets.map(t => {
-            if (t.id === selectedTicket.id) {
-                return {
-                    ...t,
-                    messages: [...t.messages, { from: 'staff', text: replyText, time: t('staff.justNow', 'Только что') }],
-                    status: t.status === 'closed' ? 'open' : 'waiting',
-                    assignedTo: user?.email || 'staff@ai-viral.com'
-                }
-            }
-            return t
-        })
-        setTickets(updatedTickets)
-        setSelectedTicket({
-            ...selectedTicket,
-            messages: [...selectedTicket.messages, { from: 'staff', text: replyText, time: t('staff.justNow', 'Только что') }],
-            status: selectedTicket.status === 'closed' ? 'open' : 'waiting',
-            assignedTo: user?.email || 'staff@ai-viral.com'
-        })
-        setReplyText('')
-        showToast(t('staff.replySent'))
+    // [STAFF-DOP] ответ уходит в backend → клиент получает его во все каналы (TG/виджет), а не только в localStorage
+    const sendReply = async () => {
+        if (!replyText.trim() || !selectedTicket) return
+        try {
+            const res = await apiCall(`/support/${selectedTicket.id}/messages`, 'POST', {
+                text: replyText.trim(),
+                sender: user?.name || user?.email || 'staff',
+            })
+            const updated = normalizeTicket(res.data)
+            setTickets(prev => prev.map(t => t.id === updated.id ? updated : t))
+            setSelectedTicket(updated)
+            setReplyText('')
+            showToast(t('staff.replySent'))
+        } catch (e) {
+            showToast(e.message, 'error')
+        }
     }
 
     const closeTicket = () => {
-        const updatedTickets = tickets.map(t => {
-            if (t.id === selectedTicket.id) {
-                return { ...t, status: 'closed' }
-            }
-            return t
+        if (!selectedTicket) return
+        patchTicket(selectedTicket.id, { status: 'closed' }).then(u => {
+            if (u) showToast(t('staff.ticketClosed'))
         })
-        setTickets(updatedTickets)
-        setSelectedTicket({ ...selectedTicket, status: 'closed' })
-        showToast(t('staff.ticketClosed'))
     }
 
     const reopenTicket = () => {
-        const updatedTickets = tickets.map(t => {
-            if (t.id === selectedTicket.id) {
-                return { ...t, status: 'open' }
-            }
-            return t
+        if (!selectedTicket) return
+        patchTicket(selectedTicket.id, { status: 'open' }).then(u => {
+            if (u) showToast(t('staff.ticketReopened'))
         })
-        setTickets(updatedTickets)
-        setSelectedTicket({ ...selectedTicket, status: 'open' })
-        showToast(t('staff.ticketReopened'))
     }
 
     // --- ESCALATION ---
-    const handleEscalation = () => {
+    // [STAFF-DOP] эскалация уходит в backend: тикет → needs_owner/urgent + TG-алерт владельцу
+    const handleEscalation = async () => {
         if (!escalationForm.reason) {
             showToast(t('staff.escalationReasonRequired', 'Укажите причину эскалации'), 'error')
             return
         }
-        setShowEscalationModal(false)
-        setEscalationForm({ reason: '', priority: 'medium', notes: '' })
-        showToast(t('staff.escalated', 'Тикет передан администратору'))
+        if (!selectedTicket) {
+            showToast(t('staff.escalationNoTicket', 'Сначала откройте тикет'), 'error')
+            return
+        }
+        try {
+            const res = await apiCall(`/support/${selectedTicket.id}/escalate`, 'POST', {
+                reason: `${escalationForm.reason}${escalationForm.notes ? ` — ${escalationForm.notes}` : ''}`,
+            })
+            const updated = normalizeTicket(res.data)
+            setTickets(prev => prev.map(t => t.id === updated.id ? updated : t))
+            setShowEscalationModal(false)
+            setEscalationForm({ reason: '', priority: 'medium', notes: '' })
+            showToast(t('staff.escalated', 'Тикет передан администратору'))
+        } catch (e) {
+            showToast(e.message, 'error')
+        }
     }
 
     // --- KNOWLEDGE BASE ---
     const [kbSearch, setKbSearch] = useState('')
     const [kbCategory, setKbCategory] = useState('all')
+    // [STAFF-DOP] KB-статьи через i18n (были хардкодом RU — в EN-локали сырой русский текст)
     const kbArticles = [
-        { id: 1, category: 'auth', title: 'Не могу войти в аккаунт', content: 'Попробуйте сбросить пароль через кнопку "Забыли пароль?". Если не помогает — проверьте правильность email.', views: 234 },
-        { id: 2, category: 'payments', title: 'Ошибка оплаты тарифа', content: 'Проверьте баланс карты и лимиты. Попробуйте другой способ оплаты (PayPal, Crypto).', views: 189 },
-        { id: 3, category: 'ai', title: 'AI Chat не отвечает', content: 'Проверьте подключение к интернету. Попробуйте переключить провайдера в настройках чата (Groq / OpenRouter).', views: 456 },
-        { id: 4, category: 'scheduler', title: 'Как подключить YouTube', content: 'Перейдите в Настройки → Соцсети → YouTube. Нажмите "Подключить" и авторизуйтесь через Google.', views: 312 },
-        { id: 5, category: 'scheduler', title: 'Пост не опубликовался', content: 'Проверьте дату и время публикации. Убедитесь что выбрана хотя бы одна платформа.', views: 178 },
-        { id: 6, category: 'account', title: 'Как сменить тариф', content: 'Перейдите в Настройки → Подписка. Выберите новый тариф и нажмите "Выбрать".', views: 267 },
+        { id: 1, category: 'auth', title: t('staff.kb.1.title', 'Не могу войти в аккаунт'), content: t('staff.kb.1.content', 'Попробуйте сбросить пароль через кнопку "Забыли пароль?". Если не помогает — проверьте правильность email.'), views: 234 },
+        { id: 2, category: 'payments', title: t('staff.kb.2.title', 'Ошибка оплаты тарифа'), content: t('staff.kb.2.content', 'Проверьте баланс карты и лимиты. Попробуйте другой способ оплаты (PayPal, Crypto).'), views: 189 },
+        { id: 3, category: 'ai', title: t('staff.kb.3.title', 'AI Chat не отвечает'), content: t('staff.kb.3.content', 'Проверьте подключение к интернету. Попробуйте переключить провайдера в настройках чата (Groq / OpenRouter).'), views: 456 },
+        { id: 4, category: 'scheduler', title: t('staff.kb.4.title', 'Как подключить YouTube'), content: t('staff.kb.4.content', 'Перейдите в Настройки → Соцсети → YouTube. Нажмите "Подключить" и авторизуйтесь через Google.'), views: 312 },
+        { id: 5, category: 'scheduler', title: t('staff.kb.5.title', 'Пост не опубликовался'), content: t('staff.kb.5.content', 'Проверьте дату и время публикации. Убедитесь что выбрана хотя бы одна платформа.'), views: 178 },
+        { id: 6, category: 'account', title: t('staff.kb.6.title', 'Как сменить тариф'), content: t('staff.kb.6.content', 'Перейдите в Настройки → Подписка. Выберите новый тариф и нажмите "Выбрать".'), views: 267 },
     ]
 
     const kbCategories = [
@@ -364,24 +415,8 @@ function StaffDashboardPage() {
     })
 
     // --- MODERATION REPORTS ---
-    const [reports, setReports] = useState([
-        { id: 1, user: 'user1@mail.com', content: 'Нецензурный контент в комментариях', platform: 'YouTube', date: '10 мин назад', status: 'pending' },
-        { id: 2, user: 'spammer@bot.ru', content: 'Массовая рассылка спама', platform: 'Telegram', date: '1 час назад', status: 'pending' },
-        { id: 3, user: 'creator99@mail.com', content: 'Нарушение авторских прав (музыка)', platform: 'TikTok', date: '3 часа назад', status: 'reviewed' },
-    ])
-
-    const handleReportAction = (reportId, action) => {
-        if (action === 'ban') {
-            setReports(reports.filter(r => r.id !== reportId))
-            showToast(t('staff.userBlocked'))
-        } else if (action === 'dismiss') {
-            setReports(reports.filter(r => r.id !== reportId))
-            showToast(t('staff.reportDismissed'))
-        } else if (action === 'warn') {
-            setReports(reports.map(r => r.id === reportId ? { ...r, status: 'warned' } : r))
-            showToast(t('staff.warningSent'))
-        }
-    }
+    // [STAFF-DOP] моковая секция модерации удалена: ban/dismiss/warn не ходили в API (ложный UI).
+    // Реальный бан клиента живёт в admin/owner-кабинете (POST /api/admin/users/:id/block).
 
     return (
         <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] p-4 md:p-6">
@@ -564,7 +599,8 @@ function StaffDashboardPage() {
             </div>
 
             {/* [P16-FIX] added: FAB with radial menu */}
-            <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-40">
+            {/* [STAFF-DOP] на мобильных поднимаем FAB над MobileBottomNav (56px), иначе кнопка полностью перекрыта */}
+            <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-40">
                 <div className={`relative transition-all duration-300 ${fabOpen ? 'scale-100' : 'scale-0 opacity-0'}`}>
                     {[
                         { icon: Plus, label: t('staff.newTicket', 'Новый тикет'), color: 'bg-[var(--success)]', onClick: () => showToast(t('staff.creatingTicket', 'Создание тикета...')) },
@@ -600,9 +636,8 @@ function StaffDashboardPage() {
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                    { label: t('staff.moderation'), icon: Shield, desc: t('staff.moderationDesc', '5 жалоб на рассмотрении'), color: 'from-red-500/20 to-red-600/10', border: 'border-[var(--danger)]/20', onClick: () => setShowModerationModal(true) },
                     { label: t('staff.knowledge'), icon: BookOpen, desc: t('staff.knowledgeDesc', 'Ответы на частые вопросы'), color: 'from-blue-500/20 to-blue-600/10', border: 'border-[var(--accent)]/20', onClick: () => setShowKnowledgeModal(true) },
                     { label: t('staff.escalation'), icon: Zap, desc: t('staff.escalationDesc', 'Передать администратору'), color: 'from-yellow-500/20 to-yellow-600/10', border: 'border-[var(--accent-warm)]/20', onClick: () => setShowEscalationModal(true) }
                 ].map((action, i) => {
@@ -611,11 +646,11 @@ function StaffDashboardPage() {
                         <button
                             key={i}
                             onClick={action.onClick}
-                            className="px-4 py-2 rounded-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 border border-white/10 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all"
+                            className={`luxury-card p-4 rounded-2xl border ${action.border} text-left flex flex-col items-start gap-1.5 hover:border-[var(--accent)]/50 hover:bg-white/5 transition-colors`}
                         >
-                            <Icon size={28} className="mb-3 text-[var(--text)]/80" />
-                            <h3 className="text-[var(--text)] font-semibold mb-1">{action.label}</h3>
-                            <p className="text-[var(--text-muted)] text-sm">{action.desc}</p>
+                            <Icon size={20} className="text-[var(--accent)]" />
+                            <h3 className="text-[var(--text)] text-sm font-semibold leading-snug">{action.label}</h3>
+                            <p className="text-[var(--text-muted)] text-xs leading-snug">{action.desc}</p>
                         </button>
                     )
                 })}
@@ -676,6 +711,16 @@ function StaffDashboardPage() {
                                     </>
                                 )}
                             </div>
+                            {ticketContext && (
+                                <div className="mb-4 p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-muted)] space-y-1">
+                                    <p>{t('staff.contextTotal', 'Всего обращений клиента')}: <span className="text-[var(--text)]">{ticketContext.metrics?.totalUserTickets ?? '—'}</span>
+                                        {ticketContext.metrics?.lastTicketAt && <> · {t('staff.contextLast', 'последнее')}: {new Date(ticketContext.metrics.lastTicketAt).toLocaleString('ru-RU')}</>}
+                                    </p>
+                                    {ticketContext.recommendations?.[0] && (
+                                        <p>💡 {t('staff.aiHint', 'Подсказка AI')}: <span className="text-[var(--text)]">{ticketContext.recommendations[0]}</span></p>
+                                    )}
+                                </div>
+                            )}
                             {selectedTicket.messages.map((msg, i) => (
                                 <div key={i} className={`flex gap-3 ${msg.from === 'staff' ? 'flex-row-reverse' : ''}`}>
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${msg.from === 'staff' ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'bg-[var(--accent)]/20 text-[var(--accent)]'
@@ -751,50 +796,6 @@ function StaffDashboardPage() {
                             <button onClick={() => { setShowTicketModal(false); setShowEscalationModal(true) }} className="flex-1 px-4 py-2 bg-[var(--accent-warm)]/10 text-[var(--accent-warm)] rounded-lg hover:bg-[var(--accent-warm)]/20 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                                 <Zap size={14} /> {t('staff.escalate')}
                             </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Moderation Modal */}
-            {showModerationModal && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold flex items-center gap-2"><Shield size={20} className="text-[var(--danger)]" /> {t('staff.moderation')}</h2>
-                                <button onClick={() => setShowModerationModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text)]"><X size={20} /></button>
-                            </div>
-                            <div className="space-y-3">
-                                {reports.map(report => (
-                                    <div key={report.id} className="luxury-card p-4">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="text-sm font-medium">{report.user}</span>
-                                                    <span className="text-xs text-[var(--text-muted)]">{report.platform}</span>
-                                                    <span className={`text-xs px-1.5 py-0.5 rounded ${report.status === 'pending' ? 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]' : 'bg-[var(--success)]/10 text-[var(--success)]'}`}>
-                                                        {report.status === 'pending' ? t('staff.reportPending') : t('staff.reviewed')}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-[var(--text-muted)]">{report.content}</p>
-                                                <p className="text-xs text-[var(--text-muted)] mt-1">{report.date}</p>
-                                            </div>
-                                            <div className="flex gap-1 flex-shrink-0">
-                                                <button onClick={() => handleReportAction(report.id, 'warn')} className="px-2 py-1 rounded bg-[var(--accent-warm)]/10 text-[var(--accent-warm)] text-xs hover:bg-[var(--accent-warm)]/20">{t('staff.warn')}</button>
-                                                <button onClick={() => handleReportAction(report.id, 'ban')} className="px-2 py-1 rounded bg-[var(--danger)]/10 text-[var(--danger)] text-xs hover:bg-[var(--danger)]/20">{t('staff.ban')}</button>
-                                                <button onClick={() => handleReportAction(report.id, 'dismiss')} className="px-2 py-1 rounded bg-[var(--border-strong)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface)]">{t('staff.dismiss')}</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {reports.length === 0 && (
-                                    <div className="text-center text-[var(--text-muted)] py-8">
-                                        <CheckCircle2 size={32} className="mx-auto mb-3 text-[var(--success)]" />
-                                        <p>{t('staff.allProcessed')}</p>
-                                    </div>
-                                )}
-                            </div>
                         </div>
                     </div>
                 </div>

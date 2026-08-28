@@ -46,7 +46,8 @@ router.post('/', protect, supportTicketLimiter, async (req, res) => {
 
 router.get('/', protect, async (req, res) => {
   try {
-    const filter = (req.user.role === 'owner' || req.user.role === 'admin')
+    // [STAFF-DOP] staff видит все обращения (иначе кабинет поддержки пустой); клиенты — только свои
+    const filter = ['owner', 'admin', 'staff'].includes(req.user.role)
       ? {}
       : { userId: req.user.id || req.user._id }
     const tickets = await SupportTicket.find(filter).sort({ updatedAt: -1 }).limit(100)
@@ -76,9 +77,14 @@ router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), asy
     const ticket = await SupportTicket.findById(req.params.id)
     if (!ticket) return res.status(404).json({ status: 'error', message: 'Ticket not found' })
 
-    ticket.status = status
+    // [STAFF-DOP] PATCH без status (напр. только priority/assignedTo) не должен затирать статус
+    if (status) ticket.status = status
     ticket.updatedAt = new Date()
     if (req.body.resolution) ticket.resolution = req.body.resolution
+    // [STAFF-DOP] смена приоритета из кабинета поддержки (enum из SupportTicket)
+    if (req.body.priority && ['low', 'normal', 'medium', 'high', 'urgent', 'critical'].includes(req.body.priority)) {
+      ticket.priority = req.body.priority
+    }
     if (req.body.assignedTo) ticket.assignedTo = req.body.assignedTo
 
     // [SUBSCRIPTION-CHECKOUT-FIX] Dashboard «Взять в работу» активирует takeover, AI молчит
@@ -108,6 +114,25 @@ router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), asy
       }
     }
     await ticket.save()
+
+    // [STAFF-DOP] персональное TG-уведомление назначенному сотруднику (assignedTo = email)
+    if (req.body.assignedTo) {
+      try {
+        const { default: User } = await import('../models/User.js')
+        const assignee = await User.findOne({
+          email: String(req.body.assignedTo).toLowerCase(),
+          role: { $in: ['staff', 'admin', 'owner'] }
+        }).select('telegramChatId').lean()
+        if (assignee?.telegramChatId) {
+          const { sendClientNotification } = await import('../services/omegaBot.js')
+          await sendClientNotification(
+            String(assignee.telegramChatId),
+            `📌 Вам назначено обращение #${ticket._id.toString().slice(-6)}\n🎯 ${(ticket.subject || '').slice(0, 120)}\nОткрыть кабинет → /staff`
+          )
+        }
+      } catch (e) { console.warn('[support] assignee notify failed:', e.message) }
+    }
+
     res.json({ status: 'success', data: ticket })
   } catch (err) {
     console.error('[support] status update failed:', err.message)
@@ -117,8 +142,16 @@ router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), asy
 
 router.post('/:id/messages', protect, async (req, res) => {
   try {
-    const sender = req.body.sender || req.user.name || 'user'
     const role = ['owner', 'admin', 'staff'].includes(req.user.role) ? req.user.role : 'user'
+    // [STAFF-DOP] анти-IDOR: клиент может писать только в СВОЙ тикет
+    if (role === 'user') {
+      const own = await SupportTicket.findOne({
+        _id: req.params.id,
+        $or: [{ userId: req.user.id || req.user._id }, { userEmail: req.user.email }]
+      }).select('_id').lean()
+      if (!own) return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    }
+    const sender = req.body.sender || req.user.name || 'user'
     const ticket = await replyToTicket(req.params.id, sender, req.body.text, { role })
     if (!ticket) return res.status(404).json({ status: 'error', message: 'Ticket not found' })
     res.json({ status: 'success', data: ticket })

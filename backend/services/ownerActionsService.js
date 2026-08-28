@@ -172,10 +172,13 @@ export async function findClientSubscription(email) {
     return { user, sub }
 }
 
-export async function extendSubscriptionDays(userId, days, actor = 'owner-telegram') {
+// [STAFF-DOP] opts.allowNegative — только для кабинета owner/admin (сократить тариф);
+// TG-бот и прочие вызовы без opts: как раньше, days строго 1..3660.
+export async function extendSubscriptionDays(userId, days, actor = 'owner-telegram', opts = {}) {
     const n = Math.floor(Number(days))
-    if (!Number.isFinite(n) || n < 1 || n > 3660) {
-        return { ok: false, reason: 'bad_days', message: 'Количество дней должно быть от 1 до 3660.' }
+    const min = opts.allowNegative ? -3660 : 1
+    if (!Number.isFinite(n) || n === 0 || n < min || n > 3660) {
+        return { ok: false, reason: 'bad_days', message: opts.allowNegative ? 'Количество дней: от -3660 до 3660, не 0.' : 'Количество дней должно быть от 1 до 3660.' }
     }
     try {
         const user = await User.findById(userId)
@@ -197,7 +200,9 @@ export async function extendSubscriptionDays(userId, days, actor = 'owner-telegr
             })
         }
         const curEnd = new Date(Math.max(new Date(sub.currentPeriodEnd || sub.endDate || 0).getTime() || 0, now.getTime()))
-        const newEnd = new Date(curEnd.getTime() + n * 864e5)
+        let newEnd = new Date(curEnd.getTime() + n * 864e5)
+        // [STAFF-DOP] сокращение не уводит окончание в прошлое — минимум «сейчас»
+        if (n < 0 && newEnd < now) newEnd = now
         sub.currentPeriodEnd = newEnd
         sub.endDate = newEnd
         sub.status = 'active'
@@ -212,12 +217,17 @@ export async function extendSubscriptionDays(userId, days, actor = 'owner-telegr
         if (user.telegramChatId) {
             try {
                 const { sendClientNotification } = await import('./omegaBot.js')
-                await sendClientNotification(user.telegramChatId, `🎉 Ваша подписка ${sub.plan} продлена до ${dateStr}.`)
+                await sendClientNotification(user.telegramChatId, n > 0
+                    ? `🎉 Ваша подписка ${sub.plan} продлена до ${dateStr}.`
+                    : `ℹ️ Срок вашей подписки ${sub.plan} изменён: действует до ${dateStr}.`)
             } catch (e) { console.warn('[ownerActions] extend tg notify failed:', e.message) }
         }
         try {
-            const { sendSubscriptionActiveEmail } = await import('./emailService.js')
-            await sendSubscriptionActiveEmail(user.email, user.name, sub.plan, newEnd, user.preferences?.language === 'en' ? 'en' : 'ru')
+            // [STAFF-DOP] письмо «подписка активна» — только при продлении, при сокращении достаточно TG
+            if (n > 0) {
+                const { sendSubscriptionActiveEmail } = await import('./emailService.js')
+                await sendSubscriptionActiveEmail(user.email, user.name, sub.plan, newEnd, user.preferences?.language === 'en' ? 'en' : 'ru')
+            }
         } catch (e) { console.warn('[ownerActions] extend email notify failed:', e.message) }
         return { ok: true, email: user.email, plan: sub.plan, newEnd, days: n }
     } catch (e) {

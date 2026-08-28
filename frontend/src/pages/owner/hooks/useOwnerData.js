@@ -253,11 +253,25 @@ export function useOwnerData() {
     // ============================================
     // STAFF CRUD
     // ============================================
-    const addStaff = useCallback((data) => {
-        const newStaff = { ...data, id: generateId(), joined: new Date().toISOString(), tasksCompleted: 0, load: 0 }
+    // [STAFF-DOP] создание реального staff-аккаунта через backend (POST /owner/staff).
+    // Возвращает { staff, tempPassword } — модалка показывает пароль один раз. При ошибке бросает Error.
+    const addStaff = useCallback(async (data) => {
+        const res = await ownerApi.createStaff({ email: data.email, name: data.name, role: data.role, password: data.password || undefined })
+        const created = res?.staff || {}
+        const newStaff = {
+            ...data,
+            id: created.id || generateId(),
+            email: created.email || data.email,
+            name: created.name || data.name,
+            role: created.role || data.role,
+            joined: new Date().toISOString(),
+            tasksCompleted: 0,
+            load: 0,
+        }
         setStaff(prev => [...prev, newStaff])
-        addAuditLog(`Добавлен сотрудник: ${data.name}`, 'staff', 'low')
-        showToast(`Сотрудник ${data.name} добавлен`)
+        addAuditLog(`Добавлен сотрудник: ${newStaff.name} (${newStaff.role})`, 'staff', 'low')
+        showToast(`Сотрудник ${newStaff.name} добавлен`)
+        return { staff: created, tempPassword: res?.tempPassword }
     }, [showToast])
 
     const updateStaff = useCallback((id, data) => {
