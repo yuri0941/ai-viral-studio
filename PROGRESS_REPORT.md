@@ -4805,3 +4805,11 @@
 - [TEST] qaRateLimitVpn 4/4 ✅: 6× forgot-password один IP разные email → ни одного 429; 6× тот же email (разный регистр/пробел) → 429 RU/EN + retry; 8× /api/users/me с меняющимся IP под одним userId → все 200. qaSecurityFlow — вся матрица зелёная ✅. node --check ✅.
 - [НЕ ТРОНУТО] Платежи, PlanConfig, боты, рубильники, гард-матрица Б5, autoBan/BlockedIP anti-DDoS.
 - [GIT] 2 файла: backend/middleware/rateLimiter.js (+переписан), backend/scripts/qaRateLimitVpn.js (новый). Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/ratelimit-vpn
+
+## 2026-08-28 — МИКРОФИКС JSON-PARSE-400 — фронт шлёт "[object Object]" (ветка fix/json-parse-400)
+- [АУДИТ] Прочесаны все `body:` во frontend/src (266 мест), omegaTools, push.js, offlineSync, SchedulerPage, desktop: нестрингифицированных fetch-body нет — прод-строка "[object Object]" либо из старого бандла, либо из внешнего клиента; для её поимки добавлен backend-лог (ниже).
+- [БЫЛО] `AIVideoCreator.jsx` вызывал `omegaApi.chat({ message: prompt, type: 'script' })` — message уезжал объектом (валидный JSON, но backend делает message.toLowerCase() → TypeError). `omegaApi.chat` по умолчанию слал `userId: null` — 8 из 10 вызовов (включая ChatTab владельца) userId не передают → в логе /api/omega/chat `userId: null` при залогиненном owner. body-parser SyntaxError падал в общий errorHandler без контекста.
+- [СТАЛО] AIVideoCreator шлёт строку (`omegaApi.chat(prompt)`). `omegaApi.chat` — fallback userId из сессии (`user_profile` в localStorage, `_id || id`, без падений). `errorHandler.js`: ветка `entity.parse.failed` → 400 с сообщением RU/EN + лог `[400 JSON-PARSE] METHOD /path — первые 200 символов сырого тела`.
+- [TEST] node --check ✅; npm run build 0 ошибок ✅; e2e на :18080: POST /api/auth/login с телом `[object Object]` → 400 RU/EN + в логе виден эндпоинт и тело ✅; POST /api/omega/chat → 200, в логе `userId: '6a78b449…'` (реальный) ✅; qaSecurityFlow зелёный ✅; qaRateLimitVpn 4/4 ✅.
+- [НЕ ТРОНУТО] Платежи, PlanConfig, боты, рубильники, гард-матрица Б5, rate-limit из fix/ratelimit-vpn.
+- [GIT] 3 файла: frontend/src/services/api.js, frontend/src/components/video/AIVideoCreator.jsx, backend/middleware/errorHandler.js. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/json-parse-400

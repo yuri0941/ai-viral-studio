@@ -66,6 +66,17 @@ function getAuthHeaders() {
     return { Authorization: `Bearer ${token || ''}` }
 }
 
+// [fix/json-parse-400] id залогиненного пользователя из кэша сессии (user_profile), без падений
+function getSessionUserId() {
+    try {
+        const raw = typeof window !== 'undefined' ? localStorage.getItem('user_profile') : null
+        const user = raw ? JSON.parse(raw) : null
+        return user?._id || user?.id || null
+    } catch {
+        return null
+    }
+}
+
 async function request(path, options = {}) {
     const url = `${API_BASE}${path}`
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
@@ -320,9 +331,11 @@ export const ownerChangelogApi = {
 // ============================================
 export const omegaApi = {
     status: () => request('/omega/status'),
-    chat: (message, history = [], lang = 'ru', role = 'guest', userId = null) => request('/omega/chat', {
+    // [fix/json-parse-400] userId по умолчанию — из сессии (user_profile), а не null:
+    // большинство вызовов (ChatTab владельца, виджет клиента, onboarding) userId не передают
+    chat: (message, history = [], lang = 'ru', role = 'guest', userId) => request('/omega/chat', {
         method: 'POST',
-        body: JSON.stringify({ message, history, lang, userRole: role, userId }),
+        body: JSON.stringify({ message, history, lang, userRole: role, userId: userId || getSessionUserId() }),
     }),
     getMemory: (query, limit) => {
         const params = new URLSearchParams()
