@@ -7,7 +7,8 @@ const SupportTicketSchema = new mongoose.Schema({
   subject: { type: String, required: true },
   description: { type: String, required: true },
   screenshotBase64: { type: String, maxLength: 500000 },
-  status: { type: String, enum: ['open','ai_handled','needs_owner','in_progress','resolved','closed'], default: 'open' },
+  // [STAFF-DOP] 'waiting' — оператор ждёт ответа клиента (staff-кабинет)
+  status: { type: String, enum: ['open','ai_handled','needs_owner','in_progress','waiting','resolved','closed'], default: 'open' },
   priority: { type: String, enum: ['low','normal','medium','high','urgent','critical'], default: 'normal' },
   aiSuggestion: String,
   aiConfidence: Number,

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import User from '../models/User.js';
 import { createNode } from './cognitiveMesh.js';
 
@@ -58,4 +59,32 @@ export async function getClientStats() {
     { $group: { _id: '$subscription', count: { $sum: 1 } } }
   ]);
   return { total, active, blocked, deleted, byPlan };
+}
+
+// [STAFF-DOP] создание сотрудника из кабинета владельца (email + временный пароль + роль) — без seed-скриптов.
+// Белый список Б3: только privileged-роли staff/admin и только под authorize('owner'); пароль хэширует pre-save User.
+export async function createManagedUser({ email, name, password, role = 'staff' }, actor = 'owner-cabinet') {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) throw new Error('Некорректный email');
+  if (!['staff', 'admin'].includes(role)) throw new Error('Недопустимая роль сотрудника');
+  const exists = await User.findOne({ email: cleanEmail }).lean();
+  if (exists) throw new Error('Пользователь с таким email уже существует');
+  const tempPassword = password ? String(password) : crypto.randomBytes(9).toString('base64url');
+  if (tempPassword.length < 6) throw new Error('Пароль должен быть не короче 6 символов');
+  const user = await User.create({
+    email: cleanEmail,
+    name: String(name || cleanEmail.split('@')[0]).trim(),
+    password: tempPassword,
+    role,
+    status: 'active',
+  });
+  await createNode({
+    type: 'system',
+    content: `Staff account created: ${user.email} (${role})`,
+    confidence: 1,
+    source: 'user_manager',
+    metadata: { userId: user._id, role, actor, type: 'staff_created' }
+  });
+  // временный пароль возвращаем только если сгенерировали сами (заданный вручную владелец и так знает)
+  return { user, tempPassword: password ? undefined : tempPassword };
 }

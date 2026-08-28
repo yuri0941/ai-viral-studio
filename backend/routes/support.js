@@ -79,6 +79,10 @@ router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), asy
     ticket.status = status
     ticket.updatedAt = new Date()
     if (req.body.resolution) ticket.resolution = req.body.resolution
+    // [STAFF-DOP] смена приоритета из кабинета поддержки (enum из SupportTicket)
+    if (req.body.priority && ['low', 'normal', 'medium', 'high', 'urgent', 'critical'].includes(req.body.priority)) {
+      ticket.priority = req.body.priority
+    }
     if (req.body.assignedTo) ticket.assignedTo = req.body.assignedTo
 
     // [SUBSCRIPTION-CHECKOUT-FIX] Dashboard «Взять в работу» активирует takeover, AI молчит
@@ -108,6 +112,25 @@ router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), asy
       }
     }
     await ticket.save()
+
+    // [STAFF-DOP] персональное TG-уведомление назначенному сотруднику (assignedTo = email)
+    if (req.body.assignedTo) {
+      try {
+        const { default: User } = await import('../models/User.js')
+        const assignee = await User.findOne({
+          email: String(req.body.assignedTo).toLowerCase(),
+          role: { $in: ['staff', 'admin', 'owner'] }
+        }).select('telegramChatId').lean()
+        if (assignee?.telegramChatId) {
+          const { sendClientNotification } = await import('../services/omegaBot.js')
+          await sendClientNotification(
+            String(assignee.telegramChatId),
+            `📌 Вам назначено обращение #${ticket._id.toString().slice(-6)}\n🎯 ${(ticket.subject || '').slice(0, 120)}\nОткрыть кабинет → /staff`
+          )
+        }
+      } catch (e) { console.warn('[support] assignee notify failed:', e.message) }
+    }
+
     res.json({ status: 'success', data: ticket })
   } catch (err) {
     console.error('[support] status update failed:', err.message)

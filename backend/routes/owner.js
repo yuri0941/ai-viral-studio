@@ -327,6 +327,26 @@ router.post('/control/refund', protect, authorize('owner'), async (req, res) => 
     }
 })
 
+// [STAFF-DOP] Создание staff-аккаунта из owner-кабинета (email + временный пароль + роль), без seed-скриптов.
+// Только owner: staff/admin не могут создавать privileged-аккаунты (белый список ролей Б3).
+router.post('/staff', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { createManagedUser } = await import('../services/userManager.js')
+        const { email, name, password, role } = req.body || {}
+        const { user, tempPassword } = await createManagedUser({ email, name, password, role }, `cabinet:${req.user?.email || req.user?._id}`)
+        res.status(201).json({
+            success: true,
+            staff: { id: String(user._id), email: user.email, name: user.name, role: user.role },
+            ...(tempPassword ? { tempPassword } : {}),
+        })
+    } catch (err) {
+        console.error('[owner/staff:create]', err.message)
+        const msg = err.message || 'Ошибка сервера'
+        const status = /уже существует/.test(msg) ? 409 : /Некорректный|Недопустим|Пароль/.test(msg) ? 400 : 500
+        res.status(status).json({ success: false, error: msg })
+    }
+})
+
 // [OWNER-OMEGA] Продление подписки из кабинета — та же обёртка, что и TG «продли email на N дней»
 router.post('/control/extend-preview', protect, authorize('owner', 'admin'), async (req, res) => {
     try {
@@ -353,14 +373,16 @@ router.post('/control/extend-preview', protect, authorize('owner', 'admin'), asy
     }
 })
 
-router.post('/control/extend-subscription', protect, authorize('owner'), async (req, res) => {
+// [STAFF-DOP] owner+admin (ТЗ Б4-ДОП З3.4), days может быть отрицательным (сократить тариф) — только из кабинета;
+// TG-бот вызывает extendSubscriptionDays без opts и по-прежнему ограничен 1..3660.
+router.post('/control/extend-subscription', protect, authorize('owner', 'admin'), async (req, res) => {
     try {
         const { extendSubscriptionDays } = await import('../services/ownerActionsService.js')
         const userId = String(req.body?.userId || '').trim()
         const days = Number(req.body?.days)
         if (!userId) return res.status(400).json({ error: 'Укажите userId' })
         const actor = `cabinet:${req.user?.email || req.user?._id}`
-        const r = await extendSubscriptionDays(userId, days, actor)
+        const r = await extendSubscriptionDays(userId, days, actor, { allowNegative: true })
         if (!r.ok) {
             const status = r.reason === 'not_found' ? 404 : r.reason === 'bad_days' ? 400 : 500
             return res.status(status).json({ error: r.message })

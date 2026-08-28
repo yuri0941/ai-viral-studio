@@ -129,6 +129,29 @@ export async function createTicket(data) {
     console.warn('[supportService] owner alert failed:', e.message)
   }
 
+  // [STAFF-DOP] уведомление сотрудников поддержки (staff/admin с привязанным telegramChatId) о новом обращении
+  try {
+    const { default: User } = await import('../models/User.js')
+    const staffers = await User.find({
+      role: { $in: ['staff', 'admin'] },
+      status: 'active',
+      telegramChatId: { $exists: true, $nin: ['', null] }
+    }).select('telegramChatId').lean()
+    if (staffers.length) {
+      const { sendClientNotification } = await import('./omegaBot.js')
+      const clientName = ticket.userName || ticket.userEmail || '—'
+      const preview = (ticket.description || ticket.subject || '').slice(0, 100)
+      const text = `🆘 Новое обращение #${ticket._id.toString().slice(-6)}\n👤 ${clientName}\n🎯 ${preview}\nОткрыть кабинет → /staff`
+      for (const s of staffers) {
+        try {
+          await sendClientNotification(String(s.telegramChatId), text)
+        } catch (e) { console.warn('[supportService] staff notify failed:', e.message) }
+      }
+    }
+  } catch (e) {
+    console.warn('[supportService] staff broadcast failed:', e.message)
+  }
+
   return ticket
 }
 
