@@ -163,6 +163,14 @@ export function DashboardHeader({
             setRoleOpen(false)
             return
         }
+        // [ROLE-SWITCH-FLASH] кэш профиля пишем СИНХРОННО до навигации:
+        // updateUser пишет localStorage внутри setState-апдейтера, который React
+        // может отложить → после reload гард ловил старую роль и шлёпал /unauthorized
+        try {
+            const cached = JSON.parse(localStorage.getItem('user_profile') || 'null')
+            localStorage.setItem('user_profile', JSON.stringify({ ...(cached || user || {}), role }))
+            localStorage.setItem('role_switch_at', String(Date.now()))
+        } catch { /* битый кэш — updateUser ниже всё равно обновит стейт */ }
         updateUser({ role })
         setRoleOpen(false)
         window.location.href = config.route
