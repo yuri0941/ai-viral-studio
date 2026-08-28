@@ -4823,4 +4823,4 @@
 - [З5 ОТЧЁТ] Скрины «как теперь выглядит»: reports/staff-dop-final/ (owner-команда + модалка создания сотрудника; admin-клиенты + confirm бана + модалка продления ±дни; staff-тикеты + модалка с контекстом клиента). Скрипт: scripts/staff-dop-report-shots.mjs.
 - [TEST] qa-staff-dop-e2e 21/21 ✅; qaSecurityFlow вся матрица ✅; qaRateLimitVpn 4/4 ✅; npm run build 0 ошибок ✅; i18n-parity OK ✅; mojibake чист ✅; BOM нет ✅.
 - [НЕ ТРОНУТО] Платежи/ЮKassa, PlanConfig и значения тарифов, боты (только новые уведомления из Б4-ДОП), лендинг, модалка обновлений, рубильники, реф-экономика 12%, юрстраницы (только точка в linkify), белый список ролей Б3, rate-limit из fix/ratelimit-vpn.
-- [GIT] ветка fix/staff-audit-dop: 10 коммитов, 21 файл, +926/−226. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/staff-audit-dop
+- [GIT] ветка fix/staff-audit-dop: 13 коммитов, 24 файла, +1151/−237. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/staff-audit-dop
