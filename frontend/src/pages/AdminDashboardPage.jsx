@@ -7,7 +7,7 @@ import {
     Settings, DollarSign, Search, Plus, Pencil, Lock, Unlock,
     Trash2, Check, X, AlertCircle, Eye, EyeOff, Save,
     LogOut, BarChart, Terminal, Wrench, TrendingUp, Filter,
-    CheckSquare, Square
+    CheckSquare, Square, CalendarClock
 } from 'lucide-react'
 import { VirtualTable } from '../components/shared/VirtualTable'
 
@@ -57,23 +57,34 @@ function AdminDashboardPage() {
     // --- USERS STATE ---
     const [users, setUsers] = useState([])
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const token = localStorage.getItem('token')
-                const res = await fetch(`${API_BASE_URL}/admin/users`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
-                if (!res.ok) throw new Error('Failed to fetch users')
-                const json = await res.json()
-                const list = Array.isArray(json) ? json : (json.data || [])
-                setUsers(list)
-            } catch (error) {
-                console.error('Error fetching admin users:', error)
-                setUsers([])
-            }
+    // [STAFF-DOP] /admin/users отдаёт { success, clients } (а не data); нормализуем поля бэкенда под таблицу
+    const loadUsers = async () => {
+        try {
+            const token = localStorage.getItem('token')
+            const res = await fetch(`${API_BASE_URL}/admin/users`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            if (!res.ok) throw new Error('Failed to fetch users')
+            const json = await res.json()
+            const list = Array.isArray(json) ? json : (json.clients || json.data || [])
+            setUsers(list.map(u => ({
+                id: u._id || u.id,
+                name: u.name || '',
+                email: u.email || '',
+                role: u.role || 'creator',
+                status: u.status === 'blocked' ? 'banned' : (u.status === 'deleted' ? 'deleted' : (u.status || 'active')),
+                posts: u.posts ?? 0,
+                joined: u.createdAt || u.joined || null,
+                subscription: u.subscription || 'free',
+            })))
+        } catch (error) {
+            console.error('Error fetching admin users:', error)
+            setUsers([])
         }
-        fetchUsers()
+    }
+
+    useEffect(() => {
+        loadUsers()
     }, [])
 
     // --- MODALS ---
@@ -102,6 +113,11 @@ function AdminDashboardPage() {
     const [sortOrder, setSortOrder] = useState('desc')
     const [selectedIds, setSelectedIds] = useState([])
     const [reportFilter, setReportFilter] = useState('all')
+
+    // [STAFF-DOP] подтверждение ✅/❌ для бан/разбан/удаление и модалка продления/сокращения тарифа
+    const [confirmAction, setConfirmAction] = useState(null) // { type: 'ban'|'unban'|'delete', user }
+    const [extendModal, setExtendModal] = useState(null) // { user, days }
+    const [actionBusy, setActionBusy] = useState(false)
 
     const liveStats = {
         totalUsers: users.length,
@@ -235,15 +251,61 @@ function AdminDashboardPage() {
 
     const getReportStatusLabel = (status) => t(`admin.${status}`, status)
 
-    const handleToggleStatus = (userId) => {
-        setUsers(users.map(u => {
-            if (u.id === userId) {
-                const newStatus = u.status === 'active' ? 'banned' : 'active'
-                showToast(t('admin.statusChanged', { status: getStatusLabel(newStatus) }))
-                return { ...u, status: newStatus }
-            }
-            return u
-        }))
+    // [STAFF-DOP] бан/разбан — только после подтверждения ✅/❌, реальный запрос на backend
+    const handleToggleStatus = (u) => {
+        setConfirmAction({ type: u?.status === 'active' ? 'ban' : 'unban', user: u })
+    }
+
+    const runConfirmAction = async () => {
+        if (!confirmAction?.user) return
+        const { type, user: u } = confirmAction
+        setActionBusy(true)
+        try {
+            const token = localStorage.getItem('token')
+            const path = type === 'ban' ? 'block' : 'unblock'
+            const res = await fetch(`${API_BASE_URL}/admin/users/${u.id}/${path}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            })
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok || json.success === false) throw new Error(json.error || json.message || `HTTP ${res.status}`)
+            const newStatus = type === 'ban' ? 'banned' : 'active'
+            setUsers(prev => prev.map(x => x.id === u.id ? { ...x, status: newStatus } : x))
+            showToast(type === 'ban' ? t('admin.banSuccess') : t('admin.unbanSuccess'))
+            setConfirmAction(null)
+        } catch (e) {
+            showToast(t('admin.actionError', { error: e.message }), 'error')
+        } finally {
+            setActionBusy(false)
+        }
+    }
+
+    // [STAFF-DOP] продлить (+N) / сократить (−N) тариф клиента — /owner/control/extend-subscription (owner/admin)
+    const handleExtend = async () => {
+        const days = Number(extendModal?.days)
+        if (!extendModal?.user || !Number.isFinite(days) || days === 0) return
+        setActionBusy(true)
+        try {
+            const token = localStorage.getItem('token')
+            const res = await fetch(`${API_BASE_URL}/owner/control/extend-subscription`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: extendModal.user.id, days }),
+            })
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok || json.success === false) throw new Error(json.error || `HTTP ${res.status}`)
+            const r = json.result || {}
+            showToast(t('admin.extendSuccess', {
+                plan: r.plan || extendModal.user.subscription || '—',
+                date: r.newEnd ? new Date(r.newEnd).toLocaleDateString() : '',
+            }))
+            setExtendModal(null)
+        } catch (e) {
+            showToast(t('admin.actionError', { error: e.message }), 'error')
+        } finally {
+            setActionBusy(false)
+        }
     }
 
     const openEditModal = (user) => {
@@ -325,7 +387,14 @@ function AdminDashboardPage() {
                         <Pencil size={14} />
                     </button>
                     <button
-                        onClick={() => handleToggleStatus(u.id)}
+                        onClick={() => setExtendModal({ user: u, days: 30 })}
+                        className="p-2 rounded-lg bg-[var(--success)]/10 text-[var(--success)] hover:bg-[var(--success)]/20 transition-colors"
+                        title={t('admin.extendTitle')}
+                    >
+                        <CalendarClock size={14} />
+                    </button>
+                    <button
+                        onClick={() => handleToggleStatus(u)}
                         className={`p-2 rounded-lg transition-colors ${u?.status === 'active'
                             ? 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)] hover:bg-[var(--accent-warm)]/20'
                             : 'bg-[var(--success)]/10 text-[var(--success)] hover:bg-[var(--success)]/20'
@@ -384,11 +453,28 @@ function AdminDashboardPage() {
         showToast(t('admin.changesSaved'))
     }
 
-    const handleDeleteUser = () => {
-        setUsers(users.filter(u => u.id !== selectedUser.id))
-        setShowDeleteModal(false)
-        showToast(t('admin.userDeleted', { name: selectedUser?.name || '—' }))
-        setSelectedUser(null)
+    // [STAFF-DOP] удаление — реальный вызов /admin/users/:id/delete (мягкое удаление на бэкенде)
+    const handleDeleteUser = async () => {
+        if (!selectedUser) return
+        setActionBusy(true)
+        try {
+            const token = localStorage.getItem('token')
+            const res = await fetch(`${API_BASE_URL}/admin/users/${selectedUser.id}/delete`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            })
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok || json.success === false) throw new Error(json.error || json.message || `HTTP ${res.status}`)
+            setUsers(prev => prev.filter(u => u.id !== selectedUser.id))
+            setShowDeleteModal(false)
+            showToast(t('admin.userDeleted', { name: selectedUser?.name || '—' }))
+            setSelectedUser(null)
+        } catch (e) {
+            showToast(t('admin.actionError', { error: e.message }), 'error')
+        } finally {
+            setActionBusy(false)
+        }
     }
 
     // --- STATS CARDS ---
@@ -958,6 +1044,95 @@ function AdminDashboardPage() {
                                         <span className="font-medium text-[var(--success)]">${client.amount.toLocaleString()}</span>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* [STAFF-DOP] Confirm Modal — бан/разбан с подтверждением ✅/❌ */}
+            {confirmAction && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-md">
+                        <div className="p-6">
+                            <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+                                {confirmAction.type === 'ban'
+                                    ? <><Lock size={20} className="text-[var(--accent-warm)]" /> {t('admin.confirmBanTitle')}</>
+                                    : <><Unlock size={20} className="text-[var(--success)]" /> {t('admin.confirmUnbanTitle')}</>}
+                            </h2>
+                            <p className="text-sm text-[var(--text-muted)] mb-6">
+                                {t('admin.confirmBody', { email: confirmAction.user?.email || confirmAction.user?.name || '—' })}
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setConfirmAction(null)}
+                                    disabled={actionBusy}
+                                    className="flex-1 px-4 py-2 bg-[var(--surface)] rounded-lg hover:bg-[var(--card-hover)] transition-colors disabled:opacity-50"
+                                >
+                                    {t('admin.confirmNo')}
+                                </button>
+                                <button
+                                    onClick={runConfirmAction}
+                                    disabled={actionBusy}
+                                    className={`flex-1 px-4 py-2 font-medium rounded-lg transition-all disabled:opacity-50 ${confirmAction.type === 'ban'
+                                        ? 'bg-[var(--accent-warm)] hover:bg-[var(--accent-warm)]/80 text-[var(--text-inverse)]'
+                                        : 'bg-[var(--success)] hover:bg-[var(--success)]/80 text-[var(--text-inverse)]'}`}
+                                >
+                                    {t('admin.confirmYes')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* [STAFF-DOP] Extend Modal — продлить (+N) / сократить (−N) тариф */}
+            {extendModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-md">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold flex items-center gap-2"><CalendarClock size={20} className="text-[var(--success)]" /> {t('admin.extendTitle')}</h2>
+                                <button onClick={() => setExtendModal(null)} className="text-[var(--text-muted)] hover:text-[var(--text)]"><X size={20} /></button>
+                            </div>
+                            <p className="text-sm text-[var(--text-muted)] mb-1">{extendModal.user?.email || '—'}</p>
+                            <p className="text-xs text-[var(--text-muted)] mb-4">{t('admin.subscription', 'Тариф')}: {extendModal.user?.subscription || 'free'}</p>
+                            <label className="text-sm text-[var(--text-muted)] mb-1 block">{t('admin.extendDaysLabel')}</label>
+                            <input
+                                type="number"
+                                value={extendModal.days}
+                                onChange={e => setExtendModal({ ...extendModal, days: e.target.value })}
+                                className="w-full px-4 py-2 bg-[var(--surface)] rounded-lg border border-[var(--border-strong)] focus:border-[var(--success)] outline-none text-sm mb-2"
+                            />
+                            <div className="flex gap-2 mb-4">
+                                {[30, 7, -7, -30].map(d => (
+                                    <button
+                                        key={d}
+                                        onClick={() => setExtendModal({ ...extendModal, days: d })}
+                                        className={`flex-1 px-2 py-1.5 rounded-lg text-xs border transition-colors ${Number(extendModal.days) === d
+                                            ? 'bg-[var(--success)]/20 text-[var(--success)] border-[var(--success)]/30'
+                                            : 'bg-[var(--surface)] text-[var(--text-muted)] border-transparent hover:bg-[var(--border-strong)]'}`}
+                                    >
+                                        {d > 0 ? `+${d}` : d}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-xs text-[var(--text-muted)] mb-6">{t('admin.extendHint')}</p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setExtendModal(null)}
+                                    disabled={actionBusy}
+                                    className="flex-1 px-4 py-2 bg-[var(--surface)] rounded-lg hover:bg-[var(--card-hover)] transition-colors disabled:opacity-50"
+                                >
+                                    {t('admin.confirmNo')}
+                                </button>
+                                <button
+                                    onClick={handleExtend}
+                                    disabled={actionBusy || !Number(extendModal.days)}
+                                    className="flex-1 px-4 py-2 bg-[var(--success)] hover:bg-[var(--success)]/80 disabled:bg-[var(--text-muted)] text-[var(--text-inverse)] font-medium rounded-lg transition-all"
+                                >
+                                    {t('admin.confirmYes')}
+                                </button>
                             </div>
                         </div>
                     </div>

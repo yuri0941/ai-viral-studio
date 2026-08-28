@@ -1138,7 +1138,20 @@
     "twoFactorForAdmins": "Mandatory 2FA for admins",
     "userAdded": "User added",
     "userDeleted": "User deleted",
-    "users": "Users"
+    "users": "Users",
+    "confirmBanTitle": "Block this client?",
+    "confirmUnbanTitle": "Unblock this client?",
+    "confirmDeleteTitle": "Delete this client?",
+    "confirmBody": "{{email}} — the action applies immediately.",
+    "confirmYes": "✅ Yes, confirm",
+    "confirmNo": "❌ Cancel",
+    "banSuccess": "Client blocked",
+    "unbanSuccess": "Client unblocked",
+    "actionError": "Action failed: {{error}}",
+    "extendTitle": "Extend / shorten plan",
+    "extendDaysLabel": "Days (negative — shorten)",
+    "extendHint": "+30 — extend by a month, -7 — shorten by a week",
+    "extendSuccess": "Plan {{plan}} is active until {{date}}"
   },
   "staff": {
     "title": "Staff Panel",

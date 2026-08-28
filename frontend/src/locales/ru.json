@@ -1226,7 +1226,20 @@
     "twoFactorForAdmins": "Обязательная 2FA для админов",
     "userAdded": "Пользователь добавлен",
     "userDeleted": "Пользователь удалён",
-    "users": "Пользователи"
+    "users": "Пользователи",
+    "confirmBanTitle": "Заблокировать клиента?",
+    "confirmUnbanTitle": "Разблокировать клиента?",
+    "confirmDeleteTitle": "Удалить клиента?",
+    "confirmBody": "{{email}} — действие применится сразу.",
+    "confirmYes": "✅ Да, подтвердить",
+    "confirmNo": "❌ Отмена",
+    "banSuccess": "Клиент заблокирован",
+    "unbanSuccess": "Клиент разблокирован",
+    "actionError": "Действие не выполнено: {{error}}",
+    "extendTitle": "Продлить / сократить тариф",
+    "extendDaysLabel": "Дни (отрицательное — сократить)",
+    "extendHint": "+30 — продлить на месяц, -7 — сократить на неделю",
+    "extendSuccess": "Тариф {{plan}} действует до {{date}}"
   },
   "staff": {
     "title": "Панель сотрудников",
