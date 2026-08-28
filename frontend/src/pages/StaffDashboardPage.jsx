@@ -56,19 +56,59 @@ function StaffDashboardPage() {
     // --- TICKETS STATE ---
     const [tickets, setTickets] = useState([])
 
+    // [STAFF-DOP] живые обращения — /api/support (SupportTicket), а не legacy /api/tickets (другая коллекция).
+    // Нормализация: _id→id, userName/userEmail→user, subject→topic, needs_owner/ai_handled→open, resolved→closed.
+    const normalizeTicket = (t) => ({
+        id: t._id || t.id,
+        user: t.userName || t.userEmail || '—',
+        email: t.userEmail || '',
+        topic: t.subject || '',
+        subject: t.subject || '',
+        description: t.description || '',
+        status: (t.status === 'ai_handled' || t.status === 'needs_owner') ? 'open' : t.status === 'resolved' ? 'closed' : (t.status || 'open'),
+        priority: t.priority === 'normal' ? 'low' : (t.priority || 'low'),
+        assignedTo: t.assignedTo || null,
+        createdAt: t.createdAt,
+        time: t.createdAt ? new Date(t.createdAt).toLocaleString('ru-RU') : '',
+        messages: (t.messages || []).map(m => ({
+            from: m.sender === 'client' ? 'user' : m.sender === 'system' ? 'system' : 'staff',
+            text: m.text,
+            time: m.timestamp ? new Date(m.timestamp).toLocaleString('ru-RU') : '',
+        })),
+    })
+
+    const apiCall = async (path, method = 'GET', body) => {
+        const token = localStorage.getItem('token')
+        const res = await fetch(`${API_BASE_URL}${path}`, {
+            method,
+            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), 'Content-Type': 'application/json' },
+            ...(body ? { body: JSON.stringify(body) } : {}),
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(json.message || json.error || `HTTP ${res.status}`)
+        return json
+    }
+
+    // единый патч тикета: backend → нормализация → обновление списка и открытой модалки
+    const patchTicket = async (ticketId, body) => {
+        try {
+            const res = await apiCall(`/support/${ticketId}/status`, 'PATCH', body)
+            const updated = normalizeTicket(res.data)
+            setTickets(prev => prev.map(t => t.id === ticketId ? updated : t))
+            setSelectedTicket(prev => (prev && prev.id === ticketId) ? updated : prev)
+            return updated
+        } catch (e) {
+            showToast(e.message, 'error')
+            return null
+        }
+    }
+
     useEffect(() => {
         const fetchTickets = async () => {
-            const token = localStorage.getItem('token')
             try {
-                const res = await fetch(`${API_BASE_URL}/tickets`, {
-                    headers: {
-                        ...(token ? { Authorization: `Bearer ${token}` } : {})
-                    }
-                })
-                if (!res.ok) return
-                const json = await res.json()
+                const json = await apiCall('/support')
                 const list = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : [])
-                setTickets(list)
+                setTickets(list.map(normalizeTicket))
             } catch (err) {
                 // eslint-disable-next-line no-console
                 console.error('Failed to fetch tickets:', err)
@@ -97,39 +137,48 @@ function StaffDashboardPage() {
         satisfaction: 94
     }
 
+    // [STAFF-DOP] все действия с тикетом идут в backend; статус in_progress = takeover (AI молчит)
     const changeStatus = (ticketId, newStatus) => {
-        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus, assignedTo: t.assignedTo || (user?.email || 'staff@ai-viral.com') } : t))
-        showToast(t('staff.statusChanged', 'Статус изменён на {{status}}', { status: getStatusLabel(newStatus) }))
+        const body = { status: newStatus }
+        if (newStatus === 'in_progress') body.assignedTo = user?.email || 'staff'
+        patchTicket(ticketId, body).then(u => {
+            if (u) showToast(t('staff.statusChanged', 'Статус изменён на {{status}}', { status: getStatusLabel(newStatus) }))
+        })
     }
 
     const changePriority = (ticketId, newPriority) => {
-        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, priority: newPriority } : t))
-        showToast(t('staff.priorityChanged', 'Приоритет изменён на {{priority}}', { priority: getPriorityLabel(newPriority) }))
+        const cur = tickets.find(t => t.id === ticketId)
+        patchTicket(ticketId, { status: cur?.status || 'open', priority: newPriority }).then(u => {
+            if (u) showToast(t('staff.priorityChanged', 'Приоритет изменён на {{priority}}', { priority: getPriorityLabel(newPriority) }))
+        })
     }
 
     const assignToMe = (ticketId) => {
-        const me = user?.email || 'staff@ai-viral.com'
-        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignedTo: me } : t))
-        showToast(t('staff.assignedToMe'))
+        const me = user?.email || 'staff'
+        patchTicket(ticketId, { status: 'in_progress', assignedTo: me }).then(u => {
+            if (u) showToast(t('staff.assignedToMe'))
+        })
     }
 
     const setTicketStatus = (newStatus) => {
-        setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, status: newStatus } : t))
-        setSelectedTicket({ ...selectedTicket, status: newStatus })
-        showToast(t('staff.statusChanged', { status: getStatusLabel(newStatus) }))
+        if (!selectedTicket) return
+        const body = { status: newStatus }
+        if (newStatus === 'in_progress') body.assignedTo = user?.email || 'staff'
+        patchTicket(selectedTicket.id, body).then(u => {
+            if (u) showToast(t('staff.statusChanged', { status: getStatusLabel(newStatus) }))
+        })
     }
 
     const setTicketPriority = (newPriority) => {
-        setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, priority: newPriority } : t))
-        setSelectedTicket({ ...selectedTicket, priority: newPriority })
-        showToast(t('staff.priorityChanged', { priority: getPriorityLabel(newPriority) }))
+        if (!selectedTicket) return
+        patchTicket(selectedTicket.id, { status: selectedTicket.status, priority: newPriority }).then(u => {
+            if (u) showToast(t('staff.priorityChanged', { priority: getPriorityLabel(newPriority) }))
+        })
     }
 
     const assignSelectedToMe = () => {
-        const me = user?.email || 'staff@ai-viral.com'
-        setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, assignedTo: me } : t))
-        setSelectedTicket({ ...selectedTicket, assignedTo: me })
-        showToast(t('staff.assignedToMe'))
+        if (!selectedTicket) return
+        assignToMe(selectedTicket.id)
     }
 
     const insertQuickReply = (text) => {
@@ -276,63 +325,61 @@ function StaffDashboardPage() {
         setShowTicketModal(true)
     }
 
-    const sendReply = () => {
-        if (!replyText.trim()) return
-        const updatedTickets = tickets.map(t => {
-            if (t.id === selectedTicket.id) {
-                return {
-                    ...t,
-                    messages: [...t.messages, { from: 'staff', text: replyText, time: t('staff.justNow', 'Только что') }],
-                    status: t.status === 'closed' ? 'open' : 'waiting',
-                    assignedTo: user?.email || 'staff@ai-viral.com'
-                }
-            }
-            return t
-        })
-        setTickets(updatedTickets)
-        setSelectedTicket({
-            ...selectedTicket,
-            messages: [...selectedTicket.messages, { from: 'staff', text: replyText, time: t('staff.justNow', 'Только что') }],
-            status: selectedTicket.status === 'closed' ? 'open' : 'waiting',
-            assignedTo: user?.email || 'staff@ai-viral.com'
-        })
-        setReplyText('')
-        showToast(t('staff.replySent'))
+    // [STAFF-DOP] ответ уходит в backend → клиент получает его во все каналы (TG/виджет), а не только в localStorage
+    const sendReply = async () => {
+        if (!replyText.trim() || !selectedTicket) return
+        try {
+            const res = await apiCall(`/support/${selectedTicket.id}/messages`, 'POST', {
+                text: replyText.trim(),
+                sender: user?.name || user?.email || 'staff',
+            })
+            const updated = normalizeTicket(res.data)
+            setTickets(prev => prev.map(t => t.id === updated.id ? updated : t))
+            setSelectedTicket(updated)
+            setReplyText('')
+            showToast(t('staff.replySent'))
+        } catch (e) {
+            showToast(e.message, 'error')
+        }
     }
 
     const closeTicket = () => {
-        const updatedTickets = tickets.map(t => {
-            if (t.id === selectedTicket.id) {
-                return { ...t, status: 'closed' }
-            }
-            return t
+        if (!selectedTicket) return
+        patchTicket(selectedTicket.id, { status: 'closed' }).then(u => {
+            if (u) showToast(t('staff.ticketClosed'))
         })
-        setTickets(updatedTickets)
-        setSelectedTicket({ ...selectedTicket, status: 'closed' })
-        showToast(t('staff.ticketClosed'))
     }
 
     const reopenTicket = () => {
-        const updatedTickets = tickets.map(t => {
-            if (t.id === selectedTicket.id) {
-                return { ...t, status: 'open' }
-            }
-            return t
+        if (!selectedTicket) return
+        patchTicket(selectedTicket.id, { status: 'open' }).then(u => {
+            if (u) showToast(t('staff.ticketReopened'))
         })
-        setTickets(updatedTickets)
-        setSelectedTicket({ ...selectedTicket, status: 'open' })
-        showToast(t('staff.ticketReopened'))
     }
 
     // --- ESCALATION ---
-    const handleEscalation = () => {
+    // [STAFF-DOP] эскалация уходит в backend: тикет → needs_owner/urgent + TG-алерт владельцу
+    const handleEscalation = async () => {
         if (!escalationForm.reason) {
             showToast(t('staff.escalationReasonRequired', 'Укажите причину эскалации'), 'error')
             return
         }
-        setShowEscalationModal(false)
-        setEscalationForm({ reason: '', priority: 'medium', notes: '' })
-        showToast(t('staff.escalated', 'Тикет передан администратору'))
+        if (!selectedTicket) {
+            showToast(t('staff.escalationNoTicket', 'Сначала откройте тикет'), 'error')
+            return
+        }
+        try {
+            const res = await apiCall(`/support/${selectedTicket.id}/escalate`, 'POST', {
+                reason: `${escalationForm.reason}${escalationForm.notes ? ` — ${escalationForm.notes}` : ''}`,
+            })
+            const updated = normalizeTicket(res.data)
+            setTickets(prev => prev.map(t => t.id === updated.id ? updated : t))
+            setShowEscalationModal(false)
+            setEscalationForm({ reason: '', priority: 'medium', notes: '' })
+            showToast(t('staff.escalated', 'Тикет передан администратору'))
+        } catch (e) {
+            showToast(e.message, 'error')
+        }
     }
 
     // --- KNOWLEDGE BASE ---

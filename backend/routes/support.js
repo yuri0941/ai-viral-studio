@@ -76,7 +76,8 @@ router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), asy
     const ticket = await SupportTicket.findById(req.params.id)
     if (!ticket) return res.status(404).json({ status: 'error', message: 'Ticket not found' })
 
-    ticket.status = status
+    // [STAFF-DOP] PATCH без status (напр. только priority/assignedTo) не должен затирать статус
+    if (status) ticket.status = status
     ticket.updatedAt = new Date()
     if (req.body.resolution) ticket.resolution = req.body.resolution
     // [STAFF-DOP] смена приоритета из кабинета поддержки (enum из SupportTicket)
