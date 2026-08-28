@@ -509,8 +509,8 @@ function AdminDashboardPage() {
                 </div>
             )}
 
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            {/* Header — [STAFF-DOP] на мобильных компактнее, чтобы тулбар сортировки не попадал под MobileBottomNav */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <Shield size={24} className="text-[var(--accent)]" />
@@ -532,11 +532,11 @@ function AdminDashboardPage() {
             </div>
 
             {/* Platform Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 md:mb-8">
                 {statsCards.map((stat, i) => {
                     const Icon = stat.icon
                     return (
-                        <div key={i} className="glass-card glow-border rounded-2xl p-6 animate-fade-in-up hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
+                        <div key={i} className="glass-card glow-border rounded-2xl p-4 md:p-6 animate-fade-in-up hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                             <div className={`w-9 h-9 mx-auto mb-2 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
                                 <Icon size={18} className="text-white" />
                             </div>

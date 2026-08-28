@@ -611,7 +611,8 @@ function StaffDashboardPage() {
             </div>
 
             {/* [P16-FIX] added: FAB with radial menu */}
-            <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-40">
+            {/* [STAFF-DOP] на мобильных поднимаем FAB над MobileBottomNav (56px), иначе кнопка полностью перекрыта */}
+            <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-40">
                 <div className={`relative transition-all duration-300 ${fabOpen ? 'scale-100' : 'scale-0 opacity-0'}`}>
                     {[
                         { icon: Plus, label: t('staff.newTicket', 'Новый тикет'), color: 'bg-[var(--success)]', onClick: () => showToast(t('staff.creatingTicket', 'Создание тикета...')) },
