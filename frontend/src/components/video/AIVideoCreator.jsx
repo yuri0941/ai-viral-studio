@@ -101,7 +101,7 @@ export default function AIVideoCreator({ onClose }) {
         setScriptLoading(true);
         try {
             const prompt = `Напиши короткий сценарий Reels 15 сек для ниши "${niche}". Формат: хук + 2-3 короткие сцены с описанием кадров.`;
-            const res = await omegaApi.chat({ message: prompt, type: 'script' });
+            const res = await omegaApi.chat(prompt); // [fix/json-parse-400] message — строка, не объект
             const text = res?.response || res?.data?.response || res?.text || '';
             setScript(text);
         } catch (err) {

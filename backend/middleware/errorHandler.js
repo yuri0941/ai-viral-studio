@@ -8,6 +8,17 @@ export const errorHandler = (err, req, res, next) => {
     // Log error
     console.error(err)
 
+    // [fix/json-parse-400] body-parser: битое JSON-тело → 400 RU/EN + лог эндпоинта и сырого тела,
+    // чтобы в прод-логе было видно, КТО прислал невалидный JSON
+    if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && err.status === 400)) {
+        const raw = typeof err.body === 'string' ? err.body.slice(0, 200) : ''
+        console.warn(`[400 JSON-PARSE] ${req.method} ${req.originalUrl || req.url} — невалидное тело: ${raw}`)
+        return res.status(400).json({
+            status: 'error',
+            message: 'Некорректный формат данных запроса (JSON). / Invalid request body (malformed JSON).',
+        })
+    }
+
     // Mongoose bad ObjectId
     if (err.name === 'CastError') {
         const message = 'Resource not found'
