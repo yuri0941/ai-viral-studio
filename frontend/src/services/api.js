@@ -229,6 +229,8 @@ export const ownerApi = {
     promos: () => request('/owner/promos'),
     news: () => request('/owner/news'),
     subscriptions: () => request('/owner/subscriptions'),
+    // [STAFF-DOP] создание staff-аккаунта из owner-кабинета (owner-only на бэкенде)
+    createStaff: (data) => request('/owner/staff', { method: 'POST', body: JSON.stringify(data) }),
     teamActivity: () => request('/owner/team-activity'),
     aiProviderStatus: () => request('/owner/ai-providers/status'),
     toggleAiProvider: (id, enabled) => request(`/owner/ai-providers/${id}/toggle`, {
