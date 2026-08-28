@@ -1239,7 +1239,8 @@
     "extendTitle": "Продлить / сократить тариф",
     "extendDaysLabel": "Дни (отрицательное — сократить)",
     "extendHint": "+30 — продлить на месяц, -7 — сократить на неделю",
-    "extendSuccess": "Тариф {{plan}} действует до {{date}}"
+    "extendSuccess": "Тариф {{plan}} действует до {{date}}",
+    "subscription": "Тариф"
   },
   "staff": {
     "title": "Панель сотрудников",
@@ -1337,7 +1338,8 @@
     "tickets": "Тикеты",
     "warn": "Предупредить",
     "warningSent": "Предупреждение отправлено",
-    "writeReply": "Написать ответ"
+    "writeReply": "Написать ответ",
+    "escalationNoTicket": "Сначала откройте тикет"
   },
   "creator": {
     "greeting": "Добро пожаловать, творец!",

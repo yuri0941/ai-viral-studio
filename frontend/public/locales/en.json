@@ -1138,7 +1138,20 @@
     "twoFactorForAdmins": "Mandatory 2FA for admins",
     "userAdded": "User added",
     "userDeleted": "User deleted",
-    "users": "Users"
+    "users": "Users",
+    "actionError": "Action failed: {{error}}",
+    "banSuccess": "Client blocked",
+    "confirmBanTitle": "Block this client?",
+    "confirmBody": "{{email}} — the action applies immediately.",
+    "confirmNo": "❌ Cancel",
+    "confirmUnbanTitle": "Unblock this client?",
+    "confirmYes": "✅ Yes, confirm",
+    "extendDaysLabel": "Days (negative — shorten)",
+    "extendHint": "+30 — extend by a month, -7 — shorten by a week",
+    "extendSuccess": "Plan {{plan}} is active until {{date}}",
+    "extendTitle": "Extend / shorten plan",
+    "unbanSuccess": "Client unblocked",
+    "subscription": "Plan"
   },
   "staff": {
     "title": "Staff Panel",
@@ -1236,7 +1249,8 @@
     "tickets": "Tickets",
     "warn": "Warn",
     "warningSent": "Warning sent",
-    "writeReply": "Write reply"
+    "writeReply": "Write reply",
+    "escalationNoTicket": "Open a ticket first"
   },
   "support": {
     "continueInTg": "Continue in Telegram",
