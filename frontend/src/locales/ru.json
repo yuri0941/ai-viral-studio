@@ -425,7 +425,19 @@
     "emergencyStopError": "Ошибка переключения Emergency Stop",
     "networkError": "Ошибка сети",
     "resume": "▶️ RESUME",
-    "stop": "🛑 STOP"
+    "stop": "🛑 STOP",
+    "viewAs": {
+      "watching": "Ты смотришь как {{role}}",
+      "exit": "Выйти",
+      "roles": {
+        "owner": "Владелец",
+        "admin": "Админ",
+        "staff": "Саппорт",
+        "creator": "Креатор",
+        "business": "Бизнес",
+        "advertiser": "Рекламодатель"
+      }
+    }
   },
   "ownerApp": {
     "title": "Owner App",

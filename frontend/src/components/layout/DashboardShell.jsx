@@ -9,6 +9,7 @@ import { SidebarDock } from './SidebarDock'
 import { DashboardHeader } from './DashboardHeader'
 import { MobileNotificationDrawer } from './MobileNotificationDrawer'
 import { MobileBottomNav } from './MobileBottomNav'
+import { ViewAsBadge, VIEW_AS_BANNER_HEIGHT } from './ViewAsBadge'
 
 function useViewport() {
     const [viewport, setViewport] = useState({
@@ -49,6 +50,8 @@ export function DashboardShell({
     const viewport = useViewport()
     const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1024
     const { updateUser } = useAuth()
+    // [VIEW-AS-PERSIST] плашка активна → контенту нужен отступ сверху, чтобы бейдж его не перекрывал
+    const viewAsActive = user?.realRole === 'owner' && user?.role && user.role !== 'owner'
     const { theme, appliedTheme, setTheme, toggleTheme } = useTheme()
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [mobileNotifOpen, setMobileNotifOpen] = useState(false)
@@ -150,7 +153,10 @@ export function DashboardShell({
 
             {/* Desktop sidebar: collapsed 1024-1439, full ≥1440 */}
             {!viewport.isMobile && (
-                <aside className="fixed top-0 left-0 h-full z-30 transition-all duration-300">
+                <aside
+                    className="fixed top-0 left-0 h-full z-30 transition-all duration-300"
+                    style={viewAsActive ? { top: `calc(${VIEW_AS_BANNER_HEIGHT}px + env(safe-area-inset-top, 0px))` } : undefined}
+                >
                     <AppSidebar
                         userRole={userRole}
                         menuItems={menuItems}
@@ -174,6 +180,7 @@ export function DashboardShell({
                         transform transition-transform duration-300 ease-out
                         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                     `}
+                    style={viewAsActive ? { top: `calc(${VIEW_AS_BANNER_HEIGHT}px + env(safe-area-inset-top, 0px))` } : undefined}
                 >
                     <AppSidebar
                         userRole={userRole}
@@ -199,12 +206,19 @@ export function DashboardShell({
                 onDelete={onDeleteNotification}
             />
 
+            {/* [VIEW-AS-PERSIST] плашка «Ты смотришь как …» — на каждом экране, поверх хедера */}
+            <ViewAsBadge />
+
             {/* Main content */}
             <main
                 className={`flex-1 min-h-screen w-full overflow-x-hidden ${!viewport.isMobile ? 'pt-20' : 'pt-16'}`}
-                style={!viewport.isMobile ? { paddingLeft: windowWidth >= 1440 ? '280px' : '72px' } : {}}
+                style={{
+                    ...(!viewport.isMobile ? { paddingLeft: windowWidth >= 1440 ? '280px' : '72px' } : {}),
+                    ...(viewAsActive ? { paddingTop: `calc(${viewport.isMobile ? '4rem' : '5rem'} + ${VIEW_AS_BANNER_HEIGHT}px + env(safe-area-inset-top, 0px))` } : {}),
+                }}
             >
                 <DashboardHeader
+                    topOffset={viewAsActive ? `calc(${VIEW_AS_BANNER_HEIGHT}px + env(safe-area-inset-top, 0px))` : undefined}
                     title={title}
                     user={user}
                     notifications={notifications}

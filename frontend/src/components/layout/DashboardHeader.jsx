@@ -42,6 +42,7 @@ export function DashboardHeader({
     onMarkNotificationRead,
     onMarkAllNotificationsRead,
     onDeleteNotification,
+    topOffset,
 }) {
     const { t } = useTranslation()
     const { updateUser, setViewAs } = useAuth()
@@ -187,7 +188,10 @@ export function DashboardHeader({
 
     return (
         // [MASTER-v5.6] luxury header
-        <header className="fixed top-0 left-0 right-0 h-16 safe-top z-header bg-[var(--bg)]/80 backdrop-blur-xl border-b border-[var(--border)] overflow-visible">
+        <header
+            className="fixed left-0 right-0 h-16 safe-top z-header bg-[var(--bg)]/80 backdrop-blur-xl border-b border-[var(--border)] overflow-visible"
+            style={{ top: topOffset || 0 }}
+        >
             <div className="flex items-center justify-between h-full px-4 sm:px-6 py-3">
                 {/* [UI-VERIFY] min-w-0: без этого заголовок не сжимался на 360/428px
                     и контролы справа (роль/колокол/аватар) уезжали за экран */}

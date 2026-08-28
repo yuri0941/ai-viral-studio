@@ -425,7 +425,19 @@
     "emergencyStopError": "Emergency Stop toggle error",
     "networkError": "Network error",
     "resume": "▶️ RESUME",
-    "stop": "🛑 STOP"
+    "stop": "🛑 STOP",
+    "viewAs": {
+      "watching": "You're viewing as {{role}}",
+      "exit": "Exit",
+      "roles": {
+        "owner": "Owner",
+        "admin": "Admin",
+        "staff": "Staff",
+        "creator": "Creator",
+        "business": "Business",
+        "advertiser": "Advertiser"
+      }
+    }
   },
   "ownerApp": {
     "title": "Owner App",
