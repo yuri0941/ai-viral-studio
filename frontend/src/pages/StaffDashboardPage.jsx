@@ -274,7 +274,7 @@ function StaffDashboardPage() {
 
     const ticketColumns = useMemo(() => [
         { key: 'id', header: t('staff.id'), width: '70px', cell: (ticket) => <span className="text-[var(--text-muted)] text-sm">#{ticket?.id || '—'}</span> },
-        { key: 'user', header: t('staff.user'), width: '1.5fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket?.user || '—'}</span> },
+        { key: 'user', header: t('staff.user'), width: '1.5fr', cell: (ticket) => <span className="text-[var(--text)] text-sm truncate block" title={ticket?.user || ''}>{ticket?.user || '—'}</span> },
         { key: 'subject', header: t('staff.subject'), width: '2fr', cell: (ticket) => <span className="text-[var(--text)] text-sm">{ticket?.topic || ticket?.title || ticket?.subject || '—'}</span> },
         {
             key: 'priority',
@@ -646,11 +646,11 @@ function StaffDashboardPage() {
                         <button
                             key={i}
                             onClick={action.onClick}
-                            className="px-4 py-2 rounded-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 border border-white/10 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all"
+                            className={`luxury-card p-4 rounded-2xl border ${action.border} text-left flex flex-col items-start gap-1.5 hover:border-[var(--accent)]/50 hover:bg-white/5 transition-colors`}
                         >
-                            <Icon size={28} className="mb-3 text-[var(--text)]/80" />
-                            <h3 className="text-[var(--text)] font-semibold mb-1">{action.label}</h3>
-                            <p className="text-[var(--text-muted)] text-sm">{action.desc}</p>
+                            <Icon size={20} className="text-[var(--accent)]" />
+                            <h3 className="text-[var(--text)] text-sm font-semibold leading-snug">{action.label}</h3>
+                            <p className="text-[var(--text-muted)] text-xs leading-snug">{action.desc}</p>
                         </button>
                     )
                 })}
