@@ -112,7 +112,33 @@ export const authRegisterLimiter = rateLimit({
     keyGenerator: getClientIp,
     handler: (req, res) => {
         console.warn(`[RateLimit] register limit exceeded: ${getClientIp(req)}`)
-        res.status(429).json({ success: false, error: 'Слишком много попыток регистрации. Попробуйте позже.' })
+        res.status(429).json({ success: false, error: 'Слишком много попыток регистрации. Попробуйте позже. / Too many registration attempts. Try again later.' })
+    },
+})
+
+// [security-hardening Б5-З5] сброс пароля — 5 запросов/час с IP (anti-abuse почты)
+export const passwordResetLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: getClientIp,
+    handler: (req, res) => {
+        console.warn(`[RateLimit] password-reset limit exceeded: ${getClientIp(req)}`)
+        res.status(429).json({ success: false, error: 'Слишком много запросов на сброс пароля. Попробуйте через час. / Too many password reset requests. Try again in an hour.' })
+    },
+})
+
+// [security-hardening Б5-З5] создание support-тикетов — 10/15 мин с IP (anti-spam)
+export const supportTicketLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: getClientIp,
+    handler: (req, res) => {
+        console.warn(`[RateLimit] support ticket limit exceeded: ${getClientIp(req)}`)
+        res.status(429).json({ success: false, error: 'Слишком много обращений в поддержку. Попробуйте позже. / Too many support tickets. Try again later.' })
     },
 })
 

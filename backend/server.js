@@ -5,6 +5,7 @@ import { CLIENT_BOT_TOKEN, OWNER_BOT_TOKEN } from './config/bots.js'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
+import mongoSanitize from 'express-mongo-sanitize' // [security-hardening Б5-З5]
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
 import mongoose from 'mongoose'
@@ -12,7 +13,7 @@ import { connectDB, isConnected } from './config/database.js'
 import { connectRedis } from './config/redisClient.js' // [P24] fixed: Redis import
 import { errorHandler } from './middleware/errorHandler.js'
 import { protect } from './middleware/auth.js' // [HOTFIX-2026-08-04] added — protect for fallback routes
-import { apiLimiter, omegaChatLimiter, authLoginLimiter, authRegisterLimiter, checkBlockedIP, autoBanMiddleware } from './middleware/rateLimiter.js'  // [v7.0-PART2] rate limiting v2
+import { apiLimiter, omegaChatLimiter, authLoginLimiter, authRegisterLimiter, passwordResetLimiter, checkBlockedIP, autoBanMiddleware } from './middleware/rateLimiter.js'  // [v7.0-PART2] rate limiting v2
 import { seedAgents } from './services/omegaAgents/agentsRegistry.js'
 import { initOwnerBot, sendOwnerAlert, alertOwner } from './services/ownerBot.js'
 import { initOmegaBot } from './services/omegaBot.js'
@@ -444,6 +445,9 @@ app.use((err, req, res, next) => {
 // Helmet after CORS so security headers apply without blocking preflight
 app.use(helmet())
 
+// [security-hardening Б5-З5] NoSQL-инъекции: вырезаем $-операторы и точки из body/query/params
+app.use(mongoSanitize({ replaceWith: '_' }))
+
 // Body parsing — BEFORE routes
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
@@ -493,6 +497,7 @@ app.use(autoBanMiddleware)
 app.use('/api/omega/chat', omegaChatLimiter)
 app.use('/api/auth/register', authRegisterLimiter)
 app.use('/api/auth/login', authLoginLimiter)
+app.use('/api/auth/forgot-password', passwordResetLimiter)  // [security-hardening Б5-З5]
 app.use('/api/', checkBlockedIP, apiLimiter)
 // [OWNER-REMOTE-CONTROL] рубильник техработ: 503 { maintenance: true } для не-владельцев
 app.use('/api/', maintenanceMode)
