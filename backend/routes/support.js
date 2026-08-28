@@ -46,7 +46,8 @@ router.post('/', protect, supportTicketLimiter, async (req, res) => {
 
 router.get('/', protect, async (req, res) => {
   try {
-    const filter = (req.user.role === 'owner' || req.user.role === 'admin')
+    // [STAFF-DOP] staff видит все обращения (иначе кабинет поддержки пустой); клиенты — только свои
+    const filter = ['owner', 'admin', 'staff'].includes(req.user.role)
       ? {}
       : { userId: req.user.id || req.user._id }
     const tickets = await SupportTicket.find(filter).sort({ updatedAt: -1 }).limit(100)
@@ -141,8 +142,16 @@ router.patch('/:id/status', protect, requireRole('owner', 'admin', 'staff'), asy
 
 router.post('/:id/messages', protect, async (req, res) => {
   try {
-    const sender = req.body.sender || req.user.name || 'user'
     const role = ['owner', 'admin', 'staff'].includes(req.user.role) ? req.user.role : 'user'
+    // [STAFF-DOP] анти-IDOR: клиент может писать только в СВОЙ тикет
+    if (role === 'user') {
+      const own = await SupportTicket.findOne({
+        _id: req.params.id,
+        $or: [{ userId: req.user.id || req.user._id }, { userEmail: req.user.email }]
+      }).select('_id').lean()
+      if (!own) return res.status(403).json({ status: 'error', message: 'Forbidden' })
+    }
+    const sender = req.body.sender || req.user.name || 'user'
     const ticket = await replyToTicket(req.params.id, sender, req.body.text, { role })
     if (!ticket) return res.status(404).json({ status: 'error', message: 'Ticket not found' })
     res.json({ status: 'success', data: ticket })
