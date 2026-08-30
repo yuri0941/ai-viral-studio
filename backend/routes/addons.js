@@ -1,7 +1,8 @@
 import express from 'express'
 import Addon from '../models/Addon.js'
 import UserAddon from '../models/UserAddon.js'
-import { protect, requireRole } from '../middleware/auth.js'
+import { protect, authorize } from '../middleware/auth.js'
+import AuditLog from '../models/AuditLog.js'
 import { analyzeAddonMarket, generatePricingReport } from '../services/aiPricingService.js'
 
 const router = express.Router()
@@ -133,43 +134,63 @@ router.delete('/my-addons/:id', protect, async (req, res) => {
     }
 })
 
-// [v7.1-ADDON-PRICING] Owner/admin price management
-router.patch('/addons/:id/price', protect, requireRole('owner', 'admin'), async (req, res) => {
+// [v7.1-ADDON-PRICING] Owner price management
+// [ADDONS-MARKETPLACE-RESTORE] редактирование аддонов ЦЕЛИКОМ — строго authorize('owner'):
+// admin и все остальные роли → 403. Полный редактор: цена, название, описание, состав, вкл/выкл.
+router.patch('/addons/:id/price', protect, authorize('owner'), async (req, res) => {
     try {
         await getOrSeedAddons()
-        const { price, currency, discountPercent, paymentMethods } = req.body
-        const addon = await Addon.findOneAndUpdate(
-            { id: req.params.id },
-            {
-                $set: {
-                    price: Number(price),
-                    currency: currency || 'RUB',
-                    'ownerPriceConfig.customPrice': Number(price),
-                    'ownerPriceConfig.customCurrency': currency || 'RUB',
-                    'ownerPriceConfig.discountPercent': Math.min(100, Math.max(0, Number(discountPercent) || 0)),
-                    ...(paymentMethods ? { paymentMethods } : {}),
-                },
-            },
-            { new: true }
-        )
-        if (!addon) return res.status(404).json({ success: false, error: 'Аддон не найден' })
+        const { price, currency, discountPercent, paymentMethods, name, description, includes, isActive } = req.body
+        const before = await Addon.findOne({ id: req.params.id }).lean()
+        if (!before) return res.status(404).json({ success: false, error: 'Аддон не найден' })
+        const $set = {}
+        if (price !== undefined) {
+            $set.price = Number(price)
+            $set['ownerPriceConfig.customPrice'] = Number(price)
+        }
+        if (currency !== undefined) {
+            $set.currency = currency || 'RUB'
+            $set['ownerPriceConfig.customCurrency'] = currency || 'RUB'
+        }
+        if (discountPercent !== undefined) $set['ownerPriceConfig.discountPercent'] = Math.min(100, Math.max(0, Number(discountPercent) || 0))
+        if (paymentMethods) $set.paymentMethods = paymentMethods
+        if (name !== undefined) $set.name = String(name).trim().slice(0, 120)
+        if (description !== undefined) $set.description = String(description).trim().slice(0, 500)
+        if (Array.isArray(includes)) $set.includes = includes.map(s => String(s).trim()).filter(Boolean).slice(0, 20)
+        if (isActive !== undefined) $set.isActive = Boolean(isActive)
+        const addon = await Addon.findOneAndUpdate({ id: req.params.id }, { $set }, { new: true })
+        // AuditLog: кто/что менял, diff до/после
+        try {
+            await AuditLog.create({
+                action: 'owner.addon_update',
+                user: String(req.user.email || req.user._id),
+                userId: req.user._id,
+                type: 'owner',
+                severity: 'medium',
+                metadata: { addonId: req.params.id, changes: $set, before: { price: before.price, name: before.name, isActive: before.isActive } },
+                timestamp: new Date(),
+            })
+        } catch (auditErr) {
+            console.warn('[addons] audit log failed:', auditErr.message)
+        }
         res.json({ success: true, addon })
     } catch (err) {
         res.status(500).json({ success: false, error: err.message })
     }
 })
 
-router.get('/addons/pricing-config', protect, requireRole('owner', 'admin'), async (req, res) => {
+// [ADDONS-MARKETPLACE-RESTORE] список для редактора owner — ВСЕ аддоны, включая выключенные
+router.get('/addons/pricing-config', protect, authorize('owner'), async (req, res) => {
     try {
         await getOrSeedAddons()
-        const addons = await Addon.find({ isActive: true }).lean()
+        const addons = await Addon.find({}).lean()
         res.json({ success: true, addons })
     } catch (err) {
         res.status(500).json({ success: false, error: err.message })
     }
 })
 
-router.post('/addons/:id/reset-price', protect, requireRole('owner', 'admin'), async (req, res) => {
+router.post('/addons/:id/reset-price', protect, authorize('owner'), async (req, res) => {
     try {
         await getOrSeedAddons()
         const addon = await Addon.findOne({ id: req.params.id })
@@ -184,7 +205,7 @@ router.post('/addons/:id/reset-price', protect, requireRole('owner', 'admin'), a
     }
 })
 
-router.post('/addons/:id/analyze-price', protect, requireRole('owner', 'admin'), async (req, res) => {
+router.post('/addons/:id/analyze-price', protect, authorize('owner'), async (req, res) => {
     try {
         await getOrSeedAddons()
         const addon = await Addon.findOne({ id: req.params.id }).lean()
@@ -206,7 +227,7 @@ router.post('/addons/:id/analyze-price', protect, requireRole('owner', 'admin'),
     }
 })
 
-router.get('/addons/pricing-report', protect, requireRole('owner', 'admin'), async (req, res) => {
+router.get('/addons/pricing-report', protect, authorize('owner'), async (req, res) => {
     try {
         const report = await generatePricingReport()
         res.json({ success: true, report })
