@@ -1506,6 +1506,7 @@
   "tour.next": "Далее",
   "tour.prev": "Назад",
   "tour.done": "Готово",
+  "tour.skip": "Пропустить",
   "tour.stepWelcome.title": "Добро пожаловать в OMEGA",
   "tour.stepWelcome.description": "Один чат для всего: кидайте ссылку YouTube, текст или файл — OMEGA разберёт и предложит действия.",
   "tour.stepModes.title": "Режимы внутри OMEGA",

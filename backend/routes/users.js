@@ -73,7 +73,7 @@ router.patch('/me/avatar', protect, async (req, res) => {
 // [v6.5.5] onboarding progress sync
 router.patch('/me/onboarding', protect, async (req, res) => {
     try {
-        const { step, data, completed } = req.body || {}
+        const { step, data, completed, tourDone } = req.body || {}
         const user = await User.findById(req.user._id || req.user.id)
         if (!user) return res.status(404).json({ success: false, message: 'User not found' })
         const preferences = user.preferences || {}
@@ -81,6 +81,8 @@ router.patch('/me/onboarding', protect, async (req, res) => {
             step: typeof step === 'number' ? step : (preferences.onboarding?.step ?? 0),
             data: data || preferences.onboarding?.data || {},
             completed: typeof completed === 'boolean' ? completed : (preferences.onboarding?.completed ?? false),
+            // [ONBOARDING-EMPTY-STATE] флаг «тур пройден/пропущен» — чтобы тур не всплывал на другом устройстве
+            tourDone: typeof tourDone === 'boolean' ? tourDone : (preferences.onboarding?.tourDone ?? false),
             updatedAt: new Date(),
         }
         user.preferences = preferences

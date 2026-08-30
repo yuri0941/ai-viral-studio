@@ -78,6 +78,18 @@ const userSchema = new mongoose.Schema(
                     },
                     default: () => ({})
                 },
+                // [ONBOARDING-EMPTY-STATE] прогресс визарда + флаг «тур пройден/пропущен»;
+                // без этого блока strict-схема молча отбрасывала preferences.onboarding при save()
+                onboarding: {
+                    type: {
+                        step: { type: Number, default: 0 },
+                        data: { type: mongoose.Schema.Types.Mixed, default: {} },
+                        completed: { type: Boolean, default: false },
+                        tourDone: { type: Boolean, default: false },
+                        updatedAt: Date,
+                    },
+                    default: undefined,
+                },
             },
             default: () => ({})
         },

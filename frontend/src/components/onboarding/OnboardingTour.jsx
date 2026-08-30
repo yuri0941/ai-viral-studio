@@ -1,12 +1,19 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useTranslation } from '../../hooks/useTranslation.js'
+import { useAuth } from '../../context/AuthContext.jsx'
+import { API_URL } from '../../config.js'
 
 // [CHAT-UNIFY ДОП-2а] тур ведёт в единый вход «OMEGA» и подсвечивает переключатели режимов
 // внутри него; ссылки на удалённые пункты меню (AI Chat / Viral Chat / Анализ контента) убраны.
 // i18n: все строки через tour.*; {{current}}/{{total}} оставляет driver.js (i18next их не трогает —
 // переменные не передаются).
+// [ONBOARDING-EMPTY-STATE] «Пропустить» виден на каждом шаге; флаг завершения хранится
+// и в localStorage, и в профиле на сервере (preferences.onboarding.tourDone) — тур не всплывёт
+// на другом устройстве/после смены браузера.
+const TOUR_DONE_KEY = 'omega_onboarding_tour_done'
+
 function buildSteps(t) {
     const visible = (selector) => [...document.querySelectorAll(selector)].find(el => el.offsetParent !== null)
     return [
@@ -64,6 +71,19 @@ function buildSteps(t) {
     ]
 }
 
+function markTourDone() {
+    localStorage.setItem(TOUR_DONE_KEY, 'true')
+    const token = localStorage.getItem('token')
+    fetch(`${API_URL}/users/me/onboarding`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ tourDone: true }),
+    }).catch(err => console.warn('[OnboardingTour] server sync failed:', err))
+}
+
 function drive(t, onFinish) {
     const d = driver({
         showProgress: true,
@@ -72,8 +92,19 @@ function drive(t, onFinish) {
         prevBtnText: t('tour.prev'),
         doneBtnText: t('tour.done'),
         steps: buildSteps(t),
+        onPopoverRender: (popover) => {
+            // «Пропустить» доступен с первого шага, а не только в конце тура
+            if (popover.footerButtons.querySelector('.omega-tour-skip')) return
+            const skip = document.createElement('button')
+            skip.type = 'button'
+            skip.className = 'omega-tour-skip'
+            skip.textContent = t('tour.skip')
+            skip.style.cssText = 'margin-right:auto;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:13px;text-decoration:underline;padding:4px 0;'
+            skip.addEventListener('click', () => d.destroy())
+            popover.footerButtons.prepend(skip)
+        },
         onDestroyed: () => {
-            localStorage.setItem('omega_onboarding_tour_done', 'true')
+            markTourDone()
             onFinish?.()
         },
     })
@@ -82,18 +113,36 @@ function drive(t, onFinish) {
 
 export default function OnboardingTour({ onFinish }) {
     const { t } = useTranslation()
+    const { user } = useAuth()
+    const started = useRef(false)
+
     const startTour = useCallback(() => {
         if (typeof window === 'undefined') return
         drive(t, onFinish)
     }, [t, onFinish])
 
     useEffect(() => {
-        const done = localStorage.getItem('omega_onboarding_tour_done')
-        if (!done) {
-            const timer = setTimeout(startTour, 1200)
-            return () => clearTimeout(timer)
+        if (started.current) return
+        if (!user) return // ждём профиль: серверный флаг важнее пустого localStorage
+        const serverDone = user?.preferences?.onboarding?.tourDone === true
+        if (serverDone) {
+            localStorage.setItem(TOUR_DONE_KEY, 'true')
+            started.current = true
+            return
         }
-    }, [startTour])
+        if (localStorage.getItem(TOUR_DONE_KEY)) {
+            started.current = true
+            return
+        }
+        // флаг ставим в момент запуска, а не в момент установки таймера —
+        // иначе ререндер (deps: t — новая ссылка каждый рендер) гасил таймер навсегда
+        const timer = setTimeout(() => {
+            if (started.current) return
+            started.current = true
+            startTour()
+        }, 1200)
+        return () => clearTimeout(timer)
+    }, [startTour, user])
 
     return null
 }
