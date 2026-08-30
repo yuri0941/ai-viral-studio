@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { API_BASE_URL } from '../../config.js'
 import {
@@ -7,6 +8,40 @@ import {
     CheckSquare, Square, CalendarClock, Filter
 } from 'lucide-react'
 import { VirtualTable } from './VirtualTable'
+
+// [ADMIN-PANEL-POLISH] усечённый текст + тултип с полным значением: hover на десктопе, тап на мобильном.
+// Портал в body с position:fixed — не клиппится overflow-hidden ячейки таблицы и не уезжает за экран.
+function TruncatedWithTooltip({ text, className = '' }) {
+    const [pos, setPos] = useState(null)
+    const show = (e) => {
+        const r = e.currentTarget.getBoundingClientRect()
+        setPos({ x: Math.min(r.left, window.innerWidth - 280), y: r.top })
+    }
+    const hide = () => setPos(null)
+    return (
+        <>
+            <span
+                className={`truncate block w-full cursor-help ${className}`}
+                title={text || ''}
+                onMouseEnter={show}
+                onMouseLeave={hide}
+                onClick={(e) => { e.stopPropagation(); pos ? hide() : show(e) }}
+            >
+                {text || '—'}
+            </span>
+            {pos && createPortal(
+                <span
+                    className="px-2 py-1 rounded-lg bg-[var(--card)] border border-[var(--border-strong)] text-xs text-[var(--text)] shadow-lg break-all"
+                    style={{ position: 'fixed', left: pos.x, top: pos.y - 8, transform: 'translateY(-100%)', maxWidth: 260, zIndex: 9999 }}
+                    onMouseLeave={hide}
+                >
+                    {text}
+                </span>,
+                document.body
+            )}
+        </>
+    )
+}
 
 // [VIEW-AS-PARITY] Единый компонент управления пользователями:
 // используется и в admin → Пользователи, и в owner → вкладка «Клиенты» (доктрина паритета).
@@ -302,9 +337,9 @@ export function UsersManager({ onUsersLoaded }) {
             ),
         },
         { key: 'id', header: t('admin.id'), width: '80px', cell: (u) => <span className="text-[var(--text-muted)]">#{u.id}</span> },
-        { key: 'name', header: t('admin.name'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)] font-medium truncate block w-full" title={u?.name || ''}>{u?.name || '—'}</span> },
-        // [ADMIN-PANEL-POLISH] truncate + title: полный email виден в тултипе при наведении (на мобильном — карточка с break-words)
-        { key: 'email', header: t('admin.email'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)] truncate block w-full" title={u?.email || ''}>{u?.email || '—'}</span> },
+        { key: 'name', header: t('admin.name'), width: '1.5fr', cell: (u) => <TruncatedWithTooltip text={u?.name} className="text-[var(--text)] font-medium" /> },
+        // [ADMIN-PANEL-POLISH] truncate + тултип (hover/тап): полный email всегда можно увидеть целиком
+        { key: 'email', header: t('admin.email'), width: '1.5fr', cell: (u) => <TruncatedWithTooltip text={u?.email} className="text-[var(--text)]" /> },
         {
             key: 'role',
             header: t('admin.role'),
