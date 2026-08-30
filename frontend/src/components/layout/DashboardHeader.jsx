@@ -42,9 +42,10 @@ export function DashboardHeader({
     onMarkNotificationRead,
     onMarkAllNotificationsRead,
     onDeleteNotification,
+    topOffset,
 }) {
     const { t } = useTranslation()
-    const { updateUser } = useAuth()
+    const { updateUser, setViewAs } = useAuth()
     const navigate = useNavigate()
     const [roleOpen, setRoleOpen] = useState(false)
     const [langOpen, setLangOpen] = useState(false)
@@ -148,7 +149,9 @@ export function DashboardHeader({
         }
     }
 
-    const availableRoles = getAvailableRoles(user?.role)
+    // [VIEW-AS-PERSIST] список ролей от РЕАЛЬНОЙ роли (realRole), текущая — эффективная (view-as)
+    const realRole = user?.realRole || user?.role
+    const availableRoles = getAvailableRoles(realRole)
     const currentRole = ROLE_CONFIG[user?.role] || ROLE_CONFIG.creator
     const CurrentIcon = currentRole.icon
 
@@ -163,15 +166,11 @@ export function DashboardHeader({
             setRoleOpen(false)
             return
         }
-        // [ROLE-SWITCH-FLASH] кэш профиля пишем СИНХРОННО до навигации:
-        // updateUser пишет localStorage внутри setState-апдейтера, который React
-        // может отложить → после reload гард ловил старую роль и шлёпал /unauthorized
-        try {
-            const cached = JSON.parse(localStorage.getItem('user_profile') || 'null')
-            localStorage.setItem('user_profile', JSON.stringify({ ...(cached || user || {}), role }))
-            localStorage.setItem('role_switch_at', String(Date.now()))
-        } catch { /* битый кэш — updateUser ниже всё равно обновит стейт */ }
-        updateUser({ role })
+        // [VIEW-AS-PERSIST] выбор владельца хранится в view_as ОТДЕЛЬНО от реальной роли:
+        // user_profile не затираем, JWT не трогаем. role_switch_at — маркер для
+        // ProtectedRoute-спиннера (фикс role-switch-flash сохранён)
+        localStorage.setItem('role_switch_at', String(Date.now()))
+        setViewAs(role === realRole ? null : role)
         setRoleOpen(false)
         window.location.href = config.route
     }
@@ -189,7 +188,10 @@ export function DashboardHeader({
 
     return (
         // [MASTER-v5.6] luxury header
-        <header className="fixed top-0 left-0 right-0 h-16 safe-top z-header bg-[var(--bg)]/80 backdrop-blur-xl border-b border-[var(--border)] overflow-visible">
+        <header
+            className="fixed left-0 right-0 h-16 safe-top z-header bg-[var(--bg)]/80 backdrop-blur-xl border-b border-[var(--border)] overflow-visible"
+            style={{ top: topOffset || 0 }}
+        >
             <div className="flex items-center justify-between h-full px-4 sm:px-6 py-3">
                 {/* [UI-VERIFY] min-w-0: без этого заголовок не сжимался на 360/428px
                     и контролы справа (роль/колокол/аватар) уезжали за экран */}

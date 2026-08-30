@@ -217,8 +217,12 @@ function ProtectedRoute({ children, allowedRoles }) {
     const navigate = useNavigate()
 
     const { notifications, unreadCount, markRead, markAllRead, remove } = useNotifications()
-    const { data: teamData } = useDashboardData('team')
-    const { data: subsData } = useDashboardData('subscriptions')
+    // [VIEW-AS-PERSIST] owner-only эндпоинты (/owner/team, /owner/subscriptions) дёргаем только
+    // когда эффективная роль — owner. В view-as режиме (realRole=owner, role=staff/…) — не шлём,
+    // консоль чистая от 401 (образец — role-guard в OmegaChat)
+    const canOwnerFetch = user?.role === 'owner'
+    const { data: teamData } = useDashboardData('team', { immediate: canOwnerFetch })
+    const { data: subsData } = useDashboardData('subscriptions', { immediate: canOwnerFetch })
 
     const handleLogout = () => {
         logout()

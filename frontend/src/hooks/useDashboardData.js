@@ -29,6 +29,21 @@ const ENDPOINTS = {
     subscriptions: `${API_BASE_URL}/owner/subscriptions`
 }
 
+// [VIEW-AS-PERSIST] все эндпоинты хука — /api/owner/*, т.е. owner-only.
+// Эффективная роль = view_as (если владелец в режиме просмотра) иначе реальная роль из кэша.
+// Без owner-прав фетч подавляем — консоль чистая от 401 (образец — role-guard в OmegaChat).
+function hasOwnerRights() {
+    try {
+        const profile = JSON.parse(localStorage.getItem('user_profile') || 'null')
+        const realRole = profile?.role
+        const viewAs = localStorage.getItem('view_as')
+        const effective = (realRole === 'owner' && viewAs) ? viewAs : realRole
+        return effective === 'owner'
+    } catch {
+        return false
+    }
+}
+
 export function useDashboardData(key, options = {}) {
     const { fallback = FALLBACK_DATA[key] || null, immediate = true } = options
     const [data, setData] = useState(() => {
@@ -48,12 +63,18 @@ export function useDashboardData(key, options = {}) {
             setError(`Unknown dashboard key: ${key}`)
             return
         }
+        // [VIEW-AS-PERSIST] owner-only: нет owner-прав → запрос не шлём вообще
+        if (!hasOwnerRights()) return
 
         setLoading(true)
         setError(null)
 
         try {
-            const response = await fetch(url)
+            // [VIEW-AS-PERSIST] токен обязателен — без него даже владелец получал 401 в консоль
+            const token = localStorage.getItem('token')
+            const response = await fetch(url, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            })
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`)
             }
