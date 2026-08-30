@@ -1084,7 +1084,8 @@
       "business": "Business",
       "advertiser": "Advertiser",
       "staff": "Staff",
-      "admin": "Admin"
+      "admin": "Admin",
+      "owner": "Owner"
     },
     "statuses": {
       "active": "Active",

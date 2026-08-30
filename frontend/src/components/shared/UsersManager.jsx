@@ -76,6 +76,8 @@ export function UsersManager({ onUsersLoaded }) {
     const [sortBy, setSortBy] = useState('joined')
     const [sortOrder, setSortOrder] = useState('desc')
     const [selectedIds, setSelectedIds] = useState([])
+    // [ADMIN-PANEL-POLISH] remount VirtualTable по «Сброс» — сбрасывает и внутреннюю сортировку колонок
+    const [resetKey, setResetKey] = useState(0)
 
     // [STAFF-DOP] подтверждение ✅/❌ для бан/разбан/удаление и модалка продления/сокращения тарифа
     const [confirmAction, setConfirmAction] = useState(null) // { type: 'ban'|'unban'|'delete', user }
@@ -300,22 +302,32 @@ export function UsersManager({ onUsersLoaded }) {
             ),
         },
         { key: 'id', header: t('admin.id', 'ID'), width: '80px', cell: (u) => <span className="text-[var(--text-muted)]">#{u.id}</span> },
-        { key: 'name', header: t('admin.name'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)] font-medium">{u?.name || '—'}</span> },
-        { key: 'email', header: t('admin.email'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)]">{u?.email || '—'}</span> },
+        { key: 'name', header: t('admin.name'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)] font-medium truncate block w-full" title={u?.name || ''}>{u?.name || '—'}</span> },
+        // [ADMIN-PANEL-POLISH] truncate + title: полный email виден в тултипе при наведении (на мобильном — карточка с break-words)
+        { key: 'email', header: t('admin.email'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)] truncate block w-full" title={u?.email || ''}>{u?.email || '—'}</span> },
         {
             key: 'role',
             header: t('admin.role'),
-            width: '130px',
+            // [ADMIN-PANEL-POLISH] 160px: «Рекламодатель»/«Advertiser» не обрезаются; select на всю ширину ячейки
+            width: '160px',
             cell: (u) => (
+                // [ADMIN-PANEL-POLISH] owner — нередактируемый бейдж (роль владельца из списка не меняем),
+                // у select иначе не было option → пустой/обрезанный бейдж
+                u?.role === 'owner' ? (
+                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-xs border ${getRoleColor('owner')}`}>
+                        {t('admin.roles.owner')}
+                    </span>
+                ) : (
                 <select
                     value={u?.role || 'creator'}
                     onChange={e => handleChangeRole(u.id, e.target.value)}
-                    className={`px-2.5 py-1 rounded-full text-xs border bg-transparent outline-none ${getRoleColor(u?.role)}`}
+                    className={`w-full max-w-full whitespace-nowrap px-2.5 py-1 rounded-full text-xs border bg-transparent outline-none ${getRoleColor(u?.role)}`}
                 >
                     {['creator', 'business', 'advertiser', 'staff', 'admin'].map(r => (
                         <option key={r} value={r} className="bg-[var(--card)]">{t(`admin.roles.${r}`)}</option>
                     ))}
                 </select>
+                )
             ),
         },
         {
@@ -446,7 +458,7 @@ export function UsersManager({ onUsersLoaded }) {
                             {sortOrder === 'asc' ? t('admin.asc') : t('admin.desc')}
                         </button>
                         <button
-                            onClick={() => { setSearchQuery(''); setRoleFilter('all'); setStatusFilter('all'); setSortBy('joined'); setSortOrder('desc'); setSelectedIds([]) }}
+                            onClick={() => { setSearchQuery(''); setRoleFilter('all'); setStatusFilter('all'); setSortBy('joined'); setSortOrder('desc'); setSelectedIds([]); setResetKey(k => k + 1) }}
                             className="px-3 py-2 rounded-lg bg-[var(--surface)] text-[var(--text-muted)] text-sm hover:text-[var(--text)] transition-colors whitespace-nowrap"
                         >
                             {t('admin.reset')}
@@ -467,6 +479,7 @@ export function UsersManager({ onUsersLoaded }) {
 
                 <div className="overflow-x-auto">
                     <VirtualTable
+                        key={resetKey}
                         data={filteredUsers}
                         columns={userColumns}
                         rowHeight={60}
