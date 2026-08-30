@@ -138,4 +138,37 @@ step('у активного подписчика удалённая позици
 // откат состава
 await fetch(`${API}/api/subscriptions/addons/ai-designer/price`, { method: 'PATCH', headers: H(ot), body: JSON.stringify({ includes: [] }) })
 
+// 9. [ADDONS-COMPOSITION-LINK] реальная разблокировка: клиент купил → функции доступны по entitlement;
+// owner снял функцию с витрины → у купивших работает до конца периода; без покупки → 402.
+const entCheck = (t, key) => fetch(`${API}/api/subscriptions/entitlements/${key}/check`, { headers: H(t) })
+
+step('клиент БЕЗ покупки: entitlement design.pack → 402', (await entCheck(ct, 'design.pack')).status === 402)
+step('клиент БЕЗ покупки 2: entitlement analytics.pro → 402', (await entCheck(ct, 'analytics.pro')).status === 402)
+
+// owner собрал аддон из 2 функций
+const r17 = await fetch(`${API}/api/subscriptions/addons/ai-designer/price`, { method: 'PATCH', headers: H(ot), body: JSON.stringify({ features: ['design.pack', 'analytics.pro'] }) })
+const j17 = await r17.json()
+step('owner: 2 функции сохранены в аддоне', r17.status === 200 && j17.addon?.features?.length === 2, JSON.stringify(j17.addon?.features))
+
+// клиент «купил» (имитация пост-webhook состояния: active + снапшот фич)
+await UserAddon.findOneAndUpdate(
+  { userId: client._id, addonId: 'ai-designer' },
+  { $set: { price: 290, currency: 'RUB', paymentProvider:  'manual', paymentId: 'qa-ent', status: 'active', purchasedAt: new Date(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), featuresSnapshot: ['design.pack', 'analytics.pro'] } },
+  { upsert: true, new: true }
+)
+step('купивший клиент: design.pack → 200', (await entCheck(ct, 'design.pack')).status === 200)
+step('купивший клиент: analytics.pro → 200', (await entCheck(ct, 'analytics.pro')).status === 200)
+
+// owner снял функцию с витрины
+const r18 = await fetch(`${API}/api/subscriptions/addons/ai-designer/price`, { method: 'PATCH', headers: H(ot), body: JSON.stringify({ features: ['design.pack'] }) })
+step('owner: функция analytics.pro снята с витрины', r18.status === 200, String(r18.status))
+step('купивший клиент: analytics.pro ЖИВА до конца периода (снапшот)', (await entCheck(ct, 'analytics.pro')).status === 200)
+const jStore2 = await (await fetch(`${API}/api/subscriptions/addons`)).json()
+step('витрина: новым только design.pack', jStore2.addons?.find(a => a.id === 'ai-designer')?.features?.length === 1, JSON.stringify(jStore2.addons?.find(a => a.id === 'ai-designer')?.features))
+step('«скоро»-функция не продаётся: autopilot.full → 402 даже при аддоне', (await entCheck(ct, 'autopilot.full')).status === 402)
+
+// откат: features к сиду, удалить qa-запись клиента
+await fetch(`${API}/api/subscriptions/addons/ai-designer/price`, { method: 'PATCH', headers: H(ot), body: JSON.stringify({ features: ['design.pack'] }) })
+await UserAddon.deleteOne({ userId: client._id, addonId: 'ai-designer' })
+
 await mongoose.disconnect()
