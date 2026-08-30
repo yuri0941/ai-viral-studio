@@ -301,7 +301,7 @@ export function UsersManager({ onUsersLoaded }) {
                 </button>
             ),
         },
-        { key: 'id', header: t('admin.id', 'ID'), width: '80px', cell: (u) => <span className="text-[var(--text-muted)]">#{u.id}</span> },
+        { key: 'id', header: t('admin.id'), width: '80px', cell: (u) => <span className="text-[var(--text-muted)]">#{u.id}</span> },
         { key: 'name', header: t('admin.name'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)] font-medium truncate block w-full" title={u?.name || ''}>{u?.name || '—'}</span> },
         // [ADMIN-PANEL-POLISH] truncate + title: полный email виден в тултипе при наведении (на мобильном — карточка с break-words)
         { key: 'email', header: t('admin.email'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)] truncate block w-full" title={u?.email || ''}>{u?.email || '—'}</span> },
@@ -489,7 +489,7 @@ export function UsersManager({ onUsersLoaded }) {
                         emptyMessage={
                             <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
                                 <Search size={32} className="mb-3 opacity-50" />
-                                <p>{t('admin.noUsers', 'Пользователи не найдены')}</p>
+                                <p>{t('admin.noUsers')}</p>
                             </div>
                         }
                     />
@@ -519,7 +519,7 @@ export function UsersManager({ onUsersLoaded }) {
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-sm text-[var(--text-muted)] mb-1 block">{t('admin.name')}</label>
-                                    <input type="text" value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} placeholder={t('admin.namePlaceholder', 'Иван Иванов')} className="w-full px-4 py-2 bg-[var(--surface)] rounded-lg border border-[var(--border-strong)] focus:border-[var(--success)] outline-none" />
+                                    <input type="text" value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} placeholder={t('admin.namePlaceholder')} className="w-full px-4 py-2 bg-[var(--surface)] rounded-lg border border-[var(--border-strong)] focus:border-[var(--success)] outline-none" />
                                 </div>
                                 <div>
                                     <label className="text-sm text-[var(--text-muted)] mb-1 block">{t('admin.email')}</label>
@@ -673,7 +673,7 @@ export function UsersManager({ onUsersLoaded }) {
                                 <button onClick={() => setExtendModal(null)} className="text-[var(--text-muted)] hover:text-[var(--text)]"><X size={20} /></button>
                             </div>
                             <p className="text-sm text-[var(--text-muted)] mb-1">{extendModal.user?.email || '—'}</p>
-                            <p className="text-xs text-[var(--text-muted)] mb-4">{t('admin.subscription', 'Тариф')}: {extendModal.user?.subscription || 'free'}</p>
+                            <p className="text-xs text-[var(--text-muted)] mb-4">{t('admin.subscription')}: {extendModal.user?.subscription || 'free'}</p>
                             <label className="text-sm text-[var(--text-muted)] mb-1 block">{t('admin.extendDaysLabel')}</label>
                             <input
                                 type="number"

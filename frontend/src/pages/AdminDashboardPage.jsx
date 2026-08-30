@@ -173,9 +173,9 @@ function AdminDashboardPage() {
 
     // --- QUICK ACTIONS ---
     const quickActions = [
-        { label: t('admin.moderation'), icon: Shield, desc: t('admin.reportsPendingDesc', '{{count}} жалоб на рассмотрении', { count: liveStats.reportsPending }), gradient: 'from-red-500/20 to-red-600/10', border: 'border-red-500/20', onClick: () => setShowModerationModal(true) },
-        { label: t('admin.systemLogs'), icon: Terminal, desc: t('admin.recentErrors', 'Последние ошибки'), gradient: 'from-blue-500/20 to-blue-600/10', border: 'border-blue-500/20', onClick: () => setShowLogsModal(true) },
-        { label: t('admin.platformSettings'), icon: Wrench, desc: maintenanceMode ? t('admin.maintenanceOn') : t('admin.apiLimitsRoles', 'API, лимиты, роли'), gradient: 'from-emerald-500/20 to-emerald-600/10', border: 'border-[var(--success)]/20', onClick: () => setShowPlatformSettingsModal(true) },
+        { label: t('admin.moderation'), icon: Shield, desc: t('admin.reportsPendingDesc', { count: liveStats.reportsPending }), gradient: 'from-red-500/20 to-red-600/10', border: 'border-red-500/20', onClick: () => setShowModerationModal(true) },
+        { label: t('admin.systemLogs'), icon: Terminal, desc: t('admin.recentErrors'), gradient: 'from-blue-500/20 to-blue-600/10', border: 'border-blue-500/20', onClick: () => setShowLogsModal(true) },
+        { label: t('admin.platformSettings'), icon: Wrench, desc: maintenanceMode ? t('admin.maintenanceOn') : t('admin.apiLimitsRoles'), gradient: 'from-emerald-500/20 to-emerald-600/10', border: 'border-[var(--success)]/20', onClick: () => setShowPlatformSettingsModal(true) },
         { label: t('admin.finance'), icon: TrendingUp, desc: `${formatRub(finance.revenue7d)} ${t('admin.sub7days')} · MRR ${formatRub(finance.mrr)}`, gradient: 'from-yellow-500/20 to-yellow-600/10', border: 'border-yellow-500/20', onClick: () => setShowFinanceModal(true) }
     ]
 
@@ -208,7 +208,7 @@ function AdminDashboardPage() {
                         onClick={() => setShowSettingsModal(true)}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--success)] to-emerald-600 text-white font-semibold text-sm transition-all hover:opacity-90"
                     >
-                        <Settings size={16} /> {t('admin.settings', 'Настройки')}
+                        <Settings size={16} /> {t('admin.settings')}
                     </button>
                 </div>
             </div>
@@ -421,7 +421,7 @@ function AdminDashboardPage() {
                                 {[
                                     { label: t('admin.apiRateLimit'), key: 'apiRateLimit', unit: '' },
                                     { label: t('admin.maxFileSize'), key: 'maxFileSize', unit: 'MB' },
-                                    { label: t('admin.defaultQuota'), key: 'defaultQuota', unit: '/мес' },
+                                    { label: t('admin.defaultQuota'), key: 'defaultQuota', unit: t('admin.perMonth') },
                                 ].map((setting) => (
                                     <div key={setting.key} className="flex items-center justify-between p-3 glass">
                                         <span className="text-sm">{setting.label}</span>
