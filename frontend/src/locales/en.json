@@ -1478,6 +1478,7 @@
   "tour.next": "Next",
   "tour.prev": "Back",
   "tour.done": "Done",
+  "tour.skip": "Skip",
   "tour.stepWelcome.title": "Welcome to OMEGA",
   "tour.stepWelcome.description": "One chat for everything: drop a YouTube link, text or a file — OMEGA will analyze it and suggest actions.",
   "tour.stepModes.title": "Modes inside OMEGA",

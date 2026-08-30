@@ -203,9 +203,8 @@ function CreatorDashboardPage() {
                 </div>
             )}
 
-            {/* [VALUE-2026-08-04] added: hide hardcoded demo content until user has posts */}
-            {(statsLoading || (stats?.posts || 0) > 0) && (
-                <>
+            {/* [ONBOARDING-EMPTY-STATE] гейт «только с постами» убран: дашборд всегда доступен,
+                empty-state выше — inline-подсказка, а не блокирующий шаг */}
 
             {/* [P16-FIX] added: content-first hero — next post preview with glass card */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -240,7 +239,7 @@ function CreatorDashboardPage() {
                             </div>
                             <span className="text-sm font-medium text-[var(--text)]">{t('creator.omegaTip')}</span>
                         </div>
-                        <p className="text-sm text-[var(--text-muted)] mb-4">{t('creator.omegaTipText', 'Опубликуйте пост в оптимальное время, чтобы повысить охват.')}</p>
+                        <p className="text-sm text-[var(--text-muted)] mb-4">{t('creator.omegaTipText', { time: '18:00', defaultValue: 'Опубликуйте пост в оптимальное время, чтобы повысить охват.' })}</p>
                     </div>
                     <button onClick={() => toast(t('creator.timeApplied'))} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity">
                         {t('creator.apply')}
@@ -523,7 +522,7 @@ function CreatorDashboardPage() {
                                 <div className="h-2 w-full bg-[var(--surface)] rounded-full overflow-hidden">
                                     <div
                                         className={`h-full ${source.color} rounded-full`}
-                                        style={{ width: `${(source.value / stats.income) * 100}%` }}
+                                        style={{ width: `${stats?.income > 0 ? (source.value / stats.income) * 100 : 0}%` }}
                                     />
                                 </div>
                             </div>
@@ -573,9 +572,6 @@ function CreatorDashboardPage() {
                     </div>
                 </div>
             </div>
-
-                </>
-            )}
 
             {showAIVideoCreator && <AIVideoCreator onClose={() => setShowAIVideoCreator(false)} />}
         </div>
