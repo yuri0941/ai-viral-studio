@@ -45,7 +45,8 @@
     "refresh": "Refresh",
     "send": "Send",
     "sending": "Sending…",
-    "status": "Status"
+    "status": "Status",
+    "saved": "Saved"
   },
   "requisites": {
     "contactEmail": "Contact email for client questions",
@@ -391,7 +392,8 @@
       "content": "CONTENT",
       "client": "CLIENT VIEW",
       "settings": "SETTINGS"
-    }
+    },
+    "addonsManage": "🛠 Manage Add-ons"
   },
   "unauthorized": {
     "title": "Access denied",
@@ -1606,7 +1608,13 @@
     "availableAll": "Available to all",
     "myAddons": "My addons",
     "until": "until",
-    "cancelConfirm": "Disable addon?"
+    "cancelConfirm": "Disable addon?",
+    "name": "Name",
+    "description": "Description",
+    "includesPlaceholder": "What is included — one item per line",
+    "enabledLabel": "Addon enabled (visible on marketplace)",
+    "disabledBadge": "Disabled",
+    "manageAddons": "🛠 Manage Add-ons"
   },
   "chat": {
     "serverUnavailable": "OMEGA is temporarily unavailable. Retry in 10s.",

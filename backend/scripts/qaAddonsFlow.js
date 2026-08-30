@@ -75,4 +75,46 @@ const r7 = await fetch(`${API}/api/yookassa/webhook`, { method: 'POST', headers:
 const uaPaid2 = await UserAddon.findOne({ userId: client._id, addonId: 'ai-video' }).lean()
 step('повторный поддельный webhook → по-прежнему НЕ active', r7.status === 200 && uaPaid2?.status !== 'active', uaPaid2?.status || 'нет записи')
 
+// 7. [ADDONS-MARKETPLACE-RESTORE] Гард редактирования: строго owner.
+// Клиент → 403, admin → 403, owner → 200; цикл выкл→витрина пуста→вкл обратно.
+const { default: Addon } = await import('../models/Addon.js')
+const editBody = JSON.stringify({ price: 291, name: 'AI Дизайнер QA', description: 'QA описание', includes: ['Пункт 1', 'Пункт 2'], isActive: true })
+
+const r8 = await fetch(`${API}/api/subscriptions/addons/ai-designer/price`, { method: 'PATCH', headers: H(ct), body: editBody })
+step('клиент: PATCH /addons/:id/price → 403', r8.status === 403, String(r8.status))
+
+// временный admin-пользователь для негативного теста
+const adminEmail = `qa.addon.admin.${Date.now()}@test.dev`
+const admin = await User.create({ name: 'QA Addon Admin', email: adminEmail, password: 'qa-password-123', role: 'admin' })
+const at = admin.generateToken()
+const r9 = await fetch(`${API}/api/subscriptions/addons/ai-designer/price`, { method: 'PATCH', headers: H(at), body: editBody })
+step('admin: PATCH /addons/:id/price → 403 (строго owner)', r9.status === 403, String(r9.status))
+const r9b = await fetch(`${API}/api/subscriptions/addons/pricing-config`, { headers: H(at) })
+step('admin: GET pricing-config → 403', r9b.status === 403, String(r9b.status))
+await User.deleteOne({ _id: admin._id })
+
+const r10 = await fetch(`${API}/api/subscriptions/addons/ai-designer/price`, { method: 'PATCH', headers: H(ot), body: editBody })
+const j10 = await r10.json().catch(() => ({}))
+step('owner: PATCH /addons/:id/price → 200, поля сохранены', r10.status === 200 && j10.addon?.price === 291 && j10.addon?.name === 'AI Дизайнер QA' && j10.addon?.includes?.length === 2, String(r10.status))
+
+// AuditLog записан
+const { default: AuditLog } = await import('../models/AuditLog.js')
+const auditEntry = await AuditLog.findOne({ action: 'owner.addon_update', 'metadata.addonId': 'ai-designer' }).sort({ timestamp: -1 }).lean()
+step('AuditLog: owner.addon_update записан', !!auditEntry, auditEntry?.user || 'нет записи')
+
+// выкл → витрина (публичная) не отдаёт, купленные у клиентов не сломались
+const r11 = await fetch(`${API}/api/subscriptions/addons/ai-designer/price`, { method: 'PATCH', headers: H(ot), body: JSON.stringify({ isActive: false }) })
+const r12 = await fetch(`${API}/api/subscriptions/addons`)
+const j12 = await r12.json()
+step('owner: выкл аддона → на витрине нет', r11.status === 200 && !j12.addons?.some(a => a.id === 'ai-designer'), String(j12.addons?.length))
+const ownerStillHas = await UserAddon.findOne({ userId: owner._id, addonId: 'ai-designer', status: 'active' }).lean()
+step('купленный аддон у клиента/owner НЕ сломался при выкл', !!ownerStillHas, ownerStillHas?.status || 'нет записи')
+
+// вкл → снова на витрине; откат цены/имени к исходным
+const r13 = await fetch(`${API}/api/subscriptions/addons/ai-designer/price`, { method: 'PATCH', headers: H(ot), body: JSON.stringify({ isActive: true, price: 290, name: 'AI Дизайнер', description: 'Генерация обложек, баннеров, логотипов.', includes: [] }) })
+const r14 = await fetch(`${API}/api/subscriptions/addons`)
+const j14 = await r14.json()
+const restored = j14.addons?.find(a => a.id === 'ai-designer')
+step('owner: вкл аддона → снова на витрине, цена откачена', r13.status === 200 && restored?.price === 290, String(restored?.price))
+
 await mongoose.disconnect()

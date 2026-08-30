@@ -163,6 +163,7 @@ export const TAB_LABELS = {
     legal: 'Юр. лицо',
     audit: 'Аудит',
     subscriptions: 'Подписки',
+    addonsManage: '🛠 Управление аддонами', // [ADDONS-MARKETPLACE-RESTORE]
     payments: '💳 Платёжные системы',
     subscribers: '👥 Подписчики',
     requisites: '🏢 Реквизиты',

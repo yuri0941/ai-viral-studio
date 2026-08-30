@@ -152,7 +152,7 @@ const OWNER_GROUPS = [
         id: 'settings',
         title: 'НАСТРОЙКИ',
         items: [
-            { id: 'addons', label: '✨ Мои дополнения', icon: Sparkles },
+            { id: 'addonsManage', label: '🛠 Управление аддонами', icon: Sparkles }, // [ADDONS-MARKETPLACE-RESTORE] owner-only редактор аддонов
             { id: 'apiKeys', label: '🔑 API Keys', icon: KeyRound },
             { id: 'security', label: 'Безопасность', icon: Lock },
             { id: 'legal', label: 'Юр. лицо', icon: Scale },

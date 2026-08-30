@@ -10,6 +10,8 @@ const addonSchema = new mongoose.Schema({
     category: { type: String, enum: ['design', 'video', 'agents', 'analytics', 'integrations', 'white-label', 'other'], default: 'other' },
     icon: { type: String, default: '🎁' },
     isActive: { type: Boolean, default: true },
+    // [ADDONS-MARKETPLACE-RESTORE] состав аддона («что входит») — редактируется owner из кабинета
+    includes: { type: [String], default: [] },
     requiresPlan: { type: [String], default: [] },
     currencies: {
         RUB: { type: Number },

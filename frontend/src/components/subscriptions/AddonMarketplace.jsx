@@ -108,12 +108,16 @@ export default function AddonMarketplace() {
     const [purchasing, setPurchasing] = useState(null)
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-    const isOwner = user?.role === 'owner' || user?.role === 'admin'
+    // [ADDONS-MARKETPLACE-RESTORE] редактирование строго owner (admin → без кнопки, API → 403)
+    const isOwner = user?.role === 'owner'
 
     const load = async () => {
         try {
             const [allRes, myRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/subscriptions/addons`),
+                // owner видит и выключенные аддоны (редактор), остальные — только витрину
+                isOwner && token
+                    ? fetch(`${API_BASE_URL}/subscriptions/addons/pricing-config`, { headers: { Authorization: `Bearer ${token}` } })
+                    : fetch(`${API_BASE_URL}/subscriptions/addons`),
                 token ? fetch(`${API_BASE_URL}/subscriptions/my-addons`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve({ ok: true, json: () => ({ addons: [] }) }),
             ])
             const allData = await allRes.json()
@@ -128,6 +132,10 @@ export default function AddonMarketplace() {
                     currency: a.currency || 'RUB',
                     discountPercent: a.ownerPriceConfig?.discountPercent || 0,
                     paymentMethods: a.paymentMethods || ['yookassa'],
+                    name: a.name,
+                    description: a.description || '',
+                    includes: Array.isArray(a.includes) ? a.includes.join('\n') : '',
+                    isActive: a.isActive !== false,
                 }
             })
             setEdits(initEdits)
@@ -184,13 +192,18 @@ export default function AddonMarketplace() {
         const edit = edits[addon.id]
         setSaving(prev => ({ ...prev, [addon.id]: true }))
         try {
+            const payload = {
+                ...edit,
+                includes: String(edit.includes || '').split('\n').map(s => s.trim()).filter(Boolean),
+            }
             const res = await fetch(`${API_BASE_URL}/subscriptions/addons/${addon.id}/price`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(edit),
+                body: JSON.stringify(payload),
             })
             if (!res.ok) throw new Error('Save failed')
             await load()
+            toast.success(t('common.saved') || 'Сохранено')
         } catch (err) {
             toast.error(err.message)
         } finally {
@@ -274,7 +287,10 @@ export default function AddonMarketplace() {
                     const aiRec = addon.ownerPriceConfig?.aiRecommendedPrice
                     const showAiBadge = aiRec && Math.abs(aiRec - addon.price) / addon.price < 0.1
                     return (
-                        <div key={addon.id} className="glass-card rounded-2xl p-5 flex flex-col hover:bg-white/5 transition-colors">
+                        <div key={addon.id} className={`glass-card rounded-2xl p-5 flex flex-col hover:bg-white/5 transition-colors ${addon.isActive === false ? 'opacity-60' : ''}`}>
+                            {addon.isActive === false && (
+                                <span className="self-start mb-2 px-2 py-0.5 rounded-full bg-[var(--danger)]/20 text-[var(--danger)] text-[10px] font-bold">{t('addons.disabledBadge') || 'Выключен'}</span>
+                            )}
                             <div className="flex items-start justify-between mb-3">
                                 <div className="text-3xl">{addon.icon}</div>
                                 <div className="text-right">
@@ -316,6 +332,46 @@ export default function AddonMarketplace() {
                             </div>
                             <h3 className="text-lg font-bold mb-1">{addon.name}</h3>
                             <p className="text-sm text-[var(--text-muted)] flex-1 mb-4">{addon.description}</p>
+                            {!isEditMode && Array.isArray(addon.includes) && addon.includes.length > 0 && (
+                                <ul className="text-xs text-[var(--text-muted)] mb-4 space-y-1">
+                                    {addon.includes.map((inc, i) => <li key={i}>• {inc}</li>)}
+                                </ul>
+                            )}
+
+                            {isEditMode && (
+                                <div className="space-y-2 mb-4">
+                                    <input
+                                        type="text"
+                                        value={edit.name}
+                                        onChange={e => setEdits(prev => ({ ...prev, [addon.id]: { ...edit, name: e.target.value } }))}
+                                        className="w-full bg-white/5 rounded-lg px-2 py-1 text-sm"
+                                        placeholder={t('addons.name') || 'Название'}
+                                    />
+                                    <textarea
+                                        value={edit.description}
+                                        onChange={e => setEdits(prev => ({ ...prev, [addon.id]: { ...edit, description: e.target.value } }))}
+                                        className="w-full bg-white/5 rounded-lg px-2 py-1 text-xs"
+                                        rows={2}
+                                        placeholder={t('addons.description') || 'Описание'}
+                                    />
+                                    <textarea
+                                        value={edit.includes}
+                                        onChange={e => setEdits(prev => ({ ...prev, [addon.id]: { ...edit, includes: e.target.value } }))}
+                                        className="w-full bg-white/5 rounded-lg px-2 py-1 text-xs"
+                                        rows={3}
+                                        placeholder={t('addons.includesPlaceholder') || 'Что входит — по строке на пункт'}
+                                    />
+                                    <label className="flex items-center gap-2 text-xs text-[var(--text-muted)] cursor-pointer min-h-[44px]">
+                                        <input
+                                            type="checkbox"
+                                            checked={edit.isActive}
+                                            onChange={e => setEdits(prev => ({ ...prev, [addon.id]: { ...edit, isActive: e.target.checked } }))}
+                                            className="w-4 h-4"
+                                        />
+                                        {t('addons.enabledLabel') || 'Аддон включён (виден на витрине)'}
+                                    </label>
+                                </div>
+                            )}
                             <div className="text-xs text-[var(--text-muted)] mb-4">
                                 {addon.requiresPlan?.length ? `${t('addons.requiresPlan')}: ${addon.requiresPlan.join(', ')}` : t('addons.availableAll')}
                             </div>

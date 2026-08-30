@@ -10,6 +10,7 @@ import { TeamTab } from './components/tabs/TeamTab'
 import { CabinetsTab } from './components/tabs/CabinetsTab'
 import { FinanceTab } from './components/tabs/FinanceTab'
 import { SubscriptionsTab } from './components/tabs/SubscriptionsTab'
+import AddonMarketplace from '../../components/subscriptions/AddonMarketplace.jsx' // [ADDONS-MARKETPLACE-RESTORE] owner-редактор аддонов (тот же компонент, что витрина)
 import { AdvertisingTab } from './components/tabs/AdvertisingTab'
 import { PricingTab } from './components/tabs/PricingTab' // [25-TARIFF-GATES]
 import { SecurityTab } from './components/tabs/SecurityTab'
@@ -381,6 +382,7 @@ export default function OwnerDashboardPage() {
             case 'legal': return <LegalTab data={ownerData} />
             case 'audit': return <AuditTab data={ownerData} />
             case 'subscriptions': return <SubscriptionsTab data={ownerData} />
+            case 'addonsManage': return <AddonMarketplace /> // [ADDONS-MARKETPLACE-RESTORE] owner-only
             case 'payments': return <PaymentProvidersTab />
             case 'subscribers': return <SubscribersTab />
             case 'servers': return <ServersTab data={ownerData} />

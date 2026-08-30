@@ -45,7 +45,8 @@
     "refresh": "Обновить",
     "send": "Отправить",
     "sending": "Отправка…",
-    "status": "Статус"
+    "status": "Статус",
+    "saved": "Сохранено"
   },
   "requisites": {
     "contactEmail": "Контактный email для вопросов клиентов",
@@ -391,7 +392,8 @@
       "content": "КОНТЕНТ",
       "client": "КЛИЕНТСКИЙ ВИД",
       "settings": "НАСТРОЙКИ"
-    }
+    },
+    "addonsManage": "🛠 Управление аддонами"
   },
   "unauthorized": {
     "title": "Нет доступа",
@@ -1635,7 +1637,13 @@
     "availableAll": "Доступно всем",
     "myAddons": "Мои аддоны",
     "until": "до",
-    "cancelConfirm": "Отключить аддон?"
+    "cancelConfirm": "Отключить аддон?",
+    "name": "Название",
+    "description": "Описание",
+    "includesPlaceholder": "Что входит — по строке на пункт",
+    "enabledLabel": "Аддон включён (виден на витрине)",
+    "disabledBadge": "Выключен",
+    "manageAddons": "🛠 Управление аддонами"
   },
   "chat": {
     "support": "Поддержка",
