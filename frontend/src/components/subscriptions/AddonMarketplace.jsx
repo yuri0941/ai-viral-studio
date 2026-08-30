@@ -106,6 +106,8 @@ export default function AddonMarketplace() {
     const [analyzing, setAnalyzing] = useState({})
     const [modal, setModal] = useState(null)
     const [purchasing, setPurchasing] = useState(null)
+    // [ADDONS-COMPOSITION-LINK] каталог реальных функций для чекбоксов редактора
+    const [entitlements, setEntitlements] = useState([])
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
     // [ADDONS-MARKETPLACE-RESTORE] редактирование строго owner (admin → без кнопки, API → 403)
@@ -113,15 +115,20 @@ export default function AddonMarketplace() {
 
     const load = async () => {
         try {
-            const [allRes, myRes] = await Promise.all([
+            const [allRes, myRes, entRes] = await Promise.all([
                 // owner видит и выключенные аддоны (редактор), остальные — только витрину
                 isOwner && token
                     ? fetch(`${API_BASE_URL}/subscriptions/addons/pricing-config`, { headers: { Authorization: `Bearer ${token}` } })
                     : fetch(`${API_BASE_URL}/subscriptions/addons`),
                 token ? fetch(`${API_BASE_URL}/subscriptions/my-addons`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve({ ok: true, json: () => ({ addons: [] }) }),
+                isOwner && token
+                    ? fetch(`${API_BASE_URL}/subscriptions/addons/entitlements-catalog`, { headers: { Authorization: `Bearer ${token}` } })
+                    : Promise.resolve({ ok: true, json: () => ({ entitlements: [] }) }),
             ])
             const allData = await allRes.json()
             const myData = await myRes.json()
+            const entData = await entRes.json()
+            setEntitlements(entData.entitlements || [])
             const loadedAddons = allData.addons || []
             setAddons(loadedAddons)
             setMyAddons(myData.addons || [])
@@ -135,6 +142,7 @@ export default function AddonMarketplace() {
                     name: a.name,
                     description: a.description || '',
                     includes: Array.isArray(a.includes) ? a.includes.join('\n') : '',
+                    features: Array.isArray(a.features) ? a.features : [],
                     isActive: a.isActive !== false,
                 }
             })
@@ -195,6 +203,7 @@ export default function AddonMarketplace() {
             const payload = {
                 ...edit,
                 includes: String(edit.includes || '').split('\n').map(s => s.trim()).filter(Boolean),
+                features: Array.isArray(edit.features) ? edit.features : [],
             }
             const res = await fetch(`${API_BASE_URL}/subscriptions/addons/${addon.id}/price`, {
                 method: 'PATCH',
@@ -361,6 +370,29 @@ export default function AddonMarketplace() {
                                         rows={3}
                                         placeholder={t('addons.includesPlaceholder') || 'Что входит — по строке на пункт'}
                                     />
+                                    <div className="space-y-1 border border-white/10 rounded-lg p-2">
+                                        <div className="text-[10px] uppercase text-[var(--text-muted)]">{t('addons.featuresLabel') || 'Реальные функции (разблокировка)'}</div>
+                                        {entitlements.map(ent => (
+                                            <label key={ent.key} className={`flex items-center gap-2 text-xs cursor-pointer min-h-[32px] ${ent.implemented ? '' : 'opacity-50'}`}>
+                                                <input
+                                                    type="checkbox"
+                                                    disabled={!ent.implemented}
+                                                    checked={(edit.features || []).includes(ent.key)}
+                                                    onChange={e => setEdits(prev => ({
+                                                        ...prev,
+                                                        [addon.id]: {
+                                                            ...edit,
+                                                            features: e.target.checked
+                                                                ? [...(edit.features || []), ent.key]
+                                                                : (edit.features || []).filter(k => k !== ent.key),
+                                                        },
+                                                    }))}
+                                                    className="w-4 h-4"
+                                                />
+                                                <span>{i18n.language === 'en' ? ent.labelEn : ent.labelRu}{!ent.implemented && ` · ${t('addons.soonBadge') || 'скоро'}`}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                     <label className="flex items-center gap-2 text-xs text-[var(--text-muted)] cursor-pointer min-h-[44px]">
                                         <input
                                             type="checkbox"

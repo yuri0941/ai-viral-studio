@@ -1614,7 +1614,9 @@
     "includesPlaceholder": "What is included — one item per line",
     "enabledLabel": "Addon enabled (visible on marketplace)",
     "disabledBadge": "Disabled",
-    "manageAddons": "🛠 Manage Add-ons"
+    "manageAddons": "🛠 Manage Add-ons",
+    "featuresLabel": "Real features (unlocked)",
+    "soonBadge": "soon"
   },
   "chat": {
     "serverUnavailable": "OMEGA is temporarily unavailable. Retry in 10s.",
