@@ -5,6 +5,7 @@ import { protect, authorize } from '../middleware/auth.js'
 import AuditLog from '../models/AuditLog.js'
 import { analyzeAddonMarket, generatePricingReport } from '../services/aiPricingService.js'
 import { ADDON_ENTITLEMENTS, isEntitlementKey, isImplemented, entitlementLabel } from '../config/addonEntitlements.js'
+import { requireEntitlement } from '../middleware/entitlement.js'
 
 const router = express.Router()
 
@@ -61,6 +62,34 @@ router.get('/my-addons', protect, async (req, res) => {
     } catch (err) {
         res.status(500).json({ success: false, error: err.message })
     }
+})
+
+// [ADDONS-COMPOSITION-LINK] мои эффективные entitlement-ключи (живые ∪ снапшот, только implemented)
+router.get('/my-entitlements', protect, async (req, res) => {
+    try {
+        if (req.user.role === 'owner') {
+            return res.json({ success: true, features: ADDON_ENTITLEMENTS.filter(e => e.implemented).map(e => e.key) })
+        }
+        const list = await UserAddon.find({ userId: req.user._id, status: 'active', expiresAt: { $gt: new Date() } }).lean()
+        const addons = await Addon.find({ id: { $in: list.map(l => l.addonId) } }).lean()
+        const liveById = new Map(addons.map(a => [a.id, a.features || []]))
+        const features = new Set()
+        for (const l of list) {
+            for (const f of [...(liveById.get(l.addonId) || []), ...(l.featuresSnapshot || [])]) {
+                if (isImplemented(f)) features.add(f)
+            }
+        }
+        res.json({ success: true, features: [...features] })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+// [ADDONS-COMPOSITION-LINK] физическая проверка доступа к функции (для фронта и e2e):
+// 200 { allowed: true } если entitlement активен, 402 если нет
+router.get('/entitlements/:key/check', protect, async (req, res, next) => {
+    if (!isEntitlementKey(req.params.key)) return res.status(404).json({ success: false, error: 'Неизвестная функция' })
+  return requireEntitlement(req.params.key)(req, res, () => res.json({ success: true, allowed: true, feature: req.params.key }))
 })
 
 router.post('/addons/:id/purchase', protect, async (req, res) => {
