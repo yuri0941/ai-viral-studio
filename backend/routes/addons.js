@@ -4,27 +4,42 @@ import UserAddon from '../models/UserAddon.js'
 import { protect, authorize } from '../middleware/auth.js'
 import AuditLog from '../models/AuditLog.js'
 import { analyzeAddonMarket, generatePricingReport } from '../services/aiPricingService.js'
+import { ADDON_ENTITLEMENTS, isEntitlementKey, isImplemented, entitlementLabel } from '../config/addonEntitlements.js'
+import { requireEntitlement } from '../middleware/entitlement.js'
 
 const router = express.Router()
+
+// [ADDONS-COMPOSITION-LINK] каталог функций для редактора owner (реальные entitlement-ключи)
+router.get('/addons/entitlements-catalog', protect, authorize('owner'), async (req, res) => {
+  res.json({ success: true, entitlements: ADDON_ENTITLEMENTS })
+})
+
+// подписи витрины: если owner не задал текст вручную (includes пуст), генерируем из выбранных функций
+const displayIncludes = (addon, lang = 'ru') =>
+  (addon.includes && addon.includes.length)
+    ? addon.includes
+    : (addon.features || []).filter(isImplemented).map(k => entitlementLabel(k, lang))
 
 async function getOrSeedAddons() {
     const count = await Addon.countDocuments()
     if (count > 0) return
     await Addon.insertMany([
-        { id: 'ai-designer', name: 'AI Дизайнер', description: 'Генерация обложек, баннеров, логотипов.', price: 290, basePrice: 290, currency: 'RUB', category: 'design', icon: '🎨', isActive: true, requiresPlan: ['Pro', 'Agency'] },
-        { id: 'ai-video', name: 'AI Видео', description: 'Shorts/Reels из текста.', price: 990, basePrice: 990, currency: 'RUB', category: 'video', icon: '🎥', isActive: true, requiresPlan: ['Pro', 'Agency'] },
-        { id: 'extra-agents', name: 'Дополнительные агенты', description: '+10 агентов в Swarm.', price: 490, basePrice: 490, currency: 'RUB', category: 'agents', icon: '🤖', isActive: true, requiresPlan: ['Pro', 'Agency'] },
-        { id: 'analytics-pro', name: 'Аналитика Pro', description: 'Глубокая аналитика, отчёты, экспорт.', price: 490, basePrice: 490, currency: 'RUB', category: 'analytics', icon: '📊', isActive: true, requiresPlan: ['Pro', 'Agency', 'Business'] },
-        { id: 'integrations-pro', name: 'Интеграции Pro', description: 'WhatsApp, Slack, Notion, Shopify.', price: 290, basePrice: 290, currency: 'RUB', category: 'integrations', icon: '🔗', isActive: true, requiresPlan: ['Pro', 'Agency'] },
-        { id: 'white-label', name: 'White-Label', description: 'Скрыть бренд, CNAME, свой логотип.', price: 1990, basePrice: 1990, currency: 'RUB', category: 'white-label', icon: '🌐', isActive: true, requiresPlan: ['Agency'] },
+        { id: 'ai-designer', name: 'AI Дизайнер', description: 'Генерация обложек, баннеров, логотипов.', price: 290, basePrice: 290, currency: 'RUB', category: 'design', icon: '🎨', isActive: true, requiresPlan: ['Pro', 'Agency'], features: ['design.pack'] },
+        { id: 'ai-video', name: 'AI Видео', description: 'Shorts/Reels из текста.', price: 990, basePrice: 990, currency: 'RUB', category: 'video', icon: '🎥', isActive: true, requiresPlan: ['Pro', 'Agency'], features: ['video.shorts'] },
+        { id: 'extra-agents', name: 'Дополнительные агенты', description: '+10 агентов в Swarm.', price: 490, basePrice: 490, currency: 'RUB', category: 'agents', icon: '🤖', isActive: true, requiresPlan: ['Pro', 'Agency'], features: ['agents.extra10'] },
+        { id: 'analytics-pro', name: 'Аналитика Pro', description: 'Глубокая аналитика, отчёты, экспорт.', price: 490, basePrice: 490, currency: 'RUB', category: 'analytics', icon: '📊', isActive: true, requiresPlan: ['Pro', 'Agency', 'Business'], features: ['analytics.pro'] },
+        { id: 'integrations-pro', name: 'Интеграции Pro', description: 'WhatsApp, Slack, Notion, Shopify.', price: 290, basePrice: 290, currency: 'RUB', category: 'integrations', icon: '🔗', isActive: true, requiresPlan: ['Pro', 'Agency'], features: ['integrations.pro'] },
+        { id: 'white-label', name: 'White-Label', description: 'Скрыть бренд, CNAME, свой логотип.', price: 1990, basePrice: 1990, currency: 'RUB', category: 'white-label', icon: '🌐', isActive: true, requiresPlan: ['Agency'], features: ['whitelabel.brand'] },
     ])
 }
 
 router.get('/addons', async (req, res) => {
     try {
         await getOrSeedAddons()
+        const lang = String(req.headers['accept-language'] || 'ru').startsWith('en') ? 'en' : 'ru'
         const addons = await Addon.find({ isActive: true }).lean()
-        res.json({ success: true, addons })
+        // витрина: только реальные (implemented) функции; подписи из каталога, если includes не задан
+        res.json({ success: true, addons: addons.map(a => ({ ...a, includes: displayIncludes(a, lang) })) })
     } catch (err) {
         res.status(500).json({ success: false, error: err.message })
     }
@@ -35,10 +50,46 @@ router.get('/my-addons', protect, async (req, res) => {
         const list = await UserAddon.find({ userId: req.user._id, status: 'active', expiresAt: { $gt: new Date() } }).lean()
         const addonIds = list.map(l => l.addonId)
         const addons = await Addon.find({ id: { $in: addonIds } }).lean()
-        res.json({ success: true, addons: list.map(l => ({ ...l, addon: addons.find(a => a.id === l.addonId) })) })
+        // [ADDONS-SEMANTICS] состав: живой список (добавления — сразу всем) + снапшот покупки
+        // (удалённые позиции сохраняются активному подписчику до expiresAt)
+        res.json({ success: true, addons: list.map(l => {
+            const addon = addons.find(a => a.id === l.addonId)
+            if (!addon) return { ...l, addon }
+            const merged = [...new Set([...(addon.includes || []), ...(l.includesSnapshot || [])])]
+            const mergedFeatures = [...new Set([...(addon.features || []), ...(l.featuresSnapshot || [])])]
+            return { ...l, addon: { ...addon, includes: merged, features: mergedFeatures } }
+        }) })
     } catch (err) {
         res.status(500).json({ success: false, error: err.message })
     }
+})
+
+// [ADDONS-COMPOSITION-LINK] мои эффективные entitlement-ключи (живые ∪ снапшот, только implemented)
+router.get('/my-entitlements', protect, async (req, res) => {
+    try {
+        if (req.user.role === 'owner') {
+            return res.json({ success: true, features: ADDON_ENTITLEMENTS.filter(e => e.implemented).map(e => e.key) })
+        }
+        const list = await UserAddon.find({ userId: req.user._id, status: 'active', expiresAt: { $gt: new Date() } }).lean()
+        const addons = await Addon.find({ id: { $in: list.map(l => l.addonId) } }).lean()
+        const liveById = new Map(addons.map(a => [a.id, a.features || []]))
+        const features = new Set()
+        for (const l of list) {
+            for (const f of [...(liveById.get(l.addonId) || []), ...(l.featuresSnapshot || [])]) {
+                if (isImplemented(f)) features.add(f)
+            }
+        }
+        res.json({ success: true, features: [...features] })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+// [ADDONS-COMPOSITION-LINK] физическая проверка доступа к функции (для фронта и e2e):
+// 200 { allowed: true } если entitlement активен, 402 если нет
+router.get('/entitlements/:key/check', protect, async (req, res, next) => {
+    if (!isEntitlementKey(req.params.key)) return res.status(404).json({ success: false, error: 'Неизвестная функция' })
+  return requireEntitlement(req.params.key)(req, res, () => res.json({ success: true, allowed: true, feature: req.params.key }))
 })
 
 router.post('/addons/:id/purchase', protect, async (req, res) => {
@@ -61,7 +112,7 @@ router.post('/addons/:id/purchase', protect, async (req, res) => {
             }
             const userAddon = await UserAddon.findOneAndUpdate(
                 { userId: req.user._id, addonId: id },
-                { $set: { price: addon.price, currency: addon.currency, paymentProvider: 'manual', paymentId: 'manual', status: 'active', purchasedAt: new Date(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } },
+                { $set: { price: addon.price, currency: addon.currency, paymentProvider: 'manual', paymentId: 'manual', status: 'active', purchasedAt: new Date(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), includesSnapshot: addon.includes || [], featuresSnapshot: addon.features || [] } },
                 { upsert: true, new: true }
             )
             return res.json({ success: true, addon: userAddon })
@@ -105,7 +156,7 @@ router.post('/addons/:id/purchase', protect, async (req, res) => {
 
             await UserAddon.findOneAndUpdate(
                 { userId: req.user._id, addonId: id },
-                { $set: { price, currency: addon.currency || 'RUB', paymentProvider: 'yookassa', paymentId: payment.paymentId, status: 'pending' } },
+                { $set: { price, currency: addon.currency || 'RUB', paymentProvider: 'yookassa', paymentId: payment.paymentId, status: 'pending', includesSnapshot: addon.includes || [], featuresSnapshot: addon.features || [] } },
                 { upsert: true, new: true }
             )
 
@@ -140,7 +191,7 @@ router.delete('/my-addons/:id', protect, async (req, res) => {
 router.patch('/addons/:id/price', protect, authorize('owner'), async (req, res) => {
     try {
         await getOrSeedAddons()
-        const { price, currency, discountPercent, paymentMethods, name, description, includes, isActive } = req.body
+        const { price, currency, discountPercent, paymentMethods, name, description, includes, isActive, features } = req.body
         const before = await Addon.findOne({ id: req.params.id }).lean()
         if (!before) return res.status(404).json({ success: false, error: 'Аддон не найден' })
         const $set = {}
@@ -157,6 +208,10 @@ router.patch('/addons/:id/price', protect, authorize('owner'), async (req, res) 
         if (name !== undefined) $set.name = String(name).trim().slice(0, 120)
         if (description !== undefined) $set.description = String(description).trim().slice(0, 500)
         if (Array.isArray(includes)) $set.includes = includes.map(s => String(s).trim()).filter(Boolean).slice(0, 20)
+        // [ADDONS-COMPOSITION-LINK] состав = только ключи из каталога; «скоро» (не implemented) не продаём
+        if (Array.isArray(features)) {
+            $set.features = features.filter(k => isEntitlementKey(k) && isImplemented(k)).slice(0, 20)
+        }
         if (isActive !== undefined) $set.isActive = Boolean(isActive)
         const addon = await Addon.findOneAndUpdate({ id: req.params.id }, { $set }, { new: true })
         // AuditLog: кто/что менял, diff до/после

@@ -16,7 +16,7 @@ const { chromium } = require('playwright')
 const BASE = process.env.UI_AUDIT_BASE || 'http://localhost:4173'
 const API_LOCAL = 'http://localhost:18080'
 const API_PROD = 'https://aiviral-backend.onrender.com'
-const OUT = path.resolve('reports/addons-marketplace-restore')
+const OUT = path.resolve(process.env.SHOTS_OUT || 'reports/addons-marketplace-restore')
 fs.mkdirSync(OUT, { recursive: true })
 
 await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/ai_viral_studio')

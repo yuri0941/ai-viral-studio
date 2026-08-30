@@ -12,6 +12,8 @@ const addonSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     // [ADDONS-MARKETPLACE-RESTORE] состав аддона («что входит») — редактируется owner из кабинета
     includes: { type: [String], default: [] },
+    // [ADDONS-COMPOSITION-LINK] привязка к реальным функциям: ключи из config/addonEntitlements.js
+    features: { type: [String], default: [] },
     requiresPlan: { type: [String], default: [] },
     currencies: {
         RUB: { type: Number },

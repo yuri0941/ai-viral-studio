@@ -1643,7 +1643,9 @@
     "includesPlaceholder": "Что входит — по строке на пункт",
     "enabledLabel": "Аддон включён (виден на витрине)",
     "disabledBadge": "Выключен",
-    "manageAddons": "🛠 Управление аддонами"
+    "manageAddons": "🛠 Управление аддонами",
+    "featuresLabel": "Реальные функции (разблокировка)",
+    "soonBadge": "скоро"
   },
   "chat": {
     "support": "Поддержка",

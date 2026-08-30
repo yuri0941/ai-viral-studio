@@ -10,6 +10,11 @@ const userAddonSchema = new mongoose.Schema({
     status: { type: String, enum: ['active', 'pending', 'canceled', 'refunded'], default: 'active' },
     paymentProvider: { type: String, enum: ['yookassa', 'stripe', 'paypal', 'manual'], default: 'manual' },
     paymentId: { type: String, default: '' },
+    // [ADDONS-MARKETPLACE-RESTORE] снапшот состава на момент покупки:
+    // удалённые позиции сохраняются активному подписчику до expiresAt
+    includesSnapshot: { type: [String], default: [] },
+    // [ADDONS-COMPOSITION-LINK] снапшот entitlement-ключей на момент покупки
+    featuresSnapshot: { type: [String], default: [] },
 }, { timestamps: true })
 
 userAddonSchema.index({ userId: 1, addonId: 1 }, { unique: true })
