@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { API_BASE_URL } from '../../config.js'
 import {
@@ -7,6 +8,40 @@ import {
     CheckSquare, Square, CalendarClock, Filter
 } from 'lucide-react'
 import { VirtualTable } from './VirtualTable'
+
+// [ADMIN-PANEL-POLISH] усечённый текст + тултип с полным значением: hover на десктопе, тап на мобильном.
+// Портал в body с position:fixed — не клиппится overflow-hidden ячейки таблицы и не уезжает за экран.
+function TruncatedWithTooltip({ text, className = '' }) {
+    const [pos, setPos] = useState(null)
+    const show = (e) => {
+        const r = e.currentTarget.getBoundingClientRect()
+        setPos({ x: Math.min(r.left, window.innerWidth - 280), y: r.top })
+    }
+    const hide = () => setPos(null)
+    return (
+        <>
+            <span
+                className={`truncate block w-full cursor-help ${className}`}
+                title={text || ''}
+                onMouseEnter={show}
+                onMouseLeave={hide}
+                onClick={(e) => { e.stopPropagation(); pos ? hide() : show(e) }}
+            >
+                {text || '—'}
+            </span>
+            {pos && createPortal(
+                <span
+                    className="px-2 py-1 rounded-lg bg-[var(--card)] border border-[var(--border-strong)] text-xs text-[var(--text)] shadow-lg break-all"
+                    style={{ position: 'fixed', left: pos.x, top: pos.y - 8, transform: 'translateY(-100%)', maxWidth: 260, zIndex: 9999 }}
+                    onMouseLeave={hide}
+                >
+                    {text}
+                </span>,
+                document.body
+            )}
+        </>
+    )
+}
 
 // [VIEW-AS-PARITY] Единый компонент управления пользователями:
 // используется и в admin → Пользователи, и в owner → вкладка «Клиенты» (доктрина паритета).
@@ -76,6 +111,8 @@ export function UsersManager({ onUsersLoaded }) {
     const [sortBy, setSortBy] = useState('joined')
     const [sortOrder, setSortOrder] = useState('desc')
     const [selectedIds, setSelectedIds] = useState([])
+    // [ADMIN-PANEL-POLISH] remount VirtualTable по «Сброс» — сбрасывает и внутреннюю сортировку колонок
+    const [resetKey, setResetKey] = useState(0)
 
     // [STAFF-DOP] подтверждение ✅/❌ для бан/разбан/удаление и модалка продления/сокращения тарифа
     const [confirmAction, setConfirmAction] = useState(null) // { type: 'ban'|'unban'|'delete', user }
@@ -299,23 +336,33 @@ export function UsersManager({ onUsersLoaded }) {
                 </button>
             ),
         },
-        { key: 'id', header: t('admin.id', 'ID'), width: '80px', cell: (u) => <span className="text-[var(--text-muted)]">#{u.id}</span> },
-        { key: 'name', header: t('admin.name'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)] font-medium">{u?.name || '—'}</span> },
-        { key: 'email', header: t('admin.email'), width: '1.5fr', cell: (u) => <span className="text-[var(--text)]">{u?.email || '—'}</span> },
+        { key: 'id', header: t('admin.id'), width: '80px', cell: (u) => <span className="text-[var(--text-muted)]">#{u.id}</span> },
+        { key: 'name', header: t('admin.name'), width: '1.5fr', cell: (u) => <TruncatedWithTooltip text={u?.name} className="text-[var(--text)] font-medium" /> },
+        // [ADMIN-PANEL-POLISH] truncate + тултип (hover/тап): полный email всегда можно увидеть целиком
+        { key: 'email', header: t('admin.email'), width: '1.5fr', cell: (u) => <TruncatedWithTooltip text={u?.email} className="text-[var(--text)]" /> },
         {
             key: 'role',
             header: t('admin.role'),
-            width: '130px',
+            // [ADMIN-PANEL-POLISH] 160px: «Рекламодатель»/«Advertiser» не обрезаются; select на всю ширину ячейки
+            width: '160px',
             cell: (u) => (
+                // [ADMIN-PANEL-POLISH] owner — нередактируемый бейдж (роль владельца из списка не меняем),
+                // у select иначе не было option → пустой/обрезанный бейдж
+                u?.role === 'owner' ? (
+                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-xs border ${getRoleColor('owner')}`}>
+                        {t('admin.roles.owner')}
+                    </span>
+                ) : (
                 <select
                     value={u?.role || 'creator'}
                     onChange={e => handleChangeRole(u.id, e.target.value)}
-                    className={`px-2.5 py-1 rounded-full text-xs border bg-transparent outline-none ${getRoleColor(u?.role)}`}
+                    className={`w-full max-w-full whitespace-nowrap px-2.5 py-1 rounded-full text-xs border bg-transparent outline-none ${getRoleColor(u?.role)}`}
                 >
                     {['creator', 'business', 'advertiser', 'staff', 'admin'].map(r => (
                         <option key={r} value={r} className="bg-[var(--card)]">{t(`admin.roles.${r}`)}</option>
                     ))}
                 </select>
+                )
             ),
         },
         {
@@ -446,7 +493,7 @@ export function UsersManager({ onUsersLoaded }) {
                             {sortOrder === 'asc' ? t('admin.asc') : t('admin.desc')}
                         </button>
                         <button
-                            onClick={() => { setSearchQuery(''); setRoleFilter('all'); setStatusFilter('all'); setSortBy('joined'); setSortOrder('desc'); setSelectedIds([]) }}
+                            onClick={() => { setSearchQuery(''); setRoleFilter('all'); setStatusFilter('all'); setSortBy('joined'); setSortOrder('desc'); setSelectedIds([]); setResetKey(k => k + 1) }}
                             className="px-3 py-2 rounded-lg bg-[var(--surface)] text-[var(--text-muted)] text-sm hover:text-[var(--text)] transition-colors whitespace-nowrap"
                         >
                             {t('admin.reset')}
@@ -467,6 +514,7 @@ export function UsersManager({ onUsersLoaded }) {
 
                 <div className="overflow-x-auto">
                     <VirtualTable
+                        key={resetKey}
                         data={filteredUsers}
                         columns={userColumns}
                         rowHeight={60}
@@ -476,7 +524,7 @@ export function UsersManager({ onUsersLoaded }) {
                         emptyMessage={
                             <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
                                 <Search size={32} className="mb-3 opacity-50" />
-                                <p>{t('admin.noUsers', 'Пользователи не найдены')}</p>
+                                <p>{t('admin.noUsers')}</p>
                             </div>
                         }
                     />
@@ -506,7 +554,7 @@ export function UsersManager({ onUsersLoaded }) {
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-sm text-[var(--text-muted)] mb-1 block">{t('admin.name')}</label>
-                                    <input type="text" value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} placeholder={t('admin.namePlaceholder', 'Иван Иванов')} className="w-full px-4 py-2 bg-[var(--surface)] rounded-lg border border-[var(--border-strong)] focus:border-[var(--success)] outline-none" />
+                                    <input type="text" value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} placeholder={t('admin.namePlaceholder')} className="w-full px-4 py-2 bg-[var(--surface)] rounded-lg border border-[var(--border-strong)] focus:border-[var(--success)] outline-none" />
                                 </div>
                                 <div>
                                     <label className="text-sm text-[var(--text-muted)] mb-1 block">{t('admin.email')}</label>
@@ -660,7 +708,7 @@ export function UsersManager({ onUsersLoaded }) {
                                 <button onClick={() => setExtendModal(null)} className="text-[var(--text-muted)] hover:text-[var(--text)]"><X size={20} /></button>
                             </div>
                             <p className="text-sm text-[var(--text-muted)] mb-1">{extendModal.user?.email || '—'}</p>
-                            <p className="text-xs text-[var(--text-muted)] mb-4">{t('admin.subscription', 'Тариф')}: {extendModal.user?.subscription || 'free'}</p>
+                            <p className="text-xs text-[var(--text-muted)] mb-4">{t('admin.subscription')}: {extendModal.user?.subscription || 'free'}</p>
                             <label className="text-sm text-[var(--text-muted)] mb-1 block">{t('admin.extendDaysLabel')}</label>
                             <input
                                 type="number"

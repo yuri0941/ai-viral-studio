@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
+import { API_BASE_URL } from '../config.js'
 import {
     Shield, Users, Activity, Star, AlertTriangle, FileText,
     Settings, DollarSign, Check, X, AlertCircle, Save,
@@ -33,17 +34,12 @@ const PLATFORM_DEFAULTS = {
     maintenanceMode: false,
 }
 
-const FINANCE_DATA = {
-    totalRevenue: 15400,
-    pendingPayouts: 3200,
-    thisMonth: 8400,
-    lastMonth: 7200,
-    topClients: [
-        { name: 'ООО Реклама', amount: 4500 },
-        { name: 'Иван Петров', amount: 2800 },
-        { name: 'Мария Сидорова', amount: 1900 },
-    ]
-}
+// [ADMIN-PANEL-POLISH] Выручка — только реальные ₽ из БД.
+// Источник тот же, что у owner-кабинета (OverviewTab) и TG-бота: getOwnerMetricsWidget
+// через GET /owner/control/metrics (owner+admin). Нет данных → честный 0, без моков.
+const FINANCE_ZERO = { revenue7d: 0, mrr: 0, paying: 0 }
+
+const formatRub = (n) => `${Math.round(Number(n) || 0).toLocaleString('ru-RU')} ₽`
 
 function AdminDashboardPage() {
     const { t } = useTranslation()
@@ -69,6 +65,29 @@ function AdminDashboardPage() {
     const [maintenanceMode, setMaintenanceMode] = useState(PLATFORM_DEFAULTS.maintenanceMode)
     const [reportFilter, setReportFilter] = useState('all')
 
+    // [ADMIN-PANEL-POLISH] живые финансовые метрики (₽) — единый источник с owner-кабинетом
+    const [finance, setFinance] = useState(FINANCE_ZERO)
+    useEffect(() => {
+        let mounted = true
+        const token = localStorage.getItem('token')
+        fetch(`${API_BASE_URL}/owner/control/metrics`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+            .then(res => (res.ok ? res.json() : null))
+            .then(json => {
+                const m = json?.metrics
+                if (mounted && m) {
+                    setFinance({
+                        revenue7d: m.funnel7d?.revenueRub ?? 0,
+                        mrr: m.mrr ?? 0,
+                        paying: m.paying ?? 0,
+                    })
+                }
+            })
+            .catch(() => { /* честные нули */ })
+        return () => { mounted = false }
+    }, [])
+
     const liveStats = {
         totalUsers: users.length,
         activeUsers: users.filter(u => u.status === 'active').length,
@@ -78,7 +97,7 @@ function AdminDashboardPage() {
         newToday: Math.round(users.length * 0.03),
         reportsPending: reports.filter(r => r.status === 'pending').length,
         totalPosts: users.reduce((s, u) => s + (u?.posts || 0), 0),
-        revenue: FINANCE_DATA.totalRevenue
+        revenue: finance.revenue7d
     }
 
     // --- TOAST ---
@@ -142,21 +161,22 @@ function AdminDashboardPage() {
     // --- ACTIONS пользователей перенесены в shared/UsersManager ---
 
     // --- STATS CARDS ---
+    // [ADMIN-PANEL-POLISH] у каждой метрики — человекочитаемая подпись: что за число и за какой период
     const statsCards = [
         { label: t('admin.totalUsers'), value: liveStats.totalUsers.toLocaleString(), sub: t('admin.activeUsers', { count: liveStats.activeUsers, banned: liveStats.bannedUsers, pending: liveStats.pendingUsers }), icon: Users, gradient: 'from-sky-500 to-blue-600' },
-        { label: t('admin.activeToday'), value: liveStats.activeToday, icon: Activity, gradient: 'from-emerald-500 to-teal-600' },
-        { label: t('admin.newToday'), value: `+${liveStats.newToday}`, icon: Star, gradient: 'from-amber-500 to-orange-600' },
-        { label: t('admin.reports'), value: liveStats.reportsPending, icon: AlertTriangle, gradient: 'from-red-500 to-rose-600' },
-        { label: t('admin.totalPosts'), value: liveStats.totalPosts.toLocaleString(), icon: FileText, gradient: 'from-violet-500 to-fuchsia-600' },
-        { label: t('admin.revenue'), value: `$${liveStats.revenue.toLocaleString()}`, icon: DollarSign, gradient: 'from-emerald-500 to-green-600' }
+        { label: t('admin.activeToday'), value: liveStats.activeToday, sub: t('admin.subToday'), icon: Activity, gradient: 'from-emerald-500 to-teal-600' },
+        { label: t('admin.newToday'), value: `+${liveStats.newToday}`, sub: t('admin.subToday'), icon: Star, gradient: 'from-amber-500 to-orange-600' },
+        { label: t('admin.reports'), value: liveStats.reportsPending, sub: t('admin.subPending'), icon: AlertTriangle, gradient: 'from-red-500 to-rose-600' },
+        { label: t('admin.totalPosts'), value: liveStats.totalPosts.toLocaleString(), sub: t('admin.subAllTime'), icon: FileText, gradient: 'from-violet-500 to-fuchsia-600' },
+        { label: t('admin.revenue'), value: formatRub(liveStats.revenue), sub: t('admin.sub7days'), icon: DollarSign, gradient: 'from-emerald-500 to-green-600' }
     ]
 
     // --- QUICK ACTIONS ---
     const quickActions = [
-        { label: t('admin.moderation'), icon: Shield, desc: t('admin.reportsPendingDesc', '{{count}} жалоб на рассмотрении', { count: liveStats.reportsPending }), gradient: 'from-red-500/20 to-red-600/10', border: 'border-red-500/20', onClick: () => setShowModerationModal(true) },
-        { label: t('admin.systemLogs'), icon: Terminal, desc: t('admin.recentErrors', 'Последние ошибки'), gradient: 'from-blue-500/20 to-blue-600/10', border: 'border-blue-500/20', onClick: () => setShowLogsModal(true) },
-        { label: t('admin.platformSettings'), icon: Wrench, desc: maintenanceMode ? t('admin.maintenanceOn') : t('admin.apiLimitsRoles', 'API, лимиты, роли'), gradient: 'from-emerald-500/20 to-emerald-600/10', border: 'border-[var(--success)]/20', onClick: () => setShowPlatformSettingsModal(true) },
-        { label: t('admin.finance'), icon: TrendingUp, desc: `$${FINANCE_DATA.totalRevenue.toLocaleString()} ${t('admin.revenue').toLowerCase()} · $${FINANCE_DATA.pendingPayouts.toLocaleString()} ${t('admin.payouts', 'выплаты')}`, gradient: 'from-yellow-500/20 to-yellow-600/10', border: 'border-yellow-500/20', onClick: () => setShowFinanceModal(true) }
+        { label: t('admin.moderation'), icon: Shield, desc: t('admin.reportsPendingDesc', { count: liveStats.reportsPending }), gradient: 'from-red-500/20 to-red-600/10', border: 'border-red-500/20', onClick: () => setShowModerationModal(true) },
+        { label: t('admin.systemLogs'), icon: Terminal, desc: t('admin.recentErrors'), gradient: 'from-blue-500/20 to-blue-600/10', border: 'border-blue-500/20', onClick: () => setShowLogsModal(true) },
+        { label: t('admin.platformSettings'), icon: Wrench, desc: maintenanceMode ? t('admin.maintenanceOn') : t('admin.apiLimitsRoles'), gradient: 'from-emerald-500/20 to-emerald-600/10', border: 'border-[var(--success)]/20', onClick: () => setShowPlatformSettingsModal(true) },
+        { label: t('admin.finance'), icon: TrendingUp, desc: `${formatRub(finance.revenue7d)} ${t('admin.sub7days')} · MRR ${formatRub(finance.mrr)}`, gradient: 'from-yellow-500/20 to-yellow-600/10', border: 'border-yellow-500/20', onClick: () => setShowFinanceModal(true) }
     ]
 
     // --- RENDER ---
@@ -188,7 +208,7 @@ function AdminDashboardPage() {
                         onClick={() => setShowSettingsModal(true)}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--success)] to-emerald-600 text-white font-semibold text-sm transition-all hover:opacity-90"
                     >
-                        <Settings size={16} /> {t('admin.settings', 'Настройки')}
+                        <Settings size={16} /> {t('admin.settings')}
                     </button>
                 </div>
             </div>
@@ -401,7 +421,7 @@ function AdminDashboardPage() {
                                 {[
                                     { label: t('admin.apiRateLimit'), key: 'apiRateLimit', unit: '' },
                                     { label: t('admin.maxFileSize'), key: 'maxFileSize', unit: 'MB' },
-                                    { label: t('admin.defaultQuota'), key: 'defaultQuota', unit: '/мес' },
+                                    { label: t('admin.defaultQuota'), key: 'defaultQuota', unit: t('admin.perMonth') },
                                 ].map((setting) => (
                                     <div key={setting.key} className="flex items-center justify-between p-3 glass">
                                         <span className="text-sm">{setting.label}</span>
@@ -460,32 +480,20 @@ function AdminDashboardPage() {
                                 <h2 className="text-xl font-bold flex items-center gap-2"><TrendingUp size={20} className="text-[var(--accent-warm)]" /> {t('admin.finance')}</h2>
                                 <button onClick={() => setShowFinanceModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text)]"><X size={20} /></button>
                             </div>
-                            <div className="grid grid-cols-2 gap-3 mb-6">
+                            {/* [ADMIN-PANEL-POLISH] только реальные ₽-метрики из БД (без моков); нет данных → 0 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                                 <div className="glass p-4">
-                                    <p className="text-xs text-[var(--text-muted)] mb-1">{t('admin.totalRevenue')}</p>
-                                    <p className="text-xl font-bold text-[var(--success)]">${FINANCE_DATA.totalRevenue.toLocaleString()}</p>
+                                    <p className="text-xs text-[var(--text-muted)] mb-1">{t('admin.revenue7d')}</p>
+                                    <p className="text-xl font-bold text-[var(--success)]">{formatRub(finance.revenue7d)}</p>
                                 </div>
                                 <div className="glass p-4">
-                                    <p className="text-xs text-[var(--text-muted)] mb-1">{t('admin.pendingPayouts')}</p>
-                                    <p className="text-xl font-bold text-[var(--accent-warm)]">${FINANCE_DATA.pendingPayouts.toLocaleString()}</p>
+                                    <p className="text-xs text-[var(--text-muted)] mb-1">{t('admin.mrr')}</p>
+                                    <p className="text-xl font-bold text-[var(--accent)]">{formatRub(finance.mrr)}</p>
                                 </div>
                                 <div className="glass p-4">
-                                    <p className="text-xs text-[var(--text-muted)] mb-1">{t('admin.thisMonth')}</p>
-                                    <p className="text-xl font-bold text-[var(--accent)]">${FINANCE_DATA.thisMonth.toLocaleString()}</p>
+                                    <p className="text-xs text-[var(--text-muted)] mb-1">{t('admin.payingClients')}</p>
+                                    <p className="text-xl font-bold text-[var(--accent-warm)]">{finance.paying}</p>
                                 </div>
-                                <div className="glass p-4">
-                                    <p className="text-xs text-[var(--text-muted)] mb-1">{t('admin.lastMonth')}</p>
-                                    <p className="text-xl font-bold text-[var(--text-muted)]">${FINANCE_DATA.lastMonth.toLocaleString()}</p>
-                                </div>
-                            </div>
-                            <h3 className="font-semibold mb-3">{t('admin.topClients')}</h3>
-                            <div className="space-y-2">
-                                {FINANCE_DATA.topClients.map((client, i) => (
-                                    <div key={i} className="flex items-center justify-between p-3 glass">
-                                        <span className="text-sm">{client.name}</span>
-                                        <span className="font-medium text-[var(--success)]">${client.amount.toLocaleString()}</span>
-                                    </div>
-                                ))}
                             </div>
                         </div>
                     </div>

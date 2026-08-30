@@ -1172,7 +1172,8 @@
       "business": "Бизнес",
       "advertiser": "Рекламодатель",
       "staff": "Сотрудник",
-      "admin": "Администратор"
+      "admin": "Администратор",
+      "owner": "Владелец"
     },
     "statuses": {
       "active": "Активен",
@@ -1195,6 +1196,7 @@
     "cancel": "Отмена",
     "changesSaved": "Изменения сохранены",
     "defaultQuota": "Квота по умолчанию",
+    "perMonth": "/мес",
     "deleteConfirm": "Подтвердите удаление",
     "deleteTitle": "Удалить?",
     "editUser": "Редактировать пользователя",
@@ -1222,6 +1224,13 @@
     "reportsPendingDesc": "Жалобы, ожидающие проверки",
     "requestsPerMinute": "Запросов в минуту",
     "revenue": "Выручка",
+    "revenue7d": "Выручка за 7 дней",
+    "mrr": "MRR (месячная выручка)",
+    "payingClients": "Платящие клиенты",
+    "subToday": "за сегодня",
+    "sub7days": "за последние 7 дней",
+    "subAllTime": "за всё время",
+    "subPending": "ожидают проверки",
     "review": "Проверить",
     "reviewed": "Проверено",
     "save": "Сохранить",

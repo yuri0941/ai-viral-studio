@@ -1,3 +1,14 @@
+## 2026-08-31 — ADMIN-PANEL-POLISH: микрофикс кабинета администратора (ветка fix/admin-panel-polish)
+- [З1 ВЫРУЧКА ₽] Убран мок FINANCE_DATA ($15400 и т.п.): кабинет админа берёт реальные ₽ из GET /owner/control/metrics → getOwnerMetricsWidget (та же агрегация, что owner-кабинет и TG-бот — единый источник). Нет данных → честный 0 ₽. Финансовая модалка: «Выручка за 7 дней», «MRR», «Платящие клиенты» вместо моков totalRevenue/pendingPayouts/topClients (frontend/src/pages/AdminDashboardPage.jsx).
+- [З2 БЕЙДЖ РОЛИ] «Креато» = обрезка «Креатор» в узкой колонке: роль 130px→160px, select w-full; owner теперь нередактируемый бейдж (раньше select без option → пустой); добавлены ключи admin.roles.owner RU/EN.
+- [З3 EMAIL-ТУЛТИП] Длинные email/name в таблице: truncate + тултип с полным значением (портал position:fixed — не клиппится ячейкой, не уезжает за экран; hover десктоп, тап мобайл) (frontend/src/components/shared/UsersManager.jsx).
+- [З4 ЗАГОЛОВКИ RU/EN] Убраны русские дефолты из t() (reportsPendingDesc/recentErrors/apiLimitsRoles/settings/noUsers/subscription/namePlaceholder/id), юнит «/мес» → admin.perMonth RU/EN. i18n-parity чист (2106 ключей, 4 файла локалей).
+- [З5 «СБРОС»] Кнопка «Сброс» теперь сбрасывает и внутреннюю сортировку колонок таблицы (remount VirtualTable по resetKey), не только фильтры/поиск.
+- [З6 ПОДПИСИ МЕТРИК] У всех stats-карточек подписи с периодом: «за сегодня», «за последние 7 дней», «за всё время», «ожидают проверки» (admin.subToday/sub7days/subAllTime/subPending).
+- [TEST] build 0 ошибок ✅; ui-audit /admin × 360/428/768/1280/1920 × RU/EN: 10/10, 0 скроллов, 0 налезаний, 0 сырых ключей, 0 console errors (reports/ui-audit-admin-polish) ✅; qaSecurityFlow вся матрица ✅; i18n-parity OK ✅. Скрины: reports/ui-audit-admin-polish/shot_admin_1280_ru_{full,email_tooltip,finance}.png.
+- [НЕ ТРОНУТО] Платежи/ЮKassa, PlanConfig, боты, лендинг, модалка обновлений, рубильники, гард-матрица, view-as, логика UsersManager (только рендер).
+- [GIT] ветка fix/admin-panel-polish от origin/main (после merge fix/view-as-persist), 4 коммита, 6 файлов, +149/−57. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/admin-panel-polish
+
 ## 2026-08/31 — ADDONS-COMPOSITION-LINK (ветка fix/addons-composition-link)
 - [ШАГ 1 — СЕМАНТИКА, доделана] UserAddon.includesSnapshot/featuresSnapshot при покупке; GET /my-addons = живой состав ∪ снапшот. Цена оплаченного периода не пересчитывается (снапшот price в UserAddon); добавление функции — сразу всем (живой список); удаление — у активных подписчиков живёт до expiresAt (снапшот). qaAddonsFlow 29/29
 - [З1 — КАТАЛОГ] backend/config/addonEntitlements.js: белый список 8 entitlement-ключей (design.pack, video.shorts, agents.extra10, analytics.pro, integrations.pro, whitelabel.brand — implemented; autopilot.full, voice.dubbing — «скоро», в продажу не уходят: PATCH фильтрует !implemented, витрина их не отдаёт, entitlement-check → 402)

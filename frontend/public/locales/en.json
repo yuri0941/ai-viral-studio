@@ -1084,7 +1084,8 @@
       "business": "Business",
       "advertiser": "Advertiser",
       "staff": "Staff",
-      "admin": "Admin"
+      "admin": "Admin",
+      "owner": "Owner"
     },
     "statuses": {
       "active": "Active",
@@ -1107,6 +1108,7 @@
     "cancel": "Cancel",
     "changesSaved": "Changes saved",
     "defaultQuota": "Default quota",
+    "perMonth": "/mo",
     "deleteConfirm": "Confirm deletion",
     "deleteTitle": "Delete?",
     "editUser": "Edit user",
@@ -1134,6 +1136,13 @@
     "reportsPendingDesc": "Reports awaiting review",
     "requestsPerMinute": "Requests per minute",
     "revenue": "Revenue",
+    "revenue7d": "Revenue, last 7 days",
+    "mrr": "MRR (monthly recurring revenue)",
+    "payingClients": "Paying clients",
+    "subToday": "today",
+    "sub7days": "last 7 days",
+    "subAllTime": "all time",
+    "subPending": "awaiting review",
     "review": "Review",
     "reviewed": "Reviewed",
     "save": "Save",
