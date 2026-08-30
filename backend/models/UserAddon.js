@@ -13,6 +13,8 @@ const userAddonSchema = new mongoose.Schema({
     // [ADDONS-MARKETPLACE-RESTORE] снапшот состава на момент покупки:
     // удалённые позиции сохраняются активному подписчику до expiresAt
     includesSnapshot: { type: [String], default: [] },
+    // [ADDONS-COMPOSITION-LINK] снапшот entitlement-ключей на момент покупки
+    featuresSnapshot: { type: [String], default: [] },
 }, { timestamps: true })
 
 userAddonSchema.index({ userId: 1, addonId: 1 }, { unique: true })
