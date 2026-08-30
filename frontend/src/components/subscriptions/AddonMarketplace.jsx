@@ -93,7 +93,7 @@ function PricingAnalysisModal({ addon, analysis, currency, onClose, onApply }) {
 }
 
 export default function AddonMarketplace() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { user } = useAuth()
     const [addons, setAddons] = useState([])
     const [myAddons, setMyAddons] = useState([])
