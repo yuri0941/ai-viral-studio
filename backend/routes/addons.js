@@ -35,7 +35,14 @@ router.get('/my-addons', protect, async (req, res) => {
         const list = await UserAddon.find({ userId: req.user._id, status: 'active', expiresAt: { $gt: new Date() } }).lean()
         const addonIds = list.map(l => l.addonId)
         const addons = await Addon.find({ id: { $in: addonIds } }).lean()
-        res.json({ success: true, addons: list.map(l => ({ ...l, addon: addons.find(a => a.id === l.addonId) })) })
+        // [ADDONS-SEMANTICS] состав: живой список (добавления — сразу всем) + снапшот покупки
+        // (удалённые позиции сохраняются активному подписчику до expiresAt)
+        res.json({ success: true, addons: list.map(l => {
+            const addon = addons.find(a => a.id === l.addonId)
+            if (!addon) return { ...l, addon }
+            const merged = [...new Set([...(addon.includes || []), ...(l.includesSnapshot || [])])]
+            return { ...l, addon: { ...addon, includes: merged } }
+        }) })
     } catch (err) {
         res.status(500).json({ success: false, error: err.message })
     }
@@ -61,7 +68,7 @@ router.post('/addons/:id/purchase', protect, async (req, res) => {
             }
             const userAddon = await UserAddon.findOneAndUpdate(
                 { userId: req.user._id, addonId: id },
-                { $set: { price: addon.price, currency: addon.currency, paymentProvider: 'manual', paymentId: 'manual', status: 'active', purchasedAt: new Date(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } },
+                { $set: { price: addon.price, currency: addon.currency, paymentProvider: 'manual', paymentId: 'manual', status: 'active', purchasedAt: new Date(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), includesSnapshot: addon.includes || [] } },
                 { upsert: true, new: true }
             )
             return res.json({ success: true, addon: userAddon })
@@ -105,7 +112,7 @@ router.post('/addons/:id/purchase', protect, async (req, res) => {
 
             await UserAddon.findOneAndUpdate(
                 { userId: req.user._id, addonId: id },
-                { $set: { price, currency: addon.currency || 'RUB', paymentProvider: 'yookassa', paymentId: payment.paymentId, status: 'pending' } },
+                { $set: { price, currency: addon.currency || 'RUB', paymentProvider: 'yookassa', paymentId: payment.paymentId, status: 'pending', includesSnapshot: addon.includes || [] } },
                 { upsert: true, new: true }
             )
 
