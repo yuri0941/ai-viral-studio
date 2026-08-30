@@ -80,7 +80,9 @@ function AdvertiserDashboardPage() {
         async function loadCampaigns() {
             try {
                 const token = localStorage.getItem('token')
-                const res = await fetch(`${API_BASE_URL}/campaigns`, {
+                // [VIEW-AS-QA] /api/campaigns (server.js) перекрыт fallbackRoutes → 404;
+                // рабочий роут — /api/ads/campaigns (routes/ads.js, та же выборка Campaign)
+                const res = await fetch(`${API_BASE_URL}/ads/campaigns`, {
                     headers: { Authorization: `Bearer ${token}` }
                 })
                 const json = await res.json()

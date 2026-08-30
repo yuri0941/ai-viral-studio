@@ -404,12 +404,12 @@ export function UsersManager({ onUsersLoaded }) {
                 </div>
 
                 <div className="p-4 border-b border-[var(--border)] flex flex-col sm:flex-row items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-2 flex-1 w-full sm:w-auto">
                         <Filter size={16} className="text-[var(--text-muted)]" />
                         <select
                             value={roleFilter}
                             onChange={e => setRoleFilter(e.target.value)}
-                            className="px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm focus:outline-none"
+                            className="w-full sm:w-auto min-w-0 px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm focus:outline-none"
                         >
                             <option value="all">{t('admin.allRoles')}</option>
                             {['creator', 'business', 'advertiser', 'staff', 'admin'].map(r => (
@@ -419,7 +419,7 @@ export function UsersManager({ onUsersLoaded }) {
                         <select
                             value={statusFilter}
                             onChange={e => setStatusFilter(e.target.value)}
-                            className="px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm focus:outline-none"
+                            className="w-full sm:w-auto min-w-0 px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm focus:outline-none"
                         >
                             <option value="all">{t('admin.allStatuses')}</option>
                             {['active', 'pending', 'banned'].map(s => (
@@ -427,11 +427,11 @@ export function UsersManager({ onUsersLoaded }) {
                             ))}
                         </select>
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <select
                             value={sortBy}
                             onChange={e => setSortBy(e.target.value)}
-                            className="px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm focus:outline-none"
+                            className="w-full sm:w-auto min-w-0 px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm focus:outline-none"
                         >
                             <option value="joined">{t('admin.sortByJoined')}</option>
                             <option value="posts">{t('admin.sortByPosts')}</option>
@@ -440,14 +440,14 @@ export function UsersManager({ onUsersLoaded }) {
                         </select>
                         <button
                             onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
-                            className="px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm hover:bg-[var(--primary-soft)] transition-colors"
+                            className="px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text)] text-sm hover:bg-[var(--primary-soft)] transition-colors whitespace-nowrap"
                             title={sortOrder === 'asc' ? t('admin.asc') : t('admin.desc')}
                         >
                             {sortOrder === 'asc' ? t('admin.asc') : t('admin.desc')}
                         </button>
                         <button
                             onClick={() => { setSearchQuery(''); setRoleFilter('all'); setStatusFilter('all'); setSortBy('joined'); setSortOrder('desc'); setSelectedIds([]) }}
-                            className="px-3 py-2 rounded-lg bg-[var(--surface)] text-[var(--text-muted)] text-sm hover:text-[var(--text)] transition-colors"
+                            className="px-3 py-2 rounded-lg bg-[var(--surface)] text-[var(--text-muted)] text-sm hover:text-[var(--text)] transition-colors whitespace-nowrap"
                         >
                             {t('admin.reset')}
                         </button>
