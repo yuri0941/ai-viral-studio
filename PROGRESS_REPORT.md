@@ -1,3 +1,11 @@
+## 2026-08-31 — ADMIN-BUTTONS-POLISH: микрофикс кнопок кабинета админа (ветка fix/admin-buttons-polish)
+- [ЗАДАЧА] 4 гигантские градиентные кнопки-пилюли внизу /admin (Модерация / Системные логи / Настройки платформы / Финансы) приведены к дизайн-системе: обычные glass-card карточки стандартного размера (как stats-карточки кабинета), сетка 2 кол. мобайл / 4 кол. десктоп, без градиентных пилюль на всю ширину (frontend/src/pages/AdminDashboardPage.jsx, блок Quick Actions)
+- [СОХРАНЕНО] Тексты кнопок и подписи метрик не менялись: «Жалобы, ожидающие проверки», «Последние ошибки», «Лимиты по ролям», «0 ₽ за последние 7 дней · MRR 0 ₽» — как было; убраны только неиспользуемые gradient/border-пропсы из quickActions
+- [ПРОВЕРКА] esbuild-синтаксис OK; npm run build 0 ошибок; ui-audit /admin × 360/428/768/1280/1920 × RU/EN: 10/10 OK, 0 скроллов, 0 налезаний, 0 сырых ключей (reports/admin-buttons-polish/{before,after}) ✅; i18n-parity OK (2106 ключей) ✅; qaSecurityFlow — вся матрица зелёная ✅
+- [НЕ ТРОНУТО] платежи/ЮKassa, PlanConfig и тарифы, боты, лендинг, модалка обновлений, рубильники, гард-матрица, view-as, маркетплейс и редактор аддонов
+- [СНИМКИ] reports/admin-buttons-polish/: ДО/ПОСЛЕ 1280 RU (admin_admin_1280_ru.png) и 360 RU со скроллом к блоку кнопок (admin_admin_360_ru_actions.png, скрипт scripts/admin-buttons-360-shot.mjs)
+- [GIT] ветка fix/admin-buttons-polish от свежего origin/main, 1 файл кода, +11/−11. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/admin-buttons-polish
+
 ## 2026-08-31 — ADMIN-PANEL-POLISH: микрофикс кабинета администратора (ветка fix/admin-panel-polish)
 - [З1 ВЫРУЧКА ₽] Убран мок FINANCE_DATA ($15400 и т.п.): кабинет админа берёт реальные ₽ из GET /owner/control/metrics → getOwnerMetricsWidget (та же агрегация, что owner-кабинет и TG-бот — единый источник). Нет данных → честный 0 ₽. Финансовая модалка: «Выручка за 7 дней», «MRR», «Платящие клиенты» вместо моков totalRevenue/pendingPayouts/topClients (frontend/src/pages/AdminDashboardPage.jsx).
 - [З2 БЕЙДЖ РОЛИ] «Креато» = обрезка «Креатор» в узкой колонке: роль 130px→160px, select w-full; owner теперь нередактируемый бейдж (раньше select без option → пустой); добавлены ключи admin.roles.owner RU/EN.

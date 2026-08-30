@@ -171,12 +171,12 @@ function AdminDashboardPage() {
         { label: t('admin.revenue'), value: formatRub(liveStats.revenue), sub: t('admin.sub7days'), icon: DollarSign, gradient: 'from-emerald-500 to-green-600' }
     ]
 
-    // --- QUICK ACTIONS ---
+    // --- QUICK ACTIONS --- [ADMIN-BUTTONS-POLISH] обычные карточки стандартного размера, без градиентных пилюль
     const quickActions = [
-        { label: t('admin.moderation'), icon: Shield, desc: t('admin.reportsPendingDesc', { count: liveStats.reportsPending }), gradient: 'from-red-500/20 to-red-600/10', border: 'border-red-500/20', onClick: () => setShowModerationModal(true) },
-        { label: t('admin.systemLogs'), icon: Terminal, desc: t('admin.recentErrors'), gradient: 'from-blue-500/20 to-blue-600/10', border: 'border-blue-500/20', onClick: () => setShowLogsModal(true) },
-        { label: t('admin.platformSettings'), icon: Wrench, desc: maintenanceMode ? t('admin.maintenanceOn') : t('admin.apiLimitsRoles'), gradient: 'from-emerald-500/20 to-emerald-600/10', border: 'border-[var(--success)]/20', onClick: () => setShowPlatformSettingsModal(true) },
-        { label: t('admin.finance'), icon: TrendingUp, desc: `${formatRub(finance.revenue7d)} ${t('admin.sub7days')} · MRR ${formatRub(finance.mrr)}`, gradient: 'from-yellow-500/20 to-yellow-600/10', border: 'border-yellow-500/20', onClick: () => setShowFinanceModal(true) }
+        { label: t('admin.moderation'), icon: Shield, desc: t('admin.reportsPendingDesc', { count: liveStats.reportsPending }), onClick: () => setShowModerationModal(true) },
+        { label: t('admin.systemLogs'), icon: Terminal, desc: t('admin.recentErrors'), onClick: () => setShowLogsModal(true) },
+        { label: t('admin.platformSettings'), icon: Wrench, desc: maintenanceMode ? t('admin.maintenanceOn') : t('admin.apiLimitsRoles'), onClick: () => setShowPlatformSettingsModal(true) },
+        { label: t('admin.finance'), icon: TrendingUp, desc: `${formatRub(finance.revenue7d)} ${t('admin.sub7days')} · MRR ${formatRub(finance.mrr)}`, onClick: () => setShowFinanceModal(true) }
     ]
 
     // --- RENDER ---
@@ -233,19 +233,19 @@ function AdminDashboardPage() {
             {/* Users Management — [VIEW-AS-PARITY] общий компонент с owner → «Клиенты» */}
             <UsersManager onUsersLoaded={handleUsersLoaded} />
 
-            {/* Quick Actions Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Quick Actions Grid — [ADMIN-BUTTONS-POLISH] карточки как остальные элементы кабинета */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {quickActions.map((action, i) => {
                     const Icon = action.icon
                     return (
                         <button
                             key={i}
                             onClick={action.onClick}
-                            className="px-4 py-2 rounded-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 border border-white/10 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all"
+                            className="glass-card glow-border rounded-2xl p-4 text-left animate-fade-in-up hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10"
                         >
-                            <Icon size={28} className="mb-3 text-[var(--text)]/80" />
-                            <h3 className="text-[var(--text)] font-semibold mb-1">{action.label}</h3>
-                            <p className="text-[var(--text-muted)] text-sm">{action.desc}</p>
+                            <Icon size={18} className="mb-2 text-[var(--accent)]" />
+                            <h3 className="text-[var(--text)] font-semibold text-sm mb-1">{action.label}</h3>
+                            <p className="text-[var(--text-muted)] text-xs">{action.desc}</p>
                         </button>
                     )
                 })}
