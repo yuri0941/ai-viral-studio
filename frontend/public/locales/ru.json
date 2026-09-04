@@ -1653,7 +1653,15 @@
     "disabledBadge": "Выключен",
     "manageAddons": "🛠 Управление аддонами",
     "featuresLabel": "Реальные функции (разблокировка)",
-    "soonBadge": "скоро"
+    "soonBadge": "скоро",
+    "priceLabel": "Цена",
+    "discountShort": "Скидка %",
+    "costLabel": "Себестоимость",
+    "marketAvg": "Рынок, средняя",
+    "apply": "Применить",
+    "save": "Сохранить",
+    "unsavedChanges": "Несохранённые изменения",
+    "emptyState": "Аддоны не найдены"
   },
   "chat": {
     "support": "Поддержка",
