@@ -124,7 +124,16 @@ const d = dash?.data || {}
 step('кабинет: paidCount=3, earnings=504', d.paidCount === 3 && d.earnings === 504, JSON.stringify({ paidCount: d.paidCount, earnings: d.earnings, count: d.count }))
 step('кабинет: реферал в списке со статусом «оплатил»', (d.referredUsers || []).some(u => u.status === 'оплатил'))
 step('кабинет: referralPercent из настроек (дефолт 12)', d.referralPercent === 12, `pct=${d.referralPercent}`)
-step('кабинет: текст partner-тира «12% комиссии»', /12%/.test(d.nextReward || ''), d.nextReward)
+// partner-тир — следующий при 5–9 рефералах: синтетический юзер с count=5 → текст «12% комиссии»
+const synthUser = await User.create({
+  name: 'QA Synth', email: `qa.synth.${stamp}@test.dev`, password: 'QaRef12345',
+  role: 'creator', subscription: 'free', isActive: true, isVerified: true,
+  acceptedTerms: true, acceptedPrivacy: true, acceptedConsent: true, isAdult: true,
+})
+await Referral.create({ userId: synthUser._id, code: `SYNTH${stamp}`, referralCode: `SYNTH${stamp}`, referralCount: 5, tier: 'vip' })
+const { getReferralData } = await import('../services/referralService.js')
+const synthData = await getReferralData(synthUser._id)
+step('кабинет: текст partner-тира «12% комиссии» (count=5)', /12%/.test(synthData?.nextReward || ''), synthData?.nextReward)
 
 // 7. Оплата 990₽ при 12% → +119 (ceil 118.8)
 const reg4Email = `qa.referred.d.${stamp}@test.dev`
@@ -198,6 +207,11 @@ const reg6 = await (await fetch(`${API}/api/auth/register`, {
   }),
 })).json()
 const user6Id = reg6?.user?.id || reg6?.user?._id || reg6?.data?._id || reg6?.userId
+step('шестой реферал зарегистрирован (API)', !!user6Id, user6Id ? reg6Email : JSON.stringify(reg6).slice(0, 120))
+// кэш флагов ≤60с живёт в процессе: инвалидируем, чтобы начисление увидело 15 сразу
+// (в проде новые начисления подхватят процент в течение минуты — как у рубильников)
+const { invalidateOwnerFlagsCache } = await import('../models/OwnerSettings.js')
+invalidateOwnerFlagsCache()
 await markReferralPaid(user6Id, 990)
 const after15 = await Referral.findOne({ userId: referrer._id }).lean()
 step('990₽ при 15% → +149 (итого 1252), старые не тронуты', after15?.referralEarnings === 1252, `earnings=${after15?.referralEarnings}`)
