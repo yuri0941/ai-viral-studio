@@ -93,7 +93,7 @@ if (LIVE) {
                 body: JSON.stringify({ message: q, userRole: 'creator' }),
             })
             const json = await r.json().catch(() => ({}))
-            const reply = json?.reply || json?.data?.reply || json?.message || ''
+            const reply = json?.data?.response || json?.data?.reply || json?.reply || json?.message || ''
             const ok = r.status === 200 && typeof reply === 'string' && isHonestReply(reply) && !looksLikeFabrication(reply)
             results.push({ q, ok, reply: String(reply).slice(0, 200), status: r.status })
             console.log(`${ok ? '✅' : '❌'} «${q}» → ${String(reply).replace(/\s+/g, ' ').slice(0, 90)}`)

@@ -41,4 +41,22 @@ export function isHonestReply(text) {
     return NO_DATA_PATTERN.test(text) || !looksLikeFabrication(text)
 }
 
-export default { HONESTY_PROMPT_BLOCK, NO_DATA_PATTERN, looksLikeFabrication, isHonestReply }
+// Вопрос о конкретных данных/метриках (личных, платформенных, конкурентов).
+// NB: \w не работает с кириллицей — используем [а-яё]
+const DATA_QUESTION_PATTERN = /(сколько|какой|какая|какие|каков|назови|покажи|how much|how many|what('s| is| was| are| were)|give me|tell me)[\s\S]{0,80}(заработ|выручк|доход|баланс|клиент|подписчик|конверси|mrr|arr|ltv|просмотр|онлайн|чек|генераци|прибыл|оплат|revenue|earned|earnings|balance|subscribers|clients|conversion|profit|views|online)/i
+
+export function isDataQuestion(text) {
+    if (!text || typeof text !== 'string') return false
+    return DATA_QUESTION_PATTERN.test(text)
+}
+
+// Честный ответ «нет данных» + куда смотреть. Выдаётся слоем honesty-guard,
+// когда в контексте нет реальных данных (БД/API) для ответа на data-вопрос.
+export function noDataReply(lang = 'ru') {
+    if (lang === 'en') {
+        return `Honest answer: I don't have this data — I can't see your real-time metrics and I never invent numbers.\n\nWhere to look:\n• Dashboard → Analytics — post stats and views\n• Dashboard → Subscription — balance and remaining generations\n• Settings → connect your social accounts, and I'll be able to show real statistics.`
+    }
+    return `Честно: у меня нет этих данных — я не вижу ваши метрики в реальном времени и не выдумываю цифры.\n\nГде посмотреть:\n• Кабинет → Аналитика — статистика постов и просмотры\n• Кабинет → Подписка — баланс и остаток генераций\n• Настройки → подключите соцсети, и я смогу показывать реальную статистику.`
+}
+
+export default { HONESTY_PROMPT_BLOCK, NO_DATA_PATTERN, looksLikeFabrication, isHonestReply, isDataQuestion, noDataReply }
