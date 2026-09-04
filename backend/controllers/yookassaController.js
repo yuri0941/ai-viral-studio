@@ -58,7 +58,8 @@ async function recordPaymentAndReceipt({ paymentId, metadata, result }) {
   );
 
   // [CLIENT-JOURNEY-QA] реферальное начисление за первую оплату реферала.
-  // [REF-12PCT] 12% от суммы платежа (было фикс $4 — решение владельца 27.08). Best-effort: на платёж не влияет.
+  // [REF-12PCT→REFERRAL-PCT] N% от суммы платежа, процент из OwnerSettings (кабинет владельца,
+  // дефолт 12; было фикс $4 — решение владельца 27.08). Best-effort: на платёж не влияет.
   try {
     const { markReferralPaid } = await import('../services/referralService.js')
     await markReferralPaid(userId, amount)
@@ -526,6 +527,12 @@ export const yookassaWebhook = async (req, res) => {
             `Тариф: ${payment?.planId || '—'}`,
             'payment'
           );
+          // [REFERRAL-PCT] отзыв реферальной комиссии (−N% от суммы). Только при реальном
+          // переходе в refunded (modifiedCount>0) → повторный webhook не списывает дважды.
+          if (payment?.userId) {
+            const { markReferralRefund } = await import('../services/referralService.js');
+            await markReferralRefund(payment.userId, payment.amount);
+          }
         } catch (alertErr) {
           console.warn('[yookassaController:webhook] refund owner alert failed:', alertErr.message);
         }

@@ -1,16 +1,26 @@
 import { Referral, User, UsageQuota } from '../models/index.js'
 import { topUpGenerations } from './usageQuotaService.js'
+import { getOwnerFlags } from '../models/OwnerSettings.js'
 
 const generateReferralCode = () => {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
+
+// [REFERRAL-PCT] процент комиссии — из OwnerSettings (кабинет владельца), дефолт 12.
+// Применяется к НОВЫМ начислениям; уже начисленное не пересчитывается.
+async function getReferralPercent() {
+    const flags = await getOwnerFlags()
+    return Number.isFinite(flags?.referralPercent) ? flags.referralPercent : 12
+}
+
+const referralRewardText = (pct) => `${pct}% комиссии`
 
 const TIER_REWARDS = {
     starter: { label: 'Starter', minReferrals: 0, reward: 'Начните приглашать' },
     friend: { label: 'Друг', minReferrals: 1, reward: '$10 кредитов' },
     popular: { label: 'Популярный', minReferrals: 3, reward: 'Agentic Mode на 1 месяц' },
     vip: { label: 'VIP', minReferrals: 5, reward: 'Скидка 20% навсегда' },
-    partner: { label: 'Affiliate Partner', minReferrals: 10, reward: '12% комиссии' }, // [DOP-3] 40% → 12%
+    partner: { label: 'Affiliate Partner', minReferrals: 10, reward: referralRewardText(12) }, // [REFERRAL-PCT] текст динамический — см. getReferralData
 }
 
 function calculateTier(count) {
@@ -39,6 +49,9 @@ export async function getReferralData(userId) {
     const ref = await getOrCreateReferral(userId)
     const referrals = await Referral.find({ referredBy: userId }).populate('userId', 'name email createdAt').lean()
     const nextTier = Object.values(TIER_REWARDS).find(t => t.minReferrals > ref.referralCount) || TIER_REWARDS.partner
+    // [REFERRAL-PCT] текст partner-тира динамический: обещание = механика, всегда из OwnerSettings
+    const pct = await getReferralPercent()
+    const nextReward = nextTier === TIER_REWARDS.partner ? referralRewardText(pct) : nextTier.reward
     const baseUrl = process.env.FRONTEND_URL || 'https://aiviral-studio.ru'
     return {
         code: ref.referralCode,
@@ -49,7 +62,8 @@ export async function getReferralData(userId) {
         creditBalance: ref.creditBalance,
         tier: ref.tier,
         tierLabel: TIER_REWARDS[ref.tier].label,
-        nextReward: nextTier.reward,
+        referralPercent: pct,
+        nextReward,
         referralsToNext: Math.max(0, nextTier.minReferrals - ref.referralCount),
         referredUsers: referrals.map(r => ({
             id: r.userId?._id,
@@ -106,9 +120,11 @@ export async function markReferralPaid(userId, amount) {
     if (!ref.paidMarked) {
         ref.paidMarked = true
         referrer.paidReferralCount += 1
-        // [REF-12PCT] 12% от суммы платежа (было фикс $4 — решение владельца 27.08)
+        // [REF-12PCT→REFERRAL-PCT] N% от суммы платежа в ₽, округление вверх; процент — из OwnerSettings
+        // (было фикс $4 — решение владельца 27.08). Применяется к новым начислениям.
         if (Number.isFinite(amount) && amount > 0) {
-            referrer.referralEarnings += Math.round(amount * 0.12)
+            const pct = await getReferralPercent()
+            referrer.referralEarnings += Math.ceil(amount * pct / 100)
         } else {
             // сумма не передана — не молча: лог + не начисляем
             console.warn(`[referralService] markReferralPaid: amount missing/invalid for userId=${userId} (amount=${amount}) — начисление пропущено`)
@@ -120,9 +136,33 @@ export async function markReferralPaid(userId, amount) {
     return referrer
 }
 
+// [REFERRAL-PCT] refund.succeeded → отзыв комиссии (−N% от суммы возврата, округление вверх).
+// Вызывается только при реальном переходе платежа в refunded (modifiedCount>0 в контроллере) —
+// повторный webhook не списывает дважды. paidMarked не трогаем: повторная оплата того же
+// реферала не должна начислить комиссию заново после возврата-переоплаты.
+export async function markReferralRefund(userId, amount) {
+    const ref = await Referral.findOne({ userId })
+    if (!ref || !ref.referredBy || !ref.paidMarked || ref.refundMarked) return null
+
+    const referrer = await Referral.findOne({ userId: ref.referredBy })
+    if (!referrer) return null
+
+    ref.refundMarked = true
+    if (Number.isFinite(amount) && amount > 0) {
+        const pct = await getReferralPercent()
+        referrer.referralEarnings = Math.max(0, referrer.referralEarnings - Math.ceil(amount * pct / 100))
+        await referrer.save()
+    } else {
+        console.warn(`[referralService] markReferralRefund: amount missing/invalid for userId=${userId} (amount=${amount}) — отзыв пропущен`)
+    }
+    await ref.save()
+    return referrer
+}
+
 export default {
     getOrCreateReferral,
     getReferralData,
     registerReferral,
     markReferralPaid,
+    markReferralRefund,
 }

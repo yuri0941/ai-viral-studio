@@ -3006,7 +3006,11 @@
       "extendApply": "Продлить на {{days}} дн.",
       "extendCancel": "Отмена",
       "extendOk": "Подписка продлена до {{date}}",
-      "error": "Ошибка операции"
+      "error": "Ошибка операции",
+      "referralPercent": "Реферальная комиссия, %",
+      "referralPercentHint": "Процент от оплаты реферала (0–50). Применяется к новым начислениям.",
+      "referralPercentSave": "Сохранить",
+      "referralPercentSaved": "Комиссия обновлена"
     },
     "metricsWidget": {
       "title": "Метрики",

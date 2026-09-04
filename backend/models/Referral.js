@@ -18,7 +18,8 @@ const referralSchema = new mongoose.Schema({
   referralEarnings: { type: Number, default: 0 },
   creditBalance: { type: Number, default: 0 },
   tier: { type: String, default: 'starter' },
-  paidMarked: { type: Boolean, default: false }
+  paidMarked: { type: Boolean, default: false },
+  refundMarked: { type: Boolean, default: false } // [REFERRAL-PCT] идемпотентность отзыва комиссии
 }, { timestamps: true });
 
 export const Referral = mongoose.model('Referral', referralSchema);

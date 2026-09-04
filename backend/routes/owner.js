@@ -309,6 +309,16 @@ router.put('/control/flags', protect, authorize('owner'), async (req, res) => {
             Object.assign(out, await setOwnerFlag('registrationEnabled', req.body.registrationEnabled))
             await logOwnerAction(req.body.registrationEnabled ? 'owner.registration.on' : 'owner.registration.off', {}, 'ok', actor)
         }
+        // [REFERRAL-PCT] реферальная комиссия 0–50% (только owner — authorize выше, остальным 403)
+        if (req.body?.referralPercent !== undefined) {
+            const { setReferralPercent } = await import('../models/OwnerSettings.js')
+            try {
+                Object.assign(out, await setReferralPercent(req.body.referralPercent))
+            } catch {
+                return res.status(400).json({ error: 'referralPercent: число 0–50' })
+            }
+            await logOwnerAction('owner.referral_percent.set', { value: out.referralPercent }, 'ok', actor)
+        }
         if (!Object.keys(out).length) return res.status(400).json({ error: 'Нечего обновлять' })
         res.json({ success: true, flags: out })
     } catch (err) {

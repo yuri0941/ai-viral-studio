@@ -47,6 +47,9 @@ function OwnerControlCard() {
     const { t } = useTranslation()
 
     const [flags, setFlags] = useState(null)
+    // [REFERRAL-PCT] комиссия из OwnerSettings (дефолт 12), правится только owner
+    const [refPercent, setRefPercent] = useState('12')
+    const [refPercentSaving, setRefPercentSaving] = useState(false)
     const [metrics, setMetrics] = useState(null)
     const [metricsError, setMetricsError] = useState(false)
     const [refundId, setRefundId] = useState('')
@@ -60,7 +63,12 @@ function OwnerControlCard() {
     useEffect(() => {
         let mounted = true
         ownerControlApi.flags()
-            .then(res => { if (mounted && res?.flags) setFlags(res.flags) })
+            .then(res => {
+                if (mounted && res?.flags) {
+                    setFlags(res.flags)
+                    if (Number.isFinite(res.flags.referralPercent)) setRefPercent(String(res.flags.referralPercent))
+                }
+            })
             .catch(() => {})
         ownerControlApi.metrics()
             .then(res => { if (mounted && res?.metrics) setMetrics(res.metrics) })
@@ -78,6 +86,21 @@ function OwnerControlCard() {
         } catch (err) {
             setFlags(flags) // revert on error
             toast.error(err.message || t('owner.control.error'))
+        }
+    }
+
+    const handleRefPercentSave = async () => {
+        const value = Number(refPercent)
+        if (!Number.isFinite(value) || value < 0 || value > 50 || refPercentSaving) return
+        setRefPercentSaving(true)
+        try {
+            const res = await ownerControlApi.updateFlags({ referralPercent: value })
+            if (res?.flags) setFlags(prev => ({ ...prev, ...res.flags }))
+            toast.success(t('owner.control.referralPercentSaved'))
+        } catch (err) {
+            toast.error(err.message || t('owner.control.error'))
+        } finally {
+            setRefPercentSaving(false)
         }
     }
 
@@ -167,6 +190,32 @@ function OwnerControlCard() {
                 value={!!flags?.registrationEnabled}
                 flagKey="registrationEnabled"
             />
+
+            {/* [REFERRAL-PCT] реферальная комиссия 0–50% (owner-only на бэке, остальным 403) */}
+            <div className="mt-2 pt-2 border-t border-white/10">
+                <div className="text-sm text-[var(--text)] break-words">{t('owner.control.referralPercent')}</div>
+                <div className="text-[11px] text-[var(--text-muted)] break-words mb-2">{t('owner.control.referralPercentHint')}</div>
+                <div className="flex gap-2">
+                    <input
+                        type="number"
+                        min={0}
+                        max={50}
+                        value={refPercent}
+                        onChange={e => setRefPercent(e.target.value)}
+                        disabled={!flags}
+                        className="w-24 px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)]"
+                    />
+                    <button
+                        type="button"
+                        onClick={handleRefPercentSave}
+                        disabled={!flags || refPercentSaving}
+                        className="min-h-[40px] px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-medium flex items-center justify-center gap-2"
+                    >
+                        {refPercentSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                        {t('owner.control.referralPercentSave')}
+                    </button>
+                </div>
+            </div>
 
             {/* Refund */}
             <div className="mt-4 pt-4 border-t border-white/10">
