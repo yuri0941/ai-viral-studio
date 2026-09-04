@@ -45,6 +45,9 @@ const ownerSettingsSchema = new mongoose.Schema({
     maintenanceMode: { type: Boolean, default: false },
     registrationEnabled: { type: Boolean, default: true },
     ownerTelegramChatId: { type: String, default: '' },
+    // [REFERRAL-PCT] реферальная комиссия, % от платежа (0–50). Применяется к НОВЫМ начислениям,
+    // уже начисленное не пересчитывается. Каноничное место — здесь, рядом с рубильниками.
+    referralPercent: { type: Number, default: 12, min: 0, max: 50 },
 }, {
     timestamps: true,
 })
@@ -106,7 +109,7 @@ export async function getOwnerFlags(forceRefresh = false) {
     if (!forceRefresh && flagsCache.value && Date.now() - flagsCache.at < FLAGS_TTL_MS) {
         return flagsCache.value
     }
-    let value = { maintenanceMode: false, registrationEnabled: true }
+    let value = { maintenanceMode: false, registrationEnabled: true, referralPercent: 12 }
     try {
         if (mongoose.connection?.readyState === 1) {
             const doc = await OwnerSettings.findOne().sort({ updatedAt: -1 }).lean()
@@ -114,6 +117,7 @@ export async function getOwnerFlags(forceRefresh = false) {
                 value = {
                     maintenanceMode: !!doc.maintenanceMode,
                     registrationEnabled: doc.registrationEnabled !== false,
+                    referralPercent: Number.isFinite(doc.referralPercent) ? doc.referralPercent : 12,
                 }
             }
         }
@@ -140,6 +144,24 @@ export async function setOwnerFlag(key, flagValue) {
     await doc.save()
     invalidateOwnerFlagsCache()
     return { [key]: doc[key] }
+}
+
+// [REFERRAL-PCT] реферальная комиссия 0–50%: пишет в самый свежий документ; кэш сбрасывается сразу.
+export async function setReferralPercent(pct) {
+    const value = Number(pct)
+    if (!Number.isFinite(value) || value < 0 || value > 50) {
+        throw new Error('referralPercent must be a number 0–50')
+    }
+    let doc = await OwnerSettings.findOne().sort({ updatedAt: -1 })
+    if (!doc) {
+        const ownerUser = await mongoose.model('User').findOne({ role: 'owner' }).select('_id').lean()
+        if (!ownerUser) throw new Error('OwnerSettings document not found')
+        doc = new OwnerSettings({ ownerId: ownerUser._id })
+    }
+    doc.referralPercent = Math.round(value)
+    await doc.save()
+    invalidateOwnerFlagsCache()
+    return { referralPercent: doc.referralPercent }
 }
 
 export default OwnerSettings
