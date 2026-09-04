@@ -115,7 +115,24 @@ if (defaultRaw && !defaultAnswer) {
 }
 
 const qid = crypto.randomBytes(6).toString('hex')
-const expiresAt = new Date(Date.now() + timeoutSec * 1000)
+
+// [ASK-OWNER-CLOCK-FIX] кейс 2026-09-05: часы машины отставали на ~28ч → expiresAt рождался
+// уже просроченным, прод-хендлер (его часы верные) отвечал «вопрос просрочен», кнопки «не работали».
+// Время берём из Date-заголовка api.telegram.org; офлайн — локальные часы.
+async function realNow() {
+  try {
+    const res = await fetch('https://api.telegram.org', { method: 'HEAD', signal: AbortSignal.timeout(5000) })
+    const d = res.headers.get('date')
+    if (d) { const t = new Date(d); if (!Number.isNaN(t.getTime())) return t }
+  } catch { /* офлайн — локальные часы */ }
+  return new Date()
+}
+const now = await realNow()
+const clockSkewMin = Math.round((now.getTime() - Date.now()) / 60000)
+if (Math.abs(clockSkewMin) >= 2) {
+  console.warn(`⚠️ Локальные часы расходятся с реальным временем на ${clockSkewMin} мин — сроки вопроса считаю по реальному времени`)
+}
+const expiresAt = new Date(now.getTime() + timeoutSec * 1000)
 
 const mongoose = await connectMongo()
 const col = mongoose ? mongoose.connection.db.collection('askowner') : null
@@ -131,7 +148,7 @@ if (!col) console.warn('⚠️ Mongo недоступна — ответ из TG
 if (col) {
   await col.insertOne({
     qid, context, question, options, mode: free ? 'free' : 'options',
-    approveZone, status: 'pending', createdAt: new Date(), expiresAt,
+    approveZone, status: 'pending', createdAt: now, expiresAt,
   })
 }
 
@@ -223,7 +240,7 @@ const finishWaiting = async () => {
 
 await tgSend()
 printTerminal()
-if (tgOk && tgMessage) console.log('(вопрос продублирован в TG owner-бота — первый ответ побеждает)')
+if (tgOk && tgMessage) console.log(`(вопрос продублирован в TG owner-бота, message_id=${tgMessage.message_id} — первый ответ побеждает)`)
 else if (tgOk) console.log('(TG отправлен без подтверждения message_id)')
 else console.log('(TG недоступен — только терминал)')
 
