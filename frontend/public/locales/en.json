@@ -2821,7 +2821,11 @@
       "extendApply": "Extend by {{days}} days",
       "extendCancel": "Cancel",
       "extendOk": "Subscription extended until {{date}}",
-      "error": "Operation failed"
+      "error": "Operation failed",
+      "referralPercent": "Referral commission, %",
+      "referralPercentHint": "Percent of referral payment (0–50). Applies to new accruals.",
+      "referralPercentSave": "Save",
+      "referralPercentSaved": "Commission updated"
     },
     "metricsWidget": {
       "title": "Metrics",

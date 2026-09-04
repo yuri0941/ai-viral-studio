@@ -11,7 +11,7 @@ const TIERS = [
     { id: 'starter', min: 1, label: 'Starter', reward: '-10% скидка', refs: 1 },
     { id: 'pro', min: 3, label: 'Pro', reward: '-20% скидка', refs: 3 },
     { id: 'agent', min: 5, label: 'Agent', reward: 'Agentic Mode', refs: 5 },
-    { id: 'partner', min: 10, label: 'Partner', reward: '40% комиссия', refs: 10 },
+    { id: 'partner', min: 10, label: 'Partner', reward: '12% комиссия', refs: 10 }, // [REFERRAL-PCT] база; рендер — динамический из OwnerSettings (см. tiers ниже)
 ]
 
 const DEMO_DATA = {
@@ -118,15 +118,19 @@ export function ReferralsTab() {
         copyLink()
     }
 
-    const currentTierIndex = useMemo(() => {
-        const idx = TIERS.findIndex(t => t.label === data?.tierLabel)
-        return idx >= 0 ? idx : 0
-    }, [data])
+    // [REFERRAL-PCT] partner-тир динамический: обещание = механика (из OwnerSettings через /analytics/referrals)
+    const refPct = Number.isFinite(data?.referralPercent) ? data.referralPercent : 12
+    const tiers = useMemo(() => TIERS.map(t => t.id === 'partner' ? { ...t, reward: `${refPct}% комиссия` } : t), [refPct])
 
-    const nextTier = TIERS[Math.min(currentTierIndex + 1, TIERS.length - 1)]
+    const currentTierIndex = useMemo(() => {
+        const idx = tiers.findIndex(t => t.label === data?.tierLabel)
+        return idx >= 0 ? idx : 0
+    }, [data, tiers])
+
+    const nextTier = tiers[Math.min(currentTierIndex + 1, tiers.length - 1)]
     const progressToNext = useMemo(() => {
         if (!data) return 0
-        const currentMin = TIERS[currentTierIndex]?.min || 0
+        const currentMin = tiers[currentTierIndex]?.min || 0
         const nextMin = nextTier?.min || currentMin + 1
         if (nextMin === currentMin) return 100
         const pct = ((data.count - currentMin) / (nextMin - currentMin)) * 100
@@ -298,7 +302,7 @@ export function ReferralsTab() {
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
                 <div className="text-sm font-semibold text-[var(--text)] mb-4">Ваши уровни</div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {TIERS.map((tier, idx) => {
+                    {tiers.map((tier, idx) => {
                         const active = idx === currentTierIndex
                         return (
                             <div
