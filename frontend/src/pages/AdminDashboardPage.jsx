@@ -8,6 +8,7 @@ import {
     BarChart, Terminal, Wrench, TrendingUp, Filter
 } from 'lucide-react'
 import { UsersManager } from '../components/shared/UsersManager'
+import { useModalA11y } from '../hooks/useModalA11y.js'
 
 const MODERATION_REPORTS = [
     { id: 1, user: 'user1@mail.com', content: 'Нецензурный контент', platform: 'YouTube', date: '10 мин назад', status: 'pending' },
@@ -58,6 +59,17 @@ function AdminDashboardPage() {
     const [showLogsModal, setShowLogsModal] = useState(false)
     const [showPlatformSettingsModal, setShowPlatformSettingsModal] = useState(false)
     const [showFinanceModal, setShowFinanceModal] = useState(false)
+
+    // [B4-DOP-2-UI-GATE] ① Esc закрывает любую открытую модалку ② focus-trap внутри неё
+    const anyModalOpen = showSettingsModal || showModerationModal || showLogsModal || showPlatformSettingsModal || showFinanceModal
+    const closeAnyModal = useCallback(() => {
+        setShowSettingsModal(false)
+        setShowModerationModal(false)
+        setShowLogsModal(false)
+        setShowPlatformSettingsModal(false)
+        setShowFinanceModal(false)
+    }, [])
+    useModalA11y(closeAnyModal, anyModalOpen)
 
     const [reports, setReports] = useState(MODERATION_REPORTS)
     const [settings, setSettings] = useState(PLATFORM_DEFAULTS)
@@ -257,7 +269,7 @@ function AdminDashboardPage() {
             {/* Settings Modal */}
             {showSettingsModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-lg max-h-[80vh] overflow-y-auto">
+                    <div role="dialog" aria-modal="true" className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-lg max-h-[80vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold flex items-center gap-2"><Settings size={20} /> {t('admin.platformSettings')}</h2>
@@ -311,7 +323,7 @@ function AdminDashboardPage() {
             {/* Moderation Modal */}
             {showModerationModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <div role="dialog" aria-modal="true" className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-2xl max-h-[80vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold flex items-center gap-2"><Shield size={20} className="text-[var(--danger)]" /> {t('admin.moderation')}</h2>
@@ -387,7 +399,7 @@ function AdminDashboardPage() {
             {/* Logs Modal */}
             {showLogsModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <div role="dialog" aria-modal="true" className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-2xl max-h-[80vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold flex items-center gap-2"><Terminal size={20} className="text-[var(--accent)]" /> {t('admin.systemLogs')}</h2>
@@ -411,7 +423,7 @@ function AdminDashboardPage() {
             {/* Platform Settings Modal */}
             {showPlatformSettingsModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-lg max-h-[80vh] overflow-y-auto">
+                    <div role="dialog" aria-modal="true" className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-lg max-h-[80vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold flex items-center gap-2"><Wrench size={20} className="text-[var(--success)]" /> {t('admin.platformSettings')}</h2>
@@ -474,7 +486,7 @@ function AdminDashboardPage() {
             {/* Finance Modal */}
             {showFinanceModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                    <div role="dialog" aria-modal="true" className="bg-[var(--card)] rounded-2xl border border-[var(--border-strong)] w-full max-w-lg max-h-[90vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold flex items-center gap-2"><TrendingUp size={20} className="text-[var(--accent-warm)]" /> {t('admin.finance')}</h2>

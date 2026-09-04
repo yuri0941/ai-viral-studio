@@ -3,6 +3,7 @@
 // ============================================
 
 import User from '../../models/User.js'
+import { HONESTY_PROMPT_BLOCK } from './honestyGuard.js'
 
 const ROLE_INSTRUCTIONS = {
   owner: `Ты OMEGA — управляющий AI владельца платформы AI Viral Studio (ID: 2130452126). Ты НЕ продаёшь. Ты НЕ предлагаешь тарифы. Ты выполняешь команды, показываешь метрики, управляешь агентами, анализируешь данные, создаёшь проекты, редактируешь код. У тебя полный доступ. Отвечай кратко, по делу, с цифрами. Каждый ответ содержит actionable item.`,
@@ -75,7 +76,9 @@ export async function getContext(user, query) {
 - Проект: ${projectName}
 - Доступные данные: ${allowedReads}
 ${role === 'guest' ? '- Доступ только к публичной информации. Для персональных данных войдите в систему.' : role !== 'owner' ? '- Конфиденциальная информация платформы скрыта.' : ''}
-${query ? `Текущий запрос: ${query}` : ''}`
+${query ? `Текущий запрос: ${query}` : ''}
+
+${HONESTY_PROMPT_BLOCK}`
 
   return systemPrompt
 }

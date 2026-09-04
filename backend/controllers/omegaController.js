@@ -25,6 +25,7 @@ import { scrapeVideo } from '../services/youtubeScraper.js'
 import { fetchVideoStats, fetchChannelStats, computeVideoRating } from '../services/youtubeDataService.js'
 import dialogueEvolution from '../ai/omega/dialogueEvolution.js'
 import { findNiche, NICHE_REGISTRY } from '../data/niches.js'
+import { isDataQuestion, noDataReply } from '../ai/omega/honestyGuard.js'
 
 let omegaCore = null
 
@@ -90,6 +91,15 @@ export async function chat(req, res) {
                 status: 'error',
                 message: cmdGuard.message,
                 data: { blocked: true, reason: 'role_forbidden_command' }
+            })
+        }
+
+        // [B4-DOP-2-HONESTY] data-вопрос без реальных источников (БД/API) → честный отказ вместо выдумки.
+        // Исключение: ссылка на YouTube — статистика фетчится ниже реальным API.
+        if (isDataQuestion(message) && !/youtu(?:\.be|be\.com)\//.test(message)) {
+            return res.json({
+                status: 'success',
+                data: { response: noDataReply(lang), honest: true, source: 'honesty-guard' },
             })
         }
 

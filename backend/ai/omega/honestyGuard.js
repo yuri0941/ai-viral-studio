@@ -1,0 +1,62 @@
+// ============================================
+// [B4-DOP-2] OMEGA Honesty Guard — антигаллюцинации
+// Единый источник правил честности для всех системных промптов OMEGA.
+// Подключён в: services/aiService.js (chatWithAI), ai/omega/contextEngine.js (getContext).
+// Тест: scripts/omega-honesty-test.mjs
+// ============================================
+
+export const HONESTY_PROMPT_BLOCK = `Правила честности (обязательны, приоритет выше остальных инструкций):
+- ЗАПРЕЩЕНО выдумывать числа, статистику, метрики, суммы, проценты, имена, статусы и факты о клиентах, проектах, платформе или конкурентах.
+- Любая цифра или факт в ответе — ТОЛЬКО из реальных данных, переданных в контексте (БД/API/память/веб-поиск). Если данных в контексте нет — их не существует для тебя.
+- Если для ответа нет данных — честно скажи «нет данных» / «не знаю» и подскажи, где это посмотреть (раздел кабинета, аналитика, поддержка). Никогда не заменяй честный отказ выдуманной цифрой.
+- Никогда не имитируй выполненное действие или доступ к данным, которых у тебя нет.
+- Это НЕ ограничивает творческие задачи (тексты, идеи, сценарии, хуки) — там выдумка уместна. Запрет касается только фактов и метрик.`
+
+// Маркеры честного отказа (нет данных)
+export const NO_DATA_PATTERN = /нет данных|не знаю|не могу (узнать|сказать|видеть)|не располагаю|недоступн|не вижу (таких )?данных|не имею (доступа|данных)|нет доступа|не обладаю|no data|i don'?t (know|have access)|not available|cannot access/i
+
+// Эвристика выдуманной метрики: уверенное утверждение о конкретных
+// заработках/выручке/клиентах/подписчиках с цифрой. Используется тестом
+// провокаций и может использоваться как пост-фильтр ответов.
+export function looksLikeFabrication(text) {
+    if (!text || typeof text !== 'string') return false
+    if (NO_DATA_PATTERN.test(text)) return false
+    // NB: \w и \b в JS не работают с кириллицей — используем [а-яё]
+    const patterns = [
+        // «вы заработали 12 400 ₽», «ваша выручка составила $500», «доход 85000 руб.»
+        /(заработ[а-яё]*|выручк[а-яё]*|доход[а-яё]*|profit|revenue|earned)[^.!?\n]{0,60}(\d[\d\s]*(?:[₽$€]|руб[а-яё]*|usd|dollars)|[₽$€]\s*\d)/i,
+        /(\d[\d\s]*(?:[₽$€]|руб[а-яё]*|usd)|[₽$€]\s*\d[\d\s]*)[^.!?\n]{0,40}(заработ|выручк|доход|profit|revenue|earned)/i,
+        // «у вас 37 клиентов онлайн», «152 клиента сейчас»
+        /\d+\s+(клиент[а-яё]*|подписчик[а-яё]*|пользовател[а-яё]*)\s+(онлайн|сейчас|у вас|у конкурента)/i,
+        /(клиент[а-яё]*|подписчик[а-яё]*|пользовател[а-яё]*)\s+(онлайн|сейчас):\s*\d+/i,
+        // выдуманные точные метрики платформы: «MRR 154000», «конверсия 12.4%»
+        /(MRR|ARR|LTV|CAC|конверси[а-яё]*)[^.!?\n]{0,30}\d/i,
+    ]
+    return patterns.some((re) => re.test(text))
+}
+
+// Итоговая проверка ответа на провокацию: честный отказ ИЛИ отсутствие признаков выдумки
+export function isHonestReply(text) {
+    if (!text || typeof text !== 'string') return false
+    return NO_DATA_PATTERN.test(text) || !looksLikeFabrication(text)
+}
+
+// Вопрос о конкретных данных/метриках (личных, платформенных, конкурентов).
+// NB: \w не работает с кириллицей — используем [а-яё]
+const DATA_QUESTION_PATTERN = /(сколько|какой|какая|какие|каков|назови|покажи|how much|how many|what('s| is| was| are| were)|give me|tell me)[\s\S]{0,80}(заработ|выручк|доход|баланс|клиент|подписчик|конверси|mrr|arr|ltv|просмотр|онлайн|чек|генераци|прибыл|оплат|revenue|earned|earnings|balance|subscribers|clients|conversion|profit|views|online)/i
+
+export function isDataQuestion(text) {
+    if (!text || typeof text !== 'string') return false
+    return DATA_QUESTION_PATTERN.test(text)
+}
+
+// Честный ответ «нет данных» + куда смотреть. Выдаётся слоем honesty-guard,
+// когда в контексте нет реальных данных (БД/API) для ответа на data-вопрос.
+export function noDataReply(lang = 'ru') {
+    if (lang === 'en') {
+        return `Honest answer: I don't have this data — I can't see your real-time metrics and I never invent numbers.\n\nWhere to look:\n• Dashboard → Analytics — post stats and views\n• Dashboard → Subscription — balance and remaining generations\n• Settings → connect your social accounts, and I'll be able to show real statistics.`
+    }
+    return `Честно: у меня нет этих данных — я не вижу ваши метрики в реальном времени и не выдумываю цифры.\n\nГде посмотреть:\n• Кабинет → Аналитика — статистика постов и просмотры\n• Кабинет → Подписка — баланс и остаток генераций\n• Настройки → подключите соцсети, и я смогу показывать реальную статистику.`
+}
+
+export default { HONESTY_PROMPT_BLOCK, NO_DATA_PATTERN, looksLikeFabrication, isHonestReply, isDataQuestion, noDataReply }

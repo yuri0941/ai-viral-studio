@@ -10,6 +10,7 @@ import { emergencyStop } from '../routes/admin.js'
 import { searchVectorMemory, addToVectorMemory } from './vectorStore.js'
 import LocalBrain from '../ai/omega/localBrain.js'
 import { AI_MODELS } from '../config/aiModels.js'
+import { HONESTY_PROMPT_BLOCK } from '../ai/omega/honestyGuard.js'
 
 // ============ HELPERS ============
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -1172,7 +1173,8 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
         const langPrompt = `Язык запроса: ${detectedLang}. Отвечай строго на этом языке.`
         // [HOTFIX-2026-08-04] added role context
         const extraSystem = options.extraSystem || ''
-        const systemParts = [memoryContext, extraSystem, SYSTEM_PROMPT, langPrompt].filter(Boolean)
+        // [B4-DOP-2] антигаллюцинации: запрет выдумывать цифры/факты — во всех ответах чата
+        const systemParts = [memoryContext, extraSystem, SYSTEM_PROMPT, HONESTY_PROMPT_BLOCK, langPrompt].filter(Boolean)
         const messages = [
             { role: 'system', content: systemParts.join('\n\n') },
             ...history.map(msg => ({
