@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../../config.js'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { useModalA11y } from '../../hooks/useModalA11y.js'
 
 const CATEGORIES = {
     all: 'all',
@@ -37,6 +38,8 @@ function convert(price, from, to) {
 
 function PricingAnalysisModal({ addon, analysis, currency, onClose, onApply }) {
     const { t } = useTranslation()
+    // [B4-DOP-2-UI-GATE] ① Esc ② focus-trap
+    const dialogRef = useModalA11y(onClose)
     const data = [
         { name: t('addons.currentPrice'), value: addon.price || 0 },
         { name: t('addons.recommendedPrice'), value: analysis?.recommendedPrice || 0 },
@@ -45,7 +48,7 @@ function PricingAnalysisModal({ addon, analysis, currency, onClose, onApply }) {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div className="glass-card rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            <div ref={dialogRef} role="dialog" aria-modal="true" className="glass-card rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold">{t('addons.aiAnalyze')}: {addon.name}</h3>
                     <button type="button" onClick={onClose} className="p-2 min-w-[44px] min-h-[44px] rounded-lg hover:bg-white/10 text-[var(--text-muted)]">✕</button>
