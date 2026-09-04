@@ -30,6 +30,7 @@ export function ViewAsBadge() {
             style={{ height: `calc(${VIEW_AS_BANNER_HEIGHT}px + env(safe-area-inset-top, 0px))`, paddingTop: 'env(safe-area-inset-top, 0px)' }}
             role="status"
             aria-live="polite"
+            data-testid="view-as-banner"
         >
             <Eye className="w-3.5 h-3.5 text-[var(--primary)] flex-shrink-0" />
             <span className="text-xs font-medium text-[var(--text)] truncate">

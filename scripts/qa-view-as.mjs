@@ -122,7 +122,7 @@ for (const { role, label, route } of ROLES) {
 
     check(`owner→${role}: не /unauthorized`, !page.url().includes('/unauthorized'), page.url())
     check(`owner→${role}: маршрут ${route}`, page.url().includes(route), page.url())
-    const banner = page.locator('[role="status"]')
+    const banner = page.locator('[data-testid="view-as-banner"]')
     check(`owner→${role}: плашка видна`, await banner.isVisible().catch(() => false))
     const body1 = await page.locator('body').innerText().catch(() => '')
     check(`owner→${role}: без «Нет доступа»`, !DENIED_RE.test(body1))
@@ -138,7 +138,7 @@ for (const { role, label, route } of ROLES) {
     // reload → режим держится
     await page.reload({ waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(3000)
-    check(`owner→${role}: после reload плашка на месте`, await page.locator('[role="status"]').isVisible().catch(() => false))
+    check(`owner→${role}: после reload плашка на месте`, await page.locator('[data-testid="view-as-banner"]').isVisible().catch(() => false))
     check(`owner→${role}: после reload не /unauthorized`, !page.url().includes('/unauthorized'), page.url())
     if (role === 'creator') {
         await page.screenshot({ path: path.join(OUT, 'persist-after-reload.png') })
@@ -151,10 +151,10 @@ for (const { role, label, route } of ROLES) {
     }
 
     // «Выйти» → назад в owner (проверяем один раз на каждой роли — дёшево)
-    await page.locator('[role="status"]').getByRole('button', { name: EXIT_RE.ru }).click()
+    await page.locator('[data-testid="view-as-banner"]').getByRole('button', { name: EXIT_RE.ru }).click()
     await page.waitForTimeout(3000)
     check(`${role}→«Выйти»: маршрут /owner`, page.url().includes('/owner'), page.url())
-    check(`${role}→«Выйти»: плашка скрыта`, !(await page.locator('[role="status"]').isVisible().catch(() => false)))
+    check(`${role}→«Выйти»: плашка скрыта`, !(await page.locator('[data-testid="view-as-banner"]').isVisible().catch(() => false)))
 
     check(`owner→${role}: консоль без error`, bag.consoleErrors.length === 0, bag.consoleErrors[0] || '')
     check(`owner→${role}: API без 401/403`, bag.apiErrors.length === 0, bag.apiErrors[0] || '')
@@ -198,7 +198,7 @@ for (const width of [360, 428, 768, 1280, 1920]) {
         await page.getByLabel(SWITCH_LABEL[lang]).click()
         await page.getByRole('button', { name: 'Creator', exact: true }).click()
         await page.waitForTimeout(3000)
-        const bannerVisible = await page.locator('[role="status"]').isVisible().catch(() => false)
+        const bannerVisible = await page.locator('[data-testid="view-as-banner"]').isVisible().catch(() => false)
         const scrollBanner = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
         check(`плашка [${width}/${lang}]: видна, без горизонтального скролла`, bannerVisible && scrollBanner <= 1, `scrollX=${scrollBanner}`)
         await page.screenshot({ path: path.join(OUT, `banner-${width}-${lang}.png`) })
