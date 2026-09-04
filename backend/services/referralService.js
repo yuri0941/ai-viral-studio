@@ -142,11 +142,12 @@ export async function markReferralPaid(userId, amount) {
 // реферала не должна начислить комиссию заново после возврата-переоплаты.
 export async function markReferralRefund(userId, amount) {
     const ref = await Referral.findOne({ userId })
-    if (!ref || !ref.referredBy || !ref.paidMarked) return null
+    if (!ref || !ref.referredBy || !ref.paidMarked || ref.refundMarked) return null
 
     const referrer = await Referral.findOne({ userId: ref.referredBy })
     if (!referrer) return null
 
+    ref.refundMarked = true
     if (Number.isFinite(amount) && amount > 0) {
         const pct = await getReferralPercent()
         referrer.referralEarnings = Math.max(0, referrer.referralEarnings - Math.ceil(amount * pct / 100))
@@ -154,6 +155,7 @@ export async function markReferralRefund(userId, amount) {
     } else {
         console.warn(`[referralService] markReferralRefund: amount missing/invalid for userId=${userId} (amount=${amount}) — отзыв пропущен`)
     }
+    await ref.save()
     return referrer
 }
 
