@@ -33,7 +33,7 @@ export function ViewAsBadge() {
             data-testid="view-as-banner"
         >
             <Eye className="w-3.5 h-3.5 text-[var(--primary)] flex-shrink-0" />
-            <span className="text-xs font-medium text-[var(--text)] truncate">
+            <span className="text-xs font-medium text-[var(--text)] truncate" title={t('header.viewAs.watching', { role: roleLabel })}>
                 {t('header.viewAs.watching', { role: roleLabel })}
             </span>
             <button
