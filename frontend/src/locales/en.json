@@ -1625,7 +1625,15 @@
     "disabledBadge": "Disabled",
     "manageAddons": "🛠 Manage Add-ons",
     "featuresLabel": "Real features (unlocked)",
-    "soonBadge": "soon"
+    "soonBadge": "soon",
+    "priceLabel": "Price",
+    "discountShort": "Discount %",
+    "costLabel": "Cost",
+    "marketAvg": "Market average",
+    "apply": "Apply",
+    "save": "Save",
+    "unsavedChanges": "Unsaved changes",
+    "emptyState": "No addons found"
   },
   "chat": {
     "serverUnavailable": "OMEGA is temporarily unavailable. Retry in 10s.",
