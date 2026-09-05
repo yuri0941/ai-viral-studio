@@ -70,9 +70,10 @@ jobs:
               run: |
                   mkdir -p .tmp-ui-polish
                   cd .tmp-ui-polish
-                  npm init -y > /dev/null
-                  npm i playwright > /dev/null
-                  npx playwright install --with-deps chromium
+                  npm init -y
+                  npm i playwright
+                  sudo npx playwright install-deps chromium
+                  npx playwright install chromium
 
             - name: QA-LAUNCH (все qa-скрипты, единая сводка)
               run: node scripts/qa-launch.mjs
