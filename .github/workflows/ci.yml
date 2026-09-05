@@ -72,7 +72,7 @@ jobs:
                   cd .tmp-ui-polish
                   npm init -y
                   npm i playwright
-                  sudo npx playwright install-deps chromium
+                  sudo env PATH="$PATH" npx playwright install-deps chromium
                   npx playwright install chromium
 
             - name: QA-LAUNCH (все qa-скрипты, единая сводка)
