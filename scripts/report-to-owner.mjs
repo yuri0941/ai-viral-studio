@@ -30,24 +30,40 @@ function loadEnvFile(file) {
 const fileEnv = loadEnvFile(path.join(ROOT, 'backend', '.env'))
 const env = (k) => process.env[k] || fileEnv[k] || ''
 
-// chat_id владельца: env → OwnerSettings.ownerTelegramChatId (Mongo), как в models/OwnerSettings.js
-async function resolveOwnerChatId() {
-  const fromEnv = env('TELEGRAM_OWNER_CHAT_ID') || env('OWNER_CHAT_ID') || env('OWNER_USER_ID')
-  if (fromEnv) return fromEnv
-  const uri = env('MONGO_URI')
-  if (!uri) return ''
-  try {
-    const { createRequire } = await import('node:module')
-    const require = createRequire(path.join(ROOT, 'backend', 'package.json'))
-    const mongoose = require('mongoose')
-    await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
-    const doc = await mongoose.connection.db.collection('ownersettings')
-      .findOne({ ownerTelegramChatId: { $nin: [null, ''] } }, { projection: { ownerTelegramChatId: 1 } })
-    await mongoose.disconnect()
-    return doc?.ownerTelegramChatId || ''
-  } catch {
-    return ''
+// Источники TG-ключей (приоритет как в aiService.getProviderKey): env → кабинет владельца
+// (коллекция apikeys: provider telegram_owner_bot / telegram_chat_id, hot-reload через ApiKeysTab).
+// chat_id дополнительно: OwnerSettings.ownerTelegramChatId. Секреты в логи не выводятся.
+async function resolveTgCredentials() {
+  let token = env('TELEGRAM_OWNER_BOT_TOKEN') || env('TELEGRAM_BOT_TOKEN')
+  let chatId = env('TELEGRAM_OWNER_CHAT_ID') || env('OWNER_CHAT_ID') || env('OWNER_USER_ID')
+  if (token && chatId) return { token, chatId }
+  const uri = env('MONGODB_URI') || env('MONGO_URI')
+  if (uri) {
+    try {
+      const { createRequire } = await import('node:module')
+      const require = createRequire(path.join(ROOT, 'backend', 'package.json'))
+      const mongoose = require('mongoose')
+      await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
+      const db = mongoose.connection.db
+      if (!token) {
+        const doc = await db.collection('apikeys').findOne(
+          { provider: 'telegram_owner_bot', isActive: { $ne: false } }, { projection: { key: 1 } })
+        token = doc?.key || ''
+      }
+      if (!chatId) {
+        const doc = await db.collection('ownersettings')
+          .findOne({ ownerTelegramChatId: { $nin: [null, ''] } }, { projection: { ownerTelegramChatId: 1 } })
+        chatId = doc?.ownerTelegramChatId || ''
+      }
+      if (!chatId) {
+        const doc = await db.collection('apikeys').findOne(
+          { provider: 'telegram_chat_id', isActive: { $ne: false } }, { projection: { key: 1 } })
+        chatId = doc?.key || ''
+      }
+      await mongoose.disconnect()
+    } catch { /* БД недоступна — останется env */ }
   }
+  return { token, chatId }
 }
 
 const git = (cmd, def = '') => {
@@ -80,11 +96,10 @@ const text = [
   `Статус: ГОТОВ К ПРОВЕРКЕ`,
 ].join('\n')
 
-const token = env('TELEGRAM_OWNER_BOT_TOKEN') || env('TELEGRAM_BOT_TOKEN')
-const chatId = await resolveOwnerChatId()
+const { token, chatId } = await resolveTgCredentials()
 
 async function send() {
-  if (!token || !chatId) throw new Error('нет TELEGRAM_OWNER_BOT_TOKEN и/или chat_id владельца (env / OwnerSettings)')
+  if (!token || !chatId) throw new Error('нет токена owner-бота и/или chat_id владельца (env / кабинет: apikeys)')
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 10000)
   try {
