@@ -4,7 +4,10 @@
 // (ключ = sha256 от owner-токена, тот же контур что и ask-owner).
 // Закрываются только тикеты с тестовыми маркерами в теме (QA/тест/test/selftest/проверка).
 // Список закрытых выводится для отчёта. Реальные клиентские обращения не трогаем.
-// Запуск: node scripts/close-test-tickets.mjs [--dry]
+// Запуск: node scripts/close-test-tickets.mjs [--dry] [--all-open]
+//   --dry      — только список
+//   --all-open — закрыть ВСЕ открытые (по приказу владельца: «11 открытых тестовых тикетов»);
+//                без флага — только с тестовыми маркерами в теме/имени
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -52,9 +55,10 @@ if (list.http !== 200) {
 }
 const open = list.json.data || []
 console.log(`Открытых обращений на проде: ${open.length}`)
-const testOnes = open.filter(t => TEST_RE.test(`${t.subject || ''} ${t.userName || ''}`))
-const realOnes = open.filter(t => !TEST_RE.test(`${t.subject || ''} ${t.userName || ''}`))
-console.log(`\nТестовые (к закрытию): ${testOnes.length}`)
+const allOpen = process.argv.includes('--all-open')
+const testOnes = allOpen ? open : open.filter(t => TEST_RE.test(`${t.subject || ''} ${t.userName || ''}`))
+const realOnes = allOpen ? [] : open.filter(t => !TEST_RE.test(`${t.subject || ''} ${t.userName || ''}`))
+console.log(`\nК закрытию${allOpen ? ' (--all-open, приказ владельца)' : ' (тестовые маркеры)'}: ${testOnes.length}`)
 for (const t of testOnes) console.log(`  #${t.id.slice(-6)} [${t.status}] ${t.subject} (${t.userName || '—'}, ${t.createdAt})`)
 console.log(`\nРеальные (НЕ трогаем): ${realOnes.length}`)
 for (const t of realOnes) console.log(`  #${t.id.slice(-6)} [${t.status}] ${t.subject} (${t.userName || '—'})`)
