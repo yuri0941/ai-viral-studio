@@ -148,7 +148,7 @@ async function tgSend() {
     body.reply_markup = { inline_keyboard: options.map((o, i) => ([{ text: o, callback_data: `bask:${qid}:${i}` }])) }
   }
   const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), 10000)
+  const timer = setTimeout(() => ctrl.abort(), 20000)
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal,
