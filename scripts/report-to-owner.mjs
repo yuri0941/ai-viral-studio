@@ -30,6 +30,26 @@ function loadEnvFile(file) {
 const fileEnv = loadEnvFile(path.join(ROOT, 'backend', '.env'))
 const env = (k) => process.env[k] || fileEnv[k] || ''
 
+// chat_id владельца: env → OwnerSettings.ownerTelegramChatId (Mongo), как в models/OwnerSettings.js
+async function resolveOwnerChatId() {
+  const fromEnv = env('TELEGRAM_OWNER_CHAT_ID') || env('OWNER_CHAT_ID') || env('OWNER_USER_ID')
+  if (fromEnv) return fromEnv
+  const uri = env('MONGO_URI')
+  if (!uri) return ''
+  try {
+    const { createRequire } = await import('node:module')
+    const require = createRequire(path.join(ROOT, 'backend', 'package.json'))
+    const mongoose = require('mongoose')
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
+    const doc = await mongoose.connection.db.collection('ownersettings')
+      .findOne({ ownerTelegramChatId: { $nin: [null, ''] } }, { projection: { ownerTelegramChatId: 1 } })
+    await mongoose.disconnect()
+    return doc?.ownerTelegramChatId || ''
+  } catch {
+    return ''
+  }
+}
+
 const git = (cmd, def = '') => {
   try { return execSync(cmd, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() } catch { return def }
 }
@@ -61,7 +81,7 @@ const text = [
 ].join('\n')
 
 const token = env('TELEGRAM_OWNER_BOT_TOKEN') || env('TELEGRAM_BOT_TOKEN')
-const chatId = env('TELEGRAM_OWNER_CHAT_ID') || env('OWNER_CHAT_ID') || env('OWNER_USER_ID')
+const chatId = await resolveOwnerChatId()
 
 async function send() {
   if (!token || !chatId) throw new Error('нет TELEGRAM_OWNER_BOT_TOKEN/TELEGRAM_OWNER_CHAT_ID в env')
