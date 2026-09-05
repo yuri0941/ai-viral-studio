@@ -1,5 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api'
 import { getTgWebhookSecret } from '../utils/tgWebhookSecret.js' // [security-hardening Б5-З2.1]
+import { isProdWebhookHost, getBotBaseUrl } from '../utils/tgWebhookGuard.js' // [TG-ASK-OWNER ЗАДАЧА 0]
 import { getOwnerChatId, getOwnerChatIdSync } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
 import fs from 'fs'
 import { wrapBotHtmlSending } from '../utils/telegramHtml.js'
@@ -391,7 +392,10 @@ export const initOmegaBot = () => {
   global.omegaBot = bot
   console.log('[OMEGA-BOT] Created, preparing webhook')
 
-  bot.deleteWebhook({ drop_pending_updates: true }).catch(() => {})
+  // [TG-ASK-OWNER ЗАДАЧА 0] не прод-хост webhook не трогает (даже deleteWebhook)
+  if (isProdWebhookHost()) {
+    bot.deleteWebhook({ drop_pending_updates: true }).catch(() => {})
+  }
 
   updateBotMenu()
 
@@ -1072,7 +1076,7 @@ export const initOmegaBot = () => {
   })
 
   // [WEBHOOK-2026-08-05] set webhook instead of polling to avoid 409 conflicts
-  const WEBHOOK_URL = (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com') + '/webhook/omega'
+  const WEBHOOK_URL = getBotBaseUrl() + '/webhook/omega'
 
   async function trySetWebhook(attempt = 1) {
     try {
@@ -1117,7 +1121,12 @@ export const initOmegaBot = () => {
     }).catch(() => {})
   }
 
-  trySetWebhook()
+  // [TG-ASK-OWNER ЗАДАЧА 0] только прод-хост управляет webhook; локально — пропуск без polling
+  if (isProdWebhookHost()) {
+    trySetWebhook()
+  } else {
+    console.log('[OMEGA-BOT] не прод-хост (RENDER_EXTERNAL_URL ≠ PROD_BACKEND_URL) — webhook не трогаю, polling не включаю: бот живёт на проде')
+  }
   })().catch(e => {
     console.error('[OMEGA-BOT] init error:', e.message)
   })
