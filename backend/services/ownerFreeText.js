@@ -87,6 +87,10 @@ export async function buildOwnerAnswer(question) {
   ].join('\n')
   const system = 'Ты — личный ассистент ВЛАДЕЛЬЦА проекта AI Viral Studio (не клиентская витрина). Отвечай по-русски, кратко (до 6 строк), только по данным из снапшота ниже. Никаких маркетинговых текстов и списков клиентских фич. Если данных нет — честно скажи «нет данных». Без markdown-звёздочек.'
   const ai = await chatWithAI(`Вопрос владельца: «${String(question).slice(0, 300)}»\n\nСнапшот реальных данных:\n${snapshot}`, [], 'ru', { system, maxTokens: 400, temperature: 0.3 })
+  // [антигаллюцинации] smart-fallback — шаблонная клиентская витрина, владельцу не показываем
+  if (!ai || ai.provider === 'smart-fallback' || ai.source === 'template') {
+    return `👑 <b>По проекту</b>\n\nAI-провайдеры недоступны — точного ответа нет (не выдумываю). Факты:\n${snapshot}`
+  }
   const out = extractText(ai).replace(/\*\*/g, '').trim()
   return out ? `👑 <b>По проекту</b>\n\n${out.slice(0, 900)}` : '👑 Нет данных для ответа — снапшот пуст, AI молчит.'
 }
