@@ -27,6 +27,8 @@ import { analyzePricing, marginAfter } from './pricingAnalysis.js'
 import { getOwnerChatId, getOwnerChatIdSync } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
 import { OWNER_BOT_USERNAME, CHANNEL_USERNAME, CLIENT_BOT_USERNAME, OWNER_TELEGRAM_USERNAME, OWNER_NAME } from '../config/bots.js'
 import { handleBatchCallback, handleBatchRejectReason } from './batchReport.js' // [TG-REPORT-HOOK]
+import { handleAskCallback, handleAskFreeText } from './askOwner.js' // [TG-ASK-OWNER]
+import { isProdWebhookHost, getBotBaseUrl } from '../utils/tgWebhookGuard.js' // [TG-ASK-OWNER ЗАДАЧА 0]
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -926,6 +928,9 @@ export const initOwnerBot = () => {
     // [TG-REPORT-HOOK] текст владельца после ❌ Отклонить = причина отклонения батча
     if (handleBatchRejectReason({ chatId, text, safeSendMessage })) return
 
+    // [TG-ASK-OWNER] свободный текст = ответ на pending-вопрос кодера (только режим «ответь текстом»)
+    if (await handleAskFreeText({ chatId, text, safeSendMessage })) return
+
     // [P2.1] owner правит базу знаний прямо из TG: «добавь в FAQ: вопрос | ответ | ключ1,ключ2»
     if (/^добавь в faq\s*:/i.test(text.trim())) {
       const raw = text.replace(/^добавь в faq\s*:\s*/i, '')
@@ -1169,6 +1174,12 @@ export const initOwnerBot = () => {
     // [TG-REPORT-HOOK] кнопки батч-отчёта: ✅ approve (CI→merge) / ❌ reject (причина)
     if (data === 'breport:approve' || data === 'breport:reject') {
       await handleBatchCallback({ q, chatId, safeSendMessage })
+      return
+    }
+
+    // [TG-ASK-OWNER] кнопки вопросов кодера (bask:<qid>:<idx>): ответ → Mongo, скрипт ask-owner.mjs поллит
+    if (data.startsWith('bask:')) {
+      await handleAskCallback({ q, chatId, safeSendMessage })
       return
     }
 
@@ -1572,7 +1583,10 @@ export const initOwnerBot = () => {
   })
 
   // [WEBHOOK-2026-08-05] set webhook instead of polling to avoid 409 conflicts
-  const WEBHOOK_URL = (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com') + '/webhook/owner'
+  // [TG-ASK-OWNER ЗАДАЧА 0] локальный запуск webhook НЕ трогает: иначе перезапись без
+  // secret_token → прод отклоняет команды владельца (403). Только прод-хост управляет webhook.
+  if (isProdWebhookHost()) {
+  const WEBHOOK_URL = getBotBaseUrl() + '/webhook/owner'
   bot.deleteWebhook({ drop_pending_updates: true }).catch(() => {}).then(() => {
     // [security-hardening Б5-З2.1] secret_token — чужие запросы отсекаются на приёме (403)
     const secret = getTgWebhookSecret()
@@ -1584,6 +1598,9 @@ export const initOwnerBot = () => {
     bot.stopPolling?.()
     bot.startPolling?.()
   })
+  } else {
+    console.log('[OWNER-BOT] не прод-хост (RENDER_EXTERNAL_URL ≠ PROD_BACKEND_URL) — webhook не трогаю, polling не включаю: бот живёт на проде')
+  }
   })().catch(e => {
     console.error('[OWNER-BOT] init error:', e.message)
   })

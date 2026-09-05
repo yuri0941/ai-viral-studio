@@ -5,8 +5,7 @@
 // env остаётся fallback: если ключ в кабинете не задан, боты стартуют на env (config/bots.js).
 
 import { getTgWebhookSecret } from '../utils/tgWebhookSecret.js' // [security-hardening Б5-З2.1]
-
-const BASE_URL = () => (process.env.RENDER_EXTERNAL_URL || 'https://aiviral-backend.onrender.com')
+import { isProdWebhookHost, getBotBaseUrl } from '../utils/tgWebhookGuard.js' // [TG-ASK-OWNER ЗАДАЧА 0]
 
 const KINDS = {
     telegram_bot: { webhook: '/webhook/omega', label: 'client' },
@@ -37,7 +36,12 @@ export async function reloadBotToken(kind, newToken) {
     if (!me.ok) return { ok: false, reason: 'invalid_token', message: `Telegram отклонил токен: ${me.description || 'unauthorized'}` }
 
     instance.token = token
-    const url = `${BASE_URL()}${cfg.webhook}`
+    // [TG-ASK-OWNER ЗАДАЧА 0] не прод-хост webhook не переустанавливает — прод-бот продолжает работать
+    if (!isProdWebhookHost()) {
+        console.log(`[BOT-RELOAD] ${kind}: не прод-хост — webhook не переустанавливаю (токен применён локально)`)
+        return { ok: true, webhookSkipped: true, botUsername: me.result?.username, message: `Бот @${me.result?.username} переподключён (webhook не трогали: не прод-хост)` }
+    }
+    const url = `${getBotBaseUrl()}${cfg.webhook}`
     try {
         await instance.deleteWebhook({ drop_pending_updates: false })
         // [security-hardening Б5-З2.1] переустановка webhook с тем же secret_token, иначе приём начнёт отдавать 403
