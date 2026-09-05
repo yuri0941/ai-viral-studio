@@ -18,7 +18,7 @@ import { detectIntent } from '../ai/omega/intentEngine.js'
 import { executeAction } from '../ai/omega/actionEngine.js'
 import { recordOutcome } from '../ai/omega/learningEngine.js'
 import { ROLE_INSTRUCTIONS } from '../ai/omega/contextEngine.js'
-import { submitOwnerCommand, getCommandsLog } from './commandExecutor.js'
+import { getCommandsLog } from './commandExecutor.js'
 import { wrapBotHtmlSending } from '../utils/telegramHtml.js'
 import PlanConfig from '../models/PlanConfig.js'
 import AdPricing from '../models/AdPricing.js'
@@ -943,7 +943,7 @@ export const initOwnerBot = () => {
     if (await handleAskFreeText({ chatId, text, safeSendMessage })) return
 
     // [TG-OWNER-CONTEXT] свободный текст владельца → владельческий контур (сводка/ответ по реальным данным),
-    // НЕ клиентская витрина; команды (пост/изучи/сделай…) не перехватываются — уходят в submitOwnerCommand
+    // НЕ клиентская витрина; задачи (сделай/найди/…) сюда не перехватываются — уходят в превью-гейт ниже
     if (await handleOwnerFreeText({ chatId, text, safeSendMessage })) return
 
     // [P2.1] owner правит базу знаний прямо из TG: «добавь в FAQ: вопрос | ответ | ключ1,ключ2»
@@ -1690,7 +1690,11 @@ export const sendOwnerAlert = async (message, typeOrOptions = 'info', options = 
   }
 
   const ownerChatId = await getOwnerChatId()
-  if (!bot || !ownerChatId) return
+  // [BOTS-FIX] пуш о тикете не должен умирать молча — логируем обрыв цепочки
+  if (!bot || !ownerChatId) {
+    if (type === 'ticket') console.warn(`[OWNER-BOT] ticket alert NOT sent: bot=${bot ? 'ok' : 'null'} ownerChatId=${ownerChatId || 'null'}`)
+    return
+  }
   // [SUPPORT-PUSH-FIX] push о тикете — без cooldown, иначе повторные обращения не дойдут
   if (type !== 'ticket' && !shouldSendAlert(type)) return
   let text
@@ -1700,7 +1704,9 @@ export const sendOwnerAlert = async (message, typeOrOptions = 'info', options = 
     const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '🚨', payment: '💰', newuser: '👤' }
     text = `${icons[type] || 'ℹ️'} <b>AI Viral Studio Alert</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU')}</i>`
   }
-  try { await safeSendMessage(ownerChatId, text, { parse_mode: 'HTML', ...options }) } catch (e) {}
+  try { await safeSendMessage(ownerChatId, text, { parse_mode: 'HTML', ...options }) } catch (e) {
+    console.error('[OWNER-BOT] alert send failed:', e.message)
+  }
 }
 
 // [MASTER-v5.6-FINAL] Alias for paymentController compatibility
