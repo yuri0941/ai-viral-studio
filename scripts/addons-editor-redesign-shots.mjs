@@ -110,8 +110,8 @@ try {
     await page.waitForTimeout(400)
     await shot(page, '02-editor-dirty-1280-ru')
 
-    // AI-панель: «AI Анализ цены» → панель себестоимость/рынок/рекомендация + «Применить»
-    const aiBtn = page.locator('button', { hasText: /AI Анализ цены/i }).first()
+    // AI-панель: «Ω Анализ цены» → панель себестоимость/рынок/рекомендация + «Применить»
+    const aiBtn = page.locator('button', { hasText: /Анализ цены|Price analysis/i }).first()
     if (await aiBtn.count()) {
         await aiBtn.click()
         await page.waitForTimeout(8000)
