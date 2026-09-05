@@ -161,10 +161,10 @@ step('welcome-чипы OMEGA видны', chipVisible)
 if (chipVisible) {
   const chipText = await chip.innerText()
   await chip.click()
-  // ждём ответ OMEGA (реальный AI, до 60с)
+  // ждём ответ OMEGA (реальный AI; в CI без прямых AI-ключей ответ медленнее — до 120с)
   const before = await page.evaluate(() => document.body.innerText.length)
   let answered = false
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 60; i++) {
     await page.waitForTimeout(2000)
     const now = await page.evaluate(() => document.body.innerText.length)
     if (now > before + 80) { answered = true; break }
