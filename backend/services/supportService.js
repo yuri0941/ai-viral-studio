@@ -241,6 +241,22 @@ export async function replyToTicket(ticketId, sender, text, options = {}) {
           { upsert: true }
         )
       } catch (e) { console.warn('[supportService] dialogue persist failed:', e.message) }
+      // [BOTS-FIX] авто-закрытие после ответа оператора: клиент возвращается в обычный режим.
+      // Ручной takeover (владелец ведёт диалог) НЕ трогаем — там свои кнопки «Вернуть боту»/«Закрыть».
+      if (!ticket.takeoverBy) {
+        try {
+          ticket.status = 'resolved'
+          ticket.closedAt = new Date()
+          ticket.updatedAt = new Date()
+          await ticket.save()
+          global.omegaSupportState?.delete(String(ticket.telegramChatId))
+          await sendClientMessage(
+            ticket.telegramChatId,
+            `✅ <b>Обращение #${ticket._id.toString().slice(-6)} закрыто.</b>\nЕсли вопрос остался — просто напишите ещё раз.`,
+            { parse_mode: 'HTML' }
+          )
+        } catch (e) { console.warn('[supportService] auto-close after operator reply failed:', e.message) }
+      }
     } catch (e) {
       console.warn('[supportService] telegram reply failed:', e.message)
     }

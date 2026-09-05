@@ -18,7 +18,7 @@ import { detectIntent } from '../ai/omega/intentEngine.js'
 import { executeAction } from '../ai/omega/actionEngine.js'
 import { recordOutcome } from '../ai/omega/learningEngine.js'
 import { ROLE_INSTRUCTIONS } from '../ai/omega/contextEngine.js'
-import { submitOwnerCommand, getCommandsLog } from './commandExecutor.js'
+import { getCommandsLog } from './commandExecutor.js'
 import { wrapBotHtmlSending } from '../utils/telegramHtml.js'
 import PlanConfig from '../models/PlanConfig.js'
 import AdPricing from '../models/AdPricing.js'
@@ -28,6 +28,8 @@ import { getOwnerChatId, getOwnerChatIdSync } from '../models/OwnerSettings.js' 
 import { OWNER_BOT_USERNAME, CHANNEL_USERNAME, CLIENT_BOT_USERNAME, OWNER_TELEGRAM_USERNAME, OWNER_NAME } from '../config/bots.js'
 import { handleBatchCallback, handleBatchRejectReason } from './batchReport.js' // [TG-REPORT-HOOK]
 import { handleAskCallback, handleAskFreeText } from './askOwner.js' // [TG-ASK-OWNER]
+import { handleOwnerFreeText } from './ownerFreeText.js' // [TG-OWNER-CONTEXT]
+import { proposeOwnerTask, handleOwnerTaskCallback } from './ownerTaskPreview.js' // [BOTS-FIX] превью-гейт задач Омеге
 import { isProdWebhookHost, getBotBaseUrl } from '../utils/tgWebhookGuard.js' // [TG-ASK-OWNER ЗАДАЧА 0]
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
@@ -112,6 +114,18 @@ function safeSendMessage(chatId, data, options = {}) {
   text = markdownToHtml(text)
   if (text.length > 4000) text = text.slice(0, 4000) + '...'
   return bot.sendMessage(chatId, text, { parse_mode: 'HTML', disable_web_page_preview: true, ...options })
+}
+
+// [BOTS-FIX ЗАДАЧА 4] меню не-владельцу: голый bot.sendMessage без catch ронял процесс при сетевой ошибке
+export async function sendNotOwnerMenu(botLike, chatId) {
+  try {
+    await botLike.sendMessage(chatId, '👋 <b>AI Viral Studio</b>\n\nСвяжитесь с владельцем через сайт:', {
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [[{ text: '🌐 aiviral-studio.ru', url: 'https://aiviral-studio.ru' }]] }
+    })
+  } catch (e) {
+    console.warn('[OWNER-BOT] not-owner menu send failed:', e.message)
+  }
 }
 
 // [v9.9.19.6] typing effect before AI-heavy replies
@@ -899,10 +913,7 @@ export const initOwnerBot = () => {
 
     // Not owner → simple menu
     if (!context?.isOwner) {
-      bot.sendMessage(chatId, '👋 <b>AI Viral Studio</b>\n\nСвяжитесь с владельцем через сайт:', {
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard: [[{ text: '🌐 aiviral-studio.ru', url: 'https://aiviral-studio.ru' }]] }
-      });
+      await sendNotOwnerMenu(bot, chatId); // [BOTS-FIX] с catch внутри — не роняем процесс
       return;
     }
 
@@ -930,6 +941,10 @@ export const initOwnerBot = () => {
 
     // [TG-ASK-OWNER] свободный текст = ответ на pending-вопрос кодера (только режим «ответь текстом»)
     if (await handleAskFreeText({ chatId, text, safeSendMessage })) return
+
+    // [TG-OWNER-CONTEXT] свободный текст владельца → владельческий контур (сводка/ответ по реальным данным),
+    // НЕ клиентская витрина; задачи (сделай/найди/…) сюда не перехватываются — уходят в превью-гейт ниже
+    if (await handleOwnerFreeText({ chatId, text, safeSendMessage })) return
 
     // [P2.1] owner правит базу знаний прямо из TG: «добавь в FAQ: вопрос | ответ | ключ1,ключ2»
     if (/^добавь в faq\s*:/i.test(text.trim())) {
@@ -1144,13 +1159,15 @@ export const initOwnerBot = () => {
     const handled = await handlePricingCommand(chatId, text).catch(() => false)
     if (handled) return
 
-    // [v9.9.19.6] ЛЮБОЕ сообщение владельца → очередь команд: мгновенный акцепт → выполнение → отчёт с verification.
-    // В CHAT без попытки выполнения — никогда (универсальный исполнитель разбирает любой запрос).
+    // [BOTS-FIX] ИЗОЛЯЦИЯ owner-контура: свободный текст владельца НЕ уходит в очередь задач
+    // напрямую (инцидент 2026-09-05: жалоба «Не работают кнопки» → очередь → пост в канал без
+    // команды). Сюда доходят только тексты, не перехваченные контурами выше (вопросы о проекте
+    // забрал ownerFreeText) → превью задачи «Выполнить? ✅/❌», очередь — только по кнопке.
     try {
-      await submitOwnerCommand({ chatId, text, bot });
+      await proposeOwnerTask({ chatId, text, safeSendMessage });
     } catch (e) {
-      console.error('[OWNER-BOT] command submit error:', e.message);
-      bot.sendMessage(chatId, '⚠️ <b>OMEGA</b> временно недоступна.\nПопробуйте позже.', { parse_mode: 'HTML' });
+      console.error('[OWNER-BOT] task preview error:', e.message);
+      bot.sendMessage(chatId, '⚠️ <b>OMEGA</b> временно недоступна.\nПопробуйте позже.', { parse_mode: 'HTML' }).catch(() => {});
     }
   });
 
@@ -1180,6 +1197,15 @@ export const initOwnerBot = () => {
     // [TG-ASK-OWNER] кнопки вопросов кодера (bask:<qid>:<idx>): ответ → Mongo, скрипт ask-owner.mjs поллит
     if (data.startsWith('bask:')) {
       await handleAskCallback({ q, chatId, safeSendMessage })
+      return
+    }
+
+    // [BOTS-FIX] превью-гейт задач Омеге: ✅ — в очередь, ❌ — отмена (только здесь submitOwnerCommand)
+    if (data === 'otask:run' || data === 'otask:cancel') {
+      await handleOwnerTaskCallback({ chatId, data, safeSendMessage, bot }).catch(e => {
+        console.error('[OWNER-BOT] otask callback failed:', e.message)
+        safeSendMessage(chatId, `⚠️ Не удалось обработать задачу: ${e.message}`).catch(() => {})
+      })
       return
     }
 
@@ -1236,6 +1262,8 @@ export const initOwnerBot = () => {
           }
         }
         global.ownerTakeovers?.delete(String(chatId))
+        // [BOTS-FIX] клиент выходит из ветки поддержки — диалог снова ведёт бот в обычном режиме
+        if (ticket?.telegramChatId) global.omegaSupportState?.delete(String(ticket.telegramChatId))
         safeSendMessage(chatId, `🤖 Диалог по тикету #${ticketId.slice(-6)} возвращён боту (контекст сохранён).`)
       } catch (e) {
         safeSendMessage(chatId, `⚠️ Ошибка возврата боту: ${e.message}`)
@@ -1260,6 +1288,8 @@ export const initOwnerBot = () => {
         const { addMessage } = await import('./supportService.js')
         await addMessage(ticketId, 'system', `✅ Обращение #${ticketId.slice(-6)} закрыто.`)
         invalidateTakeoverCache(ticket.telegramChatId)
+        // [BOTS-FIX] клиент выходит из ветки поддержки — следующие сообщения идут в обычный AI-поток
+        if (ticket.telegramChatId) global.omegaSupportState?.delete(String(ticket.telegramChatId))
         safeSendMessage(chatId, `✅ Тикет #${ticketId.slice(-6)} закрыт.`)
         if (ticket.telegramChatId) {
           await sendClientMessage(ticket.telegramChatId, `✅ <b>Обращение #${ticketId.slice(-6)} закрыто</b>\nСпасибо за обращение!`, { parse_mode: 'HTML' })
@@ -1664,7 +1694,11 @@ export const sendOwnerAlert = async (message, typeOrOptions = 'info', options = 
   }
 
   const ownerChatId = await getOwnerChatId()
-  if (!bot || !ownerChatId) return
+  // [BOTS-FIX] пуш о тикете не должен умирать молча — логируем обрыв цепочки
+  if (!bot || !ownerChatId) {
+    if (type === 'ticket') console.warn(`[OWNER-BOT] ticket alert NOT sent: bot=${bot ? 'ok' : 'null'} ownerChatId=${ownerChatId || 'null'}`)
+    return
+  }
   // [SUPPORT-PUSH-FIX] push о тикете — без cooldown, иначе повторные обращения не дойдут
   if (type !== 'ticket' && !shouldSendAlert(type)) return
   let text
@@ -1674,7 +1708,9 @@ export const sendOwnerAlert = async (message, typeOrOptions = 'info', options = 
     const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '🚨', payment: '💰', newuser: '👤' }
     text = `${icons[type] || 'ℹ️'} <b>AI Viral Studio Alert</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU')}</i>`
   }
-  try { await safeSendMessage(ownerChatId, text, { parse_mode: 'HTML', ...options }) } catch (e) {}
+  try { await safeSendMessage(ownerChatId, text, { parse_mode: 'HTML', ...options }) } catch (e) {
+    console.error('[OWNER-BOT] alert send failed:', e.message)
+  }
 }
 
 // [MASTER-v5.6-FINAL] Alias for paymentController compatibility

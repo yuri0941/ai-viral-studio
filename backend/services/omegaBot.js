@@ -402,6 +402,8 @@ export const initOmegaBot = () => {
   bot.onText(/\/start(?:\s+(\S+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
     const startParam = match?.[1];
+    // [BOTS-FIX] /start выходит из ветки поддержки: команды работают ВСЕГДА, «тикетного плена» нет
+    supportState.delete(chatId)
 
     // [v9.9.19.7-SOCIAL-CONNECT-RESILIENT] deep-link привязка: ${clientBotUrl()}?start=connect_<token>
     if (startParam && /^connect_[a-f0-9]{24}$/i.test(startParam)) {
@@ -450,7 +452,12 @@ export const initOmegaBot = () => {
         await ticket.save();
         const { addMessage } = await import('./supportService.js');
         await addMessage(ticketId, 'system', 'Диалог продолжен в Telegram');
-        bot.sendMessage(chatId, `💬 <b>Обращение #${ticketId.slice(-6)} продолжается здесь</b>\n━━━━━━━━━━━━━━\nТема: ${ticket.subject}\n\nПишите — я отвечу, а специалист уже видит этот диалог. Ответ придёт в этот чат.${slaHonestNote()}`, { parse_mode: 'HTML' });
+        // [BOTS-FIX] deep-link «Продолжить в Telegram» = вход в ветку поддержки: реплики идут в тикет
+        supportState.set(chatId, { ticketId: String(ticket._id), since: Date.now() });
+        bot.sendMessage(chatId, `💬 <b>Обращение #${ticketId.slice(-6)} продолжается здесь</b>\n━━━━━━━━━━━━━━\nТема: ${ticket.subject}\n\nПишите — я отвечу, а специалист уже видит этот диалог. Ответ придёт в этот чат.${slaHonestNote()}`, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: [[{ text: '❌ Закрыть обращение', callback_data: 'support:close' }]] }
+        });
         return;
       } catch (e) {
         console.error('[OMEGA-BOT] start support-link error:', e.message);
@@ -733,52 +740,85 @@ export const initOmegaBot = () => {
       }
     }
 
-    // Support ticket flow for non-owners
+    // Support ticket flow for non-owners — ТОЛЬКО в ветке поддержки (после кнопки «Поддержка»,
+    // deep-link support_ или «👤 Человек»). [BOTS-FIX] «Тикетного плена» больше нет: вне ветки
+    // обычные сообщения идут в живой AI-ответ, открытый тикет их молча не поглощает.
+    // Выход из ветки: кнопка «Закрыть обращение», /start, авто-закрытие 24ч без активности.
     if (!owner && supportState.get(chatId)) {
       bot.sendChatAction(chatId, 'typing')
       try {
-        const ticket = await createTicket({
-          userEmail: `tg_${chatId}@aiviral-studio.ru`,
-          userName: msg.chat.username || msg.chat.first_name || `Telegram ${chatId}`,
-          subject: 'Telegram Support',
-          description: text,
-          telegramChatId: String(chatId),
-          source: 'telegram'
-        })
-        let reply = `🎫 <b>Обращение #${ticket._id.toString().slice(-6)} создано</b>\n`
-        if (ticket.aiSuggestion && ticket.status === 'ai_handled') {
-          reply += `💡 <b>OMEGA совет:</b>\n${markdownToHtml(ticket.aiSuggestion)}\n\nПомогло?`
-          bot.sendMessage(chatId, reply, {
-            parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '👍 Помогло', callback_data: `ticket:${ticket._id}:resolve` },
-                 { text: '👎 Нет', callback_data: `ticket:${ticket._id}:escalate` }]
-              ]
-            }
+        const state = supportState.get(chatId) || {}
+        if (state.ticketId) {
+          // Продолжение существующего обращения → дописываем в тикет
+          const { default: SupportTicket } = await import('../models/SupportTicket.js')
+          const ticket = await SupportTicket.findOne({
+            _id: state.ticketId,
+            status: { $in: ['open', 'needs_owner', 'in_progress', 'ai_handled'] }
           })
+          if (ticket && Date.now() - new Date(ticket.updatedAt).getTime() > 24 * 3600 * 1000) {
+            // авто-закрытие: 24ч без активности → закрываем, выходим из ветки, сообщение — в обычный поток
+            await SupportTicket.findByIdAndUpdate(ticket._id, {
+              status: 'resolved', resolution: 'Авто-закрытие: 24ч без активности', closedAt: new Date(), updatedAt: new Date()
+            })
+            supportState.delete(chatId)
+            safeSendMessage(chatId, `⌛️ Обращение #${ticket._id.toString().slice(-6)} закрыто (24ч без активности). Вы в обычном режиме — чем помочь?`, { parse_mode: 'HTML' })
+          } else if (ticket) {
+            const { addMessage } = await import('./supportService.js')
+            await addMessage(ticket._id, 'client', text.slice(0, 2000))
+            safeSendMessage(chatId, `✅ Сообщение добавлено к обращению #${ticket._id.toString().slice(-6)}. Специалист увидит его в этом чате.`, {
+              parse_mode: 'HTML',
+              reply_markup: { inline_keyboard: [[{ text: '❌ Закрыть обращение', callback_data: 'support:close' }]] }
+            })
+            return
+          } else {
+            // тикет уже закрыт оператором/владельцем — выходим из ветки, сообщение идёт в обычный поток
+            supportState.delete(chatId)
+          }
         } else {
-          reply += `⏳ Передаю оператору. Ожидайте...`
-          bot.sendMessage(chatId, reply + slaHonestNote(), { parse_mode: 'HTML' })
+          // Первое сообщение ветки поддержки → создаём обращение
+          const ticket = await createTicket({
+            userEmail: `tg_${chatId}@aiviral-studio.ru`,
+            userName: msg.chat.username || msg.chat.first_name || `Telegram ${chatId}`,
+            subject: 'Telegram Support',
+            description: text,
+            telegramChatId: String(chatId),
+            source: 'telegram'
+          })
+          // [BOTS-FIX] остаёмся в ветке: следующие сообщения клиента дописываются в этот тикет
+          supportState.set(chatId, { ticketId: String(ticket._id), since: Date.now() })
+          const closeBtn = { text: '❌ Закрыть обращение', callback_data: 'support:close' }
+          let reply = `🎫 <b>Обращение #${ticket._id.toString().slice(-6)} создано</b>\n`
+          if (ticket.aiSuggestion && ticket.status === 'ai_handled') {
+            reply += `💡 <b>OMEGA совет:</b>\n${markdownToHtml(ticket.aiSuggestion)}\n\nПомогло?`
+            bot.sendMessage(chatId, reply, {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '👍 Помогло', callback_data: `ticket:${ticket._id}:resolve` },
+                   { text: '👎 Нет', callback_data: `ticket:${ticket._id}:escalate` }],
+                  [closeBtn]
+                ]
+              }
+            })
+          } else {
+            reply += `⏳ Передаю оператору. Ожидайте...`
+            bot.sendMessage(chatId, reply + slaHonestNote(), {
+              parse_mode: 'HTML',
+              reply_markup: { inline_keyboard: [[closeBtn]] }
+            })
+          }
+          return
         }
-        supportState.delete(chatId)
       } catch (err) {
         console.error('[OMEGA-BOT] support ticket failed:', err.message)
         safeSendMessage(chatId, '⚠️ Не удалось создать обращение. Попробуйте позже.', { parse_mode: 'HTML' })
+        return
       }
-      return
+      // Ветка закрылась по таймауту/внешне — сообщение клиента продолжается по обычному потоку ниже
     }
 
-    // [SUPPORT-PUSH-FIX] если у клиента уже есть открытый тикет — новые сообщения идут в него, AI молчит
-    if (!owner) {
-      try {
-        const openTicket = await appendToOpenTicket(chatId, text)
-        if (openTicket && openTicket.status !== 'ai_handled') {
-          safeSendMessage(chatId, `✅ Сообщение добавлено к обращению #${openTicket._id.toString().slice(-6)}. Специалист увидит его в этом чате.`, { parse_mode: 'HTML' })
-          return
-        }
-      } catch (e) { console.warn('[OMEGA-BOT] append to open ticket failed:', e.message) }
-    }
+    // [BOTS-FIX] «тикетный плен» удалён: открытый тикет сам по себе НЕ перехватывает сообщения.
+    // Дописывание в тикет — только в ветке поддержки (блок выше).
 
     // [v9.9.5-TELEGRAM-UNIFIED] client video topic collection
     if (!owner && videoState.get(chatId)?.step === 'awaiting_topic') {
@@ -890,8 +930,32 @@ export const initOmegaBot = () => {
 
     // [v9.9.2-MASTER-FIX] unified support callbacks (work for everyone)
     if (data === 'support:start') {
-      supportState.set(chatId, true)
+      supportState.set(chatId, { since: Date.now() })
       bot.sendMessage(chatId, `💬 <b>Поддержка</b>\nОпишите проблему одним сообщением. OMEGA ответит или передаст оператору.${slaHonestNote()}`, { parse_mode: 'HTML' })
+      return
+    }
+
+    // [BOTS-FIX] «Закрыть обращение» — выход из ветки поддержки в обычный режим
+    if (data === 'support:close') {
+      supportState.delete(chatId)
+      try {
+        const { default: SupportTicket } = await import('../models/SupportTicket.js')
+        const t = await SupportTicket.findOne({
+          telegramChatId: String(chatId),
+          status: { $in: ['open', 'needs_owner', 'in_progress', 'ai_handled'] }
+        }).sort({ updatedAt: -1 })
+        if (t) {
+          await SupportTicket.findByIdAndUpdate(t._id, {
+            status: 'resolved', resolution: 'Закрыто клиентом из бота', closedAt: new Date(), updatedAt: new Date()
+          })
+          bot.sendMessage(chatId, `✅ Обращение #${t._id.toString().slice(-6)} закрыто. Оцените, пожалуйста, помощь (1–5):`, {
+            reply_markup: { inline_keyboard: [[1, 2, 3, 4, 5].map(n => ({ text: String(n), callback_data: `csat:${t._id}:${n}` }))] }
+          })
+        }
+      } catch (e) { console.warn('[OMEGA-BOT] support:close failed:', e.message) }
+      bot.sendMessage(chatId, 'Вы в обычном режиме — чем помочь?', {
+        reply_markup: { inline_keyboard: [[{ text: '📋 Меню', callback_data: 'menu:main' }]] }
+      })
       return
     }
 
@@ -975,7 +1039,12 @@ export const initOmegaBot = () => {
           telegramChatId: String(chatId),
           source: 'telegram'
         })
-        bot.sendMessage(chatId, `👤 <b>Записал ваш запрос</b>\n━━━━━━━━━━━━━━\nЯ AI-ассистент OMEGA — специалист подключится к диалогу здесь, в Telegram. Номер обращения: #${ticket._id.toString().slice(-6)}. Повторять не придётся.${slaHonestNote()}`, { parse_mode: 'HTML' })
+        bot.sendMessage(chatId, `👤 <b>Записал ваш запрос</b>\n━━━━━━━━━━━━━━\nЯ AI-ассистент OMEGA — специалист подключится к диалогу здесь, в Telegram. Номер обращения: #${ticket._id.toString().slice(-6)}. Повторять не придётся.${slaHonestNote()}`, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: [[{ text: '❌ Закрыть обращение', callback_data: 'support:close' }]] }
+        })
+        // [BOTS-FIX] «👤 Человек» = вход в ветку поддержки: следующие сообщения идут в этот тикет
+        supportState.set(chatId, { ticketId: String(ticket._id), since: Date.now() })
       } catch (e) {
         console.error('[OMEGA-BOT] guide:human ticket failed:', e.message)
         bot.sendMessage(chatId, '⚠️ Не удалось создать обращение. Напишите ваш вопрос текстом — я передам специалисту.', { parse_mode: 'HTML' })

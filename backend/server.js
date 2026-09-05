@@ -119,6 +119,7 @@ import adRoutes from './routes/ads.js'  // [v6.6] Advertiser ads API
 import creatorRoutes from './routes/creator.js'  // [v6.6-PART2] Creator analytics
 import versionRoutes from './routes/version.js'  // [v6.5.5] added: version API
 import supportRoutes from './routes/support.js'  // [v9.9.2-MASTER-FIX] unified support tickets
+import askOwnerApiRoutes from './routes/askOwnerApi.js'  // [BOTS-FIX] ask-owner через прод-БД + закрытие тест-тикетов
 import channelRoutes from './routes/channel.js'  // [v9.9.5-TELEGRAM-UNIFIED]
 import adOrderRoutes from './routes/adOrders.js'  // [v9.9.5-TELEGRAM-UNIFIED]
 import discountRoutes from './routes/discounts.js'  // [v9.9.5-TELEGRAM-UNIFIED]
@@ -582,6 +583,7 @@ app.use('/api/scheduler', schedulerRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/user', userRoutes)  // [v9.9.19-MASTER-AUDIT] alias: /api/user/telegram-status для клиентского Telegram Connect
 app.use('/api/support', supportRoutes)  // [v9.9.2-MASTER-FIX] unified support tickets
+app.use('/api/ask-owner', askOwnerApiRoutes)  // [BOTS-FIX] ask-owner через прод-БД (единая БД с webhook-обработчиком)
 app.use('/api/channel', channelRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]
 app.use('/api/ad-orders', adOrderRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]
 app.use('/api/discounts', discountRoutes)  // [v9.9.5-TELEGRAM-UNIFIED]

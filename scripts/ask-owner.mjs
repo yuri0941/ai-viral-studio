@@ -115,7 +115,24 @@ if (defaultRaw && !defaultAnswer) {
 }
 
 const qid = crypto.randomBytes(6).toString('hex')
-const expiresAt = new Date(Date.now() + timeoutSec * 1000)
+
+// [ASK-OWNER-CLOCK-FIX] кейс 2026-09-05: часы машины отставали на ~28ч → expiresAt рождался
+// уже просроченным, прод-хендлер (его часы верные) отвечал «вопрос просрочен», кнопки «не работали».
+// Время берём из Date-заголовка api.telegram.org; офлайн — локальные часы.
+async function realNow() {
+  try {
+    const res = await fetch('https://api.telegram.org', { method: 'HEAD', signal: AbortSignal.timeout(5000) })
+    const d = res.headers.get('date')
+    if (d) { const t = new Date(d); if (!Number.isNaN(t.getTime())) return t }
+  } catch { /* офлайн — локальные часы */ }
+  return new Date()
+}
+const now = await realNow()
+const clockSkewMin = Math.round((now.getTime() - Date.now()) / 60000)
+if (Math.abs(clockSkewMin) >= 2) {
+  console.warn(`⚠️ Локальные часы расходятся с реальным временем на ${clockSkewMin} мин — сроки вопроса считаю по реальному времени`)
+}
+const expiresAt = new Date(now.getTime() + timeoutSec * 1000)
 
 const mongoose = await connectMongo()
 const col = mongoose ? mongoose.connection.db.collection('askowner') : null
@@ -126,12 +143,38 @@ if (!tgOk && !process.stdin.isTTY) {
   console.error('❌ Нет TG-ключей и нет интерактивного терминала — некуда задать вопрос')
   process.exit(1)
 }
-if (!col) console.warn('⚠️ Mongo недоступна — ответ из TG не будет доставлен, работает только терминал')
+if (!col) console.warn('⚠️ Локальная Mongo недоступна — legacy-контур ответа не сработает (прод-контур не затронут)')
 
-if (col) {
+// [BOTS-FIX] вопрос живёт в БД ПРОДА через API (единая БД с webhook-обработчиком owner-бота;
+// локальная Mongo машины кодера прод НЕ видит — инцидент 2026-09-05 «вопрос не найден или устарел»).
+// createdAt/expiresAt считает СЕРВЕР своими часами. Fallback — legacy-запись в локальную Mongo
+// (на случай прода без эндпоинта, до деплоя PR).
+const PROD_BASE = (env('PROD_BACKEND_URL') || 'https://aiviral-backend.onrender.com').replace(/\/+$/, '')
+const askKey = token ? crypto.createHash('sha256').update(`ask-owner:${token}`).digest('hex') : ''
+let pollMode = 'mongo'
+if (askKey) {
+  try {
+    const res = await fetch(`${PROD_BASE}/api/ask-owner/questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-ask-owner-key': askKey },
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({ qid, context, question, options, mode: free ? 'free' : 'options', approveZone, timeoutSec }),
+    })
+    if (res.status === 201) {
+      pollMode = 'prod'
+      console.log('(вопрос записан в БД прода — единая БД с webhook-обработчиком)')
+    } else {
+      console.warn(`⚠️ прод ask-owner API: HTTP ${res.status} — fallback на legacy-контур (локальная Mongo)`)
+    }
+  } catch (e) {
+    console.warn(`⚠️ прод ask-owner API недоступен: ${e.message} — fallback на legacy-контур (локальная Mongo)`)
+  }
+}
+
+if (pollMode === 'mongo' && col) {
   await col.insertOne({
     qid, context, question, options, mode: free ? 'free' : 'options',
-    approveZone, status: 'pending', createdAt: new Date(), expiresAt,
+    approveZone, status: 'pending', createdAt: now, expiresAt,
   })
 }
 
@@ -223,7 +266,7 @@ const finishWaiting = async () => {
 
 await tgSend()
 printTerminal()
-if (tgOk && tgMessage) console.log('(вопрос продублирован в TG owner-бота — первый ответ побеждает)')
+if (tgOk && tgMessage) console.log(`(вопрос продублирован в TG owner-бота, message_id=${tgMessage.message_id} — первый ответ побеждает)`)
 else if (tgOk) console.log('(TG отправлен без подтверждения message_id)')
 else console.log('(TG недоступен — только терминал)')
 
@@ -236,11 +279,19 @@ rl.on('line', (line) => {
   finish(answer, 'terminal')
 })
 
-// Поллинг Mongo: ответ из TG (записал handler прода)
-const poll = col ? setInterval(async () => {
+// Поллинг ответа из TG: прод-режим — GET прода (единая БД), legacy — локальная Mongo
+const poll = (pollMode === 'prod' || col) ? setInterval(async () => {
   if (done) return
   try {
-    const rec = await col.findOne({ qid })
+    let rec = null
+    if (pollMode === 'prod') {
+      const res = await fetch(`${PROD_BASE}/api/ask-owner/questions/${qid}`, {
+        headers: { 'x-ask-owner-key': askKey }, signal: AbortSignal.timeout(10000),
+      })
+      if (res.ok) rec = (await res.json().catch(() => ({})))?.data
+    } else {
+      rec = await col.findOne({ qid })
+    }
     if (rec?.status === 'answered' && rec.via === 'telegram') await finish(rec.answer, 'telegram')
   } catch { /* следующий тик */ }
 }, 2000) : null

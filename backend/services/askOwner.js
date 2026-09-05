@@ -15,13 +15,13 @@ export async function handleAskCallback({ q, chatId, safeSendMessage }) {
     const c = col()
     if (!c) { safeSendMessage(chatId, '⚠️ БД недоступна — ответ не сохранён.'); return true }
     const rec = await c.findOne({ qid })
-    if (!rec) { safeSendMessage(chatId, '⚠️ Вопрос не найден или устарел.'); return true }
+    if (!rec) { safeSendMessage(chatId, '⚠️ Вопрос не найден (задан до обновления канала вопросов). Кодер задаст его заново — ответьте на новое сообщение.'); return true }
     if (rec.status === 'answered') {
       safeSendMessage(chatId, `ℹ️ На этот вопрос уже отвечено (канал: ${rec.via === 'terminal' ? 'терминал' : 'TG'}): «${rec.answer}»`.slice(0, 400))
       return true
     }
     if (rec.expiresAt && new Date(rec.expiresAt) < new Date()) {
-      safeSendMessage(chatId, '⚠️ Вопрос просрочен — кодер уже применил безопасный дефолт.')
+      safeSendMessage(chatId, '⚠️ Вопрос просрочен (таймаут). Кодер задаст его заново — ответьте на новое сообщение.')
       return true
     }
     const answer = rec.options?.[Number(idxRaw)]
