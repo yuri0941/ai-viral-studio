@@ -202,11 +202,15 @@ export default function AddonMarketplace() {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
             })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error)
+            const data = await res.json().catch(() => ({}))
+            // честный empty-state: пусто/ошибка → «нет данных», без выдуманных цифр
+            if (!res.ok || !data.analysis || !Number(data.analysis.recommendedPrice)) {
+                setAnalysis(prev => ({ ...prev, [addon.id]: { empty: true } }))
+                return
+            }
             setAnalysis(prev => ({ ...prev, [addon.id]: data.analysis }))
         } catch (err) {
-            toast.error(err.message)
+            setAnalysis(prev => ({ ...prev, [addon.id]: { empty: true } }))
         } finally {
             setAnalyzing(prev => ({ ...prev, [addon.id]: false }))
         }
@@ -262,9 +266,8 @@ export default function AddonMarketplace() {
                     const ai = analysis[addon.id]
                     const aiRec = addon.ownerPriceConfig?.aiRecommendedPrice
                     const showAiBadge = aiRec && addon.price && Math.abs(aiRec - addon.price) / addon.price < 0.1
-                    const marketAvg = ai?.competitorPrices?.length
-                        ? Math.round(ai.competitorPrices.reduce((s, c) => s + (Number(c.price) || 0), 0) / ai.competitorPrices.length)
-                        : 0
+                    const compPrices = (ai?.competitorPrices || []).map(c => Number(c.price)).filter(n => Number.isFinite(n) && n > 0)
+                    const marketRange = compPrices.length ? `${Math.min(...compPrices)}–${Math.max(...compPrices)}` : null
                     const implementedEnts = entitlements.filter(e => e.implemented)
                     const soonEnts = entitlements.filter(e => !e.implemented)
                     const setEdit = (patch) => setEdits(prev => ({ ...prev, [addon.id]: { ...edit, ...patch } }))
@@ -310,7 +313,7 @@ export default function AddonMarketplace() {
                                                 min={0}
                                                 value={edit.price}
                                                 onChange={e => setEdit({ price: Number(e.target.value) })}
-                                                className="w-full bg-white/5 rounded-lg px-2 py-1.5 text-sm text-right"
+                                                className="w-full bg-white/5 rounded-lg px-2 py-1.5 text-sm text-right tabular-nums"
                                             />
                                         </label>
                                         <label className="block">
@@ -327,7 +330,7 @@ export default function AddonMarketplace() {
                                                 max={100}
                                                 value={edit.discountPercent}
                                                 onChange={e => setEdit({ discountPercent: Number(e.target.value) })}
-                                                className="w-full bg-white/5 rounded-lg px-2 py-1.5 text-sm text-right"
+                                                className="w-full bg-white/5 rounded-lg px-2 py-1.5 text-sm text-right tabular-nums"
                                             />
                                         </label>
                                     </div>
@@ -397,19 +400,30 @@ export default function AddonMarketplace() {
                                     </div>
 
                                     {/* [ADDONS-EDITOR-REDESIGN] AI-панель цены: себестоимость / рынок / рекомендация + «Применить» (только в поле, не сохраняет) */}
-                                    {ai ? (
+                                    {ai?.empty ? (
+                                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center justify-between gap-2">
+                                            <span className="text-xs text-[var(--text-muted)]">{t('addons.noAnalysisData') || 'Нет данных для анализа'}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setAnalysis(prev => { const n = { ...prev }; delete n[addon.id]; return n })}
+                                                className="px-3 py-2 min-h-[44px] rounded-xl glass-card hover:bg-white/5 text-xs"
+                                            >
+                                                {t('common.close')}
+                                            </button>
+                                        </div>
+                                    ) : ai ? (
                                         <div className="rounded-xl border border-[var(--primary)]/30 bg-[var(--primary)]/5 p-3 space-y-2">
                                             <div className="grid grid-cols-3 gap-2 text-center">
                                                 <div className="bg-white/5 rounded-lg py-2 px-1">
-                                                    <div className="text-sm font-bold truncate" title={`${addon.basePrice ?? addon.price} ${edit.currency}`}>{addon.basePrice ?? addon.price} {edit.currency}</div>
+                                                    <div className="text-sm font-bold tabular-nums truncate" title={`${addon.basePrice ?? addon.price} ${edit.currency}`}>{addon.basePrice ?? addon.price} {edit.currency}</div>
                                                     <div className="text-[10px] text-[var(--text-muted)] truncate" title={t('addons.costLabel')}>{t('addons.costLabel')}</div>
                                                 </div>
                                                 <div className="bg-white/5 rounded-lg py-2 px-1">
-                                                    <div className="text-sm font-bold truncate" title={`${marketAvg} ${edit.currency}`}>{marketAvg} {edit.currency}</div>
-                                                    <div className="text-[10px] text-[var(--text-muted)] truncate" title={t('addons.marketAvg')}>{t('addons.marketAvg')}</div>
+                                                    <div className="text-sm font-bold tabular-nums truncate" title={marketRange ? `${marketRange} ${edit.currency}` : (t('addons.noAnalysisData') || 'Нет данных')}>{marketRange ? `${marketRange} ${edit.currency}` : '—'}</div>
+                                                    <div className="text-[10px] text-[var(--text-muted)] truncate" title={t('addons.marketRange')}>{t('addons.marketRange')}</div>
                                                 </div>
                                                 <div className="bg-[var(--primary)]/15 rounded-lg py-2 px-1 border border-[var(--primary)]/40">
-                                                    <div className="text-sm font-bold text-[var(--primary)] truncate" title={`${ai.recommendedPrice} ${edit.currency}`}>{ai.recommendedPrice} {edit.currency}</div>
+                                                    <div className="text-sm font-bold tabular-nums text-[var(--primary)] truncate" title={`${ai.recommendedPrice} ${edit.currency}`}>{ai.recommendedPrice} {edit.currency}</div>
                                                     <div className="text-[10px] text-[var(--text-muted)] truncate" title={t('addons.recommendedPrice')}>{t('addons.recommendedPrice')}</div>
                                                 </div>
                                             </div>
@@ -433,7 +447,7 @@ export default function AddonMarketplace() {
                                         </div>
                                     ) : (
                                         <button type="button" onClick={() => analyzePrice(addon)} disabled={analyzing[addon.id]} className="w-full px-3 py-2 min-h-[44px] rounded-xl glass-card hover:bg-white/5 text-xs disabled:opacity-50">
-                                            {analyzing[addon.id] ? '...' : `🤖 ${t('addons.aiAnalyze')}`}
+                                            {analyzing[addon.id] ? '...' : `Ω ${t('addons.aiAnalyze')}`}
                                         </button>
                                     )}
                                 </div>
