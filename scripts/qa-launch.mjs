@@ -15,9 +15,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 const ORDER = [
     'backend/scripts/createTestAccounts.js',
-    'backend/scripts/qaPlanUsers.js',
-    'backend/scripts/qaExhaustFree.js',
     'scripts/qa-journey-1-register.mjs',
+    'backend/scripts/qaExhaustFree.js',
+    'backend/scripts/qaPlanUsers.js',
     'scripts/qa-journey-2-free.mjs',
     'scripts/qa-journey-3-plans.mjs',
     'scripts/qa-journey-4-dialog.mjs',
@@ -81,6 +81,11 @@ for (const file of only) {
     const lastBad = bad ? (out.split('\n').filter(l => l.includes('❌')).slice(-2).join(' | ') || out.trim().split('\n').pop()).slice(0, 160) : ''
     results.push({ file, ok: !bad, secs, lastBad })
     console.log(`${bad ? '❌' : '✅'} ${secs}s${lastBad ? `\n   └ ${lastBad}` : ''}`)
+    // при падении — хвост вывода скрипта (в CI нет другого способа увидеть детали)
+    if (bad) {
+        const tail = out.trim().split('\n').slice(-15).map(l => `   | ${l}`).join('\n')
+        console.log(tail)
+    }
 }
 
 console.log('\n═══ QA-LAUNCH СВОДКА ═══')

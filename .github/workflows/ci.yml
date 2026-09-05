@@ -24,7 +24,9 @@ jobs:
             MONGO_URI: mongodb://localhost:27017/ai_viral_studio_ci
             MONGODB_URI: mongodb://localhost:27017/ai_viral_studio_ci
             JWT_SECRET: ci-jwt-secret-not-a-real-secret
-            NODE_ENV: test
+            # NODE_ENV не ставим глобально: иначе vite build собирает dev-React
+            # (validateDOMNesting и др. warnings падают в console-error проверки e2e)
+            QA_SKIP_YT: '1' # в CI нет YOUTUBE_API_KEY — YT-карточка в journey-3 пропускается
         steps:
             - uses: actions/checkout@v4
 
