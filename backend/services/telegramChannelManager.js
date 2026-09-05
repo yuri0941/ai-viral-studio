@@ -382,6 +382,13 @@ export async function recordChannelStats() {
 
 // Тик автономии: раз в минуту сверяем MSK-слоты (независимо от TZ сервера)
 export function startChannelAutonomy() {
+  // [BOTS-FIX] автопосты канала на ПАУЗЕ до запуска (решение владельца 2026-09-05):
+  // код не удалён, включение — CHANNEL_AUTOPOST_ENABLED=1 в env прода (после утверждения контент-плана).
+  // Явные команды владельца (/autoposttest, /post) не затронуты.
+  if (process.env.CHANNEL_AUTOPOST_ENABLED !== '1') {
+    console.log('[CHANNEL-AUTO] на паузе (CHANNEL_AUTOPOST_ENABLED != 1) — автопосты 08/14/20 MSK выключены до решения владельца');
+    return;
+  }
   if (global.channelAutonomyStarted) return;
   global.channelAutonomyStarted = true;
   setInterval(async () => {
