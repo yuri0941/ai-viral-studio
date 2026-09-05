@@ -28,6 +28,7 @@ import { getOwnerChatId, getOwnerChatIdSync } from '../models/OwnerSettings.js' 
 import { OWNER_BOT_USERNAME, CHANNEL_USERNAME, CLIENT_BOT_USERNAME, OWNER_TELEGRAM_USERNAME, OWNER_NAME } from '../config/bots.js'
 import { handleBatchCallback, handleBatchRejectReason } from './batchReport.js' // [TG-REPORT-HOOK]
 import { handleAskCallback, handleAskFreeText } from './askOwner.js' // [TG-ASK-OWNER]
+import { handleOwnerFreeText } from './ownerFreeText.js' // [TG-OWNER-CONTEXT]
 import { isProdWebhookHost, getBotBaseUrl } from '../utils/tgWebhookGuard.js' // [TG-ASK-OWNER ЗАДАЧА 0]
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
@@ -930,6 +931,10 @@ export const initOwnerBot = () => {
 
     // [TG-ASK-OWNER] свободный текст = ответ на pending-вопрос кодера (только режим «ответь текстом»)
     if (await handleAskFreeText({ chatId, text, safeSendMessage })) return
+
+    // [TG-OWNER-CONTEXT] свободный текст владельца → владельческий контур (сводка/ответ по реальным данным),
+    // НЕ клиентская витрина; команды (пост/изучи/сделай…) не перехватываются — уходят в submitOwnerCommand
+    if (await handleOwnerFreeText({ chatId, text, safeSendMessage })) return
 
     // [P2.1] owner правит базу знаний прямо из TG: «добавь в FAQ: вопрос | ответ | ключ1,ключ2»
     if (/^добавь в faq\s*:/i.test(text.trim())) {
