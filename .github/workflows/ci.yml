@@ -70,7 +70,7 @@ jobs:
               run: |
                   mkdir -p .tmp-ui-polish
                   cd .tmp-ui-polish
-                  npm init -y
+                  echo '{"name":"tmp-ui-polish","private":true}' > package.json
                   npm i playwright
                   sudo env PATH="$PATH" npx playwright install-deps chromium
                   npx playwright install chromium
