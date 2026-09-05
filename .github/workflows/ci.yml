@@ -1,0 +1,85 @@
+# [CI-FOUNDATION] Автогейты: на каждый PR и пуш в fix/*/ci/* —
+# node --check backend, frontend build (0 ошибок), прогон всех qa-скриптов
+# одной кнопкой (scripts/qa-launch.mjs). Падение любого шага = PR красный.
+name: CI
+
+on:
+    pull_request:
+    push:
+        branches:
+            - main
+            - 'fix/*'
+            - 'ci/*'
+
+jobs:
+    qa:
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        services:
+            mongo:
+                image: mongo:6
+                ports:
+                    - 27017:27017
+        env:
+            MONGO_URI: mongodb://localhost:27017/ai_viral_studio_ci
+            MONGODB_URI: mongodb://localhost:27017/ai_viral_studio_ci
+            JWT_SECRET: ci-jwt-secret-not-a-real-secret
+            # CI: весь трафик с 127.0.0.1 — без этого e2e-матрицы (view-as × 5 ролей × reload)
+            # выжигают общий лимит 1000/15мин на userId и поздние скрипты ловят 429.
+            # auth-лимитеры (forgot-password и т.п.) whitelist не учитывают — qaRateLimitVpn в силе.
+            OWNER_IP: 127.0.0.1
+            # NODE_ENV не ставим глобально: иначе vite build собирает dev-React
+            # (validateDOMNesting и др. warnings падают в console-error проверки e2e)
+            QA_SKIP_YT: '1' # в CI нет YOUTUBE_API_KEY — YT-карточка в journey-3 пропускается
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: npm
+                  cache-dependency-path: |
+                      backend/package-lock.json
+                      frontend/package-lock.json
+
+            - name: Backend deps
+              run: npm ci
+              working-directory: backend
+
+            - name: node --check backend (все js вне node_modules)
+              run: |
+                  fail=0
+                  while IFS= read -r f; do
+                    node --check "$f" || fail=1
+                  done < <(find backend -name '*.js' -not -path '*/node_modules/*')
+                  exit $fail
+
+            - name: Backend up (:18080)
+              run: |
+                  PORT=18080 nohup node server.js > /tmp/backend-ci.log 2>&1 &
+                  npx wait-on http://localhost:18080/api/subscriptions/addons -t 60000 || { cat /tmp/backend-ci.log; exit 1; }
+              working-directory: backend
+
+            - name: Frontend deps + build (0 ошибок)
+              run: |
+                  npm ci
+                  npm run build
+              working-directory: frontend
+
+            - name: Frontend preview (:4173)
+              run: |
+                  nohup npx vite preview --port 4173 --strictPort > /tmp/preview-ci.log 2>&1 &
+                  npx wait-on http://localhost:4173 -t 30000
+              working-directory: frontend
+
+            - name: Playwright (chromium) для e2e-скриптов
+              run: |
+                  mkdir -p .tmp-ui-polish
+                  cd .tmp-ui-polish
+                  echo '{"name":"tmp-ui-polish","private":true}' > package.json
+                  npm i playwright
+                  sudo env PATH="$PATH" npx playwright install-deps chromium
+                  npx playwright install chromium
+
+            - name: QA-LAUNCH (все qa-скрипты, единая сводка)
+              run: node scripts/qa-launch.mjs

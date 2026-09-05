@@ -62,7 +62,12 @@ for (const plan of ['pro', 'agency']) {
   const schedText = await page.evaluate(() => document.body.innerText)
   step(`${plan}: /scheduler рендерится`, schedText.length > 100)
 
-  // 3. YouTube-анализ → люкс-карточка в чате
+  // 3. YouTube-анализ → люкс-карточка в чате.
+  // [CI-FOUNDATION] QA_SKIP_YT=1 (CI без YOUTUBE_API_KEY) — проверка пропускается:
+  // карточка требует живой YouTube Data API на бэкенде.
+  if (process.env.QA_SKIP_YT === '1') {
+    step(`${plan}: YouTube-ссылка → люкс-карточка (SKIP: нет YOUTUBE_API_KEY)`, true)
+  } else {
   await page.goto(`${BASE}/creative-hub/chat`, { waitUntil: 'networkidle' }).catch(() => {})
   await page.waitForTimeout(2500)
   const input = page.locator('textarea, input[placeholder*="OMEGA"], input[placeholder*="Спросите"]').first()
@@ -81,6 +86,7 @@ for (const plan of ['pro', 'agency']) {
     step(`${plan}: YouTube-ссылка → люкс-карточка с реальными цифрами`, cardFound)
   } else {
     step(`${plan}: поле ввода чата`, false)
+  }
   }
   step(`${plan}: console errors`, errors.length === 0, errors.slice(0, 3).join(' | '))
   await context.close()
