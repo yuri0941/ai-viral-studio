@@ -77,6 +77,11 @@ function appendRejectToReport(info, reason) {
 export async function handleBatchCallback({ q, chatId, safeSendMessage }) {
   const info = parseBatchReportMessage(q.message?.text || '')
   if (!info) {
+    // [BOTS-FIX] selftest-отчёт без строки «Ветка:» — это проверка канала, а не батч: отвечаем понятно
+    if (/selftest/i.test(q.message?.text || '')) {
+      safeSendMessage(chatId, '🧪 Это selftest — мерж не нужен, канал кнопок работает ✅')
+      return true
+    }
     safeSendMessage(chatId, '⚠️ Не удалось распарсить ветку из отчёта.')
     return true
   }
