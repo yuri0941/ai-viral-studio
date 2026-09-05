@@ -38,7 +38,7 @@ const ORDER = [
 function discover() {
     const found = new Set()
     for (const f of fs.readdirSync(path.join(ROOT, 'scripts'))) {
-        if (/^qa-.*\.mjs$/.test(f)) found.add(`scripts/${f}`)
+        if (/^qa-.*\.mjs$/.test(f) && f !== 'qa-launch.mjs') found.add(`scripts/${f}`)
     }
     for (const f of fs.readdirSync(path.join(ROOT, 'backend', 'scripts'))) {
         if (/^qa.*\.js$/.test(f)) found.add(`backend/scripts/${f}`)

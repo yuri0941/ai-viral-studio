@@ -106,9 +106,12 @@ for (const width of [360, 1280]) {
         await page.waitForURL('**/staff**', { timeout: 15000 })
         await assertNotDenied(page, `owner→staff [${tag}]`, `staff-${tag}.png`)
 
-        // обратно на owner: после reload /auth/me возвращает серверную роль owner,
-        // поэтому в дропдауне «Owner» — текущая роль (клик = no-op); проверяем прямой переход
-        await page.goto(`${BASE}/owner`, { waitUntil: 'domcontentloaded' })
+        // обратно на owner: [VIEW-AS-PERSIST] view_as держится отдельно от реальной роли,
+        // поэтому прямой переход на /owner в режиме staff теперь корректно → /unauthorized
+        // (гард НЕ ослаблен). Выход — кнопка «Выйти» в плашке view-as, затем /owner доступен.
+        const exitBtn = page.locator('[data-testid="view-as-banner"]').getByRole('button', { name: lang === 'ru' ? /^Выйти$/i : /^Exit$/i })
+        await exitBtn.click()
+        await page.waitForURL('**/owner**', { timeout: 15000 })
         await assertNotDenied(page, `staff→owner [${tag}]`, `owner-back-${tag}.png`)
         await ctx.close()
     }
