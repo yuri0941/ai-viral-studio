@@ -1262,6 +1262,8 @@ export const initOwnerBot = () => {
           }
         }
         global.ownerTakeovers?.delete(String(chatId))
+        // [BOTS-FIX] клиент выходит из ветки поддержки — диалог снова ведёт бот в обычном режиме
+        if (ticket?.telegramChatId) global.omegaSupportState?.delete(String(ticket.telegramChatId))
         safeSendMessage(chatId, `🤖 Диалог по тикету #${ticketId.slice(-6)} возвращён боту (контекст сохранён).`)
       } catch (e) {
         safeSendMessage(chatId, `⚠️ Ошибка возврата боту: ${e.message}`)
@@ -1286,6 +1288,8 @@ export const initOwnerBot = () => {
         const { addMessage } = await import('./supportService.js')
         await addMessage(ticketId, 'system', `✅ Обращение #${ticketId.slice(-6)} закрыто.`)
         invalidateTakeoverCache(ticket.telegramChatId)
+        // [BOTS-FIX] клиент выходит из ветки поддержки — следующие сообщения идут в обычный AI-поток
+        if (ticket.telegramChatId) global.omegaSupportState?.delete(String(ticket.telegramChatId))
         safeSendMessage(chatId, `✅ Тикет #${ticketId.slice(-6)} закрыт.`)
         if (ticket.telegramChatId) {
           await sendClientMessage(ticket.telegramChatId, `✅ <b>Обращение #${ticketId.slice(-6)} закрыто</b>\nСпасибо за обращение!`, { parse_mode: 'HTML' })
