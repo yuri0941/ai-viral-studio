@@ -84,7 +84,7 @@ const token = env('TELEGRAM_OWNER_BOT_TOKEN') || env('TELEGRAM_BOT_TOKEN')
 const chatId = await resolveOwnerChatId()
 
 async function send() {
-  if (!token || !chatId) throw new Error('нет TELEGRAM_OWNER_BOT_TOKEN/TELEGRAM_OWNER_CHAT_ID в env')
+  if (!token || !chatId) throw new Error('нет TELEGRAM_OWNER_BOT_TOKEN и/или chat_id владельца (env / OwnerSettings)')
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 10000)
   try {
