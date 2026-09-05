@@ -26,6 +26,7 @@ import PriceChangeLog from '../models/PriceChangeLog.js'
 import { analyzePricing, marginAfter } from './pricingAnalysis.js'
 import { getOwnerChatId, getOwnerChatIdSync } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
 import { OWNER_BOT_USERNAME, CHANNEL_USERNAME, CLIENT_BOT_USERNAME, OWNER_TELEGRAM_USERNAME, OWNER_NAME } from '../config/bots.js'
+import { handleBatchCallback, handleBatchRejectReason } from './batchReport.js' // [TG-REPORT-HOOK]
 
 // [P16-FINAL] added: strict singleton to avoid duplicate polling / 409 conflict on Render hot-reload
 // [P16-HOTFIX] use global so singleton survives hot-reload on Render
@@ -922,6 +923,9 @@ export const initOwnerBot = () => {
       return
     }
 
+    // [TG-REPORT-HOOK] текст владельца после ❌ Отклонить = причина отклонения батча
+    if (handleBatchRejectReason({ chatId, text, safeSendMessage })) return
+
     // [P2.1] owner правит базу знаний прямо из TG: «добавь в FAQ: вопрос | ответ | ключ1,ключ2»
     if (/^добавь в faq\s*:/i.test(text.trim())) {
       const raw = text.replace(/^добавь в faq\s*:\s*/i, '')
@@ -1161,6 +1165,12 @@ export const initOwnerBot = () => {
 
     // [v9.9.19.3] сразу гасим спиннер кнопки в Telegram-клиенте
     bot.answerCallbackQuery(q.id).catch(() => {});
+
+    // [TG-REPORT-HOOK] кнопки батч-отчёта: ✅ approve (CI→merge) / ❌ reject (причина)
+    if (data === 'breport:approve' || data === 'breport:reject') {
+      await handleBatchCallback({ q, chatId, safeSendMessage })
+      return
+    }
 
     // [P2.1 TAKEOVER] взять диалог: AI молчит по клиенту, владелец пишет ему через этот чат
     if (data.startsWith('ticket:takeover:')) {
