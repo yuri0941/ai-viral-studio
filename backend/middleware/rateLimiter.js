@@ -10,7 +10,10 @@ function getClientIp(req) {
 function isWhitelisted(req) {
     const ownerIp = process.env.OWNER_IP
     if (!ownerIp) return false
-    return getClientIp(req) === ownerIp
+    // [CI-FOUNDATION] нормализация: localhost может приходить как ::1 / ::ffff:127.0.0.1;
+    // сравниваем по IPv4-форме (равенство по-прежнему точное, whitelist не расширяется)
+    const norm = (ip) => String(ip || '').replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1')
+    return norm(getClientIp(req)) === norm(ownerIp)
 }
 
 // [fix/ratelimit-vpn] нормализация email для ключа лимита
