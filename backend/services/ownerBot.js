@@ -986,6 +986,48 @@ export const initOwnerBot = () => {
       return
     }
 
+    // [CHANNEL-DEL] «удали последний пост» / «удали пост <ссылка>» → превью поста → ✅/❌ → Bot API
+    const delMatch = text.trim().match(/^удали(?:ть)?\s+(последний\s+пост|пост)\s*(\S*)/i)
+    if (delMatch) {
+      try {
+        const { getLastChannelPost, parsePostLink } = await import('./channelDeleteService.js')
+        let target = null
+        if (/последний/i.test(delMatch[1])) {
+          target = await getLastChannelPost()
+          if (!target) { safeSendMessage(chatId, 'ℹ️ Постов канала в журнале нет — удалять нечего.'); return }
+        } else {
+          const parsed = parsePostLink(delMatch[2])
+          if (!parsed) {
+            safeSendMessage(chatId, '⚠️ Формат: <code>удали последний пост</code> или <code>удали пост https://t.me/канал/123</code>', { parse_mode: 'HTML' })
+            return
+          }
+          target = { messageId: parsed.messageId, chatId: parsed.chatId, url: `https://t.me/...`, text: '' }
+          const last = await getLastChannelPost()
+          if (last && last.messageId === parsed.messageId) { target.text = last.text; target.at = last.at; target.url = last.url }
+        }
+        const preview = target.text
+          ? `📝 <b>Превью поста:</b>\n<i>${target.text.slice(0, 300)}</i>${target.text.length > 300 ? '…' : ''}\n`
+          : '📝 Содержимое поста боту недоступно (Bot API не читает историю канала).\n'
+        safeSendMessage(chatId,
+          `🗑 <b>Удалить пост из канала?</b>\n━━━━━━━━━━━━━━\n` +
+          preview +
+          `🔢 message_id: <code>${target.messageId}</code>` +
+          (target.at ? `\n⏰ ${new Date(target.at).toLocaleString('ru-RU')}` : '') +
+          (target.url && target.url !== 'https://t.me/...' ? `\n🔗 <a href="${target.url}">Открыть пост</a>` : '') +
+          `\n━━━━━━━━━━━━━━\nДействие необратимо.`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[
+              { text: '✅ Удалить', callback_data: `cdel:yes:${target.messageId}:${target.chatId || ''}` },
+              { text: '❌ Отмена', callback_data: 'cdel:no' },
+            ]] },
+          })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ ${e.message}`)
+      }
+      return
+    }
+
     // [v9.9.5-TELEGRAM-UNIFIED] owner manual channel post
     if (String(global.ownerPostState) === String(chatId)) {
       // [v9.9.19.3] через единый публикатор: hot-reload токена, проверка результата, ссылка-доказательство
@@ -1204,6 +1246,25 @@ export const initOwnerBot = () => {
     // [TG-REPORT-HOOK] кнопки батч-отчёта: ✅ approve (CI→merge) / ❌ reject (причина)
     if (data === 'breport:approve' || data === 'breport:reject') {
       await handleBatchCallback({ q, chatId, safeSendMessage })
+      return
+    }
+
+    // [CHANNEL-DEL] подтверждение удаления поста канала (cdel:yes:<messageId>[:chatId] / cdel:no)
+    if (data.startsWith('cdel:')) {
+      if (data === 'cdel:no') {
+        safeSendMessage(chatId, '❎ Удаление отменено.')
+        return
+      }
+      const [, , msgId, cId] = data.split(':')
+      try {
+        const { deleteChannelPost } = await import('./channelDeleteService.js')
+        const r = await deleteChannelPost({ messageId: Number(msgId), chatId: cId || null })
+        safeSendMessage(chatId, r.success
+          ? `✅ Пост (message_id ${msgId}) удалён из канала.`
+          : `⚠️ Не удалось удалить пост: ${r.error}`)
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка удаления: ${e.message}`)
+      }
       return
     }
 
