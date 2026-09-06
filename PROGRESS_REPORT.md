@@ -4972,3 +4972,4 @@
 - [СКРИПТЫ] `scripts/design-lab-shots.mjs` (скрины, cookie_consent закрыт, тема через localStorage), `scripts/design-lab-send-shots.mjs` (альбомы sendMediaGroup владельцу в TG, ключи env→apikeys БД). Нюанс: vite preview слушает только IPv6 [::1] без `--host 127.0.0.1` — для qa-скринов нужен флаг.
 - [НЕ ТРОНУТО] платежи/ЮKassa (только чтение факта), PlanConfig и тарифы, рефералка, логика ботов, лендинг, рубильники, гард Б5, rate-limit, view-as, аддоны, entitlement. Прод-роуты не подменялись — применение отдельным батчем после approve.
 - [GIT] ветка feat/design-lab-preview: wip-коммиты. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...feat/design-lab-preview
+- [РЕШЕНИЕ ВЛАДЕЛЬЦА ✅ TG] Контентная зона кабинета рекламодателя: выбран **🅰 Дашборд** (KPI, график расхода, таблица кампаний). Варианты Б/В остаются в лаборатории. Применение в прод — отдельным батчем после approve.
