@@ -740,6 +740,8 @@ export const initOwnerBot = () => {
   // [v9.9.19-MASTER-AUDIT] голосовые от владельца → Whisper STT → текстовый поток команд
   bot.on('voice', async (msg) => {
     const chatId = msg.chat.id;
+    // [CHANNEL-DEL-БАТЧ] STT тратит Groq-квоту — распознаём только голосовые владельца
+    if (!isOwner(chatId)) return;
     try {
       try { await bot.sendChatAction(chatId, 'typing') } catch (e) {}
       const fileLink = await bot.getFileLink(msg.voice.file_id);
@@ -915,6 +917,9 @@ export const initOwnerBot = () => {
     const ownerId = await getOwnerMongoId();
     const text = msg.text || '';
     if (text.startsWith('/')) return;
+    // [VOICE-GUARD] голос/фото/стикеры — не текстовый контур: без этого гарда пустой text доходил до
+    // ask-free-text/freetext и мог записаться «пустым ответом» (voice обрабатывается bot.on('voice'))
+    if (!text.trim()) return;
 
     // [OWNER-REMOTE-CONTROL] «мой id» — отвечаем ЛЮБОМУ: нужно для первичной привязки TG владельца
     if (/^(мой id|мой айди|my id|chat id)[\s!?.]*$/i.test(text.trim())) {
