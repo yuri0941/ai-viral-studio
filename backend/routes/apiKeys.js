@@ -12,6 +12,18 @@ router.get('/', protect, requireRole('owner'), async (req, res) => {
   try {
     const scope = getOwnerKeyScope(req)
     const keys = await ApiKey.find(scope).lean()
+    // [VAPID-FIX] самолечение старых записей: vapid_* со статусом invalid (старый валидатор
+    // всегда возвращал valid:false) — переоценка форматом; валидный → active в ответе и в БД.
+    for (const k of keys) {
+      if ((k.provider === 'vapid_public' || k.provider === 'vapid_private') && k.status === 'invalid' && k.key) {
+        const check = await validateApiKey(k.provider, k.key)
+        if (check.valid) {
+          k.status = 'active'
+          k.isValid = true
+          ApiKey.updateOne({ _id: k._id }, { $set: { status: 'active', isValid: true, lastError: null } }).catch(() => {})
+        }
+      }
+    }
     const masked = keys.map(k => ({
       ...k,
       key: undefined,
@@ -274,12 +286,27 @@ async function validateApiKey(provider, key) {
         const r = await axios.get('https://api.stripe.com/v1/balance', { headers: { Authorization: `Bearer ${key}` }, timeout: 10000 })
         return { valid: r.status === 200, provider }
       }
+      case 'vapid_public':
+      case 'vapid_private': {
+        // [VAPID-FIX] офлайн-валидация формата: публичный — 65 байт uncompressed P-256 (0x04…),
+        // приватный — 32 байта, оба base64url. Онлайн-пинга у VAPID нет; корректный формат = валиден.
+        // Раньше ключи падали в общий case (valid:false) → кабинет показывал «Ошибка» при рабочих ключах.
+        try {
+          const buf = Buffer.from(String(key).replace(/-/g, '+').replace(/_/g, '/'), 'base64')
+          const ok = provider === 'vapid_public'
+            ? buf.length === 65 && buf[0] === 0x04
+            : buf.length === 32
+          return ok
+            ? { valid: true, provider }
+            : { valid: false, provider, error: provider === 'vapid_public' ? 'VAPID public: ожидается 65 байт (uncompressed P-256, base64url)' : 'VAPID private: ожидается 32 байта (base64url)' }
+        } catch {
+          return { valid: false, provider, error: 'VAPID ключ не является корректным base64url' }
+        }
+      }
       case 'yookassa_shop_id':
       case 'yookassa_secret':
       case 'paypal_client_id':
       case 'paypal_secret':
-      case 'vapid_public':
-      case 'vapid_private':
       case 'smtp_host':
       case 'smtp_user':
       case 'smtp_pass':
