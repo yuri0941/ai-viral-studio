@@ -45,7 +45,7 @@
 
 - Прод: `https://aiviral-studio.ru` (Cloudflare Pages, SPA-fallback через `200.html` — правило `/* /index.html 200` режется валидатором Pages, code 10021).
 - Backend: `https://aiviral-backend.onrender.com` (Render). БД локального backend ОТДЕЛЬНАЯ от прода (поэтому qa-скрипты проксируют prod-API на локальный); прод-БД — только через prod API / Render env.
-- БД: MongoDB Atlas (единая). ShopID ЮKassa — live (`live_...O730`), ключи в кабинете владельца/MongoDB, hot-reload через `getProviderKey`.
+- БД: MongoDB Atlas, у прода и локали РАЗНЫЕ базы. ShopID ЮKassa — live (`live_...O730`), ключи в Render env (прод) / кабинете владельца, hot-reload через `getProviderKey`.
 - TG: owner-бот `@omega_aiviral_bot`, клиентский `@aiviral_alerts_bot`, канал `@aiviralstudio` (функциональные боты — оба; `qa-bots.mjs` проверяет webhook обоих).
 - Тест-карта ЮKassa: `5555 5555 5555 4477 · 12/25 · CVV 000`.
 
