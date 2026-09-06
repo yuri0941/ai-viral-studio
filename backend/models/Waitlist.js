@@ -26,6 +26,7 @@ const waitlistSchema = new mongoose.Schema({
     badge: { type: String, default: '' },
     utm: { type: mongoose.Schema.Types.Mixed, default: {} },
     notified: { type: Boolean, default: false },
+    approved: { type: Boolean, default: false },
     isFoundingMember: { type: Boolean, default: false },
     foundingMemberRank: { type: Number },
     foundingMemberBadge: { type: String, default: '👑 Founder' },

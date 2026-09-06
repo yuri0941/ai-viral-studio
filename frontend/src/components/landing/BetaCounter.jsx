@@ -7,6 +7,8 @@ const TOTAL_BETA_SLOTS = 50
 function BetaCounter() {
     const { t } = useTranslation()
     const [remaining, setRemaining] = useState(null)
+    // [HOTFIX-FINAL-2 З5] total — из API (FoundingConfig в БД), хардкод 50 только как фолбэк
+    const [total, setTotal] = useState(TOTAL_BETA_SLOTS)
     const [loaded, setLoaded] = useState(false)
 
     useEffect(() => {
@@ -17,6 +19,7 @@ function BetaCounter() {
                 if (!mounted) return
                 const data = res.data || {}
                 setRemaining(Math.max(0, Number.isFinite(data.remaining) ? data.remaining : 0))
+                if (Number.isFinite(data.total) && data.total > 0) setTotal(data.total)
                 setLoaded(true)
             })
             .catch(() => {
@@ -58,7 +61,7 @@ function BetaCounter() {
         <div className="flex items-center gap-3 px-4 py-2 rounded-full glass border border-[#00ff41]/20">
             <span className="w-2 h-2 rounded-full bg-[#00ff41] animate-pulse" />
             <span className="text-sm">
-                {t('betaCounter.slotsLeft', { remaining, total: TOTAL_BETA_SLOTS })}
+                {t('betaCounter.slotsLeft', { remaining, total })}
             </span>
         </div>
     )

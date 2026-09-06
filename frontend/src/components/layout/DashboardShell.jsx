@@ -10,6 +10,7 @@ import { DashboardHeader } from './DashboardHeader'
 import { MobileNotificationDrawer } from './MobileNotificationDrawer'
 import { MobileBottomNav } from './MobileBottomNav'
 import { ViewAsBadge, VIEW_AS_BANNER_HEIGHT } from './ViewAsBadge'
+import { HouseAdSlot } from '../ads/HouseAdSlot.jsx' // [HOTFIX-FINAL-2 З6]
 
 function useViewport() {
     const [viewport, setViewport] = useState({
@@ -50,6 +51,10 @@ export function DashboardShell({
     const viewport = useViewport()
     const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1024
     const { updateUser } = useAuth()
+    // [HOTFIX-FINAL-2 З6] нижняя плашка house-ads: только <768px, не в чате, не для команды
+    const showHouseAdBottomBar = windowWidth < 768
+        && !location.pathname.startsWith('/creative-hub')
+        && !['owner', 'admin', 'staff'].includes(user?.role)
     // [VIEW-AS-PERSIST] плашка активна → контенту нужен отступ сверху, чтобы бейдж его не перекрывал
     const viewAsActive = user?.realRole === 'owner' && user?.role && user.role !== 'owner'
     const { theme, appliedTheme, setTheme, toggleTheme } = useTheme()
@@ -234,10 +239,23 @@ export function DashboardShell({
                     onDeleteNotification={onDeleteNotification}
                 />
 
-                <div className={`${viewport.isMobile ? 'px-3 py-4 pb-24' : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>
+                <div className={`${viewport.isMobile ? `px-3 py-4 ${showHouseAdBottomBar ? 'pb-40' : 'pb-24'}` : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>
+                    {/* [HOTFIX-FINAL-2 З6] house-ads мини-пилюля: сайдбар свёрнут/скрыт (768–1439px),
+                        карточке места нет — пилюля над контентом не сдвигает инпуты */}
+                    <div className="hidden md:flex min-[1440px]:hidden justify-center mb-3">
+                        <HouseAdSlot slot="tablet-pill" variant="pill" />
+                    </div>
                     {children}
                 </div>
             </main>
+
+            {/* [HOTFIX-FINAL-2 З6] house-ads нижняя плашка <768px над safe-area (сворачиваемая).
+                На /creative-hub не показываем: там топ-баннер + свой FAB/навбар — плашка перекрыла бы их */}
+            {showHouseAdBottomBar && (
+                <div className="fixed left-3 right-3 z-40" style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))' }}>
+                    <HouseAdSlot slot="mobile-bottom" variant="bottombar" />
+                </div>
+            )}
 
             {/* [UI-VERIFY] на /creative-hub своя нижняя панель режимов — две панели перекрывали кнопки друг друга */}
             {!location.pathname.startsWith('/creative-hub') && (
