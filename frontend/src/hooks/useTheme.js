@@ -22,10 +22,11 @@ export function useTheme() {
 
     useEffect(() => {
         const root = window.document.documentElement
-        root.classList.remove('dark')
-        if (appliedTheme === 'dark') {
-            root.classList.add('dark')
-        }
+        // [DESIGN-LAB] починка светлой темы: CSS-блоки `.light …` и `[data-theme="light"]`
+        // никогда не активировались (ставился только класс dark). Теперь: класс + data-theme всегда.
+        root.classList.remove('dark', 'light')
+        root.classList.add(appliedTheme)
+        root.setAttribute('data-theme', appliedTheme)
         try {
             localStorage.setItem(STORAGE_KEY, theme)
         } catch {
