@@ -120,6 +120,17 @@ export async function topUpGenerations(userId, packs = 1) {
     return checkQuota(userId)
 }
 
+// [HOTFIX-FINAL] начисление купленного пакета кредитов (витрина) — по факту payment.succeeded.
+// Идемпотентность обеспечивает вызывающий (Payment.status). Механика как у topUp: лимит цикла += credits.
+export async function creditGenerations(userId, credits) {
+    const amount = Math.max(0, Math.floor(Number(credits) || 0))
+    if (!amount) return { credited: false }
+    const quota = await getOrCreateQuota(userId)
+    quota.generationsLimit += amount
+    await quota.save()
+    return { credited: true, credits: amount, quota: await checkQuota(userId) }
+}
+
 // [PLANCONFIG-ADMIN] честное списание: при ошибке AI-генерации квота возвращается клиенту
 export async function refundGeneration(userId) {
     try {
