@@ -9,13 +9,10 @@ export function ThemeToggle({ className = '' }) {
 
     useEffect(() => {
         const root = document.documentElement
-        if (theme === 'dark') {
-            root.classList.add('dark')
-            root.setAttribute('data-theme', 'dark')
-        } else {
-            root.classList.remove('dark')
-            root.setAttribute('data-theme', 'light')
-        }
+        // [DESIGN-LAB] класс light тоже ставим: `.light …` селекторы в globals.css иначе мёртвые
+        root.classList.remove('dark', 'light')
+        root.classList.add(theme)
+        root.setAttribute('data-theme', theme)
         localStorage.setItem('theme', theme)
         localStorage.setItem('ai-viral-theme', theme)
     }, [theme])
