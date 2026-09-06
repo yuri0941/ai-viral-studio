@@ -20,14 +20,14 @@ const COST_PER_1M_USD = {
 }
 
 // fire-and-forget: учёт НИКОГДА не должен ломать/тормозить ответ пользователю
-export function logAiUsage(provider, promptText, replyText) {
+export function logAiUsage(provider, promptText, replyText, { isOwner = false } = {}) {
     try {
         const promptChars = String(promptText || '').length
         const completionChars = String(replyText || '').length
         const estTokens = Math.ceil((promptChars + completionChars) / 4)
         const price = COST_PER_1M_USD[provider] ?? 0.20
         const estCostUsd = (estTokens / 1_000_000) * price
-        AiUsageLog.create({ provider, promptChars, completionChars, estTokens, estCostUsd })
+        AiUsageLog.create({ provider, promptChars, completionChars, estTokens, estCostUsd, isOwner })
             .catch(e => console.warn('[expenseTracker] log failed:', e.message))
     } catch { /* never throw */ }
 }
@@ -44,11 +44,13 @@ export async function getExpensesSummary() {
         Promise.all(Object.entries(RANGE_MS).map(async ([range, ms]) => {
             const rows = await AiUsageLog.aggregate([
                 { $match: { createdAt: { $gte: new Date(now - ms) } } },
-                { $group: { _id: '$provider', calls: { $sum: 1 }, tokens: { $sum: '$estTokens' }, costUsd: { $sum: '$estCostUsd' } } },
+                { $group: { _id: '$provider', calls: { $sum: 1 }, tokens: { $sum: '$estTokens' }, costUsd: { $sum: '$estCostUsd' }, ownerCalls: { $sum: { $cond: ['$isOwner', 1, 0] } } } },
                 { $sort: { costUsd: -1 } },
             ])
             return [range, {
                 calls: rows.reduce((s, r) => s + r.calls, 0),
+                // [HOTFIX-FINAL] генерации владельца — отдельной строкой, в клиентскую статистику не входят
+                ownerCalls: rows.reduce((s, r) => s + r.ownerCalls, 0),
                 costUsd: Math.round(rows.reduce((s, r) => s + r.costUsd, 0) * 100) / 100,
                 byProvider: rows.map(r => ({
                     provider: r._id,

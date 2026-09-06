@@ -3,11 +3,15 @@
 import { getPlanSync } from '../services/planConfigCache.js'
 
 const OWNER_EMAIL = process.env.OWNER_EMAIL || ''
+// [HOTFIX-FINAL] безлимит владельца по ID (env OWNER_USER_ID), дополнительно к роли/email
+const OWNER_USER_ID = process.env.OWNER_USER_ID || ''
 
 export function isOwner(user) {
     if (!user) return false
     if (user.role === 'owner') return true
     if (OWNER_EMAIL && user.email && user.email.toLowerCase() === OWNER_EMAIL.toLowerCase()) return true
+    const uid = String(user._id || user.id || user.userId || '')
+    if (OWNER_USER_ID && uid && uid === OWNER_USER_ID) return true
     return false
 }
 
