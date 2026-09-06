@@ -49,6 +49,13 @@
 - БД: MongoDB Atlas, у прода и локали РАЗНЫЕ базы. ShopID ЮKassa — live (`live_...O730`), ключи в Render env (прод) / кабинете владельца, hot-reload через `getProviderKey`.
 - TG: owner-бот `@omega_aiviral_bot`, клиентский `@aiviral_alerts_bot`, канал `@aiviralstudio` (функциональные боты — оба; `qa-bots.mjs` проверяет webhook обоих).
 - Тест-карта ЮKassa: `5555 5555 5555 4477 · 12/25 · CVV 000`.
+- [HOTFIX-FINAL-2] Ключи провайдеров: выключенный в кабинете ключ = ПОЛНЫЙ запрет, env-фолбэки `|| process.env.*_API_KEY` после `getProviderKey` запрещены (мёртвый ключ поднимался обратно в ротацию). 401/403 от провайдера → `backend/utils/providerKeyGuard.js#disableProviderKey` (isActive=false в БД + стоп кэша + TG-алерт). Новый ключ — только владелец через кабинет.
+- [HOTFIX-FINAL-2] Waitlist лендинга (`/api/public/waitlist`) пишет в Mongo (`Waitlist`), TG-алерт владельцу на каждую новую заявку. In-memory хранилища для заявок запрещены (Render рестартит — данные умирали).
+- [HOTFIX-FINAL-2] Owner-бот: `/balance email`, `/givecredits email N` (owner-only, через `creditGenerations`). Каждый onText-хендлер обязан иметь try/catch с ответом — молчаливые падения = баг.
+- [HOTFIX-FINAL-2] House-ads: `frontend/src/components/ads/HouseAdSlot.jsx` (спека Р3): чат=топ-баннер ≤34px (все ширины, инпут не сдвигает), сайдбар-карточка ≥1440, пилюля 768–1439, нижняя плашка <768 (не на /creative-hub — там FAB/навбар). Ротация аддоны→апгрейд→рефералка→YT-разведка 10с, crossfade 275ms, pulse 3.5с, reduced-motion=статика, «Скрыть на день» per-slot, owner/admin/staff не видят.
+- [HOTFIX-FINAL-2] Бандл: route-level lazy для ВСЕХ экранов кроме лендинга (App.jsx); manualChunks: vendor/icons/charts/motion/ai/omega — recharts и framer-motion не должны попадать в initial. Цель: initial <1МБ (сейчас ~888КБ; index 556КБ, было 2.3МБ).
+- [HOTFIX-FINAL-2] CORS: allowlist в `backend/config/cors.js` (env `CORS_ORIGINS`/`FRONTEND_URL` + дефолты), wildcard запрещён. Проверка curl: allowed origin → 204 + ACAO конкретного origin; чужой origin → 403 без ACAO.
+- [HOTFIX-FINAL-2] AuthContext `/auth/me` — обязателен таймаут (AbortController 10с): без него TG WebView/спящий Render = вечный спиннер мини-аппа. Мини-апп: watchdog 12с → error-state с retry.
 
 ## Актуализация AGENTS.md (постоянное правило)
 
