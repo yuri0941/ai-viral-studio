@@ -79,6 +79,8 @@ export const yookassaWebhookHandler = async (req, res) => {
             }
 
             const paymentDoc = await Payment.findOne({ yookassaPaymentId: paymentId })
+            // [HOTFIX-FINAL] идемпотентность: повторный webhook не начисляет второй раз
+            const alreadyPaid = paymentDoc?.status === 'succeeded'
             if (paymentDoc) {
                 paymentDoc.status = 'succeeded'
                 paymentDoc.paidAt = new Date()
@@ -89,6 +91,23 @@ export const yookassaWebhookHandler = async (req, res) => {
             const user = await User.findById(metadata.userId || paymentDoc?.userId)
             if (user) {
                 const planId = metadata.planId || paymentDoc?.planId || user.subscription
+                // [HOTFIX-FINAL] пакет кредитов: начисление генераций фактом (без смены тарифа)
+                const packCredits = Math.floor(Number(metadata.credits) || 0)
+                if ((metadata.packId || String(planId).startsWith('pack_')) && packCredits > 0) {
+                    if (!alreadyPaid) {
+                        const { creditGenerations } = await import('../services/usageQuotaService.js')
+                        await creditGenerations(user._id, packCredits)
+                        console.log(`[YOOKASSA-WEBHOOK] ✅ начислено ${packCredits} кредитов user=${user._id} payment=${paymentId}`)
+                        alertOwner(`💰 Пакет кредитов оплачен!\n💳 ${object.amount?.value || paymentDoc?.amount || 0} RUB\n✦ Начислено: ${packCredits} кр\n📧 ${user.email}`)
+                            .catch(() => {})
+                    }
+                    try {
+                        await sendPaymentSuccessEmail(user.email, user.name, `пакет ${packCredits} кредитов`, object.amount?.value || paymentDoc?.amount || 0)
+                    } catch (emailErr) {
+                        console.error('[paymentController:webhook] pack email failed:', emailErr.message)
+                    }
+                    return res.json({ success: true, received: true, credited: !alreadyPaid })
+                }
                 user.subscription = planId
                 user.subscriptionStatus = 'active'
                 const expires = new Date()
@@ -112,6 +131,32 @@ export const yookassaWebhookHandler = async (req, res) => {
                 { yookassaPaymentId: paymentId },
                 { status: 'canceled' }
             )
+            console.log(`[YOOKASSA-WEBHOOK] payment.canceled: ${paymentId}`)
+        }
+
+        // [HOTFIX-FINAL] refund.succeeded: object — возврат, реальный платёж в object.payment_id.
+        // Верификация через API ЮKassa (как у payment.succeeded). Кредиты автоматически НЕ списываем
+        // (могли быть потрачены) — помечаем платёж и алертим владельца на ручную проверку.
+        if (event === 'refund.succeeded') {
+            const realPaymentId = object.payment_id
+            try {
+                const v = await verifyWebhookNotification({ action: 'mark_refunded', paymentId, metadata, payload: req.body })
+                if (!v.ok) {
+                    console.warn(`[YOOKASSA-WEBHOOK] ⚠️ поддельный refund: refund=${paymentId} payment=${realPaymentId}`)
+                    alertOwner?.(`🚨 <b>Поддельный webhook refund.succeeded</b>\nВозврат: <code>${paymentId}</code>\nОбработка ОТКЛОНЕНА.`, 'payment').catch?.(() => {})
+                    return res.json({ success: true, ignored: true, reason: 'verification_failed' })
+                }
+            } catch (vErr) {
+                console.error(`[YOOKASSA-WEBHOOK] верификация refund не удалась: ${paymentId}:`, vErr.message)
+                alertOwner?.(`🚨 <b>Webhook refund.succeeded не прошёл верификацию</b>\nВозврат: <code>${paymentId}</code>\nПроверьте вручную.`, 'payment').catch?.(() => {})
+                return res.json({ success: true, ignored: true, reason: 'verification_error' })
+            }
+            await Payment.findOneAndUpdate(
+                { yookassaPaymentId: realPaymentId },
+                { $set: { status: 'refunded', refundedAt: new Date() } }
+            )
+            console.log(`[YOOKASSA-WEBHOOK] refund.succeeded: refund=${paymentId} payment=${realPaymentId}`)
+            alertOwner?.(`↩️ Возврат ЮKassa подтверждён\nПлатёж: <code>${realPaymentId}</code>\nСумма: ${object.amount?.value || '—'} RUB\nНачисленные кредиты НЕ списаны автоматически — проверьте клиента.`, 'payment').catch?.(() => {})
         }
 
         return res.json({ success: true, received: true })
