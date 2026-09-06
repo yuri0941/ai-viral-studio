@@ -18,6 +18,19 @@ const WHAT_LABELS = {
     'ad.app.banner': 'Баннер в приложении',
 }
 
+// [HOTFIX-FINAL] маржинальный пол тарифов (зеркало backend/services/marginService.js):
+// себестоимость 0.24₽/кр, комиссия ЮKassa 3.5%, налог 6%, пол 70%
+const MARGIN_NET_RATIO = 1 - (3.5 + 6) / 100
+const calcPlanMargin = (priceRub, generationsPerDay) => {
+    const price = Number(priceRub)
+    const monthlyCredits = (Number(generationsPerDay) || 0) * 30
+    if (!Number.isFinite(price) || price <= 0 || monthlyCredits <= 0) return null
+    const costRub = monthlyCredits * 0.24
+    const netRub = price * MARGIN_NET_RATIO
+    const marginPercent = Math.round(((netRub - costRub) / netRub) * 1000) / 10
+    return { marginPercent, costRub: Math.round(costRub), belowFloor: marginPercent < 70, loss: netRub < costRub }
+}
+
 export function PricingTab() {
     const { t } = useTranslation()
     const [plans, setPlans] = useState([])
@@ -77,6 +90,15 @@ export function PricingTab() {
         if (!Number.isFinite(price) || price < 0 || (planId !== 'free' && price <= 0)) {
             toast.error(t('pricing.invalidPrice'))
             return
+        }
+        // [HOTFIX-FINAL] маржинальный пол: убыток — запрет; ниже 70% — только после явного подтверждения владельца
+        if (planId !== 'free') {
+            const m = calcPlanMargin(price, quotaDraft.generationsPerDay)
+            if (m?.loss) {
+                toast.error(t('pricing.marginLoss', { cost: m.costRub }))
+                return
+            }
+            if (m?.belowFloor && !window.confirm(t('pricing.marginLowConfirm', { margin: m.marginPercent, cost: m.costRub }))) return
         }
         const oldPrice = plans.find(p => p.plan === planId)?.price ?? 0
         if (price < oldPrice && !window.confirm(t('pricing.confirmPriceDown', { oldPrice, price }))) return
@@ -334,6 +356,16 @@ export function PricingTab() {
                             <div>{t('pricing.generationsPerDay')}: {plan.quotas?.generationsPerDay ?? '—'}</div>
                             <div>{t('pricing.youtubeUploads')}: {plan.quotas?.youtubeUploadsPerDay ?? '—'}</div>
                             <div>{t('pricing.mediaQueue')}: {plan.quotas?.mediaQueueMB ?? '—'} MB</div>
+                            {/* [HOTFIX-FINAL] маржа тарифа (ген/день × 30 × 0.24₽, за вычетом 3.5% + 6%) */}
+                            {plan.plan !== 'free' && (() => {
+                                const m = calcPlanMargin(plan.price, plan.quotas?.generationsPerDay)
+                                if (!m) return null
+                                return (
+                                    <div className={m.belowFloor ? 'text-amber-400' : 'text-emerald-400'}>
+                                        {t('pricing.margin')}: {m.marginPercent}% · {t('pricing.marginCost')}: {m.costRub}₽/мес
+                                    </div>
+                                )
+                            })()}
                         </div>
                         {/* [P1.6-PREP] редактирование состава тарифа */}
                         {editPlanId === plan.plan ? (
