@@ -420,6 +420,8 @@ export default function CreativeHub() {
                                 >
                                     <span>{tpl.emoji}</span>
                                     <span>{t(tpl.labelKey)}</span>
+                                    {/* [DESIGN-LAB-APPLY] Студия: цена инструмента до запуска (реальный тариф квоты) */}
+                                    <span className="text-[10px] font-semibold text-violet-300" title={t('quota.perMessage')}>1✦</span>
                                 </button>
                             ))}
                         </div>
