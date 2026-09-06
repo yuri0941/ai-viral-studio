@@ -262,6 +262,69 @@ export const initOwnerBot = () => {
 
   bot.onText(/\/stats/, (msg) => { if (!isOwner(msg.chat.id)) return; sendStats(msg.chat.id) })
 
+  // [HOTFIX-FINAL-2 З1] /balance <email> — баланс пользователя: тариф, квота, остаток кредитов
+  bot.onText(/\/balance(?:\s+(\S+))?/, async (msg, match) => {
+    const chatId = msg.chat.id
+    if (!isOwner(chatId)) return
+    const email = (match?.[1] || '').trim().toLowerCase()
+    if (!email) {
+      safeSendMessage(chatId, 'Формат: /balance email@example.com')
+      return
+    }
+    try {
+      const user = await User.findOne({ email }).select('email role subscription createdAt').lean()
+      if (!user) {
+        safeSendMessage(chatId, `⚠️ Пользователь <code>${email}</code> не найден.`, { parse_mode: 'HTML' })
+        return
+      }
+      const { checkQuota } = await import('./usageQuotaService.js')
+      const q = await checkQuota(user._id)
+      const limit = q.limit === Infinity ? '∞' : q.limit
+      const remaining = q.remaining === Infinity ? '∞' : q.remaining
+      safeSendMessage(chatId,
+        `👤 <b>${user.email}</b>\n` +
+        `🎭 Роль: ${user.role || 'client'} · Тариф: <b>${q.plan}</b>\n` +
+        `✦ Кредиты: ${q.used}/${limit} использовано · осталось <b>${remaining}</b>\n` +
+        (q.cycleEndsAt ? `🗓 Цикл до: ${new Date(q.cycleEndsAt).toLocaleDateString('ru-RU')}\n` : '') +
+        `📅 Регистрация: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : '—'}`,
+        { parse_mode: 'HTML' })
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ Ошибка /balance: ${e.message}`)
+    }
+  })
+
+  // [HOTFIX-FINAL-2 З1] /givecredits <email> <N> — ручная выдача кредитов (та же механика, что у витрины)
+  bot.onText(/\/givecredits(?:\s+(\S+)\s+(\d+))?/, async (msg, match) => {
+    const chatId = msg.chat.id
+    if (!isOwner(chatId)) return
+    const email = (match?.[1] || '').trim().toLowerCase()
+    const amount = Number(match?.[2] || 0)
+    if (!email || !amount || amount < 1 || amount > 100000) {
+      safeSendMessage(chatId, 'Формат: /givecredits email@example.com 100 (1–100000)')
+      return
+    }
+    try {
+      const user = await User.findOne({ email }).select('_id email').lean()
+      if (!user) {
+        safeSendMessage(chatId, `⚠️ Пользователь <code>${email}</code> не найден.`, { parse_mode: 'HTML' })
+        return
+      }
+      const { creditGenerations } = await import('./usageQuotaService.js')
+      const r = await creditGenerations(user._id, amount)
+      if (r.credited) {
+        console.log(`[OWNER-BOT] /givecredits: +${amount} кр user=${user._id} (${email})`)
+        safeSendMessage(chatId,
+          `✅ Начислено <b>+${amount} кр</b> → <code>${email}</code>\n` +
+          `✦ Лимит цикла теперь: ${r.quota?.limit === Infinity ? '∞' : r.quota?.limit}`,
+          { parse_mode: 'HTML' })
+      } else {
+        safeSendMessage(chatId, '⚠️ Начисление не выполнено (amount=0).')
+      }
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ Ошибка /givecredits: ${e.message}`)
+    }
+  })
+
   // [v9.9.19.14.4] /keystatus — AI keys digest on demand
   bot.onText(/\/keystatus/, async (msg) => {
     const chatId = msg.chat.id;
@@ -320,15 +383,20 @@ export const initOwnerBot = () => {
   // OWNER MODE — главное меню
   bot.onText(/\/menu/, async (msg) => {
     const chatId = msg.chat.id;
-    const ownerId = await getOwnerMongoId();
-    const context = await getOwnerContext(chatId);
-    if (!context?.isOwner) {
-      safeSendMessage(chatId, '❌ Только для владельца.');
-      return;
+    try {
+      const ownerId = await getOwnerMongoId();
+      const context = await getOwnerContext(chatId);
+      if (!context?.isOwner) {
+        safeSendMessage(chatId, '❌ Только для владельца.');
+        return;
+      }
+      const greeting = await getSmartGreeting(context);
+      const rows = await buildMenuRows(ownerId);
+      bot.sendMessage(chatId, greeting.text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: rows.length ? rows : greeting.buttons } });
+    } catch (e) {
+      // [HOTFIX-FINAL-2 З1] молчаливое падение: исключение оставляло владельца без ответа
+      safeSendMessage(chatId, `⚠️ Ошибка /menu: ${e.message}`);
     }
-    const greeting = await getSmartGreeting(context);
-    const rows = await buildMenuRows(ownerId);
-    bot.sendMessage(chatId, greeting.text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: rows.length ? rows : greeting.buttons } });
   });
 
   // OWNER MODE — авто-анализ меню
@@ -660,60 +728,80 @@ export const initOwnerBot = () => {
   // [v9.9.5-TELEGRAM-UNIFIED] owner ad pricing command
   bot.onText(/\/adprice (.+)/, async (msg, match) => {
     const chatId = msg.chat.id; if (!isOwner(chatId)) return;
-    const args = match[1].split(' ');
-    if (args.length < 2) {
-      const prices = getAdPricing();
-      let text = '💰 <b>Текущие цены:</b>\n';
-      Object.entries(prices).forEach(([k, v]) => text += `\n${v.description}: ${v.price.toLocaleString('ru-RU')}₽`);
-      text += '\n\nИзменить: /adprice [slot] [цена]';
-      safeSendMessage(chatId, text, { parse_mode: 'HTML' });
-      return;
+    try {
+      const args = match[1].split(' ');
+      if (args.length < 2) {
+        const prices = getAdPricing();
+        let text = '💰 <b>Текущие цены:</b>\n';
+        Object.entries(prices).forEach(([k, v]) => text += `\n${v.description}: ${v.price.toLocaleString('ru-RU')}₽`);
+        text += '\n\nИзменить: /adprice [slot] [цена]';
+        safeSendMessage(chatId, text, { parse_mode: 'HTML' });
+        return;
+      }
+      const [slot, priceStr] = args;
+      const newPrice = parseInt(priceStr);
+      if (isNaN(newPrice)) { safeSendMessage(chatId, '❌ Цена — число.'); return; }
+      updateAdPricing(slot, newPrice);
+      safeSendMessage(chatId, `✅ Цена "${slot}" = ${newPrice.toLocaleString('ru-RU')} ₽\nКлиенты видят сразу.`, { parse_mode: 'HTML' });
+    } catch (e) {
+      // [HOTFIX-FINAL-2 З1] молчаливое падение: исключение оставляло владельца без ответа
+      safeSendMessage(chatId, `⚠️ Ошибка /adprice: ${e.message}`);
     }
-    const [slot, priceStr] = args;
-    const newPrice = parseInt(priceStr);
-    if (isNaN(newPrice)) { safeSendMessage(chatId, '❌ Цена — число.'); return; }
-    updateAdPricing(slot, newPrice);
-    safeSendMessage(chatId, `✅ Цена "${slot}" = ${newPrice.toLocaleString('ru-RU')} ₽\nКлиенты видят сразу.`, { parse_mode: 'HTML' });
   });
 
   // [v9.9.5-TELEGRAM-UNIFIED] owner discount publish command
   bot.onText(/\/discount (.+)/, async (msg, match) => {
     const chatId = msg.chat.id; if (!isOwner(chatId)) return;
-    const args = match[1].split(' ');
-    const plan = args[0] || 'pro';
-    const percent = parseInt(args[1]) || 30;
-    const { generateDiscountPost, publishDiscountToChannel } = await import('./discountService.js');
-    const discount = await generateDiscountPost(plan, percent);
-    const config = await ChannelConfig.findOne({ ownerId: process.env.OWNER_USER_ID });
-    if (config) {
-      await publishDiscountToChannel(discount._id, config._id);
-      safeSendMessage(chatId, `✅ Скидка опубликована!\n🎁 Код: ${discount.promoCode}`);
-    } else {
-      safeSendMessage(chatId, `✅ Скидка создана, но канал не настроен.\n🎁 Код: ${discount.promoCode}`);
+    try {
+      const args = match[1].split(' ');
+      const plan = args[0] || 'pro';
+      const percent = parseInt(args[1]) || 30;
+      const { generateDiscountPost, publishDiscountToChannel } = await import('./discountService.js');
+      const discount = await generateDiscountPost(plan, percent);
+      const config = await ChannelConfig.findOne({ ownerId: process.env.OWNER_USER_ID });
+      if (config) {
+        await publishDiscountToChannel(discount._id, config._id);
+        safeSendMessage(chatId, `✅ Скидка опубликована!\n🎁 Код: ${discount.promoCode}`);
+      } else {
+        safeSendMessage(chatId, `✅ Скидка создана, но канал не настроен.\n🎁 Код: ${discount.promoCode}`);
+      }
+    } catch (e) {
+      // [HOTFIX-FINAL-2 З1] молчаливое падение: исключение оставляло владельца без ответа
+      safeSendMessage(chatId, `⚠️ Ошибка /discount: ${e.message}`);
     }
   });
 
   // [v9.9.5-TELEGRAM-UNIFIED] owner video promo command
   bot.onText(/\/video (.+)/, async (msg, match) => {
     const chatId = msg.chat.id; if (!isOwner(chatId)) return;
-    const topic = match[1];
-    const config = await ChannelConfig.findOne({ ownerId: process.env.OWNER_USER_ID });
-    if (!config) { safeSendMessage(chatId, '❌ Канал не настроен.'); return; }
-    safeSendMessage(chatId, '⏳ Генерирую viral-видео пост...');
-    const { publishVideoPromo } = await import('./videoPromoService.js');
-    const result = await publishVideoPromo(config._id, topic, config.niche);
-    if (result.success) safeSendMessage(chatId, `🎬 Видео-пост опубликован!\nТема: ${topic}`);
-    else safeSendMessage(chatId, `⚠️ Ошибка: ${result.error}`);
+    try {
+      const topic = match[1];
+      const config = await ChannelConfig.findOne({ ownerId: process.env.OWNER_USER_ID });
+      if (!config) { safeSendMessage(chatId, '❌ Канал не настроен.'); return; }
+      safeSendMessage(chatId, '⏳ Генерирую viral-видео пост...');
+      const { publishVideoPromo } = await import('./videoPromoService.js');
+      const result = await publishVideoPromo(config._id, topic, config.niche);
+      if (result.success) safeSendMessage(chatId, `🎬 Видео-пост опубликован!\nТема: ${topic}`);
+      else safeSendMessage(chatId, `⚠️ Ошибка: ${result.error}`);
+    } catch (e) {
+      // [HOTFIX-FINAL-2 З1] молчаливое падение: исключение оставляло владельца без ответа
+      safeSendMessage(chatId, `⚠️ Ошибка /video: ${e.message}`);
+    }
   });
 
   // [v9.9.5-TELEGRAM-UNIFIED] owner ad orders command
   bot.onText(/\/adorders/, async (msg) => {
     const chatId = msg.chat.id; if (!isOwner(chatId)) return;
-    const orders = await AdOrder.find({ status: { $in: ['pending', 'paid', 'approved'] } }).sort({ createdAt: -1 }).limit(10);
-    if (!orders.length) { safeSendMessage(chatId, '✅ Нет активных заказов.'); return; }
-    let text = '📋 <b>Активные заказы:</b>\n';
-    orders.forEach(o => { text += `\n${o.status === 'pending' ? '⏳' : '✅'} #${o._id.toString().slice(-6)} — ${o.slotType} — ${o.price.toLocaleString('ru-RU')}₽`; });
-    safeSendMessage(chatId, text, { parse_mode: 'HTML' });
+    try {
+      const orders = await AdOrder.find({ status: { $in: ['pending', 'paid', 'approved'] } }).sort({ createdAt: -1 }).limit(10);
+      if (!orders.length) { safeSendMessage(chatId, '✅ Нет активных заказов.'); return; }
+      let text = '📋 <b>Активные заказы:</b>\n';
+      orders.forEach(o => { text += `\n${o.status === 'pending' ? '⏳' : '✅'} #${o._id.toString().slice(-6)} — ${o.slotType} — ${o.price.toLocaleString('ru-RU')}₽`; });
+      safeSendMessage(chatId, text, { parse_mode: 'HTML' });
+    } catch (e) {
+      // [HOTFIX-FINAL-2 З1] молчаливое падение: исключение оставляло владельца без ответа
+      safeSendMessage(chatId, `⚠️ Ошибка /adorders: ${e.message}`);
+    }
   });
 
   // [v9.9.19.6] /commands — реальный журнал команд из OmegaCommand (MongoDB)

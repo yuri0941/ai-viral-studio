@@ -57,7 +57,8 @@ function sampleColors(buffer, count = 5) {
 }
 
 async function analyzeWithReplicate(imageUrl) {
-    const key = await getProviderKey('replicate') || process.env.REPLICATE_API_KEY
+    // [HOTFIX-FINAL-2 З3] env-байпас убран: выключенный в кабинете ключ = полный запрет
+    const key = await getProviderKey('replicate')
     if (!key) return null
     try {
         const res = await axios.post(
@@ -70,6 +71,11 @@ async function analyzeWithReplicate(imageUrl) {
         return res.data?.output?.join?.('') || res.data?.output || 'Image analyzed via Replicate'
     } catch (err) {
         console.warn('[visionCore] Replicate analysis failed:', err.message)
+        // [HOTFIX-FINAL-2 З3] 401/403 = мёртвый ключ: выводим из ротации, fallback на цвета/метаданные ниже
+        if ([401, 403].includes(err.response?.status)) {
+            const { disableProviderKey } = await import('../../utils/providerKeyGuard.js')
+            await disableProviderKey('replicate', `HTTP ${err.response.status}`)
+        }
         return null
     }
 }

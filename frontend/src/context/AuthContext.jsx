@@ -57,9 +57,15 @@ export const AuthProvider = ({ children }) => {
             let authed = false
             if (token) {
                 try {
+                    // [HOTFIX-FINAL-2 З2] жёсткий таймаут 10с: без него зависший запрос (TG WebView,
+                    // спящий Render, обрыв сети) держал loading=true → вечный спиннер в мини-аппе
+                    const ctrl = new AbortController()
+                    const killer = setTimeout(() => ctrl.abort(), 10000)
                     const response = await fetch(`${API_URL}/auth/me`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        signal: ctrl.signal
                     })
+                    clearTimeout(killer)
                     const data = await response.json()
                     if (data.success) {
                         setUser(applyViewAs(data.user))
