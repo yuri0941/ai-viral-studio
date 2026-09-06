@@ -47,6 +47,13 @@ export default function UpsellModal({ open, onClose, reason, limit, usage, upsel
                 >
                     {t('upsell.upgrade')}
                 </Link>
+                {/* [HOTFIX-FINAL] overflow-докупка: перерасход → пакет кредитов по прайсу (подтверждение — явный клик/оплата) */}
+                <Link
+                    to="/credits"
+                    className="mt-2 block w-full py-3 rounded-xl bg-white/5 border border-[var(--border)] text-[var(--text)] text-center font-medium hover:bg-white/10 transition-colors"
+                >
+                    {t('upsell.buyCredits')}
+                </Link>
             </div>
         </div>
     );

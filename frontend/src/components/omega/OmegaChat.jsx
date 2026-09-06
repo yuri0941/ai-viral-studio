@@ -41,7 +41,7 @@ function QuotaDetailsModal({ quota, user, onClose }) {
         <p className="text-sm text-gray-400 mb-1">{t('quota.trialLine', { left })}</p>
         <p className="text-xs text-gray-500 mb-5">{t('quota.perMessage')}</p>
         <button
-          onClick={() => { onClose(); navigate('/settings?tab=subscription') }}
+          onClick={() => { onClose(); navigate('/credits') }}
           className="w-full px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity"
         >
           {t('quota.topUp')}
