@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { youtubeApi, paymentsApi } from '../services/api.js'; // [19.13-lite-PAYMENTS-NPD] payments history API
+import { youtubeApi, paymentsApi, request } from '../services/api.js'; // [19.13-lite-PAYMENTS-NPD] payments history API
 import i18n from '../i18n';
 // [PLANCONFIG-ADMIN] legacy config/plans.js удалён; фолбэки = дефолты PlanConfig (free 20 ген/день, 0/990/4990₽)
 const DEFAULT_FREE_GENERATIONS = 20;
@@ -14,6 +14,75 @@ import IntegrationsTab from './settings/IntegrationsTab.jsx'; // [SOCIAL-v5.1] a
 import AddonMarketplace from '../components/subscriptions/AddonMarketplace.jsx'; // [v7.0-PART2] addon marketplace
 import TelegramConnectButton from '../components/social/TelegramConnectButton.jsx'; // [v9.9.19-MASTER-AUDIT] клиентский Telegram Connect
 import { CLIENT_BOT_USERNAME, clientBotUrl } from '../config/bots.js';
+
+// [DESIGN-LAB-APPLY] «Люкс-хаб»: кольцо баланса генераций (реальный /users/me/quota).
+// count-up с уважением к reduced-motion (UI-гейт). Пусто → честный 0 + CTA «Пополнить».
+function useCountUp(target, duration = 900) {
+    const [value, setValue] = useState(0);
+    const raf = useRef(null);
+    useEffect(() => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            setValue(target);
+            return undefined;
+        }
+        const start = performance.now();
+        const tick = (now) => {
+            const p = Math.min(1, (now - start) / duration);
+            setValue(Math.round(target * (1 - Math.pow(1 - p, 3))));
+            if (p < 1) raf.current = requestAnimationFrame(tick);
+        };
+        raf.current = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf.current);
+    }, [target, duration]);
+    return value;
+}
+
+function BalanceRingCard({ onTopUp }) {
+    const { t } = useTranslation();
+    const [quota, setQuota] = useState(null);
+    useEffect(() => {
+        request('/users/me/quota')
+            .then(d => setQuota(d?.data || null))
+            .catch(() => setQuota(null));
+    }, []);
+    const remaining = quota ? (quota.remaining ?? 0) + (quota.trialTokens ?? 0) : 0;
+    const limit = quota ? ((quota.generationsLimit ?? 0) > 0 ? quota.generationsLimit + (quota.trialTokens ?? 0) : 10) : 10;
+    const shown = useCountUp(remaining);
+    const r = 52;
+    const c = 2 * Math.PI * r;
+    const pct = limit > 0 ? Math.min(1, remaining / limit) : 0;
+    return (
+        <div className="luxury-card glass p-6 mb-4">
+            <div className="flex items-center gap-5 flex-wrap">
+                <div className="relative w-32 h-32 shrink-0">
+                    <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90" role="img" aria-label={t('quota.title') + `: ${remaining} / ${limit}`}>
+                        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--card-hover)" strokeWidth="10" />
+                        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--primary)" strokeWidth="10" strokeLinecap="round"
+                            strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-2xl font-bold text-[var(--text)]">{shown}✦</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">/ {limit}</span>
+                    </div>
+                </div>
+                <div className="min-w-0">
+                    <div className="text-sm text-[var(--text-muted)] mb-1">{t('quota.title')}</div>
+                    <div className="text-lg font-semibold text-[var(--text)] mb-3">
+                        {quota ? `${remaining}✦ ${t('quota.left')}` : '…'}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onTopUp}
+                        className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                    >
+                        ＋ {t('quota.topUp')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 import {
     User, Diamond, Link2, Bell, Shield, Palette, LogOut,
     Camera, Save, Check, Youtube, Music, Instagram, Twitter,
@@ -710,6 +779,9 @@ function SettingsPage() {
 
     const renderProfile = () => (
         <div className="space-y-6">
+            {/* [DESIGN-LAB-APPLY] «Люкс-хаб»: кольцо баланса на реальных данных /users/me/quota,
+                «＋Пополнить» → вкладка тарифов. Пусто = честный 0, нарисованных цифр нет. */}
+            <BalanceRingCard onTopUp={() => setActiveTab('subscription')} />
             {/* [v9.9.19-MASTER-AUDIT] Telegram Connect: deep-link привязка к клиентскому боту */}
             <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
