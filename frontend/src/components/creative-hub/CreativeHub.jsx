@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation.js'
 import useOmegaChat from '../../hooks/useOmegaChat.js'
 import OmegaChat from '../omega/OmegaChat.jsx'
+import { HouseAdSlot } from '../ads/HouseAdSlot.jsx' // [HOTFIX-FINAL-2 З6]
 import {
     LayoutDashboard,
     MessageSquare,
@@ -403,6 +404,12 @@ export default function CreativeHub() {
                                 </button>
                             ))}
                         </div>
+                    </div>
+
+                    {/* [HOTFIX-FINAL-2 З6] house-ads топ-баннер чата ≤34px: занимает своё место над
+                        лентой, инпут не сдвигает (на мобиле вместо нижней плашки — она бы перекрыла FAB) */}
+                    <div className="mb-2">
+                        <HouseAdSlot slot="chat-top" variant="banner" />
                     </div>
 
                     <div className="flex-1 min-h-0 rounded-2xl border border-white/10 overflow-x-hidden shadow-2xl shadow-violet-900/10">

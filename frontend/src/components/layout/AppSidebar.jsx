@@ -14,6 +14,7 @@ import {
     Moon,
 } from 'lucide-react'
 import { ResponsiveAdBanner } from '../ads/ResponsiveAdBanner'
+import { HouseAdSlot } from '../ads/HouseAdSlot' // [HOTFIX-FINAL-2 З6]
 
 const ROLE_MENU = {
     owner: [
@@ -410,11 +411,12 @@ export function AppSidebar({
                     )}
                 </div>
 
-                {/* Ad banner in sidebar (desktop expanded).
-                    [CHECKOUT-UNIFY] на /settings не показываем: фиксированная карточка наезжает на кнопки «Оплатить» */}
+                {/* Ad slot in sidebar (desktop expanded).
+                    [CHECKOUT-UNIFY] на /settings не показываем: фиксированная карточка наезжает на кнопки «Оплатить»
+                    [HOTFIX-FINAL-2 З6] house-ads карточка в сайдбаре (спека Р3, в потоке — не fixed) */}
                 {isExpanded && !isMobile && !location.pathname.startsWith('/settings') && (
                     <div className="px-3 pb-3">
-                        <ResponsiveAdBanner variant="sidebar" />
+                        <HouseAdSlot slot="sidebar" variant="sidebar" />
                     </div>
                 )}
 
