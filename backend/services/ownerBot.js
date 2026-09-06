@@ -594,6 +594,19 @@ export const initOwnerBot = () => {
     }
   });
 
+  // [OMEGA-CONTROL] панель контуров автономии: живые статусы + вкл/выкл с превью-подтверждением
+  bot.onText(/\/omega(?:\s+control)?/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    try {
+      const { buildOmegaControlPanel } = await import('./omegaControl.js');
+      const { text, keyboard } = await buildOmegaControlPanel();
+      safeSendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: keyboard });
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ ${e.message}`);
+    }
+  });
+
   // [v9.9.20] Channel manager: /channel [type] [topic]
   bot.onText(/\/channel(?:\s+(\w+))?(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -727,6 +740,8 @@ export const initOwnerBot = () => {
   // [v9.9.19-MASTER-AUDIT] голосовые от владельца → Whisper STT → текстовый поток команд
   bot.on('voice', async (msg) => {
     const chatId = msg.chat.id;
+    // [CHANNEL-DEL-БАТЧ] STT тратит Groq-квоту — распознаём только голосовые владельца
+    if (!isOwner(chatId)) return;
     try {
       try { await bot.sendChatAction(chatId, 'typing') } catch (e) {}
       const fileLink = await bot.getFileLink(msg.voice.file_id);
@@ -902,6 +917,9 @@ export const initOwnerBot = () => {
     const ownerId = await getOwnerMongoId();
     const text = msg.text || '';
     if (text.startsWith('/')) return;
+    // [VOICE-GUARD] голос/фото/стикеры — не текстовый контур: без этого гарда пустой text доходил до
+    // ask-free-text/freetext и мог записаться «пустым ответом» (voice обрабатывается bot.on('voice'))
+    if (!text.trim()) return;
 
     // [OWNER-REMOTE-CONTROL] «мой id» — отвечаем ЛЮБОМУ: нужно для первичной привязки TG владельца
     if (/^(мой id|мой айди|my id|chat id)[\s!?.]*$/i.test(text.trim())) {
@@ -970,6 +988,113 @@ export const initOwnerBot = () => {
       } catch (e) {
         safeSendMessage(chatId, `⚠️ Ошибка чтения FAQ: ${e.message}`)
       }
+      return
+    }
+
+    // [CHANNEL-DEL] «удали последний пост» / «удали пост <ссылка>» → превью поста → ✅/❌ → Bot API
+    const delMatch = text.trim().match(/^удали(?:ть)?\s+(последний\s+пост|пост)\s*(\S*)/i)
+    if (delMatch) {
+      try {
+        const { getLastChannelPost, parsePostLink } = await import('./channelDeleteService.js')
+        let target = null
+        if (/последний/i.test(delMatch[1])) {
+          target = await getLastChannelPost()
+          if (!target) { safeSendMessage(chatId, 'ℹ️ Постов канала в журнале нет — удалять нечего.'); return }
+        } else {
+          const parsed = parsePostLink(delMatch[2])
+          if (!parsed) {
+            safeSendMessage(chatId, '⚠️ Формат: <code>удали последний пост</code> или <code>удали пост https://t.me/канал/123</code>', { parse_mode: 'HTML' })
+            return
+          }
+          target = { messageId: parsed.messageId, chatId: parsed.chatId, url: `https://t.me/...`, text: '' }
+          const last = await getLastChannelPost()
+          if (last && last.messageId === parsed.messageId) { target.text = last.text; target.at = last.at; target.url = last.url }
+        }
+        const preview = target.text
+          ? `📝 <b>Превью поста:</b>\n<i>${target.text.slice(0, 300)}</i>${target.text.length > 300 ? '…' : ''}\n`
+          : '📝 Содержимое поста боту недоступно (Bot API не читает историю канала).\n'
+        safeSendMessage(chatId,
+          `🗑 <b>Удалить пост из канала?</b>\n━━━━━━━━━━━━━━\n` +
+          preview +
+          `🔢 message_id: <code>${target.messageId}</code>` +
+          (target.at ? `\n⏰ ${new Date(target.at).toLocaleString('ru-RU')}` : '') +
+          (target.url && target.url !== 'https://t.me/...' ? `\n🔗 <a href="${target.url}">Открыть пост</a>` : '') +
+          `\n━━━━━━━━━━━━━━\nДействие необратимо.`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[
+              { text: '✅ Удалить', callback_data: `cdel:yes:${target.messageId}:${target.chatId || ''}` },
+              { text: '❌ Отмена', callback_data: 'cdel:no' },
+            ]] },
+          })
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ ${e.message}`)
+      }
+      return
+    }
+
+    // [POST-DRAFT] контур постов: «черновик <тема>» → 3 варианта → «вариант N» = выбор к публикации →
+    // превью РОВНО того текста, что уйдёт в канал + чек-лист (хэштеги/CTA/ссылка) → ✅/❌ → publish 1:1
+    const draftMatch = text.trim().match(/^черновик[:\s]+(.+)/is)
+    if (draftMatch) {
+      const topic = draftMatch[1].trim().slice(0, 200)
+      safeSendMessage(chatId, `✍️ Готовлю 3 варианта поста на тему «${topic}»...`)
+      try {
+        const { chatWithAI, extractText } = await import('./aiService.js')
+        const prompt = `Ты SMM-редактор Telegram-канала AI Viral Studio. Тема: «${topic}».
+Сгенерируй 3 РАЗНЫХ варианта поста на русском. В каждом: цепляющий заголовок, основной текст (150-250 слов), 3-5 хэштегов, призыв к действию со ссылкой на https://aiviral-studio.ru.
+Верни ТОЛЬКО JSON массив: [{"title":"...","text":"...","hashtags":["#..."],"cta":"..."}]`
+        const ai = await chatWithAI(prompt, [], 'ru', { system: 'Return ONLY valid JSON.', maxTokens: 3000, temperature: 0.8 })
+        const raw = extractText(ai).replace(/```json|```/g, '').trim()
+        const parsed = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] || raw)
+        const variants = (Array.isArray(parsed) ? parsed : [parsed]).slice(0, 3)
+        if (!variants.length) throw new Error('AI не вернул варианты')
+        global.ownerDrafts = global.ownerDrafts || new Map()
+        global.ownerDrafts.set(String(chatId), { topic, variants, at: Date.now() })
+        const list = variants.map((v, i) =>
+          `<b>Вариант ${i + 1}</b>\n<b>${v.title || ''}</b>\n${String(v.text || '').slice(0, 220)}${String(v.text || '').length > 220 ? '…' : ''}`
+        ).join('\n\n')
+        safeSendMessage(chatId,
+          `📝 <b>Черновики: «${topic}»</b>\n━━━━━━━━━━━━━━\n${list}\n━━━━━━━━━━━━━━\nВыбери: <code>вариант 1</code> / <code>вариант 2</code> / <code>вариант 3</code> — покажу превью 1:1 перед публикацией.`,
+          { parse_mode: 'HTML' })
+      } catch (e) {
+        console.error('[OWNER-BOT] draft error:', e.message)
+        safeSendMessage(chatId, `⚠️ Не удалось подготовить черновики: ${e.message}`)
+      }
+      return
+    }
+
+    const variantMatch = text.trim().match(/^вариант\s+(\d+)[\s.!?]*$/i)
+    if (variantMatch) {
+      const idx = Number(variantMatch[1]) - 1
+      const draft = global.ownerDrafts?.get(String(chatId))
+      if (!draft || !draft.variants?.[idx]) {
+        safeSendMessage(chatId, '⚠️ Нет свежих черновиков. Сначала: <code>черновик &lt;тема&gt;</code>', { parse_mode: 'HTML' })
+        return
+      }
+      const v = draft.variants[idx]
+      const exact = [
+        v.title ? `<b>${v.title}</b>` : '',
+        String(v.text || ''),
+        Array.isArray(v.hashtags) ? v.hashtags.join(' ') : String(v.hashtags || ''),
+        String(v.cta || ''),
+      ].filter(Boolean).join('\n\n')
+      const plain = exact.replace(/<[^>]+>/g, '')
+      const checks = [
+        /#\S+/.test(plain) ? '✅ хэштеги' : '❌ хэштеги',
+        /(подпис|жми|регистр|скачай|читай|попроб|забирай|переходи|смотри|успей)/i.test(plain) ? '✅ CTA' : '❌ CTA',
+        /(https?:\/\/|t\.me\/)/i.test(plain) ? '✅ ссылка' : '❌ ссылка',
+      ].join(' · ')
+      draft.pending = exact
+      safeSendMessage(chatId,
+        `👁 <b>Превью — в канал уйдёт РОВНО этот текст:</b>\n━━━━━━━━━━━━━━\n${exact}\n━━━━━━━━━━━━━━\nЧек-лист: ${checks}\nПубликую?`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: [[
+            { text: '✅ Публиковать', callback_data: 'postok:yes' },
+            { text: '❌ Отмена', callback_data: 'postok:no' },
+          ]] },
+        })
       return
     }
 
@@ -1194,6 +1319,63 @@ export const initOwnerBot = () => {
       return
     }
 
+    // [POST-DRAFT] «Публикую? ✅/❌» — в канал уходит ровно утверждённый текст из превью
+    if (data === 'postok:yes' || data === 'postok:no') {
+      const draft = global.ownerDrafts?.get(String(chatId))
+      if (data === 'postok:no' || !draft?.pending) {
+        if (draft) draft.pending = null
+        safeSendMessage(chatId, '❎ Публикация отменена.')
+        return
+      }
+      const exact = draft.pending
+      draft.pending = null
+      try {
+        const { publishExactChannelText } = await import('./telegramChannelManager.js')
+        const r = await publishExactChannelText(exact)
+        if (r.success) {
+          safeSendMessage(chatId,
+            `✅ <b>Опубликовано ровно утверждённый текст</b>\n━━━━━━━━━━━━━━\n📢 ${r.channel}` +
+            (r.url ? `\n🔗 <a href="${r.url}">Открыть пост</a>` : `\n🔢 message_id: ${r.messageId}`),
+            { parse_mode: 'HTML' })
+          import('./telegramChannelManager.js').then(m => m.markManualChannelPost()).catch(() => {})
+        } else {
+          safeSendMessage(chatId, `⚠️ Публикация не удалась: ${r.error}`)
+        }
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка публикации: ${e.message}`)
+      }
+      return
+    }
+
+    // [CHANNEL-DEL] подтверждение удаления поста канала (cdel:yes:<messageId>[:chatId] / cdel:no)
+    if (data.startsWith('cdel:')) {
+      if (data === 'cdel:no') {
+        safeSendMessage(chatId, '❎ Удаление отменено.')
+        return
+      }
+      const [, , msgId, cId] = data.split(':')
+      try {
+        const { deleteChannelPost } = await import('./channelDeleteService.js')
+        const r = await deleteChannelPost({ messageId: Number(msgId), chatId: cId || null })
+        safeSendMessage(chatId, r.success
+          ? `✅ Пост (message_id ${msgId}) удалён из канала.`
+          : `⚠️ Не удалось удалить пост: ${r.error}`)
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка удаления: ${e.message}`)
+      }
+      return
+    }
+
+    // [OMEGA-CONTROL] панель контуров: превью-подтверждение вкл/выкл (oc:ask/oc:set/oc:cancel/oc:refresh)
+    if (data.startsWith('oc:')) {
+      const { handleOmegaControlCallback } = await import('./omegaControl.js')
+      await handleOmegaControlCallback({ q, chatId, bot, safeSendMessage }).catch(e => {
+        console.error('[OWNER-BOT] omega-control callback failed:', e.message)
+        safeSendMessage(chatId, `⚠️ OMEGA Control: ${e.message}`).catch(() => {})
+      })
+      return
+    }
+
     // [TG-ASK-OWNER] кнопки вопросов кодера (bask:<qid>:<idx>): ответ → Mongo, скрипт ask-owner.mjs поллит
     if (data.startsWith('bask:')) {
       await handleAskCallback({ q, chatId, safeSendMessage })
@@ -1214,7 +1396,7 @@ export const initOwnerBot = () => {
       const ticketId = data.slice('ticket:takeover:'.length)
       try {
         const ticket = await SupportTicket.findById(ticketId)
-        if (!ticket) { safeSendMessage(chatId, '⚠️ Тикет не найден'); return }
+        if (!ticket) { safeSendMessage(chatId, '✅ Тикет уже закрыт'); return }
         if (!ticket.telegramChatId) { safeSendMessage(chatId, '⚠️ У тикета нет TG-чата клиента — отвечайте через Dashboard.'); return }
         ticket.status = 'in_progress'
         ticket.takeoverBy = String(chatId)
@@ -1276,7 +1458,7 @@ export const initOwnerBot = () => {
       const ticketId = data.slice('ticket:close:'.length)
       try {
         const ticket = await SupportTicket.findById(ticketId)
-        if (!ticket) { safeSendMessage(chatId, '⚠️ Тикет не найден'); return }
+        if (!ticket) { safeSendMessage(chatId, '✅ Тикет уже закрыт'); return }
         ticket.status = 'resolved'
         ticket.closedAt = new Date()
         ticket.takeoverBy = null

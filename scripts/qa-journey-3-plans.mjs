@@ -23,10 +23,19 @@ async function newSession(token) {
   await context.route(`${API_ORIGIN}/**`, async (route) => {
     const req = route.request()
     const url = req.url().replace(API_ORIGIN, LOCAL_API)
+    // [FLAKY-RETRY] транзиентный сбой прокси→backend (таймаут/занят) — один повтор через 700мс,
+    // иначе ложный 502 падал в «console errors» и красил CI. Проверка ошибок НЕ ослаблена:
+    // настоящий 502 от backend после ретрая по-прежнему засчитывается.
     try {
       const headers = { ...req.headers() }
       delete headers.host; delete headers.origin; delete headers.referer
-      const resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
+      let resp
+      try {
+        resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
+      } catch {
+        await new Promise(r => setTimeout(r, 700))
+        resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
+      }
       await route.fulfill({ status: resp.status(), headers: { 'content-type': resp.headers()['content-type'] || 'application/json', 'access-control-allow-origin': '*' }, body: await resp.body() })
     } catch (e) {
       await route.fulfill({ status: 502, body: JSON.stringify({ error: String(e) }) })

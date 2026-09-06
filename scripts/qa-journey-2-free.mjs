@@ -26,7 +26,14 @@ await context.route(`${API_ORIGIN}/**`, async (route) => {
   try {
     const headers = { ...req.headers() }
     delete headers.host; delete headers.origin; delete headers.referer
-    const resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
+    // [FLAKY-RETRY] транзиентный сбой прокси→backend — один повтор через 700мс (иначе ложный 502)
+    let resp
+    try {
+      resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
+    } catch {
+      await new Promise(r => setTimeout(r, 700))
+      resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
+    }
     await route.fulfill({ status: resp.status(), headers: { 'content-type': resp.headers()['content-type'] || 'application/json', 'access-control-allow-origin': '*' }, body: await resp.body() })
   } catch (e) {
     await route.fulfill({ status: 502, body: JSON.stringify({ error: String(e) }) })

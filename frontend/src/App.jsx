@@ -50,8 +50,6 @@ const ProjectFactoryPage = lazy(() => import('./pages/project-factory/ProjectFac
 const PredictionDashboard = lazy(() => import('./pages/prediction/PredictionDashboard.jsx'))
 const InvestmentPanel = lazy(() => import('./pages/investment/InvestmentPanel.jsx'))
 const BoardroomCommandCenter = lazy(() => import('./pages/boardroom/BoardroomCommandCenter.jsx'))
-// [DESIGN-LAB] публичная дизайн-лаборатория /preview/* (демо-данные, прод-роуты не тронуты)
-const PreviewLab = lazy(() => import('./preview/PreviewLab.jsx'))
 import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
@@ -329,8 +327,9 @@ function App() {
                 <Route path="/docs" element={<ApiDocsPage />} />
                 <Route path="/redirect" element={<RoleRedirect />} />
 
-                {/* [DESIGN-LAB] дизайн-лаборатория: публично, демо-данные, без API */}
-                <Route path="/preview/*" element={<PreviewLab />} />
+                {/* [DESIGN-LAB-APPLY] лаборатория /preview/* удалена после применения выбранных дизайнов
+                    (вариант Б — в кабинете рекламодателя; чат/профиль/студия — в боевых экранах).
+                    Клиент на черновики попасть не может: роутов больше нет → общий "*" → редирект. */}
 
                 {/* [v6.0] added: backward compatible redirects to Creative Hub */}
                 <Route path="/chat" element={<Navigate to="/creative-hub/chat" replace />} />

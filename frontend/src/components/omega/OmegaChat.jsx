@@ -12,7 +12,45 @@ import UpsellModal from "../UpsellModal.jsx";
 import { playSound } from "../../hooks/useSound.js";
 import { useTTS } from "../../hooks/useTTS.js";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+import { useModalA11y } from "../../hooks/useModalA11y.js";
 import { CLIENT_BOT_URL } from "../../config/bots.js";
+
+// [DESIGN-LAB-APPLY] «Фокус-чат»: пилюля квоты кликабельна → детализация баланса + «Пополнить».
+// Только реальные цифры (trialTokens из /users/me/quota), нарисованных цен нет: 1 сообщение = 1 генерация.
+function QuotaDetailsModal({ quota, user, onClose }) {
+  const ref = useModalA11y(onClose)
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const left = quota?.trialTokens ?? user?.trialTokens ?? 0
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('quota.title')}
+        className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-sm p-6"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold">{t('quota.title')}</h3>
+          <button onClick={onClose} aria-label={t('common.close', 'Закрыть')} className="text-gray-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"><X size={20} /></button>
+        </div>
+        <div className="text-3xl font-bold mb-1">{left}✦ <span className="text-sm font-normal text-gray-400">{t('quota.left')}</span></div>
+        <p className="text-sm text-gray-400 mb-1">{t('quota.trialLine', { left })}</p>
+        <p className="text-xs text-gray-500 mb-5">{t('quota.perMessage')}</p>
+        <button
+          onClick={() => { onClose(); navigate('/settings?tab=subscription') }}
+          className="w-full px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity"
+        >
+          {t('quota.topUp')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const ACTION_BUTTONS = [
   { id: 'hook', label: 'chat.action.hook', icon: '🪝', prompt: 'Сгенерируй 5 цепляющих хуков для вирусного контента' },
   { id: 'script', label: 'chat.action.script', icon: '📝', prompt: 'Напиши сценарий Reels/Shorts для AI Viral Studio' },
@@ -242,6 +280,7 @@ export default function OmegaChat({
   const [recognitionLang, setRecognitionLang] = useState(() => localStorage.getItem('omega_recognition_lang') || 'ru');
   const [elevenlabsStatus, setElevenlabsStatus] = useState(null);
   const [quota, setQuota] = useState(null);
+  const [quotaOpen, setQuotaOpen] = useState(false);
   const [supportMode, setSupportMode] = useState(false);
   const [ticketForm, setTicketForm] = useState({ subject: '', description: '', screenshot: null });
   const [feedbackId, setFeedbackId] = useState(null);
@@ -556,9 +595,15 @@ export default function OmegaChat({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span data-tour="token-counter" className="text-[10px] sm:text-xs px-2 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono">
+            <button
+              type="button"
+              data-tour="token-counter"
+              onClick={() => setQuotaOpen(true)}
+              aria-label={t('quota.title')}
+              className="text-[10px] sm:text-xs px-2 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono hover:border-violet-500/40 hover:text-violet-200 transition-colors"
+            >
               ⚡ {quota?.trialTokens ?? user?.trialTokens ?? 0} / 10
-            </span>
+            </button>
             <OmegaLocalModeIndicator />
           </div>
         </div>
@@ -853,6 +898,11 @@ export default function OmegaChat({
             {t('chat.listening')}
           </p>
         )}
+        {quota && !quotaError && (
+          <p className="text-[10px] text-gray-500 text-center mt-1.5">
+            {t('quota.hint', { n: quota.trialTokens ?? 0 })}
+          </p>
+        )}
         {quotaError && (
           <p className="text-[10px] text-amber-400 text-center mt-1.5">
             ⚡ {t('quota.exceeded')}
@@ -860,6 +910,8 @@ export default function OmegaChat({
         )}
         <p className="text-[10px] text-gray-500 text-center mt-1.5">{t('chat.privacy')}</p>
       </form>
+
+      {quotaOpen && <QuotaDetailsModal quota={quota} user={user} onClose={() => setQuotaOpen(false)} />}
 
       {showVoiceSettings && (
         <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">

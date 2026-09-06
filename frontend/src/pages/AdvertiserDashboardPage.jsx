@@ -8,7 +8,7 @@ import {
     XCircle, Pause, Play, BarChart as BarChartIcon, PieChart, ArrowUpRight,
     ArrowDownRight, Users, Target, Clock, ChevronDown, ChevronUp,
     Send, Paperclip, Image, Video, FileType, Printer, Search, Filter,
-    Brain, Loader2, Wand2, Wallet
+    Brain, Loader2, Wand2, Wallet, Trophy
 } from 'lucide-react'
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -23,7 +23,8 @@ function AdvertiserDashboardPage() {
     const { t } = useTranslation()
     const { user } = useAuth()
     // [P18] added: AdStudio is the first/default tab
-    const [activeTab, setActiveTab] = useState('adstudio')
+    // [DESIGN-LAB-APPLY] дефолт — «Командный центр» (вариант Б, выбор владельца по живым preview)
+    const [activeTab, setActiveTab] = useState('command')
     const [showModal, setShowModal] = useState(false)
     const [showReportModal, setShowReportModal] = useState(false)
     const [selectedCampaign, setSelectedCampaign] = useState(null)
@@ -164,6 +165,29 @@ function AdvertiserDashboardPage() {
     }
 
     const profit = totalStats.totalBudget - totalStats.totalSpent
+
+    // [DESIGN-LAB-APPLY] «Командный центр» (вариант Б): кампания дня + воронка + неделя — реальные данные
+    // кампаний. Пусто → честный ноль + призыв «Создайте первую кампанию», нарисованных цифр нет.
+    const activeCampaigns = campaignsList.filter(c => c.status === 'active')
+    const bestCampaign = activeCampaigns
+        .filter(c => c.conversions > 0 && c.spent > 0)
+        .sort((a, b) => (a.spent / a.conversions) - (b.spent / b.conversions))[0]
+        || activeCampaigns[0] || null
+    const funnelSteps = [
+        { stage: t('advertiser.impressions'), value: totalStats.totalImpressions },
+        { stage: t('advertiser.clicks'), value: totalStats.totalClicks },
+        { stage: t('advertiser.conversions'), value: totalStats.totalConversions },
+    ].map(f => ({ ...f, pct: totalStats.totalImpressions ? Math.round((f.value / totalStats.totalImpressions) * 1000) / 10 : 0 }))
+    const weekPlan = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date()
+        d.setDate(d.getDate() + i)
+        const iso = d.toISOString().slice(0, 10)
+        return {
+            iso,
+            dayLabel: d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }),
+            items: campaignsList.filter(c => c.startDate && c.endDate && c.startDate <= iso && c.endDate >= iso).map(c => c.name),
+        }
+    })
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -331,6 +355,7 @@ AI Viral Studio`, {
     }
 
     const tabs = [
+        { id: 'command', label: t('advertiser.commandCenter', 'Командный центр'), icon: Trophy },
         { id: 'adstudio', label: t('advertiser.adStudio'), icon: Wand2 },
         { id: 'createad', label: t('advertiser.createAd'), icon: Plus },
         { id: 'campaigns', label: t('advertiser.campaigns'), icon: Target },
@@ -458,6 +483,96 @@ AI Viral Studio`, {
                     </button>
                 ))}
             </div>
+
+            {/* COMMAND CENTER TAB — [DESIGN-LAB-APPLY] вариант Б «Командный центр» на реальных данных */}
+            {activeTab === 'command' && (
+                campaignsList.length === 0 ? (
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-10 text-center space-y-4">
+                        <Trophy className="w-10 h-10 mx-auto text-[var(--text-muted)]" />
+                        <div>
+                            <p className="text-lg font-semibold text-[var(--text)]">{t('advertiser.commandEmptyTitle', 'Пока нет ни одной кампании')}</p>
+                            <p className="text-sm text-[var(--text-muted)] mt-1">{t('advertiser.commandEmptyText', 'Здесь появятся кампания дня, воронка и план недели — по реальным данным.')}</p>
+                        </div>
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--success)] to-emerald-600 text-white font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-2 text-sm"
+                        >
+                            <Plus className="w-4 h-4" />
+                            {t('advertiser.commandEmptyCta', 'Создайте первую кампанию')}
+                        </button>
+                    </div>
+                ) : (
+                <div className="space-y-4">
+                    {bestCampaign && (
+                    <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5" aria-label={t('advertiser.commandBest', 'Кампания дня')}>
+                        <div className="text-xs text-[var(--text-muted)] mb-1">🏆 {t('advertiser.commandBest', 'Кампания дня')} — {t('advertiser.commandBestHint', 'лучший CPL среди активных')}</div>
+                        <h3 className="text-lg font-bold text-[var(--text)] mb-3">{bestCampaign.name}</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {[
+                                { label: 'CPL', value: bestCampaign.conversions > 0 ? `$${(bestCampaign.spent / bestCampaign.conversions).toFixed(2)}` : '—', accent: true },
+                                { label: t('advertiser.conversions'), value: bestCampaign.conversions },
+                                { label: 'CTR', value: `${bestCampaign.ctr}%` },
+                                { label: t('advertiser.commandBudgetLeft', 'Остаток бюджета'), value: `$${Math.max(0, bestCampaign.budget - bestCampaign.spent).toLocaleString()}` },
+                            ].map(s => (
+                                <div key={s.label}>
+                                    <div className={`text-xl font-bold ${s.accent ? 'text-[var(--success)]' : 'text-[var(--text)]'}`}>{s.value}</div>
+                                    <div className="text-xs text-[var(--text-muted)]">{s.label}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-3 h-2 rounded-full bg-[var(--card-hover)] overflow-hidden" role="img" aria-label={t('advertiser.commandBudgetAria', 'Израсходовано {{pct}}% бюджета', { pct: bestCampaign.budget ? Math.round(bestCampaign.spent / bestCampaign.budget * 100) : 0 })}>
+                            <div className="h-full rounded-full bg-[var(--success)]" style={{ width: `${bestCampaign.budget ? Math.min(100, (bestCampaign.spent / bestCampaign.budget) * 100) : 0}%` }} />
+                        </div>
+                        <div className="text-xs text-[var(--text-muted)] mt-1">{t('advertiser.commandBudgetLine', 'Бюджет: ${{spent}} из ${{budget}}', { spent: bestCampaign.spent.toLocaleString(), budget: bestCampaign.budget.toLocaleString() })}</div>
+                    </section>
+                    )}
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4" aria-label={t('advertiser.commandFunnel', 'Воронка')}>
+                            <h3 className="font-semibold text-[var(--text)] mb-3">{t('advertiser.commandFunnel', 'Воронка')} · {t('advertiser.commandAllTime', 'всё время')}</h3>
+                            {totalStats.totalImpressions === 0 ? (
+                                <p className="text-sm text-[var(--text-muted)]">{t('advertiser.commandFunnelEmpty', 'Показов пока нет — воронка появится после старта кампаний.')}</p>
+                            ) : (
+                            <div className="space-y-2.5">
+                                {funnelSteps.map(f => (
+                                    <div key={f.stage}>
+                                        <div className="flex justify-between text-xs mb-1">
+                                            <span className="text-[var(--text-secondary)]">{f.stage}</span>
+                                            <span className="font-semibold text-[var(--text)]">{f.value.toLocaleString()} · {f.pct}%</span>
+                                        </div>
+                                        <div className="h-2.5 rounded-full bg-[var(--card-hover)] overflow-hidden">
+                                            <div className="h-full rounded-full bg-gradient-to-r from-[var(--success)] to-[var(--primary)]" style={{ width: `${Math.max(2, Math.min(100, f.pct))}%` }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            )}
+                        </section>
+
+                        <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4" aria-label={t('advertiser.commandWeek', 'Неделя кампаний')}>
+                            <h3 className="font-semibold text-[var(--text)] mb-3">{t('advertiser.commandWeek', 'Неделя кампаний')}</h3>
+                            <div className="space-y-2">
+                                {weekPlan.map(d => (
+                                    <div key={d.iso} className="flex gap-3 items-start">
+                                        <span className="w-16 shrink-0 text-xs font-semibold text-[var(--text-muted)] pt-1 capitalize">{d.dayLabel}</span>
+                                        <div className="flex-1 space-y-1">
+                                            {d.items.length === 0
+                                                ? <div className="text-xs text-[var(--text-muted)] py-1">— {t('advertiser.commandDayFree', 'свободно')} —</div>
+                                                : d.items.map((name, i) => (
+                                                    <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-xs">
+                                                        <span aria-hidden="true">📢</span>
+                                                        <span className="text-[var(--text)] truncate" title={name}>{name}</span>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+                )
+            )}
 
             {/* ADSTUDIO TAB */}
             {activeTab === 'adstudio' && <AdStudioTab />}

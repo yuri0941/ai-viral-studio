@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// [DESIGN-LAB] Отправка скринов /preview/* владельцу в TG owner-бота (sendMediaGroup, альбомы по 10).
+// [DESIGN-LAB-APPLY] Отправка скринов отчёта владельцу в TG owner-бота (sendMediaGroup, альбомы по 10).
 // Ключи — как в report-to-owner.mjs: env → apikeys БД / OwnerSettings. Секреты в stdout не выводятся.
-// Запуск: node scripts/design-lab-send-shots.mjs [--dir reports/design-lab-pr2]
+// Запуск: node scripts/report-shots-to-owner.mjs [--dir reports/design-lab-apply]
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -54,24 +54,24 @@ async function resolveTgCredentials() {
   return { token, chatId }
 }
 
-const dir = path.resolve(ROOT, arg('dir', 'reports/design-lab-pr2'))
+const dir = path.resolve(ROOT, arg('dir', 'reports/design-lab-apply'))
 const files = fs.readdirSync(dir).filter(f => f.endsWith('.png')).sort()
 if (!files.length) {
   console.log(`⚠️ нет скринов в ${dir}`)
   process.exit(0)
 }
 
-const CAPTIONS = {
-  chat: '💬 Фокус-чат', profile: '💎 Люкс-хаб', 'advertiser-a': '🅰 Дашборд',
-  'advertiser-b': '🅱 Командный центр', 'advertiser-c': '🅲 Терминал',
-  slots: '📢 Слоты', studio: '🎬 Студия', menu: '☰ Глобальное меню (бургер)',
-}
+const CAPTIONS = [
+  ['advertiser-command', '🏆 Кабинет рекламодателя — «Командный центр» (вариант Б, прод)'],
+  ['chat-quota-modal', '💬 Фокус-чат — пилюля квоты → модалка баланса (прод)'],
+  ['profile-luxehub', '💎 Профиль «Люкс-хаб» — кольцо баланса, реальная квота (прод)'],
+  ['proof-preview-blocked', '🔒 Пруф: /preview/* клиенту/анониму недоступен (редирект)'],
+]
 const caption = (f) => {
-  const m = f.replace('.png', '').split('-')
-  const page = Object.keys(CAPTIONS).find(k => f.startsWith(k))
+  const base = CAPTIONS.find(([k]) => f.startsWith(k))?.[1] || f.replace('.png', '')
   const vp = f.includes('iphone') ? 'iPhone 390' : 'desktop 1280'
   const theme = f.endsWith('-light.png') ? 'светлая' : 'тёмная'
-  return `${CAPTIONS[page] || m[0]} · ${page === 'menu' ? vp : `${vp} · ${theme}`}`
+  return f.startsWith('proof-') ? base : `${base}\n${vp} · ${theme}`
 }
 
 const { token, chatId } = await resolveTgCredentials()

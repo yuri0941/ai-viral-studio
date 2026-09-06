@@ -82,6 +82,12 @@ export async function checkPastDueSubscriptions() {
 }
 
 export async function runAutoPilot() {
+  // [OMEGA-CONTROL] рубильник владельца (owner-бот /omega): выключен — прогон пропускаем
+  const { isOmegaContourEnabled } = await import('../models/OwnerSettings.js')
+  if (!(await isOmegaContourEnabled('autopilot'))) {
+    console.log('[autoPilot] контур выключен владельцем (omegaControl.autopilot=false) — пропуск')
+    return { status: 'disabled' }
+  }
   console.log('[autoPilot] daily run started')
   await checkExpiringSubscriptions()
   await checkPastDueSubscriptions()
