@@ -68,7 +68,7 @@ export async function checkQuota(userId) {
 }
 
 export async function consumeGeneration(userId, userRole = null, { isInfoQuery = false } = {}) {
-    if (isOwner({ role: userRole })) {
+    if (isOwner({ role: userRole, _id: userId })) {
         return { allowed: true, remaining: Infinity, unlimited: true }
     }
     const quota = await getOrCreateQuota(userId)

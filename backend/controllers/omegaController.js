@@ -21,6 +21,7 @@ import { generateVideoScript, generateVideoPlaceholder, startReplicateVideo } fr
 import User from '../models/User.js'
 import axios from 'axios'
 import { checkQuota, consumeGeneration } from '../services/usageQuotaService.js'
+import { isOwner } from '../utils/canUse.js'
 import { scrapeVideo } from '../services/youtubeScraper.js'
 import { fetchVideoStats, fetchChannelStats, computeVideoRating } from '../services/youtubeDataService.js'
 import dialogueEvolution from '../ai/omega/dialogueEvolution.js'
@@ -345,7 +346,7 @@ export async function chat(req, res) {
                 extraSystemContext ? `${extraSystemContext}\n\nВопрос: ${message}` : message,
                 history.map(h => ({ role: h.role, content: h.content || h.text })),
                 lang,
-                { userId, ownerId: userId, userRole, extraSystem: roleContext, chatUserId }
+                { userId, ownerId: userId, userRole, extraSystem: roleContext, chatUserId, isOwner: UNLIMITED_ROLES.includes(effectiveRole) || isOwner({ role: effectiveRole, _id: userId }) }
             )
 
         // [PLANCONFIG-ADMIN] честное списание: генерация упала (нет ответа/fallback/ошибка провайдера) — возвращаем квоту клиенту

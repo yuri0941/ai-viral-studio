@@ -2,14 +2,22 @@
 
 Контекст проекта: `PROJECT_CONTEXT.md`. История работ: `PROGRESS_REPORT.md` (не дублировать, только дополнять записями по шаблону). Стандарт UI: `docs/UI_QUALITY_GATE.md`.
 
-## Правила работы
+## Правила работы (v9)
 
 - Работаешь сам, без сварма субагентов.
 - 1 ответ = правка 1–3 файлов + `node --check` изменённого. Размышления ≤3 строк, без анонсов.
-- Todo текстом (✅/▶/⬜). Wip-коммиты. `git add` строго по списку файлов. `reports/` не коммитить.
-- Ветка от свежего `origin/main`. Финал задачи: `git push -u origin <ветка>` → отчёт с живой compare-ссылкой, `diff --stat`, скринами/выводом проверок и записью в `PROGRESS_REPORT.md`. **Отчёт без пуша = не сдан.**
+- Todo текстом (✅/▶/⬜). Wip-коммиты каждые 20–30 мин. `git add` строго по списку файлов. `reports/` не коммитить.
+- Ветка от свежего `origin/main`. Один PR = одна зона (payments / storefront / owner / …). Финал задачи: `git push -u origin <ветка>` → отчёт с живой compare-ссылкой, `diff --stat`, скринами/выводом проверок и записью в `PROGRESS_REPORT.md`. **Отчёт без пуша = не сдан.**
+- Никакого нового функционала сверх списка задач батча.
+- Любое действие вне локального кода (merge, force-redeploy, конфиги/ключи/цены, тест-платежи) — только после approve владельца.
 - Негативные тесты в каждом батче, затрагивающем доступ: admin/client дёргает owner-API → 403. Гард-матрица (`qaSecurityFlow`) должна оставаться зелёной.
 - Перед сдачей: `npm run build` (frontend) 0 ошибок; `node scripts/qa-launch.mjs` — единая сводка всех QA зелёная; `node scripts/i18n-parity.mjs` чист.
+
+## Экономия токенов
+
+- Поиск по коду — точечно (grep/glob), файлы целиком не перечитывать без нужды.
+- Доки библиотек — context7. Скрины — playwright (готовые шаблоны в `scripts/*-shots.mjs`).
+- Секреты ЮKassa — только кабинет владельца/MongoDB, НЕ в репо/логах/отчётах (маскируем: `live_...O730`).
 
 ## Вопросы владельцу (правило молчания)
 
@@ -24,10 +32,27 @@
 ## НЕ ЛОМАТЬ (красные зоны)
 
 - Платежи/ЮKassa (создание платежа, webhook-верификация, refund).
-- `PlanConfig` и тарифы, реферальная механика (`OwnerSettings.referralPercent`).
+- `PlanConfig` и тарифы, редактор цен, витрина пакетов кредитов, реферальная механика (`OwnerSettings.referralPercent`).
 - Боты (Telegram), лендинг, рубильники (owner feature flags), rate-limit, view-as.
 - Гард-матрицу Б5 (authorize/role checks ослаблять запрещено).
 - Логику entitlement/снапшотов аддонов (`UserAddon.includesSnapshot/featuresSnapshot`).
+- Webhook-гард (`backend/utils/tgWebhookGuard.js`), approve-зону, Hard Limit, Auto Downgrade.
+- ask-owner / ownerFreeText / изоляцию owner-контура / OMEGA Control / двойной канал вопросов.
+- Паузу CHANNEL-AUTO, голос владельца, удаление постов.
+- Дизайн PR #60 (Фокус-чат / Люкс-хаб / Командный центр).
+
+## Инфраструктура (факты)
+
+- Прод: `https://aiviral-studio.ru` (Cloudflare Pages, SPA-fallback через `200.html` — правило `/* /index.html 200` режется валидатором Pages, code 10021).
+- Backend: `https://aiviral-backend.onrender.com` (Render). БД локального backend ОТДЕЛЬНАЯ от прода (поэтому qa-скрипты проксируют prod-API на локальный); прод-БД — только через prod API / Render env.
+- БД: MongoDB Atlas, у прода и локали РАЗНЫЕ базы. ShopID ЮKassa — live (`live_...O730`), ключи в Render env (прод) / кабинете владельца, hot-reload через `getProviderKey`.
+- TG: owner-бот `@omega_aiviral_bot`, клиентский `@aiviral_alerts_bot`, канал `@aiviralstudio` (функциональные боты — оба; `qa-bots.mjs` проверяет webhook обоих).
+- Тест-карта ЮKassa: `5555 5555 5555 4477 · 12/25 · CVV 000`.
+
+## Актуализация AGENTS.md (постоянное правило)
+
+- AGENTS.md читается в начале каждой сессии. По ходу работы сам вносишь новые правила/факты и удаляешь устаревшее.
+- Конфликт правил (AGENTS.md vs ТЗ батча) — строкой в отчёт + ask-owner.
 
 ## Стандарты
 
