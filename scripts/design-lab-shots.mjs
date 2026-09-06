@@ -43,6 +43,12 @@ for (const [vpName, vp] of VIEWPORTS) {
       await page.waitForTimeout(700) // count-up и lazy-чанки
       await page.screenshot({ path: path.join(OUT, `${name}-${vpName}-${theme}.png`), fullPage: true })
       shots++
+      if (vpName === 'iphone' && name === 'chat') {
+        await page.getByRole('button', { name: 'Открыть меню' }).click()
+        await page.waitForTimeout(400)
+        await page.screenshot({ path: path.join(OUT, `menu-${vpName}-${theme}.png`) })
+        shots++
+      }
     }
     await ctx.close()
   }

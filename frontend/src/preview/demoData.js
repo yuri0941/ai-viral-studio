@@ -178,3 +178,103 @@ export const demoPostVariants = [
 ]
 
 export const demoPostSlot = 'завтра · 14:00 (пик вашей аудитории)'
+
+// ——— Глобальное левое меню: 100% паритет с AppSidebar (OWNER_GROUPS), демо — пункты не ведут в прод ———
+export const demoMenuGroups = [
+  {
+    id: 'overview', title: 'ОБЗОР',
+    items: [
+      { label: 'Dashboard', icon: '📊' },
+      { label: 'Ω OMEGA', icon: '🚀', badge: 'AI' },
+      { label: '📊 Аналитика', icon: '📈' },
+      { label: '🏭 Project Factory', icon: '🏭' },
+    ],
+  },
+  {
+    id: 'omega', title: 'OMEGA',
+    items: [
+      { label: 'Ω OMEGA Core', icon: '🧠' },
+      { label: '🧠 Нейросеть', icon: '🧠' },
+      { label: '🧠 Self-Optimize', icon: '⚙️' },
+      { label: '💾 Память', icon: '💾' },
+      { label: '💻 DevStudio', icon: '💻' },
+      { label: '🌙 Dream Mode', icon: '🌙' },
+      { label: '🏛 Совет', icon: '🏛' },
+      { label: '🥊 AI vs Human', icon: '🥊' },
+      { label: '💰 OMEGA Finance', icon: '💰' },
+      { label: '🧠 OMEGA Skills', icon: '🧠' },
+      { label: '🗄️ OMEGA Memory', icon: '🗄️' },
+      { label: '🤖 AI Агенты', icon: '🤖' },
+      { label: '🧠 OMEGA Supreme', icon: '👑' },
+    ],
+  },
+  {
+    id: 'finance', title: 'ФИНАНСЫ',
+    items: [
+      { label: 'Финансы', icon: '💵' },
+      { label: 'Подписки', icon: '💳' },
+      { label: '💸 Возвраты', icon: '💸' },
+      { label: '🏢 Реквизиты', icon: '🏢' },
+      { label: 'Реклама', icon: '📢' },
+      { label: 'Рефералы', icon: '🔗' },
+    ],
+  },
+  {
+    id: 'team', title: 'КОМАНДА',
+    items: [
+      { label: 'Команда', icon: '👥' },
+      { label: '👥 Клиенты', icon: '🧑‍🤝‍🧑' },
+      { label: 'Кабинеты', icon: '🖥' },
+      { label: '✅ Задачи', icon: '✅' },
+      { label: '🏢 Совет', icon: '🏢' },
+      { label: '🔮 Разведка', icon: '🔮' },
+      { label: '💰 Инвестиции', icon: '🏦' },
+      { label: '🚀 Рождение бизнеса', icon: '🚀' },
+    ],
+  },
+  {
+    id: 'content', title: 'КОНТЕНТ',
+    items: [
+      { label: 'Новости', icon: '📰' },
+      { label: 'Промо', icon: '🎁' },
+      { label: '📋 Шаблоны', icon: '📋' },
+      { label: '🎨 Brand Voice', icon: '🎨' },
+      { label: '🎬 AI Video', icon: '🎬' },
+      { label: '🧠 Neuro-Sales', icon: '🧠' },
+      { label: '🔥 Scout', icon: '🔥' },
+      { label: '📱 Telegram', icon: '📱' },
+      { label: '📡 Каналы', icon: '📡' },
+      { label: '🛒 Заказы рекламы', icon: '🛒' },
+      { label: '📈 Метрики продаж', icon: '📈' },
+    ],
+  },
+  {
+    id: 'client', title: 'CLIENT',
+    items: [
+      { label: '📊 Аналитика', icon: '📊' },
+      { label: '📅 Планировщик', icon: '📅' },
+    ],
+  },
+  {
+    id: 'settings', title: 'НАСТРОЙКИ',
+    items: [
+      { label: '🛠 Управление аддонами', icon: '🛠' },
+      { label: '🔑 API Keys', icon: '🔑' },
+      { label: 'Безопасность', icon: '🔒' },
+      { label: 'Юр. лицо', icon: '⚖️' },
+      { label: '⚖️ Юр. настройки', icon: '⚖️' },
+      { label: 'Аудит', icon: '🛡' },
+      { label: 'Серверы', icon: '🖥' },
+      { label: '📅 Планировщик', icon: '📅' },
+      { label: 'Обновления', icon: '🔄' },
+      { label: 'Интеграции', icon: '🔌' },
+      { label: 'AI Аналитика', icon: '📊' },
+      { label: 'Логи системы', icon: '📄' },
+      { label: 'Уведомления', icon: '🔔' },
+      { label: '💬 Поддержка', icon: '💬' },
+      { label: 'Помощь', icon: '❓' },
+      { label: 'Feedback', icon: '💜' },
+      { label: '🚀 DevStudio', icon: '🚀' },
+    ],
+  },
+]
