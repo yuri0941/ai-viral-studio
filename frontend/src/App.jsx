@@ -50,8 +50,33 @@ const ProjectFactoryPage = lazy(() => import('./pages/project-factory/ProjectFac
 const PredictionDashboard = lazy(() => import('./pages/prediction/PredictionDashboard.jsx'))
 const InvestmentPanel = lazy(() => import('./pages/investment/InvestmentPanel.jsx'))
 const BoardroomCommandCenter = lazy(() => import('./pages/boardroom/BoardroomCommandCenter.jsx'))
-// [DESIGN-LAB] публичная дизайн-лаборатория /preview/* (демо-данные, прод-роуты не тронуты)
+// [DESIGN-LAB] дизайн-лаборатория /preview/* (демо-данные, прод-роуты не тронуты)
 const PreviewLab = lazy(() => import('./preview/PreviewLab.jsx'))
+
+// [DESIGN-LAB-GUARD] /preview/* — только роль owner; остальным и незалогиненным — нейтральный 404
+// (черновики дизайна не должны быть доступны клиентам). 404, а не /unauthorized — чтобы
+// сам факт существования лаборатории не раскрывался.
+function PreviewOwnerGuard({ children }) {
+    const { user, isAuthenticated, loading } = useAuth()
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-2 border-[#00ff41] border-t-transparent rounded-full" />
+            </div>
+        )
+    }
+    if (!isAuthenticated || user?.role !== 'owner') {
+        return (
+            <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col items-center justify-center gap-3">
+                <div className="text-6xl font-bold text-white/20">404</div>
+                <p className="text-sm text-white/50">Страница не найдена</p>
+                <a href="/" className="text-sm text-[#00ff41] hover:underline">На главную</a>
+            </div>
+        )
+    }
+    return children
+}
+
 import LaunchPage from './pages/LaunchPage'
 import PublicRoadmap from './pages/landing/PublicRoadmap'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
@@ -329,8 +354,8 @@ function App() {
                 <Route path="/docs" element={<ApiDocsPage />} />
                 <Route path="/redirect" element={<RoleRedirect />} />
 
-                {/* [DESIGN-LAB] дизайн-лаборатория: публично, демо-данные, без API */}
-                <Route path="/preview/*" element={<PreviewLab />} />
+                {/* [DESIGN-LAB] дизайн-лаборатория: только owner, остальным — 404 */}
+                <Route path="/preview/*" element={<PreviewOwnerGuard><PreviewLab /></PreviewOwnerGuard>} />
 
                 {/* [v6.0] added: backward compatible redirects to Creative Hub */}
                 <Route path="/chat" element={<Navigate to="/creative-hub/chat" replace />} />

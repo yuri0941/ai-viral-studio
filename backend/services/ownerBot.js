@@ -1214,7 +1214,7 @@ export const initOwnerBot = () => {
       const ticketId = data.slice('ticket:takeover:'.length)
       try {
         const ticket = await SupportTicket.findById(ticketId)
-        if (!ticket) { safeSendMessage(chatId, '⚠️ Тикет не найден'); return }
+        if (!ticket) { safeSendMessage(chatId, '✅ Тикет уже закрыт'); return }
         if (!ticket.telegramChatId) { safeSendMessage(chatId, '⚠️ У тикета нет TG-чата клиента — отвечайте через Dashboard.'); return }
         ticket.status = 'in_progress'
         ticket.takeoverBy = String(chatId)
@@ -1276,7 +1276,7 @@ export const initOwnerBot = () => {
       const ticketId = data.slice('ticket:close:'.length)
       try {
         const ticket = await SupportTicket.findById(ticketId)
-        if (!ticket) { safeSendMessage(chatId, '⚠️ Тикет не найден'); return }
+        if (!ticket) { safeSendMessage(chatId, '✅ Тикет уже закрыт'); return }
         ticket.status = 'resolved'
         ticket.closedAt = new Date()
         ticket.takeoverBy = null
