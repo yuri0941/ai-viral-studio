@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -39,6 +39,7 @@ function useCountUp(target, duration = 900) {
 
 function BalanceRingCard({ onTopUp }) {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [quota, setQuota] = useState(null);
     useEffect(() => {
         request('/users/me/quota')
@@ -72,7 +73,7 @@ function BalanceRingCard({ onTopUp }) {
                     </div>
                     <button
                         type="button"
-                        onClick={onTopUp}
+                        onClick={onTopUp || (() => navigate('/credits'))}
                         className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
                     >
                         ＋ {t('quota.topUp')}
@@ -779,9 +780,9 @@ function SettingsPage() {
 
     const renderProfile = () => (
         <div className="space-y-6">
-            {/* [DESIGN-LAB-APPLY] «Люкс-хаб»: кольцо баланса на реальных данных /users/me/quota,
-                «＋Пополнить» → вкладка тарифов. Пусто = честный 0, нарисованных цифр нет. */}
-            <BalanceRingCard onTopUp={() => setActiveTab('subscription')} />
+            {/* [DESIGN-LAB-APPLY] «Люкс-хаб»: кольцо баланса на реальных данных /users/me/quota.
+                [HOTFIX-FINAL] «＋Пополнить» → витрина пакетов /credits. Пусто = честный 0. */}
+            <BalanceRingCard />
             {/* [v9.9.19-MASTER-AUDIT] Telegram Connect: deep-link привязка к клиентскому боту */}
             <div className="luxury-card glass p-6 mb-4">
                 <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">

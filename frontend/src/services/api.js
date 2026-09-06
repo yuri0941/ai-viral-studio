@@ -436,6 +436,14 @@ export const planConfigApi = {
     updateFounding: (payload) => request('/plan-config/founding', { method: 'PUT', body: JSON.stringify(payload) }),
 }
 
+// [HOTFIX-FINAL] витрина пакетов кредитов
+export const creditsApi = {
+    packs: (opts) => request('/credits/packs', opts),
+    purchase: (packId) => request('/credits/purchase', { method: 'POST', body: JSON.stringify({ packId }) }),
+    packsAdmin: () => request('/credits/packs-admin'),
+    updatePack: (packId, payload) => request(`/credits/packs/${encodeURIComponent(packId)}`, { method: 'PUT', body: JSON.stringify(payload) }),
+}
+
 export const testimonialsApi = {
     list: (opts) => request('/testimonials', opts),
     listAll: () => request('/testimonials/all'),

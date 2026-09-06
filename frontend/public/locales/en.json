@@ -607,7 +607,18 @@
     "limitReached": "You have reached the limit: {{reason}} ({{usage}} of {{limit}}).",
     "moreFeatures": "more features",
     "month": "mo",
-    "upgrade": "Upgrade plan"
+    "upgrade": "Upgrade plan",
+    "buyCredits": "Buy a credit pack"
+  },
+  "credits": {
+    "title": "Credit packs",
+    "balanceLine": "Current balance:",
+    "empty": "Packs are temporarily unavailable. Please try again later.",
+    "perCredit": "{{price}}₽ per credit",
+    "bestValue": "Best value",
+    "buy": "Buy",
+    "purchaseError": "Could not create the payment. Please try again later.",
+    "hint": "1 credit = 1 generation · card payment via YooKassa · credited right after payment"
   },
   "quota": {
     "generationsToday": "Generations today",

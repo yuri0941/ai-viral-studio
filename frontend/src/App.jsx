@@ -41,6 +41,7 @@ import ChallengePage from './pages/ChallengePage'
 import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
 import OwnerAppPage from './pages/owner-app/index'
 import PaymentSuccess from './pages/PaymentSuccess'
+import CreditsPage from './pages/CreditsPage'
 import StripeCheckoutPage from './pages/StripeCheckoutPage'
 // [CHECKOUT-UNIFY] CheckoutPage удалён: legacy-флоу с ценами не из PlanConfig (redirect на /settings?tab=subscription)
 import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/legal/LegalPage'
@@ -425,6 +426,12 @@ function App() {
                 <Route path="/settings" element={
                     <ProtectedRoute>
                         <SettingsPage />
+                    </ProtectedRoute>
+                } />
+                {/* [HOTFIX-FINAL] витрина пакетов кредитов — цель всех кнопок «Пополнить» */}
+                <Route path="/credits" element={
+                    <ProtectedRoute>
+                        <CreditsPage />
                     </ProtectedRoute>
                 } />
                 <Route path="/auth/vk/callback" element={
