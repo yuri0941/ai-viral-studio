@@ -611,7 +611,13 @@
   },
   "quota": {
     "generationsToday": "Generations today",
-    "almostExhausted": "Almost exhausted — few generations left"
+    "almostExhausted": "Almost exhausted — few generations left",
+    "title": "Generation balance",
+    "perMessage": "1 OMEGA message = 1 generation",
+    "left": "left",
+    "topUp": "Top up",
+    "trialLine": "Trial generations: {{left}} of 10",
+    "hint": "1 message = 1✦ · {{n}}✦ left"
   },
   "settings": {
     "title": "Settings",
