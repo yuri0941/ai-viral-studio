@@ -218,7 +218,7 @@ const PAGE_TITLES = {
 // PROTECTED ROUTE
 // ============================================
 function ProtectedRoute({ children, allowedRoles }) {
-    const { user, isAuthenticated, loading, roleSwitching, logout } = useAuth()
+    const { user, isAuthenticated, loading, authError, roleSwitching, logout } = useAuth()
     const location = useLocation()
     const navigate = useNavigate()
 
@@ -246,6 +246,23 @@ function ProtectedRoute({ children, allowedRoles }) {
     }
 
     if (!isAuthenticated) {
+        // [HOTFIX-FINAL-2 З2] токен жив, но сервер недоступен и кэша нет — error-state с retry
+        // вместо вечного спиннера/молчаливого редиректа (TG WebView, спящий backend)
+        if (authError) {
+            return (
+                <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-4 p-6 text-center text-gray-200">
+                    <div className="text-3xl">⚠️</div>
+                    <div className="text-lg font-semibold">Нет соединения с сервером</div>
+                    <p className="text-sm text-gray-400 max-w-xs">Проверьте интернет и попробуйте ещё раз.</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-3 min-h-[44px] rounded-2xl bg-[#00ff41] text-black font-semibold"
+                    >
+                        Повторить
+                    </button>
+                </div>
+            )
+        }
         return <Navigate to="/" replace />
     }
 
