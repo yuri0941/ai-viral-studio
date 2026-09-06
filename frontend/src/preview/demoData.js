@@ -134,3 +134,47 @@ export const demoStudioTools = [
 ]
 
 export const fmtRub = (n) => `${Number(n).toLocaleString('ru-RU')} ₽`
+
+// ——— Студия: OMEGA Control (4 контура, живые статусы) ———
+export const demoOmegaControl = [
+  { id: 'autopost', icon: '📅', name: 'Автопостинг', status: 'on', statusLabel: 'включён · слот 14:00' },
+  { id: 'week', icon: '🗓', name: 'Контент-неделя', status: 'working', statusLabel: 'собирает пост 4/7' },
+  { id: 'trends', icon: '📈', name: 'Мониторинг трендов', status: 'paused', statusLabel: 'пауза' },
+  { id: 'comments', icon: '💬', name: 'Ответы в комментарии', status: 'on', statusLabel: 'включён · 12 ответов сегодня' },
+]
+
+export const demoOmegaControlStatus = {
+  on: { dot: 'bg-emerald-500', label: 'работает' },
+  working: { dot: 'bg-[var(--primary)] animate-pulse', label: 'в процессе' },
+  paused: { dot: 'bg-amber-500', label: 'пауза' },
+}
+
+// ——— Студия: контур постов. Пост = утверждённый вариант 1:1 ———
+export const demoPostVariants = [
+  {
+    id: 1,
+    hook: '«До/после: 12к за 21 день»',
+    text: 'Ученица набрала 12 000 подписчиков за 21 день — без бюджета и ботов.\n\nЧто сработало: 1 хук в первые 1.5 секунды, рубрика «ошибка дня», публикация в 14:00.\n\nРазобрали весь путь на курсе «Вирусные Reels за 21 день». Запись до воскресенья 23:59.',
+    hashtags: ['#reels', '#продвижение', '#smm', '#блогинг', '#кейс'],
+    cta: 'Записаться со скидкой −30%',
+    link: 'aiviral-studio.ru/r/reels21',
+  },
+  {
+    id: 2,
+    hook: '«7 ошибок первой недели»',
+    text: '7 ошибок, которые я сделала в первую неделю курса (сделала все).\n\nГлавная — снимать «в стол» вместо публикации каждый день. Алгоритм любит регулярность, а не идеал.\n\nПолный разбор — на бесплатном вебинаре в пятницу 20:00.',
+    hashtags: ['#reels', '#ошибки', '#контент', '#smm'],
+    cta: 'Место на вебинар',
+    link: 'aiviral-studio.ru/r/webinar',
+  },
+  {
+    id: 3,
+    hook: '«Почему смотрят 200, а не 200 000»',
+    text: 'Почему ваши Reels смотрят 200 человек, а не 200 000.\n\nДело не в алгоритме: первые 1.5 секунды решают всё. Показываю 3 хука, которые подняли удержание с 18% до 61%.\n\nСохраните и проверьте на своём следующем ролике.',
+    hashtags: ['#reels', '#хуки', '#удержание', '#блогинг'],
+    cta: '3 хука в PDF бесплатно',
+    link: 'aiviral-studio.ru/r/hooks',
+  },
+]
+
+export const demoPostSlot = 'завтра · 14:00 (пик вашей аудитории)'
