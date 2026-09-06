@@ -43,7 +43,8 @@
 
 ## Инфраструктура (факты)
 
-- Прод: `https://aiviral-studio.ru` (Cloudflare Pages, SPA-fallback через `200.html` — правило `/* /index.html 200` режется валидатором Pages, code 10021).
+- Прод: `https://aiviral-studio.ru` (Cloudflare Pages, SPA-fallback — ТОЛЬКО rewrite `/* /index.html 200` в `frontend/public/_redirects`, БЕЗ 301/302/308 и БЕЗ «!»). Запрещено: rewrite на `*.html`-цель (Pages каноникализирует `.html` 308-редиректом → петля, инцидент 06.09.2026: прод лежал из-за `/* /200.html 200`). Файл `200.html`/spa-200.mjs не нужны и запрещены.
+- Любое изменение `_redirects`/redirect-логики — только с curl-пруфами на preview-деплое Pages ДО мержа (`/` + 2 прямых роута → 200, 0 редиректов). «Не сломано — не трогай» на проде важнее страховок.
 - Backend: `https://aiviral-backend.onrender.com` (Render). БД локального backend ОТДЕЛЬНАЯ от прода (поэтому qa-скрипты проксируют prod-API на локальный); прод-БД — только через prod API / Render env.
 - БД: MongoDB Atlas, у прода и локали РАЗНЫЕ базы. ShopID ЮKassa — live (`live_...O730`), ключи в Render env (прод) / кабинете владельца, hot-reload через `getProviderKey`.
 - TG: owner-бот `@omega_aiviral_bot`, клиентский `@aiviral_alerts_bot`, канал `@aiviralstudio` (функциональные боты — оба; `qa-bots.mjs` проверяет webhook обоих).
