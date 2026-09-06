@@ -1033,6 +1033,71 @@ export const initOwnerBot = () => {
       return
     }
 
+    // [POST-DRAFT] контур постов: «черновик <тема>» → 3 варианта → «вариант N» = выбор к публикации →
+    // превью РОВНО того текста, что уйдёт в канал + чек-лист (хэштеги/CTA/ссылка) → ✅/❌ → publish 1:1
+    const draftMatch = text.trim().match(/^черновик[:\s]+(.+)/is)
+    if (draftMatch) {
+      const topic = draftMatch[1].trim().slice(0, 200)
+      safeSendMessage(chatId, `✍️ Готовлю 3 варианта поста на тему «${topic}»...`)
+      try {
+        const { chatWithAI, extractText } = await import('./aiService.js')
+        const prompt = `Ты SMM-редактор Telegram-канала AI Viral Studio. Тема: «${topic}».
+Сгенерируй 3 РАЗНЫХ варианта поста на русском. В каждом: цепляющий заголовок, основной текст (150-250 слов), 3-5 хэштегов, призыв к действию со ссылкой на https://aiviral-studio.ru.
+Верни ТОЛЬКО JSON массив: [{"title":"...","text":"...","hashtags":["#..."],"cta":"..."}]`
+        const ai = await chatWithAI(prompt, [], 'ru', { system: 'Return ONLY valid JSON.', maxTokens: 3000, temperature: 0.8 })
+        const raw = extractText(ai).replace(/```json|```/g, '').trim()
+        const parsed = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] || raw)
+        const variants = (Array.isArray(parsed) ? parsed : [parsed]).slice(0, 3)
+        if (!variants.length) throw new Error('AI не вернул варианты')
+        global.ownerDrafts = global.ownerDrafts || new Map()
+        global.ownerDrafts.set(String(chatId), { topic, variants, at: Date.now() })
+        const list = variants.map((v, i) =>
+          `<b>Вариант ${i + 1}</b>\n<b>${v.title || ''}</b>\n${String(v.text || '').slice(0, 220)}${String(v.text || '').length > 220 ? '…' : ''}`
+        ).join('\n\n')
+        safeSendMessage(chatId,
+          `📝 <b>Черновики: «${topic}»</b>\n━━━━━━━━━━━━━━\n${list}\n━━━━━━━━━━━━━━\nВыбери: <code>вариант 1</code> / <code>вариант 2</code> / <code>вариант 3</code> — покажу превью 1:1 перед публикацией.`,
+          { parse_mode: 'HTML' })
+      } catch (e) {
+        console.error('[OWNER-BOT] draft error:', e.message)
+        safeSendMessage(chatId, `⚠️ Не удалось подготовить черновики: ${e.message}`)
+      }
+      return
+    }
+
+    const variantMatch = text.trim().match(/^вариант\s+(\d+)[\s.!?]*$/i)
+    if (variantMatch) {
+      const idx = Number(variantMatch[1]) - 1
+      const draft = global.ownerDrafts?.get(String(chatId))
+      if (!draft || !draft.variants?.[idx]) {
+        safeSendMessage(chatId, '⚠️ Нет свежих черновиков. Сначала: <code>черновик &lt;тема&gt;</code>', { parse_mode: 'HTML' })
+        return
+      }
+      const v = draft.variants[idx]
+      const exact = [
+        v.title ? `<b>${v.title}</b>` : '',
+        String(v.text || ''),
+        Array.isArray(v.hashtags) ? v.hashtags.join(' ') : String(v.hashtags || ''),
+        String(v.cta || ''),
+      ].filter(Boolean).join('\n\n')
+      const plain = exact.replace(/<[^>]+>/g, '')
+      const checks = [
+        /#\S+/.test(plain) ? '✅ хэштеги' : '❌ хэштеги',
+        /(подпис|жми|регистр|скачай|читай|попроб|забирай|переходи|смотри|успей)/i.test(plain) ? '✅ CTA' : '❌ CTA',
+        /(https?:\/\/|t\.me\/)/i.test(plain) ? '✅ ссылка' : '❌ ссылка',
+      ].join(' · ')
+      draft.pending = exact
+      safeSendMessage(chatId,
+        `👁 <b>Превью — в канал уйдёт РОВНО этот текст:</b>\n━━━━━━━━━━━━━━\n${exact}\n━━━━━━━━━━━━━━\nЧек-лист: ${checks}\nПубликую?`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: [[
+            { text: '✅ Публиковать', callback_data: 'postok:yes' },
+            { text: '❌ Отмена', callback_data: 'postok:no' },
+          ]] },
+        })
+      return
+    }
+
     // [v9.9.5-TELEGRAM-UNIFIED] owner manual channel post
     if (String(global.ownerPostState) === String(chatId)) {
       // [v9.9.19.3] через единый публикатор: hot-reload токена, проверка результата, ссылка-доказательство
@@ -1251,6 +1316,34 @@ export const initOwnerBot = () => {
     // [TG-REPORT-HOOK] кнопки батч-отчёта: ✅ approve (CI→merge) / ❌ reject (причина)
     if (data === 'breport:approve' || data === 'breport:reject') {
       await handleBatchCallback({ q, chatId, safeSendMessage })
+      return
+    }
+
+    // [POST-DRAFT] «Публикую? ✅/❌» — в канал уходит ровно утверждённый текст из превью
+    if (data === 'postok:yes' || data === 'postok:no') {
+      const draft = global.ownerDrafts?.get(String(chatId))
+      if (data === 'postok:no' || !draft?.pending) {
+        if (draft) draft.pending = null
+        safeSendMessage(chatId, '❎ Публикация отменена.')
+        return
+      }
+      const exact = draft.pending
+      draft.pending = null
+      try {
+        const { publishExactChannelText } = await import('./telegramChannelManager.js')
+        const r = await publishExactChannelText(exact)
+        if (r.success) {
+          safeSendMessage(chatId,
+            `✅ <b>Опубликовано ровно утверждённый текст</b>\n━━━━━━━━━━━━━━\n📢 ${r.channel}` +
+            (r.url ? `\n🔗 <a href="${r.url}">Открыть пост</a>` : `\n🔢 message_id: ${r.messageId}`),
+            { parse_mode: 'HTML' })
+          import('./telegramChannelManager.js').then(m => m.markManualChannelPost()).catch(() => {})
+        } else {
+          safeSendMessage(chatId, `⚠️ Публикация не удалась: ${r.error}`)
+        }
+      } catch (e) {
+        safeSendMessage(chatId, `⚠️ Ошибка публикации: ${e.message}`)
+      }
       return
     }
 

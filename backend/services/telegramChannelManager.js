@@ -154,6 +154,38 @@ export async function publishToChannel(post, options = {}) {
   }
 }
 
+// [POST-DRAFT] публикация РОВНО утверждённого владельцем текста (без linkGuard/переписывания):
+// единственная правка — repair невалидного HTML (validateTelegramHTML). Для контура
+// «черновик → вариант N → превью 1:1 → ✅» в owner-боте.
+export async function publishExactChannelText(text) {
+  const { token, channel } = await resolveTelegramTarget();
+  if (!token || !channel) {
+    return { success: false, error: 'Telegram не настроен: добавьте telegram_bot и telegram_chat_id в Кабинет → API Ключи' };
+  }
+  const rights = await checkChannelRights();
+  if (!rights.ok && rights.reason === 'no_rights') {
+    await alertNoRights(channel);
+    return { success: false, reason: 'no_rights', error: `Бот не админ ${channel} или нет права «Публикация сообщений».` };
+  }
+  const v = validateTelegramHTML(String(text).slice(0, 4000));
+  if (!v.ok) console.warn(`[TG-HTML] exact post auto-fixed (${v.errors.join('; ')})`);
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: channel, text: v.fixed, parse_mode: 'HTML' })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description);
+    const messageId = data.result.message_id;
+    const channelSlug = String(channel).replace('@', '');
+    const url = /^@?[a-zA-Z][\w]{3,}$/.test(String(channel)) ? `https://t.me/${channelSlug}/${messageId}` : null;
+    await createNode({ type: 'content', content: `Telegram post published: ${String(text).slice(0, 60)}`, confidence: 0.9, source: 'telegram_auto', metadata: { messageId, channelId: channel, url, type: 'telegram_post', exact: true } });
+    return { success: true, messageId, url, channel };
+  } catch (e) {
+    return { success: false, error: friendlyTelegramError(e.message) };
+  }
+}
+
 export async function getChannelStats() {
   const { token, channel } = await resolveTelegramTarget();
   if (!token || !channel) return { subscribers: 0, mock: true };
