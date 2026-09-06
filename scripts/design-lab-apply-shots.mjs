@@ -68,6 +68,7 @@ async function withPage(browser, { token, theme = 'dark', mobile = false }, fn) 
   await page.addInitScript(([tk, th]) => {
     if (tk) localStorage.setItem('token', tk)
     localStorage.setItem('theme', th)
+    localStorage.setItem('ai-viral-theme', th)
     localStorage.setItem('cookie_consent', 'accepted')
   }, [token, theme])
   try {
