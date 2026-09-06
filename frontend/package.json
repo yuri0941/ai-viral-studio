@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build && node scripts/spa-200.mjs",
+        "build": "vite build",
         "preview": "vite preview",
         "analyze": "vite build --mode analyze",
         "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
