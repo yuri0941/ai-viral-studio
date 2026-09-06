@@ -113,7 +113,11 @@ export default defineConfig(({ mode }) => ({
             output: {
                 manualChunks: {
                     vendor: ['react', 'react-dom', 'react-router-dom'],
-                    ui: ['lucide-react', 'recharts', 'framer-motion'],
+                    // [HOTFIX-FINAL-2 З7.2] ui разделён: recharts/framer-motion живут только в ленивых
+                    // дашбордах, на первый экран тянется лишь lucide (иконки лендинга)
+                    icons: ['lucide-react'],
+                    charts: ['recharts'],
+                    motion: ['framer-motion'],
                     ai: ['@tanstack/react-query'],
                     omega: ['./src/ai/omega'],
                 },
