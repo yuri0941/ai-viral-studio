@@ -95,6 +95,12 @@ class DreamMode {
     }
 
     async runNightShift() {
+        // [OMEGA-CONTROL] рубильник владельца (owner-бот /omega): выключен — ночная смена пропускается
+        const { isOmegaContourEnabled } = await import('../../models/OwnerSettings.js')
+        if (!(await isOmegaContourEnabled('dream'))) {
+            console.log('[DreamMode] контур выключен владельцем (omegaControl.dream=false) — пропуск')
+            return { status: 'disabled' }
+        }
         if (!this.isNightShiftWindow()) {
             console.log('[DreamMode] Not in night shift window, skipping')
             return { status: 'skipped' }
@@ -237,6 +243,12 @@ class DreamMode {
     }
 
     async sendMorningBriefing() {
+        // [OMEGA-CONTROL] рубильник владельца (owner-бот /omega): выключен — брифинг не шлём
+        const { isOmegaContourEnabled } = await import('../../models/OwnerSettings.js')
+        if (!(await isOmegaContourEnabled('dream'))) {
+            console.log('[DreamMode] контур выключен владельцем — утренний брифинг пропущен')
+            return
+        }
         try {
             const { alertOwner } = await import('../../services/ownerBot.js')
             const today = new Date()

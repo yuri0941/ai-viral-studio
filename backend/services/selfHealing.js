@@ -109,6 +109,10 @@ async function loadOwnerSettings() {
 }
 
 async function runHealingTick() {
+    // [OMEGA-CONTROL] рубильник владельца (owner-бот /omega): выключен — тик пропускаем целиком
+    const { isOmegaContourEnabled } = await import('../models/OwnerSettings.js')
+    if (!(await isOmegaContourEnabled('selfHealing'))) return
+
     const owners = await loadOwnerSettings()
     const autoHealEnabled = owners.length === 0 ? true : owners.some(o => o.autoHeal)
 

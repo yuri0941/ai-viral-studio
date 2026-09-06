@@ -594,6 +594,19 @@ export const initOwnerBot = () => {
     }
   });
 
+  // [OMEGA-CONTROL] панель контуров автономии: живые статусы + вкл/выкл с превью-подтверждением
+  bot.onText(/\/omega(?:\s+control)?/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isOwner(chatId)) return;
+    try {
+      const { buildOmegaControlPanel } = await import('./omegaControl.js');
+      const { text, keyboard } = await buildOmegaControlPanel();
+      safeSendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: keyboard });
+    } catch (e) {
+      safeSendMessage(chatId, `⚠️ ${e.message}`);
+    }
+  });
+
   // [v9.9.20] Channel manager: /channel [type] [topic]
   bot.onText(/\/channel(?:\s+(\w+))?(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -1191,6 +1204,16 @@ export const initOwnerBot = () => {
     // [TG-REPORT-HOOK] кнопки батч-отчёта: ✅ approve (CI→merge) / ❌ reject (причина)
     if (data === 'breport:approve' || data === 'breport:reject') {
       await handleBatchCallback({ q, chatId, safeSendMessage })
+      return
+    }
+
+    // [OMEGA-CONTROL] панель контуров: превью-подтверждение вкл/выкл (oc:ask/oc:set/oc:cancel/oc:refresh)
+    if (data.startsWith('oc:')) {
+      const { handleOmegaControlCallback } = await import('./omegaControl.js')
+      await handleOmegaControlCallback({ q, chatId, bot, safeSendMessage }).catch(e => {
+        console.error('[OWNER-BOT] omega-control callback failed:', e.message)
+        safeSendMessage(chatId, `⚠️ OMEGA Control: ${e.message}`).catch(() => {})
+      })
       return
     }
 

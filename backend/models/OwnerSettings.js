@@ -48,6 +48,14 @@ const ownerSettingsSchema = new mongoose.Schema({
     // [REFERRAL-PCT] реферальная комиссия, % от платежа (0–50). Применяется к НОВЫМ начислениям,
     // уже начисленное не пересчитывается. Каноничное место — здесь, рядом с рубильниками.
     referralPercent: { type: Number, default: 12, min: 0, max: 50 },
+    // [OMEGA-CONTROL] рубильники автономных контуров OMEGA (owner-бот /omega, TG).
+    // Дефолт true = текущее поведение прода не меняется; выключение — только с превью ✅ владельца.
+    omegaControl: {
+        autopilot: { type: Boolean, default: true },
+        dream: { type: Boolean, default: true },
+        memory: { type: Boolean, default: true },
+        selfHealing: { type: Boolean, default: true },
+    },
 }, {
     timestamps: true,
 })
@@ -162,6 +170,49 @@ export async function setReferralPercent(pct) {
     await doc.save()
     invalidateOwnerFlagsCache()
     return { referralPercent: doc.referralPercent }
+}
+
+// [OMEGA-CONTROL] рубильники контуров автономии. Чтение без кэша (кроны 5–60 мин — свежести достаточно),
+// запись в самый свежий документ настроек (паттерн setOwnerFlag). undefined → включено (дефолт схемы true).
+export const OMEGA_CONTROL_KEYS = ['autopilot', 'dream', 'memory', 'selfHealing']
+
+export async function getOmegaControl() {
+    const value = { autopilot: true, dream: true, memory: true, selfHealing: true }
+    try {
+        if (mongoose.connection?.readyState === 1) {
+            const doc = await OwnerSettings.findOne().sort({ updatedAt: -1 }).lean()
+            if (doc?.omegaControl) {
+                for (const k of OMEGA_CONTROL_KEYS) {
+                    if (doc.omegaControl[k] === false) value[k] = false
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[OwnerSettings] getOmegaControl db read failed:', e.message)
+    }
+    return value
+}
+
+export async function isOmegaContourEnabled(key) {
+    const state = await getOmegaControl()
+    return state[key] !== false
+}
+
+export async function setOmegaControlFlag(key, flagValue) {
+    if (!OMEGA_CONTROL_KEYS.includes(key)) {
+        throw new Error(`Unknown omega control key: ${key}`)
+    }
+    let doc = await OwnerSettings.findOne().sort({ updatedAt: -1 })
+    if (!doc) {
+        const ownerUser = await mongoose.model('User').findOne({ role: 'owner' }).select('_id').lean()
+        if (!ownerUser) throw new Error('OwnerSettings document not found')
+        doc = new OwnerSettings({ ownerId: ownerUser._id })
+    }
+    const current = doc.omegaControl?.toObject?.() || doc.omegaControl || {}
+    doc.omegaControl = { autopilot: true, dream: true, memory: true, selfHealing: true, ...current, [key]: !!flagValue }
+    doc.markModified('omegaControl')
+    await doc.save()
+    return { [key]: doc.omegaControl[key] }
 }
 
 export default OwnerSettings
