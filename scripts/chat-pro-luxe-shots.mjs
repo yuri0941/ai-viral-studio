@@ -296,6 +296,8 @@ try {
             check(`${tag}: плейсхолдер режима`, (ph || '').includes(MODE_PH[m]), ph || '')
           }
           check(`${tag}: без горизонтального скролла`, await noHScroll(page))
+          // [З5.1] 100dvh-цепочка действует на ВСЕ режимы: страница целиком не скроллится
+          check(`${tag}: страница НЕ скроллится (docH≈vh)`, !(await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 2)))
           await shot(page, `luxehub-mode-${m}-${vw}-${theme}`)
         })
       }

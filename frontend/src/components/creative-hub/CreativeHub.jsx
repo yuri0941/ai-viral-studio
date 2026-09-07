@@ -493,8 +493,9 @@ export default function CreativeHub() {
 
                 {/* [v6.0] added: middle column — universal AI chat */}
                 <section className={`flex flex-col overflow-hidden min-w-0 ${isLuxeLayout ? 'flex-1 min-h-0' : 'h-full'}`}>
-                    {/* [CHAT-PRO З1] в режиме chat шапку режима заменяет люкс-шапка LuxeHubChat (чипы-подсказки перенесены туда) */}
-                    {mode !== 'chat' && (
+                    {/* [CHAT-PRO З1] в режиме chat шапку режима заменяет люкс-шапка LuxeHubChat (чипы-подсказки перенесены туда).
+                        [CHAT-PRO-FIX З1] старый заголовок режима — только в старой (недостижимой) компоновке */}
+                    {!isLuxeLayout && mode !== 'chat' && (
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-lg bg-white/5 border border-white/10">
