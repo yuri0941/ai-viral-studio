@@ -95,8 +95,9 @@ export default function LuxeHubChat({ chat, suggestions = [], onSuggestion, mode
 
   return (
     <div className="chat-pro-scope relative flex flex-col h-full min-h-0">
-      {/* Шапка Люкс-хаба (эталон: лого+статус слева, пилюля баланса справа; +переключатель режимов и меню — инвентарь З2) */}
-      <div className="relative z-10 flex items-center gap-3 mb-3">
+      {/* Шапка Люкс-хаба (эталон: лого+статус слева, пилюля баланса справа; +переключатель режимов и меню — инвентарь З2).
+          z-20: дропдаун ⋯ обязан быть над правой колонкой (у grid z-10) */}
+      <div className="relative z-20 flex items-center gap-3 mb-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/30 text-white text-lg shrink-0">✦</div>
         <div className="min-w-0 flex-1">
           <div className="text-base font-extrabold tracking-wide truncate" style={{ color: 'var(--cp-text)' }}>OMEGA Studio</div>

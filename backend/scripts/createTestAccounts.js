@@ -10,6 +10,8 @@ const TEST_ACCOUNTS = [
   { name: 'TEST_Creator', email: 'creator.test@aiviral-studio.ru', password: 'TestCreator123!', role: 'creator' },
   { name: 'TEST_Client', email: 'client.test@aiviral-studio.ru', password: 'TestClient123!', role: 'business' },
   { name: 'TEST_Advertiser', email: 'advertiser.test@aiviral-studio.ru', password: 'TestAdvertiser123!', role: 'advertiser' },
+  // [CHAT-PRO-FIX З2] owner-аккаунт для QA-гейта безлимита (скрин чата владельца без плашки лимита)
+  { name: 'TEST_Owner', email: 'owner.test@aiviral-studio.ru', password: 'TestOwner123!', role: 'owner' },
 ];
 
 async function createTestAccounts() {
