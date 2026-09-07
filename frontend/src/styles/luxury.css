@@ -455,6 +455,40 @@ html.light .chat-pro-embed .from-violet-500\/\[0\.08\] {
     .luxury-mesh-bg { animation: none; }
 }
 
+/* [CHAT-PRO-FIX З4] Шторка «Меню чата» — СЛЕВА, НЕПРОЗРАЧНАЯ (solid из темы, без блюра-просвета),
+   контент под ней не виден; анимация выезда 280ms, reduced-motion — без анимации.
+   Внутри — hardcoded dark-классы карточек (glass-card/text-gray-*) → light-оверрайды ниже. */
+.chat-pro-drawer {
+    background: #0f0f18;
+    color: #f3f4f6;
+    animation: chatpro-drawer-in .28s ease-out;
+}
+@keyframes chatpro-drawer-in {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .chat-pro-drawer { animation: none; }
+}
+html.light .chat-pro-drawer { background: #ffffff; color: #111111; border-right-color: rgba(17, 17, 17, .12); }
+html.light .chat-pro-drawer .glass-card { background: rgba(17, 17, 17, .04); border-color: rgba(17, 17, 17, .1); backdrop-filter: none; }
+html.light .chat-pro-drawer .text-gray-100 { color: #111111; }
+html.light .chat-pro-drawer .text-gray-200 { color: #1f2937; }
+html.light .chat-pro-drawer .text-gray-300 { color: #374151; }
+html.light .chat-pro-drawer .text-gray-400,
+html.light .chat-pro-drawer .text-gray-500 { color: #4b5563; }
+html.light .chat-pro-drawer .bg-white\/5 { background-color: rgba(17, 17, 17, .05); }
+html.light .chat-pro-drawer .bg-white\/10 { background-color: rgba(17, 17, 17, .08); }
+html.light .chat-pro-drawer .bg-\[\#1a1a24\] { background-color: #ffffff; border-color: rgba(17, 17, 17, .12); }
+html.light .chat-pro-drawer .border-white\/10,
+html.light .chat-pro-drawer .border-white\/20 { border-color: rgba(17, 17, 17, .12); }
+
+/* [CHAT-PRO-FIX З5.2] длинные таблицы/код остаются ВНУТРИ ленты: внутренний скролл/перенос,
+   лента скроллится сама; длинные неразрывные строки не распирают карточку */
+.omega-chat-scroll table { max-width: 100%; }
+.omega-chat-scroll pre, .omega-chat-scroll code { white-space: pre-wrap; overflow-wrap: anywhere; }
+.omega-chat-scroll p { overflow-wrap: anywhere; }
+
 /* [v6.2] Omega chat mobile adaptive bottom sheet */
 .omega-chat-mobile {
     padding-bottom: env(safe-area-inset-bottom, 0px);

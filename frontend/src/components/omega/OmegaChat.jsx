@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
 import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import { MarkdownText } from "./MarkdownText.jsx";
@@ -22,6 +22,8 @@ export function QuotaDetailsModal({ quota, user, onClose }) {
   const ref = useModalA11y(onClose)
   const { t } = useTranslation()
   const navigate = useNavigate()
+  // [CHAT-PRO-FIX З2] владелец = безлимит (флаг unlimited из /users/me/quota): ∞, без CTA пополнения
+  const unlimited = !!quota?.unlimited || user?.role === 'owner'
   const left = quota?.trialTokens ?? user?.trialTokens ?? 0
   return (
     <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
@@ -37,15 +39,17 @@ export function QuotaDetailsModal({ quota, user, onClose }) {
           <h3 className="text-lg font-bold">{t('quota.title')}</h3>
           <button onClick={onClose} aria-label={t('common.close', 'Закрыть')} className="text-gray-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"><X size={20} /></button>
         </div>
-        <div className="text-3xl font-bold mb-1">{left}✦ <span className="text-sm font-normal text-gray-400">{t('quota.left')}</span></div>
-        <p className="text-sm text-gray-400 mb-1">{t('quota.trialLine', { left })}</p>
+        <div className="text-3xl font-bold mb-1">{unlimited ? '∞' : `${left}✦`} <span className="text-sm font-normal text-gray-400">{unlimited ? t('chatPro.unlimited') : t('quota.left')}</span></div>
+        {!unlimited && <p className="text-sm text-gray-400 mb-1">{t('quota.trialLine', { left })}</p>}
         <p className="text-xs text-gray-500 mb-5">{t('quota.perMessage')}</p>
+        {!unlimited && (
         <button
           onClick={() => { onClose(); navigate('/credits') }}
           className="w-full px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity"
         >
           {t('quota.topUp')}
         </button>
+        )}
       </div>
     </div>
   )
@@ -266,6 +270,8 @@ export default function OmegaChat({
   embedded = false,
   // [CHAT-PRO З3] поиск по ленте: непустая строка фильтрует сообщения (presentational, история не трогается)
   searchQuery = '',
+  // [CHAT-PRO-FIX З1] плейсхолдер композера зависит от режима хаба (chat/analyzer/viral)
+  inputPlaceholder,
 }) {
   const { user } = useAuth();
   // [OWNER-OMEGA] owner/admin/staff не получают CTA продаж — 402/квоты без UpsellModal
@@ -365,17 +371,75 @@ export default function OmegaChat({
   const messages = isExternal ? externalMessages : internalMessages;
   const quotaError = externalQuotaError !== undefined ? externalQuotaError : internalQuotaError;
   const loading = isLoading || externalTyping || internalIsTyping;
-  const bottomRef = useRef(null);
-
   // [CHAT-PRO З3] поиск: фильтр по тексту (user+ai), регистронезависимо; при поиске приветственный экран скрыт
   const searchNeedle = (searchQuery || '').trim().toLowerCase();
   const visibleMessages = searchNeedle
     ? messages.filter(m => (m.text || '').toLowerCase().includes(searchNeedle))
     : messages;
+  const bottomRef = useRef(null);
+  // [CHAT-PRO-FIX З5] скролл-навигация ленты: лента скроллится сама (страница — нет),
+  // авто-скролл вниз только если пользователь внизу (или сам отправил), ↓/↑ кнопки, догрузка истории без прыжка
+  const feedRef = useRef(null);
+  const [atBottom, setAtBottom] = useState(true);
+  const [newWhileUp, setNewWhileUp] = useState(0);
+  const [tallFeed, setTallFeed] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(30);
+  const anchorRef = useRef(null);
+  const lastCountRef = useRef(0);
+  const HIST_PAGE = 30;
+  const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+  const scrollFeedTo = useCallback((top, smooth = true) => {
+    const el = feedRef.current;
+    if (!el) return;
+    el.scrollTo({ top, behavior: smooth && !reducedMotion ? 'smooth' : 'auto' });
+  }, [reducedMotion]);
+
+  const onFeedScroll = useCallback(() => {
+    const el = feedRef.current;
+    if (!el) return;
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const at = dist < 80;
+    setAtBottom(at);
+    if (at) setNewWhileUp(0);
+    setTallFeed(el.scrollHeight > el.clientHeight * 3);
+    // [З5.5] догрузка старых сообщений у верхней кромки — позиция НЕ прыгает (scroll-anchor)
+    if (el.scrollTop < 40 && !searchNeedle && visibleCount < visibleMessages.length) {
+      anchorRef.current = { height: el.scrollHeight, top: el.scrollTop };
+      setVisibleCount(c => Math.min(c + HIST_PAGE, visibleMessages.length));
+    }
+  }, [searchNeedle, visibleCount, visibleMessages.length]);
+
+  // восстановление позиции после догрузки сверху
+  useLayoutEffect(() => {
+    const el = feedRef.current;
+    if (el && anchorRef.current) {
+      el.scrollTop = anchorRef.current.top + (el.scrollHeight - anchorRef.current.height);
+      anchorRef.current = null;
+    }
+  }, [visibleCount]);
+
+  // [З5.4] авто-скролл: вниз — только если пользователь внизу; после СВОЕГО сообщения — всегда;
+  // поднялся читать — не дёргаем, копим бейдж «новых»
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const count = messages.length;
+    const prev = lastCountRef.current;
+    lastCountRef.current = count;
+    const grew = count > prev;
+    const lastIsOwn = grew && isUserMessage(messages[count - 1]);
+    if (grew && !atBottom && !lastIsOwn) {
+      setNewWhileUp(n => n + (count - prev));
+      return;
+    }
+    if (atBottom || lastIsOwn) {
+      bottomRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+    }
+  }, [messages, atBottom, reducedMotion]);
+
+  // [З5.5] окно истории: рендерим последние visibleCount (при поиске — все совпадения)
+  const windowedMessages = (!searchNeedle && visibleMessages.length > visibleCount)
+    ? visibleMessages.slice(visibleMessages.length - visibleCount)
+    : visibleMessages;
 
   const runQuickAction = (action) => {
     if (action.action === 'support') {
@@ -617,7 +681,11 @@ export default function OmegaChat({
         </div>
       )}
 
+      {/* [CHAT-PRO-FIX З5] скроллится ТОЛЬКО лента (шапка/композер на месте); обёртка relative — для ↓/↑ */}
+      <div className="relative flex-1 min-h-0 flex flex-col">
       <div
+        ref={feedRef}
+        onScroll={onFeedScroll}
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden omega-chat-scroll touch-pan-y scroll-smooth p-4 space-y-4"
         style={{ overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' }}
       >
@@ -651,7 +719,7 @@ export default function OmegaChat({
             <p className="text-sm text-gray-400">{t('chatPro.searchEmpty')}</p>
           </div>
         )}
-        {visibleMessages.map((msg, i) => (
+        {windowedMessages.map((msg, i) => (
           <div key={msg.id || i} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
             {isAiMessage(msg) ? (
               <>
@@ -750,6 +818,32 @@ export default function OmegaChat({
           <div className="text-center text-xs text-gray-500 mt-1">{t('chat.feedbackThanks')} {feedbackGiven}</div>
         )}
         <div ref={bottomRef} />
+      </div>
+
+      {/* [CHAT-PRO-FIX З5.3] ↑ к началу (лента >3 экранов) и ↓ к последнему (выше низа >1 экрана,
+          бейдж новых) — плавают над лентой у её низа, над композером справа */}
+      {tallFeed && (
+        <button
+          type="button"
+          onClick={() => scrollFeedTo(0)}
+          aria-label={t('chatPro.toTop')}
+          className="absolute top-2 right-4 z-10 min-w-[40px] min-h-[40px] w-10 h-10 flex items-center justify-center rounded-full bg-[#1a1a24]/95 border border-white/15 text-gray-200 shadow-lg hover:border-violet-500/40 transition"
+        >
+          <ChevronUp size={18} />
+        </button>
+      )}
+      {!atBottom && messages.length > 0 && (
+        <button
+          type="button"
+          data-tour="scroll-latest"
+          onClick={() => { scrollFeedTo(feedRef.current?.scrollHeight ?? 0); setNewWhileUp(0) }}
+          aria-label={t('chatPro.toLatest')}
+          className="absolute bottom-3 right-4 z-10 min-w-[44px] min-h-[44px] flex items-center justify-center gap-1 px-3 rounded-full bg-violet-600/95 border border-violet-400/40 text-white text-xs font-bold shadow-lg shadow-violet-900/40 hover:bg-violet-500 transition"
+        >
+          <ChevronDown size={16} />
+          {newWhileUp > 0 && <span className="px-1.5 py-0.5 rounded-full bg-fuchsia-500 text-[10px] leading-none">{newWhileUp}</span>}
+        </button>
+      )}
       </div>
 
       {supportMode && (
@@ -866,7 +960,7 @@ export default function OmegaChat({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={t('chat.placeholder')}
+            placeholder={inputPlaceholder || t('chat.placeholder')}
             disabled={loading}
             className="flex-1 min-w-0 h-12 bg-transparent text-base outline-none text-white placeholder-gray-500 disabled:opacity-50"
           />
@@ -921,12 +1015,12 @@ export default function OmegaChat({
             {t('chat.listening')}
           </p>
         )}
-        {quota && !quotaError && (
+        {quota && !quotaError && !quota.unlimited && (
           <p className="text-[10px] text-gray-500 text-center mt-1.5">
             {t('quota.hint', { n: quota.trialTokens ?? 0 })}
           </p>
         )}
-        {quotaError && (
+        {quotaError && !quota?.unlimited && (
           <p className="text-[10px] text-amber-400 text-center mt-1.5">
             ⚡ {t('quota.exceeded')}
           </p>
