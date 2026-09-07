@@ -49,6 +49,7 @@
 - БД: MongoDB Atlas, у прода и локали РАЗНЫЕ базы. ShopID ЮKassa — live (`live_...O730`), ключи в Render env (прод) / кабинете владельца, hot-reload через `getProviderKey`.
 - TG: owner-бот `@omega_aiviral_bot`, клиентский `@aiviral_alerts_bot`, канал `@aiviralstudio` (функциональные боты — оба; `qa-bots.mjs` проверяет webhook обоих).
 - Тест-карта ЮKassa: `5555 5555 5555 4477 · 12/25 · CVV 000`.
+- [CHAT-PRO] Выбор владельца (дизайн/макеты) = минимум 3 варианта скринами в TG одним альбомом; выбор из одного варианта не считается. Скрины каждого варианта: desktop тёмная+светлая + iPhone 390.
 - [ASK-OWNER-FIX] TG-канал ask-owner шлёт parse_mode=HTML: весь пользовательский текст (context/question/note) экранируется (`& < >`), иначе TG API 400 can't parse entities и сообщение молча не доходит (инцидент 07.09.2026 — отчёт с «<1МБ» не дошёл). Лимит 4096 — контекст обрезается, не роняет отправку. Код ответа TG API всегда в логе отправки.
 - [HOTFIX-FINAL-2] Ключи провайдеров: выключенный в кабинете ключ = ПОЛНЫЙ запрет, env-фолбэки `|| process.env.*_API_KEY` после `getProviderKey` запрещены (мёртвый ключ поднимался обратно в ротацию). 401/403 от провайдера → `backend/utils/providerKeyGuard.js#disableProviderKey` (isActive=false в БД + стоп кэша + TG-алерт). Новый ключ — только владелец через кабинет.
 - [HOTFIX-FINAL-2] Waitlist лендинга (`/api/public/waitlist`) пишет в Mongo (`Waitlist`), TG-алерт владельцу на каждую новую заявку. In-memory хранилища для заявок запрещены (Render рестартит — данные умирали).

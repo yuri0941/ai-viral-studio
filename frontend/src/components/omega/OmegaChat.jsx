@@ -18,7 +18,7 @@ import { CLIENT_BOT_URL } from "../../config/bots.js";
 
 // [DESIGN-LAB-APPLY] «Фокус-чат»: пилюля квоты кликабельна → детализация баланса + «Пополнить».
 // Только реальные цифры (trialTokens из /users/me/quota), нарисованных цен нет: 1 сообщение = 1 генерация.
-function QuotaDetailsModal({ quota, user, onClose }) {
+export function QuotaDetailsModal({ quota, user, onClose }) {
   const ref = useModalA11y(onClose)
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -66,7 +66,7 @@ const ACTION_BUTTONS = [
 const UNIQUE_ACTION_BUTTONS = Array.from(new Map(ACTION_BUTTONS.map(a => [a.id, a])).values());
 
 // [CHAT-UNIFY] ролевой фильтр быстрых действий: code/site — только owner/admin
-function actionButtonsForRole(role) {
+export function actionButtonsForRole(role) {
   return UNIQUE_ACTION_BUTTONS.filter(a => !a.roles || a.roles.includes(role));
 }
 
@@ -80,7 +80,7 @@ const WELCOME_CHIPS = [
   { id: 'site', label: 'chat.action.site', icon: '🌐', roles: ['owner', 'admin'], prompt: ACTION_BUTTONS.find(a => a.id === 'site').prompt },
 ];
 
-function welcomeChipsForRole(role) {
+export function welcomeChipsForRole(role) {
   return WELCOME_CHIPS.filter(c => !c.roles || c.roles.includes(role));
 }
 
@@ -123,7 +123,7 @@ function CodeBlock({ code, t }) {
   );
 }
 
-function AiMessageContent({ text, t }) {
+export function AiMessageContent({ text, t }) {
   if (!text || typeof text !== 'string') return null;
 
   // Full HTML preview
@@ -207,7 +207,7 @@ function AiMessageContent({ text, t }) {
   );
 }
 
-function ReasoningSteps({ reasoning, t }) {
+export function ReasoningSteps({ reasoning, t }) {
   const [expanded, setExpanded] = useState(false);
   if (!reasoning || !Array.isArray(reasoning) || reasoning.length === 0) return null;
   const steps = reasoning.slice(0, 4);
