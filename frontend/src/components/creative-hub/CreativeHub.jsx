@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation.js'
 import useOmegaChat from '../../hooks/useOmegaChat.js'
 import OmegaChat from '../omega/OmegaChat.jsx'
+import LuxeHubChat from '../chat-pro/LuxeHubChat.jsx' // [CHAT-PRO З1] режим chat → «Люкс-хаб» (выбор владельца)
 import { HouseAdSlot } from '../ads/HouseAdSlot.jsx' // [HOTFIX-FINAL-2 З6]
 import {
     LayoutDashboard,
@@ -119,6 +120,9 @@ export default function CreativeHub() {
     const [mobilePanel, setMobilePanel] = useState(null) // 'sessions' | 'menu' | null
     const [showInsightsSheet, setShowInsightsSheet] = useState(false)
     const [insightsCollapsed, setInsightsCollapsed] = useState(false)
+    // [CHAT-PRO-REWORK] режим chat = чистый «Люкс-хаб» без панелей; Сессии/Режимы/Инсайты — в шторке
+    const [chatDrawerOpen, setChatDrawerOpen] = useState(false)
+    const isChatMode = mode === 'chat'
 
     // [v6.0] added: session list (stub; real persistence would live in backend/storage)
     const [sessions, setSessions] = useState([
@@ -160,7 +164,16 @@ export default function CreativeHub() {
         setMode(next)
         if (routeMode !== next) navigate(`/creative-hub/${next}`)
         setMobilePanel(null)
+        setChatDrawerOpen(false)
     }, [allowedModes, routeMode, navigate])
+
+    // [CHAT-PRO-REWORK] Esc закрывает шторку Люкс-хаба
+    useEffect(() => {
+        if (!chatDrawerOpen) return
+        const onKey = (e) => { if (e.key === 'Escape') setChatDrawerOpen(false) }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [chatDrawerOpen])
 
     const handleNewSession = useCallback(() => {
         const id = Date.now().toString()
@@ -171,12 +184,14 @@ export default function CreativeHub() {
         setActiveSessionId(id)
         chat.clearHistory()
         setMobilePanel(null)
+        setChatDrawerOpen(false)
     }, [chat, mode, t])
 
     const handleSelectSession = useCallback((s) => {
         setActiveSessionId(s.id)
         handleModeChange(s.mode)
         chat.clearHistory()
+        setChatDrawerOpen(false)
     }, [chat, handleModeChange])
 
     const handleToolbar = useCallback((basePrompt) => {
@@ -334,8 +349,9 @@ export default function CreativeHub() {
     }
 
     return (
-        <div className="dark min-h-screen luxury-mesh-bg text-[var(--text)] overflow-hidden">
-            {/* [v6.0] added: top header */}
+        <div className={`${isChatMode ? 'chat-pro-page flex flex-col flex-1 min-h-0 w-full' : 'dark luxury-mesh-bg min-h-screen'} text-[var(--text)] overflow-hidden`}>
+            {/* [v6.0] added: top header (в режиме chat скрыт — его функции (роль, AutoPilot) переехали в шторку Люкс-хаба) */}
+            {!isChatMode && (
             <header className="h-16 border-b border-white/10 bg-black/20 backdrop-blur-xl flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/20">
@@ -363,14 +379,19 @@ export default function CreativeHub() {
                     )}
                 </div>
             </header>
+            )}
 
-            {/* [v6.0] added: main responsive grid */}
+            {/* [v6.0] added: main responsive grid (в режиме chat — одна центрированная колонка эталона, max-w 1060,
+                flex-1 min-h-0: высота ровно по вьюпорту от шелла, страница не скроллится) */}
             <main
-                className={`relative grid grid-cols-1 sm:grid-cols-[280px_1fr] ${insightsCollapsed ? '' : 'xl:grid-cols-[280px_1fr_320px]'} gap-4 p-4 h-[calc(100vh-64px)] pb-24 sm:pb-4`}
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
+                className={isChatMode
+                    ? 'relative p-4 max-w-[1060px] mx-auto w-full flex-1 min-h-0 flex flex-col'
+                    : `relative grid grid-cols-1 sm:grid-cols-[280px_1fr] ${insightsCollapsed ? '' : 'xl:grid-cols-[280px_1fr_320px]'} gap-4 p-4 h-[calc(100vh-64px)] pb-24 sm:pb-4`}
+                onTouchStart={isChatMode ? undefined : handleTouchStart}
+                onTouchEnd={isChatMode ? undefined : handleTouchEnd}
             >
-                {/* [v6.0] added: left column — desktop/tablet only */}
+                {/* [v6.0] added: left column — desktop/tablet only (в режиме chat скрыта — эталон без панелей; в шторке) */}
+                {!isChatMode && (
                 <aside className="hidden sm:flex flex-col gap-4 h-full overflow-hidden">
                     <SessionsCard />
                     <div className="glass-card p-4 flex-1 overflow-hidden flex flex-col" data-tour="hub-modes">
@@ -378,9 +399,12 @@ export default function CreativeHub() {
                         <ModeTabs />
                     </div>
                 </aside>
+                )}
 
                 {/* [v6.0] added: middle column — universal AI chat */}
-                <section className="flex flex-col h-full overflow-hidden min-w-0">
+                <section className={`flex flex-col overflow-hidden min-w-0 ${isChatMode ? 'flex-1 min-h-0' : 'h-full'}`}>
+                    {/* [CHAT-PRO З1] в режиме chat шапку режима заменяет люкс-шапка LuxeHubChat (чипы-подсказки перенесены туда) */}
+                    {mode !== 'chat' && (
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-lg bg-white/5 border border-white/10">
@@ -405,6 +429,7 @@ export default function CreativeHub() {
                             ))}
                         </div>
                     </div>
+                    )}
 
                     {/* [HOTFIX-FINAL-2 З6] house-ads топ-баннер чата ≤34px: занимает своё место над
                         лентой, инпут не сдвигает (на мобиле вместо нижней плашки — она бы перекрыла FAB) */}
@@ -412,9 +437,23 @@ export default function CreativeHub() {
                         <HouseAdSlot slot="chat-top" variant="banner" />
                     </div>
 
-                    <div className="flex-1 min-h-0 rounded-2xl border border-white/10 overflow-x-hidden shadow-2xl shadow-violet-900/10">
-                        <OmegaChat {...chat} variant="fullscreen" />
-                    </div>
+                    {mode === 'chat' ? (
+                        <div className="flex-1 min-h-0">
+                            <LuxeHubChat
+                                chat={chat}
+                                suggestions={suggestions}
+                                onSuggestion={handleSuggestion}
+                                mode={mode}
+                                modes={allowedModes.map(k => ({ key: k, ...MODE_META[k] }))}
+                                onModeChange={handleModeChange}
+                                onOpenMenu={() => setChatDrawerOpen(true)}
+                            />
+                        </div>
+                    ) : (
+                        <div className="flex-1 min-h-0 rounded-2xl border border-white/10 overflow-x-hidden shadow-2xl shadow-violet-900/10">
+                            <OmegaChat {...chat} variant="fullscreen" />
+                        </div>
+                    )}
 
                     {/* [v6.0] added: AI Creative Toolbar */}
                     <div className="mt-3 glass-card p-2 sm:p-3">
@@ -435,8 +474,8 @@ export default function CreativeHub() {
                     </div>
                 </section>
 
-                {/* [chat-hotfix] right column — single unified panel, collapsible, xl+ only */}
-                {!insightsCollapsed && (
+                {/* [chat-hotfix] right column — single unified panel, collapsible, xl+ only (в режиме chat скрыта — в шторке) */}
+                {!isChatMode && !insightsCollapsed && (
                     <aside className="hidden xl:flex flex-col h-full overflow-hidden">
                         <div className="flex items-center justify-between mb-2 px-1">
                             <h3 className="text-sm font-semibold text-gray-100">{t('hub.insights')}</h3>
@@ -454,7 +493,9 @@ export default function CreativeHub() {
                 )}
             </main>
 
-            {/* [chat-hotfix] insights toggle — below xl (bottom sheet) or when desktop panel is collapsed */}
+            {/* [chat-hotfix] insights toggle — below xl (bottom sheet) or when desktop panel is collapsed
+                (в режиме chat скрыт — Инсайты в шторке Люкс-хаба) */}
+            {!isChatMode && (
             <button
                 onClick={() => insightsCollapsed ? setInsightsCollapsed(false) : setShowInsightsSheet(true)}
                 className={`fixed bottom-20 left-4 z-30 items-center gap-2 px-4 min-h-[44px] rounded-xl bg-violet-600 text-white text-xs font-medium shadow-lg shadow-violet-600/30 hover:bg-violet-500 active:scale-95 transition sm:bottom-4 sm:left-auto sm:right-4 ${insightsCollapsed ? 'hidden xl:flex' : 'flex xl:hidden'}`}
@@ -462,9 +503,10 @@ export default function CreativeHub() {
                 <PieChart size={14} />
                 {t('hub.insights')}
             </button>
+            )}
 
             {/* [v6.0] added: insights bottom sheet */}
-            {showInsightsSheet && (
+            {!isChatMode && showInsightsSheet && (
                 <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm xl:hidden" onClick={() => setShowInsightsSheet(false)}>
                     <div
                         className="absolute bottom-16 sm:bottom-0 left-0 right-0 sm:max-w-2xl sm:mx-auto max-h-[70vh] bg-[var(--bg-secondary)]/95 border border-white/10 rounded-t-2xl p-4 overflow-y-auto"
@@ -485,7 +527,8 @@ export default function CreativeHub() {
                 </div>
             )}
 
-            {/* [v6.0] added: mobile bottom navigation */}
+            {/* [v6.0] added: mobile bottom navigation (в режиме chat скрыта — режимы в шапке Люкс-хаба, остальное в шторке) */}
+            {!isChatMode && (
             <nav className="fixed bottom-0 left-0 right-0 h-16 bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-t border-white/10 z-50 sm:hidden safe-bottom">
                 <div className="grid grid-cols-5 h-full">
                     <button
@@ -527,8 +570,10 @@ export default function CreativeHub() {
                     </button>
                 </div>
             </nav>
+            )}
 
-            {/* [v6.0] added: mobile FAB for new chat */}
+            {/* [v6.0] added: mobile FAB for new chat (в режиме chat скрыт — «Новый чат» в шторке) */}
+            {!isChatMode && (
             <button
                 onClick={handleNewSession}
                 className="fixed bottom-20 right-4 z-40 sm:hidden w-12 h-12 rounded-full bg-violet-600 text-white flex items-center justify-center shadow-lg shadow-violet-600/30 hover:scale-105 transition-transform"
@@ -536,9 +581,59 @@ export default function CreativeHub() {
             >
                 <Plus size={22} />
             </button>
+            )}
 
-            {/* [v6.0] added: mobile sessions drawer */}
-            {mobilePanel === 'sessions' && (
+            {/* [CHAT-PRO-REWORK] шторка Люкс-хаба (все ширины, Esc/клик по фону закрывает):
+                сюда переехали Сессии (новый чат/история), Режимы, Инсайты, бейдж роли и AutoPilot — инвентарь сохранён */}
+            {isChatMode && chatDrawerOpen && (
+                <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setChatDrawerOpen(false)}>
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={t('chatPro.menu')}
+                        className="absolute inset-y-0 right-0 w-[340px] max-w-[88vw] bg-[#0f0f18] border-l border-white/10 p-4 flex flex-col gap-4 overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-gray-100">{t('chatPro.menu')}</h2>
+                            <button
+                                onClick={() => setChatDrawerOpen(false)}
+                                aria-label={t('common.close', 'Закрыть')}
+                                className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-gray-300"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="glass-card p-4 flex items-center gap-3 flex-wrap">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border ${roleMeta.color}`}>
+                                <span>{roleMeta.emoji}</span>
+                                <span>{roleMeta.label}</span>
+                            </span>
+                            {role === 'owner' && (
+                                <button
+                                    onClick={() => { handleAutoPilot(); setChatDrawerOpen(false) }}
+                                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-sm font-medium"
+                                >
+                                    <Zap size={16} />
+                                    ⚡ AutoPilot
+                                </button>
+                            )}
+                        </div>
+                        <div className="h-[240px] shrink-0"><SessionsCard /></div>
+                        <div className="glass-card p-4 shrink-0" data-tour="hub-modes">
+                            <h3 className="text-sm font-semibold text-gray-100 mb-3">{t('hub.modes')}</h3>
+                            <ModeTabs />
+                        </div>
+                        <div className="min-h-[220px] flex flex-col shrink-0">
+                            <h3 className="text-sm font-semibold text-gray-100 mb-2 px-1">{t('hub.insights')}</h3>
+                            <InsightsPanel />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* [v6.0] added: mobile sessions drawer (режимы analyzer/viral; в chat — шторка выше) */}
+            {!isChatMode && mobilePanel === 'sessions' && (
                 <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setMobilePanel(null)}>
                     <div className="absolute inset-y-0 left-0 w-[280px] bg-[var(--bg-secondary)]/95 backdrop-blur-xl border-r border-white/10 p-4 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
@@ -554,8 +649,8 @@ export default function CreativeHub() {
                 </div>
             )}
 
-            {/* [v6.0] added: mobile menu drawer */}
-            {mobilePanel === 'menu' && (
+            {/* [v6.0] added: mobile menu drawer (режимы analyzer/viral; в chat — шторка выше) */}
+            {!isChatMode && mobilePanel === 'menu' && (
                 <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setMobilePanel(null)}>
                     <div className="absolute inset-y-0 right-0 w-[260px] bg-[var(--bg-secondary)]/95 backdrop-blur-xl border-l border-white/10 p-4 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between">

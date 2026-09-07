@@ -18,7 +18,7 @@ import { CLIENT_BOT_URL } from "../../config/bots.js";
 
 // [DESIGN-LAB-APPLY] «Фокус-чат»: пилюля квоты кликабельна → детализация баланса + «Пополнить».
 // Только реальные цифры (trialTokens из /users/me/quota), нарисованных цен нет: 1 сообщение = 1 генерация.
-function QuotaDetailsModal({ quota, user, onClose }) {
+export function QuotaDetailsModal({ quota, user, onClose }) {
   const ref = useModalA11y(onClose)
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -66,7 +66,7 @@ const ACTION_BUTTONS = [
 const UNIQUE_ACTION_BUTTONS = Array.from(new Map(ACTION_BUTTONS.map(a => [a.id, a])).values());
 
 // [CHAT-UNIFY] ролевой фильтр быстрых действий: code/site — только owner/admin
-function actionButtonsForRole(role) {
+export function actionButtonsForRole(role) {
   return UNIQUE_ACTION_BUTTONS.filter(a => !a.roles || a.roles.includes(role));
 }
 
@@ -80,7 +80,7 @@ const WELCOME_CHIPS = [
   { id: 'site', label: 'chat.action.site', icon: '🌐', roles: ['owner', 'admin'], prompt: ACTION_BUTTONS.find(a => a.id === 'site').prompt },
 ];
 
-function welcomeChipsForRole(role) {
+export function welcomeChipsForRole(role) {
   return WELCOME_CHIPS.filter(c => !c.roles || c.roles.includes(role));
 }
 
@@ -123,7 +123,7 @@ function CodeBlock({ code, t }) {
   );
 }
 
-function AiMessageContent({ text, t }) {
+export function AiMessageContent({ text, t }) {
   if (!text || typeof text !== 'string') return null;
 
   // Full HTML preview
@@ -207,7 +207,7 @@ function AiMessageContent({ text, t }) {
   );
 }
 
-function ReasoningSteps({ reasoning, t }) {
+export function ReasoningSteps({ reasoning, t }) {
   const [expanded, setExpanded] = useState(false);
   if (!reasoning || !Array.isArray(reasoning) || reasoning.length === 0) return null;
   const steps = reasoning.slice(0, 4);
@@ -264,6 +264,8 @@ export default function OmegaChat({
   quotaError: externalQuotaError,
   userRole: externalUserRole,
   embedded = false,
+  // [CHAT-PRO З3] поиск по ленте: непустая строка фильтрует сообщения (presentational, история не трогается)
+  searchQuery = '',
 }) {
   const { user } = useAuth();
   // [OWNER-OMEGA] owner/admin/staff не получают CTA продаж — 402/квоты без UpsellModal
@@ -364,6 +366,12 @@ export default function OmegaChat({
   const quotaError = externalQuotaError !== undefined ? externalQuotaError : internalQuotaError;
   const loading = isLoading || externalTyping || internalIsTyping;
   const bottomRef = useRef(null);
+
+  // [CHAT-PRO З3] поиск: фильтр по тексту (user+ai), регистронезависимо; при поиске приветственный экран скрыт
+  const searchNeedle = (searchQuery || '').trim().toLowerCase();
+  const visibleMessages = searchNeedle
+    ? messages.filter(m => (m.text || '').toLowerCase().includes(searchNeedle))
+    : messages;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -563,7 +571,7 @@ export default function OmegaChat({
 
   return (
     <div
-      className={`relative flex flex-col bg-[#0a0a0f] text-white ${variant === 'fullscreen' ? 'h-[100dvh] md:h-[calc(100vh-80px)]' : 'h-full min-h-0'}`}
+      className={`relative flex flex-col bg-[#0a0a0f] text-white ${embedded ? 'chat-pro-embed' : ''} ${variant === 'fullscreen' ? 'h-[100dvh] md:h-[calc(100vh-80px)]' : 'h-full min-h-0'}`}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -614,7 +622,7 @@ export default function OmegaChat({
         style={{ overscrollBehaviorY: 'contain', WebkitOverflowScrolling: 'touch' }}
       >
         {/* [CHAT-UNIFY ДОП-2б] пустой чат у новичка НЕ пустой: «Что умею» + кликабельные чипы-примеры (по роли) */}
-        {messages.length === 0 && (
+        {messages.length === 0 && !searchNeedle && (
           <div className="flex flex-col items-center justify-center min-h-[55%] text-center gap-4 py-8 animate-fade-in-up">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
               <Brain className="w-7 h-7 text-white" />
@@ -638,7 +646,12 @@ export default function OmegaChat({
             </div>
           </div>
         )}
-        {messages.map((msg, i) => (
+        {searchNeedle && visibleMessages.length === 0 && (
+          <div className="flex flex-col items-center justify-center min-h-[40%] text-center gap-2 py-10">
+            <p className="text-sm text-gray-400">{t('chatPro.searchEmpty')}</p>
+          </div>
+        )}
+        {visibleMessages.map((msg, i) => (
           <div key={msg.id || i} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
             {isAiMessage(msg) ? (
               <>
@@ -707,13 +720,23 @@ export default function OmegaChat({
                 </div>
               </>
             ) : (
-              <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[95%] mx-auto">
+              <div className="omega-user-bubble bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[95%] mx-auto">
                 <p className="text-sm text-white whitespace-pre-wrap">{msg.text}</p>
                 {msg.time && <p className="text-[10px] text-gray-500 text-right mt-1">{msg.time}</p>}
               </div>
             )}
           </div>
         ))}
+        {/* [CHAT-PRO З3] скелетон набора ответа — в т.ч. в embedded-режиме Люкс-хаба, где своей шапки со статусом нет */}
+        {loading && !searchNeedle && (
+          <div className="flex flex-col items-start" role="status" aria-label={t('omega.thinking')}>
+            <div className="w-full max-w-[95%] mx-auto rounded-2xl rounded-tl-none bg-white/[0.04] border border-white/[0.08] p-4 space-y-2.5 animate-pulse motion-reduce:animate-none">
+              <div className="h-3 rounded bg-white/[0.08] w-3/4" />
+              <div className="h-3 rounded bg-white/[0.08] w-full" />
+              <div className="h-3 rounded bg-white/[0.08] w-1/2" />
+            </div>
+          </div>
+        )}
         {feedbackId && !feedbackGiven && (
           <div className="flex justify-center mt-2">
             <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/[0.04] border border-white/[0.08]">

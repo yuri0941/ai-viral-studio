@@ -3274,5 +3274,19 @@
       "s9p1": "The Operator may update these Terms; the current version is on this page. Continued use of the Service constitutes acceptance.",
       "s9p2": "Questions: {{email}}"
     }
+  },
+  "chatPro": {
+    "luxeMode": "luxe mode",
+    "menu": "Chat menu",
+    "posts": "Posts",
+    "enoughFor": "enough for ~{{n}} messages",
+    "searchPlaceholder": "Search messages…",
+    "searchEmpty": "Nothing found",
+    "month": "This month",
+    "generations": "Generations",
+    "plan": "Plan",
+    "cycleEnds": "Cycle ends",
+    "of": "of"
   }
 }
+
