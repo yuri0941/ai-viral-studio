@@ -60,7 +60,8 @@ export function DashboardShell({
     // [CHAT-PRO-REWORK] Люкс-хаб (chat-режим) — точная высотка вьюпорта без скролла страницы:
     // main h-100dvh flex-колонка, обёртка и контент flex-1 min-h-0 (иначе чат вылезал за экран
     // и страница сама скроллилась — шапка уезжала под глобальный хедер)
-    const isLuxeChat = location.pathname.startsWith('/creative-hub/chat')
+    // [CHAT-PRO-FIX З1] ВСЕ режимы хаба люксовые → весь /creative-hub (иначе analyzer/viral скроллились)
+    const isLuxeChat = location.pathname.startsWith('/creative-hub')
     const { theme, appliedTheme, setTheme, toggleTheme } = useTheme()
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [mobileNotifOpen, setMobileNotifOpen] = useState(false)

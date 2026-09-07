@@ -407,10 +407,22 @@
     "collapse": "Collapse",
     "copied": "Link copied",
     "items": {
-      "addons": { "title": "Add-ons: power up your plan", "cta": "View" },
-      "upgrade": { "title": "Pro — 10x more generations", "cta": "Upgrade" },
-      "referral": { "title": "Invite a friend — 12% of their payments", "cta": "Copy link" },
-      "ytScout": { "title": "YouTube scout: trends in your niche", "cta": "Open" }
+      "addons": {
+        "title": "Add-ons: power up your plan",
+        "cta": "View"
+      },
+      "upgrade": {
+        "title": "Pro — 10x more generations",
+        "cta": "Upgrade"
+      },
+      "referral": {
+        "title": "Invite a friend — 12% of their payments",
+        "cta": "Copy link"
+      },
+      "ytScout": {
+        "title": "YouTube scout: trends in your niche",
+        "cta": "Open"
+      }
     }
   },
   "adBanner": {
@@ -3285,7 +3297,18 @@
     "generations": "Generations",
     "plan": "Plan",
     "cycleEnds": "Cycle ends",
-    "of": "of"
+    "of": "of",
+    "unlimited": "Unlimited ✦",
+    "more": "More",
+    "clearHistory": "Clear history",
+    "confirmClear": "Messages will be deleted forever?",
+    "sessionActions": "Session actions",
+    "rename": "Rename",
+    "delete": "Delete",
+    "save": "OK",
+    "confirmDeleteSession": "Delete this chat forever?",
+    "yesDelete": "Delete",
+    "toLatest": "Jump to latest message",
+    "toTop": "Back to top of feed"
   }
 }
-

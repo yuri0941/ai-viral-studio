@@ -122,7 +122,15 @@ export default function CreativeHub() {
     const [insightsCollapsed, setInsightsCollapsed] = useState(false)
     // [CHAT-PRO-REWORK] режим chat = чистый «Люкс-хаб» без панелей; Сессии/Режимы/Инсайты — в шторке
     const [chatDrawerOpen, setChatDrawerOpen] = useState(false)
-    const isChatMode = mode === 'chat'
+    // [CHAT-PRO-FIX З1] ВСЕ режимы хаба (chat/analyzer/viral) — единая люкс-компоновка: чистая лента +
+    // кольцо баланса справа, без панелей; меняются только шапка/подсказки/плейсхолдер режима.
+    // Старые экраны режимов (grid + панели) НЕ удалены (ждут ✅ владельца), но недостижимы: isLuxeLayout всегда true.
+    const isLuxeLayout = true
+    // [CHAT-PRO-FIX З6] управление сессиями в шторке: ⋯ меню (долгий тап на мобайле) → переименовать/удалить
+    const [sessionMenuId, setSessionMenuId] = useState(null)
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+    const [renamingId, setRenamingId] = useState(null)
+    const [renameText, setRenameText] = useState('')
 
     // [v6.0] added: session list (stub; real persistence would live in backend/storage)
     const [sessions, setSessions] = useState([
@@ -194,6 +202,31 @@ export default function CreativeHub() {
         setChatDrawerOpen(false)
     }, [chat, handleModeChange])
 
+    // [CHAT-PRO-FIX З6] переименование/удаление сессии — только своих (сессии локальные, свои по построению)
+    const handleRenameSession = useCallback((id) => {
+        const title = renameText.trim()
+        if (title) setSessions(prev => prev.map(s => s.id === id ? { ...s, title } : s))
+        setRenamingId(null)
+        setSessionMenuId(null)
+    }, [renameText])
+
+    const handleDeleteSession = useCallback((id) => {
+        setSessions(prev => {
+            const next = prev.filter(s => s.id !== id)
+            if (id === activeSessionId) {
+                const fallback = next[0]
+                if (fallback) {
+                    setActiveSessionId(fallback.id)
+                    handleModeChange(fallback.mode)
+                }
+                chat.clearHistory()
+            }
+            return next.length ? next : [{ id: Date.now().toString(), title: t('hub.newChat'), mode, updatedAt: '—' }]
+        })
+        setConfirmDeleteId(null)
+        setSessionMenuId(null)
+    }, [activeSessionId, chat, handleModeChange, mode, t])
+
     const handleToolbar = useCallback((basePrompt) => {
         const topic = chat.input.trim()
         if (topic) {
@@ -230,14 +263,19 @@ export default function CreativeHub() {
         const height = window.innerHeight
 
         if (absDx > absDy && absDx > 60) {
-            if (start.x < 30 && dx > 0) setMobilePanel('sessions')
-            else if (start.x > width - 30 && dx < 0) setShowInsightsSheet(true)
+            // [CHAT-PRO-FIX З4] в люкс-компоновке свайп с левого края открывает шторку «Меню чата»
+            if (isLuxeLayout) {
+                if (start.x < 30 && dx > 0) setChatDrawerOpen(true)
+            } else {
+                if (start.x < 30 && dx > 0) setMobilePanel('sessions')
+                else if (start.x > width - 30 && dx < 0) setShowInsightsSheet(true)
+            }
         }
-        if (absDy > absDx && dy < -60 && start.y > height - 40) {
+        if (!isLuxeLayout && absDy > absDx && dy < -60 && start.y > height - 40) {
             setShowInsightsSheet(true)
         }
         touchStartRef.current = null
-    }, [])
+    }, [isLuxeLayout])
 
     // [v6.0] added: mode switcher tabs
     const ModeTabs = () => (
@@ -267,6 +305,14 @@ export default function CreativeHub() {
     )
 
     // [v6.0] added: sessions list card
+    // [CHAT-PRO-FIX З6.1] ⋯ меню сессии (и долгий тап на мобайле): «Переименовать» / «Удалить» (с подтверждением)
+    const sessionLongPress = useRef(null)
+    const sessionTouchStart = (id) => {
+        clearTimeout(sessionLongPress.current)
+        sessionLongPress.current = setTimeout(() => setSessionMenuId(id), 500)
+    }
+    const sessionTouchEnd = () => clearTimeout(sessionLongPress.current)
+
     const SessionsCard = () => (
         <div className="glass-card flex flex-col gap-3 p-4 h-[55%] overflow-hidden">
             <div className="flex items-center justify-between">
@@ -275,28 +321,72 @@ export default function CreativeHub() {
                     onClick={handleNewSession}
                     className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 transition-colors"
                     title={t('hub.newChat')}
+                    aria-label={t('hub.newChat')}
                 >
                     <Plus size={16} />
                 </button>
             </div>
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                 {sessions.map((s) => (
-                    <button
+                    <div
                         key={s.id}
-                        onClick={() => handleSelectSession(s)}
                         className={[
-                            'w-full text-left px-3 py-2.5 rounded-xl border transition-all',
+                            'relative w-full text-left px-3 py-2.5 rounded-xl border transition-all',
                             activeSessionId === s.id
                                 ? 'bg-white/10 border-white/20 text-gray-100'
                                 : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20',
                         ].join(' ')}
+                        onTouchStart={() => sessionTouchStart(s.id)}
+                        onTouchEnd={sessionTouchEnd}
+                        onTouchMove={sessionTouchEnd}
+                        onContextMenu={(e) => { e.preventDefault(); setSessionMenuId(s.id) }}
                     >
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium truncate">{s.title}</span>
-                            <span className="text-[10px] text-gray-500">{s.updatedAt}</span>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-0.5">{t(MODE_META[s.mode].labelKey)}</div>
-                    </button>
+                        {renamingId === s.id ? (
+                            <div className="flex items-center gap-1.5">
+                                <input
+                                    autoFocus
+                                    value={renameText}
+                                    onChange={(e) => setRenameText(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSession(s.id); if (e.key === 'Escape') setRenamingId(null) }}
+                                    aria-label={t('chatPro.rename')}
+                                    className="flex-1 min-w-0 px-2 py-1 rounded-lg bg-white/10 border border-white/20 text-sm text-gray-100 outline-none"
+                                />
+                                <button onClick={() => handleRenameSession(s.id)} aria-label={t('chatPro.save')} className="min-w-[32px] min-h-[32px] rounded-lg bg-violet-500/20 text-violet-200 text-xs px-2">{t('chatPro.save')}</button>
+                            </div>
+                        ) : (
+                            <button className="w-full text-left" onClick={() => handleSelectSession(s)}>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium truncate">{s.title}</span>
+                                    <span className="text-[10px] text-gray-500">{s.updatedAt}</span>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-0.5">{t(MODE_META[s.mode].labelKey)}</div>
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setSessionMenuId(sessionMenuId === s.id ? null : s.id)}
+                            aria-label={t('chatPro.sessionActions')}
+                            aria-expanded={sessionMenuId === s.id}
+                            className="absolute top-1.5 right-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/10"
+                        >
+                            ⋯
+                        </button>
+                        {sessionMenuId === s.id && renamingId !== s.id && (
+                            <div className="absolute right-2 top-10 z-10 rounded-xl border border-white/10 bg-[#1a1a24] shadow-xl p-1.5 flex flex-col gap-1 min-w-[170px]" role="menu">
+                                <button role="menuitem" onClick={() => { setRenamingId(s.id); setRenameText(s.title) }} className="px-3 py-2 rounded-lg text-left text-sm text-gray-200 hover:bg-white/10">{t('chatPro.rename')}</button>
+                                {confirmDeleteId === s.id ? (
+                                    <div className="px-3 py-2 text-xs text-gray-300">
+                                        <div className="mb-2">{t('chatPro.confirmDeleteSession')}</div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => handleDeleteSession(s.id)} className="px-2.5 py-1.5 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-300">{t('chatPro.yesDelete')}</button>
+                                            <button onClick={() => setConfirmDeleteId(null)} className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300">{t('common.cancel', 'Отмена')}</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button role="menuitem" onClick={() => setConfirmDeleteId(s.id)} className="px-3 py-2 rounded-lg text-left text-sm text-rose-300 hover:bg-rose-500/10">{t('chatPro.delete')}</button>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 ))}
             </div>
         </div>
@@ -349,9 +439,9 @@ export default function CreativeHub() {
     }
 
     return (
-        <div className={`${isChatMode ? 'chat-pro-page flex flex-col flex-1 min-h-0 w-full' : 'dark luxury-mesh-bg min-h-screen'} text-[var(--text)] overflow-hidden`}>
+        <div className={`${isLuxeLayout ? 'chat-pro-page flex flex-col flex-1 min-h-0 w-full' : 'dark luxury-mesh-bg min-h-screen'} text-[var(--text)] overflow-hidden`}>
             {/* [v6.0] added: top header (в режиме chat скрыт — его функции (роль, AutoPilot) переехали в шторку Люкс-хаба) */}
-            {!isChatMode && (
+            {!isLuxeLayout && (
             <header className="h-16 border-b border-white/10 bg-black/20 backdrop-blur-xl flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/20">
@@ -384,14 +474,14 @@ export default function CreativeHub() {
             {/* [v6.0] added: main responsive grid (в режиме chat — одна центрированная колонка эталона, max-w 1060,
                 flex-1 min-h-0: высота ровно по вьюпорту от шелла, страница не скроллится) */}
             <main
-                className={isChatMode
+                className={isLuxeLayout
                     ? 'relative p-4 max-w-[1060px] mx-auto w-full flex-1 min-h-0 flex flex-col'
                     : `relative grid grid-cols-1 sm:grid-cols-[280px_1fr] ${insightsCollapsed ? '' : 'xl:grid-cols-[280px_1fr_320px]'} gap-4 p-4 h-[calc(100vh-64px)] pb-24 sm:pb-4`}
-                onTouchStart={isChatMode ? undefined : handleTouchStart}
-                onTouchEnd={isChatMode ? undefined : handleTouchEnd}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
             >
                 {/* [v6.0] added: left column — desktop/tablet only (в режиме chat скрыта — эталон без панелей; в шторке) */}
-                {!isChatMode && (
+                {!isLuxeLayout && (
                 <aside className="hidden sm:flex flex-col gap-4 h-full overflow-hidden">
                     <SessionsCard />
                     <div className="glass-card p-4 flex-1 overflow-hidden flex flex-col" data-tour="hub-modes">
@@ -402,9 +492,10 @@ export default function CreativeHub() {
                 )}
 
                 {/* [v6.0] added: middle column — universal AI chat */}
-                <section className={`flex flex-col overflow-hidden min-w-0 ${isChatMode ? 'flex-1 min-h-0' : 'h-full'}`}>
-                    {/* [CHAT-PRO З1] в режиме chat шапку режима заменяет люкс-шапка LuxeHubChat (чипы-подсказки перенесены туда) */}
-                    {mode !== 'chat' && (
+                <section className={`flex flex-col overflow-hidden min-w-0 ${isLuxeLayout ? 'flex-1 min-h-0' : 'h-full'}`}>
+                    {/* [CHAT-PRO З1] в режиме chat шапку режима заменяет люкс-шапка LuxeHubChat (чипы-подсказки перенесены туда).
+                        [CHAT-PRO-FIX З1] старый заголовок режима — только в старой (недостижимой) компоновке */}
+                    {!isLuxeLayout && mode !== 'chat' && (
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-lg bg-white/5 border border-white/10">
@@ -437,21 +528,26 @@ export default function CreativeHub() {
                         <HouseAdSlot slot="chat-top" variant="banner" />
                     </div>
 
-                    {mode === 'chat' ? (
+                    {/* [CHAT-PRO-FIX З1] ВСЕ режимы — Люкс-хаб (меняются шапка/плейсхолдер/подсказки режима).
+                        Старый fullscreen-вариант сохранён в мёртвой ветке до ✅ владельца */}
+                    {!isLuxeLayout && mode !== 'chat' ? (
+                        <div className="flex-1 min-h-0 rounded-2xl border border-white/10 overflow-x-hidden shadow-2xl shadow-violet-900/10">
+                            <OmegaChat {...chat} variant="fullscreen" />
+                        </div>
+                    ) : (
                         <div className="flex-1 min-h-0">
                             <LuxeHubChat
                                 chat={chat}
                                 suggestions={suggestions}
                                 onSuggestion={handleSuggestion}
                                 mode={mode}
+                                modeLabel={t(meta.labelKey)}
+                                inputPlaceholder={t(meta.subtitleKey)}
                                 modes={allowedModes.map(k => ({ key: k, ...MODE_META[k] }))}
                                 onModeChange={handleModeChange}
                                 onOpenMenu={() => setChatDrawerOpen(true)}
+                                onClearHistory={chat.clearHistory}
                             />
-                        </div>
-                    ) : (
-                        <div className="flex-1 min-h-0 rounded-2xl border border-white/10 overflow-x-hidden shadow-2xl shadow-violet-900/10">
-                            <OmegaChat {...chat} variant="fullscreen" />
                         </div>
                     )}
 
@@ -475,7 +571,7 @@ export default function CreativeHub() {
                 </section>
 
                 {/* [chat-hotfix] right column — single unified panel, collapsible, xl+ only (в режиме chat скрыта — в шторке) */}
-                {!isChatMode && !insightsCollapsed && (
+                {!isLuxeLayout && !insightsCollapsed && (
                     <aside className="hidden xl:flex flex-col h-full overflow-hidden">
                         <div className="flex items-center justify-between mb-2 px-1">
                             <h3 className="text-sm font-semibold text-gray-100">{t('hub.insights')}</h3>
@@ -495,7 +591,7 @@ export default function CreativeHub() {
 
             {/* [chat-hotfix] insights toggle — below xl (bottom sheet) or when desktop panel is collapsed
                 (в режиме chat скрыт — Инсайты в шторке Люкс-хаба) */}
-            {!isChatMode && (
+            {!isLuxeLayout && (
             <button
                 onClick={() => insightsCollapsed ? setInsightsCollapsed(false) : setShowInsightsSheet(true)}
                 className={`fixed bottom-20 left-4 z-30 items-center gap-2 px-4 min-h-[44px] rounded-xl bg-violet-600 text-white text-xs font-medium shadow-lg shadow-violet-600/30 hover:bg-violet-500 active:scale-95 transition sm:bottom-4 sm:left-auto sm:right-4 ${insightsCollapsed ? 'hidden xl:flex' : 'flex xl:hidden'}`}
@@ -506,7 +602,7 @@ export default function CreativeHub() {
             )}
 
             {/* [v6.0] added: insights bottom sheet */}
-            {!isChatMode && showInsightsSheet && (
+            {!isLuxeLayout && showInsightsSheet && (
                 <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm xl:hidden" onClick={() => setShowInsightsSheet(false)}>
                     <div
                         className="absolute bottom-16 sm:bottom-0 left-0 right-0 sm:max-w-2xl sm:mx-auto max-h-[70vh] bg-[var(--bg-secondary)]/95 border border-white/10 rounded-t-2xl p-4 overflow-y-auto"
@@ -528,7 +624,7 @@ export default function CreativeHub() {
             )}
 
             {/* [v6.0] added: mobile bottom navigation (в режиме chat скрыта — режимы в шапке Люкс-хаба, остальное в шторке) */}
-            {!isChatMode && (
+            {!isLuxeLayout && (
             <nav className="fixed bottom-0 left-0 right-0 h-16 bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-t border-white/10 z-50 sm:hidden safe-bottom">
                 <div className="grid grid-cols-5 h-full">
                     <button
@@ -573,7 +669,7 @@ export default function CreativeHub() {
             )}
 
             {/* [v6.0] added: mobile FAB for new chat (в режиме chat скрыт — «Новый чат» в шторке) */}
-            {!isChatMode && (
+            {!isLuxeLayout && (
             <button
                 onClick={handleNewSession}
                 className="fixed bottom-20 right-4 z-40 sm:hidden w-12 h-12 rounded-full bg-violet-600 text-white flex items-center justify-center shadow-lg shadow-violet-600/30 hover:scale-105 transition-transform"
@@ -583,15 +679,17 @@ export default function CreativeHub() {
             </button>
             )}
 
-            {/* [CHAT-PRO-REWORK] шторка Люкс-хаба (все ширины, Esc/клик по фону закрывает):
-                сюда переехали Сессии (новый чат/история), Режимы, Инсайты, бейдж роли и AutoPilot — инвентарь сохранён */}
-            {isChatMode && chatDrawerOpen && (
-                <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setChatDrawerOpen(false)}>
+            {/* [CHAT-PRO-REWORK + FIX З4] шторка Люкс-хаба СЛЕВА (все ширины, Esc/✕/клик по фону закрывает,
+                на мобайле открывается свайпом с левого края): Сессии (новый чат/переименовать/удалить),
+                Режимы, Инсайты, бейдж роли, AutoPilot. Панель НЕПРОЗРАЧНАЯ (solid из темы, .chat-pro-drawer),
+                ≤360px, скролл внутри, анимация ≤300ms (reduced-motion — без неё) */}
+            {isLuxeLayout && chatDrawerOpen && (
+                <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setChatDrawerOpen(false)}>
                     <div
                         role="dialog"
                         aria-modal="true"
                         aria-label={t('chatPro.menu')}
-                        className="absolute inset-y-0 right-0 w-[340px] max-w-[88vw] bg-[#0f0f18] border-l border-white/10 p-4 flex flex-col gap-4 overflow-y-auto"
+                        className="chat-pro-drawer absolute inset-y-0 left-0 w-[340px] max-w-[min(88vw,360px)] border-r border-white/10 p-4 flex flex-col gap-4 overflow-y-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
@@ -633,7 +731,7 @@ export default function CreativeHub() {
             )}
 
             {/* [v6.0] added: mobile sessions drawer (режимы analyzer/viral; в chat — шторка выше) */}
-            {!isChatMode && mobilePanel === 'sessions' && (
+            {!isLuxeLayout && mobilePanel === 'sessions' && (
                 <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setMobilePanel(null)}>
                     <div className="absolute inset-y-0 left-0 w-[280px] bg-[var(--bg-secondary)]/95 backdrop-blur-xl border-r border-white/10 p-4 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
@@ -650,7 +748,7 @@ export default function CreativeHub() {
             )}
 
             {/* [v6.0] added: mobile menu drawer (режимы analyzer/viral; в chat — шторка выше) */}
-            {!isChatMode && mobilePanel === 'menu' && (
+            {!isLuxeLayout && mobilePanel === 'menu' && (
                 <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setMobilePanel(null)}>
                     <div className="absolute inset-y-0 right-0 w-[260px] bg-[var(--bg-secondary)]/95 backdrop-blur-xl border-l border-white/10 p-4 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between">

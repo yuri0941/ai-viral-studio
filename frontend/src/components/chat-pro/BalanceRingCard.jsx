@@ -29,17 +29,19 @@ export default function BalanceRingCard({ quota }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const gid = useId()
+  // [CHAT-PRO-FIX З2] владелец = безлимит: кольцо полное, ∞, без блокировки и без CTA пополнения
+  const unlimited = !!quota?.unlimited
   const remaining = quota ? (quota.remaining ?? 0) + (quota.trialTokens ?? 0) : 0
   const limit = quota ? ((quota.generationsLimit ?? 0) > 0 ? quota.generationsLimit + (quota.trialTokens ?? 0) : 10) : 10
-  const shown = useCountUp(remaining)
+  const shown = useCountUp(unlimited ? 0 : remaining)
   const r = 52
   const c = 2 * Math.PI * r
-  const pct = limit > 0 ? Math.min(1, remaining / limit) : 0
+  const pct = unlimited ? 1 : limit > 0 ? Math.min(1, remaining / limit) : 0
   return (
     <div className="rounded-3xl border p-5 text-center shadow-2xl shadow-violet-900/20" style={{ background: 'var(--cp-card)', borderColor: 'var(--cp-border)' }}>
       <div className="text-xs mb-3" style={{ color: 'var(--cp-muted)' }}>{t('quota.title')}</div>
       <div className="relative w-[130px] h-[130px] mx-auto">
-        <svg width="130" height="130" viewBox="0 0 120 120" className="-rotate-90" role="img" aria-label={`${t('quota.title')}: ${remaining} / ${limit}`}>
+        <svg width="130" height="130" viewBox="0 0 120 120" className="-rotate-90" role="img" aria-label={`${t('quota.title')}: ${unlimited ? '∞' : `${remaining} / ${limit}`}`}>
           <circle cx="60" cy="60" r={r} fill="none" strokeWidth="10" style={{ stroke: 'var(--cp-ring-track)' }} />
           <circle cx="60" cy="60" r={r} fill="none" stroke={`url(#${gid})`} strokeWidth="10" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
           <defs>
@@ -50,19 +52,21 @@ export default function BalanceRingCard({ quota }) {
           </defs>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-extrabold" style={{ color: 'var(--cp-text)' }}>{shown}✦</span>
-          <span className="text-[10px]" style={{ color: 'var(--cp-muted)' }}>{t('chatPro.of')} {limit}</span>
+          <span className="text-2xl font-extrabold" style={{ color: 'var(--cp-text)' }}>{unlimited ? '∞' : `${shown}✦`}</span>
+          {!unlimited && <span className="text-[10px]" style={{ color: 'var(--cp-muted)' }}>{t('chatPro.of')} {limit}</span>}
         </div>
       </div>
-      {/* 1 сообщение = 1 генерация — реальный тариф квоты (quota.perMessage) */}
-      <p className="text-[13px] mt-3" style={{ color: 'var(--cp-text-2)' }}>{t('chatPro.enoughFor', { n: remaining })}</p>
-      <button
-        type="button"
-        onClick={() => navigate('/credits')}
-        className="mt-3 w-full min-h-[44px] rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-bold shadow-lg shadow-fuchsia-500/25 hover:opacity-90 active:scale-[0.98] transition"
-      >
-        ＋ {t('quota.topUp')}
-      </button>
+      {/* 1 сообщение = 1 генерация — реальный тариф квоты (quota.perMessage); владельцу — безлимит */}
+      <p className="text-[13px] mt-3" style={{ color: 'var(--cp-text-2)' }}>{unlimited ? t('chatPro.unlimited') : t('chatPro.enoughFor', { n: remaining })}</p>
+      {!unlimited && (
+        <button
+          type="button"
+          onClick={() => navigate('/credits')}
+          className="mt-3 w-full min-h-[44px] rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-bold shadow-lg shadow-fuchsia-500/25 hover:opacity-90 active:scale-[0.98] transition"
+        >
+          ＋ {t('quota.topUp')}
+        </button>
+      )}
     </div>
   )
 }
