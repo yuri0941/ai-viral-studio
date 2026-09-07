@@ -83,13 +83,14 @@ export default function LuxeHubChat({ chat, wide = false, suggestions = [], onSu
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/30 text-white text-lg shrink-0">✦</div>
         <div className="min-w-0 flex-1">
           <div className="text-base font-extrabold tracking-wide text-white truncate">OMEGA Studio</div>
-          <div className="text-[11px] text-fuchsia-300 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse motion-reduce:animate-none" />
-            {t('chatPro.luxeMode')} · {chat.isTyping ? t('omega.thinking') : t('omega.ready')}
+          <div className="text-[11px] text-fuchsia-300 flex items-center gap-1.5 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse motion-reduce:animate-none shrink-0" />
+            <span className="truncate">{t('chatPro.luxeMode')} · {chat.isTyping ? t('omega.thinking') : t('omega.ready')}</span>
           </div>
         </div>
-        {/* чипы-подсказки перенесены из шапки хаба (инвентарь функций сохранён) */}
-        <div className="hidden lg:flex items-center gap-2">
+        {/* чипы-подсказки перенесены из шапки хаба (инвентарь функций сохранён): только когда есть место —
+            инсайты свёрнуты (lg) либо очень широкий экран (2xl) */}
+        <div className={`hidden ${wide ? 'lg:flex' : '2xl:flex'} items-center gap-2`}>
           {suggestions.slice(0, 2).map((s, i) => (
             <button
               key={i}
@@ -126,11 +127,12 @@ export default function LuxeHubChat({ chat, wide = false, suggestions = [], onSu
       {/* мобильный поиск — отдельной строкой, чтобы шапка на 390px не ломалась */}
       {searchOpen && <div className="relative z-10 sm:hidden mb-2">{searchInput('block')}</div>}
 
-      <div className={`relative z-10 flex-1 min-h-0 grid gap-4 grid-cols-1 ${wide ? 'xl:grid-cols-[1fr_300px]' : 'min-[1500px]:grid-cols-[1fr_300px]'}`}>
+      <div className={`relative z-10 flex-1 min-h-0 grid gap-4 grid-cols-1 ${wide ? 'xl:grid-cols-[1fr_300px]' : 'min-[1920px]:grid-cols-[1fr_300px]'}`}>
         <div className="min-h-0 rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl overflow-hidden shadow-2xl shadow-violet-900/20">
           <OmegaChat {...chat} variant="compact" embedded searchQuery={search} />
         </div>
-        <aside className={`hidden ${wide ? 'xl:flex' : 'min-[1500px]:flex'} flex-col gap-4 min-h-0 overflow-y-auto`}>
+        {/* сайдбар Люкс-хаба: инсайты хаба свёрнуты (xl+) либо вьюпорт ≥1920 — иначе ленте тесно */}
+        <aside className={`hidden ${wide ? 'xl:flex' : 'min-[1920px]:flex'} flex-col gap-4 min-h-0 overflow-y-auto`}>
           <BalanceRingCard quota={quota} />
           {/* «В этом месяце» — только реальные поля /users/me/quota; несуществующих метрик нет (no stub data) */}
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-5 shadow-2xl shadow-violet-900/20">
