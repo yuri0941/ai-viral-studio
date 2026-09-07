@@ -571,7 +571,7 @@ export default function OmegaChat({
 
   return (
     <div
-      className={`relative flex flex-col bg-[#0a0a0f] text-white ${variant === 'fullscreen' ? 'h-[100dvh] md:h-[calc(100vh-80px)]' : 'h-full min-h-0'}`}
+      className={`relative flex flex-col bg-[#0a0a0f] text-white ${embedded ? 'chat-pro-embed' : ''} ${variant === 'fullscreen' ? 'h-[100dvh] md:h-[calc(100vh-80px)]' : 'h-full min-h-0'}`}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -720,7 +720,7 @@ export default function OmegaChat({
                 </div>
               </>
             ) : (
-              <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[95%] mx-auto">
+              <div className="omega-user-bubble bg-gradient-to-br from-white/[0.08] to-white/[0.03] rounded-2xl rounded-tr-none p-3.5 max-w-[95%] mx-auto">
                 <p className="text-sm text-white whitespace-pre-wrap">{msg.text}</p>
                 {msg.time && <p className="text-[10px] text-gray-500 text-right mt-1">{msg.time}</p>}
               </div>

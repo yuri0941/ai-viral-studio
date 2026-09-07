@@ -3410,6 +3410,8 @@
   },
   "chatPro": {
     "luxeMode": "люкс-режим",
+    "menu": "Меню чата",
+    "posts": "Постов",
     "enoughFor": "хватит на ~{{n}} сообщ.",
     "searchPlaceholder": "Поиск по сообщениям…",
     "searchEmpty": "Ничего не найдено",

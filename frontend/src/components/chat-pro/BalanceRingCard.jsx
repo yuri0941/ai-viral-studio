@@ -36,11 +36,11 @@ export default function BalanceRingCard({ quota }) {
   const c = 2 * Math.PI * r
   const pct = limit > 0 ? Math.min(1, remaining / limit) : 0
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-5 text-center shadow-2xl shadow-violet-900/20">
-      <div className="text-xs text-gray-400 mb-3">{t('quota.title')}</div>
+    <div className="rounded-3xl border p-5 text-center shadow-2xl shadow-violet-900/20" style={{ background: 'var(--cp-card)', borderColor: 'var(--cp-border)' }}>
+      <div className="text-xs mb-3" style={{ color: 'var(--cp-muted)' }}>{t('quota.title')}</div>
       <div className="relative w-[130px] h-[130px] mx-auto">
         <svg width="130" height="130" viewBox="0 0 120 120" className="-rotate-90" role="img" aria-label={`${t('quota.title')}: ${remaining} / ${limit}`}>
-          <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="10" />
+          <circle cx="60" cy="60" r={r} fill="none" strokeWidth="10" style={{ stroke: 'var(--cp-ring-track)' }} />
           <circle cx="60" cy="60" r={r} fill="none" stroke={`url(#${gid})`} strokeWidth="10" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
@@ -50,12 +50,12 @@ export default function BalanceRingCard({ quota }) {
           </defs>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-extrabold text-white">{shown}✦</span>
-          <span className="text-[10px] text-gray-500">{t('chatPro.of')} {limit}</span>
+          <span className="text-2xl font-extrabold" style={{ color: 'var(--cp-text)' }}>{shown}✦</span>
+          <span className="text-[10px]" style={{ color: 'var(--cp-muted)' }}>{t('chatPro.of')} {limit}</span>
         </div>
       </div>
       {/* 1 сообщение = 1 генерация — реальный тариф квоты (quota.perMessage) */}
-      <p className="text-[13px] text-gray-300 mt-3">{t('chatPro.enoughFor', { n: remaining })}</p>
+      <p className="text-[13px] mt-3" style={{ color: 'var(--cp-text-2)' }}>{t('chatPro.enoughFor', { n: remaining })}</p>
       <button
         type="button"
         onClick={() => navigate('/credits')}

@@ -3277,6 +3277,8 @@
   },
   "chatPro": {
     "luxeMode": "luxe mode",
+    "menu": "Chat menu",
+    "posts": "Posts",
     "enoughFor": "enough for ~{{n}} messages",
     "searchPlaceholder": "Search messages…",
     "searchEmpty": "Nothing found",

@@ -381,15 +381,73 @@
     100% { background-position: 0% 50%; }
 }
 
-/* [CHAT-PRO З1] «Люкс-хаб»: фиолет/фуксия орбы поверх mesh-фона хаба (под картой ленты, z-0) */
-.chat-pro-luxe-bg {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
+/* [CHAT-PRO-REWORK] Скоп Люкс-хаба: тема через CSS-варианты (html.light ставит useTheme).
+   Тёмная — как эталон; светлая — утверждённый макет шага 0 (контраст текста ≥4.5:1). */
+.chat-pro-scope {
+    --cp-card: rgba(255, 255, 255, .04);
+    --cp-border: rgba(255, 255, 255, .1);
+    --cp-text: #ffffff;
+    --cp-text-2: rgba(255, 255, 255, .78);
+    --cp-muted: rgba(255, 255, 255, .6);
+    --cp-ring-track: rgba(255, 255, 255, .08);
+}
+html.light .chat-pro-scope {
+    --cp-card: #ffffff;
+    --cp-border: rgba(17, 17, 17, .12);
+    --cp-text: #111111;
+    --cp-text-2: rgba(17, 17, 17, .78);
+    --cp-muted: rgba(17, 17, 17, .62);
+    --cp-ring-track: rgba(17, 17, 17, .08);
+}
+
+/* фон страницы Люкс-хаба: орбы фиолет/фуксия (эталон), без анимации */
+.chat-pro-page {
     background:
-        radial-gradient(700px 400px at 85% -10%, rgba(217, 70, 239, 0.14), transparent 60%),
-        radial-gradient(700px 500px at -10% 110%, rgba(139, 92, 246, 0.14), transparent 60%);
+        radial-gradient(700px 400px at 85% -10%, rgba(217, 70, 239, .14), transparent 60%),
+        radial-gradient(700px 500px at -10% 110%, rgba(139, 92, 246, .14), transparent 60%),
+        #0a0a0f;
+}
+html.light .chat-pro-page {
+    background:
+        radial-gradient(700px 400px at 85% -10%, rgba(217, 70, 239, .10), transparent 60%),
+        radial-gradient(700px 500px at -10% 110%, rgba(139, 92, 246, .10), transparent 60%),
+        #f5f5f7;
+}
+
+/* пользовательский пузырь — фирменный градиент в обеих темах (эталон шага 0) */
+.chat-pro-embed .omega-user-bubble {
+    background-image: linear-gradient(135deg, #8b5cf6, #d946ef);
+    border-radius: 18px 18px 6px 18px;
+}
+.chat-pro-embed .omega-user-bubble .text-gray-500 { color: rgba(255, 255, 255, .75); }
+
+/* светлая тема встроенного чата — только внутри скопа Люкс-хаба */
+html.light .chat-pro-embed { background: #ffffff; color: #111111; }
+html.light .chat-pro-embed .bg-\[\#0a0a0f\] { background: #ffffff; }
+html.light .chat-pro-embed .bg-\[\#0a0a0f\]\/80 { background: rgba(255, 255, 255, .92); }
+html.light .chat-pro-embed .bg-\[\#0a0a0f\]\/60 { background: rgba(255, 255, 255, .9); }
+html.light .chat-pro-embed .text-white { color: #111111; }
+html.light .chat-pro-embed .text-gray-100,
+html.light .chat-pro-embed .text-gray-200 { color: #1f2937; }
+html.light .chat-pro-embed .text-gray-300 { color: #374151; }
+html.light .chat-pro-embed .text-gray-400,
+html.light .chat-pro-embed .text-gray-500 { color: #4b5563; }
+html.light .chat-pro-embed .placeholder-gray-500::placeholder { color: #6b7280; }
+html.light .chat-pro-embed .border-white\/10,
+html.light .chat-pro-embed .border-white\/\[0\.1\],
+html.light .chat-pro-embed .border-white\/\[0\.08\],
+html.light .chat-pro-embed .border-white\/\[0\.06\] { border-color: rgba(17, 17, 17, .12); }
+html.light .chat-pro-embed .bg-white\/5,
+html.light .chat-pro-embed .bg-white\/\[0\.05\],
+html.light .chat-pro-embed .bg-white\/\[0\.06\] { background-color: rgba(17, 17, 17, .05); }
+html.light .chat-pro-embed .bg-white\/\[0\.04\] { background-color: rgba(17, 17, 17, .04); }
+html.light .chat-pro-embed .bg-white\/\[0\.08\] { background-color: rgba(17, 17, 17, .07); }
+/* AI-пузырь в светлой — белая карточка с акцентным краем (эталон) */
+html.light .chat-pro-embed .from-violet-500\/\[0\.08\] {
+    background-image: none;
+    background-color: #ffffff;
+    border: 1px solid rgba(17, 17, 17, .1);
+    border-left: 2px solid #8b5cf6;
 }
 
 /* [CHAT-PRO З3 WCAG] reduced-motion: фоновые анимации статичны */
