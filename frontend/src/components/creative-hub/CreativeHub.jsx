@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation.js'
 import useOmegaChat from '../../hooks/useOmegaChat.js'
 import OmegaChat from '../omega/OmegaChat.jsx'
+import LuxeHubChat from '../chat-pro/LuxeHubChat.jsx' // [CHAT-PRO З1] режим chat → «Люкс-хаб» (выбор владельца)
 import { HouseAdSlot } from '../ads/HouseAdSlot.jsx' // [HOTFIX-FINAL-2 З6]
 import {
     LayoutDashboard,
@@ -381,6 +382,8 @@ export default function CreativeHub() {
 
                 {/* [v6.0] added: middle column — universal AI chat */}
                 <section className="flex flex-col h-full overflow-hidden min-w-0">
+                    {/* [CHAT-PRO З1] в режиме chat шапку режима заменяет люкс-шапка LuxeHubChat (чипы-подсказки перенесены туда) */}
+                    {mode !== 'chat' && (
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-lg bg-white/5 border border-white/10">
@@ -405,6 +408,7 @@ export default function CreativeHub() {
                             ))}
                         </div>
                     </div>
+                    )}
 
                     {/* [HOTFIX-FINAL-2 З6] house-ads топ-баннер чата ≤34px: занимает своё место над
                         лентой, инпут не сдвигает (на мобиле вместо нижней плашки — она бы перекрыла FAB) */}
@@ -412,9 +416,15 @@ export default function CreativeHub() {
                         <HouseAdSlot slot="chat-top" variant="banner" />
                     </div>
 
-                    <div className="flex-1 min-h-0 rounded-2xl border border-white/10 overflow-x-hidden shadow-2xl shadow-violet-900/10">
-                        <OmegaChat {...chat} variant="fullscreen" />
-                    </div>
+                    {mode === 'chat' ? (
+                        <div className="flex-1 min-h-0">
+                            <LuxeHubChat chat={chat} wide={insightsCollapsed} suggestions={suggestions} onSuggestion={handleSuggestion} />
+                        </div>
+                    ) : (
+                        <div className="flex-1 min-h-0 rounded-2xl border border-white/10 overflow-x-hidden shadow-2xl shadow-violet-900/10">
+                            <OmegaChat {...chat} variant="fullscreen" />
+                        </div>
+                    )}
 
                     {/* [v6.0] added: AI Creative Toolbar */}
                     <div className="mt-3 glass-card p-2 sm:p-3">

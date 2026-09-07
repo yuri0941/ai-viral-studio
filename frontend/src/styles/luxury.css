@@ -381,6 +381,22 @@
     100% { background-position: 0% 50%; }
 }
 
+/* [CHAT-PRO З1] «Люкс-хаб»: фиолет/фуксия орбы поверх mesh-фона хаба (под картой ленты, z-0) */
+.chat-pro-luxe-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(700px 400px at 85% -10%, rgba(217, 70, 239, 0.14), transparent 60%),
+        radial-gradient(700px 500px at -10% 110%, rgba(139, 92, 246, 0.14), transparent 60%);
+}
+
+/* [CHAT-PRO З3 WCAG] reduced-motion: фоновые анимации статичны */
+@media (prefers-reduced-motion: reduce) {
+    .luxury-mesh-bg { animation: none; }
+}
+
 /* [v6.2] Omega chat mobile adaptive bottom sheet */
 .omega-chat-mobile {
     padding-bottom: env(safe-area-inset-bottom, 0px);
