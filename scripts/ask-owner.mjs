@@ -182,10 +182,14 @@ if (pollMode === 'mongo' && col) {
 }
 
 // --- Канал 1: TG ---
+// [ASK-OWNER-HTML-ESC] кейс 2026-09-07: отчёт с «<1МБ»/«<2с» в parse_mode=HTML →
+// TG API 400 can't parse entities → сообщение молча не доходило (блокер Части 2).
+// Экранируем пользовательский текст; служебные <b> шаблона не трогаем.
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 let tgMessage = null
 async function tgSend() {
   if (!tgOk) return
-  const lines = [`❓ <b>Вопрос кодера</b>${context ? ` (${context})` : ''}`, '', question, '']
+  const lines = [`❓ <b>Вопрос кодера</b>${context ? ` (${esc(context)})` : ''}`, '', esc(question), '']
   const body = { chat_id: chatId, text: lines.join('\n'), parse_mode: 'HTML' }
   if (free) {
     body.text += '✍️ Ответь текстом — следующее сообщение будет ответом.'
@@ -193,6 +197,8 @@ async function tgSend() {
     body.text += 'Выбери вариант кнопкой ниже:'
     body.reply_markup = { inline_keyboard: options.map((o, i) => ([{ text: o, callback_data: `bask:${qid}:${i}` }])) }
   }
+  // Лимит TG — 4096 символов: длинный контекст режем, а не роняем отправку
+  if (body.text.length > 4000) body.text = body.text.slice(0, 3990) + '…\n(контекст обрезан, полный — в терминале)'
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 20000)
   try {
@@ -201,6 +207,8 @@ async function tgSend() {
       body: JSON.stringify(body),
     })
     const json = await res.json().catch(() => ({}))
+    // Код ответа TG API — всегда в лог (факт доставки/отказа)
+    console.log(`TG API sendMessage → HTTP ${res.status}, ok=${json.ok ?? false}${json.result?.message_id ? `, message_id=${json.result.message_id}` : ''}`)
     if (res.ok && json.ok) tgMessage = { message_id: json.result.message_id }
     else console.warn(`⚠️ TG-отправка не удалась: ${json.description || `HTTP ${res.status}`} (терминал работает)`)
   } catch (e) {
@@ -211,7 +219,7 @@ async function tgSend() {
 // Закрытие TG-канала: убрать кнопки и пометить исход («отвечено в другом канале» / таймаут)
 async function tgClose(note) {
   if (!tgOk || !tgMessage) return
-  const text = [`❓ <b>Вопрос кодера</b>${context ? ` (${context})` : ''}`, '', question, '', note].join('\n')
+  const text = [`❓ <b>Вопрос кодера</b>${context ? ` (${esc(context)})` : ''}`, '', esc(question), '', esc(note)].join('\n')
   try {
     await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
