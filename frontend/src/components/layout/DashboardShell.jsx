@@ -57,6 +57,10 @@ export function DashboardShell({
         && !['owner', 'admin', 'staff'].includes(user?.role)
     // [VIEW-AS-PERSIST] плашка активна → контенту нужен отступ сверху, чтобы бейдж его не перекрывал
     const viewAsActive = user?.realRole === 'owner' && user?.role && user.role !== 'owner'
+    // [CHAT-PRO-REWORK] Люкс-хаб (chat-режим) — точная высотка вьюпорта без скролла страницы:
+    // main h-100dvh flex-колонка, обёртка и контент flex-1 min-h-0 (иначе чат вылезал за экран
+    // и страница сама скроллилась — шапка уезжала под глобальный хедер)
+    const isLuxeChat = location.pathname.startsWith('/creative-hub/chat')
     const { theme, appliedTheme, setTheme, toggleTheme } = useTheme()
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [mobileNotifOpen, setMobileNotifOpen] = useState(false)
@@ -216,7 +220,7 @@ export function DashboardShell({
 
             {/* Main content */}
             <main
-                className={`flex-1 min-h-screen w-full overflow-x-hidden ${!viewport.isMobile ? 'pt-20' : 'pt-16'}`}
+                className={`flex-1 w-full overflow-x-hidden ${isLuxeChat ? 'h-[100dvh] flex flex-col' : 'min-h-screen'} ${!viewport.isMobile ? 'pt-20' : 'pt-16'}`}
                 style={{
                     ...(!viewport.isMobile ? { paddingLeft: windowWidth >= 1440 ? '280px' : '72px' } : {}),
                     ...(viewAsActive ? { paddingTop: `calc(${viewport.isMobile ? '4rem' : '5rem'} + ${VIEW_AS_BANNER_HEIGHT}px + env(safe-area-inset-top, 0px))` } : {}),
@@ -239,13 +243,16 @@ export function DashboardShell({
                     onDeleteNotification={onDeleteNotification}
                 />
 
-                <div className={`${viewport.isMobile ? `px-3 py-4 ${showHouseAdBottomBar ? 'pb-40' : 'pb-24'}` : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'}`}>
+                {/* [CHAT-PRO-REWORK] на /creative-hub/chat обёртка — flex-1 min-h-0 без pb под навбар
+                    (своя нижняя нав и так скрыта в chat-режиме): чат занимает ровно оставшуюся высоту,
+                    страница не скроллится и шапка Люкс-хаба не уезжает под глобальный хедер */}
+                <div className={`${viewport.isMobile ? `px-3 py-4 ${isLuxeChat ? 'pb-4' : showHouseAdBottomBar ? 'pb-40' : 'pb-24'}` : viewport.isDesktop ? 'px-6 lg:px-8 py-6' : 'px-4 py-5'} ${isLuxeChat ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
                     {/* [HOTFIX-FINAL-2 З6] house-ads мини-пилюля: сайдбар свёрнут/скрыт (768–1439px),
                         карточке места нет — пилюля над контентом не сдвигает инпуты */}
-                    <div className="hidden md:flex min-[1440px]:hidden justify-center mb-3">
+                    <div className="hidden md:flex min-[1440px]:hidden justify-center mb-3 shrink-0">
                         <HouseAdSlot slot="tablet-pill" variant="pill" />
                     </div>
-                    {children}
+                    {isLuxeChat ? <div className="flex-1 min-h-0 flex flex-col">{children}</div> : children}
                 </div>
             </main>
 

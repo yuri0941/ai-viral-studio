@@ -349,7 +349,7 @@ export default function CreativeHub() {
     }
 
     return (
-        <div className={`${isChatMode ? 'chat-pro-page' : 'dark luxury-mesh-bg'} min-h-screen text-[var(--text)] overflow-hidden`}>
+        <div className={`${isChatMode ? 'chat-pro-page flex flex-col flex-1 min-h-0 w-full' : 'dark luxury-mesh-bg min-h-screen'} text-[var(--text)] overflow-hidden`}>
             {/* [v6.0] added: top header (в режиме chat скрыт — его функции (роль, AutoPilot) переехали в шторку Люкс-хаба) */}
             {!isChatMode && (
             <header className="h-16 border-b border-white/10 bg-black/20 backdrop-blur-xl flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
@@ -381,10 +381,11 @@ export default function CreativeHub() {
             </header>
             )}
 
-            {/* [v6.0] added: main responsive grid (в режиме chat — одна центрированная колонка эталона, max-w 1060) */}
+            {/* [v6.0] added: main responsive grid (в режиме chat — одна центрированная колонка эталона, max-w 1060,
+                flex-1 min-h-0: высота ровно по вьюпорту от шелла, страница не скроллится) */}
             <main
                 className={isChatMode
-                    ? 'relative p-4 max-w-[1060px] mx-auto w-full h-[calc(100vh-64px)]'
+                    ? 'relative p-4 max-w-[1060px] mx-auto w-full flex-1 min-h-0 flex flex-col'
                     : `relative grid grid-cols-1 sm:grid-cols-[280px_1fr] ${insightsCollapsed ? '' : 'xl:grid-cols-[280px_1fr_320px]'} gap-4 p-4 h-[calc(100vh-64px)] pb-24 sm:pb-4`}
                 onTouchStart={isChatMode ? undefined : handleTouchStart}
                 onTouchEnd={isChatMode ? undefined : handleTouchEnd}
@@ -401,7 +402,7 @@ export default function CreativeHub() {
                 )}
 
                 {/* [v6.0] added: middle column — universal AI chat */}
-                <section className="flex flex-col h-full overflow-hidden min-w-0">
+                <section className={`flex flex-col overflow-hidden min-w-0 ${isChatMode ? 'flex-1 min-h-0' : 'h-full'}`}>
                     {/* [CHAT-PRO З1] в режиме chat шапку режима заменяет люкс-шапка LuxeHubChat (чипы-подсказки перенесены туда) */}
                     {mode !== 'chat' && (
                     <div className="flex items-center justify-between mb-3">
