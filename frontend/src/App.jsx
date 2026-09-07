@@ -18,42 +18,46 @@ import { useOTAUpdate } from './hooks/useOTAUpdate.js'
 // Pages
 // [LANDING-UNIFY] legacy pages/LandingPage удалён: вторая версия лендинга со старыми ценами (config/plans.js) больше не отдаётся
 import PublicLandingPage from './pages/landing/LandingPage'
-import SignupPage from './pages/auth/SignupPage'
-import ApiDocsPage from './pages/docs/ApiDocsPage'
-import OwnerDashboardPage from './pages/owner/OwnerDashboardPage'
-import AdminDashboardPage from './pages/AdminDashboardPage'
-import StaffDashboardPage from './pages/StaffDashboardPage'
-import AdvertiserDashboardPage from './pages/AdvertiserDashboardPage'
-import CreatorDashboardPage from './pages/CreatorDashboardPage'
+// [HOTFIX-FINAL-2 З7.2] route-level lazy: всё, кроме первого экрана (лендинг), грузится по требованию.
+// Цель: initial bundle <1МБ (было 2.3МБ index — админка/студия/дашборды тянулись на каждый роут)
+const SignupPage = lazy(() => import('./pages/auth/SignupPage'))
+const ApiDocsPage = lazy(() => import('./pages/docs/ApiDocsPage'))
+const OwnerDashboardPage = lazy(() => import('./pages/owner/OwnerDashboardPage'))
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
+const StaffDashboardPage = lazy(() => import('./pages/StaffDashboardPage'))
+const AdvertiserDashboardPage = lazy(() => import('./pages/AdvertiserDashboardPage'))
+const CreatorDashboardPage = lazy(() => import('./pages/CreatorDashboardPage'))
 const AIVideoCreator = lazy(() => import('./components/video/AIVideoCreator.jsx'))
 const NeuroSalesDashboard = lazy(() => import('./components/analytics/NeuroSalesDashboard.jsx'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
 const SchedulerPage = lazy(() => import('./pages/SchedulerPage'))
-import SettingsPage from './pages/SettingsPage'
-import VkCallbackPage from './pages/VkCallbackPage'
-import DownloadPage from './pages/DownloadPage'
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const VkCallbackPage = lazy(() => import('./pages/VkCallbackPage'))
+const DownloadPage = lazy(() => import('./pages/DownloadPage'))
 const AIvsHumanPage = lazy(() => import('./pages/owner/AIvsHumanPage'))
 const BoardroomPage = lazy(() => import('./pages/owner/BoardroomPage'))
 const BusinessSpawnerPage = lazy(() => import('./pages/owner/BusinessSpawnerPage'))
 const SupremeStatusPage = lazy(() => import('./pages/omega-supreme/SupremeStatusPage.jsx'))
-import LeaderboardPage from './pages/LeaderboardPage'
-import ChallengePage from './pages/ChallengePage'
-import AdvertiserRequestsPage from './pages/AdvertiserRequestsPage'
-import OwnerAppPage from './pages/owner-app/index'
-import PaymentSuccess from './pages/PaymentSuccess'
-import CreditsPage from './pages/CreditsPage'
-import StripeCheckoutPage from './pages/StripeCheckoutPage'
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'))
+const ChallengePage = lazy(() => import('./pages/ChallengePage'))
+const AdvertiserRequestsPage = lazy(() => import('./pages/AdvertiserRequestsPage'))
+const OwnerAppPage = lazy(() => import('./pages/owner-app/index'))
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'))
+const CreditsPage = lazy(() => import('./pages/CreditsPage'))
+const StripeCheckoutPage = lazy(() => import('./pages/StripeCheckoutPage'))
 // [CHECKOUT-UNIFY] CheckoutPage удалён: legacy-флоу с ценами не из PlanConfig (redirect на /settings?tab=subscription)
-import { PrivacyPolicyPage, TermsOfServicePage, ConsentPage } from './pages/legal/LegalPage'
+const PrivacyPolicyPage = lazy(() => import('./pages/legal/LegalPage').then(m => ({ default: m.PrivacyPolicyPage })))
+const TermsOfServicePage = lazy(() => import('./pages/legal/LegalPage').then(m => ({ default: m.TermsOfServicePage })))
+const ConsentPage = lazy(() => import('./pages/legal/LegalPage').then(m => ({ default: m.ConsentPage })))
 import { CookieConsent } from './components/CookieConsent'
-import GDPRPage from './pages/GDPRPage'
+const GDPRPage = lazy(() => import('./pages/GDPRPage'))
 const ProjectFactoryPage = lazy(() => import('./pages/project-factory/ProjectFactoryPage.jsx'))
 const PredictionDashboard = lazy(() => import('./pages/prediction/PredictionDashboard.jsx'))
 const InvestmentPanel = lazy(() => import('./pages/investment/InvestmentPanel.jsx'))
 const BoardroomCommandCenter = lazy(() => import('./pages/boardroom/BoardroomCommandCenter.jsx'))
-import LaunchPage from './pages/LaunchPage'
-import PublicRoadmap from './pages/landing/PublicRoadmap'
-import OnboardingWizard from './components/onboarding/OnboardingWizard'
+const LaunchPage = lazy(() => import('./pages/LaunchPage'))
+const PublicRoadmap = lazy(() => import('./pages/landing/PublicRoadmap'))
+const OnboardingWizard = lazy(() => import('./components/onboarding/OnboardingWizard'))
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import { UpdateModal } from './components/shared/UpdateModal.jsx'
 import { MaintenanceGate } from './components/MaintenanceScreen.jsx'
@@ -142,8 +146,9 @@ function VersionCheck() {
 }
 
 // [v6.0] added: Creative Hub + Luxury Document Viewer
-import CreativeHub from './components/creative-hub/CreativeHub.jsx'
-import LuxuryDocumentViewer from './components/documents/LuxuryDocumentViewer.jsx'
+// [HOTFIX-FINAL-2 З7.2] оба — route-level lazy (тяжёлые, не нужны на первом экране)
+const CreativeHub = lazy(() => import('./components/creative-hub/CreativeHub.jsx'))
+const LuxuryDocumentViewer = lazy(() => import('./components/documents/LuxuryDocumentViewer.jsx'))
 
 // [v6.0] added: simple document viewer wrapper for /documents/:fileId route
 // [UI-VERIFY] AIVideoCreator — модальный компонент: на роуте /video-creator его X мёртвый
@@ -213,7 +218,7 @@ const PAGE_TITLES = {
 // PROTECTED ROUTE
 // ============================================
 function ProtectedRoute({ children, allowedRoles }) {
-    const { user, isAuthenticated, loading, roleSwitching, logout } = useAuth()
+    const { user, isAuthenticated, loading, authError, roleSwitching, logout } = useAuth()
     const location = useLocation()
     const navigate = useNavigate()
 
@@ -241,6 +246,23 @@ function ProtectedRoute({ children, allowedRoles }) {
     }
 
     if (!isAuthenticated) {
+        // [HOTFIX-FINAL-2 З2] токен жив, но сервер недоступен и кэша нет — error-state с retry
+        // вместо вечного спиннера/молчаливого редиректа (TG WebView, спящий backend)
+        if (authError) {
+            return (
+                <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-4 p-6 text-center text-gray-200">
+                    <div className="text-3xl">⚠️</div>
+                    <div className="text-lg font-semibold">Нет соединения с сервером</div>
+                    <p className="text-sm text-gray-400 max-w-xs">Проверьте интернет и попробуйте ещё раз.</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-3 min-h-[44px] rounded-2xl bg-[#00ff41] text-black font-semibold"
+                    >
+                        Повторить
+                    </button>
+                </div>
+            )
+        }
         return <Navigate to="/" replace />
     }
 

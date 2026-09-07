@@ -40,6 +40,9 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
+    // [HOTFIX-FINAL-2 З2] сеть упала при проверке сессии и кэша профиля нет → error-state
+    // с retry вместо вечного спиннера (TG WebView / спящий Render)
+    const [authError, setAuthError] = useState(false)
     // [ROLE-SWITCH-FLASH] свежий маркер смены роли → профиль мог не догрузиться,
     // ProtectedRoute в это время показывает спиннер вместо /unauthorized
     const [roleSwitching, setRoleSwitching] = useState(() => {
@@ -57,9 +60,15 @@ export const AuthProvider = ({ children }) => {
             let authed = false
             if (token) {
                 try {
+                    // [HOTFIX-FINAL-2 З2] жёсткий таймаут 10с: без него зависший запрос (TG WebView,
+                    // спящий Render, обрыв сети) держал loading=true → вечный спиннер в мини-аппе
+                    const ctrl = new AbortController()
+                    const killer = setTimeout(() => ctrl.abort(), 10000)
                     const response = await fetch(`${API_URL}/auth/me`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        signal: ctrl.signal
                     })
+                    clearTimeout(killer)
                     const data = await response.json()
                     if (data.success) {
                         setUser(applyViewAs(data.user))
@@ -86,8 +95,12 @@ export const AuthProvider = ({ children }) => {
                         if (cached) {
                             setUser(applyViewAs(cached))
                             setIsAuthenticated(true)
+                            authed = true
                         }
                     } catch { /* битый кэш — игнорируем */ }
+                    // [HOTFIX-FINAL-2 З2] токен есть, но ни сервер, ни кэш не дали профиль —
+                    // это НЕ разлогин: показываем error-state с retry (см. ProtectedRoute)
+                    if (!authed) setAuthError(true)
                 }
             }
             setLoading(false)
@@ -216,7 +229,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, loading, roleSwitching, login, register, logout, updateUser, updatePreferences, setViewAs }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, loading, authError, roleSwitching, login, register, logout, updateUser, updatePreferences, setViewAs }}>
             {children}
         </AuthContext.Provider>
     )

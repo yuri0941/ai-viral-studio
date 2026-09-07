@@ -17,7 +17,7 @@ const { chromium } = createRequire(path.resolve('.tmp-ui-polish', 'noop.js'))('p
 
 const BASE = process.env.UI_AUDIT_BASE || 'http://localhost:4173'
 const API_ORIGIN = 'https://aiviral-backend.onrender.com'
-const LOCAL_API = process.env.QA_API_URL || 'http://localhost:5000'
+const LOCAL_API = process.env.QA_API_URL || 'http://localhost:18080'
 const OUT = path.resolve('reports/view-as')
 fs.mkdirSync(OUT, { recursive: true })
 
@@ -54,13 +54,22 @@ async function proxyApi(context) {
     await context.route(`${API_ORIGIN}/**`, async (route) => {
         const req = route.request()
         const url = req.url().replace(API_ORIGIN, LOCAL_API)
+        // [FLAKY-RETRY] транзиентный сбой прокси→backend — один повтор через 700мс,
+        // иначе ложный 502 падал в «консоль без error». Паттерн как в qa-journey-1/2/3.
         try {
             const headers = { ...req.headers() }
             delete headers.host; delete headers.origin; delete headers.referer
-            const resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
+            let resp
+            try {
+                resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
+            } catch {
+                await new Promise(r => setTimeout(r, 700))
+                resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
+            }
             const body = await resp.body()
             await route.fulfill({ status: resp.status(), headers: resp.headers(), body })
         } catch (e) {
+            console.log(`[proxy-502] ${req.method()} ${url} → ${String(e.message || e).slice(0, 200)}`)
             await route.fulfill({ status: 502, body: String(e.message) })
         }
     })
@@ -75,6 +84,7 @@ async function newCtx(width, lang, { token, profile }) {
         localStorage.setItem('token', t)
         localStorage.setItem('user_profile', JSON.stringify(p))
         localStorage.setItem('i18n-lang', l)
+        localStorage.setItem('app_language', l) // второй i18n-контур (i18n.js) читает app_language
         localStorage.setItem('cookie_consent', 'accepted')
     }, [token, profile, lang])
     return context

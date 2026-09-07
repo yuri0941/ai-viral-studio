@@ -72,14 +72,14 @@ router.post('/referral/track', protect, async (req, res) => {
 // Owner only
 router.get('/waitlist/all', protect, requireRole('owner', 'admin'), async (req, res) => {
   try {
-    res.json({ waitlist: getWaitlist() });
+    res.json({ waitlist: await getWaitlist() });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.post('/waitlist/approve', protect, requireRole('owner', 'admin'), async (req, res) => {
   try {
     const { email } = req.body;
-    const entry = approveWaitlist(email);
+    const entry = await approveWaitlist(email);
     res.json({ approved: !!entry, entry });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

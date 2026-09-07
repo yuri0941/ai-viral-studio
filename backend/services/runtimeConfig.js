@@ -22,6 +22,12 @@ export function getApiKey(provider) {
   return runtimeCache[provider] || process.env[`${provider.toUpperCase()}_API_KEY`] || process.env[`${provider.toUpperCase()}_API_TOKEN`] || null;
 }
 
+// [HOTFIX-FINAL-2 З3] только БД-кэш (isActive=true), БЕЗ env-фолбэка — для мест, где
+// выключенный в кабинете ключ обязан быть полным запретом (правило getProviderKey)
+export function getDbApiKey(provider) {
+  return runtimeCache[provider] || null;
+}
+
 export function hasApiKey(provider) {
   return !!getApiKey(provider);
 }

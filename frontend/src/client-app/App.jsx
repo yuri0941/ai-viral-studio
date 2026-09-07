@@ -77,6 +77,15 @@ export default function ClientApp() {
     const [refreshTick, setRefreshTick] = useState(0)
     const { data: overview } = useDashboardData('overview')
     const { notifications, unreadCount } = useNotifications()
+    // [HOTFIX-FINAL-2 З2] watchdog: если auth не разрешился за 12с — error-state с retry
+    // вместо вечного спиннера (TG WebView / спящий backend / обрыв сети)
+    const [authStuck, setAuthStuck] = useState(false)
+
+    useEffect(() => {
+        if (!loading) { setAuthStuck(false); return }
+        const timer = setTimeout(() => setAuthStuck(true), 12000)
+        return () => clearTimeout(timer)
+    }, [loading])
 
     useEffect(() => {
         if (!loading && !isAuthenticated) {
@@ -88,6 +97,21 @@ export default function ClientApp() {
     const { ref: pullRef, pulling } = usePullToRefresh(refresh)
 
     if (loading) {
+        if (authStuck) {
+            return (
+                <div className="min-h-screen bg-[var(--bg)] flex flex-col items-center justify-center gap-4 text-[var(--text)] p-6 text-center">
+                    <AlertTriangle size={32} className="text-[var(--warning)]" />
+                    <div className="text-lg font-semibold">Не удалось подключиться</div>
+                    <p className="text-sm text-[var(--text-muted)] max-w-xs">Сервер долго не отвечает. Проверьте интернет и попробуйте ещё раз.</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-3 rounded-2xl bg-[var(--primary)] text-black font-semibold flex items-center gap-2 min-h-[48px]"
+                    >
+                        <RefreshCw size={16} /> Повторить
+                    </button>
+                </div>
+            )
+        }
         return (
             <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center text-[var(--text)]">
                 <div className="animate-spin w-10 h-10 border-2 border-[var(--success)] border-t-transparent rounded-full" />

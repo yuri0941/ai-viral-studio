@@ -1,9 +1,11 @@
-import { getApiKey, hasApiKey } from './runtimeConfig.js';
+import { getApiKey, getDbApiKey, hasApiKey } from './runtimeConfig.js';
 import { getProviderKey } from './aiService.js';
 
 // [v9.9.19-MASTER-AUDIT] hot-reload: ключ резолвится в момент вызова (env → cache → MongoDB)
+// [HOTFIX-FINAL-2 З3] env-фолбэк убран из резолва: выключенный в кабинете ключ = полный запрет,
+// мёртвый ключ не поднимается обратно из env. Второй источник — ExternalApiKey (isActive=true), тоже без env.
 async function resolveReplicateToken() {
-  return (await getProviderKey('replicate')) || getApiKey('replicate') || null;
+  return (await getProviderKey('replicate')) || getDbApiKey('replicate') || null;
 }
 
 export async function createVideoJob({ script, style, duration, userId }) {
@@ -37,7 +39,14 @@ export async function createVideoJob({ script, style, duration, userId }) {
     })
   });
   
-  if (!response.ok) throw new Error(`Replicate error: ${response.status}`);
+  if (!response.ok) {
+    // [HOTFIX-FINAL-2 З3] 401/403 = мёртвый ключ: выводим из ротации (БД + кэш), алерт владельцу
+    if (response.status === 401 || response.status === 403) {
+      const { disableProviderKey } = await import('../utils/providerKeyGuard.js');
+      await disableProviderKey('replicate', `HTTP ${response.status}`);
+    }
+    throw new Error(`Replicate error: ${response.status}`);
+  }
   const data = await response.json();
   return { jobId: data.id, status: data.status, urls: data.urls, mock: false };
 }

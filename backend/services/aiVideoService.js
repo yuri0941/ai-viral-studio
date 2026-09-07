@@ -115,7 +115,8 @@ export async function createVideoPlaceholder(scenes) {
 }
 
 export async function startReplicateVideo(prompt, duration = 15) {
-  const apiKey = await getProviderKey('replicate') || process.env.REPLICATE_API_KEY
+  // [HOTFIX-FINAL-2 З3] env-байпас убран: выключенный в кабинете ключ = полный запрет (правило getProviderKey)
+  const apiKey = await getProviderKey('replicate')
   if (!apiKey) return null
 
   try {
@@ -143,12 +144,17 @@ export async function startReplicateVideo(prompt, duration = 15) {
     }
   } catch (err) {
     console.error('[aiVideoService:startReplicateVideo]', err.message)
+    // [HOTFIX-FINAL-2 З3] 401/403 = мёртвый ключ: выводим из ротации (БД + кэш) и алертим владельца
+    if ([401, 403].includes(err.response?.status)) {
+      const { disableProviderKey } = await import('../utils/providerKeyGuard.js')
+      await disableProviderKey('replicate', `HTTP ${err.response.status}`)
+    }
     return null
   }
 }
 
 export async function getReplicateStatus(predictionId) {
-  const apiKey = await getProviderKey('replicate') || process.env.REPLICATE_API_KEY
+  const apiKey = await getProviderKey('replicate')
   if (!apiKey || !predictionId) return null
   try {
     const res = await axios.get(`https://api.replicate.com/v1/predictions/${predictionId}`, {
@@ -162,6 +168,10 @@ export async function getReplicateStatus(predictionId) {
     }
   } catch (err) {
     console.error('[aiVideoService:getReplicateStatus]', err.message)
+    if ([401, 403].includes(err.response?.status)) {
+      const { disableProviderKey } = await import('../utils/providerKeyGuard.js')
+      await disableProviderKey('replicate', `HTTP ${err.response.status}`)
+    }
     return null
   }
 }
