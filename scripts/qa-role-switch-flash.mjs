@@ -75,6 +75,7 @@ async function newCtx(width, lang, { token, profile, staleRole = null, switchMar
         localStorage.setItem('token', t)
         localStorage.setItem('user_profile', JSON.stringify(p))
         localStorage.setItem('i18n-lang', l)
+        localStorage.setItem('app_language', l) // второй i18n-контур (i18n.js) читает app_language
         if (m) localStorage.setItem('role_switch_at', String(Date.now()))
     }, [token, prof, lang, switchMarker])
     return context

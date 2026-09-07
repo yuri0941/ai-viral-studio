@@ -75,6 +75,7 @@ async function newCtx(width, lang, { token, profile }) {
         localStorage.setItem('token', t)
         localStorage.setItem('user_profile', JSON.stringify(p))
         localStorage.setItem('i18n-lang', l)
+        localStorage.setItem('app_language', l) // второй i18n-контур (i18n.js) читает app_language
         localStorage.setItem('cookie_consent', 'accepted')
     }, [token, profile, lang])
     return context
