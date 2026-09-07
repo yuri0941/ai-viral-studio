@@ -100,16 +100,20 @@ router.delete('/me/data', protect, deleteMyData)
 router.get('/me/export', protect, exportMyData)
 
 // [MONETIZE-2026-08-04] added: current usage quota
+// [CHAT-PRO-FIX] владелец = безлимит: checkQuota возвращает Infinity, которое в JSON превращается в null
+// (владелец видел «0✦ из 10»). Шлём явный флаг unlimited + null в числовых полях.
 router.get('/me/quota', protect, async (req, res) => {
     try {
         const quota = await checkQuota(req.user._id || req.user.id)
+        const unlimited = quota.remaining === Infinity || quota.limit === Infinity
         const quotaDoc = await UsageQuota.findOne({ userId: req.user._id || req.user.id }).lean()
         res.json({
             status: 'success',
             data: {
                 generationsUsed: quota.used,
-                generationsLimit: quota.limit,
-                remaining: quota.remaining,
+                generationsLimit: unlimited ? null : quota.limit,
+                remaining: unlimited ? null : quota.remaining,
+                unlimited,
                 plan: quota.plan,
                 cycleEndsAt: quota.cycleEndsAt,
                 trialTokens: quotaDoc?.trialTokens ?? 0,
