@@ -3,7 +3,7 @@ import { protect, requireOwner } from '../middleware/auth.js'
 import User from '../models/User.js'
 
 import { generateDailyReport } from '../services/autoReportService.js'
-import { OwnerSettings } from '../models/OwnerSettings.js'
+import { OwnerSettings, getMediaUploadLimitMb, setMediaUploadLimitMb } from '../models/OwnerSettings.js'
 
 const router = express.Router()
 
@@ -70,6 +70,25 @@ router.post('/auto-report/generate', protect, requireOwner, async (req, res) => 
     res.json({ success: true, report })
   } catch (e) {
     res.status(500).json({ success: false, error: e.message })
+  }
+})
+
+// [OMEGA-VIDEO] лимит веса медиа-загрузки (МБ) из кабинета владельца; hot-reload ≤60с, без деплоя
+router.get('/media-limit', protect, requireOwner, async (req, res) => {
+  try {
+    const maxMb = await getMediaUploadLimitMb()
+    res.json({ success: true, maxMb })
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message })
+  }
+})
+
+router.post('/media-limit', protect, requireOwner, async (req, res) => {
+  try {
+    const result = await setMediaUploadLimitMb(req.body?.maxMb)
+    res.json({ success: true, ...result })
+  } catch (e) {
+    res.status(400).json({ success: false, error: e.message })
   }
 })
 

@@ -48,6 +48,9 @@ const ownerSettingsSchema = new mongoose.Schema({
     // [REFERRAL-PCT] реферальная комиссия, % от платежа (0–50). Применяется к НОВЫМ начислениям,
     // уже начисленное не пересчитывается. Каноничное место — здесь, рядом с рубильниками.
     referralPercent: { type: Number, default: 12, min: 0, max: 50 },
+    // [OMEGA-VIDEO] лимит веса загружаемого медиа (МБ), задаётся владельцем из кабинета.
+    // Верхняя граница 250 — жёсткий потолок multer memoryStorage в routes/upload.js.
+    mediaUploadLimitMb: { type: Number, default: 250, min: 1, max: 250 },
     // [OMEGA-CONTROL] рубильники автономных контуров OMEGA (owner-бот /omega, TG).
     // Дефолт true = текущее поведение прода не меняется; выключение — только с превью ✅ владельца.
     omegaControl: {
@@ -170,6 +173,49 @@ export async function setReferralPercent(pct) {
     await doc.save()
     invalidateOwnerFlagsCache()
     return { referralPercent: doc.referralPercent }
+}
+
+// [OMEGA-VIDEO] лимит веса медиа-загрузки (МБ): кэш ≤60 сек, смена в кабинете применяется без деплоя.
+const MEDIA_LIMIT_TTL_MS = 60 * 1000
+let mediaLimitCache = { value: null, at: 0 }
+
+export function invalidateMediaUploadLimitCache() {
+    mediaLimitCache = { value: null, at: 0 }
+}
+
+export async function getMediaUploadLimitMb() {
+    if (mediaLimitCache.at && Date.now() - mediaLimitCache.at < MEDIA_LIMIT_TTL_MS) {
+        return mediaLimitCache.value
+    }
+    let value = 250
+    try {
+        if (mongoose.connection?.readyState === 1) {
+            const doc = await OwnerSettings.findOne().sort({ updatedAt: -1 }).lean()
+            const raw = Number(doc?.mediaUploadLimitMb)
+            if (Number.isFinite(raw) && raw >= 1) value = Math.min(250, Math.round(raw))
+        }
+    } catch (e) {
+        console.warn('[OwnerSettings] getMediaUploadLimitMb db read failed:', e.message)
+    }
+    mediaLimitCache = { value, at: Date.now() }
+    return value
+}
+
+export async function setMediaUploadLimitMb(mb) {
+    const value = Number(mb)
+    if (!Number.isFinite(value) || value < 1 || value > 250) {
+        throw new Error('mediaUploadLimitMb must be a number 1–250')
+    }
+    let doc = await OwnerSettings.findOne().sort({ updatedAt: -1 })
+    if (!doc) {
+        const ownerUser = await mongoose.model('User').findOne({ role: 'owner' }).select('_id').lean()
+        if (!ownerUser) throw new Error('OwnerSettings document not found')
+        doc = new OwnerSettings({ ownerId: ownerUser._id })
+    }
+    doc.mediaUploadLimitMb = Math.round(value)
+    await doc.save()
+    invalidateMediaUploadLimitCache()
+    return { mediaUploadLimitMb: doc.mediaUploadLimitMb }
 }
 
 // [OMEGA-CONTROL] рубильники контуров автономии. Чтение без кэша (кроны 5–60 мин — свежести достаточно),

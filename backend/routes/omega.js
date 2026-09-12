@@ -47,6 +47,7 @@ import {
 } from '../ai/omega/omegaCoder.js'
 import selfLearningEngine from '../ai/omega/selfLearningEngine.js'
 import { chatWithAI, extractText, getProviderKey } from '../services/aiService.js'
+import { consumeGeneration } from '../services/usageQuotaService.js'
 import { OmegaMemory } from '../models/index.js'
 import { generateProject, exportProject } from '../ai/omega/projectFactory.js'
 import {
@@ -342,6 +343,81 @@ router.post('/analyze-video', protect, async (req, res) => {
         res.json({ success: true, analysis })
     } catch (e) {
         console.error('[Omega] Analyze video error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
+
+// [OMEGA-VIDEO] разбор загруженного в чат видео: кадры (client-side canvas) → vision → синтез
+// (таймкоды / хук / удержание). Списание = 1✦ через consumeGeneration (та же квота, что у чата).
+// Файл авто-удаляется после успешного разбора. Нет vision-ключа — честная 400, НЕ мок.
+router.post('/analyze-video-upload', protect, async (req, res) => {
+    try {
+        const { videoUrl, frames, meta = {}, lang = 'ru' } = req.body || {}
+        const userId = (req.user?._id || req.user?.id || '').toString()
+        if (!videoUrl || typeof videoUrl !== 'string') {
+            return res.status(400).json({ success: false, error: 'videoUrl is required' })
+        }
+        // Только свой файл из /uploads/<userId>/ — чужие/внешние URL запрещены
+        const safePrefix = `/uploads/${userId}/`
+        if (!videoUrl.startsWith(safePrefix) || videoUrl.includes('..')) {
+            return res.status(403).json({ success: false, error: 'forbidden_url' })
+        }
+
+        const quota = await consumeGeneration(userId, req.user?.role)
+        if (!quota.allowed) {
+            return res.status(402).json({
+                success: false,
+                code: quota.code || 'QUOTA_EXCEEDED',
+                message: quota.message,
+                upgradeUrl: quota.upgradeUrl,
+                trialTokens: quota.trialTokens ?? 0,
+            })
+        }
+
+        const frameList = Array.isArray(frames) ? frames.filter(f => typeof f === 'string' && f.startsWith('data:image/')).slice(0, 6) : []
+        const frameDescriptions = []
+        let visionAvailable = false
+        for (let i = 0; i < frameList.length; i++) {
+            try {
+                const v = await analyzeImage(frameList[i])
+                if (v?.text && !v.text.startsWith('Изображение недоступно')) visionAvailable = true
+                const at = meta.durationSec ? Math.round((meta.durationSec * i) / Math.max(1, frameList.length - 1 || 1)) : null
+                frameDescriptions.push(`Кадр ${i + 1}${at !== null ? ` (≈${at}с)` : ''}: ${v?.text || 'без описания'}`)
+            } catch (err) {
+                console.warn('[analyze-video-upload] frame vision failed:', err.message)
+            }
+        }
+
+        const metaLine = [
+            meta.name ? `Файл: ${meta.name}` : null,
+            meta.durationSec ? `Длительность: ${Math.round(meta.durationSec)}с` : null,
+            meta.width && meta.height ? `Кадр: ${meta.width}x${meta.height}` : null,
+            meta.sizeMb ? `Вес: ${meta.sizeMb} МБ` : null,
+        ].filter(Boolean).join(', ')
+
+        const analysis = extractText(await chatWithAI(
+            `Ты — эксперт по виральному видео. Дан разбор загруженного ролика.\n${metaLine}\n` +
+            (frameDescriptions.length ? `Описания кадров:\n${frameDescriptions.join('\n')}\n` : 'Кадры недоступны — работай только по метаданным, честно отметь это.\n') +
+            `Дай структурированный разбор на языке "${lang}":\n` +
+            `1) Таймкоды: ключевые моменты по секундам (опирайся на кадры).\n` +
+            `2) Хук (первые 3 секунды): оценка 0–100 и как усилить.\n` +
+            `3) Удержание: где зритель likely свайпнет и что переснять.\n` +
+            `4) 3 конкретные рекомендации.\nБез воды, по делу.`,
+            [], lang,
+            { role: req.user?.role || 'guest', userId }
+        ))
+
+        // [OMEGA-VIDEO З5] авто-удаление файла после успешного разбора
+        const { unlink } = await import('fs/promises')
+        const { join, normalize } = await import('path')
+        const relPath = normalize(videoUrl.replace(/^\/+/, ''))
+        if (relPath.startsWith(`uploads${userId ? '/' + userId : ''}`)) {
+            await unlink(join(process.cwd(), relPath)).catch(e => console.warn('[analyze-video-upload] unlink:', e.message))
+        }
+
+        res.json({ success: true, analysis, framesUsed: frameDescriptions.length, visionAvailable, quota: { trialTokens: quota.trialTokens, remaining: quota.remaining } })
+    } catch (e) {
+        console.error('[Omega] analyze-video-upload error:', e)
         res.status(500).json({ success: false, error: e.message })
     }
 })

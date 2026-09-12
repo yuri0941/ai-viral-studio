@@ -2,6 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import { optimizeUpload } from '../services/imageOptimizer.js'
 import { protect } from '../middleware/auth.js'
+import { getMediaUploadLimitMb } from '../models/OwnerSettings.js'
 import { mkdir, writeFile } from 'fs/promises'
 import { extname } from 'path'
 import crypto from 'crypto'
@@ -44,6 +45,18 @@ async function handleMediaUpload(req, res) {
     const mime = (req.file.mimetype || '').toLowerCase()
     const originalExt = extname(req.file.originalname || '').toLowerCase().slice(1)
     const userId = req.user?._id || req.user?.id || 'unknown'
+
+    // [OMEGA-VIDEO] лимит веса — из кабинета владельца (OwnerSettings.mediaUploadLimitMb, hot-reload ≤60с)
+    const limitMb = await getMediaUploadLimitMb()
+    const fileMb = req.file.buffer.length / (1024 * 1024)
+    if (fileMb > limitMb) {
+        return res.status(413).json({
+            success: false,
+            error: 'file_too_large',
+            limitMb,
+            fileMb: Math.round(fileMb * 10) / 10,
+        })
+    }
 
     // [v9.9.19.15.14] HEIC / HEIF iPhone photos → JPEG
     if (HEIC_MIMES.has(mime) || isHeicBuffer(req.file.buffer)) {
@@ -104,6 +117,12 @@ router.post('/image', protect, uploadImage.single('image'), async (req, res) => 
 // [v9.9.19.15.14] universal media upload: images (incl. HEIC) + video, up to 250 MB
 router.post('/media', protect, uploadMedia.single('media'), async (req, res) => {
   return handleMediaUpload(req, res)
+})
+
+// [OMEGA-VIDEO] актуальный лимит веса для клиента (чип «лимит N МБ» до загрузки)
+router.get('/limits', protect, async (req, res) => {
+  const maxMb = await getMediaUploadLimitMb()
+  res.json({ success: true, maxMb })
 })
 
 export default router
