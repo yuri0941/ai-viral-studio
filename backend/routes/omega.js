@@ -627,6 +627,100 @@ router.post('/cover-variants', protect, async (req, res) => {
         res.status(500).json({ success: false, error: e.message })
     }
 })
+
+// [OMEGA-VIDEO ДОП-2 З6] «Топ ниши X в соцсети Y»: РЕАЛЬНЫЕ данные через подключённые API.
+// YouTube — YouTube Data API v3 (ключ из кабинета владельца). Остальные площадки — по мере
+// подключения ключей: без ключа честное available:false + requiredKey (владельцу — карточка в
+// ApiKeysTab, клиенту — «скоро»). Выдуманные цифры = провал qa-omega-honesty. «Что забрать»
+// выводится детерминированно из реальных метрик (без LLM-фантазий). ✦ не списывается (дата-вью).
+const NICHE_PLATFORM_KEYS = {
+    youtube: { requiredKey: 'youtube', consoleLink: 'https://console.cloud.google.com/apis/library/youtube.googleapis.com' },
+    tiktok: { requiredKey: 'tiktok', consoleLink: 'https://developers.tiktok.com/' },
+    instagram: { requiredKey: 'instagram', consoleLink: 'https://developers.facebook.com/' },
+    vk: { requiredKey: 'vk', consoleLink: 'https://dev.vk.com/' },
+    telegram: { requiredKey: 'telegram', consoleLink: 'https://core.telegram.org/bots/api' },
+}
+
+router.get('/niche-competitors', protect, async (req, res) => {
+    try {
+        const niche = String(req.query.niche || '').trim()
+        const platform = String(req.query.platform || 'youtube').toLowerCase()
+        const userId = (req.user?._id || req.user?.id || '').toString()
+        if (!niche) return res.status(400).json({ success: false, error: 'niche_required' })
+
+        const keyInfo = NICHE_PLATFORM_KEYS[platform]
+        if (platform !== 'youtube') {
+            return res.json({
+                success: true,
+                available: false,
+                reason: 'key_not_connected',
+                requiredKey: keyInfo?.requiredKey || platform,
+                consoleLink: keyInfo?.consoleLink || null,
+            })
+        }
+
+        const yt = await import('../services/youtubeDataService.js')
+        const search = await yt.searchYoutubeVideos(niche, { maxResults: 8, ownerId: userId })
+        if (!search.available) {
+            const noKey = search.error?.code === 'no_api_key'
+            return res.json({
+                success: true,
+                available: false,
+                reason: noKey ? 'key_not_connected' : 'api_error',
+                requiredKey: noKey ? 'youtube' : null,
+                consoleLink: noKey ? NICHE_PLATFORM_KEYS.youtube.consoleLink : null,
+                message: search.error?.message,
+            })
+        }
+
+        const rows = []
+        const channelCache = new Map()
+        for (const v of (search.videos || []).slice(0, 5)) {
+            const stats = await yt.fetchVideoStats(v.videoId, { ownerId: userId })
+            if (!stats.available) continue
+            let channel = channelCache.get(stats.channelId)
+            if (channel === undefined) {
+                channel = await yt.fetchChannelStats(stats.channelId, { ownerId: userId })
+                channelCache.set(stats.channelId, channel)
+            }
+            const rating = yt.computeVideoRating(stats, channel)
+            const ageDays = stats.publishedAt ? Math.max(1, Math.round((Date.now() - new Date(stats.publishedAt).getTime()) / 86400000)) : null
+            const engagementPct = stats.views > 0 ? (((stats.likes || 0) + (stats.comments || 0)) / stats.views) * 100 : 0
+            // «Что забрать» — детерминированно из фактических метрик
+            const takeaways = []
+            if (stats.durationSeconds) {
+                takeaways.push(stats.durationSeconds <= 60 ? `Короткий формат (${stats.durationSeconds}с)` : `Длинный формат (${Math.round(stats.durationSeconds / 60)} мин)`)
+            }
+            if (ageDays) takeaways.push(`${Math.round(stats.views / ageDays)} просмотров/день за ${ageDays} дн.`)
+            takeaways.push(`Вовлечённость ${engagementPct.toFixed(1)}%${engagementPct >= 4 ? ' — выше эталона 4%' : ''}`)
+            if (channel?.available && channel.subscribers && stats.views > channel.subscribers) {
+                takeaways.push(`Просмотры ×${(stats.views / channel.subscribers).toFixed(1)} от подписчиков — зашло за пределы аудитории`)
+            }
+            rows.push({
+                videoId: stats.videoId,
+                videoTitle: stats.title,
+                videoUrl: `https://www.youtube.com/watch?v=${stats.videoId}`,
+                channelTitle: stats.channelTitle,
+                subscribers: channel?.available ? channel.subscribers : null,
+                views: stats.views,
+                likes: stats.likes,
+                comments: stats.comments,
+                publishedAt: stats.publishedAt,
+                durationSeconds: stats.durationSeconds,
+                rating: rating?.score ?? null,
+                takeaway: takeaways.join(' · '),
+            })
+        }
+        if (!rows.length) {
+            return res.json({ success: true, available: false, reason: 'no_stats', message: 'Не удалось получить статистику видео ниши' })
+        }
+        rows.sort((a, b) => b.views - a.views)
+        res.json({ success: true, available: true, platform, niche, rows })
+    } catch (e) {
+        console.error('[Omega] niche-competitors error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
 router.get('/youtube/analyze', analyzeYouTube)
 router.post('/youtube/shorts', generateShorts)
 router.post('/youtube/subtitles', generateSubtitles)

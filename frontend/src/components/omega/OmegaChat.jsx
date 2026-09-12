@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
-import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp, Film, RotateCcw, Clapperboard, CalendarPlus } from "lucide-react";
+import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp, Film, RotateCcw, Clapperboard, CalendarPlus, TrendingUp } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import { MarkdownText } from "./MarkdownText.jsx";
 import { YouTubeAnalysisCard } from "./YouTubeAnalysisCard.jsx";
@@ -990,6 +990,67 @@ export default function OmegaChat({
     }
   };
 
+  // [OMEGA-VIDEO ДОП-2 З6] «Топ ниши X в соцсети Y» — реальные цифры через подключённые API.
+  // Нет ключа → честное «скоро» клиенту; владельцу — подсказка про ApiKeysTab + ссылка на консоль.
+  const [compModalOpen, setCompModalOpen] = useState(false);
+  const [compForm, setCompForm] = useState({ niche: '', platform: 'youtube' });
+  const [compBusy, setCompBusy] = useState(false);
+  const compModalRef = useModalA11y(useCallback(() => setCompModalOpen(false), []), compModalOpen);
+  const isOwnerRole = user?.role === 'owner' || user?.role === 'admin';
+
+  const submitNicheCompetitors = async () => {
+    const niche = compForm.niche.trim();
+    if (!niche) { toast.error(t('chat.compNicheRequired'), { duration: 4000, icon: '🔍' }); return; }
+    setCompBusy(true);
+    playSound('message-sent');
+    try {
+      const res = await request(`/omega/niche-competitors?niche=${encodeURIComponent(niche)}&platform=${encodeURIComponent(compForm.platform)}`, { noRetry: true });
+      if (res && res.success === false) throw new Error(res.error || res.message || 'error');
+      if (!res?.available) {
+        // Честный отказ: клиенту «скоро», владельцу — что подключить и где (НЕ мок-цифры)
+        const text = res.reason === 'key_not_connected'
+          ? (isOwnerRole
+            ? t('chat.compNeedKeyOwner', { key: res.requiredKey || compForm.platform })
+            : t('chat.compNeedKeyClient'))
+          : (res.message || t('chat.compUnavailable'));
+        pushChatMessages([
+          { role: 'user', text: t('chat.compUserMsg', { niche, platform: compForm.platform }), timestamp: Date.now(), id: `u-${Date.now()}` },
+          { role: 'omega', text, isError: false, timestamp: Date.now(), id: `a-${Date.now()}` },
+        ]);
+        setCompModalOpen(false);
+        return;
+      }
+      pushChatMessages([
+        { role: 'user', text: t('chat.compUserMsg', { niche, platform: compForm.platform }), timestamp: Date.now(), id: `u-${Date.now()}` },
+        {
+          role: 'omega',
+          text: t('chat.compResultTitle', { niche, platform: compForm.platform }),
+          action: { type: 'competitors', rows: res.rows, niche, platform: compForm.platform },
+          timestamp: Date.now(),
+          id: `a-${Date.now()}`,
+        },
+      ]);
+      playSound('notification');
+      setCompModalOpen(false);
+    } catch (err) {
+      pushChatMessages([{ role: 'omega', text: err?.message || t('chat.serverUnavailable'), isError: true, timestamp: Date.now(), id: `err-${Date.now()}` }]);
+      playSound('error');
+    } finally {
+      setCompBusy(false);
+    }
+  };
+
+  // «Сценарий по этому паттерну»: префилл модалки сценария из строки конкурента (З4 × З6)
+  const scriptFromCompetitor = (row, niche, platform) => {
+    setScriptForm({
+      idea: t('chat.compPatternIdea', { title: row.videoTitle, takeaway: row.takeaway || '' }),
+      platform: platform === 'youtube' ? 'youtube' : platform,
+      viewsRange: row.views >= 1000000 ? '1 млн+' : row.views >= 100000 ? '100 тыс.–1 млн' : row.views >= 10000 ? '10–100 тыс.' : '1–10 тыс.',
+      niche: niche || '',
+    });
+    setScriptModalOpen(true);
+  };
+
   const hasDraggedFiles = (e) => Array.from(e.dataTransfer?.types || []).includes('Files');
 
   const handleDragEnter = (e) => {
@@ -1229,6 +1290,37 @@ export default function OmegaChat({
                     )}
                   </div>
                 )}
+                {msg.action?.type === 'competitors' && Array.isArray(msg.action.rows) && (
+                  <div className="w-full max-w-[95%] mx-auto mb-3 space-y-2" data-testid="competitors-table">
+                    {msg.action.rows.map((row) => (
+                      <div key={row.videoId} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <a href={row.videoUrl} target="_blank" rel="noreferrer" className="text-xs text-white hover:text-violet-300 font-medium line-clamp-2">{row.videoTitle}</a>
+                            <p className="text-[11px] text-gray-400 mt-0.5 truncate">{row.channelTitle}{row.subscribers != null ? ` · ${row.subscribers?.toLocaleString('ru-RU')} subs` : ''}</p>
+                          </div>
+                          {row.rating != null && (
+                            <span className="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25">{row.rating}/100</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-300 mt-1.5">
+                          <span className="text-violet-300">{row.views?.toLocaleString('ru-RU')}</span> {t('chat.scriptViews')}
+                          {row.likes != null && <> · {row.likes?.toLocaleString('ru-RU')} 👍</>}
+                          {row.comments != null && <> · {row.comments?.toLocaleString('ru-RU')} 💬</>}
+                        </p>
+                        {row.takeaway && <p className="text-[11px] text-emerald-300/90 mt-1">→ {row.takeaway}</p>}
+                        <button
+                          type="button"
+                          onClick={() => scriptFromCompetitor(row, msg.action.niche, msg.action.platform)}
+                          data-testid="comp-pattern-script"
+                          className="mt-2 px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-200 hover:bg-violet-500/20 hover:text-violet-200 transition-all flex items-center gap-1.5"
+                        >
+                          <Clapperboard size={12} /> {t('chat.compPatternBtn')}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <ReasoningSteps reasoning={msg.reasoning} t={t} />
                 <div className="flex flex-wrap items-center gap-2 mt-2 max-w-[95%] mx-auto">
                   <button
@@ -1456,6 +1548,15 @@ export default function OmegaChat({
           >
             <Clapperboard className="w-5 h-5" />
           </button>
+          <button
+            type="button"
+            onClick={() => setCompModalOpen(true)}
+            data-testid="niche-competitors-btn"
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.12] transition"
+            title={t('chat.compModalTitle')}
+          >
+            <TrendingUp className="w-5 h-5" />
+          </button>
           <input
             ref={fileInputRef}
             type="file"
@@ -1638,6 +1739,48 @@ export default function OmegaChat({
               >
                 {scriptBusy ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Clapperboard size={16} />}
                 {t('chat.scriptGenerateBtn', { cost: actionPricing.scriptGenerationCost })}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {compModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div ref={compModalRef} role="dialog" aria-modal="true" data-testid="comp-modal" className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">{t('chat.compModalTitle')}</h3>
+              <button onClick={() => setCompModalOpen(false)} aria-label={t('common.cancel', 'Отмена')} className="text-gray-400 hover:text-white min-w-[32px] min-h-[32px] flex items-center justify-center"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptNicheLabel')}</label>
+                <input
+                  value={compForm.niche}
+                  onChange={(e) => setCompForm(f => ({ ...f, niche: e.target.value }))}
+                  placeholder={t('chat.scriptNichePlaceholder')}
+                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptPlatformLabel')}</label>
+                <select value={compForm.platform} onChange={(e) => setCompForm(f => ({ ...f, platform: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none">
+                  <option value="youtube">YouTube</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="instagram">Instagram Reels</option>
+                  <option value="vk">VK Клипы</option>
+                  <option value="telegram">Telegram</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={submitNicheCompetitors}
+                disabled={compBusy || !compForm.niche.trim()}
+                data-testid="comp-submit-btn"
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-medium shadow-lg shadow-violet-500/20 active:scale-95 transition-transform disabled:opacity-40 disabled:scale-100"
+              >
+                {compBusy ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <TrendingUp size={16} />}
+                {t('chat.compSubmitBtn')}
               </button>
             </div>
           </div>

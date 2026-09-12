@@ -958,6 +958,10 @@
       "smtp_user": "Mail provider → SMTP login",
       "smtp_pass": "Mail provider → app password"
     },
+    "requiredFor": {
+      "link": "Get the key →",
+      "youtube": "Required for: niche competitor scouting and top-video numbers in scripts (OMEGA video)."
+    },
     "botHotReloadHint": "After saving, the bot reconnects automatically (webhook is updated without a deploy). The env token stays as a fallback."
   },
   "externalApiKeys": {
@@ -1556,6 +1560,16 @@
   "chat.coverDownloadBtn": "Download",
   "chat.coverApplied": "Cover applied to the Planner draft",
   "chat.coverPreviewTitle": "Cover {{w}}×{{h}} — preview before applying",
+  "chat.compModalTitle": "Niche top — competitors",
+  "chat.compSubmitBtn": "Show niche top",
+  "chat.compNicheRequired": "Specify the niche",
+  "chat.compUserMsg": "🔍 Niche top «{{niche}}» on {{platform}}",
+  "chat.compResultTitle": "Niche top «{{niche}}» ({{platform}}) — real numbers:",
+  "chat.compNeedKeyOwner": "No API key connected for this platform ({{key}}). Add it in the cabinet → API keys to enable niche scouting.",
+  "chat.compNeedKeyClient": "Scouting for this platform is coming soon — integration in progress. YouTube is available now.",
+  "chat.compUnavailable": "Could not fetch niche data — please try again later.",
+  "chat.compPatternBtn": "Script from this pattern",
+  "chat.compPatternIdea": "Script based on the pattern of «{{title}}»: {{takeaway}}",
   "chat.ratePrompt": "Rate this answer:",
   "chat.feedbackThanks": "Thanks for the feedback!",
   "hub.insights": "Insights",

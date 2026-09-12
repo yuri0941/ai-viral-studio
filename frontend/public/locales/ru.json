@@ -1046,6 +1046,10 @@
       "smtp_user": "Почтовый провайдер → логин SMTP",
       "smtp_pass": "Почтовый провайдер → пароль приложения"
     },
+    "requiredFor": {
+      "link": "Получить ключ →",
+      "youtube": "Требуется для: разведка конкурентов ниши и цифры топ-видео в сценариях (OMEGA-видео)."
+    },
     "botHotReloadHint": "После сохранения бот переподключится автоматически (webhook обновится без деплоя). Env-токен останется запасным."
   },
   "externalApiKeys": {
@@ -1585,6 +1589,16 @@
   "chat.coverDownloadBtn": "Скачать",
   "chat.coverApplied": "Обложка применена к драфту в Планировщике",
   "chat.coverPreviewTitle": "Обложка {{w}}×{{h}} — превью до применения",
+  "chat.compModalTitle": "Топ ниши — конкуренты",
+  "chat.compSubmitBtn": "Показать топ ниши",
+  "chat.compNicheRequired": "Укажите нишу",
+  "chat.compUserMsg": "🔍 Топ ниши «{{niche}}» в {{platform}}",
+  "chat.compResultTitle": "Топ ниши «{{niche}}» ({{platform}}) — реальные цифры:",
+  "chat.compNeedKeyOwner": "Для этой площадки не подключён ключ ({{key}}). Добавьте его в кабинете → API-ключи — тогда разведка ниши заработает.",
+  "chat.compNeedKeyClient": "Разведка этой площадки скоро появится — идёт подключение. Пока доступен YouTube.",
+  "chat.compUnavailable": "Не удалось получить данные ниши — попробуйте позже.",
+  "chat.compPatternBtn": "Сценарий по этому паттерну",
+  "chat.compPatternIdea": "Сценарий по паттерну видео «{{title}}»: {{takeaway}}",
   "chat.ratePrompt": "Оцените ответ:",
   "chat.feedbackThanks": "Спасибо за оценку!",
   "hub.insights": "Инсайты",

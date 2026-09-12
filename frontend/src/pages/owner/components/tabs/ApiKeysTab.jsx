@@ -23,7 +23,7 @@ const PROVIDERS = [
   { id: 'elevenlabs', name: 'ElevenLabs', desc: 'Голосовой AI / TTS', icon: Mic, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', group: 'ai_text' },
   { id: 'replicate', name: 'Replicate', desc: 'AI Video / Images', icon: Image, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', group: 'ai_image' },
   { id: 'serpapi', name: 'SerpAPI', desc: 'Поиск Google / Maps', icon: Search, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', group: 'ai_text' },
-  { id: 'youtube', name: 'YouTube Data API', desc: 'Аналитика YouTube', icon: Youtube, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', group: 'social' },
+  { id: 'youtube', name: 'YouTube Data API', desc: 'Аналитика YouTube', icon: Youtube, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', group: 'social', consoleLink: 'https://console.cloud.google.com/apis/library/youtube.googleapis.com' },
   { id: 'cloudflare', name: 'Cloudflare AI', desc: 'Workers AI', icon: Cloud, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'ai_image' },
   { id: 'fireworks', name: 'Fireworks AI', desc: 'Fast inference', icon: Flame, color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', group: 'ai_text' },
   { id: 'mistral', name: 'Mistral AI', desc: 'Европейские LLM', icon: Cpu, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20', group: 'ai_text' },
@@ -371,6 +371,13 @@ export default function ApiKeysTab() {
               <p className="text-xs text-[var(--text-muted)] mb-1 relative z-10">{p.desc}</p>
               {/* [OWNER-OMEGA] подпись «куда вставить» (i18n) */}
               <p className="text-[11px] text-[var(--text-muted)]/70 mb-1 relative z-10 break-words">{t(`apiKeys.where.${p.id}`, { defaultValue: '' })}</p>
+              {/* [OMEGA-VIDEO ДОП-2 З6] «Требуется ключ: X + ссылка» — какие фичи ждут этот ключ (когда не подключён) */}
+              {!status.active && t(`apiKeys.requiredFor.${p.id}`, { defaultValue: '' }) && (
+                <p className="text-[11px] text-amber-400/80 mb-1 relative z-10 break-words" data-testid={`required-for-${p.id}`}>
+                  ⚠ {t(`apiKeys.requiredFor.${p.id}`)}{' '}
+                  {p.consoleLink && <a href={p.consoleLink} target="_blank" rel="noreferrer" className="underline hover:text-amber-300">{t('apiKeys.requiredFor.link')}</a>}
+                </p>
+              )}
               {keyMasked[p.id] && (
                 <p className="text-xs text-[var(--text-muted)] mb-4 relative z-10 font-mono truncate" title={keyMasked[p.id]}>{keyMasked[p.id]}</p>
               )}
