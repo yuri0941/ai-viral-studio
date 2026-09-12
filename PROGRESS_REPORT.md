@@ -1,3 +1,4 @@
+
 ## 2026-09-12 — OMEGA-VIDEO ДОП З1: drag&drop + кнопка загрузки видео в чат (ветка fix/omega-video)
 - [КОНТЕКСТ] Ветки fix/omega-video и итогов REAL-DATA/OMEGA-VIDEO в репо не было (ни локально, ни на origin — факт по git). Решил сам: ветка fix/omega-video создана от свежего origin/main, зависимости (реестр цен действий REAL-DATA З5.3, разбор OMEGA-VIDEO З1/З5) реализованы минимально и честно в рамках этой задачи. Причина: противоречие ТЗ (ссылка на несуществующие итоги), безопасный вариант — не блокировать работу.
 - [П1+П2 DROP+КНОПКА] `OmegaChat.jsx`: drop видео (mp4/mov/webm, +расширение .mov для браузеров без mime) — паттерн 1:1 как у картинок (тот же оверлей dragenter/leave/drop, dragDepthRef). Скрепка: accept="image/*,video/mp4,video/quicktime,video/webm,.mov" (мобайл — галерея/файлы). Превью-чип: иконка Film, имя, вес МБ, ✕. Картинки — без изменений.
@@ -10,6 +11,18 @@
 - [НЕ ТРОНУТО] платежи/ЮKassa, PlanConfig/CreditPack, house-ads (баннер ≤34px на скринах на месте), `_redirects`, боты, ask-owner, гард-матрица (qaSecurityFlow зелёный), CHAT-PRO-REWORK/FIX (luxe-гейт зелёный), entitlement-снапшоты, существующий d&d картинок (расширен, не переписан).
 - [ЖДЁТ РЕШЕНИЯ ВЛАДЕЛЬЦА] Отдельная цена ✦ за разбор видео (сейчас = фактическое 1✦ сообщения): реестр цен действий (REAL-DATA З5.3) в репо отсутствует — цены сам не ставлю (approve-зона).
 - [GIT] ветка fix/omega-video. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/omega-video
+
+## 2026-09-12 — QA-FIX: qa-onboarding-tour флаки в CI (ветка fix/qa-onboarding-tour)
+- [ФАКТ ИЗ CI] run 54 (push fix/omega-video) qa-onboarding-tour красный 4 проверки (localStorage флаг null, серверный флаг, тур после reload, второе устройство), run 55 (PR, тот же код) зелёный → флаки. На main красным был с run 49.
+- [З1 РЕПРО] Чистое CI-подобное окружение локально (свежая БД ai_viral_studio_ci, env из workflow): НЕ воспроизвёлся (10/10 зелёных) — свежая БД не причина. Корень найден по исходнику driver.js 1.8.0 + доказан репродукцией.
+- [З2 КОРЕНЬ, доказан] driver.js 1.8.0: `destroy()` → `h(false)` вызывает `onDestroyed` ТОЛЬКО если выставлены `__activeElement/__activeStep`, а они ставятся в rAF-колбэке ПОСЛЕ 400ms entry-анимации. Скип в этом окне → onDestroyed молча теряется → markTourDone не бежит → нет флага ни в localStorage, ни на сервере; поповер при этом закрывается (cleanup идёт всегда) — ровно картина CI. На локали rAF быстрый (окно ~0.4с и Playwright ждёт stability), на нагруженном CI раннере rAF троттлится → окно растягивается → флаки. ДОКАЗАТЕЛЬСТВО: `.tmp-ui-polish/tour-race-proof.mjs` с rAF, заглушенным до 1 кадра/3с — скип сразу после появления поповера: поповер закрылся ✅, localStorage null ❌, серверный флаг false ❌ (ровно красные проверки CI). После фикса тот же сценарий — все флаги true.
+- [З3 ФИКС] `OnboardingTour.jsx` (сценарий/тексты тура НЕ тронуты): флаг ставится ДО destroy во всех путях закрытия — обработчик «Пропустить» (`markTourDone(); d.destroy()`) + `onDestroyStarted` (overlay/Esc/done идут через `h(true)`); `markTourDone` с guard «один раз за загрузку»; PATCH `/users/me/onboarding` с `keepalive:true` (навигация сразу после скипа не отменяет запрос). `onDestroyed` оставлен страховкой.
+- [РЕГРЕССИЯ В ГЕЙТЕ] В `scripts/qa-onboarding-tour.mjs` добавлена секция race: новый юзер, rAF заглушен (1 кадр/3с), скип сразу после поповера → поповер закрыт + LS-флаг + серверный флаг. Проверки НЕ ослаблены, ничего не скипнуто: 10 → 15 проверок.
+- [ПРОВЕРКА] тур e2e 15/15 ✅ (вкл. race), qa-launch 23/23 ✅ (на штатной БД; прогон против свежей CI-БД давал 10/23 — скрипты завязаны на сидированную локальную БД, это не регресс батча), билд 0 ✅, i18n не затронут, curl прода 200×4, 0 редиректов ✅.
+- [З5 ПРАВИЛО] AGENTS.md: батч не сдан, пока CI красный (локаль ≠ CI); факт про driver.js onDestroyed.
+- [НЕ ТРОНУТО] сценарий и тексты тура, платежи, PlanConfig, боты, _redirects, house-ads, CHAT-PRO, OMEGA-VIDEO доп, гард-матрица.
+- [GIT] ветка fix/qa-onboarding-tour. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/qa-onboarding-tour
+
 
 ## 2026-09-07 — CHAT-PRO: чат «Люкс-хаб» (вариант B — выбор владельца) (ветка feat/chat-pro)
 - [ШАГ 0] 3 варианта макета (A Фокус-чат / B Люкс-хаб / C Командный центр) отправлены в TG одним альбомом 9/9 скринов (sendMediaGroup, reports/chat-pro-variants/). Выбор владельца: «B Люкс-хаб» (ask-owner qid 4c57e59643ed, TG message_id 3034, ответ из TG).
