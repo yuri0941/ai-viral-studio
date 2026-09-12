@@ -172,6 +172,28 @@ router.post('/media-limit', protect, authorize('owner', 'admin'), async (req, re
     }
 })
 
+// [OMEGA-VIDEO ДОП-2] цены AI-действий (✦) + TTL хранения видео из кабинета владельца; hot-reload ≤60с.
+// ВАЖНО: объявлены ВЫШЕ generic router.post('/:entity') — иначе 'video-settings' улетает в createEntity.
+router.get('/video-settings', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { getVideoSettings } = await import('../models/OwnerSettings.js')
+        const settings = await getVideoSettings()
+        res.json({ success: true, ...settings })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.post('/video-settings', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { setVideoSettings } = await import('../models/OwnerSettings.js')
+        const settings = await setVideoSettings(req.body || {})
+        res.json({ success: true, ...settings })
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message })
+    }
+})
+
 // Generic CRUD for owner entities
 router.post('/:entity', protect, authorize('owner', 'admin'), createEntity)
 router.patch('/:entity/:id', protect, authorize('owner', 'admin'), updateEntity)

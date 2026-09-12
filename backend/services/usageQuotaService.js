@@ -67,10 +67,12 @@ export async function checkQuota(userId) {
     }
 }
 
-export async function consumeGeneration(userId, userRole = null, { isInfoQuery = false } = {}) {
+export async function consumeGeneration(userId, userRole = null, { isInfoQuery = false, cost = 1 } = {}) {
     if (isOwner({ role: userRole, _id: userId })) {
         return { allowed: true, remaining: Infinity, unlimited: true }
     }
+    // [OMEGA-VIDEO ДОП-2] стоимость действия в ✦ (разбор видео/обложка/сценарий) — цена из кабинета владельца
+    cost = Math.max(1, Math.round(Number(cost) || 1))
     const quota = await getOrCreateQuota(userId)
 
     // [v9.9.2-MASTER-FIX] Smart quota: info/help/navigation queries don't consume tokens
@@ -80,9 +82,9 @@ export async function consumeGeneration(userId, userRole = null, { isInfoQuery =
 
     // [v9.9.2-MASTER-FIX] Trial token system for free users
     if (quota.plan === 'free' || !quota.plan) {
-        if ((quota.trialTokens || 0) > 0) {
-            quota.trialTokens = (quota.trialTokens || 0) - 1
-            quota.trialUsed = (quota.trialUsed || 0) + 1
+        if ((quota.trialTokens || 0) >= cost) {
+            quota.trialTokens = (quota.trialTokens || 0) - cost
+            quota.trialUsed = (quota.trialUsed || 0) + cost
             await quota.save()
             return {
                 ...await checkQuota(userId),
@@ -99,14 +101,14 @@ export async function consumeGeneration(userId, userRole = null, { isInfoQuery =
             code: 'TRIAL_EXHAUSTED',
             message: '⚡️ Лимит генераций исчерпан. Перейдите на платный тариф.',
             upgradeUrl: '/pricing',
-            trialTokens: 0,
+            trialTokens: quota.trialTokens || 0,
         }
     }
 
     if (quota.generationsUsed < quota.generationsLimit) {
-        quota.generationsUsed += 1
+        quota.generationsUsed += cost
     } else {
-        quota.overageUsed += 1
+        quota.overageUsed += cost
     }
     await quota.save()
     // [CLIENT-JOURNEY-QA] checkQuota не содержит allowed — pro/agency получали 402 на КАЖДЫЙ запрос
@@ -132,27 +134,40 @@ export async function creditGenerations(userId, credits) {
 }
 
 // [PLANCONFIG-ADMIN] честное списание: при ошибке AI-генерации квота возвращается клиенту
-export async function refundGeneration(userId) {
+// [OMEGA-VIDEO ДОП-2] count — возврат фактической цены действия (разбор видео = N✦ из кабинета)
+export async function refundGeneration(userId, count = 1) {
     try {
+        count = Math.max(1, Math.round(Number(count) || 1))
         const quota = await UsageQuota.findOne({ userId })
         if (!quota) return { refunded: false }
         if (quota.plan === 'free' || !quota.plan) {
             if ((quota.trialUsed || 0) > 0) {
-                quota.trialTokens = (quota.trialTokens || 0) + 1
-                quota.trialUsed = Math.max(0, quota.trialUsed - 1)
+                const back = Math.min(count, quota.trialUsed)
+                quota.trialTokens = (quota.trialTokens || 0) + back
+                quota.trialUsed = Math.max(0, quota.trialUsed - back)
                 await quota.save()
-                return { refunded: true, via: 'trial' }
+                return { refunded: true, via: 'trial', count: back }
             }
         }
+        let remaining = count
+        let backTotal = 0
         if (quota.generationsUsed > 0) {
-            quota.generationsUsed -= 1
-        } else if ((quota.overageUsed || 0) > 0) {
-            quota.overageUsed -= 1
-        } else {
+            const back = Math.min(remaining, quota.generationsUsed)
+            quota.generationsUsed -= back
+            remaining -= back
+            backTotal += back
+        }
+        if (remaining > 0 && (quota.overageUsed || 0) > 0) {
+            const back = Math.min(remaining, quota.overageUsed)
+            quota.overageUsed -= back
+            remaining -= back
+            backTotal += back
+        }
+        if (backTotal === 0) {
             return { refunded: false }
         }
         await quota.save()
-        return { refunded: true, via: 'quota' }
+        return { refunded: true, via: 'quota', count: backTotal }
     } catch (err) {
         console.warn('[usageQuotaService] refundGeneration failed:', err.message)
         return { refunded: false, error: err.message }

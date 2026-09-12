@@ -51,6 +51,14 @@ const ownerSettingsSchema = new mongoose.Schema({
     // [OMEGA-VIDEO] лимит веса загружаемого медиа (МБ), задаётся владельцем из кабинета.
     // Верхняя граница 250 — жёсткий потолок multer memoryStorage в routes/upload.js.
     mediaUploadLimitMb: { type: Number, default: 250, min: 1, max: 250 },
+    // [OMEGA-VIDEO ДОП-2] цены AI-действий в ✦ и TTL хранения загруженного видео (часы).
+    // Задаются владельцем из кабинета (Подписки), hot-reload ≤60с, без деплоя. Реестр цен
+    // централизованно соберёт REAL-DATA — здесь поля плоские, паттерн mediaUploadLimitMb.
+    videoAnalysisCostCredits: { type: Number, default: 1, min: 1, max: 100 },
+    coverGenerationCostCredits: { type: Number, default: 1, min: 1, max: 100 },
+    scriptGenerationCostCredits: { type: Number, default: 2, min: 1, max: 100 },
+    // 0 = удалить файл сразу после разбора (дефолт); результат анализа (текст в чате) остаётся навсегда.
+    videoStorageTtlHours: { type: Number, default: 0, min: 0, max: 720 },
     // [OMEGA-CONTROL] рубильники автономных контуров OMEGA (owner-бот /omega, TG).
     // Дефолт true = текущее поведение прода не меняется; выключение — только с превью ✅ владельца.
     omegaControl: {
@@ -216,6 +224,82 @@ export async function setMediaUploadLimitMb(mb) {
     await doc.save()
     invalidateMediaUploadLimitCache()
     return { mediaUploadLimitMb: doc.mediaUploadLimitMb }
+}
+
+// [OMEGA-VIDEO ДОП-2] цены AI-действий (✦) + TTL хранения видео: кэш ≤60 сек, смена в кабинете
+// применяется без деплоя (паттерн mediaUploadLimitMb). Дефолты = поведение до допа (разбор 1✦, TTL 0).
+const VIDEO_SETTINGS_DEFAULTS = {
+    videoAnalysisCostCredits: 1,
+    coverGenerationCostCredits: 1,
+    scriptGenerationCostCredits: 2,
+    videoStorageTtlHours: 0,
+}
+const VIDEO_SETTINGS_TTL_MS = 60 * 1000
+let videoSettingsCache = { value: null, at: 0 }
+
+export function invalidateVideoSettingsCache() {
+    videoSettingsCache = { value: null, at: 0 }
+}
+
+function clampInt(raw, min, max, fallback) {
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return fallback
+    return Math.min(max, Math.max(min, Math.round(n)))
+}
+
+export async function getVideoSettings() {
+    if (videoSettingsCache.at && Date.now() - videoSettingsCache.at < VIDEO_SETTINGS_TTL_MS) {
+        return videoSettingsCache.value
+    }
+    let value = { ...VIDEO_SETTINGS_DEFAULTS }
+    try {
+        if (mongoose.connection?.readyState === 1) {
+            const doc = await OwnerSettings.findOne().sort({ updatedAt: -1 }).lean()
+            if (doc) {
+                value = {
+                    videoAnalysisCostCredits: clampInt(doc.videoAnalysisCostCredits, 1, 100, 1),
+                    coverGenerationCostCredits: clampInt(doc.coverGenerationCostCredits, 1, 100, 1),
+                    scriptGenerationCostCredits: clampInt(doc.scriptGenerationCostCredits, 1, 100, 2),
+                    videoStorageTtlHours: clampInt(doc.videoStorageTtlHours, 0, 720, 0),
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[OwnerSettings] getVideoSettings db read failed:', e.message)
+    }
+    videoSettingsCache = { value, at: Date.now() }
+    return value
+}
+
+export async function setVideoSettings(patch = {}) {
+    const next = {}
+    if (patch.videoAnalysisCostCredits !== undefined) {
+        next.videoAnalysisCostCredits = clampInt(patch.videoAnalysisCostCredits, 1, 100, NaN)
+        if (!Number.isFinite(next.videoAnalysisCostCredits)) throw new Error('videoAnalysisCostCredits must be a number 1–100')
+    }
+    if (patch.coverGenerationCostCredits !== undefined) {
+        next.coverGenerationCostCredits = clampInt(patch.coverGenerationCostCredits, 1, 100, NaN)
+        if (!Number.isFinite(next.coverGenerationCostCredits)) throw new Error('coverGenerationCostCredits must be a number 1–100')
+    }
+    if (patch.scriptGenerationCostCredits !== undefined) {
+        next.scriptGenerationCostCredits = clampInt(patch.scriptGenerationCostCredits, 1, 100, NaN)
+        if (!Number.isFinite(next.scriptGenerationCostCredits)) throw new Error('scriptGenerationCostCredits must be a number 1–100')
+    }
+    if (patch.videoStorageTtlHours !== undefined) {
+        next.videoStorageTtlHours = clampInt(patch.videoStorageTtlHours, 0, 720, NaN)
+        if (!Number.isFinite(next.videoStorageTtlHours)) throw new Error('videoStorageTtlHours must be a number 0–720')
+    }
+    if (!Object.keys(next).length) throw new Error('no video settings fields provided')
+    let doc = await OwnerSettings.findOne().sort({ updatedAt: -1 })
+    if (!doc) {
+        const ownerUser = await mongoose.model('User').findOne({ role: 'owner' }).select('_id').lean()
+        if (!ownerUser) throw new Error('OwnerSettings document not found')
+        doc = new OwnerSettings({ ownerId: ownerUser._id })
+    }
+    Object.assign(doc, next)
+    await doc.save()
+    invalidateVideoSettingsCache()
+    return getVideoSettings()
 }
 
 // [OMEGA-CONTROL] рубильники контуров автономии. Чтение без кэша (кроны 5–60 мин — свежести достаточно),

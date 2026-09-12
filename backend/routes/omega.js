@@ -348,8 +348,11 @@ router.post('/analyze-video', protect, async (req, res) => {
 })
 
 // [OMEGA-VIDEO] разбор загруженного в чат видео: кадры (client-side canvas) → vision → синтез
-// (таймкоды / хук / удержание). Списание = 1✦ через consumeGeneration (та же квота, что у чата).
-// Файл авто-удаляется после успешного разбора. Нет vision-ключа — честная 400, НЕ мок.
+// (таймкоды / хук / удержание). Списание = N✦ (OwnerSettings.videoAnalysisCostCredits, кабинет
+// владельца, hot-reload ≤60с) через consumeGeneration. TTL файла — OwnerSettings.videoStorageTtlHours:
+// 0 = удалить сразу после разбора (дефолт), >0 = крон mediaCleanup удалит по deleteAt.
+// Результат анализа (текст в чате) остаётся навсегда — удаляется только файл.
+// Нет vision-ключа — честная 400, НЕ мок.
 router.post('/analyze-video-upload', protect, async (req, res) => {
     try {
         const { videoUrl, frames, meta = {}, lang = 'ru' } = req.body || {}
@@ -363,7 +366,12 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
             return res.status(403).json({ success: false, error: 'forbidden_url' })
         }
 
-        const quota = await consumeGeneration(userId, req.user?.role)
+        // [OMEGA-VIDEO ДОП-2] цена разбора — из кабинета владельца (без деплоя)
+        const { getVideoSettings } = await import('../models/OwnerSettings.js')
+        const videoSettings = await getVideoSettings()
+        const cost = videoSettings.videoAnalysisCostCredits
+
+        const quota = await consumeGeneration(userId, req.user?.role, { cost })
         if (!quota.allowed) {
             return res.status(402).json({
                 success: false,
@@ -371,6 +379,7 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
                 message: quota.message,
                 upgradeUrl: quota.upgradeUrl,
                 trialTokens: quota.trialTokens ?? 0,
+                cost,
             })
         }
 
@@ -407,25 +416,44 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
             { role: req.user?.role || 'guest', userId }
         )
 
-        // [OMEGA-VIDEO] smart-fallback = мок-шаблон: анализом не считается. Честный отказ + возврат 1✦.
+        // [OMEGA-VIDEO] smart-fallback = мок-шаблон: анализом не считается. Честный отказ +
+        // возврат по ФАКТИЧЕСКОЙ цене (cost из кабинета, не хардкод 1✦).
         // 200 + success:false (не 503): ожидаемая деградация, не должна засорять console ошибками.
         const provider = aiResult?.provider || ''
         if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template')) {
             const { refundGeneration } = await import('../services/usageQuotaService.js')
-            await refundGeneration(userId).catch(() => {})
+            await refundGeneration(userId, cost).catch(() => {})
             return res.json({ success: false, error: 'ai_unavailable', message: 'AI-провайдеры недоступны — попробуйте позже. Генерация не списана.' })
         }
         const analysis = extractText(aiResult)
 
-        // [OMEGA-VIDEO З5] авто-удаление файла после успешного разбора
+        // [OMEGA-VIDEO ДОП-2] TTL хранения файла из кабинета владельца:
+        // 0 (дефолт) = удалить сразу после разбора; >0 = оставить до deleteAt, удалит крон mediaCleanup.
+        // Результат анализа (текст/таймкоды/план в чате) остаётся навсегда — удаляется только файл.
         const { unlink } = await import('fs/promises')
         const { join, normalize } = await import('path')
+        const { default: MediaFile } = await import('../models/MediaFile.js')
         const relPath = normalize(videoUrl.replace(/^\/+/, '')).replace(/\\/g, '/')
-        if (relPath.startsWith(`uploads/${userId}/`)) {
-            await unlink(join(process.cwd(), relPath)).catch(e => console.warn('[analyze-video-upload] unlink:', e.message))
+        const ttlHours = videoSettings.videoStorageTtlHours
+        if (ttlHours > 0) {
+            const deleteAt = new Date(Date.now() + ttlHours * 3600 * 1000)
+            await MediaFile.findOneAndUpdate(
+                { url: videoUrl },
+                { analyzedAt: new Date(), deleteAt },
+                { upsert: true }
+            ).catch(e => console.warn('[analyze-video-upload] MediaFile TTL set:', e.message))
+        } else {
+            if (relPath.startsWith(`uploads/${userId}/`)) {
+                await unlink(join(process.cwd(), relPath)).catch(e => console.warn('[analyze-video-upload] unlink:', e.message))
+            }
+            await MediaFile.findOneAndUpdate(
+                { url: videoUrl },
+                { analyzedAt: new Date(), status: 'deleted', deletedAt: new Date(), deleteAt: null },
+                { upsert: true }
+            ).catch(() => {})
         }
 
-        res.json({ success: true, analysis, framesUsed: frameDescriptions.length, visionAvailable, quota: { trialTokens: quota.trialTokens, remaining: quota.remaining } })
+        res.json({ success: true, analysis, framesUsed: frameDescriptions.length, visionAvailable, cost, storageTtlHours: ttlHours, quota: { trialTokens: quota.trialTokens, remaining: quota.remaining } })
     } catch (e) {
         console.error('[Omega] analyze-video-upload error:', e)
         res.status(500).json({ success: false, error: e.message })
