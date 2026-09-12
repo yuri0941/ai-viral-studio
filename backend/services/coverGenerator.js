@@ -78,7 +78,7 @@ function gradientSvg({ width, height, seed }) {
  * 3 варианта обложки: { buffer, width, height, seed, provider, textHeightRatio }.
  * topic — тема/ключевой кадр из анализа или сценария; coverText — 2–4 слова на плашке.
  */
-export async function generateCoverVariants({ topic, coverText, platform, count = 3 }) {
+export async function generateCoverVariants({ topic, coverText, platform, count = 3, forceFallback = false }) {
     const { width, height } = coverSizeForPlatform(platform)
     const basePrompt = `YouTube video thumbnail background, ${String(topic || 'viral video').slice(0, 300)}, cinematic, high contrast, vivid, no text, no words, no letters`
     const variants = []
@@ -86,11 +86,13 @@ export async function generateCoverVariants({ topic, coverText, platform, count 
         const seed = Math.floor(Math.random() * 1e6)
         let bgBuffer = null
         let provider = 'pollinations'
-        try {
-            const img = await generateImage(`${basePrompt}, style variation ${i + 1}`, { width, height, seed, nologo: true })
-            if (img?.url) bgBuffer = await fetchImageBuffer(img.url)
-        } catch (e) {
-            console.warn('[coverGenerator] AI background failed, local fallback:', e.message)
+        if (!forceFallback) {
+            try {
+                const img = await generateImage(`${basePrompt}, style variation ${i + 1}`, { width, height, seed, nologo: true })
+                if (img?.url) bgBuffer = await fetchImageBuffer(img.url)
+            } catch (e) {
+                console.warn('[coverGenerator] AI background failed, local fallback:', e.message)
+            }
         }
         if (!bgBuffer) {
             bgBuffer = gradientSvg({ width, height, seed })

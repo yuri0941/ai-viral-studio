@@ -427,31 +427,12 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
         }
         const analysis = extractText(aiResult)
 
-        // [OMEGA-VIDEO ДОП-2] TTL хранения файла из кабинета владельца:
+        // [OMEGA-VIDEO ДОП-2] TTL хранения файла из кабинета владельца (хелпер videoStorage):
         // 0 (дефолт) = удалить сразу после разбора; >0 = оставить до deleteAt, удалит крон mediaCleanup.
         // Результат анализа (текст/таймкоды/план в чате) остаётся навсегда — удаляется только файл.
-        const { unlink } = await import('fs/promises')
-        const { join, normalize } = await import('path')
-        const { default: MediaFile } = await import('../models/MediaFile.js')
-        const relPath = normalize(videoUrl.replace(/^\/+/, '')).replace(/\\/g, '/')
+        const { applyVideoStorageTtl } = await import('../services/videoStorage.js')
         const ttlHours = videoSettings.videoStorageTtlHours
-        if (ttlHours > 0) {
-            const deleteAt = new Date(Date.now() + ttlHours * 3600 * 1000)
-            await MediaFile.findOneAndUpdate(
-                { url: videoUrl },
-                { analyzedAt: new Date(), deleteAt },
-                { upsert: true }
-            ).catch(e => console.warn('[analyze-video-upload] MediaFile TTL set:', e.message))
-        } else {
-            if (relPath.startsWith(`uploads/${userId}/`)) {
-                await unlink(join(process.cwd(), relPath)).catch(e => console.warn('[analyze-video-upload] unlink:', e.message))
-            }
-            await MediaFile.findOneAndUpdate(
-                { url: videoUrl },
-                { analyzedAt: new Date(), status: 'deleted', deletedAt: new Date(), deleteAt: null },
-                { upsert: true }
-            ).catch(() => {})
-        }
+        await applyVideoStorageTtl({ videoUrl, userId, ttlHours })
 
         res.json({ success: true, analysis, framesUsed: frameDescriptions.length, visionAvailable, cost, storageTtlHours: ttlHours, quota: { trialTokens: quota.trialTokens, remaining: quota.remaining } })
     } catch (e) {
