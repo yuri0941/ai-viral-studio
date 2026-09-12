@@ -268,6 +268,8 @@ export default function OmegaChat({
   setInput: externalSetInput,
   quotaError: externalQuotaError,
   userRole: externalUserRole,
+  // [OMEGA-VIDEO ДОП-З1] внешний режим: добавка сообщений разбора видео в общую ленту (useOmegaChat)
+  injectMessages,
   embedded = false,
   // [CHAT-PRO З3] поиск по ленте: непустая строка фильтрует сообщения (presentational, история не трогается)
   searchQuery = '',
@@ -652,7 +654,13 @@ export default function OmegaChat({
 
   // [OMEGA-VIDEO ДОП-З1 П5] после загрузки файл сразу уходит в работу Омеге (таймкоды/хук/удержание)
   const runVideoAnalysis = async (video) => {
-    setInternalMessages(prev => [...prev, {
+    // внешний режим (CreativeHub/useOmegaChat) — сообщения через injectMessages, иначе лента их не покажет
+    const pushMsgs = (msgs) => {
+      const stamped = msgs.map(m => (isExternal ? { ...m, timestamp: new Date().toISOString() } : m));
+      if (isExternal) injectMessages?.(stamped);
+      else setInternalMessages(prev => [...prev, ...stamped]);
+    };
+    pushMsgs([{
       role: 'user',
       text: t('chat.videoUserMsg', { name: video.name, size: video.sizeMb }),
       timestamp: Date.now(),
@@ -671,7 +679,19 @@ export default function OmegaChat({
           lang: 'ru',
         }),
       });
-      setInternalMessages(prev => [...prev, {
+      // [OMEGA-VIDEO] 200 + success:false — ожидаемая деградация (ai_unavailable): честное сообщение, не мок
+      if (res && res.success === false) {
+        pushMsgs([{
+          role: 'omega',
+          text: res.message || t('chat.serverUnavailable'),
+          isError: true,
+          timestamp: Date.now(),
+          id: `err-${Date.now()}`,
+        }]);
+        playSound('error');
+        return;
+      }
+      pushMsgs([{
         role: 'omega',
         text: res?.analysis || '...',
         timestamp: Date.now(),
@@ -686,7 +706,7 @@ export default function OmegaChat({
       }
     } catch (err) {
       const isQuotaError = err?.status === 402;
-      setInternalMessages(prev => [...prev, {
+      pushMsgs([{
         role: 'omega',
         text: isQuotaError ? (err.message || t('chat.limitReached')) : t('chat.serverUnavailable'),
         isError: true,

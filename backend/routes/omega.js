@@ -395,7 +395,7 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
             meta.sizeMb ? `Вес: ${meta.sizeMb} МБ` : null,
         ].filter(Boolean).join(', ')
 
-        const analysis = extractText(await chatWithAI(
+        const aiResult = await chatWithAI(
             `Ты — эксперт по виральному видео. Дан разбор загруженного ролика.\n${metaLine}\n` +
             (frameDescriptions.length ? `Описания кадров:\n${frameDescriptions.join('\n')}\n` : 'Кадры недоступны — работай только по метаданным, честно отметь это.\n') +
             `Дай структурированный разбор на языке "${lang}":\n` +
@@ -405,13 +405,23 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
             `4) 3 конкретные рекомендации.\nБез воды, по делу.`,
             [], lang,
             { role: req.user?.role || 'guest', userId }
-        ))
+        )
+
+        // [OMEGA-VIDEO] smart-fallback = мок-шаблон: анализом не считается. Честный отказ + возврат 1✦.
+        // 200 + success:false (не 503): ожидаемая деградация, не должна засорять console ошибками.
+        const provider = aiResult?.provider || ''
+        if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template')) {
+            const { refundGeneration } = await import('../services/usageQuotaService.js')
+            await refundGeneration(userId).catch(() => {})
+            return res.json({ success: false, error: 'ai_unavailable', message: 'AI-провайдеры недоступны — попробуйте позже. Генерация не списана.' })
+        }
+        const analysis = extractText(aiResult)
 
         // [OMEGA-VIDEO З5] авто-удаление файла после успешного разбора
         const { unlink } = await import('fs/promises')
         const { join, normalize } = await import('path')
-        const relPath = normalize(videoUrl.replace(/^\/+/, ''))
-        if (relPath.startsWith(`uploads${userId ? '/' + userId : ''}`)) {
+        const relPath = normalize(videoUrl.replace(/^\/+/, '')).replace(/\\/g, '/')
+        if (relPath.startsWith(`uploads/${userId}/`)) {
             await unlink(join(process.cwd(), relPath)).catch(e => console.warn('[analyze-video-upload] unlink:', e.message))
         }
 

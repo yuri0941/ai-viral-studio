@@ -150,6 +150,28 @@ router.post('/staff', protect, authorize('owner'), async (req, res) => {
     }
 })
 
+// [OMEGA-VIDEO ДОП-З1] лимит веса медиа-загрузки (МБ) из кабинета владельца; hot-reload ≤60с, без деплоя.
+// ВАЖНО: объявлены ВЫШЕ generic router.post('/:entity') — иначе 'media-limit' улетает в createEntity.
+router.get('/media-limit', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { getMediaUploadLimitMb } = await import('../models/OwnerSettings.js')
+        const maxMb = await getMediaUploadLimitMb()
+        res.json({ success: true, maxMb })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.post('/media-limit', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { setMediaUploadLimitMb } = await import('../models/OwnerSettings.js')
+        const result = await setMediaUploadLimitMb(req.body?.maxMb)
+        res.json({ success: true, ...result })
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message })
+    }
+})
+
 // Generic CRUD for owner entities
 router.post('/:entity', protect, authorize('owner', 'admin'), createEntity)
 router.patch('/:entity/:id', protect, authorize('owner', 'admin'), updateEntity)
