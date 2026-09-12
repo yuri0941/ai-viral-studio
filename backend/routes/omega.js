@@ -459,6 +459,103 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
         res.status(500).json({ success: false, error: e.message })
     }
 })
+
+// [OMEGA-VIDEO ДОП-2 З4] сценарий из мысли: идея в любом формате (текст / расшифровка голоса через
+// /voice/stt / выжимка файла или ссылки) → Омега уточняет цель (платформа/диапазон просмотров/ниша)
+// БЕЗ списания → сценарий: хук, структура по таймкодам, текст озвучки, обложка, CTA → советы
+// «как попасть в диапазон» на РЕАЛЬНЫХ цифрах топ-видео ниши (YouTube Data API; нет ключа — честное
+// «недоступно», выдуманные числа = провал qa-omega-honesty). Цена ✦ (кабинет владельца) — до запуска.
+router.post('/script-from-idea', protect, async (req, res) => {
+    try {
+        const { idea, platform, niche, viewsRange, lang = 'ru' } = req.body || {}
+        const userId = (req.user?._id || req.user?.id || '').toString()
+        if (!idea || typeof idea !== 'string' || !idea.trim()) {
+            return res.status(400).json({ success: false, error: 'idea_required' })
+        }
+        const { getVideoSettings } = await import('../models/OwnerSettings.js')
+        const { scriptGenerationCostCredits: cost } = await getVideoSettings()
+
+        // Уточнение цели — до списания ✦
+        const missing = []
+        if (!platform) missing.push('platform')
+        if (!viewsRange) missing.push('viewsRange')
+        if (!niche) missing.push('niche')
+        if (missing.length) {
+            return res.json({ success: true, needClarification: true, missing, cost })
+        }
+
+        // Цифры топ-видео ниши — только реальные. Нет ключа/квоты → available:false + причина.
+        let nicheStats = { available: false, reason: null }
+        try {
+            const yt = await import('../services/youtubeDataService.js')
+            const search = await yt.searchYoutubeVideos(niche, { maxResults: 5, ownerId: userId })
+            if (search.available) {
+                const withStats = []
+                for (const v of (search.videos || []).slice(0, 3)) {
+                    const s = await yt.fetchVideoStats(v.videoId, { ownerId: userId })
+                    if (s.available) {
+                        withStats.push({ videoId: s.videoId, title: s.title, channelTitle: s.channelTitle, views: s.views, likes: s.likes, comments: s.comments })
+                    }
+                }
+                if (withStats.length) nicheStats = { available: true, videos: withStats }
+                else nicheStats = { available: false, reason: 'no_stats' }
+            } else {
+                nicheStats = { available: false, reason: search.error?.message || 'unavailable' }
+            }
+        } catch (e) {
+            console.warn('[script-from-idea] niche stats failed:', e.message)
+        }
+
+        const quota = await consumeGeneration(userId, req.user?.role, { cost })
+        if (!quota.allowed) {
+            return res.status(402).json({
+                success: false,
+                code: quota.code || 'QUOTA_EXCEEDED',
+                message: quota.message,
+                upgradeUrl: quota.upgradeUrl,
+                trialTokens: quota.trialTokens ?? 0,
+                cost,
+            })
+        }
+
+        const statsBlock = nicheStats.available
+            ? `Реальные цифры топ-видео ниши (YouTube Data API, сейчас):\n${nicheStats.videos.map(v => `- «${v.title}» (${v.channelTitle}): ${v.views} просмотров, ${v.likes ?? '—'} лайков, ${v.comments ?? '—'} комментариев`).join('\n')}\n`
+            : `Цифры топ-видео ниши недоступны (${nicheStats.reason || 'нет подключённого ключа YouTube Data API'}) — НЕ выдумывай числа, честно отметь это в ответе.\n`
+
+        const aiResult = await chatWithAI(
+            `Ты — сценарист виральных видео. Идея клиента (в свободной форме): "${idea.trim().slice(0, 2000)}"\n` +
+            `Платформа: ${platform}. Ниша: ${niche}. Желаемый диапазон просмотров: ${viewsRange}.\n${statsBlock}` +
+            `Собери сценарий на языке "${lang}" строго по структуре:\n` +
+            `1) ХУК (0–3с): точный текст + что в кадре.\n` +
+            `2) СТРУКТУРА ПО ТАЙМКОДАМ: секунды → действие/фраза.\n` +
+            `3) ТЕКСТ ОЗВУЧКИ: полный, как говорить.\n` +
+            `4) ОБЛОЖКА: 2–4 слова текста + описание фона/кадра.\n` +
+            `5) CTA: одна фраза.\n` +
+            `6) КАК ПОПАСТЬ В ДИАПАЗОН ${viewsRange}: конкретные шаги, опираясь на цифры топ-видео выше (если они есть) — не общие фразы.\n` +
+            `Без воды, по делу.`,
+            [], lang,
+            { role: req.user?.role || 'guest', userId }
+        )
+
+        const provider = aiResult?.provider || ''
+        if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template')) {
+            const { refundGeneration } = await import('../services/usageQuotaService.js')
+            await refundGeneration(userId, cost).catch(() => {})
+            return res.json({ success: false, error: 'ai_unavailable', message: 'AI-провайдеры недоступны — попробуйте позже. Генерация не списана.' })
+        }
+
+        res.json({
+            success: true,
+            script: extractText(aiResult),
+            nicheStats,
+            cost,
+            quota: { trialTokens: quota.trialTokens, remaining: quota.remaining },
+        })
+    } catch (e) {
+        console.error('[Omega] script-from-idea error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
 router.get('/youtube/analyze', analyzeYouTube)
 router.post('/youtube/shorts', generateShorts)
 router.post('/youtube/subtitles', generateSubtitles)

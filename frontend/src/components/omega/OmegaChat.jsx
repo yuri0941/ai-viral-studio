@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
-import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp, Film, RotateCcw } from "lucide-react";
+import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp, Film, RotateCcw, Clapperboard, CalendarPlus } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import { MarkdownText } from "./MarkdownText.jsx";
 import { YouTubeAnalysisCard } from "./YouTubeAnalysisCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import OnboardingTour from "../onboarding/OnboardingTour.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { useModalA11y } from "../../hooks/useModalA11y.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { omegaApi, voiceApi, request, planConfigApi } from "../../services/api.js";
 import { API_URL } from "../../config.js";
@@ -667,14 +668,16 @@ export default function OmegaChat({
     video.src = url;
   });
 
+  // внешний режим (CreativeHub/useOmegaChat) — сообщения через injectMessages, иначе лента их не покажет
+  const pushChatMessages = (msgs) => {
+    const stamped = msgs.map(m => (isExternal ? { ...m, timestamp: new Date().toISOString() } : m));
+    if (isExternal) injectMessages?.(stamped);
+    else setInternalMessages(prev => [...prev, ...stamped]);
+  };
+
   // [OMEGA-VIDEO ДОП-З1 П5] после загрузки файл сразу уходит в работу Омеге (таймкоды/хук/удержание)
   const runVideoAnalysis = async (video) => {
-    // внешний режим (CreativeHub/useOmegaChat) — сообщения через injectMessages, иначе лента их не покажет
-    const pushMsgs = (msgs) => {
-      const stamped = msgs.map(m => (isExternal ? { ...m, timestamp: new Date().toISOString() } : m));
-      if (isExternal) injectMessages?.(stamped);
-      else setInternalMessages(prev => [...prev, ...stamped]);
-    };
+    const pushMsgs = pushChatMessages;
     pushMsgs([{
       role: 'user',
       text: t('chat.videoUserMsg', { name: video.name, size: video.sizeMb }),
@@ -809,6 +812,98 @@ export default function OmegaChat({
       .then(({ frames, meta }) => { videoFramesRef.current = frames; videoMetaRef.current = meta; })
       .catch(() => {});
     startVideoUpload(file);
+  };
+
+  // [OMEGA-VIDEO ДОП-2 З4] «Сценарий из мысли»: идея любым форматом (текст/голос через диктофон
+  // инпута/ссылка) → уточнение цели (платформа/диапазон/ниша) → сценарий → драфт в Планировщик.
+  // Цена ✦ из кабинета владельца показана ДО запуска (actionPricing.scriptGenerationCost).
+  const [scriptModalOpen, setScriptModalOpen] = useState(false);
+  const [scriptForm, setScriptForm] = useState({ idea: '', platform: '', viewsRange: '', niche: '' });
+  const [scriptBusy, setScriptBusy] = useState(false);
+  const [plannerBusyId, setPlannerBusyId] = useState(null);
+  const scriptModalRef = useModalA11y(useCallback(() => setScriptModalOpen(false), []), scriptModalOpen);
+
+  const openScriptModal = () => {
+    refreshUploadLimits(); // живая цена из кабинета владельца
+    setScriptForm(prev => ({ ...prev, idea: prev.idea || input.trim() }));
+    setScriptModalOpen(true);
+  };
+
+  const submitScriptFromIdea = async () => {
+    const idea = scriptForm.idea.trim();
+    if (!idea) { toast.error(t('chat.scriptIdeaRequired'), { duration: 4000, icon: '🎬' }); return; }
+    setScriptBusy(true);
+    playSound('message-sent');
+    try {
+      const res = await request('/omega/script-from-idea', {
+        method: 'POST',
+        noRetry: true,
+        body: JSON.stringify({ idea, platform: scriptForm.platform, viewsRange: scriptForm.viewsRange, niche: scriptForm.niche.trim(), lang: 'ru' }),
+      });
+      if (res && res.success === false) {
+        const quotaError = res.code === 'TRIAL_EXHAUSTED' || res.code === 'QUOTA_EXCEEDED';
+        pushChatMessages([{ role: 'omega', text: res.message || t('chat.serverUnavailable'), isError: true, isQuotaError: quotaError, timestamp: Date.now(), id: `err-${Date.now()}` }]);
+        if (quotaError) openUpsell({}, res.message);
+        playSound('error');
+        return;
+      }
+      if (res?.needClarification) {
+        // Омега уточняет цель — подсвечиваем недостающие поля модалки, ✦ не списаны
+        toast(t('chat.scriptClarify', { cost: res.cost ?? actionPricing.scriptGenerationCost }), { duration: 5000, icon: '🎯' });
+        return;
+      }
+      pushChatMessages([
+        { role: 'user', text: t('chat.scriptUserMsg', { idea: idea.slice(0, 120) }), timestamp: Date.now(), id: `u-${Date.now()}` },
+        {
+          role: 'omega',
+          text: res?.script || '...',
+          action: { type: 'script', platform: scriptForm.platform, niche: scriptForm.niche.trim(), viewsRange: scriptForm.viewsRange, nicheStats: res?.nicheStats || null, cost: res?.cost },
+          timestamp: Date.now(),
+          id: `a-${Date.now()}`,
+        },
+      ]);
+      playSound('notification');
+      setScriptModalOpen(false);
+      setScriptForm({ idea: '', platform: '', viewsRange: '', niche: '' });
+      if (res?.quota?.trialTokens !== undefined) {
+        setQuota(prev => prev ? { ...prev, trialTokens: res.quota.trialTokens } : prev);
+      }
+    } catch (err) {
+      const isQuotaError = err?.status === 402;
+      pushChatMessages([{ role: 'omega', text: isQuotaError ? (err.message || t('chat.limitReached')) : t('chat.serverUnavailable'), isError: true, isQuotaError, timestamp: Date.now(), id: `err-${Date.now()}` }]);
+      if (isQuotaError) { toast.error(err.message || t('chat.limitReached'), { duration: 5000, icon: '⚡' }); openUpsell({}, err.message); }
+      playSound('error');
+    } finally {
+      setScriptBusy(false);
+    }
+  };
+
+  // [OMEGA-VIDEO ДОП-2 З4] драфт сценария в Планировщик в 1 клик (status:'draft', не публикуется)
+  const sendScriptToPlanner = async (msg) => {
+    if (plannerBusyId) return;
+    setPlannerBusyId(msg.id);
+    try {
+      const res = await request('/scheduler/posts', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: (msg.text || '').split('\n')[0].slice(0, 80) || t('chat.scriptPlannerTitle'),
+          content: msg.text,
+          platforms: msg.action?.platform ? [msg.action.platform] : [],
+          types: ['video'],
+          status: 'draft',
+          scheduledAt: new Date().toISOString(),
+        }),
+      });
+      if (res?.status === 'success') {
+        toast.success(t('chat.scriptPlannerOk'), { duration: 4000, icon: '📅' });
+      } else {
+        toast.error(res?.message || t('chat.serverUnavailable'), { duration: 4000 });
+      }
+    } catch (err) {
+      toast.error(err?.message || t('chat.serverUnavailable'), { duration: 4000 });
+    } finally {
+      setPlannerBusyId(null);
+    }
   };
 
   const hasDraggedFiles = (e) => Array.from(e.dataTransfer?.types || []).includes('Files');
@@ -958,6 +1053,32 @@ export default function OmegaChat({
                 {msg.action?.type === 'cover' && msg.action.success && msg.action.url && (
                   <div className="w-full max-w-[95%] mx-auto mb-3">
                     <img src={msg.action.url} alt="AI cover" className="w-full rounded-2xl border border-white/10" loading="lazy" />
+                  </div>
+                )}
+                {msg.action?.type === 'script' && (
+                  <div className="w-full max-w-[95%] mx-auto mb-3" data-testid="script-action">
+                    {msg.action.nicheStats?.available && Array.isArray(msg.action.nicheStats.videos) && (
+                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-2">
+                        <p className="text-[11px] text-gray-400 mb-1.5">{t('chat.scriptNicheTop')}</p>
+                        {msg.action.nicheStats.videos.map(v => (
+                          <p key={v.videoId} className="text-[11px] text-gray-300 truncate">
+                            {v.title} — <span className="text-violet-300">{v.views?.toLocaleString('ru-RU')}</span> {t('chat.scriptViews')}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {msg.action.nicheStats && !msg.action.nicheStats.available && (
+                      <p className="text-[11px] text-amber-400/80 mb-2">{t('chat.scriptNicheUnavailable')}</p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={plannerBusyId === msg.id}
+                      onClick={() => sendScriptToPlanner(msg)}
+                      data-testid="script-to-planner"
+                      className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-200 hover:bg-violet-500/20 hover:text-violet-200 hover:border-violet-500/30 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      <CalendarPlus size={14} /> {plannerBusyId === msg.id ? t('common.loading') : t('chat.scriptToPlanner')}
+                    </button>
                   </div>
                 )}
                 <ReasoningSteps reasoning={msg.reasoning} t={t} />
@@ -1178,6 +1299,15 @@ export default function OmegaChat({
           >
             <Paperclip className="w-5 h-5" />
           </button>
+          <button
+            type="button"
+            onClick={openScriptModal}
+            data-testid="script-from-idea-btn"
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.12] transition"
+            title={t('chat.scriptFromIdeaTitle', { cost: actionPricing.scriptGenerationCost })}
+          >
+            <Clapperboard className="w-5 h-5" />
+          </button>
           <input
             ref={fileInputRef}
             type="file"
@@ -1300,6 +1430,71 @@ export default function OmegaChat({
       </form>
 
       {quotaOpen && <QuotaDetailsModal quota={quota} user={user} onClose={() => setQuotaOpen(false)} />}
+
+      {scriptModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div ref={scriptModalRef} role="dialog" aria-modal="true" data-testid="script-modal" className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">{t('chat.scriptModalTitle')}</h3>
+              <button onClick={() => setScriptModalOpen(false)} aria-label={t('common.cancel', 'Отмена')} className="text-gray-400 hover:text-white min-w-[32px] min-h-[32px] flex items-center justify-center"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptIdeaLabel')}</label>
+                <textarea
+                  value={scriptForm.idea}
+                  onChange={(e) => setScriptForm(f => ({ ...f, idea: e.target.value }))}
+                  rows={4}
+                  placeholder={t('chat.scriptIdeaPlaceholder')}
+                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm outline-none resize-y"
+                />
+                <p className="text-[10px] text-gray-500 mt-1">{t('chat.scriptIdeaHint')}</p>
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptPlatformLabel')}</label>
+                <select value={scriptForm.platform} onChange={(e) => setScriptForm(f => ({ ...f, platform: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none">
+                  <option value="">{t('chat.scriptSelectPlaceholder')}</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="instagram">Instagram Reels</option>
+                  <option value="vk">VK Клипы</option>
+                  <option value="telegram">Telegram</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptViewsLabel')}</label>
+                <select value={scriptForm.viewsRange} onChange={(e) => setScriptForm(f => ({ ...f, viewsRange: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none">
+                  <option value="">{t('chat.scriptSelectPlaceholder')}</option>
+                  <option value="100–1000">100–1 000</option>
+                  <option value="1–10 тыс.">1–10 тыс.</option>
+                  <option value="10–100 тыс.">10–100 тыс.</option>
+                  <option value="100 тыс.–1 млн">100 тыс.–1 млн</option>
+                  <option value="1 млн+">1 млн+</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptNicheLabel')}</label>
+                <input
+                  value={scriptForm.niche}
+                  onChange={(e) => setScriptForm(f => ({ ...f, niche: e.target.value }))}
+                  placeholder={t('chat.scriptNichePlaceholder')}
+                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={submitScriptFromIdea}
+                disabled={scriptBusy || !scriptForm.idea.trim()}
+                data-testid="script-generate-btn"
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-medium shadow-lg shadow-violet-500/20 active:scale-95 transition-transform disabled:opacity-40 disabled:scale-100"
+              >
+                {scriptBusy ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Clapperboard size={16} />}
+                {t('chat.scriptGenerateBtn', { cost: actionPricing.scriptGenerationCost })}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showVoiceSettings && (
         <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
