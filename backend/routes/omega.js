@@ -556,6 +556,77 @@ router.post('/script-from-idea', protect, async (req, res) => {
         res.status(500).json({ success: false, error: e.message })
     }
 })
+
+// [OMEGA-VIDEO ДОП-2 З5] Обложки действующие: 3 варианта, размер фактом под платформу
+// (YouTube 1280×720, Shorts/TikTok/Reels 1080×1920, VK/TG 1280×720), текст 2–4 слова из
+// анализа/сценария — sharp-оверлеем (читаемый, не вылезает, тёмная плашка). Списание ✦ по полю
+// coverGenerationCostCredits из кабинета владельца; полный сбой → возврат. textHeightRatio —
+// факт для гейта читаемости (мелкая сетка ленты).
+router.post('/cover-variants', protect, async (req, res) => {
+    try {
+        const { topic, coverText, platform } = req.body || {}
+        const userId = (req.user?._id || req.user?.id || '').toString()
+        if (!topic || typeof topic !== 'string' || !topic.trim()) {
+            return res.status(400).json({ success: false, error: 'topic_required' })
+        }
+        const { getVideoSettings } = await import('../models/OwnerSettings.js')
+        const { coverGenerationCostCredits: cost } = await getVideoSettings()
+
+        const quota = await consumeGeneration(userId, req.user?.role, { cost })
+        if (!quota.allowed) {
+            return res.status(402).json({
+                success: false,
+                code: quota.code || 'QUOTA_EXCEEDED',
+                message: quota.message,
+                upgradeUrl: quota.upgradeUrl,
+                trialTokens: quota.trialTokens ?? 0,
+                cost,
+            })
+        }
+
+        const { generateCoverVariants } = await import('../services/coverGenerator.js')
+        let variants = []
+        try {
+            variants = await generateCoverVariants({ topic: topic.trim(), coverText: String(coverText || '').trim(), platform, count: 3 })
+        } catch (e) {
+            console.error('[cover-variants] generation failed:', e.message)
+        }
+        if (!variants.length) {
+            const { refundGeneration } = await import('../services/usageQuotaService.js')
+            await refundGeneration(userId, cost).catch(() => {})
+            return res.json({ success: false, error: 'ai_unavailable', message: 'Генерация обложек недоступна — попробуйте позже. Генерация не списана.' })
+        }
+
+        const { mkdir, writeFile } = await import('fs/promises')
+        const { randomBytes } = await import('crypto')
+        const { default: MediaFile } = await import('../models/MediaFile.js')
+        const dir = `uploads/${userId}`
+        await mkdir(dir, { recursive: true })
+        const out = []
+        for (const v of variants) {
+            const filename = `cover-${Date.now()}-${randomBytes(4).toString('hex')}.jpg`
+            await writeFile(`${dir}/${filename}`, v.buffer)
+            const url = `/uploads/${userId}/${filename}`
+            await MediaFile.findOneAndUpdate(
+                { url },
+                { $setOnInsert: { userId, url, sizeBytes: v.buffer.length, kind: 'image' } },
+                { upsert: true }
+            ).catch(() => {})
+            out.push({ url, width: v.width, height: v.height, seed: v.seed, provider: v.provider, textHeightRatio: v.textHeightRatio })
+        }
+
+        res.json({
+            success: true,
+            variants: out,
+            platform: platform || 'default',
+            cost,
+            quota: { trialTokens: quota.trialTokens, remaining: quota.remaining },
+        })
+    } catch (e) {
+        console.error('[Omega] cover-variants error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
 router.get('/youtube/analyze', analyzeYouTube)
 router.post('/youtube/shorts', generateShorts)
 router.post('/youtube/subtitles', generateSubtitles)

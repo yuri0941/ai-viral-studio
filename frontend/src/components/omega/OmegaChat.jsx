@@ -6,9 +6,9 @@ import { YouTubeAnalysisCard } from "./YouTubeAnalysisCard.jsx";
 import OmegaLocalModeIndicator from "./OmegaLocalModeIndicator.jsx";
 import OnboardingTour from "../onboarding/OnboardingTour.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { useModalA11y } from "../../hooks/useModalA11y.js";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { omegaApi, voiceApi, request, planConfigApi } from "../../services/api.js";
+import { API_BASE_URL } from "../../config.js";
 import { API_URL } from "../../config.js";
 import UpsellModal from "../UpsellModal.jsx";
 import { playSound } from "../../hooks/useSound.js";
@@ -712,6 +712,8 @@ export default function OmegaChat({
       pushMsgs([{
         role: 'omega',
         text: res?.analysis || '...',
+        // [OMEGA-VIDEO ДОП-2 З5] из разбора можно сразу собрать обложки (тема = файл/разбор)
+        action: { type: 'videoAnalysis', name: video.name },
         timestamp: Date.now(),
         id: `a-${Date.now()}`,
       }]);
@@ -896,6 +898,9 @@ export default function OmegaChat({
       });
       if (res?.status === 'success') {
         toast.success(t('chat.scriptPlannerOk'), { duration: 4000, icon: '📅' });
+        // [OMEGA-VIDEO ДОП-2 З5.3] запоминаем драфт — обложку «Применить к посту» вешаем на него
+        const postId = res?.data?._id || res?.data?.id;
+        if (postId) setPostIdByMsg(prev => ({ ...prev, [msg.id]: postId }));
       } else {
         toast.error(res?.message || t('chat.serverUnavailable'), { duration: 4000 });
       }
@@ -903,6 +908,85 @@ export default function OmegaChat({
       toast.error(err?.message || t('chat.serverUnavailable'), { duration: 4000 });
     } finally {
       setPlannerBusyId(null);
+    }
+  };
+
+  // [OMEGA-VIDEO ДОП-2 З5] Обложки: 3 варианта (размер фактом под платформу, текст 2–4 слова
+  // из анализа/сценария sharp-оверлеем) → клиент ✅ → применить к посту / скачать.
+  // Цена ✦ из кабинета владельца на кнопке ДО запуска.
+  const [coversByMsg, setCoversByMsg] = useState({});
+  const [coversBusyId, setCoversBusyId] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(null); // {url, width, height} — превью 1:1 до применения
+  const [coverBusyApply, setCoverBusyApply] = useState(false);
+  const [postIdByMsg, setPostIdByMsg] = useState({});
+  const coverPreviewRef = useModalA11y(useCallback(() => setCoverPreview(null), []), !!coverPreview);
+  const uploadsOrigin = API_BASE_URL.replace(/\/api$/, '');
+  const coverSrc = (url) => (url?.startsWith('http') ? url : `${uploadsOrigin}${url}`);
+
+  // 2–4 слова текста обложки из раздела «ОБЛОЖКА» сценария; фолбэк — первые слова темы
+  const coverTextFromScript = (text, fallbackTopic) => {
+    const m = /обложка[^\n]*\n[:\-– ]*([^\n]+)/i.exec(text || '');
+    const raw = (m?.[1] || fallbackTopic || '').replace(/[*#>`]/g, '').trim();
+    return raw.split(/\s+/).filter(Boolean).slice(0, 4).join(' ');
+  };
+
+  const generateCovers = async (msg) => {
+    if (coversBusyId) return;
+    refreshUploadLimits();
+    setCoversBusyId(msg.id);
+    playSound('message-sent');
+    try {
+      const topic = msg.action?.niche || msg.action?.name || (msg.text || '').split('\n')[0].slice(0, 120);
+      const coverText = msg.action?.type === 'script'
+        ? coverTextFromScript(msg.text, msg.action?.niche || topic)
+        : String(msg.action?.name || topic).replace(/\.[a-z0-9]+$/i, '').split(/\s+/).slice(0, 4).join(' ');
+      const res = await request('/omega/cover-variants', {
+        method: 'POST',
+        noRetry: true,
+        body: JSON.stringify({ topic, coverText, platform: msg.action?.platform || 'youtube' }),
+      });
+      if (res && res.success === false) {
+        const quotaError = res.code === 'TRIAL_EXHAUSTED' || res.code === 'QUOTA_EXCEEDED';
+        toast.error(res.message || t('chat.serverUnavailable'), { duration: 5000, icon: '🎨' });
+        if (quotaError) openUpsell({}, res.message);
+        playSound('error');
+        return;
+      }
+      if (Array.isArray(res?.variants) && res.variants.length) {
+        setCoversByMsg(prev => ({ ...prev, [msg.id]: { variants: res.variants, selected: 0 } }));
+        playSound('notification');
+        if (res?.quota?.trialTokens !== undefined) {
+          setQuota(prev => prev ? { ...prev, trialTokens: res.quota.trialTokens } : prev);
+        }
+      }
+    } catch (err) {
+      const isQuotaError = err?.status === 402;
+      toast.error(err?.message || t('chat.serverUnavailable'), { duration: 5000, icon: '🎨' });
+      if (isQuotaError) openUpsell({}, err?.message);
+      playSound('error');
+    } finally {
+      setCoversBusyId(null);
+    }
+  };
+
+  // Применить выбранную обложку к драфту в Планировщике (если драфт создан)
+  const applyCoverToPost = async (msg) => {
+    const state = coversByMsg[msg.id];
+    const variant = state?.variants?.[state.selected];
+    const postId = postIdByMsg[msg.id];
+    if (!variant || !postId || coverBusyApply) return;
+    setCoverBusyApply(true);
+    try {
+      const res = await request(`/scheduler/posts/${postId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ mediaUrl: coverSrc(variant.url), mediaType: 'image', mediaName: 'cover.jpg' }),
+      });
+      if (res?.status === 'success') toast.success(t('chat.coverApplied'), { duration: 4000, icon: '✅' });
+      else toast.error(res?.message || t('chat.serverUnavailable'), { duration: 4000 });
+    } catch (err) {
+      toast.error(err?.message || t('chat.serverUnavailable'), { duration: 4000 });
+    } finally {
+      setCoverBusyApply(false);
     }
   };
 
@@ -1055,7 +1139,7 @@ export default function OmegaChat({
                     <img src={msg.action.url} alt="AI cover" className="w-full rounded-2xl border border-white/10" loading="lazy" />
                   </div>
                 )}
-                {msg.action?.type === 'script' && (
+                {(msg.action?.type === 'script' || msg.action?.type === 'videoAnalysis') && (
                   <div className="w-full max-w-[95%] mx-auto mb-3" data-testid="script-action">
                     {msg.action.nicheStats?.available && Array.isArray(msg.action.nicheStats.videos) && (
                       <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-2">
@@ -1070,15 +1154,79 @@ export default function OmegaChat({
                     {msg.action.nicheStats && !msg.action.nicheStats.available && (
                       <p className="text-[11px] text-amber-400/80 mb-2">{t('chat.scriptNicheUnavailable')}</p>
                     )}
-                    <button
-                      type="button"
-                      disabled={plannerBusyId === msg.id}
-                      onClick={() => sendScriptToPlanner(msg)}
-                      data-testid="script-to-planner"
-                      className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-200 hover:bg-violet-500/20 hover:text-violet-200 hover:border-violet-500/30 transition-all disabled:opacity-50 flex items-center gap-1.5"
-                    >
-                      <CalendarPlus size={14} /> {plannerBusyId === msg.id ? t('common.loading') : t('chat.scriptToPlanner')}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      {msg.action?.type === 'script' && (
+                        <button
+                          type="button"
+                          disabled={plannerBusyId === msg.id}
+                          onClick={() => sendScriptToPlanner(msg)}
+                          data-testid="script-to-planner"
+                          className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-200 hover:bg-violet-500/20 hover:text-violet-200 hover:border-violet-500/30 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          <CalendarPlus size={14} /> {plannerBusyId === msg.id ? t('common.loading') : t('chat.scriptToPlanner')}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={coversBusyId === msg.id}
+                        onClick={() => generateCovers(msg)}
+                        data-testid="covers-generate"
+                        className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-200 hover:bg-violet-500/20 hover:text-violet-200 hover:border-violet-500/30 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {coversBusyId === msg.id ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🎨'} {t('chat.coversGenerateBtn', { cost: actionPricing.coverGenerationCost })}
+                      </button>
+                    </div>
+                    {coversByMsg[msg.id]?.variants && (
+                      <div className="mt-3" data-testid="covers-grid">
+                        <div className="grid grid-cols-3 gap-2">
+                          {coversByMsg[msg.id].variants.map((v, idx) => (
+                            <button
+                              key={v.url}
+                              type="button"
+                              onClick={() => setCoversByMsg(prev => ({ ...prev, [msg.id]: { ...prev[msg.id], selected: idx } }))}
+                              onDoubleClick={() => setCoverPreview(v)}
+                              className={`relative rounded-lg overflow-hidden border-2 transition ${coversByMsg[msg.id].selected === idx ? 'border-violet-400' : 'border-white/10 hover:border-white/25'}`}
+                              data-testid={`cover-variant-${idx}`}
+                              title={t('chat.coverPickHint')}
+                            >
+                              <img src={coverSrc(v.url)} alt={`cover ${idx + 1}`} className="w-full h-auto block" loading="lazy" />
+                              {coversByMsg[msg.id].selected === idx && (
+                                <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-violet-500 text-white text-[11px] flex items-center justify-center">✓</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => setCoverPreview(coversByMsg[msg.id].variants[coversByMsg[msg.id].selected])}
+                            className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-white/[0.1] transition flex items-center gap-1.5"
+                          >
+                            <Eye size={13} /> {t('chat.coverPreviewBtn')}
+                          </button>
+                          {postIdByMsg[msg.id] && (
+                            <button
+                              type="button"
+                              disabled={coverBusyApply}
+                              onClick={() => applyCoverToPost(msg)}
+                              data-testid="cover-apply"
+                              className="px-3 py-1.5 min-h-[44px] rounded-full bg-violet-500/20 border border-violet-500/30 text-xs text-violet-200 hover:bg-violet-500/30 transition disabled:opacity-50 flex items-center gap-1.5"
+                            >
+                              <Check size={13} /> {t('chat.coverApplyBtn')}
+                            </button>
+                          )}
+                          <a
+                            href={coverSrc(coversByMsg[msg.id].variants[coversByMsg[msg.id].selected]?.url)}
+                            download="cover.jpg"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-white/[0.1] transition flex items-center gap-1.5"
+                          >
+                            ⬇ {t('chat.coverDownloadBtn')}
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 <ReasoningSteps reasoning={msg.reasoning} t={t} />
@@ -1492,6 +1640,18 @@ export default function OmegaChat({
                 {t('chat.scriptGenerateBtn', { cost: actionPricing.scriptGenerationCost })}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {coverPreview && (
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setCoverPreview(null)}>
+          <div ref={coverPreviewRef} role="dialog" aria-modal="true" data-testid="cover-preview-modal" className="bg-[#1a1a24] rounded-2xl border border-white/10 max-w-3xl w-full p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">{t('chat.coverPreviewTitle', { w: coverPreview.width, h: coverPreview.height })}</h3>
+              <button onClick={() => setCoverPreview(null)} aria-label={t('common.cancel', 'Отмена')} className="text-gray-400 hover:text-white min-w-[32px] min-h-[32px] flex items-center justify-center"><X size={18} /></button>
+            </div>
+            <img src={coverSrc(coverPreview.url)} alt="cover preview" className="w-full h-auto rounded-xl border border-white/10" />
           </div>
         </div>
       )}
