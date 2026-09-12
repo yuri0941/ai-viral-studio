@@ -10,7 +10,7 @@ import { planConfigApi } from '../../../../services/api.js'
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
     ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil, Check,
-    Wallet, Bitcoin, Landmark
+    Wallet, Bitcoin, Landmark, FileUp
 } from 'lucide-react'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx' // [v6.0] added
 
@@ -86,6 +86,9 @@ export function SubscriptionsTab({ data }) {
     const [paying, setPaying] = useState(null)
     const [quotaSettings, setQuotaSettings] = useState({ generationsLimit: 100, overageCost: 4, topUpPackSize: 100, topUpPackPrice: 4 })
     const [savingQuota, setSavingQuota] = useState(false)
+    // [OMEGA-VIDEO ДОП-З1] лимит веса медиа-загрузки (МБ) — OwnerSettings.mediaUploadLimitMb, hot-reload ≤60с
+    const [mediaLimitMb, setMediaLimitMb] = useState(250)
+    const [savingMediaLimit, setSavingMediaLimit] = useState(false)
     const [pricingOpen, setPricingOpen] = useState(false)
     const [dynamicEnabled, setDynamicEnabled] = useState(() => {
         try { return localStorage.getItem('omega_dynamic_pricing_enabled') === 'true' } catch { return false }
@@ -231,6 +234,39 @@ export function SubscriptionsTab({ data }) {
             pushToast('error', err.message)
         } finally {
             setSavingQuota(false)
+        }
+    }
+
+    // [OMEGA-VIDEO ДОП-З1] загрузка/сохранение лимита веса медиа (кабинет владельца, без деплоя)
+    useEffect(() => {
+        if (!user || (user.role !== 'owner' && user.role !== 'admin')) return
+        const token = localStorage.getItem('token')
+        fetch(`${API_BASE_URL}/owner/media-limit`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(json => { if (json.success && json.maxMb) setMediaLimitMb(json.maxMb) })
+            .catch(() => {})
+    }, [user])
+
+    async function saveMediaLimit() {
+        setSavingMediaLimit(true)
+        const token = localStorage.getItem('token')
+        try {
+            const res = await fetch(`${API_BASE_URL}/owner/media-limit`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maxMb: mediaLimitMb }),
+            })
+            const json = await res.json()
+            if (json.success) {
+                setMediaLimitMb(json.mediaUploadLimitMb)
+                pushToast('success', t('subscriptions.mediaLimitSaved'))
+            } else {
+                pushToast('error', json.error || 'Ошибка')
+            }
+        } catch (err) {
+            pushToast('error', err.message)
+        } finally {
+            setSavingMediaLimit(false)
         }
     }
 
@@ -681,6 +717,40 @@ export function SubscriptionsTab({ data }) {
                         {savingQuota ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
                         {t('subscriptions.saveQuota')}
                     </button>
+                </div>
+            )}
+
+            {(user?.role === 'owner' || user?.role === 'admin') && (
+                <div className="luxury-card glass p-5 space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <FileUp className="w-5 h-5 text-[var(--text-muted)]" />
+                        <h3 className="text-lg font-semibold text-[var(--text)]">{t('subscriptions.mediaLimitTitle')}</h3>
+                    </div>
+                    <div className="flex items-end gap-4 flex-wrap">
+                        <div>
+                            <label className="text-xs text-[var(--text-muted)] block mb-1">{t('subscriptions.mediaLimitLabel')}</label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={250}
+                                    value={mediaLimitMb}
+                                    onChange={e => setMediaLimitMb(parseFloat(e.target.value) || 0)}
+                                    className="w-28 px-3 py-2 rounded-lg glass text-sm text-[var(--text)] outline-none"
+                                />
+                                <span className="text-xs text-[var(--text-muted)]">{t('subscriptions.mediaLimitUnit')}</span>
+                            </div>
+                            <p className="text-[11px] text-[var(--text-muted)] mt-1.5">{t('subscriptions.mediaLimitHint')}</p>
+                        </div>
+                        <button type="button"
+                            onClick={saveMediaLimit}
+                            disabled={savingMediaLimit}
+                            className="min-h-[44px] flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
+                        >
+                            {savingMediaLimit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                            {t('subscriptions.mediaLimitSave')}
+                        </button>
+                    </div>
                 </div>
             )}
 

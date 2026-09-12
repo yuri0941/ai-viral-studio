@@ -112,6 +112,11 @@ export function useOmegaChat(options = {}) {
         localStorage.removeItem(STORAGE_KEY)
     }, [])
 
+    // [OMEGA-VIDEO ДОП-З1] внешний режим: разбор видео добавляет пару «📹 файл → ответ Омеги» в общую ленту
+    const injectMessages = useCallback((msgs) => {
+        if (Array.isArray(msgs) && msgs.length) setMessages(prev => [...prev, ...msgs])
+    }, [])
+
     const removeMessage = useCallback((id) => {
         setMessages(prev => prev.filter(m => m.id !== id))
     }, [])
@@ -136,6 +141,7 @@ export function useOmegaChat(options = {}) {
         quotaError,
         sendMessage,
         clearHistory,
+        injectMessages,
         removeMessage,
         rateMessage,
     }

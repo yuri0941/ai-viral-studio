@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
-import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp } from "lucide-react";
+import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp, Film, RotateCcw } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import { MarkdownText } from "./MarkdownText.jsx";
 import { YouTubeAnalysisCard } from "./YouTubeAnalysisCard.jsx";
@@ -8,6 +8,7 @@ import OnboardingTour from "../onboarding/OnboardingTour.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { omegaApi, voiceApi, request, planConfigApi } from "../../services/api.js";
+import { API_URL } from "../../config.js";
 import UpsellModal from "../UpsellModal.jsx";
 import { playSound } from "../../hooks/useSound.js";
 import { useTTS } from "../../hooks/useTTS.js";
@@ -267,6 +268,8 @@ export default function OmegaChat({
   setInput: externalSetInput,
   quotaError: externalQuotaError,
   userRole: externalUserRole,
+  // [OMEGA-VIDEO ДОП-З1] внешний режим: добавка сообщений разбора видео в общую ленту (useOmegaChat)
+  injectMessages,
   embedded = false,
   // [CHAT-PRO З3] поиск по ленте: непустая строка фильтрует сообщения (presentational, история не трогается)
   searchQuery = '',
@@ -283,6 +286,12 @@ export default function OmegaChat({
   const [internalQuotaError, setInternalQuotaError] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [attachment, setAttachment] = useState(null);
+  // [OMEGA-VIDEO ДОП-З1] видео-вложение: загрузка XHR с прогрессом/отменой → сразу разбор Омегой
+  const [videoUpload, setVideoUpload] = useState(null);
+  const [mediaLimitMb, setMediaLimitMb] = useState(null);
+  const videoXhrRef = useRef(null);
+  const videoFramesRef = useRef([]);
+  const videoMetaRef = useRef({});
   const [variantCount, setVariantCount] = useState(3);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [recognitionLang, setRecognitionLang] = useState(() => localStorage.getItem('omega_recognition_lang') || 'ru');
@@ -569,20 +578,220 @@ export default function OmegaChat({
     }
   };
 
+  // [OMEGA-VIDEO ДОП-З1 П3] лимит веса медиа — из кабинета владельца (/api/upload/limits, hot-reload ≤60с)
+  useEffect(() => {
+    request('/upload/limits', { timeout: 8000, noRetry: true })
+      .then(res => { if (res?.maxMb) setMediaLimitMb(res.maxMb) })
+      .catch(() => {});
+  }, []);
+
+  const VIDEO_EXT_RE = /\.(mp4|mov|webm)$/i;
+  const isVideoFile = (file) => file.type.startsWith('video/') || VIDEO_EXT_RE.test(file.name || '');
+  const formatMb = (bytes) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
+
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast(t('chat.fileSoon'), { duration: 4000, icon: '📎' });
+    if (file.type.startsWith('image/')) {
+      attachImageFile(file);
       return;
     }
-    attachImageFile(file);
+    if (isVideoFile(file)) {
+      attachVideoFile(file);
+      return;
+    }
+    toast(t('chat.fileSoon'), { duration: 4000, icon: '📎' });
   };
 
   const attachImageFile = (file) => {
     const reader = new FileReader();
     reader.onload = (ev) => setAttachment({ name: file.name, type: file.type, base64: ev.target.result });
     reader.readAsDataURL(file);
+  };
+
+  // [OMEGA-VIDEO ДОП-З1 П5] кадры для разбора тянем на клиенте (canvas), ffmpeg не нужен
+  const extractVideoFrames = (file, count = 6) => new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    const timer = setTimeout(() => { URL.revokeObjectURL(url); reject(new Error('video metadata timeout')); }, 15000);
+    video.onerror = () => { clearTimeout(timer); URL.revokeObjectURL(url); reject(new Error('video load failed')); };
+    video.onloadedmetadata = async () => {
+      try {
+        const duration = Number.isFinite(video.duration) ? video.duration : 0;
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, 640 / (video.videoWidth || 640));
+        canvas.width = Math.max(1, Math.round((video.videoWidth || 640) * scale));
+        canvas.height = Math.max(1, Math.round((video.videoHeight || 360) * scale));
+        const ctx = canvas.getContext('2d');
+        const frames = [];
+        for (let i = 0; i < count; i++) {
+          const time = duration ? Math.min((duration * i) / (count - 1), Math.max(0, duration - 0.1)) : 0;
+          await new Promise((res) => {
+            video.addEventListener('seeked', () => res(), { once: true });
+            setTimeout(res, 2000); // страховка от зависшего seek
+            video.currentTime = time;
+          });
+          try {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            frames.push(canvas.toDataURL('image/jpeg', 0.6));
+          } catch { /* кадр пропущен */ }
+        }
+        clearTimeout(timer);
+        URL.revokeObjectURL(url);
+        resolve({ frames, meta: { durationSec: duration, width: video.videoWidth, height: video.videoHeight } });
+      } catch (err) {
+        clearTimeout(timer);
+        URL.revokeObjectURL(url);
+        reject(err);
+      }
+    };
+    video.src = url;
+  });
+
+  // [OMEGA-VIDEO ДОП-З1 П5] после загрузки файл сразу уходит в работу Омеге (таймкоды/хук/удержание)
+  const runVideoAnalysis = async (video) => {
+    // внешний режим (CreativeHub/useOmegaChat) — сообщения через injectMessages, иначе лента их не покажет
+    const pushMsgs = (msgs) => {
+      const stamped = msgs.map(m => (isExternal ? { ...m, timestamp: new Date().toISOString() } : m));
+      if (isExternal) injectMessages?.(stamped);
+      else setInternalMessages(prev => [...prev, ...stamped]);
+    };
+    pushMsgs([{
+      role: 'user',
+      text: t('chat.videoUserMsg', { name: video.name, size: video.sizeMb }),
+      timestamp: Date.now(),
+      id: `u-${Date.now()}`,
+    }]);
+    setInternalIsTyping(true);
+    playSound('message-sent');
+    try {
+      const res = await request('/omega/analyze-video-upload', {
+        method: 'POST',
+        noRetry: true,
+        body: JSON.stringify({
+          videoUrl: video.url,
+          frames: videoFramesRef.current || [],
+          meta: { name: video.name, sizeMb: video.sizeMb, ...videoMetaRef.current },
+          lang: 'ru',
+        }),
+      });
+      // [OMEGA-VIDEO] 200 + success:false — ожидаемая деградация (ai_unavailable): честное сообщение, не мок
+      if (res && res.success === false) {
+        pushMsgs([{
+          role: 'omega',
+          text: res.message || t('chat.serverUnavailable'),
+          isError: true,
+          timestamp: Date.now(),
+          id: `err-${Date.now()}`,
+        }]);
+        playSound('error');
+        return;
+      }
+      pushMsgs([{
+        role: 'omega',
+        text: res?.analysis || '...',
+        timestamp: Date.now(),
+        id: `a-${Date.now()}`,
+      }]);
+      playSound('notification');
+      setVideoUpload(null);
+      videoFramesRef.current = [];
+      videoMetaRef.current = {};
+      if (res?.quota?.trialTokens !== undefined) {
+        setQuota(prev => prev ? { ...prev, trialTokens: res.quota.trialTokens } : prev);
+      }
+    } catch (err) {
+      const isQuotaError = err?.status === 402;
+      pushMsgs([{
+        role: 'omega',
+        text: isQuotaError ? (err.message || t('chat.limitReached')) : t('chat.serverUnavailable'),
+        isError: true,
+        isQuotaError,
+        timestamp: Date.now(),
+        id: `err-${Date.now()}`,
+      }]);
+      if (isQuotaError) {
+        toast.error(err.message || t('chat.limitReached'), { duration: 5000, icon: '⚡' });
+        openUpsell({}, err.message);
+      }
+      playSound('error');
+    } finally {
+      setInternalIsTyping(false);
+    }
+  };
+
+  // [OMEGA-VIDEO ДОП-З1 П4] XHR: прогресс %, отмена через abort, обрыв сети → честная ошибка + повтор
+  const startVideoUpload = (file) => {
+    const xhr = new XMLHttpRequest();
+    videoXhrRef.current = xhr;
+    setVideoUpload({ name: file.name, sizeMb: formatMb(file.size), status: 'uploading', progress: 0, url: null, file });
+    xhr.upload.onprogress = (ev) => {
+      if (ev.lengthComputable) {
+        const pct = Math.round((ev.loaded / ev.total) * 100);
+        setVideoUpload(prev => (prev ? { ...prev, progress: pct } : prev));
+      }
+    };
+    xhr.onload = () => {
+      videoXhrRef.current = null;
+      let data = null;
+      try { data = JSON.parse(xhr.responseText); } catch { /* не-JSON ответ */ }
+      if (xhr.status >= 200 && xhr.status < 300 && data?.success && data?.url) {
+        const done = { name: file.name, sizeMb: formatMb(file.size), status: 'ready', progress: 100, url: data.url, file };
+        setVideoUpload(done);
+        runVideoAnalysis(done);
+        return;
+      }
+      if (xhr.status === 413 && data?.limitMb) {
+        setVideoUpload(null);
+        toast.error(t('chat.videoTooLarge', { limit: data.limitMb, size: data.fileMb ?? formatMb(file.size) }), { duration: 5000, icon: '🎬' });
+        return;
+      }
+      setVideoUpload(prev => (prev ? { ...prev, status: 'error' } : prev));
+      toast.error(t('chat.videoUploadFailed'), { duration: 5000, icon: '🎬' });
+    };
+    xhr.onerror = () => {
+      videoXhrRef.current = null;
+      setVideoUpload(prev => (prev ? { ...prev, status: 'error' } : prev));
+      toast.error(t('chat.videoUploadFailed'), { duration: 5000, icon: '🎬' });
+    };
+    xhr.onabort = () => { videoXhrRef.current = null; };
+    xhr.open('POST', `${API_URL}/upload/media`);
+    xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('token') || ''}`);
+    const fd = new FormData();
+    fd.append('media', file);
+    xhr.send(fd);
+  };
+
+  const cancelVideoUpload = () => {
+    videoXhrRef.current?.abort();
+    videoXhrRef.current = null;
+    setVideoUpload(null);
+    videoFramesRef.current = [];
+    videoMetaRef.current = {};
+  };
+
+  const retryVideoUpload = () => {
+    const file = videoUpload?.file;
+    if (file) startVideoUpload(file);
+  };
+
+  const attachVideoFile = (file) => {
+    // [OMEGA-VIDEO ДОП-З1 П3] превышение лимита — понятный текст, не молчание и не краш
+    if (mediaLimitMb && file.size > mediaLimitMb * 1024 * 1024) {
+      toast.error(t('chat.videoTooLarge', { limit: mediaLimitMb, size: formatMb(file.size) }), { duration: 5000, icon: '🎬' });
+      return;
+    }
+    setAttachment(null);
+    videoFramesRef.current = [];
+    videoMetaRef.current = {};
+    extractVideoFrames(file)
+      .then(({ frames, meta }) => { videoFramesRef.current = frames; videoMetaRef.current = meta; })
+      .catch(() => {});
+    startVideoUpload(file);
   };
 
   const hasDraggedFiles = (e) => Array.from(e.dataTransfer?.types || []).includes('Files');
@@ -617,7 +826,11 @@ export default function OmegaChat({
       attachImageFile(file);
       return;
     }
-    // Backend /api/upload принимает и видео, но чат пока не анализирует файлы — честно говорим об этом
+    // [OMEGA-VIDEO ДОП-З1 П1] drop видео — тот же паттерн, что у картинок
+    if (isVideoFile(file)) {
+      attachVideoFile(file);
+      return;
+    }
     toast(t('chat.fileSoon'), { duration: 4000, icon: '📎' });
   };
 
@@ -951,7 +1164,7 @@ export default function OmegaChat({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/mp4,video/quicktime,video/webm,.mov"
             onChange={handleImageUpload}
             className="hidden"
           />
@@ -1008,6 +1221,47 @@ export default function OmegaChat({
             <img src={attachment.base64} alt="preview" className="w-12 h-12 rounded-lg object-cover border border-white/10" />
             <span className="text-xs text-gray-400 truncate flex-1">{attachment.name}</span>
             <button onClick={() => setAttachment(null)} className="text-gray-400 hover:text-white text-xs">✕</button>
+          </div>
+        )}
+        {videoUpload && (
+          <div className="mt-2 px-2" data-testid="video-upload-chip">
+            <div className="flex items-center gap-2">
+              <Film className="w-5 h-5 text-violet-300 shrink-0" />
+              <span className="text-xs text-gray-300 truncate flex-1">{videoUpload.name}</span>
+              <span className="text-[10px] text-gray-500 shrink-0">{videoUpload.sizeMb} МБ</span>
+              {videoUpload.status === 'uploading' && (
+                <span className="text-[10px] text-violet-300 shrink-0 w-9 text-right" data-testid="video-upload-progress">{videoUpload.progress}%</span>
+              )}
+              {videoUpload.status === 'error' && (
+                <button
+                  type="button"
+                  onClick={retryVideoUpload}
+                  className="flex items-center gap-1 text-[10px] text-amber-300 hover:text-amber-200 shrink-0 min-h-[32px]"
+                >
+                  <RotateCcw className="w-3 h-3" /> {t('chat.retryUpload')}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={cancelVideoUpload}
+                aria-label={t('common.cancel', 'Отмена')}
+                className="text-gray-400 hover:text-white text-xs min-w-[32px] min-h-[32px] flex items-center justify-center shrink-0"
+              >✕</button>
+            </div>
+            {videoUpload.status === 'uploading' && (
+              <div className="h-1 mt-1.5 rounded-full bg-white/10 overflow-hidden motion-reduce:transition-none">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-[width] duration-200 motion-reduce:transition-none"
+                  style={{ width: `${videoUpload.progress}%` }}
+                />
+              </div>
+            )}
+            {videoUpload.status === 'error' && (
+              <p className="text-[10px] text-rose-400 mt-1">{t('chat.videoUploadFailed')}</p>
+            )}
+            <p className="text-[10px] text-gray-500 mt-1" data-testid="video-upload-price">
+              {t('chat.videoPrice', { cost: 1, left: (quota?.unlimited || user?.role === 'owner') ? '∞' : (quota?.trialTokens ?? user?.trialTokens ?? 0) })}
+            </p>
           </div>
         )}
         {isRecording && (
