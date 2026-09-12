@@ -116,6 +116,41 @@ if (tourShown) {
 }
 await ctxA.close()
 
+// === РЕГРЕССИЯ ГОНКИ [QA-FIX]: скип в окне entry-анимации driver.js (rAF заглушен, как на
+// нагруженном CI) — onDestroyed молча теряется, поэтому флаг обязан ставиться ДО destroy.
+const emailRace = `qa.tour.race.${Date.now()}@test.dev`
+const regRace = await fetch(`${LOCAL_API}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'QA Tour Race', email: emailRace, password, acceptedTerms: true, acceptedPrivacy: true, acceptedConsent: true, isAdult: true }),
+}).then(r => r.json()).catch(() => ({}))
+const tokenRace = regRace.token || regRace.data?.token
+step('race: register via local API', !!tokenRace)
+if (tokenRace) {
+    const ctxR = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'ru-RU' })
+    await ctxR.addInitScript(([t]) => {
+        localStorage.setItem('token', t)
+        // rAF почти стоит (нагруженный CI-раннер): transition driver.js не завершается до клика
+        window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), 3000)
+    }, [tokenRace])
+    await proxyApiToLocal(ctxR)
+    const pageR = await ctxR.newPage()
+    await pageR.goto(`${BASE}/creative-hub/chat`, { waitUntil: 'domcontentloaded' })
+    const raceShown = await pageR.waitForSelector('.driver-popover', { timeout: 15000 }).then(() => true).catch(() => false)
+    step('race: tour shown under stalled rAF', raceShown)
+    if (raceShown) {
+        await pageR.locator('.omega-tour-skip').first().click({ timeout: 8000, force: true })
+        await sleep(800)
+        step('race: popover closed', (await pageR.locator('.driver-popover').count()) === 0)
+        const lsRace = await pageR.evaluate(() => localStorage.getItem('omega_onboarding_tour_done'))
+        step('race: localStorage flag saved (skip inside animation window)', lsRace === 'true', String(lsRace))
+        await sleep(1500)
+        const meR = await fetch(`${LOCAL_API}/api/auth/me`, { headers: { Authorization: `Bearer ${tokenRace}` } }).then(r => r.json()).catch(() => ({}))
+        step('race: server flag saved (skip inside animation window)', meR?.user?.preferences?.onboarding?.tourDone === true)
+    }
+    await ctxR.close()
+}
+
 // === УСТРОЙСТВО 2: чистый localStorage, флаг только на сервере ===
 const ctxB = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'ru-RU' })
 await ctxB.addInitScript(([t]) => { localStorage.setItem('token', t) }, [token])

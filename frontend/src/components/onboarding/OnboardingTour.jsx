@@ -71,7 +71,17 @@ function buildSteps(t) {
     ]
 }
 
+// [QA-FIX] driver.js 1.8.0: destroy() в окне entry-анимации (400ms, rAF) молча НЕ вызывает
+// onDestroyed (внутри проверка __activeElement/__activeStep — ставятся только после transition).
+// На медленном CI скип попадал в это окно → markTourDone не бежал → тур всплывал после reload
+// и на «втором устройстве». Поэтому флаг ставим ДО destroy во всех путях закрытия
+// (skip/overlay/Esc/done), один раз за загрузку страницы; onDestroyed — страховка.
+// keepalive: PATCH не отменяется навигацией сразу после скипа.
+let tourMarkedDone = false
+
 function markTourDone() {
+    if (tourMarkedDone) return
+    tourMarkedDone = true
     localStorage.setItem(TOUR_DONE_KEY, 'true')
     const token = localStorage.getItem('token')
     fetch(`${API_URL}/users/me/onboarding`, {
@@ -81,6 +91,7 @@ function markTourDone() {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ tourDone: true }),
+        keepalive: true,
     }).catch(err => console.warn('[OnboardingTour] server sync failed:', err))
 }
 
@@ -100,8 +111,14 @@ function drive(t, onFinish) {
             skip.className = 'omega-tour-skip'
             skip.textContent = t('tour.skip')
             skip.style.cssText = 'margin-right:auto;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:13px;text-decoration:underline;padding:4px 0;'
-            skip.addEventListener('click', () => d.destroy())
+            skip.addEventListener('click', () => { markTourDone(); d.destroy() })
             popover.footerButtons.prepend(skip)
+        },
+        // [QA-FIX] overlay/Esc/done идут через h(true) → onDestroyStarted: ставим флаг ДО destroy,
+        // т.к. при destroy в окне анимации onDestroyed молча теряется
+        onDestroyStarted: () => {
+            markTourDone()
+            d.destroy()
         },
         onDestroyed: () => {
             markTourDone()
