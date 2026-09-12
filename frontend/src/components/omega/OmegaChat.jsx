@@ -579,10 +579,25 @@ export default function OmegaChat({
   };
 
   // [OMEGA-VIDEO ДОП-З1 П3] лимит веса медиа — из кабинета владельца (/api/upload/limits, hot-reload ≤60с)
-  useEffect(() => {
+  // [OMEGA-VIDEO ДОП-2] та же ручка отдаёт живые цены ✦ (разбор/обложка/сценарий) и TTL хранения
+  const [actionPricing, setActionPricing] = useState({ videoAnalysisCost: 1, coverGenerationCost: 1, scriptGenerationCost: 2, videoStorageTtlHours: 0 });
+  const refreshUploadLimits = () => {
     request('/upload/limits', { timeout: 8000, noRetry: true })
-      .then(res => { if (res?.maxMb) setMediaLimitMb(res.maxMb) })
+      .then(res => {
+        if (res?.maxMb) setMediaLimitMb(res.maxMb);
+        if (res?.videoAnalysisCost) {
+          setActionPricing({
+            videoAnalysisCost: res.videoAnalysisCost,
+            coverGenerationCost: res.coverGenerationCost ?? 1,
+            scriptGenerationCost: res.scriptGenerationCost ?? 2,
+            videoStorageTtlHours: res.videoStorageTtlHours ?? 0,
+          });
+        }
+      })
       .catch(() => {});
+  };
+  useEffect(() => {
+    refreshUploadLimits();
   }, []);
 
   const VIDEO_EXT_RE = /\.(mp4|mov|webm)$/i;
@@ -788,6 +803,8 @@ export default function OmegaChat({
     setAttachment(null);
     videoFramesRef.current = [];
     videoMetaRef.current = {};
+    // [OMEGA-VIDEO ДОП-2] цена на чипе ДО анализа — живая из кабинета владельца (поставил 3✦ → клиент видит 3✦ сразу)
+    refreshUploadLimits();
     extractVideoFrames(file)
       .then(({ frames, meta }) => { videoFramesRef.current = frames; videoMetaRef.current = meta; })
       .catch(() => {});
@@ -1260,7 +1277,7 @@ export default function OmegaChat({
               <p className="text-[10px] text-rose-400 mt-1">{t('chat.videoUploadFailed')}</p>
             )}
             <p className="text-[10px] text-gray-500 mt-1" data-testid="video-upload-price">
-              {t('chat.videoPrice', { cost: 1, left: (quota?.unlimited || user?.role === 'owner') ? '∞' : (quota?.trialTokens ?? user?.trialTokens ?? 0) })}
+              {t('chat.videoPrice', { cost: actionPricing.videoAnalysisCost, left: (quota?.unlimited || user?.role === 'owner') ? '∞' : (quota?.trialTokens ?? user?.trialTokens ?? 0) })}
             </p>
           </div>
         )}

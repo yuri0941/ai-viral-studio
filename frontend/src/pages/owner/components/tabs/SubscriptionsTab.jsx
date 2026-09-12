@@ -10,7 +10,7 @@ import { planConfigApi } from '../../../../services/api.js'
 import {
     CreditCard, Calendar, CheckCircle, Loader2, AlertCircle,
     ToggleLeft, ToggleRight, Receipt, ExternalLink, Globe, Settings, Zap, Sparkles, X, Pencil, Check,
-    Wallet, Bitcoin, Landmark, FileUp
+    Wallet, Bitcoin, Landmark, FileUp, Film
 } from 'lucide-react'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx' // [v6.0] added
 
@@ -89,6 +89,9 @@ export function SubscriptionsTab({ data }) {
     // [OMEGA-VIDEO ДОП-З1] лимит веса медиа-загрузки (МБ) — OwnerSettings.mediaUploadLimitMb, hot-reload ≤60с
     const [mediaLimitMb, setMediaLimitMb] = useState(250)
     const [savingMediaLimit, setSavingMediaLimit] = useState(false)
+    // [OMEGA-VIDEO ДОП-2] цены AI-действий (✦) + TTL хранения видео — OwnerSettings, hot-reload ≤60с
+    const [videoSettings, setVideoSettings] = useState({ videoAnalysisCostCredits: 1, coverGenerationCostCredits: 1, scriptGenerationCostCredits: 2, videoStorageTtlHours: 0 })
+    const [savingVideoSettings, setSavingVideoSettings] = useState(false)
     const [pricingOpen, setPricingOpen] = useState(false)
     const [dynamicEnabled, setDynamicEnabled] = useState(() => {
         try { return localStorage.getItem('omega_dynamic_pricing_enabled') === 'true' } catch { return false }
@@ -245,7 +248,50 @@ export function SubscriptionsTab({ data }) {
             .then(r => r.json())
             .then(json => { if (json.success && json.maxMb) setMediaLimitMb(json.maxMb) })
             .catch(() => {})
+        // [OMEGA-VIDEO ДОП-2] цены AI-действий + TTL хранения видео
+        fetch(`${API_BASE_URL}/owner/video-settings`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(json => {
+                if (json.success) {
+                    setVideoSettings({
+                        videoAnalysisCostCredits: json.videoAnalysisCostCredits ?? 1,
+                        coverGenerationCostCredits: json.coverGenerationCostCredits ?? 1,
+                        scriptGenerationCostCredits: json.scriptGenerationCostCredits ?? 2,
+                        videoStorageTtlHours: json.videoStorageTtlHours ?? 0,
+                    })
+                }
+            })
+            .catch(() => {})
     }, [user])
+
+    // [OMEGA-VIDEO ДОП-2] сохранение цен/TTL — применяется у клиента ≤60с без деплоя
+    async function saveVideoSettings() {
+        setSavingVideoSettings(true)
+        const token = localStorage.getItem('token')
+        try {
+            const res = await fetch(`${API_BASE_URL}/owner/video-settings`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(videoSettings),
+            })
+            const json = await res.json()
+            if (json.success) {
+                setVideoSettings({
+                    videoAnalysisCostCredits: json.videoAnalysisCostCredits,
+                    coverGenerationCostCredits: json.coverGenerationCostCredits,
+                    scriptGenerationCostCredits: json.scriptGenerationCostCredits,
+                    videoStorageTtlHours: json.videoStorageTtlHours,
+                })
+                pushToast('success', t('subscriptions.videoSettingsSaved'))
+            } else {
+                pushToast('error', json.error || 'Ошибка')
+            }
+        } catch (err) {
+            pushToast('error', err.message)
+        } finally {
+            setSavingVideoSettings(false)
+        }
+    }
 
     async function saveMediaLimit() {
         setSavingMediaLimit(true)
@@ -751,6 +797,49 @@ export function SubscriptionsTab({ data }) {
                             {t('subscriptions.mediaLimitSave')}
                         </button>
                     </div>
+                </div>
+            )}
+
+            {(user?.role === 'owner' || user?.role === 'admin') && (
+                <div className="luxury-card glass p-5 space-y-4" data-testid="video-pricing-card">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Film className="w-5 h-5 text-[var(--text-muted)]" />
+                        <h3 className="text-lg font-semibold text-[var(--text)]">{t('subscriptions.videoPricingTitle')}</h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {[
+                            { key: 'videoAnalysisCostCredits', label: t('subscriptions.videoAnalysisCostLabel'), hint: t('subscriptions.videoAnalysisCostHint'), min: 1, max: 100, suffix: '✦' },
+                            { key: 'coverGenerationCostCredits', label: t('subscriptions.coverCostLabel'), hint: t('subscriptions.coverCostHint'), min: 1, max: 100, suffix: '✦' },
+                            { key: 'scriptGenerationCostCredits', label: t('subscriptions.scriptCostLabel'), hint: t('subscriptions.scriptCostHint'), min: 1, max: 100, suffix: '✦' },
+                            { key: 'videoStorageTtlHours', label: t('subscriptions.videoTtlLabel'), hint: t('subscriptions.videoTtlHint'), min: 0, max: 720, suffix: t('subscriptions.videoTtlUnit') },
+                        ].map(field => (
+                            <div key={field.key}>
+                                <label className="text-xs text-[var(--text-muted)] block mb-1">{field.label}</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        min={field.min}
+                                        max={field.max}
+                                        value={videoSettings[field.key]}
+                                        onChange={e => setVideoSettings(prev => ({ ...prev, [field.key]: parseInt(e.target.value, 10) || 0 }))}
+                                        className="w-28 px-3 py-2 rounded-lg glass text-sm text-[var(--text)] outline-none"
+                                        data-testid={`video-setting-${field.key}`}
+                                    />
+                                    <span className="text-xs text-[var(--text-muted)]">{field.suffix}</span>
+                                </div>
+                                <p className="text-[11px] text-[var(--text-muted)] mt-1.5">{field.hint}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <button type="button"
+                        onClick={saveVideoSettings}
+                        disabled={savingVideoSettings}
+                        className="min-h-[44px] flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-violet-500/25 transition-all disabled:opacity-50"
+                        data-testid="video-settings-save"
+                    >
+                        {savingVideoSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                        {t('subscriptions.videoSettingsSave')}
+                    </button>
                 </div>
             )}
 
