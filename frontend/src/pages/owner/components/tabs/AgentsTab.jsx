@@ -89,16 +89,12 @@ export function AgentsTab({ data }) {
                 })}
             </div>
 
-            {/* [v6.0] added: terminal/log placeholder */}
-            <div className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 font-mono text-xs text-emerald-400/90 space-y-1">
+            {/* [REAL-DATA-2] выдуманные логи удалены: реального стрима журналов агентов нет */}
+            <div className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 font-mono text-xs space-y-1">
                 <div className="flex items-center gap-2 mb-2 text-gray-400">
                     <Settings size={14} /> <span>AI Agent Logs</span>
                 </div>
-                <p>[12:34:05] Pricing Agent :: анализ конкурентов завершён</p>
-                <p>[12:34:12] Revenue Agent :: прогноз MRR обновлён</p>
-                <p>[12:34:18] Security Agent :: активность в норме</p>
-                <p>[12:34:25] Support Agent :: обработано 7 тикетов</p>
-                <p className="text-gray-500">_</p>
+                <p className="text-gray-500">Журналы агентов не подключены — реального источника логов пока нет.</p>
             </div>
         </div>
     )

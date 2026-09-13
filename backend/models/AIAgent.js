@@ -6,6 +6,8 @@ const aiAgentSchema = new mongoose.Schema({
         required: true,
         unique: true,
         trim: true,
+        // [REAL-DATA-2] generic CRUD (POST /owner/agents) не шлёт id — генерируем, иначе спавн падал валидацией
+        default: () => new mongoose.Types.ObjectId().toString(),
     },
     name: {
         type: String,

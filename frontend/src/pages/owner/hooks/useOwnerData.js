@@ -26,9 +26,6 @@ const STORAGE_KEYS = {
     chats: 'owner_chats',
     activeTab: 'owner_active_tab',
     notifications: 'owner_notifications',
-    tasks: 'owner_tasks',
-    apiKeys: 'owner_api_keys',
-    approvalRequests: 'owner_approval_requests',
 }
 
 const EMPTY_SECURITY = {
@@ -52,7 +49,7 @@ const EMPTY_WITHDRAW_REQUISITES = {
 const NO_CACHE_KEYS = new Set([
     'staff', 'cabinets', 'subscriptions', 'servers', 'payments', 'audit',
     'promos', 'news', 'referrals', 'campaigns', 'security', 'integrations',
-    'aiAnalytics', 'logs', 'agents', 'apiKeys',
+    'aiAnalytics', 'logs', 'agents',
 ])
 
 function loadFromStorage(key, fallback) {
@@ -103,9 +100,6 @@ export function useOwnerData() {
     const [agents, setAgents] = useState([])
     const [chats, setChats] = useState(() => loadFromStorage('chats', []))
     const [notifications, setNotifications] = useState(() => loadFromStorage('notifications', []))
-    const [tasks, setTasks] = useState(() => loadFromStorage('tasks', []))
-    const [apiKeys, setApiKeys] = useState([])
-    const [approvalRequests, setApprovalRequests] = useState(() => loadFromStorage('approvalRequests', []))
 
     // --- UI State ---
     const [activeTab, setActiveTab] = useState(() => localStorage.getItem('owner_active_tab') || 'overview')
@@ -232,9 +226,6 @@ export function useOwnerData() {
     useEffect(() => { saveToStorage('agents', agents) }, [agents])
     useEffect(() => { saveToStorage('chats', chats) }, [chats])
     useEffect(() => { saveToStorage('notifications', notifications) }, [notifications])
-    useEffect(() => { saveToStorage('tasks', tasks) }, [tasks])
-    useEffect(() => { saveToStorage('apiKeys', apiKeys) }, [apiKeys])
-    useEffect(() => { saveToStorage('approvalRequests', approvalRequests) }, [approvalRequests])
     useEffect(() => { localStorage.setItem('owner_active_tab', activeTab) }, [activeTab])
 
     // ============================================
@@ -287,125 +278,152 @@ export function useOwnerData() {
         return { staff: created, tempPassword: res?.tempPassword }
     }, [showToast])
 
-    const updateStaff = useCallback((id, data) => {
-        setStaff(prev => prev.map(s => s.id === id ? { ...s, ...data } : s))
-        showToast('Данные обновлены')
+    // [REAL-DATA-2] редактирования/удаления staff на сервере нет (удаление данных — approve-зона) — честный ответ
+    const updateStaff = useCallback(() => {
+        showToast('Редактирование сотрудника на сервере не поддерживается — пока только создание', 'error')
     }, [showToast])
 
-    const removeStaff = useCallback((id) => {
-        setStaff(prev => prev.filter(s => s.id !== id))
-        showToast('Сотрудник удалён')
+    const removeStaff = useCallback(() => {
+        showToast('Удаление аккаунта сотрудника выполняется вручную через поддержку — авто-удаление отключено', 'error')
     }, [showToast])
 
     // ============================================
     // CABINETS CRUD
     // ============================================
-    const updateCabinetStatus = useCallback((id, status) => {
-        setCabinets(prev => prev.map(c => c.id === id ? { ...c, status, activeNow: status === 'active' } : c))
-        addAuditLog(`Кабинет #${id} — статус изменён на ${status}`, 'staff', 'medium')
-        showToast(`Статус кабинета обновлён: ${status}`)
+    // [REAL-DATA-2] серверных операций над кабинетами нет — честные ответы вместо локального флипа
+    const updateCabinetStatus = useCallback(() => {
+        showToast('Смена статуса кабинета на сервере не поддерживается', 'error')
     }, [showToast])
 
-    const impersonateCabinet = useCallback((id) => {
-        const cabinet = cabinets.find(c => c.id === id)
-        if (cabinet) {
-            addAuditLog(`Имперсонация кабинета: ${cabinet.name}`, 'security', 'high')
-            showToast(`Вход в кабинет: ${cabinet.name}`)
-            // Здесь можно добавить редирект или открытие drawer
+    const impersonateCabinet = useCallback(() => {
+        showToast('Вход в чужой кабинет отключён — используйте view-as в шапке (предпросмотр роли)', 'error')
+    }, [showToast])
+
+    // [REAL-DATA-2] локальный updateSubPrice удалён (мёртвый + фейк): цены тарифов — только PlanConfig (ownerApi.changePrice)
+
+    // ============================================
+    // CAMPAIGN CRUD — [REAL-DATA-2] реальный generic CRUD /owner/campaigns (Campaign)
+    // ============================================
+    const addCampaign = useCallback(async (data) => {
+        try {
+            const res = await ownerApi.create('campaigns', { ...data, status: 'pending_review' })
+            const doc = res?.data
+            if (doc) setCampaigns(prev => [...prev, { ...doc, id: doc.id || doc._id }])
+            addAuditLog(`Создана кампания: ${data.name}`, 'finance', 'high')
+            showToast('Кампания создана и отправлена на проверку')
+        } catch (e) {
+            showToast(`Кампания не создана: ${e.message}`, 'error')
         }
-    }, [cabinets, showToast])
+    }, [showToast, addAuditLog])
 
-    // ============================================
-    // SUBSCRIPTION CRUD
-    // ============================================
-    const updateSubPrice = useCallback((index, newPrice) => {
-        if (subscriptions[index]?.name === 'Free') {
-            showToast('Цена тарифа Free не редактируется', 'error')
-            return
+    const updateCampaignStatus = useCallback(async (id, status) => {
+        try {
+            await ownerApi.update('campaigns', id, { status })
+            setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status } : c))
+            showToast(`Статус кампании: ${status}`)
+        } catch (e) {
+            showToast(`Статус не обновлён: ${e.message}`, 'error')
         }
-        setSubscriptions(prev => {
-            const updated = [...prev]
-            updated[index] = { ...updated[index], price: parseFloat(newPrice) || 0 }
-            return updated
-        })
-        addAuditLog(`Изменена цена ${subscriptions[index]?.name} на ${newPrice}₽`, 'config', 'medium')
-        showToast('Цена обновлена')
-    }, [subscriptions, showToast])
-
-    // ============================================
-    // CAMPAIGN CRUD
-    // ============================================
-    const addCampaign = useCallback((data) => {
-        const campaign = { ...data, id: generateId(), status: 'pending_review', spent: 0, ctr: 0, cpc: 0, roi: 0, negotiations: [] }
-        setCampaigns(prev => [...prev, campaign])
-        addAuditLog(`Создана кампания: ${data.name}`, 'finance', 'high')
-        showToast('Кампания создана и отправлена на проверку')
     }, [showToast])
 
-    const updateCampaignStatus = useCallback((id, status) => {
-        setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status } : c))
-        showToast(`Статус кампании: ${status}`)
-    }, [showToast])
-
-    const addNegotiation = useCallback((campaignId, message) => {
-        setCampaigns(prev => prev.map(c => {
-            if (c.id !== campaignId) return c
-            return {
-                ...c,
-                negotiations: [...c.negotiations, { id: generateId(), message, from: 'owner', time: new Date().toISOString() }]
-            }
-        }))
-    }, [])
+    const addNegotiation = useCallback(async (campaignId, message) => {
+        const campaign = campaigns.find(c => c.id === campaignId)
+        if (!campaign) return
+        const negotiations = [...(campaign.negotiations || []), { message, from: 'owner', time: new Date().toISOString() }]
+        try {
+            await ownerApi.update('campaigns', campaignId, { negotiations })
+            setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, negotiations } : c))
+        } catch (e) {
+            showToast(`Сообщение не отправлено: ${e.message}`, 'error')
+        }
+    }, [campaigns, showToast])
 
     // ============================================
-    // PROMO CRUD
+    // PROMO CRUD — [REAL-DATA-2] реальный generic CRUD /owner/promos (Promo)
     // ============================================
-    const addPromo = useCallback((data) => {
-        setPromos(prev => [...prev, { ...data, id: generateId(), usedCount: 0 }])
-        showToast('Промокод создан')
+    const addPromo = useCallback(async (data) => {
+        try {
+            const res = await ownerApi.create('promos', data)
+            const doc = res?.data
+            if (doc) setPromos(prev => [...prev, { ...doc, id: doc.id || doc._id }])
+            showToast('Промокод создан')
+        } catch (e) {
+            showToast(`Промокод не создан: ${e.message}`, 'error')
+        }
     }, [showToast])
 
-    const removePromo = useCallback((id) => {
-        setPromos(prev => prev.filter(p => p.id !== id))
-        showToast('Промокод удалён')
+    const removePromo = useCallback(async (id) => {
+        try {
+            await ownerApi.remove('promos', id)
+            setPromos(prev => prev.filter(p => p.id !== id))
+            showToast('Промокод удалён')
+        } catch (e) {
+            showToast(`Промокод не удалён: ${e.message}`, 'error')
+        }
     }, [showToast])
 
     // ============================================
-    // NEWS CRUD
+    // NEWS CRUD — [REAL-DATA-2] реальный generic CRUD /owner/news (News)
     // ============================================
-    const addNews = useCallback((data) => {
-        setNews(prev => [...prev, { ...data, id: generateId(), views: 0, date: new Date().toISOString() }])
-        showToast('Новость создана')
+    const addNews = useCallback(async (data) => {
+        try {
+            const res = await ownerApi.create('news', data)
+            const doc = res?.data
+            if (doc) setNews(prev => [...prev, { ...doc, id: doc.id || doc._id }])
+            showToast('Новость создана')
+        } catch (e) {
+            showToast(`Новость не создана: ${e.message}`, 'error')
+        }
     }, [showToast])
 
-    const publishNews = useCallback((id) => {
-        setNews(prev => prev.map(n => n.id === id ? { ...n, status: 'published' } : n))
-        showToast('Новость опубликована')
+    const publishNews = useCallback(async (id) => {
+        try {
+            await ownerApi.update('news', id, { status: 'published' })
+            setNews(prev => prev.map(n => n.id === id ? { ...n, status: 'published' } : n))
+            showToast('Новость опубликована')
+        } catch (e) {
+            showToast(`Новость не опубликована: ${e.message}`, 'error')
+        }
     }, [showToast])
 
     // ============================================
     // AI AGENTS CRUD
     // ============================================
-    const toggleAgent = useCallback((agentId) => {
-        setAgents(prev => prev.map(a => a.id === agentId ? { ...a, status: a.status === 'active' ? 'paused' : 'active' } : a))
-        showToast('Статус агента обновлён')
-    }, [showToast])
+    // AI AGENTS CRUD — [REAL-DATA-2] реальный generic CRUD /owner/agents (AIAgent), не локальный стейт
+    // ============================================
+    const toggleAgent = useCallback(async (agentId) => {
+        const agent = agents.find(a => a.id === agentId)
+        if (!agent) return
+        const next = agent.status === 'active' ? 'paused' : 'active'
+        try {
+            await request(`/owner/agents/${agentId}`, { method: 'PATCH', body: JSON.stringify({ status: next }) })
+            setAgents(prev => prev.map(a => a.id === agentId ? { ...a, status: next } : a))
+            showToast('Статус агента обновлён')
+        } catch (e) {
+            showToast(`Не удалось обновить агента: ${e.message}`, 'error')
+        }
+    }, [agents, showToast])
 
-    const updateAgent = useCallback((agentId, data) => {
-        setAgents(prev => prev.map(a => a.id === agentId ? { ...a, ...data } : a))
-        showToast('Агент обновлён')
-    }, [showToast])
-
-    const addAgent = useCallback((data) => {
-        const agent = { ...data, id: generateId(), status: 'active' }
-        setAgents(prev => [...prev, agent])
-        addAuditLog(`Добавлен AI-агент: ${data.name}`, 'config', 'medium')
-        showToast(`Агент ${data.name} создан`)
+    const addAgent = useCallback(async (data) => {
+        try {
+            const res = await request('/owner/agents', { method: 'POST', body: JSON.stringify({ ...data, status: 'active' }) })
+            const doc = res?.data
+            if (doc) setAgents(prev => [...prev, { ...doc, id: doc.id || doc._id }])
+            addAuditLog(`Добавлен AI-агент: ${data.name}`, 'config', 'medium')
+            showToast(`Агент ${data.name} создан`)
+        } catch (e) {
+            showToast(`Агент не создан: ${e.message}`, 'error')
+        }
     }, [showToast, addAuditLog])
 
-    const removeAgent = useCallback((agentId) => {
-        setAgents(prev => prev.filter(a => a.id !== agentId))
-        showToast('Агент удалён')
+    const removeAgent = useCallback(async (agentId) => {
+        try {
+            await request(`/owner/agents/${agentId}`, { method: 'DELETE' })
+            setAgents(prev => prev.filter(a => a.id !== agentId))
+            showToast('Агент удалён')
+        } catch (e) {
+            showToast(`Не удалось удалить агента: ${e.message}`, 'error')
+        }
     }, [showToast])
 
     // ============================================
@@ -483,23 +501,14 @@ export function useOwnerData() {
     // ============================================
     // INTEGRATIONS
     // ============================================
-    const toggleIntegration = useCallback((id) => {
-        setIntegrations(prev => prev.map(i => {
-            if (i.id !== id) return i
-            const newStatus = i.connected ? 'disconnected' : 'active'
-            return { ...i, connected: !i.connected, status: newStatus }
-        }))
-        showToast('Интеграция обновлена')
+    // [REAL-DATA-2] серверного переключателя интеграций нет — честный ответ вместо локального флипа
+    const toggleIntegration = useCallback(() => {
+        showToast('Переключение интеграции на сервере не поддерживается — статус меняется реальным подключением (OAuth/ключи)', 'error')
     }, [showToast])
 
     // ============================================
     // FINANCE
     // ============================================
-    const addPayment = useCallback((data) => {
-        setPayments(prev => [...prev, { ...data, id: generateId() }])
-        showToast('Платёж добавлен')
-    }, [showToast])
-
     const resetDemoData = useCallback(() => {
         if (!window.confirm('Сбросить локальный кэш дашборда?')) return
         Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key))
@@ -515,86 +524,8 @@ export function useOwnerData() {
         showToast(`Логи старше ${days} дней очищены`)
     }, [showToast])
 
-    // ============================================
-    // TASKS CRUD
-    // ============================================
-    const addTask = useCallback((data) => {
-        const task = { ...data, id: data.id || generateId() }
-        setTasks(prev => [...prev, task])
-        addAuditLog(`Создана задача: ${task.title}`, 'task', 'low')
-        showToast('Задача создана')
-    }, [showToast, addAuditLog])
-
-    const updateTask = useCallback((id, data) => {
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
-    }, [])
-
-    const removeTask = useCallback((id) => {
-        setTasks(prev => prev.filter(t => t.id !== id))
-        showToast('Задача удалена')
-    }, [showToast])
-
-    const moveTask = useCallback((id, status) => {
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t))
-    }, [])
-
-    // ============================================
-    // API KEYS CRUD
-    // ============================================
-    const addApiKey = useCallback((data) => {
-        const key = {
-            ...data,
-            id: data.id || generateId(),
-            status: data.value ? 'active' : 'missing',
-            lastRotated: data.value ? new Date().toISOString() : null,
-        }
-        setApiKeys(prev => [...prev, key])
-        addAuditLog(`Добавлен API-ключ для ${key.label}`, 'security', 'medium')
-        showToast(`Ключ ${key.label} добавлен`)
-    }, [showToast, addAuditLog])
-
-    const updateApiKey = useCallback((id, data) => {
-        setApiKeys(prev => prev.map(k => k.id === id ? { ...k, ...data, status: data.value ? 'active' : (k.status || 'missing') } : k))
-    }, [])
-
-    const removeApiKey = useCallback((id) => {
-        setApiKeys(prev => prev.filter(k => k.id !== id))
-        showToast('Ключ удалён')
-    }, [showToast])
-
-    const rotateApiKey = useCallback((id) => {
-        showToast('Ротация ключей — только через вкладку API Keys (реальные ключи в БД)', 'error')
-    }, [showToast])
-
-    // ============================================
-    // EMAIL
-    // ============================================
-    const sendEmail = useCallback((data) => {
-        addAuditLog(`Отправлен email для ${data.to}: ${data.subject}`, 'communication', 'low')
-        showToast(`Email «${data.subject}» отправлен`)
-    }, [showToast, addAuditLog])
-
-    // ============================================
-    // OMEGA APPROVALS
-    // ============================================
-    const addApprovalRequest = useCallback((data) => {
-        const req = { ...data, id: generateId(), status: 'pending', createdAt: new Date().toISOString() }
-        setApprovalRequests(prev => [req, ...prev])
-        showToast('Новый запрос от OMEGA')
-        return req
-    }, [showToast])
-
-    const approveRequest = useCallback((id, comment = '') => {
-        setApprovalRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'approved', comment, resolvedAt: new Date().toISOString() } : r))
-        addAuditLog(`Запрос OMEGA одобрен: ${id}`, 'omega', 'high')
-        showToast('Запрос одобрен')
-    }, [showToast, addAuditLog])
-
-    const rejectRequest = useCallback((id, comment = '') => {
-        setApprovalRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected', comment, resolvedAt: new Date().toISOString() } : r))
-        addAuditLog(`Запрос OMEGA отклонён: ${id}`, 'omega', 'high')
-        showToast('Запрос отклонён')
-    }, [showToast, addAuditLog])
+    // [REAL-DATA-2] мёртвые local-only CRUD (tasks/apiKeys/email/approvals/addPayment) удалены:
+    // ни одной живой кнопки-открывателя; реальные ключи — ApiKeysTab, задачи — локальный трекер TasksTab.
 
     // ============================================
     // SEARCH & FILTER
@@ -629,7 +560,6 @@ export function useOwnerData() {
         auditLogs, promos, news, referrals, campaigns,
         security, integrations, aiAnalytics, systemLogs,
         company, withdrawRequisites, agents, chats, notifications,
-        tasks, apiKeys, approvalRequests,
 
         // UI State
         activeTab, setActiveTab,
@@ -650,26 +580,18 @@ export function useOwnerData() {
         // Actions
         addStaff, updateStaff, removeStaff,
         updateCabinetStatus, impersonateCabinet,
-        updateSubPrice,
         addCampaign, updateCampaignStatus, addNegotiation,
         addPromo, removePromo,
         addNews, publishNews,
-        toggleAgent, updateAgent, addAgent, removeAgent,
+        toggleAgent, addAgent, removeAgent,
         startChat, sendMessage,
         terminateSession, toggle2FA,
         toggleIntegration,
-        addPayment,
         resetDemoData,
         addAuditLog,
         clearOldLogs,
         exportData,
         showToast,
         refetch,
-
-        // Tasks & API keys
-        addTask, updateTask, removeTask, moveTask,
-        addApiKey, updateApiKey, removeApiKey, rotateApiKey,
-        sendEmail,
-        addApprovalRequest, approveRequest, rejectRequest,
     }
 }
