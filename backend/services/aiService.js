@@ -33,7 +33,9 @@ function detectLanguage(text) {
 }
 
 // ============ CACHE ============
-const responseCache = new Map()
+// [MEMORY-FIX] TTL 1ч + жёсткий лимит 1000 записей (LRU) — безлимитный Map ел RAM на Render Free
+import { TtlLruCache } from '../utils/ttlLruCache.js'
+const responseCache = new TtlLruCache({ ttlMs: 60 * 60 * 1000, maxEntries: 1000 })
 const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
 
 function hashString(str) {
@@ -52,19 +54,11 @@ function cacheKey(message, lang = 'ru', userId = '') {
 }
 
 function getCached(message, lang, userId = '') {
-    const key = cacheKey(message, lang, userId)
-    const entry = responseCache.get(key)
-    if (!entry) return null
-    if (Date.now() > entry.expiresAt) {
-        responseCache.delete(key)
-        return null
-    }
-    return entry.value
+    return responseCache.get(cacheKey(message, lang, userId))
 }
 
 function setCached(message, lang, value, userId = '') {
-    const key = cacheKey(message, lang, userId)
-    responseCache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS })
+    responseCache.set(cacheKey(message, lang, userId), value, CACHE_TTL_MS)
 }
 
 // ============ SMART FALLBACK TEMPLATES ============

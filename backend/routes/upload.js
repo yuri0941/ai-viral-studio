@@ -4,15 +4,32 @@ import { optimizeUpload } from '../services/imageOptimizer.js'
 import { protect } from '../middleware/auth.js'
 import { getMediaUploadLimitMb, getVideoSettings } from '../models/OwnerSettings.js'
 import MediaFile from '../models/MediaFile.js'
-import { mkdir, writeFile } from 'fs/promises'
+import { mkdir, writeFile, readFile, unlink } from 'fs/promises'
+import { mkdirSync } from 'fs'
 import { extname } from 'path'
 import crypto from 'crypto'
+import { logMemory } from '../utils/memoryLog.js'
 
 const IMAGE_UPLOAD_LIMIT = 10 * 1024 * 1024
 const MEDIA_UPLOAD_LIMIT = 250 * 1024 * 1024
 
 const uploadImage = multer({ storage: multer.memoryStorage(), limits: { fileSize: IMAGE_UPLOAD_LIMIT } })
-const uploadMedia = multer({ storage: multer.memoryStorage(), limits: { fileSize: MEDIA_UPLOAD_LIMIT } })
+// [MEMORY-FIX] /media пишется на диск стримом (diskStorage) — видео до 250 МБ больше
+// не поднимается целиком в RAM (multer memoryStorage держал весь файл в heap, Render Free 512MB).
+const uploadMedia = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const userId = req.user?._id || req.user?.id || 'unknown'
+      const dir = `uploads/${userId}`
+      try { mkdirSync(dir, { recursive: true }); cb(null, dir) } catch (e) { cb(e) }
+    },
+    filename: (req, file, cb) => {
+      const ext = extname(file.originalname || '').toLowerCase().slice(1) || 'bin'
+      cb(null, `${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`)
+    },
+  }),
+  limits: { fileSize: MEDIA_UPLOAD_LIMIT },
+})
 
 const router = express.Router()
 
@@ -60,11 +77,15 @@ async function handleMediaUpload(req, res) {
     const mime = (req.file.mimetype || '').toLowerCase()
     const originalExt = extname(req.file.originalname || '').toLowerCase().slice(1)
     const userId = req.user?._id || req.user?.id || 'unknown'
+    // [MEMORY-FIX] /media приходит с диска (req.file.path), /image — из памяти (req.file.buffer)
+    const diskPath = req.file.path || null
 
     // [OMEGA-VIDEO] лимит веса — из кабинета владельца (OwnerSettings.mediaUploadLimitMb, hot-reload ≤60с)
     const limitMb = await getMediaUploadLimitMb()
-    const fileMb = req.file.buffer.length / (1024 * 1024)
+    const fileSizeBytes = diskPath ? req.file.size : req.file.buffer.length
+    const fileMb = fileSizeBytes / (1024 * 1024)
     if (fileMb > limitMb) {
+        if (diskPath) await unlink(diskPath).catch(() => {})
         return res.status(413).json({
             success: false,
             error: 'file_too_large',
@@ -73,30 +94,49 @@ async function handleMediaUpload(req, res) {
         })
     }
 
-    // [v9.9.19.15.14] HEIC / HEIF iPhone photos → JPEG
-    if (HEIC_MIMES.has(mime) || isHeicBuffer(req.file.buffer)) {
+    // [MEMORY-FIX] буфер читаем только там, где он реально нужен (HEIC/sharp); видео остаётся на диске
+    const getBuffer = () => diskPath ? readFile(diskPath) : Promise.resolve(req.file.buffer)
+    const getHead16 = async () => {
+      if (!diskPath) return req.file.buffer
+      const { open } = await import('fs/promises')
+      const fh = await open(diskPath, 'r')
       try {
+        const buf = Buffer.alloc(16)
+        await fh.read(buf, 0, 16, 0)
+        return buf
+      } finally { await fh.close() }
+    }
+
+    // [v9.9.19.15.14] HEIC / HEIF iPhone photos → JPEG
+    const headBuffer = await getHead16()
+    if (HEIC_MIMES.has(mime) || isHeicBuffer(headBuffer)) {
+      try {
+        const srcBuffer = await getBuffer()
         const convert = await import('heic-convert').then(m => m.default || m)
-        const jpegBuffer = await convert({ buffer: req.file.buffer, format: 'JPEG', quality: 0.92 })
+        const jpegBuffer = await convert({ buffer: srcBuffer, format: 'JPEG', quality: 0.92 })
         const optimized = await optimizeUpload(jpegBuffer, { format: 'jpeg', quality: 85 })
         const publicUrl = await saveUpload(optimized.buffer, userId, 'jpg')
+        if (diskPath) await unlink(diskPath).catch(() => {})
         await trackMediaFile(userId, publicUrl, optimized.buffer.length, 'image')
         return res.json({ success: true, url: publicUrl, mediaType: 'image', size: optimized.buffer.length })
       } catch (err) {
         console.error('[upload:media] HEIC conversion failed:', err.message)
+        if (diskPath) await unlink(diskPath).catch(() => {})
         return res.status(400).json({ success: false, error: 'heic_conversion_failed', hint: 'Не удалось сконвертировать HEIC. Сохраните фото как JPEG и попробуйте снова.' })
       }
     }
 
     // [v9.9.19.15.14] images → sharp optimization
     if (IMAGE_MIMES.has(mime) || mime.startsWith('image/')) {
-      const result = await optimizeUpload(req.file.buffer, {
+      const srcBuffer = await getBuffer()
+      const result = await optimizeUpload(srcBuffer, {
         format: req.body.format || 'webp',
         quality: Number(req.body.quality) || 80,
         width: req.body.width ? Number(req.body.width) : null,
       })
       const ext = result.format === 'jpeg' ? 'jpg' : result.format
       const publicUrl = await saveUpload(result.buffer, userId, ext)
+      if (diskPath) await unlink(diskPath).catch(() => {})
       await trackMediaFile(userId, publicUrl, result.buffer.length, 'image')
       return res.json({
         success: true,
@@ -111,16 +151,26 @@ async function handleMediaUpload(req, res) {
     }
 
     // [v9.9.19.15.14] video → save as-is
+    // [MEMORY-FIX] с диска: файл уже лежит в uploads/<userId>/ (multer записал стримом) — просто отдаём URL
     if (VIDEO_MIMES.has(mime) || mime.startsWith('video/')) {
+      if (diskPath) {
+        const filename = diskPath.replace(/\\/g, '/').split('/').pop()
+        const publicUrl = `/uploads/${userId}/${filename}`
+        await trackMediaFile(userId, publicUrl, req.file.size, 'video')
+        logMemory(`upload:video ${Math.round(req.file.size / (1024 * 1024))}MB`)
+        return res.json({ success: true, url: publicUrl, mediaType: 'video', size: req.file.size })
+      }
       const ext = originalExt || (mime === 'video/quicktime' ? 'mov' : 'mp4')
       const publicUrl = await saveUpload(req.file.buffer, userId, ext)
       await trackMediaFile(userId, publicUrl, req.file.buffer.length, 'video')
       return res.json({ success: true, url: publicUrl, mediaType: 'video', size: req.file.buffer.length })
     }
 
+    if (diskPath) await unlink(diskPath).catch(() => {})
     return res.status(400).json({ success: false, error: 'unsupported_format', hint: `Unsupported media type: ${mime}` })
   } catch (err) {
     console.error('[upload:media]', err.message)
+    if (req.file?.path) await unlink(req.file.path).catch(() => {})
     return res.status(500).json({ success: false, message: err.message })
   }
 }

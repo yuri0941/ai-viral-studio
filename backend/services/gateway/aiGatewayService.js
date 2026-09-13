@@ -4,6 +4,14 @@ const RATE_LIMIT_PER_MINUTE = 100
 const logs = []
 const userRequests = new Map()
 
+// [MEMORY-FIX] sweep неактивных пользователей — ключи userId иначе копятся вечно
+setInterval(() => {
+    const cutoff = Date.now() - 10 * 60 * 1000
+    for (const [uid, entries] of userRequests) {
+        if (!entries.length || entries[entries.length - 1] < cutoff) userRequests.delete(uid)
+    }
+}, 5 * 60 * 1000).unref?.()
+
 function isRateLimited(userId) {
     if (!userId) return false
     const now = Date.now()
