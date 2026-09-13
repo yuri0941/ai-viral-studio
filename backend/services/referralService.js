@@ -17,7 +17,7 @@ const referralRewardText = (pct) => `${pct}% комиссии`
 
 const TIER_REWARDS = {
     starter: { label: 'Starter', minReferrals: 0, reward: 'Начните приглашать' },
-    friend: { label: 'Друг', minReferrals: 1, reward: '$10 кредитов' },
+    friend: { label: 'Друг', minReferrals: 1, reward: '10 ✦ кредитов' },
     popular: { label: 'Популярный', minReferrals: 3, reward: 'Agentic Mode на 1 месяц' },
     vip: { label: 'VIP', minReferrals: 5, reward: 'Скидка 20% навсегда' },
     partner: { label: 'Affiliate Partner', minReferrals: 10, reward: referralRewardText(12) }, // [REFERRAL-PCT] текст динамический — см. getReferralData

@@ -53,7 +53,7 @@ export function WhiteLabelTab({ data }) {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-semibold text-[var(--text)]">White-Label Agency</h2>
-                    <p className="text-sm text-gray-500 mt-1">Тариф Agency ($299/мес) — кастомный бренд, домен, цвета.</p>
+                    <p className="text-sm text-gray-500 mt-1">Тариф Agency — кастомный бренд, домен, цвета. Актуальная цена — в разделе «Подписки».</p>
                 </div>
                 <div className="flex gap-2">
                     <button type="button" onClick={handlePreview} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--text)] text-sm">

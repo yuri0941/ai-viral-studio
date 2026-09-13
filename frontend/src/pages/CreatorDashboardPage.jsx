@@ -7,43 +7,24 @@ import { useAuth } from '../context/AuthContext'
 import { API_URL } from '../config'
 import AIVideoCreator from '../components/video/AIVideoCreator.jsx'
 import SupportTab from './creator/components/SupportTab.jsx'
+import { EmptyState } from '../components/common/EmptyState.jsx'
 import {
     LayoutDashboard, Video, Eye, Users, Heart, DollarSign,
     Plus, Calendar, BarChart as BarChartIcon, Bot, TrendingUp, Clock,
     Play, Instagram, Youtube, Music2, MessageCircle,
-    ChevronRight, Sparkles, Award, Sunrise, Trophy, Flame, Lightbulb,
-    Clapperboard
+    ChevronRight, Sparkles, Award, Trophy, Flame, Lightbulb,
+    Clapperboard, PieChart as PieChartIcon
 } from 'lucide-react'
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-    ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell
+    ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts'
 
 const COLORS = ['var(--success)', 'var(--accent)', 'var(--primary)', 'var(--accent-warm)', 'var(--danger)']
 
-const VIRALITY_WEEK = [
-    { day: 'Пн', views: 12400, engagement: 4.2 },
-    { day: 'Вт', views: 18200, engagement: 5.1 },
-    { day: 'Ср', views: 15600, engagement: 4.8 },
-    { day: 'Чт', views: 24100, engagement: 6.3 },
-    { day: 'Пт', views: 38900, engagement: 7.8 },
-    { day: 'Сб', views: 45200, engagement: 8.4 },
-    { day: 'Вс', views: 32100, engagement: 6.9 },
-]
-
-const VIRALITY_MONTH = [
-    { day: 'Нед 1', views: 98000, engagement: 5.4 },
-    { day: 'Нед 2', views: 134000, engagement: 6.1 },
-    { day: 'Нед 3', views: 187000, engagement: 7.2 },
-    { day: 'Нед 4', views: 223000, engagement: 8.0 },
-]
-
-const PLATFORM_DATA = [
-    { name: 'TikTok', value: 45 },
-    { name: 'YouTube Shorts', value: 30 },
-    { name: 'Instagram Reels', value: 20 },
-    { name: 'Telegram', value: 5 },
-]
+// [REAL-DATA] Хардкод-серии графиков (VIRALITY_WEEK/MONTH, PLATFORM_DATA) удалены:
+// графики строятся только из stats.series / stats.platforms, пришедших из API.
+// График без данных не рисуется — показывается честный empty-state.
 
 const PORTFOLIO_WORKS = []
 
@@ -143,20 +124,34 @@ function CreatorDashboardPage() {
                     subscribers: payload.subscribers || 0,
                     engagement: payload.engagement || 0,
                     income: payload.income || 0,
+                    // [REAL-DATA] таймсерии/платформы/стрик — только если API их реально отдал
+                    series: payload.series || null,
+                    platforms: Array.isArray(payload.platforms) ? payload.platforms : [],
+                    streakDays: payload.streakDays || 0,
                 })
             })
-            .catch(() => setStats({ posts: 0, views: 0, subscribers: 0, engagement: 0, income: 0 }))
+            .catch(() => setStats({ posts: 0, views: 0, subscribers: 0, engagement: 0, income: 0, series: null, platforms: [], streakDays: 0 }))
             .finally(() => setStatsLoading(false))
     }, [])
 
-    const chartData = useMemo(() => period === 'week' ? VIRALITY_WEEK : VIRALITY_MONTH, [period])
+    // [REAL-DATA] нет серий из API → пустой массив → график не рисуется
+    const chartData = useMemo(() => {
+        const s = stats?.series
+        if (!s) return []
+        const arr = period === 'week' ? s.week : s.month
+        return Array.isArray(arr) ? arr : []
+    }, [stats, period])
 
-    // [VALUE-2026-08-04] added: guard income calculations
-    const incomeSources = [
-        { label: t('creator.sourceAds', 'AdSense / Creator Fund'), value: (stats?.income || 0) * 0.45, color: 'bg-[var(--success)]' },
-        { label: t('creator.sourceSponsors', 'Спонсорские интеграции'), value: (stats?.income || 0) * 0.35, color: 'bg-[var(--accent)]' },
-        { label: t('creator.sourceProducts', 'Свои продукты'), value: (stats?.income || 0) * 0.15, color: 'bg-[var(--primary)]' },
-        { label: t('creator.sourceDonations', 'Донаты / Подписки'), value: (stats?.income || 0) * 0.05, color: 'bg-[var(--accent-warm)]' },
+    const platformData = useMemo(() => Array.isArray(stats?.platforms) ? stats.platforms : [], [stats])
+
+    const streakDays = stats?.streakDays || 0
+    const streakShown = Math.min(streakDays, 7)
+
+    // [REAL-DATA] ачивки считаются из реальной статистики, а не захардкожены
+    const achievements = [
+        { id: 'first_step', label: 'First Step', icon: Award, color: 'from-emerald-500 to-emerald-700', desc: t('creator.achOnboarding', 'Завершён онбординг'), unlocked: (stats?.posts || 0) > 0 },
+        { id: 'consistency', label: 'Consistency', icon: Flame, color: 'from-orange-500 to-red-500', desc: t('creator.achConsistency', '7 дней публикаций'), unlocked: streakDays >= 7 },
+        { id: 'viral_hit', label: 'Viral Hit', icon: TrendingUp, color: 'from-purple-500 to-pink-500', desc: t('creator.achViral', '10K просмотров'), unlocked: (stats?.views || 0) >= 10000 },
     ]
 
     return (
@@ -253,7 +248,7 @@ function CreatorDashboardPage() {
                 <StatCard label={t('creator.views')} value={formatNumber(stats?.views || 0)} icon={Eye} gradient="from-sky-500 to-blue-600" />
                 <StatCard label={t('creator.subscribers')} value={formatNumber(stats?.subscribers || 0)} icon={Users} gradient="from-violet-500 to-fuchsia-600" />
                 <StatCard label={t('creator.engagement')} value={`${stats?.engagement || 0}%`} icon={Heart} gradient="from-amber-500 to-orange-600" />
-                <StatCard label={t('creator.income')} value={`$${stats?.income || 0}`} icon={DollarSign} gradient="from-emerald-500 to-green-600" />
+                <StatCard label={t('creator.income')} value={`${stats?.income || 0} ₽`} icon={DollarSign} gradient="from-emerald-500 to-green-600" />
             </div>
 
             {/* [P16-FIX] added: content pipeline horizontal scroll with glass cards */}
@@ -296,25 +291,20 @@ function CreatorDashboardPage() {
                 </div>
             </div>
 
-            {/* Achievement Widget */}
+            {/* Achievement Widget — [REAL-DATA] статус открытия из реальной статистики */}
             <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4">
                     <Trophy className="w-5 h-5 text-[var(--accent-warm)]" />
                     <h3 className="font-semibold text-[var(--text)]">{t('creator.achievements')}</h3>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                    {[
-                        { id: 'first_step', label: 'First Step', icon: Award, color: 'from-emerald-500 to-emerald-700', desc: t('creator.achOnboarding', 'Завершён онбординг') },
-                        { id: 'consistency', label: 'Consistency', icon: Flame, color: 'from-orange-500 to-red-500', desc: t('creator.achConsistency', '7 дней публикаций') },
-                        { id: 'viral_hit', label: 'Viral Hit', icon: TrendingUp, color: 'from-purple-500 to-pink-500', desc: t('creator.achViral', '10K просмотров') },
-                    ].map(a => {
+                    {achievements.map(a => {
                         const Icon = a.icon
-                        const unlocked = a.id !== 'viral_hit'
                         return (
                             <div
                                 key={a.id}
                                 className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:scale-105 ${
-                                    unlocked
+                                    a.unlocked
                                         ? 'bg-[var(--surface)] border-[var(--border-strong)]'
                                         : 'bg-[var(--surface)] border-[var(--border)] opacity-50'
                                 }`}
@@ -332,18 +322,18 @@ function CreatorDashboardPage() {
                 </div>
             </div>
 
-            {/* Streak Counter */}
+            {/* Streak Counter — [REAL-DATA] дни из API (stats.streakDays), без хардкода 7/7 */}
             <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Flame className="w-5 h-5 text-orange-400" />
-                        <h3 className="font-semibold text-[var(--text)]">{t('creator.streak', { days: 7 })}</h3>
+                        <h3 className="font-semibold text-[var(--text)]">{t('creator.streak', { days: streakShown })}</h3>
                     </div>
-                    <span className="text-xs text-[var(--success)] font-medium">{t('creator.streakProgress', { current: 7, total: 7 })}</span>
+                    <span className="text-xs text-[var(--success)] font-medium">{t('creator.streakProgress', { current: streakShown, total: 7 })}</span>
                 </div>
                 <div className="flex gap-1 mb-3">
                     {Array.from({ length: 7 }).map((_, i) => (
-                        <div key={i} className="h-2 flex-1 rounded-full bg-[var(--success)]" />
+                        <div key={i} className={`h-2 flex-1 rounded-full ${i < streakShown ? 'bg-[var(--success)]' : 'bg-[var(--surface)]'}`} />
                     ))}
                 </div>
                 <p className="text-xs text-[var(--text-muted)]">{t('creator.streakMotivation')}</p>
@@ -368,7 +358,7 @@ function CreatorDashboardPage() {
                 </div>
             </div>
 
-            {/* Charts */}
+            {/* Charts — [REAL-DATA] рисуются только при реальных сериях из API */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Virality chart */}
                 <div className="lg:col-span-2 glass-luxury glass-luxury-hover rounded-2xl p-5">
@@ -393,65 +383,85 @@ function CreatorDashboardPage() {
                             ))}
                         </div>
                     </div>
-                    <div className="h-[260px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData}>
-                                <defs>
-                                    <linearGradient id="viewsGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="var(--success)" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                <XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
-                                <RechartsTooltip
-                                    contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-strong)', borderRadius: '12px' }}
-                                    itemStyle={{ color: 'var(--text)' }}
-                                />
-                                <Area type="monotone" dataKey="views" stroke="var(--success)" strokeWidth={2} fill="url(#viewsGradient)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
+                    {chartData.length === 0 ? (
+                        <EmptyState
+                            icon={TrendingUp}
+                            title="Нет данных для графика"
+                            description="График виральности строится по реальным просмотрам ваших постов. Опубликуйте контент и подключите соцсети."
+                            compact
+                        />
+                    ) : (
+                        <div className="h-[260px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="viewsGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="var(--success)" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                    <XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
+                                    <RechartsTooltip
+                                        contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-strong)', borderRadius: '12px' }}
+                                        itemStyle={{ color: 'var(--text)' }}
+                                    />
+                                    <Area type="monotone" dataKey="views" stroke="var(--success)" strokeWidth={2} fill="url(#viewsGradient)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
                 </div>
 
-                {/* Platform distribution */}
+                {/* Platform distribution — [REAL-DATA] только реальные платформы из API */}
                 <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                     <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
-                        <PieChart size={18} className="text-[var(--primary)]" />
+                        <PieChartIcon size={18} className="text-[var(--primary)]" />
                         {t('creator.platformDistribution')}
                     </h2>
-                    <div className="h-[200px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={PLATFORM_DATA}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={55}
-                                    outerRadius={80}
-                                    paddingAngle={3}
-                                    dataKey="value"
-                                >
-                                    {PLATFORM_DATA.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <RechartsTooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-strong)', borderRadius: '12px' }} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="space-y-2 mt-2">
-                        {PLATFORM_DATA.map((p, i) => (
-                            <div key={p.name} className="flex items-center justify-between text-sm">
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full" style={{ background: COLORS[i] }} />
-                                    <span className="text-[var(--text)]">{p.name}</span>
-                                </div>
-                                <span className="text-[var(--text)] font-medium">{p.value}%</span>
+                    {platformData.length === 0 ? (
+                        <EmptyState
+                            icon={PieChartIcon}
+                            title="Нет данных по платформам"
+                            description="Распределение появится после первых публикаций с привязанной платформой."
+                            compact
+                        />
+                    ) : (
+                        <>
+                            <div className="h-[200px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={platformData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={55}
+                                            outerRadius={80}
+                                            paddingAngle={3}
+                                            dataKey="value"
+                                        >
+                                            {platformData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <RechartsTooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-strong)', borderRadius: '12px' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
                             </div>
-                        ))}
-                    </div>
+                            <div className="space-y-2 mt-2">
+                                {platformData.map((p, i) => (
+                                    <div key={p.name} className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+                                            <span className="text-[var(--text)]">{p.name}</span>
+                                        </div>
+                                        <span className="text-[var(--text)] font-medium">{p.value}%</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -502,32 +512,19 @@ function CreatorDashboardPage() {
                     </div>
                 </div>
 
-                {/* Monetization */}
+                {/* Monetization — [REAL-DATA] сумма фактом в ₽; выдуманная раскладка по источникам удалена */}
                 <div className="glass-luxury glass-luxury-hover rounded-2xl p-5">
                     <h2 className="text-lg font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <DollarSign size={18} className="text-[var(--success)]" />
                         {t('creator.monetization')}
                     </h2>
                     <div className="mb-5">
-                        <p className="text-3xl font-bold text-[var(--text)]">${stats?.income || 0}</p>
+                        <p className="text-3xl font-bold text-[var(--text)]">{(stats?.income || 0).toLocaleString('ru-RU')} ₽</p>
                         <p className="text-sm text-[var(--text-muted)]">{t('creator.income30Days')}</p>
                     </div>
-                    <div className="space-y-4">
-                        {incomeSources.map(source => (
-                            <div key={source.label}>
-                                <div className="flex items-center justify-between text-xs mb-1.5">
-                                    <span className="text-[var(--text-muted)]">{source.label}</span>
-                                    <span className="text-[var(--text)]">${Math.round(source.value)}</span>
-                                </div>
-                                <div className="h-2 w-full bg-[var(--surface)] rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full ${source.color} rounded-full`}
-                                        style={{ width: `${stats?.income > 0 ? (source.value / stats.income) * 100 : 0}%` }}
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    {(stats?.income || 0) === 0 && (
+                        <p className="text-xs text-[var(--text-muted)] mb-4">Дохода за период нет. Разбивка по источникам появится, когда будут реальные выплаты.</p>
+                    )}
                     <div className="mt-5 p-3 rounded-xl bg-[var(--success)]/5 border border-[var(--success)]/10">
                         <p className="text-xs text-[var(--success)]">{t('creator.monetizationTip')}</p>
                     </div>
@@ -555,6 +552,9 @@ function CreatorDashboardPage() {
                                 </div>
                             </div>
                         ))}
+                        {RECENT_ACTIVITY.length === 0 && (
+                            <p className="text-sm text-[var(--text-muted)]">Активности пока нет — опубликуйте первый пост.</p>
+                        )}
                     </div>
                 </div>
 
@@ -569,6 +569,9 @@ function CreatorDashboardPage() {
                                 <p className="text-[var(--text)] text-sm">{tip}</p>
                             </div>
                         ))}
+                        {AI_TIPS.length === 0 && (
+                            <p className="text-sm text-[var(--text-muted)]">Персональные советы появятся после первых публикаций.</p>
+                        )}
                     </div>
                 </div>
             </div>

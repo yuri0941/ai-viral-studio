@@ -29,14 +29,8 @@ const PRIORITY_BADGES = {
     low: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
 }
 
-const INITIAL_TASKS = [
-    { id: '1', title: 'Подготовить бриф для TechBrand', description: 'Собрать референсы, написать ТЗ и согласовать с клиентом.', status: 'todo', priority: 'urgent', assignees: ['А', 'И'], due: '2026-08-05', tags: ['реклама', 'бриф'], commentsCount: 4, filesCount: 2, checklist: [{ label: 'Референсы', done: true }, { label: 'ТЗ', done: false }] },
-    { id: '2', title: 'Обновить цены Pro', description: 'Пересчитать стоимость с учётом новых лимитов генераций.', status: 'in_progress', priority: 'medium', assignees: ['И'], due: '2026-08-02', tags: ['finance'], commentsCount: 1, filesCount: 0, checklist: [{ label: 'Анализ', done: true }] },
-    { id: '3', title: 'Проверить AI Worker #2', description: 'CPU выше 90%, нужно разобраться с нагрузкой.', status: 'review', priority: 'urgent', assignees: ['Д'], due: '2026-07-30', tags: ['infra'], commentsCount: 7, filesCount: 3, checklist: [] },
-    { id: '4', title: 'Опубликовать новость о запуске', description: 'Подготовить пост и разослать по каналам.', status: 'done', priority: 'low', assignees: ['М'], due: '2026-07-28', tags: ['content'], commentsCount: 0, filesCount: 1, checklist: [{ label: 'Текст', done: true }, { label: 'Публикация', done: true }] },
-    { id: '5', title: 'AI-аудит Brand Voice', description: 'Проанализировать 20 постов клиента и выдать рекомендации.', status: 'todo', priority: 'medium', assignees: ['Е', 'А'], due: '2026-08-07', tags: ['ai', 'brand'], commentsCount: 2, filesCount: 0, checklist: [] },
-]
-
+// [REAL-DATA] мок-задачи (AI Worker #2 и т.п.) удалены — доска стартует пустой,
+// задачи владельца сохраняются в localStorage (свой трекер, не метрики).
 const TAG_COLORS = {
     'реклама': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
     'finance': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -62,8 +56,13 @@ export function TasksTab({ data }) {
     const { t } = useTranslation()
     const { showToast } = data || {}
     const [tasks, setTasks] = useState(() => {
-        const saved = typeof window !== 'undefined' ? localStorage.getItem('owner_tasks_v2') : null
-        return saved ? JSON.parse(saved) : INITIAL_TASKS
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('owner_tasks_v3') : null
+        try {
+            const parsed = saved ? JSON.parse(saved) : []
+            return Array.isArray(parsed) ? parsed : []
+        } catch {
+            return []
+        }
     })
     const [search, setSearch] = useState('')
     const [filterPriority, setFilterPriority] = useState('all')
@@ -76,7 +75,7 @@ export function TasksTab({ data }) {
     const [fabOpen, setFabOpen] = useState(false)
 
     useEffect(() => {
-        localStorage.setItem('owner_tasks_v2', JSON.stringify(tasks))
+        localStorage.setItem('owner_tasks_v3', JSON.stringify(tasks))
     }, [tasks])
 
     const allAssignees = useMemo(() => {

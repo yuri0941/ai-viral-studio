@@ -7,34 +7,16 @@ import {
 import toast from 'react-hot-toast'
 import { API_BASE_URL } from '../../../../config.js'
 
+// [REAL-DATA] тиры зеркалят backend referralService.TIER_REWARDS (обещание = механика)
 const TIERS = [
-    { id: 'starter', min: 1, label: 'Starter', reward: '-10% скидка', refs: 1 },
-    { id: 'pro', min: 3, label: 'Pro', reward: '-20% скидка', refs: 3 },
-    { id: 'agent', min: 5, label: 'Agent', reward: 'Agentic Mode', refs: 5 },
-    { id: 'partner', min: 10, label: 'Partner', reward: '12% комиссия', refs: 10 }, // [REFERRAL-PCT] база; рендер — динамический из OwnerSettings (см. tiers ниже)
+    { id: 'starter', min: 0, label: 'Starter', reward: 'Начните приглашать', refs: 0 },
+    { id: 'friend', min: 1, label: 'Друг', reward: '10 ✦ кредитов', refs: 1 },
+    { id: 'popular', min: 3, label: 'Популярный', reward: 'Agentic Mode на 1 месяц', refs: 3 },
+    { id: 'vip', min: 5, label: 'VIP', reward: 'Скидка 20% навсегда', refs: 5 },
+    { id: 'partner', min: 10, label: 'Affiliate Partner', reward: '12% комиссия', refs: 10 }, // [REFERRAL-PCT] база; рендер — динамический из OwnerSettings (см. tiers ниже)
 ]
 
-const DEMO_DATA = {
-    code: 'DEMO50',
-    link: 'https://aiviral-studio.ru/?ref=DEMO50',
-    count: 4,
-    activeCount: 2,
-    earnings: 120,
-    available: 120,
-    tierLabel: 'Pro',
-    referralsToNext: 1,
-    referredUsers: [
-        { id: '1', name: 'Анна Петрова', email: 'anna@example.com', date: '2026-07-20', tariff: 'Pro', status: 'Активен', earnings: 40 },
-        { id: '2', name: 'Иван Сидоров', email: 'ivan@example.com', date: '2026-07-18', tariff: 'Creator', status: 'Регистрация', earnings: 0 },
-        { id: '3', name: 'Мария Козлова', email: 'maria@example.com', date: '2026-07-15', tariff: 'Agency', status: 'Оплатил', earnings: 80 },
-        { id: '4', name: 'Дмитрий Волков', email: 'dmitry@example.com', date: '2026-07-10', tariff: 'Pro', status: 'Активен', earnings: 0 },
-    ],
-    payouts: [
-        { id: '1', date: '2026-06-25', amount: 50, status: 'Выплачено', method: 'USDT TRC20' },
-        { id: '2', name: '2026-07-01', amount: 30, status: 'В обработке', method: 'Банковская карта' },
-    ],
-}
-
+// [REAL-DATA] DEMO_DATA удалён: нет рефералов → честные нули, без выдуманных людей/выплат.
 const STATUS_STYLES = {
     'Регистрация': 'bg-gray-500/10 text-gray-400',
     'Активен': 'bg-emerald-500/10 text-emerald-400',
@@ -45,7 +27,6 @@ export function ReferralsTab() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [copied, setCopied] = useState(false)
-    const [isDemo, setIsDemo] = useState(false)
     const [postModalOpen, setPostModalOpen] = useState(false)
     const [generatedPost, setGeneratedPost] = useState('')
     const [generatingPost, setGeneratingPost] = useState(false)
@@ -64,37 +45,37 @@ export function ReferralsTab() {
             })
             const json = await res.json()
             if (json.status === 'success' || json.success) {
-                const d = json.data
-                // normalize fields
+                const d = json.data || {}
+                // [REAL-DATA] только поля из API; earnings/available — в ₽
                 setData({
-                    ...DEMO_DATA,
-                    ...d,
+                    code: d.code || '',
+                    link: d.link || '',
+                    count: d.count || 0,
                     activeCount: d.paidCount || 0,
+                    earnings: d.earnings || 0,
                     available: d.creditBalance || d.earnings || 0,
-                    referredUsers: Array.isArray(d.referredUsers) && d.referredUsers.length > 0
+                    tierLabel: d.tierLabel || 'Starter',
+                    referralPercent: d.referralPercent,
+                    referralsToNext: d.referralsToNext || 0,
+                    nextReward: d.nextReward || '',
+                    referredUsers: Array.isArray(d.referredUsers)
                         ? d.referredUsers.map((r, i) => ({
                             id: r.id || i,
                             name: r.name,
                             email: r.email,
                             date: r.date,
-                            tariff: r.tariff || 'Creator',
-                            status: r.status === 'оплатил' ? 'Оплатил' : r.status === 'зарегистрировался' ? 'Регистрация' : r.status || 'Регистрация',
-                            earnings: r.status === 'оплатил' ? 20 : 0,
+                            status: r.status === 'оплатил' ? 'Оплатил' : 'Регистрация',
+                            earnings: Number(r.earnings) || 0,
                         }))
                         : [],
-                    payouts: d.payouts || [],
+                    payouts: Array.isArray(d.payouts) ? d.payouts : [],
                 })
-                if (!Array.isArray(d.referredUsers) || d.referredUsers.length === 0) {
-                    setIsDemo(true)
-                }
             } else {
-                setIsDemo(true)
-                setData(DEMO_DATA)
+                setData(null)
             }
         } catch (err) {
             console.warn('[ReferralsTab] load failed:', err.message)
-            setIsDemo(true)
-            setData(DEMO_DATA)
+            setData(null)
         } finally {
             setLoading(false)
         }
@@ -169,12 +150,10 @@ export function ReferralsTab() {
         setTimeout(() => setCopiedPost(false), 2000)
     }
 
-    // [CLIENT-JOURNEY-QA] честная заявка на вывод: создаёт реальный тикет в поддержку
-    // (владелец видит в SupportTab и выплачивает вручную через ЮKassa).
-    // Раньше был setTimeout-фейк без API. Порог $5 ≈ 500₽ — из MASTER_PLAN («вывод на ЮKassa, мин. 500₽»).
-    const MIN_PAYOUT_USD = 5
+    // [REAL-DATA] порог вывода — 500₽ (MASTER_PLAN), суммы в ₽
+    const MIN_PAYOUT_RUB = 500
     const withdraw = async () => {
-        if ((data?.available || 0) < MIN_PAYOUT_USD) return
+        if ((data?.available || 0) < MIN_PAYOUT_RUB) return
         setWithdrawing(true)
         try {
             const token = localStorage.getItem('token')
@@ -183,7 +162,7 @@ export function ReferralsTab() {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
                     subject: 'Заявка на вывод реферальных средств',
-                    description: `Доступно к выводу: $${data.available}. Прошу вывести на ЮKassa. Реквизиты уточню в переписке.`,
+                    description: `Доступно к выводу: ${data.available} ₽. Прошу вывести на ЮKassa. Реквизиты уточню в переписке.`,
                 }),
             })
             if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -196,23 +175,17 @@ export function ReferralsTab() {
     }
 
     if (loading) return <div className="text-center py-12 text-[var(--text-muted)]">Загрузка…</div>
-    if (!data) return <div className="text-center py-12 text-[var(--text-muted)]">Нет данных</div>
+    if (!data) return <div className="text-center py-12 text-[var(--text-muted)]">Не удалось загрузить реферальные данные. Обновите страницу.</div>
 
     return (
         <div className="space-y-6">
-            {isDemo && (
-                <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs flex items-center gap-2">
-                    <AlertCircle size={14} /> Демо-данные — подключите реферальную программу для реальной статистики.
-                </div>
-            )}
-
             {/* Hero */}
             <div className="rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--primary)]/10 to-transparent p-6 md:p-8">
                 <h2 className="text-2xl font-bold text-[var(--text)] flex items-center gap-2 mb-2">
                     <Share2 size={24} className="text-[var(--primary)]" />
                     Приглашайте и зарабатывайте
                 </h2>
-                <p className="text-[var(--text-muted)] mb-6">Получайте до 40% комиссии за каждого приведённого клиента.</p>
+                <p className="text-[var(--text-muted)] mb-6">Получайте {refPct}% комиссии с каждой оплаты приведённого клиента.</p>
                 <div className="flex flex-col sm:flex-row items-stretch gap-3">
                     <input
                         readOnly
@@ -239,8 +212,8 @@ export function ReferralsTab() {
                     {[
                         { label: 'Всего приглашено', value: data.count || 0, icon: Users },
                         { label: 'Активных', value: data.activeCount || 0, icon: TrendingUp },
-                        { label: 'Заработано', value: `$${data.earnings || 0}`, icon: DollarSign },
-                        { label: 'Доступно к выводу', value: `$${data.available || 0}`, icon: Wallet },
+                        { label: 'Заработано', value: `${(data.earnings || 0).toLocaleString('ru-RU')} ₽`, icon: DollarSign },
+                        { label: 'Доступно к выводу', value: `${(data.available || 0).toLocaleString('ru-RU')} ₽`, icon: Wallet },
                     ].map((stat, i) => {
                         const Icon = stat.icon
                         return (
@@ -289,7 +262,7 @@ export function ReferralsTab() {
                                                 {r.status}
                                             </span>
                                         </td>
-                                        <td className="py-3">${r.earnings}</td>
+                                        <td className="py-3">{Number(r.earnings || 0).toLocaleString('ru-RU')} ₽</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -344,7 +317,7 @@ export function ReferralsTab() {
                     <button
                         type="button"
                         onClick={withdraw}
-                        disabled={withdrawing || (data.available || 0) < MIN_PAYOUT_USD}
+                        disabled={withdrawing || (data.available || 0) < MIN_PAYOUT_RUB}
                         title="Минимальная сумма вывода — 500₽ (выплата через ЮKassa после заявки в поддержку)"
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
                     >
@@ -368,7 +341,7 @@ export function ReferralsTab() {
                                 {(data.payouts || []).map((p, i) => (
                                     <tr key={p.id || i} className="border-b border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface)] transition-colors">
                                         <td className="py-3">{p.date ? new Date(p.date).toLocaleDateString('ru-RU') : '—'}</td>
-                                        <td className="py-3">${p.amount}</td>
+                                        <td className="py-3">{Number(p.amount || 0).toLocaleString('ru-RU')} ₽</td>
                                         <td className="py-3 text-[var(--text-muted)]">{p.status}</td>
                                         <td className="py-3 text-[var(--text-muted)]">{p.method}</td>
                                     </tr>

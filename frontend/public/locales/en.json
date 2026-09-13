@@ -416,7 +416,8 @@
         "cta": "Upgrade"
       },
       "referral": {
-        "title": "Invite a friend — 12% of their payments",
+        "title": "Invite a friend — {{pct}}% of their payments",
+        "titleGeneric": "Invite a friend — bonus from their payments",
         "cta": "Copy link"
       },
       "ytScout": {
