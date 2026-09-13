@@ -23,15 +23,13 @@ export const ACTION_REGISTRY = [
 
 const NET_RATIO = 1 - (ACQUIRING_PERCENT + TAX_PERCENT) / 100
 
-// Продажная цена 1✦ в ₽ — самый дешёвый активный пакет (консервативно для пола маржи).
+// Продажная цена 1✦ в ₽ — входной (самый маленький) пакет: стандартная цена кредита.
 // Пакетов нет → оценка из себестоимости: 0.24₽ / 0.7 ≈ 0.35₽ (минимально допустимая цена ✦).
 export async function getCreditSalePriceRub() {
     try {
-        const packs = await CreditPack.find({}).lean()
-        const rates = (packs || [])
-            .filter(p => p.credits > 0 && p.priceRub > 0)
-            .map(p => p.priceRub / p.credits)
-        if (rates.length) return Math.min(...rates)
+        const packs = await CreditPack.find({}).sort({ credits: 1 }).lean()
+        const base = (packs || []).find(p => p.credits > 0 && p.priceRub > 0)
+        if (base) return base.priceRub / base.credits
     } catch { /* fallback ниже */ }
     return COST_PER_CREDIT / (1 - MARGIN_FLOOR_PERCENT / 100)
 }
@@ -57,12 +55,12 @@ export async function getActionCostsRub(days = 30) {
 
 // Маржинальный пол: минимум ✦ при текущей себестоимости.
 // Маржа = (нетто − себестоимость) / нетто; нетто = priceCredits × цена✦ × (1 − комиссия − налог).
-// Себестоимость не измерена (нет логов) → консервативно: priceCredits × COST_PER_CREDIT.
+// Себестоимость измерена (логи 30д) → факт; не измерена → базовая оценка 0.24₽ за вызов (1 генерация).
 export async function getActionFloorCredits(actionId, priceCredits) {
     const costs = await getActionCostsRub(30)
     const measured = costs[actionId]?.avgCostRub
     const price = Math.max(0, Number(priceCredits) || 0)
-    const costRub = Number.isFinite(measured) ? measured : price * COST_PER_CREDIT
+    const costRub = Number.isFinite(measured) ? measured : COST_PER_CREDIT
     const saleRub = await getCreditSalePriceRub()
     // min цена ✦: costRub = minCredits × saleRub × NET_RATIO × (1 − floor)
     const minCredits = Math.max(1, Math.ceil(costRub / (saleRub * NET_RATIO * (1 - MARGIN_FLOOR_PERCENT / 100)) - 1e-9))
@@ -85,7 +83,7 @@ export async function getActionPricesWithCosts() {
     for (const meta of ACTION_REGISTRY) {
         const price = prices[meta.priceKey] ?? ACTION_PRICE_DEFAULTS[meta.priceKey]
         const cost = costs[meta.id] || null
-        const costRub = cost ? cost.avgCostRub : price * COST_PER_CREDIT
+        const costRub = cost ? cost.avgCostRub : COST_PER_CREDIT // без логов — базовая оценка 0.24₽/вызов
         const netRub = price * saleRub * NET_RATIO
         const marginPercent = price > 0 ? Math.round(((netRub - costRub) / netRub) * 1000) / 10 : null
         items.push({

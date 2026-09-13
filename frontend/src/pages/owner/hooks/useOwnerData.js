@@ -249,6 +249,21 @@ export function useOwnerData() {
     }, [])
 
     // ============================================
+    // AUDIT (объявлено рано — используется в deps колбэков ниже)
+    // ============================================
+    const addAuditLog = useCallback((action, type = 'system', severity = 'low') => {
+        const log = {
+            id: generateId(),
+            action,
+            user: 'owner@ai-viral.com',
+            timestamp: new Date().toISOString(),
+            type,
+            severity
+        }
+        setAuditLogs(prev => [log, ...prev].slice(0, 1000)) // Keep last 1000
+    }, [])
+
+    // ============================================
     // STAFF CRUD
     // ============================================
     // [STAFF-DOP] создание реального staff-аккаунта через backend (POST /owner/staff).
@@ -492,20 +507,8 @@ export function useOwnerData() {
     }, [])
 
     // ============================================
-    // AUDIT
+    // AUDIT — очистка (addAuditLog объявлен выше, рядом с showToast)
     // ============================================
-    const addAuditLog = useCallback((action, type = 'system', severity = 'low') => {
-        const log = {
-            id: generateId(),
-            action,
-            user: 'owner@ai-viral.com',
-            timestamp: new Date().toISOString(),
-            type,
-            severity
-        }
-        setAuditLogs(prev => [log, ...prev].slice(0, 1000)) // Keep last 1000
-    }, [])
-
     const clearOldLogs = useCallback((days) => {
         const cutoff = new Date(Date.now() - days * 86400000)
         setSystemLogs(prev => prev.filter(l => new Date(l.timestamp) > cutoff))
