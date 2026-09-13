@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { generateId, debounce, exportToCSV, exportToJSON } from '../utils/helpers'
-import { ownerApi } from '../../../services/api'
+import { ownerApi, request } from '../../../services/api'
 
 // [REAL-DATA] Никаких моков: стартовое состояние — пустое, источник истины — API.
 // API отдаёт авторитетные массивы (включая пустые) — они заменяют localStorage-кэш.
@@ -421,14 +421,19 @@ export function useOwnerData() {
 
         setChatMessages(prev => [...prev, message])
 
-        // AI Agent auto-reply simulation
+        // [REAL-DATA] ответ AI-агента — реальный вызов /omega/chat, не симуляция setTimeout
         const chat = chats.find(c => c.chatId === chatId)
         if (chat?.type === 'ai') {
-            setTimeout(() => {
-                const agent = agents.find(a => a.id === chat.id)
+            const agent = agents.find(a => a.id === chat.id)
+            request('/omega/chat', {
+                method: 'POST',
+                body: JSON.stringify({ message: `[${agent?.name || 'AI'}] ${text}` }),
+            }).then(res => {
+                const replyText = res?.data?.response || res?.reply || res?.data?.reply
+                if (!replyText) return
                 const reply = {
                     id: generateId(),
-                    text: `🤖 ${agent?.name || 'AI'}: Получил запрос "${text}". Анализирую...`,
+                    text: `🤖 ${agent?.name || 'AI'}: ${replyText}`,
                     from: 'ai',
                     time: new Date().toISOString()
                 }
@@ -437,9 +442,11 @@ export function useOwnerData() {
                     return { ...c, messages: [...c.messages, reply], lastMessage: reply.text }
                 }))
                 setChatMessages(prev => [...prev, reply])
-            }, 1500)
+            }).catch(() => {
+                showToast('AI не ответил — проверьте ключи провайдеров', 'error')
+            })
         }
-    }, [chats, agents])
+    }, [chats, agents, showToast])
 
     // ============================================
     // SECURITY

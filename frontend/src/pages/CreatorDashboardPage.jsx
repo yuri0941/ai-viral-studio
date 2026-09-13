@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import toast from 'react-hot-toast'
 import { UpgradeNudge } from '../components/shared/UpgradeNudge.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -215,10 +214,10 @@ function CreatorDashboardPage() {
                             {t('creator.nextPostHint', 'Создайте пост, и OMEGA подготовит черновик с хуком, структурой и CTA.')}
                         </p>
                         <div className="flex flex-wrap items-center gap-3">
-                            <button onClick={() => toast(t('creator.publishing'))} className="magnetic-btn inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity">
+                            <button onClick={() => navigate('/scheduler')} className="magnetic-btn inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity">
                                 {t('creator.publish')}
                             </button>
-                            <button onClick={() => toast(t('creator.editing'))} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-full text-[var(--text)] text-sm hover:bg-white/5 transition-colors">
+                            <button onClick={() => navigate('/scheduler')} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/[0.06] rounded-full text-[var(--text)] text-sm hover:bg-white/5 transition-colors">
                                 {t('creator.edit')}
                             </button>
                         </div>
@@ -236,7 +235,7 @@ function CreatorDashboardPage() {
                         </div>
                         <p className="text-sm text-[var(--text-muted)] mb-4">{t('creator.omegaTipText', { time: '18:00', defaultValue: 'Опубликуйте пост в оптимальное время, чтобы повысить охват.' })}</p>
                     </div>
-                    <button onClick={() => toast(t('creator.timeApplied'))} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity">
+                    <button onClick={() => navigate('/scheduler')} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity">
                         {t('creator.apply')}
                     </button>
                 </div>
@@ -258,7 +257,7 @@ function CreatorDashboardPage() {
                         <Calendar size={18} className="text-[var(--primary)]" />
                         {t('creator.contentPipeline')}
                     </h2>
-                    <button className="text-xs text-[var(--primary)] hover:underline">{t('creator.allPosts')}</button>
+                    <button onClick={() => navigate('/scheduler')} className="text-xs text-[var(--primary)] hover:underline">{t('creator.allPosts')}</button>
                 </div>
                 <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
                     {PORTFOLIO_WORKS.map((work) => (
@@ -474,7 +473,7 @@ function CreatorDashboardPage() {
                             <Award size={18} className="text-[var(--accent-warm)]" />
                             {t('creator.portfolio')}
                         </h2>
-                        <button className="text-xs text-[var(--success)] hover:text-[var(--success)]/80 flex items-center gap-1">
+                        <button onClick={() => navigate('/analytics')} className="text-xs text-[var(--success)] hover:text-[var(--success)]/80 flex items-center gap-1">
                             {t('creator.allWorks')} <ChevronRight size={14} />
                         </button>
                     </div>
