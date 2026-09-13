@@ -33,8 +33,8 @@ const MOCK_PATTERNS = [
     /AI Worker/i, /CDN Node/i, /35\s?936/, /\$32\s?300/, /\+324/, /99\.0\s?%/,
     /DEMO50/, /до 40%/, /TechBrand/, /Анна Петрова/, /Uptime.{0,12}9\d(\.\d+)?\s?%/i,
     /\+\$5/, /15\.2%/, /22\.1%/, /Quick.*Growth.*Wealth/s, /churn.{0,20}2\.1/i,
-    // [REAL-DATA-2] хвосты: фейк-логи агентов, mock-режим возвратов, тестовые карты
-    /Pricing Agent ::/i, /Revenue Agent ::/i, /mock-режим/i, /5555\s?5555/,
+    // [REAL-DATA-2] хвосты: фейк-логи агентов, mock-оплата, тестовые карты
+    /Pricing Agent ::/i, /Revenue Agent ::/i, /Mock-оплата|mock-режим по умолчанию/i, /5555\s?5555/,
 ]
 // Сырые ключи/секреты не должны светиться в теле страницы
 const RAW_KEY_PATTERNS = [
