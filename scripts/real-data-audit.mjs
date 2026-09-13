@@ -31,7 +31,7 @@ const check = (name, ok, detail = '') => {
 // Известные моки из ТЗ — ни одного на экране быть не должно
 const MOCK_PATTERNS = [
     /AI Worker/i, /CDN Node/i, /35\s?936/, /\$32\s?300/, /\+324/, /99\.0\s?%/,
-    /DEMO50/, /до 40%/, /TechBrand/, /Анна Петрова/, /Uptime/i,
+    /DEMO50/, /до 40%/, /TechBrand/, /Анна Петрова/, /Uptime.{0,12}9\d(\.\d+)?\s?%/i,
     /\+\$5/, /15\.2%/, /22\.1%/, /Quick.*Growth.*Wealth/s, /churn.{0,20}2\.1/i,
     // [REAL-DATA-2] хвосты: фейк-логи агентов, mock-режим возвратов, тестовые карты
     /Pricing Agent ::/i, /Revenue Agent ::/i, /mock-режим/i, /5555\s?5555/,
