@@ -108,6 +108,16 @@ async function upsertLayer(layer) {
 export async function addMemoryEntry(layer, { id, type = 'fact', content, tags = [] } = {}) {
   if (!LAYERS.includes(layer) || content == null) return null;
   const ram = getRam(layer);
+  // [MEMORY-FIX] TTL-прочистка при записи (раньше TTL применялся только при restore — слои росли вечно)
+  const ttl = LAYER_TTL_MS[layer];
+  if (ttl && ram.length) {
+    const now = Date.now();
+    const pruned = ram.filter(e => now - new Date(e.createdAt || 0).getTime() <= ttl);
+    if (pruned.length !== ram.length) {
+      ram.length = 0;
+      ram.push(...pruned);
+    }
+  }
   const key = contentKey(content);
   // дедуп: идентичный контент в слое не плодим
   if (ram.some(e => contentKey(e.content) === key)) return null;

@@ -1,6 +1,13 @@
 import { createNode } from './cognitiveMesh.js';
 
 const FINANCE_ENTRIES = []; // в продакшене — MongoDB collection
+// [MEMORY-FIX] жёсткий лимит записей в памяти — безлимитный массив ел RAM на Render Free
+const MAX_FINANCE_ENTRIES = 5000;
+
+function pushFinanceEntry(entry) {
+  FINANCE_ENTRIES.push(entry);
+  if (FINANCE_ENTRIES.length > MAX_FINANCE_ENTRIES) FINANCE_ENTRIES.shift();
+}
 
 export async function addIncome({ amount, source, description, date = new Date() }, ownerId) {
   const entry = {
@@ -12,7 +19,7 @@ export async function addIncome({ amount, source, description, date = new Date()
     date: new Date(date),
     ownerId
   };
-  FINANCE_ENTRIES.push(entry);
+  pushFinanceEntry(entry);
   await createNode({
     type: 'system',
     content: `Income recorded: ${entry.amount}₽ from ${source}`,
@@ -33,7 +40,7 @@ export async function addExpense({ amount, category, description, date = new Dat
     date: new Date(date),
     ownerId
   };
-  FINANCE_ENTRIES.push(entry);
+  pushFinanceEntry(entry);
   await createNode({
     type: 'system',
     content: `Expense recorded: ${entry.amount}₽ for ${category}`,

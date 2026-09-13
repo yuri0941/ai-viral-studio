@@ -75,6 +75,23 @@ export async function upsertToChromaCloud(id, text, metadata = {}) {
 // In-memory fallback
 const memoryFallback = new Map()
 const MAX_MEMORY = 1000
+// [MEMORY-FIX] лимит на ЧИСЛО юзеров во fallback — иначе memoryFallback растёт по юзерам безгранично
+const MAX_FALLBACK_USERS = 200
+
+function getFallbackDocs(key) {
+    if (!memoryFallback.has(key)) {
+        // LRU-вытеснение самого старого юзера сверх лимита
+        while (memoryFallback.size >= MAX_FALLBACK_USERS) {
+            memoryFallback.delete(memoryFallback.keys().next().value)
+        }
+        memoryFallback.set(key, [])
+    }
+    const docs = memoryFallback.get(key)
+    // поднять в конец (LRU)
+    memoryFallback.delete(key)
+    memoryFallback.set(key, docs)
+    return docs
+}
 
 function collectionName(userId) {
     return `omega_memory_${String(userId)}`
@@ -89,8 +106,7 @@ export const addToVectorMemory = async ({ id, text, metadata = {}, userId }) => 
 
     if (!chroma) {
         const key = collectionName(userId)
-        if (!memoryFallback.has(key)) memoryFallback.set(key, [])
-        const docs = memoryFallback.get(key)
+        const docs = getFallbackDocs(key)
         docs.push({ id, text, metadata, date: new Date().toISOString() })
         if (docs.length > MAX_MEMORY) docs.shift()
         return { status: 'fallback', message: 'Chroma not configured — saved to in-memory' }
@@ -113,8 +129,7 @@ export const addToVectorMemory = async ({ id, text, metadata = {}, userId }) => 
         // [P16-HOTFIX-v2] fallback to in-memory when Chroma fails
         console.error('[Chroma] add failed, falling back to memory:', err.message)
         const key = collectionName(userId)
-        if (!memoryFallback.has(key)) memoryFallback.set(key, [])
-        const docs = memoryFallback.get(key)
+        const docs = getFallbackDocs(key)
         docs.push({ id, text, metadata, date: new Date().toISOString() })
         if (docs.length > MAX_MEMORY) docs.shift()
         return { status: 'fallback', message: err.message }
