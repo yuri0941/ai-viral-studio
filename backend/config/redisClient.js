@@ -1,8 +1,13 @@
 import Redis from 'ioredis';
+import { TtlLruCache } from '../utils/ttlLruCache.js';
 
 let redis = null;
 let connectRedisPromise = null;
-const inMemoryCache = new Map();
+// [MEMORY-FIX] in-memory fallback с жёстким лимитом (LRU + sweep) — безлимитный Map
+// рос без TTL-очистки и ел RAM на Render Free (512MB).
+const inMemoryCache = new TtlLruCache({ ttlMs: 300_000, maxEntries: 1000 });
+const sweepTimer = setInterval(() => inMemoryCache.sweep(), 60 * 1000);
+sweepTimer.unref?.();
 
 function getRedisUrl() {
   return process.env.REDIS_URL || process.env.REDISCLOUD_URL || process.env.UPSTASH_REDIS_URL || null;
@@ -45,16 +50,10 @@ export function getCache() {
   }
   return {
     async get(key) {
-      const entry = inMemoryCache.get(key);
-      if (!entry) return null;
-      if (Date.now() > entry.expiresAt) {
-        inMemoryCache.delete(key);
-        return null;
-      }
-      return entry.value;
+      return inMemoryCache.get(key);
     },
     async set(key, val, ttlSeconds) {
-      inMemoryCache.set(key, { value: val, expiresAt: Date.now() + ttlSeconds * 1000 });
+      inMemoryCache.set(key, val, ttlSeconds * 1000);
       return 'OK';
     },
     async del(key) {

@@ -33,6 +33,8 @@ export const subscribe = (req, res) => {
   }
   if (!subscriptions.some((s) => s.endpoint === subscription.endpoint)) {
     subscriptions.push(subscription)
+    // [MEMORY-FIX] жёсткий лимит подписок в памяти (Render Free 512MB)
+    if (subscriptions.length > 5000) subscriptions.splice(0, subscriptions.length - 5000)
   }
   res.json({ status: 'ok' })
 }
