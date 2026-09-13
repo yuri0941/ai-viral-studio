@@ -79,7 +79,7 @@ export function DeveloperTab({ data }) {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-semibold text-[var(--text)]">OMEGA API (B2B2B)</h2>
-                    <p className="text-sm text-gray-500 mt-1">API для разработчиков: $0.01/запрос + $99/мес базовый. Ключи одобряются владельцем.</p>
+                    <p className="text-sm text-gray-500 mt-1">API для разработчиков. Ключи одобряются владельцем. Стоимость запросов настраивается в разделе «Цены».</p>
                 </div>
                 <a href={`${docs?.servers?.[0]?.url || ''}/api/v1/omega/docs`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--text)] text-sm">
                     <FileText className="w-4 h-4" /> Документация

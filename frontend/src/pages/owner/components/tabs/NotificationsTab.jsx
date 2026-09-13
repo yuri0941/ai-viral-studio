@@ -2,8 +2,10 @@ import { useState, useMemo } from 'react'
 import { Bell, Check, Trash2, Filter } from 'lucide-react'
 import { StatusBadge } from '../common/StatusBadge'
 
-const STORAGE_KEY = 'owner_notifications_center'
+const STORAGE_KEY = 'owner_notifications_center_v2' // [REAL-DATA] v2: старый ключ с моками не читается
 
+// [REAL-DATA] фейковые уведомления ($15 000, «+$5», чужой IP) удалены.
+// Центр показывает только реальные события, добавленные в процессе работы.
 const TYPE_FILTERS = [
     { id: 'all', label: 'Все' },
     { id: 'system', label: 'Системные' },
@@ -15,23 +17,16 @@ const TYPE_FILTERS = [
     { id: 'security', label: 'Безопасность' },
 ]
 
-const INITIAL_NOTIFICATIONS = [
-    { id: '1', type: 'finance', title: 'Платёж $15,000 получен', body: 'Enterprise-подписка оплачена.', read: false, createdAt: new Date().toISOString() },
-    { id: '2', type: 'campaign', title: 'TechBrand Promo на утверждении', body: 'Кампания ожидает вашего одобрения.', read: false, createdAt: new Date(Date.now() - 30 * 60000).toISOString() },
-    { id: '3', type: 'ai', title: 'OMEGA: рекомендация по цене', body: 'Цену Pro можно повысить на $5.', read: true, createdAt: new Date(Date.now() - 2 * 3600000).toISOString() },
-    { id: '4', type: 'system', title: 'Технические работы завершены', body: 'Все сервисы работают штатно.', read: true, createdAt: new Date(Date.now() - 5 * 3600000).toISOString() },
-    { id: '5', type: 'security', title: 'Новый вход с неизвестного IP', body: 'IP: 91.203.45.78, Санкт-Петербург.', read: false, createdAt: new Date(Date.now() - 24 * 3600000).toISOString() },
-]
-
 export function NotificationsTab({ data }) {
     const { showToast } = data
     const [filter, setFilter] = useState('all')
     const [notifications, setNotifications] = useState(() => {
         try {
             const saved = localStorage.getItem(STORAGE_KEY)
-            return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS
+            const parsed = saved ? JSON.parse(saved) : []
+            return Array.isArray(parsed) ? parsed : []
         } catch {
-            return INITIAL_NOTIFICATIONS
+            return []
         }
     })
 

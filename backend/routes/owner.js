@@ -194,6 +194,64 @@ router.post('/video-settings', protect, authorize('owner', 'admin'), async (req,
     }
 })
 
+// [REAL-DATA З5.3] Реестр цен действий (✦) + себестоимость + маржа; hot-reload ≤60с.
+// ВАЖНО: объявлены ВЫШЕ generic router.post('/:entity') — иначе 'action-prices' улетает в createEntity.
+router.get('/action-prices', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { getActionPricesWithCosts } = await import('../services/actionPricingService.js')
+        res.json({ success: true, ...(await getActionPricesWithCosts()) })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.post('/action-prices', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { setActionPrices, ACTION_PRICE_MIN, getActionPrices } = await import('../models/OwnerSettings.js')
+        const { ACTION_REGISTRY, getActionFloorCredits } = await import('../services/actionPricingService.js')
+        const keyToAction = Object.fromEntries(ACTION_REGISTRY.map(a => [a.priceKey, a.id]))
+        const patch = req.body || {}
+        const current = await getActionPrices()
+        // [З5.3.2] маржинальный пол 70%: цену ниже пола сохранить нельзя (паттерн пакетов below_cost → 400)
+        for (const [key, value] of Object.entries(patch)) {
+            const actionId = keyToAction[key]
+            if (!actionId) continue
+            if (!Number.isFinite(Number(value))) {
+                return res.status(400).json({ success: false, error: `${key} must be a number` })
+            }
+            const price = Math.round(Number(value))
+            if (price === 0 && ACTION_PRICE_MIN[key] === 0) continue // бесплатное действие — пол не применяется
+            const floor = await getActionFloorCredits(actionId, price)
+            if (floor.belowFloor || price < floor.minCredits) {
+                return res.status(400).json({
+                    success: false,
+                    code: 'below_cost',
+                    field: key,
+                    minCredits: floor.minCredits,
+                    costRub: floor.costRub,
+                    costMeasured: floor.costMeasured,
+                    error: `Минимум ${floor.minCredits}✦ при текущей себестоимости (${floor.costRub} ₽/действие${floor.costMeasured ? '' : ', оценка'}) — маржа не ниже 70%`,
+                })
+            }
+        }
+        const prices = await setActionPrices(patch)
+        res.json({ success: true, prices })
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message })
+    }
+})
+
+// [REAL-DATA З5.3.3] Аналитика расхода: функция → штук → списано ✦ → себестоимость ₽ → маржа ₽ (7/30 дней)
+router.get('/action-analytics', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const days = Math.min(90, Math.max(1, Number(req.query.days) || 30))
+        const { getActionSpendAnalytics } = await import('../services/actionPricingService.js')
+        res.json({ success: true, ...(await getActionSpendAnalytics(days)) })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
 // Generic CRUD for owner entities
 router.post('/:entity', protect, authorize('owner', 'admin'), createEntity)
 router.patch('/:entity/:id', protect, authorize('owner', 'admin'), updateEntity)

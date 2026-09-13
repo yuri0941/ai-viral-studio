@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
-import { KPICard } from '../common/KPICard'
 import { StatusBadge } from '../common/StatusBadge'
 import {
-    Brain, Activity, Zap, RefreshCw, Trash2, Terminal,
+    Brain, Activity, RefreshCw, Trash2, Terminal,
     AlertTriangle, Server, Bot, Play, Pause, RotateCcw, FileText, Wifi, ToggleLeft, ToggleRight, KeyRound, Moon, Sparkles,
-    Settings, BarChart2, Cpu, X, MessageSquare, Plus, CheckCircle2, CheckCircle, ImageIcon
+    Settings, BarChart2, X, Plus, CheckCircle2, CheckCircle, ImageIcon
 } from 'lucide-react'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
 import {
-    BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
+    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     CartesianGrid, Legend
 } from 'recharts'
 import { formatDateTime } from '../../utils/helpers'
@@ -21,15 +20,19 @@ import { Headphones, TrendingUp } from 'lucide-react'
 import { API_BASE_URL } from '../../../../config.js'
 import { request } from '../../../../services/api.js' // [v9.9.19.14] 6.1 единый API-клиент с Bearer-токеном — никаких 401 на owner-эндпоинтах
 
-const PROVIDERS = [
-    { id: 'groq', name: 'Groq', status: 'active' },
-    { id: 'openrouter', name: 'OpenRouter', status: 'active' },
-    { id: 'deepseek', name: 'DeepSeek', status: 'active' },
-]
+// [REAL-DATA] Телеметрии агентов/провайдеров-процентов/uptime в системе нет —
+// показываем только реальные статусы (API) и честные empty-state.
+
+const PROVIDER_STATUS_LABEL = {
+    active: { text: 'Online', cls: 'text-emerald-400', dot: 'bg-green-500 animate-pulse' },
+    missing: { text: 'Нет ключа', cls: 'text-gray-400', dot: 'bg-gray-500' },
+    invalid: { text: 'Ключ отклонён', cls: 'text-red-400', dot: 'bg-red-500' },
+    disabled: { text: 'Выключен', cls: 'text-gray-400', dot: 'bg-gray-500' },
+}
 
 export function OMEGACoreTab({ data }) {
     const { t } = useTranslation()
-    const { agents, servers, systemLogs, aiAnalytics, showToast, clearOldLogs, setAgents } = data
+    const { agents, servers, systemLogs, showToast, clearOldLogs, setAgents } = data
     const logEndRef = useRef(null)
     const [testLoading, setTestLoading] = useState(null)
 
@@ -49,6 +52,7 @@ export function OMEGACoreTab({ data }) {
     const [agentSettings, setAgentSettings] = useState({ autoReply: true, notifications: true, priority: 'normal', systemPrompt: '' })
     const [showCodeInterpreter, setShowCodeInterpreter] = useState(false)
     const [showVision, setShowVision] = useState(false)
+    const [providers, setProviders] = useState([])
 
     useEffect(() => {
         // [v9.9.19.14] 6.2 один 401 → тихий fallback, без повторов и красных ошибок
@@ -69,6 +73,13 @@ export function OMEGACoreTab({ data }) {
                 }
             })
             .catch(() => {})
+    }, [])
+
+    // [REAL-DATA] реальные статусы AI-провайдеров (ключи из ApiKeys, hot-reload)
+    useEffect(() => {
+        request('/owner/ai-providers/status')
+            .then(json => setProviders(Array.isArray(json?.data) ? json.data : []))
+            .catch(() => setProviders([]))
     }, [])
 
     // [P16-FIX] added: individual OMEGA feature toggles with dedicated API endpoints
@@ -156,38 +167,6 @@ export function OMEGACoreTab({ data }) {
         showToast('Логи старше 30 дней очищены')
     }, [clearOldLogs, showToast])
 
-    const getAgentMetrics = useCallback((agent) => {
-        const seed = String(agent.id).split('').reduce((s, ch) => s + ch.charCodeAt(0), 0)
-        const uptime = (99.5 + (seed % 50) / 100).toFixed(1)
-        const tasksToday = (seed % 40) + 5
-        const avgResponse = 80 + (seed % 120)
-        const cpu = 10 + (seed % 60)
-        const ram = 20 + (seed % 50)
-        const spark = Array.from({ length: 7 }, (_, i) => 20 + ((seed + i * 13) % 80))
-        return { uptime, tasksToday, avgResponse, cpu, ram, spark }
-    }, [])
-
-    const getAgentLogs = useCallback((agent) => {
-        const levels = ['info', 'info', 'info', 'warning', 'info', 'error', 'info']
-        return Array.from({ length: 8 }, (_, i) => ({
-            id: `${agent.id}-${i}`,
-            time: `0${9 - i}:3${i % 6}:00`,
-            level: levels[(i + agent.id.length) % levels.length],
-            source: agent.name,
-            message: i === 5 ? 'Failed to parse external API response, retrying' : `Task #${1000 + i} processed successfully`,
-        }))
-    }, [])
-
-    const getAgentStats = useCallback((agent) => {
-        const seed = String(agent.id).split('').reduce((s, ch) => s + ch.charCodeAt(0), 0)
-        return Array.from({ length: 7 }, (_, i) => ({
-            day: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][i],
-            tasks: ((seed + i * 7) % 20) + 2,
-            success: 70 + ((seed + i * 11) % 25),
-            time: 100 + ((seed + i * 19) % 200),
-        }))
-    }, [])
-
     const [reportModalOpen, setReportModalOpen] = useState(false)
     const [reportType, setReportType] = useState('status')
 
@@ -219,10 +198,9 @@ export function OMEGACoreTab({ data }) {
         doc.text(`Active agents: ${agents.filter(a => a.status === 'active').length}`, 14, 40)
         doc.text(`Paused agents: ${agents.filter(a => a.status === 'paused').length}`, 14, 48)
         doc.text(`Servers online: ${servers.filter(s => s.status !== 'offline').length} / ${servers.length}`, 14, 56)
-        doc.text(`Business health: ${aiAnalytics?.businessHealth ?? '-'}`, 14, 64)
         doc.save(`omega-report-${reportType}.pdf`)
         showToast(`Отчёт «${reportType === 'status' ? 'OMEGA Status' : reportType === 'financial' ? 'Financial' : 'Agents'}» скачан`, 'success')
-    }, [reportType, showToast, agents, servers, aiAnalytics])
+    }, [reportType, showToast, agents, servers])
 
     // [P17] added
     const handleApplyReflection = useCallback(async () => {
@@ -254,6 +232,26 @@ export function OMEGACoreTab({ data }) {
             setTestLoading(null)
         }
     }, [showToast])
+
+    // [REAL-DATA З3] Spawn создаёт реального агента в БД (AIAgent через generic CRUD), не «тост-пустышку»
+    const spawnAgent = useCallback(async (kind) => {
+        const names = {
+            content: { name: 'Content Agent', role: 'Контент', description: 'Генерирует и модерирует контент' },
+            analytics: { name: 'Analytics Agent', role: 'Аналитика', description: 'Собирает и визуализирует метрики' },
+            support: { name: 'Support Agent', role: 'Поддержка', description: 'Отвечает на типовые тикеты' },
+            trend: { name: 'Trend Agent', role: 'Тренды', description: 'Отслеживает тренды и темы' },
+        }
+        const meta = names[kind]
+        if (!meta) return
+        try {
+            await request('/owner/agents', { method: 'POST', body: JSON.stringify({ ...meta, status: 'active' }) })
+            const res = await request('/owner/agents').catch(() => null)
+            if (Array.isArray(res?.data?.agents)) setAgents(res.data.agents.map(a => ({ ...a, id: a.id || a._id })))
+            showToast(`${meta.name} создан и активен`)
+        } catch (e) {
+            showToast(`Не удалось создать агента: ${e.message}`, 'error')
+        }
+    }, [setAgents, showToast])
 
     const toggleBtnClass = (on) => on
         ? 'min-h-[44px] bg-green-500/20 border-green-500 text-green-400 rounded-xl px-4 py-2 border'
@@ -347,17 +345,10 @@ export function OMEGACoreTab({ data }) {
                 <div className="space-y-3">
                     {alerts.map(alert => {
                         const isError = alert.severity === 'high'
-                        const isWarning = alert.severity === 'medium'
-                        const accent = isError ? 'red-500' : isWarning ? 'amber-500' : 'blue-500'
                         return (
-                            <div key={alert.id} className={`relative overflow-hidden rounded-2xl border-l-[3px] bg-${accent.split('-')[0]}-500/5 border-${accent} p-4`}>
-                                {isError && (
-                                    <div className="absolute top-0 left-0 right-0 h-[2px]">
-                                        <div className="h-full bg-${accent} opacity-60 animate-shrink-x" style={{ animation: 'shrinkX 10s linear forwards' }} />
-                                    </div>
-                                )}
+                            <div key={alert.id} className={`relative overflow-hidden rounded-2xl border-l-[3px] p-4 ${isError ? 'bg-red-500/5 border-red-500' : 'bg-amber-500/5 border-amber-500'}`}>
                                 <div className="flex items-start gap-3">
-                                    <AlertTriangle size={18} className={`text-${accent} mt-0.5`} />
+                                    <AlertTriangle size={18} className={`${isError ? 'text-red-400' : 'text-amber-400'} mt-0.5`} />
                                     <div className="flex-1">
                                         <div className="text-sm font-medium text-[var(--text)] capitalize">{alert.type}</div>
                                         <div className="text-xs text-[var(--text-muted)] mt-0.5">{alert.message}</div>
@@ -378,25 +369,17 @@ export function OMEGACoreTab({ data }) {
             )}
 
             {/* [P23] fixed: metrics grid fits 6 cards on large screens */}
+            {/* [REAL-DATA] только реальные счётчики; выдуманные дельты/спарклайны удалены */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 {[
-                    { title: 'Агентов активно', value: activeAgents, delta: '+12%', deltaColor: 'var(--success)', spark: [30,45,40,60,55,70,activeAgents*10] },
-                    { title: 'Приостановлено', value: pausedAgents, delta: pausedAgents > 0 ? 'Требуют внимания' : 'Все ок', deltaColor: pausedAgents > 0 ? 'var(--warning)' : 'var(--success)', spark: [10,8,6,4,3,2,pausedAgents*5] },
-                    { title: 'Средний CPU', value: avgCpu, suffix: '%', delta: avgCpu > 80 ? '▲ Высокая нагрузка' : '▲ Стабильно', deltaColor: avgCpu > 80 ? 'var(--danger)' : 'var(--success)', spark: [40,45,50,48,55,60,avgCpu] },
-                    { title: 'Серверов оффлайн', value: offlineServers, delta: offlineServers > 0 ? '▲ Тревога' : '▲ Все онлайн', deltaColor: offlineServers > 0 ? 'var(--danger)' : 'var(--success)', spark: [2,1,1,0,0,0,offlineServers*2] },
+                    { title: 'Агентов активно', value: activeAgents },
+                    { title: 'Приостановлено', value: pausedAgents },
+                    { title: 'Средний CPU', value: avgCpu, suffix: '%' },
+                    { title: 'Серверов оффлайн', value: offlineServers },
                 ].map((metric, i) => (
                     <div key={i} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                         <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">{metric.title}</div>
                         <div className="text-5xl font-serif font-medium text-[var(--text)] mb-1">{metric.value}{metric.suffix}</div>
-                        <div className="text-xs mb-3" style={{ color: metric.deltaColor }}>{metric.delta}</div>
-                        <svg className="w-full h-8" viewBox="0 0 100 30" preserveAspectRatio="none">
-                            <polyline
-                                fill="none"
-                                stroke="var(--primary)"
-                                strokeWidth="2"
-                                points={metric.spark.map((v, idx) => `${(idx / (metric.spark.length - 1)) * 100},${30 - (v / 100) * 30}`).join(' ')}
-                            />
-                        </svg>
                     </div>
                 ))}
                 <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
@@ -404,16 +387,9 @@ export function OMEGACoreTab({ data }) {
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
                             <Moon size={20} />
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="pulse-dot" />
-                            <span className="text-[10px] text-[var(--text-muted)]">Active</span>
-                        </div>
                     </div>
                     <div className="text-2xl font-bold tracking-tight">🌙 Dream Mode</div>
-                    <div className="text-xs text-[var(--text-muted)] mt-1">02:00–06:00</div>
-                    <div className="flex items-center gap-1 mt-2 text-xs font-medium text-[var(--primary)]">
-                        <span>OMEGA работает ночью</span>
-                    </div>
+                    <div className="text-xs text-[var(--text-muted)] mt-1">Расписание: 02:00–06:00</div>
                 </div>
                 <div className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10">
                     <div className="flex items-start justify-between mb-3">
@@ -453,25 +429,25 @@ export function OMEGACoreTab({ data }) {
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs text-[var(--text-muted)] hidden sm:inline">{t('omega.spawn')}:</span>
                             <button type="button"
-                                onClick={() => showToast('Spawn Content Agent: запрос отправлен в Swarm')}
+                                onClick={() => spawnAgent('content')}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs hover:bg-violet-500/20 transition-colors"
                             >
                                 <FileText size={12} /> Content
                             </button>
                             <button type="button"
-                                onClick={() => showToast('Spawn Analytics Agent: запрос отправлен в Swarm')}
+                                onClick={() => spawnAgent('analytics')}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs hover:bg-cyan-500/20 transition-colors"
                             >
                                 <BarChart2 size={12} /> Analytics
                             </button>
                             <button type="button"
-                                onClick={() => showToast('Spawn Support Agent: запрос отправлен в Swarm')}
+                                onClick={() => spawnAgent('support')}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs hover:bg-emerald-500/20 transition-colors"
                             >
                                 <Headphones size={12} /> Support
                             </button>
                             <button type="button"
-                                onClick={() => showToast('Spawn Trend Agent: запрос отправлен в Swarm')}
+                                onClick={() => spawnAgent('trend')}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs hover:bg-amber-500/20 transition-colors"
                             >
                                 <TrendingUp size={12} /> Trend
@@ -491,7 +467,6 @@ export function OMEGACoreTab({ data }) {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {agents.slice(0, 4).map(agent => {
                                 const isActive = agent.status === 'active'
-                                const metrics = getAgentMetrics(agent)
                                 return (
                                     <div
                                         key={agent.id}
@@ -514,28 +489,6 @@ export function OMEGACoreTab({ data }) {
                                             </div>
                                         </div>
                                         <p className="text-xs text-[var(--text-muted)] line-clamp-2 mb-3">{agent.description}</p>
-                                        <div className="grid grid-cols-3 gap-2 mb-3">
-                                            <div className="text-center p-2 rounded-lg glass">
-                                                <div className="text-xs font-bold text-[var(--text)]">{metrics.uptime}%</div>
-                                                <div className="text-[9px] text-[var(--text-muted)]">Uptime</div>
-                                            </div>
-                                            <div className="text-center p-2 rounded-lg glass">
-                                                <div className="text-xs font-bold text-[var(--text)]">{metrics.tasksToday}</div>
-                                                <div className="text-[9px] text-[var(--text-muted)]">Tasks</div>
-                                            </div>
-                                            <div className="text-center p-2 rounded-lg glass">
-                                                <div className="text-xs font-bold text-[var(--text)]">{metrics.avgResponse}ms</div>
-                                                <div className="text-[9px] text-[var(--text-muted)]">Avg</div>
-                                            </div>
-                                        </div>
-                                        <svg className="w-full h-8 mb-3" viewBox="0 0 100 30" preserveAspectRatio="none">
-                                            <polyline
-                                                fill="none"
-                                                stroke="var(--primary)"
-                                                strokeWidth="2"
-                                                points={metrics.spark.map((v, idx) => `${(idx / (metrics.spark.length - 1)) * 100},${30 - (v / 100) * 30}`).join(' ')}
-                                            />
-                                        </svg>
                                         <div className="flex items-center gap-2">
                                             {/* [P23] fixed: agent action buttons touch targets */}
                                             {isActive ? (
@@ -569,63 +522,40 @@ export function OMEGACoreTab({ data }) {
                     <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                         <Wifi size={16} className="text-[var(--accent)]" /> AI Провайдеры
                     </h3>
-                    {/* [P23] fixed: provider grid stacks on mobile */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {[
-                            { id: 'groq', name: 'Groq', pct: 85, color: '#10b981' },
-                            { id: 'openrouter', name: 'OpenRouter', pct: 60, color: '#3b82f6' },
-                            { id: 'deepseek', name: 'DeepSeek', pct: 0, color: '#6b7280', test: true },
-                        ].map(provider => (
-                            <div key={provider.id} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 flex flex-col items-center text-center">
-                                <div className="relative w-16 h-16 mb-2">
-                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                        <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-strong)" strokeWidth="8" />
-                                        <circle cx="50" cy="50" r="42" fill="none" stroke={provider.color} strokeWidth="8"
-                                            strokeDasharray={`${(provider.pct / 100) * 264} 264`}
-                                            strokeLinecap="round"
-                                            className="drop-shadow-[0_0_8px_currentColor]"
-                                        />
-                                    </svg>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-xs font-mono font-medium text-[var(--text)]">{provider.pct}%</span>
+                    {/* [REAL-DATA] статусы провайдеров — из /owner/ai-providers/status (ключи ApiKeys, hot-reload) */}
+                    {providers.length === 0 ? (
+                        <EmptyState
+                            icon={Wifi}
+                            title="Нет данных о провайдерах"
+                            description="Статусы загружаются из ApiKeys. Проверьте ключи во вкладке API Keys."
+                            compact
+                        />
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {providers.map(provider => {
+                                const st = PROVIDER_STATUS_LABEL[provider.status] || PROVIDER_STATUS_LABEL.missing
+                                return (
+                                    <div key={provider.id} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 flex flex-col items-center text-center">
+                                        <span className="text-xs text-[var(--text)] mb-1.5">{provider.name}</span>
+                                        <span className={`flex items-center gap-1 text-[10px] ${st.cls}`}>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} /> {st.text}
+                                        </span>
+                                        {provider.lastError && (
+                                            <span className="text-[9px] text-red-400 mt-1 line-clamp-2">{provider.lastError}</span>
+                                        )}
+                                        <button type="button"
+                                            onClick={() => handleTestProvider(provider.id)}
+                                            disabled={testLoading === provider.id}
+                                            className="mt-2 min-h-[44px] min-w-[44px] text-[10px] px-2 py-1 rounded-full glass text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors disabled:opacity-50"
+                                        >
+                                            {/* [P23] fixed: provider test touch target */}
+                                            {testLoading === provider.id ? '...' : 'Тест'}
+                                        </button>
                                     </div>
-                                </div>
-                                <span className="text-xs text-[var(--text)] mb-1.5">{provider.name}</span>
-                                {provider.test ? (
-                                    <button type="button"
-                                        onClick={() => handleTestProvider(provider.id)}
-                                        disabled={testLoading === provider.id}
-                                        className="min-h-[44px] min-w-[44px] text-[10px] px-2 py-1 rounded-full glass text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors disabled:opacity-50"
-                                    >
-                                        {/* [P23] fixed: provider test touch target */}
-                                        {testLoading === provider.id ? '...' : 'Тест'}
-                                    </button>
-                                ) : (
-                                    <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Online
-                                    </span>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    <h3 className="text-sm font-semibold text-[var(--text)] mt-6 mb-3 flex items-center gap-2">
-                        <Activity size={16} className="text-emerald-400" /> Здоровье бизнеса
-                    </h3>
-                    <div className="flex items-center justify-center py-4">
-                        <div className="relative w-28 h-28">
-                            <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border-strong)" strokeWidth="8" />
-                                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--success)" strokeWidth="8"
-                                    strokeDasharray={`${(aiAnalytics?.businessHealth || 0) * 2.64} 264`}
-                                    strokeLinecap="round" className="drop-shadow-[0_0_8px_var(--success)]" />
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-2xl font-bold text-[var(--text)]">{aiAnalytics?.businessHealth || 0}</span>
-                            </div>
+                                )
+                            })}
                         </div>
-                    </div>
-                    <p className="text-xs text-center text-[var(--text-muted)]">Индекс здоровья: <span className="text-[var(--success)]">Отлично</span></p>
+                    )}
                 </div>
             </div>
 
@@ -633,22 +563,30 @@ export function OMEGACoreTab({ data }) {
                 <h3 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                     <Server size={16} className="text-[var(--accent)]" /> Загрузка серверов
                 </h3>
-                <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-strong)" />
-                            <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '12px' }}
-                                itemStyle={{ color: 'var(--text)', fontSize: 12 }}
-                            />
-                            <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
-                            <Bar dataKey="CPU" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="RAM" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                {chartData.length === 0 ? (
+                    <EmptyState
+                        icon={Server}
+                        title="Серверы не подключены"
+                        description="В системе нет зарегистрированных серверов с телеметрией. График без данных не рисуется."
+                    />
+                ) : (
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-strong)" />
+                                <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '12px' }}
+                                    itemStyle={{ color: 'var(--text)', fontSize: 12 }}
+                                />
+                                <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
+                                <Bar dataKey="CPU" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="RAM" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
             </div>
 
             <div className="luxury-card glass p-5">
@@ -779,60 +717,27 @@ export function OMEGACoreTab({ data }) {
                             <div className="space-y-4">
                                 <p className="text-sm text-[var(--text-muted)]">{selectedAgent.description}</p>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    {(() => {
-                                        const m = getAgentMetrics(selectedAgent)
-                                        return [
-                                            { label: 'Uptime', value: `${m.uptime}%` },
-                                            { label: 'Tasks today', value: m.tasksToday },
-                                            { label: 'Avg response', value: `${m.avgResponse}ms` },
-                                            { label: 'Статус', value: selectedAgent.status },
-                                        ].map(s => (
-                                            <div key={s.label} className="glass-luxury glass-luxury-hover rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200 hover:shadow-lg hover:shadow-violet-500/10 text-center">
-                                                <div className="text-xs text-[var(--text-muted)]">{s.label}</div>
-                                                <div className="text-sm font-bold text-[var(--text)]">{s.value}</div>
-                                            </div>
-                                        ))
-                                    })()}
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="text-xs text-[var(--text-muted)]">CPU</div>
-                                    <div className="h-2 bg-[var(--surface)] rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-500" style={{ width: `${getAgentMetrics(selectedAgent).cpu}%` }} />
-                                    </div>
-                                    <div className="text-xs text-[var(--text-muted)]">RAM</div>
-                                    <div className="h-2 bg-[var(--surface)] rounded-full overflow-hidden">
-                                        <div className="h-full bg-purple-500" style={{ width: `${getAgentMetrics(selectedAgent).ram}%` }} />
+                                    <div className="glass-luxury rounded-2xl p-6 text-center">
+                                        <div className="text-xs text-[var(--text-muted)]">Статус</div>
+                                        <div className="text-sm font-bold text-[var(--text)] capitalize">{selectedAgent.status}</div>
                                     </div>
                                 </div>
-                                <div>
-                                    <div className="text-xs text-[var(--text-muted)] mb-2">Последние действия</div>
-                                    <div className="space-y-2">
-                                        {[
-                                            'Получена задача от планировщика',
-                                            'Обработан запрос пользователя',
-                                            'Сгенерирован отчёт за сутки',
-                                            'Синхронизированы метрики',
-                                            'Завершён фоновый анализ',
-                                        ].map((a, i) => (
-                                            <div key={i} className="flex items-center gap-2 text-xs text-[var(--text)]">
-                                                <CheckCircle2 size={12} className="text-emerald-400" /> {a}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+                                {/* [REAL-DATA] телеметрии агента (uptime/cpu/tasks) в системе нет — честный empty-state */}
+                                <EmptyState
+                                    icon={Activity}
+                                    title="Телеметрия агента не подключена"
+                                    description="Uptime, задачи и время ответа появятся, когда будет подключён реальный мониторинг агента."
+                                    compact
+                                />
                             </div>
                         )}
 
                         {agentTab === 'logs' && (
-                            <div className="h-64 overflow-y-auto rounded-xl glass p-3 font-mono text-xs space-y-1">
-                                {getAgentLogs(selectedAgent).map(log => (
-                                    <div key={log.id} className="flex items-start gap-2">
-                                        <span className="text-[var(--text-muted)] whitespace-nowrap">{log.time}</span>
-                                        <span className={`uppercase ${log.level === 'error' ? 'text-red-400' : log.level === 'warning' ? 'text-yellow-400' : 'text-emerald-400'}`}>[{log.level}]</span>
-                                        <span className="text-[var(--text)]"><span className="text-[var(--text-muted)]">[{log.source}]</span> {log.message}</span>
-                                    </div>
-                                ))}
-                            </div>
+                            <EmptyState
+                                icon={Terminal}
+                                title="Логов нет"
+                                description="У агента пока нет записанных логов. Выдуманные записи не показываются."
+                            />
                         )}
 
                         {agentTab === 'settings' && (
@@ -881,40 +786,11 @@ export function OMEGACoreTab({ data }) {
                         )}
 
                         {agentTab === 'stats' && (
-                            <div className="space-y-6">
-                                <div className="h-56">
-                                    <div className="text-xs text-[var(--text-muted)] mb-2">Задачи по дням</div>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={getAgentStats(selectedAgent)}>
-                                            <defs>
-                                                <linearGradient id="colorTasks" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-strong)" />
-                                            <XAxis dataKey="day" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                            <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '12px' }} />
-                                            <Area type="monotone" dataKey="tasks" stroke="var(--primary)" fillOpacity={1} fill="url(#colorTasks)" />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                <div className="h-56">
-                                    <div className="text-xs text-[var(--text-muted)] mb-2">Успешность / Среднее время (мс)</div>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={getAgentStats(selectedAgent)}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-strong)" />
-                                            <XAxis dataKey="day" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                            <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '12px' }} />
-                                            <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
-                                            <Line type="monotone" dataKey="success" stroke="#10b981" strokeWidth={2} dot={false} name="Успешность %" />
-                                            <Line type="monotone" dataKey="time" stroke="#3b82f6" strokeWidth={2} dot={false} name="Время мс" />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
+                            <EmptyState
+                                icon={BarChart2}
+                                title="Недостаточно данных"
+                                description="Статистика по дням строится только из реальных выполненных задач агента. График без данных не рисуется."
+                            />
                         )}
                     </div>
                 </div>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Building2, Save, FileText, Landmark, CreditCard, Globe, Bitcoin, Wallet } from 'lucide-react'
 
 export function LegalTab({ data }) {
-    const [form, setForm] = useState(data.company)
+    const [form, setForm] = useState(data.company || {})
     const [activeSection, setActiveSection] = useState('company')
     const [withdrawType, setWithdrawType] = useState('legal')
     const [reqs, setReqs] = useState(data.withdrawRequisites)

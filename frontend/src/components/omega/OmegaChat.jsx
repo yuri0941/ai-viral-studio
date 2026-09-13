@@ -1531,7 +1531,9 @@ export default function OmegaChat({
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-2xl px-3 py-2">
+        {/* [REAL-DATA FIX] 360px: ряд переполнялся (скрепка+script+конкуренты+select+mic+send) и инпут
+            сжимался до w=0 → flex-wrap + min-w у инпута на xs: инпут уходит на свою строку, кнопки на месте */}
+        <div className="flex flex-wrap items-center gap-2 bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-2xl px-3 py-2">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -1572,7 +1574,7 @@ export default function OmegaChat({
             onKeyDown={handleKeyDown}
             placeholder={inputPlaceholder || t('chat.placeholder')}
             disabled={loading}
-            className="flex-1 min-w-0 h-12 bg-transparent text-base outline-none text-white placeholder-gray-500 disabled:opacity-50"
+            className="flex-1 min-w-0 max-sm:min-w-[140px] h-12 bg-transparent text-base outline-none text-white placeholder-gray-500 disabled:opacity-50"
           />
           <select
             value={recognitionLang}

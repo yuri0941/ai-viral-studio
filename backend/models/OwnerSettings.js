@@ -57,6 +57,13 @@ const ownerSettingsSchema = new mongoose.Schema({
     videoAnalysisCostCredits: { type: Number, default: 1, min: 1, max: 100 },
     coverGenerationCostCredits: { type: Number, default: 1, min: 1, max: 100 },
     scriptGenerationCostCredits: { type: Number, default: 2, min: 1, max: 100 },
+    // [REAL-DATA З5.3] реестр цен действий (✦) — плоские поля, hot-reload ≤60с.
+    // Дефолты = поведение до батча: сообщение чата 1✦ (как было), остальные 0 = бесплатно (как было).
+    chatMessageCostCredits: { type: Number, default: 1, min: 1, max: 100 },
+    linkAnalysisCostCredits: { type: Number, default: 0, min: 0, max: 100 },
+    visionAnalysisCostCredits: { type: Number, default: 0, min: 0, max: 100 },
+    ttsCostCredits: { type: Number, default: 0, min: 0, max: 100 },
+    nicheCompetitorsCostCredits: { type: Number, default: 0, min: 0, max: 100 },
     // 0 = удалить файл сразу после разбора (дефолт); результат анализа (текст в чате) остаётся навсегда.
     videoStorageTtlHours: { type: Number, default: 0, min: 0, max: 720 },
     // [OMEGA-CONTROL] рубильники автономных контуров OMEGA (owner-бот /omega, TG).
@@ -346,3 +353,80 @@ export async function setOmegaControlFlag(key, flagValue) {
 }
 
 export default OwnerSettings
+
+// ============ [REAL-DATA З5.3] Реестр цен действий (✦) — единый источник ============
+// Чтение с кэшем ≤60с; запись в самый свежий документ (паттерн setVideoSettings).
+// minPerKey: chat — минимум 1✦ (бесплатного чата не было); link/vision/tts/competitors — 0 = бесплатно.
+export const ACTION_PRICE_DEFAULTS = {
+    chatMessageCostCredits: 1,
+    videoAnalysisCostCredits: 1,
+    coverGenerationCostCredits: 1,
+    scriptGenerationCostCredits: 2,
+    linkAnalysisCostCredits: 0,
+    visionAnalysisCostCredits: 0,
+    ttsCostCredits: 0,
+    nicheCompetitorsCostCredits: 0,
+}
+export const ACTION_PRICE_MIN = {
+    chatMessageCostCredits: 1,
+    videoAnalysisCostCredits: 1,
+    coverGenerationCostCredits: 1,
+    scriptGenerationCostCredits: 1,
+    linkAnalysisCostCredits: 0,
+    visionAnalysisCostCredits: 0,
+    ttsCostCredits: 0,
+    nicheCompetitorsCostCredits: 0,
+}
+export const ACTION_PRICE_KEYS = Object.keys(ACTION_PRICE_DEFAULTS)
+
+const ACTION_PRICES_TTL_MS = 60 * 1000
+let actionPricesCache = { value: null, at: 0 }
+
+export function invalidateActionPricesCache() {
+    actionPricesCache = { value: null, at: 0 }
+}
+
+export async function getActionPrices() {
+    if (actionPricesCache.at && Date.now() - actionPricesCache.at < ACTION_PRICES_TTL_MS) {
+        return actionPricesCache.value
+    }
+    let value = { ...ACTION_PRICE_DEFAULTS }
+    try {
+        if (mongoose.connection?.readyState === 1) {
+            const doc = await OwnerSettings.findOne().sort({ updatedAt: -1 }).lean()
+            if (doc) {
+                for (const k of ACTION_PRICE_KEYS) {
+                    value[k] = clampInt(doc[k], ACTION_PRICE_MIN[k], 100, ACTION_PRICE_DEFAULTS[k])
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[OwnerSettings] getActionPrices db read failed:', e.message)
+    }
+    actionPricesCache = { value, at: Date.now() }
+    return value
+}
+
+// Маржинальный пол (70%) проверяется в routes/owner.js через actionPricingService —
+// там есть доступ к фактической себестоимости из логов.
+export async function setActionPrices(patch = {}) {
+    const next = {}
+    for (const k of ACTION_PRICE_KEYS) {
+        if (patch[k] === undefined) continue
+        const v = clampInt(patch[k], ACTION_PRICE_MIN[k], 100, NaN)
+        if (!Number.isFinite(v)) throw new Error(`${k} must be a number ${ACTION_PRICE_MIN[k]}–100`)
+        next[k] = v
+    }
+    if (!Object.keys(next).length) throw new Error('no action price fields provided')
+    let doc = await OwnerSettings.findOne().sort({ updatedAt: -1 })
+    if (!doc) {
+        const ownerUser = await mongoose.model('User').findOne({ role: 'owner' }).select('_id').lean()
+        if (!ownerUser) throw new Error('OwnerSettings document not found')
+        doc = new OwnerSettings({ ownerId: ownerUser._id })
+    }
+    Object.assign(doc, next)
+    await doc.save()
+    invalidateActionPricesCache()
+    invalidateVideoSettingsCache() // те же поля — кэши синхронизируем
+    return getActionPrices()
+}

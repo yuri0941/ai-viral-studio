@@ -13,6 +13,7 @@ import {
     Wallet, Bitcoin, Landmark, FileUp, Film
 } from 'lucide-react'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx' // [v6.0] added
+import { ActionPricesCard } from './ActionPricesCard.jsx' // [REAL-DATA З5.3] реестр цен действий + аналитика расхода
 
 // [PLANCONFIG-ADMIN] fallback-фолбэк = дефолты PlanConfig (legacy config/plans.js удалён)
 const DEMO_PLANS = [
@@ -841,6 +842,10 @@ export function SubscriptionsTab({ data }) {
                         {t('subscriptions.videoSettingsSave')}
                     </button>
                 </div>
+            )}
+
+            {(user?.role === 'owner' || user?.role === 'admin') && (
+                <ActionPricesCard />
             )}
 
             <div className="rounded-xl border border-[var(--border)] glass p-4 flex items-start gap-3">

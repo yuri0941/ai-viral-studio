@@ -55,7 +55,22 @@ export function HouseAdSlot({ slot, variant = 'sidebar', className = '' }) {
     const [index, setIndex] = useState(0)
     const [fading, setFading] = useState(false)
     const [copied, setCopied] = useState(false)
+    const [refPct, setRefPct] = useState(null) // [REAL-DATA] живой % из OwnerSettings через /public/referral
     const timerRef = useRef(null)
+
+    // [REAL-DATA] реферальный % в креативе — из БД, а не хардкод в i18n
+    useEffect(() => {
+        if (!user || ['owner', 'admin', 'staff'].includes(user?.role)) return
+        const token = localStorage.getItem('token')
+        if (!token) return
+        fetch(`${API_BASE_URL}/public/referral`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(d => {
+                const pct = Number(d?.referralPercent)
+                if (Number.isFinite(pct)) setRefPct(pct)
+            })
+            .catch(() => {})
+    }, [user])
 
     // Ротация house ads; reduced-motion → статика (первый креатив, без ротации и анимаций)
     useEffect(() => {
@@ -130,7 +145,11 @@ export function HouseAdSlot({ slot, variant = 'sidebar', className = '' }) {
         >
             <Icon size={variant === 'sidebar' ? 18 : 13} className="shrink-0 text-[var(--primary)]" />
             <span className={`truncate ${variant === 'sidebar' ? 'text-sm' : 'text-xs'} text-[var(--text)]`}>
-                {t(`houseAd.items.${item.id}.title`)}
+                {item.id === 'referral'
+                    ? (refPct != null
+                        ? t('houseAd.items.referral.title', { pct: refPct })
+                        : t('houseAd.items.referral.titleGeneric'))
+                    : t(`houseAd.items.${item.id}.title`)}
             </span>
         </div>
     )

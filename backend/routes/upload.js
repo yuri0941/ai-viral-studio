@@ -142,6 +142,9 @@ router.post('/media', protect, uploadMedia.single('media'), async (req, res) => 
 router.get('/limits', protect, async (req, res) => {
   const maxMb = await getMediaUploadLimitMb()
   const video = await getVideoSettings()
+  // [REAL-DATA З5.3] полный реестр цен действий — клиент показывает цену ДО запуска
+  const { getActionPrices } = await import('../models/OwnerSettings.js')
+  const actionPrices = await getActionPrices()
   res.json({
     success: true,
     maxMb,
@@ -149,6 +152,7 @@ router.get('/limits', protect, async (req, res) => {
     coverGenerationCost: video.coverGenerationCostCredits,
     scriptGenerationCost: video.scriptGenerationCostCredits,
     videoStorageTtlHours: video.videoStorageTtlHours,
+    actionPrices,
   })
 })
 

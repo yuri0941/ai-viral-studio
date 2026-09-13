@@ -1,8 +1,32 @@
+import { useEffect, useState } from 'react'
 import { KPICard } from '../common/KPICard'
-import { Brain, DollarSign, TrendingUp, Lightbulb } from 'lucide-react'
+import { EmptyState } from '../../../../components/common/EmptyState.jsx'
+import { ownerControlApi, selfImprovementApi } from '../../../../services/api'
+import { Brain, Wallet, TrendingUp, Lightbulb, UserX } from 'lucide-react'
 
-export function AIAnalyticsTab({ data }) {
-    const { aiAnalytics } = data
+// [REAL-DATA] AI Аналитика: только реальные источники (churn из self-improvement,
+// MRR/воронка из metricsService). Прогнозов без реальной истории не рисуем.
+export function AIAnalyticsTab() {
+    const [churnStats, setChurnStats] = useState(null)
+    const [metrics, setMetrics] = useState(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        let mounted = true
+        Promise.all([
+            selfImprovementApi.churnStats().catch(() => null),
+            ownerControlApi.metrics().catch(() => null),
+        ]).then(([churnRes, metricsRes]) => {
+            if (!mounted) return
+            setChurnStats(churnRes?.data || null)
+            setMetrics(metricsRes?.metrics || null)
+        }).finally(() => mounted && setLoading(false))
+        return () => { mounted = false }
+    }, [])
+
+    const hasChurn = churnStats && (churnStats.atRisk || churnStats.prevented || churnStats.highRisk)
+    const mrr = metrics?.mrr || 0
+    const paying = metrics?.paying || 0
 
     return (
         <div className="space-y-6">
@@ -10,49 +34,43 @@ export function AIAnalyticsTab({ data }) {
                 <Brain size={18} className="text-purple-400" />
                 <h2 className="text-lg font-semibold text-[var(--text)]">AI Аналитика</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <KPICard title="Churn (прогноз)" value={`${aiAnalytics.churnForecast.nextMonth}%`} icon={TrendingUp} color="purple" />
-                <KPICard title="Прогноз Авг" value={aiAnalytics.revenueForecast[0]?.predicted || 0} prefix="$" icon={DollarSign} color="emerald" />
-                <KPICard title="Рекомендаций" value={aiAnalytics.recommendations.length} icon={Lightbulb} color="blue" />
-            </div>
-            <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
-                <h3 className="text-sm font-semibold text-[var(--text)] mb-4">Прогноз доходов (AI)</h3>
-                <div className="space-y-3">
-                    {aiAnalytics.revenueForecast.map((f, i) => (
-                        <div key={i} className="space-y-1">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-[var(--text)] font-medium">{f.month}</span>
-                                <span className="text-emerald-400 font-mono">${f.predicted.toLocaleString()}</span>
-                            </div>
-                            <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                                <div className="relative h-full">
-                                    <div className="absolute inset-y-0 left-0 bg-gray-700 rounded-full" style={{ width: `${(f.pessimistic / f.optimistic) * 100}%` }} />
-                                    <div className="absolute inset-y-0 left-0 bg-purple-500/30 rounded-full" style={{ width: `${(f.predicted / f.optimistic) * 100}%` }} />
-                                    <div className="absolute inset-y-0 left-0 bg-emerald-500 rounded-full" style={{ width: `${(f.predicted / f.optimistic) * 60}%` }} />
-                                </div>
-                            </div>
-                            <div className="flex justify-between text-[10px] text-gray-500">
-                                <span>Пессимистично: ${f.pessimistic.toLocaleString()}</span>
-                                <span>Оптимистично: ${f.optimistic.toLocaleString()}</span>
+            {loading ? (
+                <div className="h-24 shimmer rounded-2xl" />
+            ) : (
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <KPICard title="Клиентов в риске оттока" value={churnStats?.atRisk || 0} icon={UserX} color="purple" />
+                        <KPICard title="MRR (реальный)" value={mrr} suffix=" ₽" icon={Wallet} color="emerald" />
+                        <KPICard title="Платящих подписчиков" value={paying} icon={TrendingUp} color="blue" />
+                    </div>
+                    {hasChurn && (
+                        <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                            <h3 className="text-sm font-semibold text-[var(--text)] mb-3">Отток (факт за неделю)</h3>
+                            <div className="flex flex-wrap items-center gap-4 text-xs">
+                                <span className="text-[var(--text-muted)]">В риске: <span className="text-[var(--text)] font-medium">{churnStats.atRisk || 0}</span></span>
+                                <span className="text-rose-400">Высокий риск: {churnStats.highRisk || 0}</span>
+                                <span className="text-emerald-400">Предотвращено: {churnStats.prevented || 0}</span>
                             </div>
                         </div>
-                    ))}
-                </div>
-            </div>
-            <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
-                <h3 className="text-sm font-semibold text-[var(--text)] mb-3">AI Рекомендации</h3>
-                <div className="space-y-3">
-                    {aiAnalytics.recommendations.map(rec => (
-                        <div key={rec.id} className="p-3 rounded-xl bg-white/[0.02] border border-[var(--border)]">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-[var(--text)]">{rec.title}</span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${rec.priority === 'high' ? 'bg-red-500/10 text-red-400' : 'bg-yellow-500/10 text-yellow-400'}`}>{rec.priority}</span>
-                            </div>
-                            <div className="text-xs text-emerald-400 mt-1">{rec.impact}</div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+                    )}
+                    <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                        <h3 className="text-sm font-semibold text-[var(--text)] mb-2">Прогноз доходов</h3>
+                        <EmptyState
+                            icon={TrendingUp}
+                            title="Недостаточно данных для прогноза"
+                            description="Прогноз строится только на реальной истории платежей. Когда накопится статистика — график появится здесь автоматически."
+                        />
+                    </div>
+                    <div className="rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] p-5">
+                        <h3 className="text-sm font-semibold text-[var(--text)] mb-2">AI Рекомендации</h3>
+                        <EmptyState
+                            icon={Lightbulb}
+                            title="Рекомендаций пока нет"
+                            description="OMEGA формирует рекомендации на основе реальных метрик. Выдуманных советов здесь не будет."
+                        />
+                    </div>
+                </>
+            )}
         </div>
     )
 }

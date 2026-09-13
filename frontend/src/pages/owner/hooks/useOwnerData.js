@@ -1,15 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import {
-    INITIAL_STAFF, INITIAL_CABINETS, INITIAL_SUBSCRIPTIONS,
-    INITIAL_SERVERS, INITIAL_PAYMENTS, INITIAL_AUDIT_LOGS,
-    INITIAL_PROMOS, INITIAL_NEWS, INITIAL_REFERRALS,
-    INITIAL_AD_CAMPAIGNS, INITIAL_SECURITY, INITIAL_INTEGRATIONS,
-    INITIAL_AI_ANALYTICS, INITIAL_SYSTEM_LOGS,
-    INITIAL_WITHDRAW_REQUISITES, INITIAL_COMPANY,
-    AI_AGENTS
-} from '../data/initialData'
 import { generateId, debounce, exportToCSV, exportToJSON } from '../utils/helpers'
-import { ownerApi } from '../../../services/api'
+import { ownerApi, request } from '../../../services/api'
+
+// [REAL-DATA] Никаких моков: стартовое состояние — пустое, источник истины — API.
+// API отдаёт авторитетные массивы (включая пустые) — они заменяют localStorage-кэш.
 
 const STORAGE_KEYS = {
     staff: 'owner_employees',
@@ -37,7 +31,32 @@ const STORAGE_KEYS = {
     approvalRequests: 'owner_approval_requests',
 }
 
+const EMPTY_SECURITY = {
+    twoFactorEnabled: false,
+    activeSessions: [],
+    loginHistory: [],
+    alerts: [],
+}
+
+const EMPTY_WITHDRAW_REQUISITES = {
+    legal: { companyName: '', inn: '', kpp: '', rs: '', bik: '', bank: '' },
+    ip: { fullName: '', inn: '', ogrnip: '', rs: '', bik: '', bank: '' },
+    card: { cardNumber: '', cardHolder: '', bank: '' },
+    international: { iban: '', swift: '', bankName: '', bankAddress: '', country: '', beneficiaryName: '' },
+    crypto: { walletAddress: '', network: 'TRC20', currency: 'USDT' },
+    paypal: { email: '' }
+}
+
+// [REAL-DATA] Ключи, для которых localStorage-кэш запрещён — там раньше лежали моки.
+// Эти сущности живут только в state и наполняются из API.
+const NO_CACHE_KEYS = new Set([
+    'staff', 'cabinets', 'subscriptions', 'servers', 'payments', 'audit',
+    'promos', 'news', 'referrals', 'campaigns', 'security', 'integrations',
+    'aiAnalytics', 'logs', 'agents', 'apiKeys',
+])
+
 function loadFromStorage(key, fallback) {
+    if (NO_CACHE_KEYS.has(key)) return fallback
     try {
         const saved = localStorage.getItem(STORAGE_KEYS[key])
         return saved ? JSON.parse(saved) : fallback
@@ -46,12 +65,8 @@ function loadFromStorage(key, fallback) {
     }
 }
 
-function loadArrayFromStorage(key, fallback) {
-    const saved = loadFromStorage(key, fallback)
-    return Array.isArray(saved) && saved.length > 0 ? saved : fallback
-}
-
 function saveToStorage(key, data) {
+    if (NO_CACHE_KEYS.has(key)) return
     try {
         localStorage.setItem(STORAGE_KEYS[key], JSON.stringify(data))
     } catch (e) {
@@ -60,52 +75,37 @@ function saveToStorage(key, data) {
 }
 
 function normalizeSubscriptions(subs) {
-    if (!Array.isArray(subs) || subs.length === 0) return INITIAL_SUBSCRIPTIONS
+    if (!Array.isArray(subs)) return []
     return subs.map(s => s.name === 'Free' ? { ...s, price: 0 } : s)
 }
-
-const INITIAL_TASKS = [
-    { id: '1', title: 'Подготовить бриф для TechBrand', status: 'todo', priority: 'high', assignee: 'Анна', due: '2026-07-30', tag: 'реклама' },
-    { id: '2', title: 'Обновить цены Pro', status: 'in_progress', priority: 'medium', assignee: 'Иван', due: '2026-07-29', tag: 'finance' },
-    { id: '3', title: 'Проверить AI Worker #2', status: 'review', priority: 'high', assignee: 'Дмитрий', due: '2026-07-28', tag: 'infra' },
-    { id: '4', title: 'Опубликовать новость о запуске', status: 'done', priority: 'low', assignee: 'Мария', due: '2026-07-27', tag: 'content' },
-]
-
-const INITIAL_API_KEYS = [
-    { id: 'groq', provider: 'groq', label: 'Groq', env: 'GROQ_API_KEY', value: '', status: 'missing', lastRotated: null },
-    { id: 'openrouter', provider: 'openrouter', label: 'OpenRouter', env: 'OPENROUTER_API_KEY', value: '', status: 'missing', lastRotated: null },
-    { id: 'deepseek', provider: 'deepseek', label: 'DeepSeek', env: 'DEEPSEEK_API_KEY', value: '', status: 'missing', lastRotated: null },
-    { id: 'youtube', provider: 'youtube', label: 'YouTube Data API', env: 'YOUTUBE_API_KEY', value: '', status: 'missing', lastRotated: null },
-    { id: 'replicate', provider: 'replicate', label: 'Replicate', env: 'REPLICATE_API_KEY', value: '', status: 'missing', lastRotated: null },
-]
 
 // ============================================
 // USE OWNER DATA — единый мозг дашборда
 // ============================================
 export function useOwnerData() {
-    // --- Core Data ---
-    const [staff, setStaff] = useState(() => loadFromStorage('staff', INITIAL_STAFF))
-    const [cabinets, setCabinets] = useState(() => loadFromStorage('cabinets', INITIAL_CABINETS))
-    const [subscriptions, setSubscriptions] = useState(() => normalizeSubscriptions(loadFromStorage('subscriptions', INITIAL_SUBSCRIPTIONS)))
-    const [servers, setServers] = useState(() => loadFromStorage('servers', INITIAL_SERVERS))
-    const [payments, setPayments] = useState(() => loadArrayFromStorage('payments', INITIAL_PAYMENTS))
-    const [auditLogs, setAuditLogs] = useState(() => loadFromStorage('audit', INITIAL_AUDIT_LOGS))
-    const [promos, setPromos] = useState(() => loadFromStorage('promos', INITIAL_PROMOS))
-    const [news, setNews] = useState(() => loadFromStorage('news', INITIAL_NEWS))
-    const [referrals, setReferrals] = useState(() => loadFromStorage('referrals', INITIAL_REFERRALS))
-    const [campaigns, setCampaigns] = useState(() => loadFromStorage('campaigns', INITIAL_AD_CAMPAIGNS))
-    const [security, setSecurity] = useState(() => loadFromStorage('security', INITIAL_SECURITY))
-    const [integrations, setIntegrations] = useState(() => loadFromStorage('integrations', INITIAL_INTEGRATIONS))
-    const [aiAnalytics, setAiAnalytics] = useState(() => loadFromStorage('aiAnalytics', INITIAL_AI_ANALYTICS))
-    const [systemLogs, setSystemLogs] = useState(() => loadFromStorage('logs', INITIAL_SYSTEM_LOGS))
-    const [company, setCompany] = useState(() => loadFromStorage('company', INITIAL_COMPANY))
-    const [withdrawRequisites, setWithdrawRequisites] = useState(() => loadFromStorage('withdraw', INITIAL_WITHDRAW_REQUISITES))
-    const [agents, setAgents] = useState(() => loadFromStorage('agents', AI_AGENTS))
+    // --- Core Data (честные пустые старты; наполняются из API) ---
+    const [staff, setStaff] = useState([])
+    const [cabinets, setCabinets] = useState([])
+    const [subscriptions, setSubscriptions] = useState([])
+    const [servers, setServers] = useState([])
+    const [payments, setPayments] = useState([])
+    const [auditLogs, setAuditLogs] = useState([])
+    const [promos, setPromos] = useState([])
+    const [news, setNews] = useState([])
+    const [referrals, setReferrals] = useState([])
+    const [campaigns, setCampaigns] = useState([])
+    const [security, setSecurity] = useState(EMPTY_SECURITY)
+    const [integrations, setIntegrations] = useState([])
+    const [aiAnalytics, setAiAnalytics] = useState(null)
+    const [systemLogs, setSystemLogs] = useState([])
+    const [company, setCompany] = useState(() => loadFromStorage('company', null))
+    const [withdrawRequisites, setWithdrawRequisites] = useState(() => loadFromStorage('withdraw', EMPTY_WITHDRAW_REQUISITES))
+    const [agents, setAgents] = useState([])
     const [chats, setChats] = useState(() => loadFromStorage('chats', []))
     const [notifications, setNotifications] = useState(() => loadFromStorage('notifications', []))
-    const [tasks, setTasks] = useState(() => loadArrayFromStorage('tasks', INITIAL_TASKS))
-    const [apiKeys, setApiKeys] = useState(() => loadArrayFromStorage('apiKeys', INITIAL_API_KEYS))
-    const [approvalRequests, setApprovalRequests] = useState(() => loadArrayFromStorage('approvalRequests', []))
+    const [tasks, setTasks] = useState(() => loadFromStorage('tasks', []))
+    const [apiKeys, setApiKeys] = useState([])
+    const [approvalRequests, setApprovalRequests] = useState(() => loadFromStorage('approvalRequests', []))
 
     // --- UI State ---
     const [activeTab, setActiveTab] = useState(() => localStorage.getItem('owner_active_tab') || 'overview')
@@ -119,7 +119,7 @@ export function useOwnerData() {
     const [isYearly, setIsYearly] = useState(false)
 
     // ============================================
-    // API LOAD
+    // API LOAD — API авторитетен: пришёл пустой массив → показываем пусто
     // ============================================
     const loadFromApi = useCallback(async () => {
         setIsLoading(true)
@@ -151,48 +151,49 @@ export function useOwnerData() {
 
             if (overviewRes.status === 'fulfilled') {
                 const d = overviewRes.value.data
-                if (d.recentActivity && d.recentActivity.length > 0) setAuditLogs(d.recentActivity)
+                setAuditLogs(Array.isArray(d.recentActivity) ? d.recentActivity : [])
             }
             if (financeRes.status === 'fulfilled') {
                 const d = financeRes.value.data
-                if (d.payments && d.payments.length > 0) setPayments(d.payments)
+                setPayments(Array.isArray(d.payments) ? d.payments : [])
             }
             if (teamRes.status === 'fulfilled') {
                 const d = teamRes.value.data
-                if (d.staff && d.staff.length > 0) setStaff(d.staff)
-                if (d.cabinets && d.cabinets.length > 0) setCabinets(d.cabinets)
+                setStaff(Array.isArray(d.staff) ? d.staff : [])
+                setCabinets(Array.isArray(d.cabinets) ? d.cabinets : [])
             }
             if (serversRes.status === 'fulfilled') {
                 const d = serversRes.value.data
-                if (d.servers && d.servers.length > 0) setServers(d.servers)
+                setServers(Array.isArray(d.servers) ? d.servers : [])
             }
             if (subscriptionsRes.status === 'fulfilled') {
                 const d = subscriptionsRes.value.data
-                if (d.subscriptions && d.subscriptions.length > 0) setSubscriptions(normalizeSubscriptions(d.subscriptions))
+                setSubscriptions(normalizeSubscriptions(d.subscriptions))
             }
             if (integrationsRes.status === 'fulfilled') {
                 const d = integrationsRes.value.data
-                if (d.integrations && d.integrations.length > 0) setIntegrations(d.integrations)
+                setIntegrations(Array.isArray(d.integrations) ? d.integrations : [])
             }
             if (auditRes.status === 'fulfilled') {
                 const d = auditRes.value.data
-                if (d.logs && d.logs.length > 0) setAuditLogs(d.logs)
+                setAuditLogs(Array.isArray(d.logs) ? d.logs : [])
             }
             if (promosRes.status === 'fulfilled') {
                 const d = promosRes.value.data
-                if (d.promos && d.promos.length > 0) setPromos(d.promos)
+                setPromos(Array.isArray(d.promos) ? d.promos : [])
             }
             if (newsRes.status === 'fulfilled') {
                 const d = newsRes.value.data
-                if (d.news && d.news.length > 0) setNews(d.news)
+                setNews(Array.isArray(d.news) ? d.news : [])
             }
             if (agentsRes.status === 'fulfilled') {
                 const d = agentsRes.value.data
-                if (d.agents && d.agents.length > 0) setAgents(d.agents)
+                // [REAL-DATA] документы Mongo имеют _id — нормализуем в id для карточек
+                setAgents(Array.isArray(d.agents) ? d.agents.map(a => ({ ...a, id: a.id || a._id })) : [])
             }
         } catch (err) {
             setError(err.message)
-            console.warn('[useOwnerData] API load failed, using localStorage/initial data:', err.message)
+            console.warn('[useOwnerData] API load failed:', err.message)
         } finally {
             setIsLoading(false)
         }
@@ -209,11 +210,8 @@ export function useOwnerData() {
     const [chatMessages, setChatMessages] = useState([])
     const [chatInput, setChatInput] = useState('')
 
-    // --- Refs for intervals ---
-    const intervalsRef = useRef([])
-
     // ============================================
-    // PERSISTENCE
+    // PERSISTENCE (только немоковые ключи — см. NO_CACHE_KEYS)
     // ============================================
     useEffect(() => { saveToStorage('staff', staff) }, [staff])
     useEffect(() => { saveToStorage('cabinets', cabinets) }, [cabinets])
@@ -248,6 +246,21 @@ export function useOwnerData() {
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== id))
         }, 3000)
+    }, [])
+
+    // ============================================
+    // AUDIT (объявлено рано — используется в deps колбэков ниже)
+    // ============================================
+    const addAuditLog = useCallback((action, type = 'system', severity = 'low') => {
+        const log = {
+            id: generateId(),
+            action,
+            user: 'owner@ai-viral.com',
+            timestamp: new Date().toISOString(),
+            type,
+            severity
+        }
+        setAuditLogs(prev => [log, ...prev].slice(0, 1000)) // Keep last 1000
     }, [])
 
     // ============================================
@@ -315,7 +328,7 @@ export function useOwnerData() {
             updated[index] = { ...updated[index], price: parseFloat(newPrice) || 0 }
             return updated
         })
-        addAuditLog(`Изменена цена ${subscriptions[index]?.name} на $${newPrice}`, 'config', 'medium')
+        addAuditLog(`Изменена цена ${subscriptions[index]?.name} на ${newPrice}₽`, 'config', 'medium')
         showToast('Цена обновлена')
     }, [subscriptions, showToast])
 
@@ -388,7 +401,7 @@ export function useOwnerData() {
         setAgents(prev => [...prev, agent])
         addAuditLog(`Добавлен AI-агент: ${data.name}`, 'config', 'medium')
         showToast(`Агент ${data.name} создан`)
-    }, [showToast])
+    }, [showToast, addAuditLog])
 
     const removeAgent = useCallback((agentId) => {
         setAgents(prev => prev.filter(a => a.id !== agentId))
@@ -423,14 +436,19 @@ export function useOwnerData() {
 
         setChatMessages(prev => [...prev, message])
 
-        // AI Agent auto-reply simulation
+        // [REAL-DATA] ответ AI-агента — реальный вызов /omega/chat, не симуляция setTimeout
         const chat = chats.find(c => c.chatId === chatId)
         if (chat?.type === 'ai') {
-            setTimeout(() => {
-                const agent = agents.find(a => a.id === chat.id)
+            const agent = agents.find(a => a.id === chat.id)
+            request('/omega/chat', {
+                method: 'POST',
+                body: JSON.stringify({ message: `[${agent?.name || 'AI'}] ${text}` }),
+            }).then(res => {
+                const replyText = res?.data?.response || res?.reply || res?.data?.reply
+                if (!replyText) return
                 const reply = {
                     id: generateId(),
-                    text: `🤖 ${agent?.name || 'AI'}: Получил запрос "${text}". Анализирую...`,
+                    text: `🤖 ${agent?.name || 'AI'}: ${replyText}`,
                     from: 'ai',
                     time: new Date().toISOString()
                 }
@@ -439,9 +457,11 @@ export function useOwnerData() {
                     return { ...c, messages: [...c.messages, reply], lastMessage: reply.text }
                 }))
                 setChatMessages(prev => [...prev, reply])
-            }, 1500)
+            }).catch(() => {
+                showToast('AI не ответил — проверьте ключи провайдеров', 'error')
+            })
         }
-    }, [chats, agents])
+    }, [chats, agents, showToast])
 
     // ============================================
     // SECURITY
@@ -456,8 +476,8 @@ export function useOwnerData() {
     }, [showToast])
 
     const toggle2FA = useCallback(() => {
-        setSecurity(prev => ({ ...prev, twoFactorEnabled: !prev.twoFactorEnabled }))
-        showToast('2FA обновлена')
+        // [REAL-DATA] серверной 2FA нет — честный ответ вместо фейкового переключателя
+        showToast('Двухфакторная защита пока не подключена на сервере — переключатель ничего не меняет', 'error')
     }, [showToast])
 
     // ============================================
@@ -481,26 +501,14 @@ export function useOwnerData() {
     }, [showToast])
 
     const resetDemoData = useCallback(() => {
-        if (!window.confirm('Сбросить все демо-данные к начальным?')) return
+        if (!window.confirm('Сбросить локальный кэш дашборда?')) return
         Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key))
         window.location.reload()
     }, [])
 
     // ============================================
-    // AUDIT
+    // AUDIT — очистка (addAuditLog объявлен выше, рядом с showToast)
     // ============================================
-    const addAuditLog = useCallback((action, type = 'system', severity = 'low') => {
-        const log = {
-            id: generateId(),
-            action,
-            user: 'owner@ai-viral.com',
-            timestamp: new Date().toISOString(),
-            type,
-            severity
-        }
-        setAuditLogs(prev => [log, ...prev].slice(0, 1000)) // Keep last 1000
-    }, [])
-
     const clearOldLogs = useCallback((days) => {
         const cutoff = new Date(Date.now() - days * 86400000)
         setSystemLogs(prev => prev.filter(l => new Date(l.timestamp) > cutoff))
@@ -555,13 +563,8 @@ export function useOwnerData() {
     }, [showToast])
 
     const rotateApiKey = useCallback((id) => {
-        const k = apiKeys.find(x => x.id === id)
-        if (!k) return
-        const fakeNewKey = `${k.provider || k.id}_key_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
-        updateApiKey(id, { value: fakeNewKey, lastRotated: new Date().toISOString(), status: 'active' })
-        addAuditLog(`API-ключ ${k.label} обновлён`, 'security', 'medium')
-        showToast(`Ключ ${k.label} обновлён`)
-    }, [apiKeys, updateApiKey, showToast, addAuditLog])
+        showToast('Ротация ключей — только через вкладку API Keys (реальные ключи в БД)', 'error')
+    }, [showToast])
 
     // ============================================
     // EMAIL
@@ -592,29 +595,6 @@ export function useOwnerData() {
         addAuditLog(`Запрос OMEGA отклонён: ${id}`, 'omega', 'high')
         showToast('Запрос отклонён')
     }, [showToast, addAuditLog])
-
-    // ============================================
-    // SERVERS (Real-time simulation)
-    // ============================================
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setServers(prev => prev.map(s => {
-                if (s.status === 'offline') return s
-                return {
-                    ...s,
-                    cpu: Math.min(100, Math.max(5, s.cpu + (Math.random() - 0.5) * 10)),
-                    ram: Math.min(100, Math.max(10, s.ram + (Math.random() - 0.5) * 5)),
-                }
-            }))
-        }, 5000)
-        intervalsRef.current.push(interval)
-        return () => clearInterval(interval)
-    }, [])
-
-    // Cleanup
-    useEffect(() => {
-        return () => intervalsRef.current.forEach(clearInterval)
-    }, [])
 
     // ============================================
     // SEARCH & FILTER
