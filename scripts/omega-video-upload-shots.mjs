@@ -138,6 +138,11 @@ try {
   // ── 1) iPhone 390 dark: полный цикл drop → чип → цена → загрузка → разбор/честная ошибка ──
   await withPage(browser, { token: tokens.client, theme: 'dark', vw: 390, vh: 844 }, async (page) => {
     await gotoChat(page)
+    // [REAL-DATA-2] beforeCount — ДО drop: на loopback без AI-ключей весь цикл
+    // (upload → frames → analyze ai_unavailable → err-рендер) укладывается в <1с,
+    // замер после чипа/скрина уже опаздывает и «count > beforeCount» не срабатывает
+    const replySel = '[data-msg-id^="a-"], [data-msg-id^="err-"]'
+    const beforeCount = await page.locator(replySel).count()
     const chipShown = await dropVideo(page, { wantOverlayShot: 'drop-390-dark-overlay' })
     check('390 dark: drop видео → чип виден', chipShown)
     check('390 dark: цена 1✦ на чипе ДО анализа', await page.locator('[data-testid="video-upload-price"]:has-text("1✦")').isVisible().catch(() => false))
@@ -149,8 +154,6 @@ try {
     // через Pollinations) — ключевое: НЕ мок-шаблон приветствия и лента выросла ответом Омеги
     // ждём ответ Омеги как НОВОЕ AI-сообщение в ленте (data-msg-id^="a-"/"err-"), а не по ключевым
     // словам — «хук»/«анализ» есть в статике чипов и давали ложнозелёное (факт из прогонов 3–5)
-    const replySel = '[data-msg-id^="a-"], [data-msg-id^="err-"]'
-    const beforeCount = await page.locator(replySel).count()
     let replyText = ''
     let replyArrived = false
     for (let i = 0; i < 30; i++) { // до 150с: vision кадров + синтез у провайдеров с таймаутами
