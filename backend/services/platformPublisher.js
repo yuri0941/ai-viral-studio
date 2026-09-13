@@ -39,7 +39,8 @@ export async function publishToPlatform(user, platform, post) {
 
     const integration = await Integration.findOne({ userId: user._id || user.id, provider: platform, isActive: true })
     if (!integration) {
-        throw new Error('Not connected')
+        // [OMEGA-VIDEO ДОП-2 З7] без ключа — честное «подключите X», не мок-публикация
+        throw new Error(`Площадка «${platform}» не подключена — добавьте ключ в кабинете (API-ключи / Соцсети), тогда публикация заработает`)
     }
     return publish(platform, integration, post)
 }

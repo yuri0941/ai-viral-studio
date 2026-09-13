@@ -348,8 +348,11 @@ router.post('/analyze-video', protect, async (req, res) => {
 })
 
 // [OMEGA-VIDEO] разбор загруженного в чат видео: кадры (client-side canvas) → vision → синтез
-// (таймкоды / хук / удержание). Списание = 1✦ через consumeGeneration (та же квота, что у чата).
-// Файл авто-удаляется после успешного разбора. Нет vision-ключа — честная 400, НЕ мок.
+// (таймкоды / хук / удержание). Списание = N✦ (OwnerSettings.videoAnalysisCostCredits, кабинет
+// владельца, hot-reload ≤60с) через consumeGeneration. TTL файла — OwnerSettings.videoStorageTtlHours:
+// 0 = удалить сразу после разбора (дефолт), >0 = крон mediaCleanup удалит по deleteAt.
+// Результат анализа (текст в чате) остаётся навсегда — удаляется только файл.
+// Нет vision-ключа — честная 400, НЕ мок.
 router.post('/analyze-video-upload', protect, async (req, res) => {
     try {
         const { videoUrl, frames, meta = {}, lang = 'ru' } = req.body || {}
@@ -363,7 +366,12 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
             return res.status(403).json({ success: false, error: 'forbidden_url' })
         }
 
-        const quota = await consumeGeneration(userId, req.user?.role)
+        // [OMEGA-VIDEO ДОП-2] цена разбора — из кабинета владельца (без деплоя)
+        const { getVideoSettings } = await import('../models/OwnerSettings.js')
+        const videoSettings = await getVideoSettings()
+        const cost = videoSettings.videoAnalysisCostCredits
+
+        const quota = await consumeGeneration(userId, req.user?.role, { cost })
         if (!quota.allowed) {
             return res.status(402).json({
                 success: false,
@@ -371,21 +379,26 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
                 message: quota.message,
                 upgradeUrl: quota.upgradeUrl,
                 trialTokens: quota.trialTokens ?? 0,
+                cost,
             })
         }
 
         const frameList = Array.isArray(frames) ? frames.filter(f => typeof f === 'string' && f.startsWith('data:image/')).slice(0, 6) : []
+        // [OMEGA-VIDEO ДОП-2] кадры параллельно (Promise.allSettled): последовательный цикл давал
+        // N×(цикл провайдеров с таймаутами) — разбор не успевал за разумное время (факт из гейта).
+        const visionResults = await Promise.allSettled(frameList.map(f => analyzeImage(f)))
         const frameDescriptions = []
         let visionAvailable = false
         for (let i = 0; i < frameList.length; i++) {
-            try {
-                const v = await analyzeImage(frameList[i])
-                if (v?.text && !v.text.startsWith('Изображение недоступно')) visionAvailable = true
-                const at = meta.durationSec ? Math.round((meta.durationSec * i) / Math.max(1, frameList.length - 1 || 1)) : null
-                frameDescriptions.push(`Кадр ${i + 1}${at !== null ? ` (≈${at}с)` : ''}: ${v?.text || 'без описания'}`)
-            } catch (err) {
-                console.warn('[analyze-video-upload] frame vision failed:', err.message)
+            const r = visionResults[i]
+            if (r.status === 'rejected') {
+                console.warn('[analyze-video-upload] frame vision failed:', r.reason?.message)
+                continue
             }
+            const v = r.value
+            if (v?.text && !v.text.startsWith('Изображение недоступно')) visionAvailable = true
+            const at = meta.durationSec ? Math.round((meta.durationSec * i) / Math.max(1, frameList.length - 1 || 1)) : null
+            frameDescriptions.push(`Кадр ${i + 1}${at !== null ? ` (≈${at}с)` : ''}: ${v?.text || 'без описания'}`)
         }
 
         const metaLine = [
@@ -407,27 +420,295 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
             { role: req.user?.role || 'guest', userId }
         )
 
-        // [OMEGA-VIDEO] smart-fallback = мок-шаблон: анализом не считается. Честный отказ + возврат 1✦.
+        // [OMEGA-VIDEO] smart-fallback = мок-шаблон: анализом не считается. Честный отказ +
+        // возврат по ФАКТИЧЕСКОЙ цене (cost из кабинета, не хардкод 1✦).
         // 200 + success:false (не 503): ожидаемая деградация, не должна засорять console ошибками.
+        // [OMEGA-VIDEO ДОП-2] + текст-ошибка провайдера (бюджет/рейт-лимит), протёкшая как
+        // «успешный» контент (Pollinations отдаёт её 200), тоже = сбой: честный отказ + возврат.
         const provider = aiResult?.provider || ''
-        if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template')) {
+        const analysisText = aiResult ? extractText(aiResult) : ''
+        const providerErrorLeak = analysisText.length < 600 && /(raise the key budget|reached its budget|insufficient.?_?quota|rate.?limit|tokens per day|quota exceeded|503 Service|502 Bad Gateway)/i.test(analysisText)
+        if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template') || providerErrorLeak) {
             const { refundGeneration } = await import('../services/usageQuotaService.js')
-            await refundGeneration(userId).catch(() => {})
+            await refundGeneration(userId, cost).catch(() => {})
             return res.json({ success: false, error: 'ai_unavailable', message: 'AI-провайдеры недоступны — попробуйте позже. Генерация не списана.' })
         }
-        const analysis = extractText(aiResult)
+        const analysis = analysisText
 
-        // [OMEGA-VIDEO З5] авто-удаление файла после успешного разбора
-        const { unlink } = await import('fs/promises')
-        const { join, normalize } = await import('path')
-        const relPath = normalize(videoUrl.replace(/^\/+/, '')).replace(/\\/g, '/')
-        if (relPath.startsWith(`uploads/${userId}/`)) {
-            await unlink(join(process.cwd(), relPath)).catch(e => console.warn('[analyze-video-upload] unlink:', e.message))
-        }
+        // [OMEGA-VIDEO ДОП-2] TTL хранения файла из кабинета владельца (хелпер videoStorage):
+        // 0 (дефолт) = удалить сразу после разбора; >0 = оставить до deleteAt, удалит крон mediaCleanup.
+        // Результат анализа (текст/таймкоды/план в чате) остаётся навсегда — удаляется только файл.
+        const { applyVideoStorageTtl } = await import('../services/videoStorage.js')
+        const ttlHours = videoSettings.videoStorageTtlHours
+        await applyVideoStorageTtl({ videoUrl, userId, ttlHours })
 
-        res.json({ success: true, analysis, framesUsed: frameDescriptions.length, visionAvailable, quota: { trialTokens: quota.trialTokens, remaining: quota.remaining } })
+        res.json({ success: true, analysis, framesUsed: frameDescriptions.length, visionAvailable, cost, storageTtlHours: ttlHours, quota: { trialTokens: quota.trialTokens, remaining: quota.remaining } })
     } catch (e) {
         console.error('[Omega] analyze-video-upload error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
+
+// [OMEGA-VIDEO ДОП-2 З4] сценарий из мысли: идея в любом формате (текст / расшифровка голоса через
+// /voice/stt / выжимка файла или ссылки) → Омега уточняет цель (платформа/диапазон просмотров/ниша)
+// БЕЗ списания → сценарий: хук, структура по таймкодам, текст озвучки, обложка, CTA → советы
+// «как попасть в диапазон» на РЕАЛЬНЫХ цифрах топ-видео ниши (YouTube Data API; нет ключа — честное
+// «недоступно», выдуманные числа = провал qa-omega-honesty). Цена ✦ (кабинет владельца) — до запуска.
+router.post('/script-from-idea', protect, async (req, res) => {
+    try {
+        const { idea, platform, niche, viewsRange, lang = 'ru' } = req.body || {}
+        const userId = (req.user?._id || req.user?.id || '').toString()
+        if (!idea || typeof idea !== 'string' || !idea.trim()) {
+            return res.status(400).json({ success: false, error: 'idea_required' })
+        }
+        const { getVideoSettings } = await import('../models/OwnerSettings.js')
+        const { scriptGenerationCostCredits: cost } = await getVideoSettings()
+
+        // Уточнение цели — до списания ✦
+        const missing = []
+        if (!platform) missing.push('platform')
+        if (!viewsRange) missing.push('viewsRange')
+        if (!niche) missing.push('niche')
+        if (missing.length) {
+            return res.json({ success: true, needClarification: true, missing, cost })
+        }
+
+        // Цифры топ-видео ниши — только реальные. Нет ключа/квоты → available:false + причина.
+        let nicheStats = { available: false, reason: null }
+        try {
+            const yt = await import('../services/youtubeDataService.js')
+            const search = await yt.searchYoutubeVideos(niche, { maxResults: 5, ownerId: userId })
+            if (search.available) {
+                const withStats = []
+                for (const v of (search.videos || []).slice(0, 3)) {
+                    const s = await yt.fetchVideoStats(v.videoId, { ownerId: userId })
+                    if (s.available) {
+                        withStats.push({ videoId: s.videoId, title: s.title, channelTitle: s.channelTitle, views: s.views, likes: s.likes, comments: s.comments })
+                    }
+                }
+                if (withStats.length) nicheStats = { available: true, videos: withStats }
+                else nicheStats = { available: false, reason: 'no_stats' }
+            } else {
+                nicheStats = { available: false, reason: search.error?.message || 'unavailable' }
+            }
+        } catch (e) {
+            console.warn('[script-from-idea] niche stats failed:', e.message)
+        }
+
+        const quota = await consumeGeneration(userId, req.user?.role, { cost })
+        if (!quota.allowed) {
+            return res.status(402).json({
+                success: false,
+                code: quota.code || 'QUOTA_EXCEEDED',
+                message: quota.message,
+                upgradeUrl: quota.upgradeUrl,
+                trialTokens: quota.trialTokens ?? 0,
+                cost,
+            })
+        }
+
+        const statsBlock = nicheStats.available
+            ? `Реальные цифры топ-видео ниши (YouTube Data API, сейчас):\n${nicheStats.videos.map(v => `- «${v.title}» (${v.channelTitle}): ${v.views} просмотров, ${v.likes ?? '—'} лайков, ${v.comments ?? '—'} комментариев`).join('\n')}\n`
+            : `Цифры топ-видео ниши недоступны (${nicheStats.reason || 'нет подключённого ключа YouTube Data API'}) — НЕ выдумывай числа, честно отметь это в ответе.\n`
+
+        const aiResult = await chatWithAI(
+            `Ты — сценарист виральных видео. Идея клиента (в свободной форме): "${idea.trim().slice(0, 2000)}"\n` +
+            `Платформа: ${platform}. Ниша: ${niche}. Желаемый диапазон просмотров: ${viewsRange}.\n${statsBlock}` +
+            `Собери сценарий на языке "${lang}" строго по структуре:\n` +
+            `1) ХУК (0–3с): точный текст + что в кадре.\n` +
+            `2) СТРУКТУРА ПО ТАЙМКОДАМ: секунды → действие/фраза.\n` +
+            `3) ТЕКСТ ОЗВУЧКИ: полный, как говорить.\n` +
+            `4) ОБЛОЖКА: 2–4 слова текста + описание фона/кадра.\n` +
+            `5) CTA: одна фраза.\n` +
+            `6) КАК ПОПАСТЬ В ДИАПАЗОН ${viewsRange}: конкретные шаги, опираясь на цифры топ-видео выше (если они есть) — не общие фразы.\n` +
+            `Без воды, по делу.`,
+            [], lang,
+            { role: req.user?.role || 'guest', userId }
+        )
+
+        const provider = aiResult?.provider || ''
+        const scriptText = aiResult ? extractText(aiResult) : ''
+        const providerErrorLeak = scriptText.length < 600 && /(raise the key budget|reached its budget|insufficient.?_?quota|rate.?limit|tokens per day|quota exceeded|503 Service|502 Bad Gateway)/i.test(scriptText)
+        if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template') || providerErrorLeak) {
+            const { refundGeneration } = await import('../services/usageQuotaService.js')
+            await refundGeneration(userId, cost).catch(() => {})
+            return res.json({ success: false, error: 'ai_unavailable', message: 'AI-провайдеры недоступны — попробуйте позже. Генерация не списана.' })
+        }
+
+        res.json({
+            success: true,
+            script: scriptText,
+            nicheStats,
+            cost,
+            quota: { trialTokens: quota.trialTokens, remaining: quota.remaining },
+        })
+    } catch (e) {
+        console.error('[Omega] script-from-idea error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
+
+// [OMEGA-VIDEO ДОП-2 З5] Обложки действующие: 3 варианта, размер фактом под платформу
+// (YouTube 1280×720, Shorts/TikTok/Reels 1080×1920, VK/TG 1280×720), текст 2–4 слова из
+// анализа/сценария — sharp-оверлеем (читаемый, не вылезает, тёмная плашка). Списание ✦ по полю
+// coverGenerationCostCredits из кабинета владельца; полный сбой → возврат. textHeightRatio —
+// факт для гейта читаемости (мелкая сетка ленты).
+router.post('/cover-variants', protect, async (req, res) => {
+    try {
+        const { topic, coverText, platform } = req.body || {}
+        const userId = (req.user?._id || req.user?.id || '').toString()
+        if (!topic || typeof topic !== 'string' || !topic.trim()) {
+            return res.status(400).json({ success: false, error: 'topic_required' })
+        }
+        const { getVideoSettings } = await import('../models/OwnerSettings.js')
+        const { coverGenerationCostCredits: cost } = await getVideoSettings()
+
+        const quota = await consumeGeneration(userId, req.user?.role, { cost })
+        if (!quota.allowed) {
+            return res.status(402).json({
+                success: false,
+                code: quota.code || 'QUOTA_EXCEEDED',
+                message: quota.message,
+                upgradeUrl: quota.upgradeUrl,
+                trialTokens: quota.trialTokens ?? 0,
+                cost,
+            })
+        }
+
+        const { generateCoverVariants } = await import('../services/coverGenerator.js')
+        let variants = []
+        try {
+            variants = await generateCoverVariants({ topic: topic.trim(), coverText: String(coverText || '').trim(), platform, count: 3 })
+        } catch (e) {
+            console.error('[cover-variants] generation failed:', e.message)
+        }
+        if (!variants.length) {
+            const { refundGeneration } = await import('../services/usageQuotaService.js')
+            await refundGeneration(userId, cost).catch(() => {})
+            return res.json({ success: false, error: 'ai_unavailable', message: 'Генерация обложек недоступна — попробуйте позже. Генерация не списана.' })
+        }
+
+        const { mkdir, writeFile } = await import('fs/promises')
+        const { randomBytes } = await import('crypto')
+        const { default: MediaFile } = await import('../models/MediaFile.js')
+        const dir = `uploads/${userId}`
+        await mkdir(dir, { recursive: true })
+        const out = []
+        for (const v of variants) {
+            const filename = `cover-${Date.now()}-${randomBytes(4).toString('hex')}.jpg`
+            await writeFile(`${dir}/${filename}`, v.buffer)
+            const url = `/uploads/${userId}/${filename}`
+            await MediaFile.findOneAndUpdate(
+                { url },
+                { $setOnInsert: { userId, url, sizeBytes: v.buffer.length, kind: 'image' } },
+                { upsert: true }
+            ).catch(() => {})
+            out.push({ url, width: v.width, height: v.height, seed: v.seed, provider: v.provider, textHeightRatio: v.textHeightRatio })
+        }
+
+        res.json({
+            success: true,
+            variants: out,
+            platform: platform || 'default',
+            cost,
+            quota: { trialTokens: quota.trialTokens, remaining: quota.remaining },
+        })
+    } catch (e) {
+        console.error('[Omega] cover-variants error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
+
+// [OMEGA-VIDEO ДОП-2 З6] «Топ ниши X в соцсети Y»: РЕАЛЬНЫЕ данные через подключённые API.
+// YouTube — YouTube Data API v3 (ключ из кабинета владельца). Остальные площадки — по мере
+// подключения ключей: без ключа честное available:false + requiredKey (владельцу — карточка в
+// ApiKeysTab, клиенту — «скоро»). Выдуманные цифры = провал qa-omega-honesty. «Что забрать»
+// выводится детерминированно из реальных метрик (без LLM-фантазий). ✦ не списывается (дата-вью).
+const NICHE_PLATFORM_KEYS = {
+    youtube: { requiredKey: 'youtube', consoleLink: 'https://console.cloud.google.com/apis/library/youtube.googleapis.com' },
+    tiktok: { requiredKey: 'tiktok', consoleLink: 'https://developers.tiktok.com/' },
+    instagram: { requiredKey: 'instagram', consoleLink: 'https://developers.facebook.com/' },
+    vk: { requiredKey: 'vk', consoleLink: 'https://dev.vk.com/' },
+    telegram: { requiredKey: 'telegram', consoleLink: 'https://core.telegram.org/bots/api' },
+}
+
+router.get('/niche-competitors', protect, async (req, res) => {
+    try {
+        const niche = String(req.query.niche || '').trim()
+        const platform = String(req.query.platform || 'youtube').toLowerCase()
+        const userId = (req.user?._id || req.user?.id || '').toString()
+        if (!niche) return res.status(400).json({ success: false, error: 'niche_required' })
+
+        const keyInfo = NICHE_PLATFORM_KEYS[platform]
+        if (platform !== 'youtube') {
+            return res.json({
+                success: true,
+                available: false,
+                reason: 'key_not_connected',
+                requiredKey: keyInfo?.requiredKey || platform,
+                consoleLink: keyInfo?.consoleLink || null,
+            })
+        }
+
+        const yt = await import('../services/youtubeDataService.js')
+        const search = await yt.searchYoutubeVideos(niche, { maxResults: 8, ownerId: userId })
+        if (!search.available) {
+            const noKey = search.error?.code === 'no_api_key'
+            return res.json({
+                success: true,
+                available: false,
+                reason: noKey ? 'key_not_connected' : 'api_error',
+                requiredKey: noKey ? 'youtube' : null,
+                consoleLink: noKey ? NICHE_PLATFORM_KEYS.youtube.consoleLink : null,
+                message: search.error?.message,
+            })
+        }
+
+        const rows = []
+        const channelCache = new Map()
+        for (const v of (search.videos || []).slice(0, 5)) {
+            const stats = await yt.fetchVideoStats(v.videoId, { ownerId: userId })
+            if (!stats.available) continue
+            let channel = channelCache.get(stats.channelId)
+            if (channel === undefined) {
+                channel = await yt.fetchChannelStats(stats.channelId, { ownerId: userId })
+                channelCache.set(stats.channelId, channel)
+            }
+            const rating = yt.computeVideoRating(stats, channel)
+            const ageDays = stats.publishedAt ? Math.max(1, Math.round((Date.now() - new Date(stats.publishedAt).getTime()) / 86400000)) : null
+            const engagementPct = stats.views > 0 ? (((stats.likes || 0) + (stats.comments || 0)) / stats.views) * 100 : 0
+            // «Что забрать» — детерминированно из фактических метрик
+            const takeaways = []
+            if (stats.durationSeconds) {
+                takeaways.push(stats.durationSeconds <= 60 ? `Короткий формат (${stats.durationSeconds}с)` : `Длинный формат (${Math.round(stats.durationSeconds / 60)} мин)`)
+            }
+            if (ageDays) takeaways.push(`${Math.round(stats.views / ageDays)} просмотров/день за ${ageDays} дн.`)
+            takeaways.push(`Вовлечённость ${engagementPct.toFixed(1)}%${engagementPct >= 4 ? ' — выше эталона 4%' : ''}`)
+            if (channel?.available && channel.subscribers && stats.views > channel.subscribers) {
+                takeaways.push(`Просмотры ×${(stats.views / channel.subscribers).toFixed(1)} от подписчиков — зашло за пределы аудитории`)
+            }
+            rows.push({
+                videoId: stats.videoId,
+                videoTitle: stats.title,
+                videoUrl: `https://www.youtube.com/watch?v=${stats.videoId}`,
+                channelTitle: stats.channelTitle,
+                subscribers: channel?.available ? channel.subscribers : null,
+                views: stats.views,
+                likes: stats.likes,
+                comments: stats.comments,
+                publishedAt: stats.publishedAt,
+                durationSeconds: stats.durationSeconds,
+                rating: rating?.score ?? null,
+                takeaway: takeaways.join(' · '),
+            })
+        }
+        if (!rows.length) {
+            return res.json({ success: true, available: false, reason: 'no_stats', message: 'Не удалось получить статистику видео ниши' })
+        }
+        rows.sort((a, b) => b.views - a.views)
+        res.json({ success: true, available: true, platform, niche, rows })
+    } catch (e) {
+        console.error('[Omega] niche-competitors error:', e)
         res.status(500).json({ success: false, error: e.message })
     }
 })

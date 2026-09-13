@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
-import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp, Film, RotateCcw } from "lucide-react";
+import { Mic, Send, Copy, Check, ChevronDown, ChevronUp, Brain, Volume2, VolumeX, Settings, AlertTriangle, Paperclip, MessageCircle, Send as TelegramIcon, Eye, X, FileUp, Film, RotateCcw, Clapperboard, CalendarPlus, TrendingUp } from "lucide-react";
 import { LuxuryMessageCard } from "./LuxuryMessageCard.jsx";
 import { MarkdownText } from "./MarkdownText.jsx";
 import { YouTubeAnalysisCard } from "./YouTubeAnalysisCard.jsx";
@@ -8,6 +8,7 @@ import OnboardingTour from "../onboarding/OnboardingTour.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTranslation } from "../../hooks/useTranslation.js";
 import { omegaApi, voiceApi, request, planConfigApi } from "../../services/api.js";
+import { API_BASE_URL } from "../../config.js";
 import { API_URL } from "../../config.js";
 import UpsellModal from "../UpsellModal.jsx";
 import { playSound } from "../../hooks/useSound.js";
@@ -579,10 +580,25 @@ export default function OmegaChat({
   };
 
   // [OMEGA-VIDEO ДОП-З1 П3] лимит веса медиа — из кабинета владельца (/api/upload/limits, hot-reload ≤60с)
-  useEffect(() => {
+  // [OMEGA-VIDEO ДОП-2] та же ручка отдаёт живые цены ✦ (разбор/обложка/сценарий) и TTL хранения
+  const [actionPricing, setActionPricing] = useState({ videoAnalysisCost: 1, coverGenerationCost: 1, scriptGenerationCost: 2, videoStorageTtlHours: 0 });
+  const refreshUploadLimits = () => {
     request('/upload/limits', { timeout: 8000, noRetry: true })
-      .then(res => { if (res?.maxMb) setMediaLimitMb(res.maxMb) })
+      .then(res => {
+        if (res?.maxMb) setMediaLimitMb(res.maxMb);
+        if (res?.videoAnalysisCost) {
+          setActionPricing({
+            videoAnalysisCost: res.videoAnalysisCost,
+            coverGenerationCost: res.coverGenerationCost ?? 1,
+            scriptGenerationCost: res.scriptGenerationCost ?? 2,
+            videoStorageTtlHours: res.videoStorageTtlHours ?? 0,
+          });
+        }
+      })
       .catch(() => {});
+  };
+  useEffect(() => {
+    refreshUploadLimits();
   }, []);
 
   const VIDEO_EXT_RE = /\.(mp4|mov|webm)$/i;
@@ -652,14 +668,16 @@ export default function OmegaChat({
     video.src = url;
   });
 
+  // внешний режим (CreativeHub/useOmegaChat) — сообщения через injectMessages, иначе лента их не покажет
+  const pushChatMessages = (msgs) => {
+    const stamped = msgs.map(m => (isExternal ? { ...m, timestamp: new Date().toISOString() } : m));
+    if (isExternal) injectMessages?.(stamped);
+    else setInternalMessages(prev => [...prev, ...stamped]);
+  };
+
   // [OMEGA-VIDEO ДОП-З1 П5] после загрузки файл сразу уходит в работу Омеге (таймкоды/хук/удержание)
   const runVideoAnalysis = async (video) => {
-    // внешний режим (CreativeHub/useOmegaChat) — сообщения через injectMessages, иначе лента их не покажет
-    const pushMsgs = (msgs) => {
-      const stamped = msgs.map(m => (isExternal ? { ...m, timestamp: new Date().toISOString() } : m));
-      if (isExternal) injectMessages?.(stamped);
-      else setInternalMessages(prev => [...prev, ...stamped]);
-    };
+    const pushMsgs = pushChatMessages;
     pushMsgs([{
       role: 'user',
       text: t('chat.videoUserMsg', { name: video.name, size: video.sizeMb }),
@@ -672,6 +690,7 @@ export default function OmegaChat({
       const res = await request('/omega/analyze-video-upload', {
         method: 'POST',
         noRetry: true,
+        timeout: 150000, // разбор: vision кадров + синтез, но не вечное ожидание — таймаут → честная ошибка
         body: JSON.stringify({
           videoUrl: video.url,
           frames: videoFramesRef.current || [],
@@ -694,6 +713,8 @@ export default function OmegaChat({
       pushMsgs([{
         role: 'omega',
         text: res?.analysis || '...',
+        // [OMEGA-VIDEO ДОП-2 З5] из разбора можно сразу собрать обложки (тема = файл/разбор)
+        action: { type: 'videoAnalysis', name: video.name },
         timestamp: Date.now(),
         id: `a-${Date.now()}`,
       }]);
@@ -788,10 +809,247 @@ export default function OmegaChat({
     setAttachment(null);
     videoFramesRef.current = [];
     videoMetaRef.current = {};
+    // [OMEGA-VIDEO ДОП-2] цена на чипе ДО анализа — живая из кабинета владельца (поставил 3✦ → клиент видит 3✦ сразу)
+    refreshUploadLimits();
     extractVideoFrames(file)
       .then(({ frames, meta }) => { videoFramesRef.current = frames; videoMetaRef.current = meta; })
       .catch(() => {});
     startVideoUpload(file);
+  };
+
+  // [OMEGA-VIDEO ДОП-2 З4] «Сценарий из мысли»: идея любым форматом (текст/голос через диктофон
+  // инпута/ссылка) → уточнение цели (платформа/диапазон/ниша) → сценарий → драфт в Планировщик.
+  // Цена ✦ из кабинета владельца показана ДО запуска (actionPricing.scriptGenerationCost).
+  const [scriptModalOpen, setScriptModalOpen] = useState(false);
+  const [scriptForm, setScriptForm] = useState({ idea: '', platform: '', viewsRange: '', niche: '' });
+  const [scriptBusy, setScriptBusy] = useState(false);
+  const [plannerBusyId, setPlannerBusyId] = useState(null);
+  const scriptModalRef = useModalA11y(useCallback(() => setScriptModalOpen(false), []), scriptModalOpen);
+
+  const openScriptModal = () => {
+    refreshUploadLimits(); // живая цена из кабинета владельца
+    setScriptForm(prev => ({ ...prev, idea: prev.idea || input.trim() }));
+    setScriptModalOpen(true);
+  };
+
+  const submitScriptFromIdea = async () => {
+    const idea = scriptForm.idea.trim();
+    if (!idea) { toast.error(t('chat.scriptIdeaRequired'), { duration: 4000, icon: '🎬' }); return; }
+    setScriptBusy(true);
+    playSound('message-sent');
+    try {
+      const res = await request('/omega/script-from-idea', {
+        method: 'POST',
+        noRetry: true,
+        body: JSON.stringify({ idea, platform: scriptForm.platform, viewsRange: scriptForm.viewsRange, niche: scriptForm.niche.trim(), lang: 'ru' }),
+      });
+      if (res && res.success === false) {
+        const quotaError = res.code === 'TRIAL_EXHAUSTED' || res.code === 'QUOTA_EXCEEDED';
+        pushChatMessages([{ role: 'omega', text: res.message || t('chat.serverUnavailable'), isError: true, isQuotaError: quotaError, timestamp: Date.now(), id: `err-${Date.now()}` }]);
+        if (quotaError) openUpsell({}, res.message);
+        playSound('error');
+        return;
+      }
+      if (res?.needClarification) {
+        // Омега уточняет цель — подсвечиваем недостающие поля модалки, ✦ не списаны
+        toast(t('chat.scriptClarify', { cost: res.cost ?? actionPricing.scriptGenerationCost }), { duration: 5000, icon: '🎯' });
+        return;
+      }
+      pushChatMessages([
+        { role: 'user', text: t('chat.scriptUserMsg', { idea: idea.slice(0, 120) }), timestamp: Date.now(), id: `u-${Date.now()}` },
+        {
+          role: 'omega',
+          text: res?.script || '...',
+          action: { type: 'script', platform: scriptForm.platform, niche: scriptForm.niche.trim(), viewsRange: scriptForm.viewsRange, nicheStats: res?.nicheStats || null, cost: res?.cost },
+          timestamp: Date.now(),
+          id: `a-${Date.now()}`,
+        },
+      ]);
+      playSound('notification');
+      setScriptModalOpen(false);
+      setScriptForm({ idea: '', platform: '', viewsRange: '', niche: '' });
+      if (res?.quota?.trialTokens !== undefined) {
+        setQuota(prev => prev ? { ...prev, trialTokens: res.quota.trialTokens } : prev);
+      }
+    } catch (err) {
+      const isQuotaError = err?.status === 402;
+      pushChatMessages([{ role: 'omega', text: isQuotaError ? (err.message || t('chat.limitReached')) : t('chat.serverUnavailable'), isError: true, isQuotaError, timestamp: Date.now(), id: `err-${Date.now()}` }]);
+      if (isQuotaError) { toast.error(err.message || t('chat.limitReached'), { duration: 5000, icon: '⚡' }); openUpsell({}, err.message); }
+      playSound('error');
+    } finally {
+      setScriptBusy(false);
+    }
+  };
+
+  // [OMEGA-VIDEO ДОП-2 З4] драфт сценария в Планировщик в 1 клик (status:'draft', не публикуется)
+  const sendScriptToPlanner = async (msg) => {
+    if (plannerBusyId) return;
+    setPlannerBusyId(msg.id);
+    try {
+      const res = await request('/scheduler/posts', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: (msg.text || '').split('\n')[0].slice(0, 80) || t('chat.scriptPlannerTitle'),
+          content: msg.text,
+          platforms: msg.action?.platform ? [msg.action.platform] : [],
+          types: ['video'],
+          status: 'draft',
+          scheduledAt: new Date().toISOString(),
+        }),
+      });
+      if (res?.status === 'success') {
+        toast.success(t('chat.scriptPlannerOk'), { duration: 4000, icon: '📅' });
+        // [OMEGA-VIDEO ДОП-2 З5.3] запоминаем драфт — обложку «Применить к посту» вешаем на него
+        const postId = res?.data?._id || res?.data?.id;
+        if (postId) setPostIdByMsg(prev => ({ ...prev, [msg.id]: postId }));
+      } else {
+        toast.error(res?.message || t('chat.serverUnavailable'), { duration: 4000 });
+      }
+    } catch (err) {
+      toast.error(err?.message || t('chat.serverUnavailable'), { duration: 4000 });
+    } finally {
+      setPlannerBusyId(null);
+    }
+  };
+
+  // [OMEGA-VIDEO ДОП-2 З5] Обложки: 3 варианта (размер фактом под платформу, текст 2–4 слова
+  // из анализа/сценария sharp-оверлеем) → клиент ✅ → применить к посту / скачать.
+  // Цена ✦ из кабинета владельца на кнопке ДО запуска.
+  const [coversByMsg, setCoversByMsg] = useState({});
+  const [coversBusyId, setCoversBusyId] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(null); // {url, width, height} — превью 1:1 до применения
+  const [coverBusyApply, setCoverBusyApply] = useState(false);
+  const [postIdByMsg, setPostIdByMsg] = useState({});
+  const coverPreviewRef = useModalA11y(useCallback(() => setCoverPreview(null), []), !!coverPreview);
+  const uploadsOrigin = API_BASE_URL.replace(/\/api$/, '');
+  const coverSrc = (url) => (url?.startsWith('http') ? url : `${uploadsOrigin}${url}`);
+
+  // 2–4 слова текста обложки из раздела «ОБЛОЖКА» сценария; фолбэк — первые слова темы
+  const coverTextFromScript = (text, fallbackTopic) => {
+    const m = /обложка[^\n]*\n[:\-– ]*([^\n]+)/i.exec(text || '');
+    const raw = (m?.[1] || fallbackTopic || '').replace(/[*#>`]/g, '').trim();
+    return raw.split(/\s+/).filter(Boolean).slice(0, 4).join(' ');
+  };
+
+  const generateCovers = async (msg) => {
+    if (coversBusyId) return;
+    refreshUploadLimits();
+    setCoversBusyId(msg.id);
+    playSound('message-sent');
+    try {
+      const topic = msg.action?.niche || msg.action?.name || (msg.text || '').split('\n')[0].slice(0, 120);
+      const coverText = msg.action?.type === 'script'
+        ? coverTextFromScript(msg.text, msg.action?.niche || topic)
+        : String(msg.action?.name || topic).replace(/\.[a-z0-9]+$/i, '').split(/\s+/).slice(0, 4).join(' ');
+      const res = await request('/omega/cover-variants', {
+        method: 'POST',
+        noRetry: true,
+        body: JSON.stringify({ topic, coverText, platform: msg.action?.platform || 'youtube' }),
+      });
+      if (res && res.success === false) {
+        const quotaError = res.code === 'TRIAL_EXHAUSTED' || res.code === 'QUOTA_EXCEEDED';
+        toast.error(res.message || t('chat.serverUnavailable'), { duration: 5000, icon: '🎨' });
+        if (quotaError) openUpsell({}, res.message);
+        playSound('error');
+        return;
+      }
+      if (Array.isArray(res?.variants) && res.variants.length) {
+        setCoversByMsg(prev => ({ ...prev, [msg.id]: { variants: res.variants, selected: 0 } }));
+        playSound('notification');
+        if (res?.quota?.trialTokens !== undefined) {
+          setQuota(prev => prev ? { ...prev, trialTokens: res.quota.trialTokens } : prev);
+        }
+      }
+    } catch (err) {
+      const isQuotaError = err?.status === 402;
+      toast.error(err?.message || t('chat.serverUnavailable'), { duration: 5000, icon: '🎨' });
+      if (isQuotaError) openUpsell({}, err?.message);
+      playSound('error');
+    } finally {
+      setCoversBusyId(null);
+    }
+  };
+
+  // Применить выбранную обложку к драфту в Планировщике (если драфт создан)
+  const applyCoverToPost = async (msg) => {
+    const state = coversByMsg[msg.id];
+    const variant = state?.variants?.[state.selected];
+    const postId = postIdByMsg[msg.id];
+    if (!variant || !postId || coverBusyApply) return;
+    setCoverBusyApply(true);
+    try {
+      const res = await request(`/scheduler/posts/${postId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ mediaUrl: coverSrc(variant.url), mediaType: 'image', mediaName: 'cover.jpg' }),
+      });
+      if (res?.status === 'success') toast.success(t('chat.coverApplied'), { duration: 4000, icon: '✅' });
+      else toast.error(res?.message || t('chat.serverUnavailable'), { duration: 4000 });
+    } catch (err) {
+      toast.error(err?.message || t('chat.serverUnavailable'), { duration: 4000 });
+    } finally {
+      setCoverBusyApply(false);
+    }
+  };
+
+  // [OMEGA-VIDEO ДОП-2 З6] «Топ ниши X в соцсети Y» — реальные цифры через подключённые API.
+  // Нет ключа → честное «скоро» клиенту; владельцу — подсказка про ApiKeysTab + ссылка на консоль.
+  const [compModalOpen, setCompModalOpen] = useState(false);
+  const [compForm, setCompForm] = useState({ niche: '', platform: 'youtube' });
+  const [compBusy, setCompBusy] = useState(false);
+  const compModalRef = useModalA11y(useCallback(() => setCompModalOpen(false), []), compModalOpen);
+  const isOwnerRole = user?.role === 'owner' || user?.role === 'admin';
+
+  const submitNicheCompetitors = async () => {
+    const niche = compForm.niche.trim();
+    if (!niche) { toast.error(t('chat.compNicheRequired'), { duration: 4000, icon: '🔍' }); return; }
+    setCompBusy(true);
+    playSound('message-sent');
+    try {
+      const res = await request(`/omega/niche-competitors?niche=${encodeURIComponent(niche)}&platform=${encodeURIComponent(compForm.platform)}`, { noRetry: true });
+      if (res && res.success === false) throw new Error(res.error || res.message || 'error');
+      if (!res?.available) {
+        // Честный отказ: клиенту «скоро», владельцу — что подключить и где (НЕ мок-цифры)
+        const text = res.reason === 'key_not_connected'
+          ? (isOwnerRole
+            ? t('chat.compNeedKeyOwner', { key: res.requiredKey || compForm.platform })
+            : t('chat.compNeedKeyClient'))
+          : (res.message || t('chat.compUnavailable'));
+        pushChatMessages([
+          { role: 'user', text: t('chat.compUserMsg', { niche, platform: compForm.platform }), timestamp: Date.now(), id: `u-${Date.now()}` },
+          { role: 'omega', text, isError: false, timestamp: Date.now(), id: `a-${Date.now()}` },
+        ]);
+        setCompModalOpen(false);
+        return;
+      }
+      pushChatMessages([
+        { role: 'user', text: t('chat.compUserMsg', { niche, platform: compForm.platform }), timestamp: Date.now(), id: `u-${Date.now()}` },
+        {
+          role: 'omega',
+          text: t('chat.compResultTitle', { niche, platform: compForm.platform }),
+          action: { type: 'competitors', rows: res.rows, niche, platform: compForm.platform },
+          timestamp: Date.now(),
+          id: `a-${Date.now()}`,
+        },
+      ]);
+      playSound('notification');
+      setCompModalOpen(false);
+    } catch (err) {
+      pushChatMessages([{ role: 'omega', text: err?.message || t('chat.serverUnavailable'), isError: true, timestamp: Date.now(), id: `err-${Date.now()}` }]);
+      playSound('error');
+    } finally {
+      setCompBusy(false);
+    }
+  };
+
+  // «Сценарий по этому паттерну»: префилл модалки сценария из строки конкурента (З4 × З6)
+  const scriptFromCompetitor = (row, niche, platform) => {
+    setScriptForm({
+      idea: t('chat.compPatternIdea', { title: row.videoTitle, takeaway: row.takeaway || '' }),
+      platform: platform === 'youtube' ? 'youtube' : platform,
+      viewsRange: row.views >= 1000000 ? '1 млн+' : row.views >= 100000 ? '100 тыс.–1 млн' : row.views >= 10000 ? '10–100 тыс.' : '1–10 тыс.',
+      niche: niche || '',
+    });
+    setScriptModalOpen(true);
   };
 
   const hasDraggedFiles = (e) => Array.from(e.dataTransfer?.types || []).includes('Files');
@@ -933,7 +1191,7 @@ export default function OmegaChat({
           </div>
         )}
         {windowedMessages.map((msg, i) => (
-          <div key={msg.id || i} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
+          <div key={msg.id || i} data-msg-id={msg.id} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
             {isAiMessage(msg) ? (
               <>
                 <AiMessageContent text={msg.text} t={t} />
@@ -941,6 +1199,127 @@ export default function OmegaChat({
                 {msg.action?.type === 'cover' && msg.action.success && msg.action.url && (
                   <div className="w-full max-w-[95%] mx-auto mb-3">
                     <img src={msg.action.url} alt="AI cover" className="w-full rounded-2xl border border-white/10" loading="lazy" />
+                  </div>
+                )}
+                {(msg.action?.type === 'script' || msg.action?.type === 'videoAnalysis') && (
+                  <div className="w-full max-w-[95%] mx-auto mb-3" data-testid="script-action">
+                    {msg.action.nicheStats?.available && Array.isArray(msg.action.nicheStats.videos) && (
+                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-2">
+                        <p className="text-[11px] text-gray-400 mb-1.5">{t('chat.scriptNicheTop')}</p>
+                        {msg.action.nicheStats.videos.map(v => (
+                          <p key={v.videoId} className="text-[11px] text-gray-300 truncate">
+                            {v.title} — <span className="text-violet-300">{v.views?.toLocaleString('ru-RU')}</span> {t('chat.scriptViews')}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {msg.action.nicheStats && !msg.action.nicheStats.available && (
+                      <p className="text-[11px] text-amber-400/80 mb-2">{t('chat.scriptNicheUnavailable')}</p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {msg.action?.type === 'script' && (
+                        <button
+                          type="button"
+                          disabled={plannerBusyId === msg.id}
+                          onClick={() => sendScriptToPlanner(msg)}
+                          data-testid="script-to-planner"
+                          className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-200 hover:bg-violet-500/20 hover:text-violet-200 hover:border-violet-500/30 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          <CalendarPlus size={14} /> {plannerBusyId === msg.id ? t('common.loading') : t('chat.scriptToPlanner')}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={coversBusyId === msg.id}
+                        onClick={() => generateCovers(msg)}
+                        data-testid="covers-generate"
+                        className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-sm text-gray-200 hover:bg-violet-500/20 hover:text-violet-200 hover:border-violet-500/30 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {coversBusyId === msg.id ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🎨'} {t('chat.coversGenerateBtn', { cost: actionPricing.coverGenerationCost })}
+                      </button>
+                    </div>
+                    {coversByMsg[msg.id]?.variants && (
+                      <div className="mt-3" data-testid="covers-grid">
+                        <div className="grid grid-cols-3 gap-2">
+                          {coversByMsg[msg.id].variants.map((v, idx) => (
+                            <button
+                              key={v.url}
+                              type="button"
+                              onClick={() => setCoversByMsg(prev => ({ ...prev, [msg.id]: { ...prev[msg.id], selected: idx } }))}
+                              onDoubleClick={() => setCoverPreview(v)}
+                              className={`relative rounded-lg overflow-hidden border-2 transition ${coversByMsg[msg.id].selected === idx ? 'border-violet-400' : 'border-white/10 hover:border-white/25'}`}
+                              data-testid={`cover-variant-${idx}`}
+                              title={t('chat.coverPickHint')}
+                            >
+                              <img src={coverSrc(v.url)} alt={`cover ${idx + 1}`} className="w-full h-auto block" loading="lazy" />
+                              {coversByMsg[msg.id].selected === idx && (
+                                <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-violet-500 text-white text-[11px] flex items-center justify-center">✓</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => setCoverPreview(coversByMsg[msg.id].variants[coversByMsg[msg.id].selected])}
+                            className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-white/[0.1] transition flex items-center gap-1.5"
+                          >
+                            <Eye size={13} /> {t('chat.coverPreviewBtn')}
+                          </button>
+                          {postIdByMsg[msg.id] && (
+                            <button
+                              type="button"
+                              disabled={coverBusyApply}
+                              onClick={() => applyCoverToPost(msg)}
+                              data-testid="cover-apply"
+                              className="px-3 py-1.5 min-h-[44px] rounded-full bg-violet-500/20 border border-violet-500/30 text-xs text-violet-200 hover:bg-violet-500/30 transition disabled:opacity-50 flex items-center gap-1.5"
+                            >
+                              <Check size={13} /> {t('chat.coverApplyBtn')}
+                            </button>
+                          )}
+                          <a
+                            href={coverSrc(coversByMsg[msg.id].variants[coversByMsg[msg.id].selected]?.url)}
+                            download="cover.jpg"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-white/[0.1] transition flex items-center gap-1.5"
+                          >
+                            ⬇ {t('chat.coverDownloadBtn')}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {msg.action?.type === 'competitors' && Array.isArray(msg.action.rows) && (
+                  <div className="w-full max-w-[95%] mx-auto mb-3 space-y-2" data-testid="competitors-table">
+                    {msg.action.rows.map((row) => (
+                      <div key={row.videoId} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <a href={row.videoUrl} target="_blank" rel="noreferrer" className="text-xs text-white hover:text-violet-300 font-medium line-clamp-2">{row.videoTitle}</a>
+                            <p className="text-[11px] text-gray-400 mt-0.5 truncate">{row.channelTitle}{row.subscribers != null ? ` · ${row.subscribers?.toLocaleString('ru-RU')} subs` : ''}</p>
+                          </div>
+                          {row.rating != null && (
+                            <span className="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25">{row.rating}/100</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-300 mt-1.5">
+                          <span className="text-violet-300">{row.views?.toLocaleString('ru-RU')}</span> {t('chat.scriptViews')}
+                          {row.likes != null && <> · {row.likes?.toLocaleString('ru-RU')} 👍</>}
+                          {row.comments != null && <> · {row.comments?.toLocaleString('ru-RU')} 💬</>}
+                        </p>
+                        {row.takeaway && <p className="text-[11px] text-emerald-300/90 mt-1">→ {row.takeaway}</p>}
+                        <button
+                          type="button"
+                          onClick={() => scriptFromCompetitor(row, msg.action.niche, msg.action.platform)}
+                          data-testid="comp-pattern-script"
+                          className="mt-2 px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-200 hover:bg-violet-500/20 hover:text-violet-200 transition-all flex items-center gap-1.5"
+                        >
+                          <Clapperboard size={12} /> {t('chat.compPatternBtn')}
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
                 <ReasoningSteps reasoning={msg.reasoning} t={t} />
@@ -1161,6 +1540,24 @@ export default function OmegaChat({
           >
             <Paperclip className="w-5 h-5" />
           </button>
+          <button
+            type="button"
+            onClick={openScriptModal}
+            data-testid="script-from-idea-btn"
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.12] transition"
+            title={t('chat.scriptFromIdeaTitle', { cost: actionPricing.scriptGenerationCost })}
+          >
+            <Clapperboard className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setCompModalOpen(true)}
+            data-testid="niche-competitors-btn"
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.12] transition"
+            title={t('chat.compModalTitle')}
+          >
+            <TrendingUp className="w-5 h-5" />
+          </button>
           <input
             ref={fileInputRef}
             type="file"
@@ -1260,7 +1657,7 @@ export default function OmegaChat({
               <p className="text-[10px] text-rose-400 mt-1">{t('chat.videoUploadFailed')}</p>
             )}
             <p className="text-[10px] text-gray-500 mt-1" data-testid="video-upload-price">
-              {t('chat.videoPrice', { cost: 1, left: (quota?.unlimited || user?.role === 'owner') ? '∞' : (quota?.trialTokens ?? user?.trialTokens ?? 0) })}
+              {t('chat.videoPrice', { cost: actionPricing.videoAnalysisCost, left: (quota?.unlimited || user?.role === 'owner') ? '∞' : (quota?.trialTokens ?? user?.trialTokens ?? 0) })}
             </p>
           </div>
         )}
@@ -1283,6 +1680,125 @@ export default function OmegaChat({
       </form>
 
       {quotaOpen && <QuotaDetailsModal quota={quota} user={user} onClose={() => setQuotaOpen(false)} />}
+
+      {scriptModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div ref={scriptModalRef} role="dialog" aria-modal="true" data-testid="script-modal" className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">{t('chat.scriptModalTitle')}</h3>
+              <button onClick={() => setScriptModalOpen(false)} aria-label={t('common.cancel', 'Отмена')} className="text-gray-400 hover:text-white min-w-[32px] min-h-[32px] flex items-center justify-center"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptIdeaLabel')}</label>
+                <textarea
+                  value={scriptForm.idea}
+                  onChange={(e) => setScriptForm(f => ({ ...f, idea: e.target.value }))}
+                  rows={4}
+                  placeholder={t('chat.scriptIdeaPlaceholder')}
+                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm outline-none resize-y"
+                />
+                <p className="text-[10px] text-gray-500 mt-1">{t('chat.scriptIdeaHint')}</p>
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptPlatformLabel')}</label>
+                <select value={scriptForm.platform} onChange={(e) => setScriptForm(f => ({ ...f, platform: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none">
+                  <option value="">{t('chat.scriptSelectPlaceholder')}</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="instagram">Instagram Reels</option>
+                  <option value="vk">VK Клипы</option>
+                  <option value="telegram">Telegram</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptViewsLabel')}</label>
+                <select value={scriptForm.viewsRange} onChange={(e) => setScriptForm(f => ({ ...f, viewsRange: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none">
+                  <option value="">{t('chat.scriptSelectPlaceholder')}</option>
+                  <option value="100–1000">100–1 000</option>
+                  <option value="1–10 тыс.">1–10 тыс.</option>
+                  <option value="10–100 тыс.">10–100 тыс.</option>
+                  <option value="100 тыс.–1 млн">100 тыс.–1 млн</option>
+                  <option value="1 млн+">1 млн+</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptNicheLabel')}</label>
+                <input
+                  value={scriptForm.niche}
+                  onChange={(e) => setScriptForm(f => ({ ...f, niche: e.target.value }))}
+                  placeholder={t('chat.scriptNichePlaceholder')}
+                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={submitScriptFromIdea}
+                disabled={scriptBusy || !scriptForm.idea.trim()}
+                data-testid="script-generate-btn"
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-medium shadow-lg shadow-violet-500/20 active:scale-95 transition-transform disabled:opacity-40 disabled:scale-100"
+              >
+                {scriptBusy ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Clapperboard size={16} />}
+                {t('chat.scriptGenerateBtn', { cost: actionPricing.scriptGenerationCost })}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {compModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div ref={compModalRef} role="dialog" aria-modal="true" data-testid="comp-modal" className="bg-[#1a1a24] rounded-2xl border border-white/10 w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">{t('chat.compModalTitle')}</h3>
+              <button onClick={() => setCompModalOpen(false)} aria-label={t('common.cancel', 'Отмена')} className="text-gray-400 hover:text-white min-w-[32px] min-h-[32px] flex items-center justify-center"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptNicheLabel')}</label>
+                <input
+                  value={compForm.niche}
+                  onChange={(e) => setCompForm(f => ({ ...f, niche: e.target.value }))}
+                  placeholder={t('chat.scriptNichePlaceholder')}
+                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 block mb-1">{t('chat.scriptPlatformLabel')}</label>
+                <select value={compForm.platform} onChange={(e) => setCompForm(f => ({ ...f, platform: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none">
+                  <option value="youtube">YouTube</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="instagram">Instagram Reels</option>
+                  <option value="vk">VK Клипы</option>
+                  <option value="telegram">Telegram</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={submitNicheCompetitors}
+                disabled={compBusy || !compForm.niche.trim()}
+                data-testid="comp-submit-btn"
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-medium shadow-lg shadow-violet-500/20 active:scale-95 transition-transform disabled:opacity-40 disabled:scale-100"
+              >
+                {compBusy ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <TrendingUp size={16} />}
+                {t('chat.compSubmitBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {coverPreview && (
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setCoverPreview(null)}>
+          <div ref={coverPreviewRef} role="dialog" aria-modal="true" data-testid="cover-preview-modal" className="bg-[#1a1a24] rounded-2xl border border-white/10 max-w-3xl w-full p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">{t('chat.coverPreviewTitle', { w: coverPreview.width, h: coverPreview.height })}</h3>
+              <button onClick={() => setCoverPreview(null)} aria-label={t('common.cancel', 'Отмена')} className="text-gray-400 hover:text-white min-w-[32px] min-h-[32px] flex items-center justify-center"><X size={18} /></button>
+            </div>
+            <img src={coverSrc(coverPreview.url)} alt="cover preview" className="w-full h-auto rounded-xl border border-white/10" />
+          </div>
+        </div>
+      )}
 
       {showVoiceSettings && (
         <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">

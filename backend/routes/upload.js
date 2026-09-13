@@ -2,7 +2,8 @@ import express from 'express'
 import multer from 'multer'
 import { optimizeUpload } from '../services/imageOptimizer.js'
 import { protect } from '../middleware/auth.js'
-import { getMediaUploadLimitMb } from '../models/OwnerSettings.js'
+import { getMediaUploadLimitMb, getVideoSettings } from '../models/OwnerSettings.js'
+import MediaFile from '../models/MediaFile.js'
 import { mkdir, writeFile } from 'fs/promises'
 import { extname } from 'path'
 import crypto from 'crypto'
@@ -36,6 +37,20 @@ async function saveUpload(buffer, userId, ext) {
   return `/uploads/${userId}/${filename}`
 }
 
+// [OMEGA-VIDEO ДОП-2] регистрация файла для TTL авто-очистки и счётчика хранилища (best-effort —
+// сбой учёта не должен ронять саму загрузку)
+async function trackMediaFile(userId, url, sizeBytes, kind) {
+  try {
+    await MediaFile.findOneAndUpdate(
+      { url },
+      { $setOnInsert: { userId, url, sizeBytes, kind } },
+      { upsert: true }
+    )
+  } catch (e) {
+    console.warn('[upload:media] trackMediaFile failed:', e.message)
+  }
+}
+
 async function handleMediaUpload(req, res) {
   try {
     if (!req.file) {
@@ -65,6 +80,7 @@ async function handleMediaUpload(req, res) {
         const jpegBuffer = await convert({ buffer: req.file.buffer, format: 'JPEG', quality: 0.92 })
         const optimized = await optimizeUpload(jpegBuffer, { format: 'jpeg', quality: 85 })
         const publicUrl = await saveUpload(optimized.buffer, userId, 'jpg')
+        await trackMediaFile(userId, publicUrl, optimized.buffer.length, 'image')
         return res.json({ success: true, url: publicUrl, mediaType: 'image', size: optimized.buffer.length })
       } catch (err) {
         console.error('[upload:media] HEIC conversion failed:', err.message)
@@ -81,6 +97,7 @@ async function handleMediaUpload(req, res) {
       })
       const ext = result.format === 'jpeg' ? 'jpg' : result.format
       const publicUrl = await saveUpload(result.buffer, userId, ext)
+      await trackMediaFile(userId, publicUrl, result.buffer.length, 'image')
       return res.json({
         success: true,
         url: publicUrl,
@@ -97,6 +114,7 @@ async function handleMediaUpload(req, res) {
     if (VIDEO_MIMES.has(mime) || mime.startsWith('video/')) {
       const ext = originalExt || (mime === 'video/quicktime' ? 'mov' : 'mp4')
       const publicUrl = await saveUpload(req.file.buffer, userId, ext)
+      await trackMediaFile(userId, publicUrl, req.file.buffer.length, 'video')
       return res.json({ success: true, url: publicUrl, mediaType: 'video', size: req.file.buffer.length })
     }
 
@@ -120,9 +138,40 @@ router.post('/media', protect, uploadMedia.single('media'), async (req, res) => 
 })
 
 // [OMEGA-VIDEO] актуальный лимит веса для клиента (чип «лимит N МБ» до загрузки)
+// [OMEGA-VIDEO ДОП-2] + живые цены AI-действий и TTL хранения (hot-reload ≤60с, кабинет владельца)
 router.get('/limits', protect, async (req, res) => {
   const maxMb = await getMediaUploadLimitMb()
-  res.json({ success: true, maxMb })
+  const video = await getVideoSettings()
+  res.json({
+    success: true,
+    maxMb,
+    videoAnalysisCost: video.videoAnalysisCostCredits,
+    coverGenerationCost: video.coverGenerationCostCredits,
+    scriptGenerationCost: video.scriptGenerationCostCredits,
+    videoStorageTtlHours: video.videoStorageTtlHours,
+  })
+})
+
+// [OMEGA-VIDEO ДОП-2] счётчик хранилища клиента — фактом с диска (uploads/<userId>/),
+// а не по записям: удаление по TTL/сироты сразу отражается в занятом объёме.
+router.get('/storage-usage', protect, async (req, res) => {
+  try {
+    const userId = (req.user?._id || req.user?.id || '').toString()
+    const { readdir, stat } = await import('fs/promises')
+    const { join } = await import('path')
+    const dir = join(process.cwd(), 'uploads', userId)
+    let usedBytes = 0
+    let files = 0
+    try {
+      for (const name of await readdir(dir)) {
+        const s = await stat(join(dir, name)).catch(() => null)
+        if (s?.isFile()) { usedBytes += s.size; files++ }
+      }
+    } catch { /* папки нет — занято 0 */ }
+    res.json({ success: true, usedBytes, usedMb: Math.round((usedBytes / (1024 * 1024)) * 10) / 10, files })
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message })
+  }
 })
 
 export default router
