@@ -690,6 +690,7 @@ export default function OmegaChat({
       const res = await request('/omega/analyze-video-upload', {
         method: 'POST',
         noRetry: true,
+        timeout: 150000, // разбор: vision кадров + синтез, но не вечное ожидание — таймаут → честная ошибка
         body: JSON.stringify({
           videoUrl: video.url,
           frames: videoFramesRef.current || [],
@@ -1190,7 +1191,7 @@ export default function OmegaChat({
           </div>
         )}
         {windowedMessages.map((msg, i) => (
-          <div key={msg.id || i} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
+          <div key={msg.id || i} data-msg-id={msg.id} className={isUserMessage(msg) ? "flex justify-end" : "flex flex-col items-start"}>
             {isAiMessage(msg) ? (
               <>
                 <AiMessageContent text={msg.text} t={t} />

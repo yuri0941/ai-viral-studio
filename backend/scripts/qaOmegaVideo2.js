@@ -13,6 +13,9 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.join(__dirname, '../.env') })
+// cwd = backend/ — как у сервера, иначе services (videoStorage/mediaCleanup) и HTTP-ручки
+// (/upload/storage-usage) смотрят в разные uploads/ (факт: счётчик видел 0 при файле на диске)
+process.chdir(path.join(__dirname, '..'))
 
 const API = process.env.QA_API_URL || 'http://localhost:18080'
 await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai_viral_studio')
@@ -64,16 +67,16 @@ check('возврат цены 1✦', back1.status === 200 && back1.json.videoAn
 
 // 2. списание/возврат по фактической цене N✦
 const stamp = Date.now()
-const quser = await User.create({ email: `qa-ttl-${stamp}@test.local`, password: 'Test12345!', name: 'QA TTL', role: 'user' })
+const quser = await User.create({ email: `qa-ttl-${stamp}@test.local`, password: 'Test12345!', name: 'QA TTL', role: 'creator' })
 await UsageQuota.deleteMany({ userId: quser._id })
 await UsageQuota.create({ userId: quser._id, plan: 'free', trialTokens: 10, trialUsed: 0, generationsLimit: 0, generationsUsed: 0, cycleStartedAt: new Date(), cycleEndsAt: new Date(Date.now() + 86400000) })
-const consumed = await consumeGeneration(quser._id, 'user', { cost: 3 })
+const consumed = await consumeGeneration(quser._id, 'creator', { cost: 3 })
 const afterConsume = await UsageQuota.findOne({ userId: quser._id }).lean()
 check('consume cost=3: trialTokens 10 → 7', consumed.allowed === true && afterConsume.trialTokens === 7, `tokens=${afterConsume.trialTokens}`)
 await refundGeneration(quser._id, 3)
 const afterRefund = await UsageQuota.findOne({ userId: quser._id }).lean()
 check('refund cost=3: trialTokens обратно 10', afterRefund.trialTokens === 10, `tokens=${afterRefund.trialTokens}`)
-const over = await consumeGeneration(quser._id, 'user', { cost: 11 })
+const over = await consumeGeneration(quser._id, 'creator', { cost: 11 })
 check('нехватка (цена 11✦ > 10✦) → отказ (UpsellModal на фронте)', over.allowed === false && over.code === 'TRIAL_EXHAUSTED', `code=${over.code}`)
 
 // 3. TTL: файлы пользователя — факт на диске

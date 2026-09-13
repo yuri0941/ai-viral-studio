@@ -384,17 +384,21 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
         }
 
         const frameList = Array.isArray(frames) ? frames.filter(f => typeof f === 'string' && f.startsWith('data:image/')).slice(0, 6) : []
+        // [OMEGA-VIDEO ДОП-2] кадры параллельно (Promise.allSettled): последовательный цикл давал
+        // N×(цикл провайдеров с таймаутами) — разбор не успевал за разумное время (факт из гейта).
+        const visionResults = await Promise.allSettled(frameList.map(f => analyzeImage(f)))
         const frameDescriptions = []
         let visionAvailable = false
         for (let i = 0; i < frameList.length; i++) {
-            try {
-                const v = await analyzeImage(frameList[i])
-                if (v?.text && !v.text.startsWith('Изображение недоступно')) visionAvailable = true
-                const at = meta.durationSec ? Math.round((meta.durationSec * i) / Math.max(1, frameList.length - 1 || 1)) : null
-                frameDescriptions.push(`Кадр ${i + 1}${at !== null ? ` (≈${at}с)` : ''}: ${v?.text || 'без описания'}`)
-            } catch (err) {
-                console.warn('[analyze-video-upload] frame vision failed:', err.message)
+            const r = visionResults[i]
+            if (r.status === 'rejected') {
+                console.warn('[analyze-video-upload] frame vision failed:', r.reason?.message)
+                continue
             }
+            const v = r.value
+            if (v?.text && !v.text.startsWith('Изображение недоступно')) visionAvailable = true
+            const at = meta.durationSec ? Math.round((meta.durationSec * i) / Math.max(1, frameList.length - 1 || 1)) : null
+            frameDescriptions.push(`Кадр ${i + 1}${at !== null ? ` (≈${at}с)` : ''}: ${v?.text || 'без описания'}`)
         }
 
         const metaLine = [
@@ -419,13 +423,17 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
         // [OMEGA-VIDEO] smart-fallback = мок-шаблон: анализом не считается. Честный отказ +
         // возврат по ФАКТИЧЕСКОЙ цене (cost из кабинета, не хардкод 1✦).
         // 200 + success:false (не 503): ожидаемая деградация, не должна засорять console ошибками.
+        // [OMEGA-VIDEO ДОП-2] + текст-ошибка провайдера (бюджет/рейт-лимит), протёкшая как
+        // «успешный» контент (Pollinations отдаёт её 200), тоже = сбой: честный отказ + возврат.
         const provider = aiResult?.provider || ''
-        if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template')) {
+        const analysisText = aiResult ? extractText(aiResult) : ''
+        const providerErrorLeak = analysisText.length < 600 && /(raise the key budget|reached its budget|insufficient.?_?quota|rate.?limit|tokens per day|quota exceeded|503 Service|502 Bad Gateway)/i.test(analysisText)
+        if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template') || providerErrorLeak) {
             const { refundGeneration } = await import('../services/usageQuotaService.js')
             await refundGeneration(userId, cost).catch(() => {})
             return res.json({ success: false, error: 'ai_unavailable', message: 'AI-провайдеры недоступны — попробуйте позже. Генерация не списана.' })
         }
-        const analysis = extractText(aiResult)
+        const analysis = analysisText
 
         // [OMEGA-VIDEO ДОП-2] TTL хранения файла из кабинета владельца (хелпер videoStorage):
         // 0 (дефолт) = удалить сразу после разбора; >0 = оставить до deleteAt, удалит крон mediaCleanup.
@@ -519,7 +527,9 @@ router.post('/script-from-idea', protect, async (req, res) => {
         )
 
         const provider = aiResult?.provider || ''
-        if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template')) {
+        const scriptText = aiResult ? extractText(aiResult) : ''
+        const providerErrorLeak = scriptText.length < 600 && /(raise the key budget|reached its budget|insufficient.?_?quota|rate.?limit|tokens per day|quota exceeded|503 Service|502 Bad Gateway)/i.test(scriptText)
+        if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template') || providerErrorLeak) {
             const { refundGeneration } = await import('../services/usageQuotaService.js')
             await refundGeneration(userId, cost).catch(() => {})
             return res.json({ success: false, error: 'ai_unavailable', message: 'AI-провайдеры недоступны — попробуйте позже. Генерация не списана.' })
@@ -527,7 +537,7 @@ router.post('/script-from-idea', protect, async (req, res) => {
 
         res.json({
             success: true,
-            script: extractText(aiResult),
+            script: scriptText,
             nicheStats,
             cost,
             quota: { trialTokens: quota.trialTokens, remaining: quota.remaining },

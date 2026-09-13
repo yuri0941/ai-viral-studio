@@ -30,13 +30,16 @@ async function proxyApi(context) {
   await context.route(`${API_ORIGIN}/**`, async (route) => {
     const req = route.request()
     const url = req.url().replace(API_ORIGIN, LOCAL_API)
+    const t0 = Date.now()
     try {
       const headers = { ...req.headers() }
       delete headers.host; delete headers.origin; delete headers.referer
       const resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
       const body = await resp.body()
+      if (url.includes('analyze-video')) console.log(`[proxy] analyze-video → ${resp.status()} за ${Date.now() - t0}мс: ${body.toString().slice(0, 140)}`)
       await route.fulfill({ status: resp.status(), headers: { 'content-type': resp.headers()['content-type'] || 'application/json', 'access-control-allow-origin': '*' }, body })
     } catch (e) {
+      if (url.includes('analyze-video')) console.log(`[proxy] analyze-video FAIL за ${Date.now() - t0}мс: ${String(e).slice(0, 140)}`)
       await route.fulfill({ status: 502, headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ error: String(e) }) })
     }
   })
@@ -119,8 +122,9 @@ async function dropVideo(page, { sizeMb = 1.5, name = 'clip.mp4', type = 'video/
   const overlayVisible = await page.locator('text=Отпустите файл').first().isVisible().catch(() => false)
   if (wantOverlayShot && overlayVisible) await shot(page, wantOverlayShot)
   await page.dispatchEvent(DROP_TARGET, 'drop', { dataTransfer: dt })
-  await page.waitForTimeout(800)
-  return page.locator('[data-testid="video-upload-chip"]').isVisible().catch(() => false)
+  // [OMEGA-VIDEO ДОП-2] chip появляется после XHR-open — на нагруженной локали (живой Pollinations)
+  // 800мс не хватает: ждём до 6с
+  return page.locator('[data-testid="video-upload-chip"]').waitFor({ state: 'visible', timeout: 6000 }).then(() => true).catch(() => false)
 }
 
 const browser = await chromium.launch()
@@ -141,13 +145,26 @@ try {
     // загрузка 1.5МБ на loopback быстрая → сразу разбор: 📹 в ленте
     await page.waitForTimeout(3000)
     check('390 dark: после загрузки — 📹 сообщение в ленте', await page.locator('text=📹 clip.mp4').first().isVisible().catch(() => false))
-    // ждём ответ Омеги: живой разбор ИЛИ честная ошибка (локально env-ключи мёртвые → 503), но НЕ мок-шаблон
-    await page.waitForTimeout(45000)
+    // ждём ответ Омеги: живой разбор ИЛИ честная ошибка (локально провайдеры то мёртвые, то живые
+    // через Pollinations) — ключевое: НЕ мок-шаблон приветствия и лента выросла ответом Омеги
+    // ждём ответ Омеги как НОВОЕ AI-сообщение в ленте (data-msg-id^="a-"/"err-"), а не по ключевым
+    // словам — «хук»/«анализ» есть в статике чипов и давали ложнозелёное (факт из прогонов 3–5)
+    const replySel = '[data-msg-id^="a-"], [data-msg-id^="err-"]'
+    const beforeCount = await page.locator(replySel).count()
+    let replyText = ''
+    let replyArrived = false
+    for (let i = 0; i < 30; i++) { // до 150с: vision кадров + синтез у провайдеров с таймаутами
+      await page.waitForTimeout(5000)
+      const count = await page.locator(replySel).count()
+      if (count > beforeCount) {
+        replyText = await page.locator(replySel).last().innerText().catch(() => '')
+        if (replyText.trim().length > 20) { replyArrived = true; break }
+      }
+    }
     const feedText = await page.locator(DROP_TARGET).innerText().catch(() => '')
     const hasMockGreeting = feedText.includes('Чем помочь?') && !feedText.includes('📹')
     check('390 dark: ответ Омеги без мок-шаблона приветствия', !hasMockGreeting)
-    const honest = feedText.includes('Таймкоды') || feedText.includes('таймкод') || feedText.includes('недоступ') || feedText.includes('Не удалось')
-    check('390 dark: разбор ИЛИ честная ошибка в ленте', honest, feedText.slice(-200).replace(/\n/g, ' | '))
+    check('390 dark: разбор ИЛИ честная ошибка в ленте', replyArrived, replyText.slice(0, 120).replace(/\n/g, ' | ') || 'ответ не пришёл за 150с')
     await shot(page, 'drop-390-dark-result')
   })
 
@@ -194,9 +211,11 @@ try {
   check('owner API: лимит 1 МБ сохранён', setRes?.success && setRes?.mediaUploadLimitMb === 1, JSON.stringify(setRes))
   await withPage(browser, { token: tokens.client, theme: 'dark', vw: 390, vh: 844 }, async (page) => {
     await gotoChat(page)
-    await dropVideo(page, { sizeMb: 2.5, name: 'too-big.mp4' })
-    await page.waitForTimeout(800)
-    const toastVisible = await page.locator('text=Лимит 1 МБ').first().isVisible().catch(() => false)
+    // [OMEGA-VIDEO ДОП-2] не через dropVideo (он ждёт чип 6с — тост живёт 5с и пропадает):
+    // drop → сразу ждём тост
+    const dt = await makeDataTransfer(page, Math.round(2.5 * 1024 * 1024), 'too-big.mp4', 'video/mp4')
+    await page.dispatchEvent(DROP_TARGET, 'drop', { dataTransfer: dt })
+    const toastVisible = await page.locator('text=Лимит 1 МБ').first().waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)
     check('390 dark: файл >лимита → «Лимит 1 МБ, файл 2.5 МБ»', toastVisible)
     check('390 dark: файл >лимита → чип НЕ завис', !(await page.locator('[data-testid="video-upload-chip"]').isVisible().catch(() => false)))
     await shot(page, 'drop-390-dark-oversize-toast')
@@ -212,10 +231,33 @@ try {
     await page.waitForTimeout(5000)
     const card = page.locator('text=Лимит загрузки медиа').first()
     check('кабинет: карточка «Лимит загрузки медиа» видна', await card.isVisible().catch(() => false))
-    await card.scrollIntoViewIfNeeded().catch(() => {})
+    // [OMEGA-VIDEO ДОП-2] карточка цен ✦ + TTL в Подписках
+    const pricing = page.locator('[data-testid="video-pricing-card"]')
+    check('кабинет: карточка «OMEGA-видео: цены и хранение» видна', await pricing.isVisible().catch(() => false))
+    await pricing.scrollIntoViewIfNeeded().catch(() => {})
     await page.waitForTimeout(400)
     await shot(page, 'owner-media-limit-1280-dark')
+    await shot(page, 'owner-video-pricing-1280-dark')
   })
+
+  // ── 6б) [OMEGA-VIDEO ДОП-2 З2] живая цена на чипе: owner ставит 3✦ → клиент видит 3✦ без деплоя ──
+  const setPrice = (n) => fetch(`${LOCAL_API}/api/owner/video-settings`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.owner}` },
+    body: JSON.stringify({ videoAnalysisCostCredits: n }),
+  }).then(r => r.json())
+  const priceRes = await setPrice(3)
+  check('owner API: цена разбора 3✦ сохранена', priceRes?.success && priceRes?.videoAnalysisCostCredits === 3, JSON.stringify(priceRes))
+  await withPage(browser, { token: tokens.client, theme: 'dark', vw: 390, vh: 844 }, async (page) => {
+    await gotoChat(page)
+    const chipShown = await dropVideo(page, { name: 'price3.mp4' })
+    check('390 dark: чип виден для проверки цены', chipShown)
+    check('390 dark: цена 3✦ на чипе ДО анализа (hot-reload из кабинета)', await page.locator('[data-testid="video-upload-price"]:has-text("3✦")').isVisible().catch(() => false))
+    await shot(page, 'drop-390-dark-price-3credits')
+    await page.locator('[data-testid="video-upload-chip"] button[aria-label]').last().click().catch(() => {})
+    await page.waitForTimeout(500)
+  })
+  const priceBack = await setPrice(1)
+  check('owner API: цена разбора 1✦ восстановлена', priceBack?.success && priceBack?.videoAnalysisCostCredits === 1, JSON.stringify(priceBack))
 
   // ── 7) console errors ──
   check('0 console errors на всех экранах', consoleErrors.length === 0, consoleErrors.slice(0, 5).join(' || '))
