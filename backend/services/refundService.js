@@ -33,7 +33,7 @@ export async function processRefund(refundId, ownerId, yookassaEnabled = false) 
     refund.status = 'completed';
     refund.processedAt = new Date();
     refund.mock = true;
-    refund.message = 'Mock refund processed. Для реального возврата подключите ЮKassa (YOOKASSA_SHOP_ID + YOOKASSA_SECRET_KEY в .env)';
+    refund.message = 'Возврат отмечен локально. Для реального возврата денег используйте «верни платёж» (owner.refund → ЮKassa API); ключи — в кабинете владельца (API Keys)';
     await createNode({
       type: 'system',
       content: `Refund processed (mock): ${refund.amount}₽`,

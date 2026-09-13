@@ -46,9 +46,13 @@ export async function getPlanPrice(planId) {
 export async function createPayment(userId, planId, provider = 'yookassa') {
   const plan = await loadPlanFromDb(planId);
   if (plan.price === 0) return { success: true, planId, status: 'active', mock: true };
-  const YOOKASSA_ENABLED = !!(process.env.YOOKASSA_SHOP_ID && process.env.YOOKASSA_SECRET_KEY);
+  // [REAL-DATA] ключи ЮKassa — из ApiKeys (кабинет владельца, hot-reload), не из env
+  const { getProviderKey } = await import('./aiService.js');
+  const shopId = await getProviderKey('yookassa_shop_id');
+  const secret = await getProviderKey('yookassa_secret');
+  const YOOKASSA_ENABLED = !!(shopId && secret);
   if (!YOOKASSA_ENABLED) {
-    return { success: true, planId, status: 'pending', mock: true, paymentUrl: '#', message: 'Mock payment. Для реальной оплаты добавьте YOOKASSA_SHOP_ID и YOOKASSA_SECRET_KEY в .env или Owner Dashboard → API Keys' };
+    return { success: false, planId, status: 'unavailable', mock: false, message: 'Оплата временно недоступна — платёжный ключ не настроен (Owner Dashboard → API Keys)' };
   }
   return { success: true, planId, status: 'pending', mock: false, paymentUrl: `https://yookassa.ru/pay/${userId}/${planId}`, message: 'Redirect to YooKassa' };
 }

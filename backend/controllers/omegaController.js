@@ -119,9 +119,14 @@ export async function chat(req, res) {
 
         // [MONETIZE-2026-08-04] added: consume quota before AI call
         let quotaConsumed = false // [PLANCONFIG-ADMIN] для возврата квоты при ошибке генерации
+        let chatCostCredits = 1 // [REAL-DATA З5.3] фактическая цена сообщения (для честного возврата)
         if (userId && !UNLIMITED_ROLES.includes(effectiveRole)) {
             try {
-                const quota = await consumeGeneration(userId, effectiveRole, { isInfoQuery })
+                // [REAL-DATA З5.3] цена сообщения — из реестра цен действий (кабинет владельца, hot-reload)
+                const { getActionPrices } = await import('../models/OwnerSettings.js')
+                const { chatMessageCostCredits } = await getActionPrices()
+                chatCostCredits = chatMessageCostCredits
+                const quota = await consumeGeneration(userId, effectiveRole, { isInfoQuery, cost: chatMessageCostCredits, action: 'chat' })
                 quotaConsumed = !isInfoQuery
                 if (!quota.allowed || quota.blocked) {
                     return res.status(402).json({
@@ -346,14 +351,14 @@ export async function chat(req, res) {
                 extraSystemContext ? `${extraSystemContext}\n\nВопрос: ${message}` : message,
                 history.map(h => ({ role: h.role, content: h.content || h.text })),
                 lang,
-                { userId, ownerId: userId, userRole, extraSystem: roleContext, chatUserId, isOwner: UNLIMITED_ROLES.includes(effectiveRole) || isOwner({ role: effectiveRole, _id: userId }) }
+                { userId, ownerId: userId, userRole, extraSystem: roleContext, chatUserId, isOwner: UNLIMITED_ROLES.includes(effectiveRole) || isOwner({ role: effectiveRole, _id: userId }), action: 'chat' }
             )
 
         // [PLANCONFIG-ADMIN] честное списание: генерация упала (нет ответа/fallback/ошибка провайдера) — возвращаем квоту клиенту
         if (quotaConsumed && userId && (!result || result.success === false || result.provider === 'fallback' || !result.reply)) {
             try {
                 const { refundGeneration } = await import('../services/usageQuotaService.js')
-                const rf = await refundGeneration(userId)
+                const rf = await refundGeneration(userId, chatCostCredits)
                 if (rf.refunded) console.log('[omegaController] quota refunded after failed generation:', userId)
                 quotaConsumed = false
             } catch { /* best-effort */ }

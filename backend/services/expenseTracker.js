@@ -20,14 +20,14 @@ const COST_PER_1M_USD = {
 }
 
 // fire-and-forget: учёт НИКОГДА не должен ломать/тормозить ответ пользователю
-export function logAiUsage(provider, promptText, replyText, { isOwner = false } = {}) {
+export function logAiUsage(provider, promptText, replyText, { isOwner = false, action = '' } = {}) {
     try {
         const promptChars = String(promptText || '').length
         const completionChars = String(replyText || '').length
         const estTokens = Math.ceil((promptChars + completionChars) / 4)
         const price = COST_PER_1M_USD[provider] ?? 0.20
         const estCostUsd = (estTokens / 1_000_000) * price
-        AiUsageLog.create({ provider, promptChars, completionChars, estTokens, estCostUsd, isOwner })
+        AiUsageLog.create({ provider, promptChars, completionChars, estTokens, estCostUsd, isOwner, action: String(action || '') })
             .catch(e => console.warn('[expenseTracker] log failed:', e.message))
     } catch { /* never throw */ }
 }

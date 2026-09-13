@@ -10,6 +10,8 @@ const AiUsageLogSchema = new mongoose.Schema({
     estCostUsd: { type: Number, default: 0 },
     // [HOTFIX-FINAL] пометка генераций владельца — в клиентскую статистику/маржу не входит
     isOwner: { type: Boolean, default: false },
+    // [REAL-DATA З5.3.1] какое действие породило вызов (chat/script/cover/…) — основа себестоимости по функциям
+    action: { type: String, default: '', index: true },
     createdAt: { type: Date, default: Date.now },
 })
 

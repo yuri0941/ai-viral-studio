@@ -67,12 +67,25 @@ export async function checkQuota(userId) {
     }
 }
 
-export async function consumeGeneration(userId, userRole = null, { isInfoQuery = false, cost = 1 } = {}) {
+// [REAL-DATA З5.3.3] факт списания по действию — для аналитики расхода владельца (fire-and-forget)
+async function logActionSpend(userId, action, cost, via) {
+    if (!action || !cost) return
+    try {
+        const { ActionSpendLog } = await import('../models/ActionSpendLog.js')
+        ActionSpendLog.create({ userId, action, costCredits: cost, via }).catch(() => {})
+    } catch { /* never throw */ }
+}
+
+export async function consumeGeneration(userId, userRole = null, { isInfoQuery = false, cost = 1, action = '' } = {}) {
     if (isOwner({ role: userRole, _id: userId })) {
         return { allowed: true, remaining: Infinity, unlimited: true }
     }
     // [OMEGA-VIDEO ДОП-2] стоимость действия в ✦ (разбор видео/обложка/сценарий) — цена из кабинета владельца
-    cost = Math.max(1, Math.round(Number(cost) || 1))
+    // [REAL-DATA З5.3] cost 0 = бесплатное действие (цена из кабинета), списание пропускается
+    cost = Math.max(0, Math.round(Number(cost) || 0))
+    if (cost === 0) {
+        return { ...await checkQuota(userId), allowed: true, consumed: false, freeAction: true }
+    }
     const quota = await getOrCreateQuota(userId)
 
     // [v9.9.2-MASTER-FIX] Smart quota: info/help/navigation queries don't consume tokens
@@ -86,6 +99,7 @@ export async function consumeGeneration(userId, userRole = null, { isInfoQuery =
             quota.trialTokens = (quota.trialTokens || 0) - cost
             quota.trialUsed = (quota.trialUsed || 0) + cost
             await quota.save()
+            logActionSpend(userId, action, cost, 'trial')
             return {
                 ...await checkQuota(userId),
                 allowed: true,
@@ -105,12 +119,14 @@ export async function consumeGeneration(userId, userRole = null, { isInfoQuery =
         }
     }
 
-    if (quota.generationsUsed < quota.generationsLimit) {
+    const usedOverage = quota.generationsUsed >= quota.generationsLimit
+    if (!usedOverage) {
         quota.generationsUsed += cost
     } else {
         quota.overageUsed += cost
     }
     await quota.save()
+    logActionSpend(userId, action, cost, usedOverage ? 'overage' : 'quota')
     // [CLIENT-JOURNEY-QA] checkQuota не содержит allowed — pro/agency получали 402 на КАЖДЫЙ запрос
     return { ...await checkQuota(userId), allowed: true, consumed: true }
 }

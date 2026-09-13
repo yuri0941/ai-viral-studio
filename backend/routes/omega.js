@@ -333,14 +333,38 @@ router.post('/analyze-video', protect, async (req, res) => {
             })
         }
 
-        const analysis = extractText(await chatWithAI(
-            `Analyze this video URL: ${videoUrl}. Provide: title suggestions, viral potential 0-100, best platform, target audience, 3 hook ideas.`,
-            [],
-            'ru',
-            { role: 'owner', userId: req.user?._id?.toString() }
-        ))
+        // [REAL-DATA З5.3] цена из реестра (кабинет владельца); 0 = бесплатно. Сбой AI → возврат ✦.
+        const { getActionPrices } = await import('../models/OwnerSettings.js')
+        const { linkAnalysisCostCredits: linkCost } = await getActionPrices()
+        const userId = req.user?._id || req.user?.id
+        if (linkCost > 0) {
+            const quota = await consumeGeneration(userId, req.user?.role, { cost: linkCost, action: 'link_analysis' })
+            if (!quota.allowed) {
+                return res.status(402).json({
+                    success: false,
+                    code: quota.code || 'QUOTA_EXCEEDED',
+                    message: quota.message,
+                    upgradeUrl: quota.upgradeUrl,
+                    cost: linkCost,
+                })
+            }
+        }
 
-        res.json({ success: true, analysis })
+        try {
+            const analysis = extractText(await chatWithAI(
+                `Analyze this video URL: ${videoUrl}. Provide: title suggestions, viral potential 0-100, best platform, target audience, 3 hook ideas.`,
+                [],
+                'ru',
+                { role: 'owner', userId: req.user?._id?.toString(), action: 'link_analysis' }
+            ))
+            res.json({ success: true, analysis, cost: linkCost })
+        } catch (aiErr) {
+            if (linkCost > 0) {
+                const { refundGeneration } = await import('../services/usageQuotaService.js')
+                await refundGeneration(userId, linkCost)
+            }
+            throw aiErr
+        }
     } catch (e) {
         console.error('[Omega] Analyze video error:', e)
         res.status(500).json({ success: false, error: e.message })
@@ -371,7 +395,7 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
         const videoSettings = await getVideoSettings()
         const cost = videoSettings.videoAnalysisCostCredits
 
-        const quota = await consumeGeneration(userId, req.user?.role, { cost })
+        const quota = await consumeGeneration(userId, req.user?.role, { cost, action: 'video_analysis' })
         if (!quota.allowed) {
             return res.status(402).json({
                 success: false,
@@ -463,7 +487,6 @@ router.post('/script-from-idea', protect, async (req, res) => {
         }
         const { getVideoSettings } = await import('../models/OwnerSettings.js')
         const { scriptGenerationCostCredits: cost } = await getVideoSettings()
-
         // Уточнение цели — до списания ✦
         const missing = []
         if (!platform) missing.push('platform')
@@ -495,7 +518,7 @@ router.post('/script-from-idea', protect, async (req, res) => {
             console.warn('[script-from-idea] niche stats failed:', e.message)
         }
 
-        const quota = await consumeGeneration(userId, req.user?.role, { cost })
+        const quota = await consumeGeneration(userId, req.user?.role, { cost, action: 'script' })
         if (!quota.allowed) {
             return res.status(402).json({
                 success: false,
@@ -563,7 +586,7 @@ router.post('/cover-variants', protect, async (req, res) => {
         const { getVideoSettings } = await import('../models/OwnerSettings.js')
         const { coverGenerationCostCredits: cost } = await getVideoSettings()
 
-        const quota = await consumeGeneration(userId, req.user?.role, { cost })
+        const quota = await consumeGeneration(userId, req.user?.role, { cost, action: 'cover' })
         if (!quota.allowed) {
             return res.status(402).json({
                 success: false,
@@ -761,10 +784,54 @@ router.post('/interpret', protect, async (req, res) => {
 router.post('/vision/analyze', protect, async (req, res) => {
     try {
         const { imageUrl } = req.body
-        const result = await analyzeImage(imageUrl)
-        res.json({ status: 'success', data: result })
+        // [REAL-DATA З5.3] цена из реестра (кабинет); 0 = бесплатно. Сбой → возврат ✦.
+        const { getActionPrices } = await import('../models/OwnerSettings.js')
+        const { visionAnalysisCostCredits: visionCost } = await getActionPrices()
+        const userId = req.user?._id || req.user?.id
+        if (visionCost > 0) {
+            const quota = await consumeGeneration(userId, req.user?.role, { cost: visionCost, action: 'vision' })
+            if (!quota.allowed) {
+                return res.status(402).json({
+                    success: false,
+                    code: quota.code || 'QUOTA_EXCEEDED',
+                    message: quota.message,
+                    upgradeUrl: quota.upgradeUrl,
+                    cost: visionCost,
+                })
+            }
+        }
+        try {
+            const result = await analyzeImage(imageUrl)
+            res.json({ status: 'success', data: result, cost: visionCost })
+        } catch (aiErr) {
+            if (visionCost > 0) {
+                const { refundGeneration } = await import('../services/usageQuotaService.js')
+                await refundGeneration(userId, visionCost)
+            }
+            throw aiErr
+        }
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
+    }
+})
+
+// [REAL-DATA З5.3] клиентский реестр цен действий (✦) — цена ДО запуска, все роли, hot-reload ≤60с
+router.get('/action-prices', protect, async (req, res) => {
+    try {
+        const { getActionPrices } = await import('../models/OwnerSettings.js')
+        const { ACTION_REGISTRY } = await import('../services/actionPricingService.js')
+        const prices = await getActionPrices()
+        res.json({
+            success: true,
+            prices: ACTION_REGISTRY.map(a => ({
+                id: a.id,
+                labelRu: a.labelRu,
+                labelEn: a.labelEn,
+                costCredits: prices[a.priceKey],
+            })),
+        })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
     }
 })
 

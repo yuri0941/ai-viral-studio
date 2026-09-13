@@ -206,7 +206,9 @@ router.post('/refunds', protect, authorize('owner', 'admin'), async (req, res) =
 
 router.post('/refunds/:id/process', protect, authorize('owner', 'admin'), async (req, res) => {
   try {
-    const yookassaEnabled = !!(process.env.YOOKASSA_SHOP_ID && process.env.YOOKASSA_SECRET_KEY)
+    // [REAL-DATA] ключи ЮKassa — из ApiKeys (кабинет, hot-reload), не из env
+    const { getProviderKey } = await import('../services/aiService.js')
+    const yookassaEnabled = !!(await getProviderKey('yookassa_shop_id')) && !!(await getProviderKey('yookassa_secret'))
     const refund = await processRefund(req.params.id, req.user.id || req.user._id, yookassaEnabled)
     res.json({ success: true, refund })
   } catch (err) {

@@ -1019,7 +1019,7 @@ const PROVIDER_CHAIN = [
 
 const SKIP_STATUSES = [401, 403, 404]
 
-const tryProviders = async (messages, ownerId = null, { isOwner = false } = {}) => {
+const tryProviders = async (messages, ownerId = null, { isOwner = false, action = '' } = {}) => {
     const errors = []
     const prompt = buildPrompt(messages)
 
@@ -1061,7 +1061,7 @@ const tryProviders = async (messages, ownerId = null, { isOwner = false } = {}) 
             modelRemovedFailures.delete(provider.id)
             // [OWNER-OMEGA] лайт-учёт расходов: лог вызова (fire-and-forget, не ломает ответ)
             import('./expenseTracker.js')
-                .then(m => m.logAiUsage(provider.id, prompt, text, { isOwner }))
+                .then(m => m.logAiUsage(provider.id, prompt, text, { isOwner, action }))
                 .catch(() => {})
             return { reply: String(text).trim(), provider: provider.id, usage: null }
         } catch (error) {
@@ -1183,7 +1183,7 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
             })),
             { role: 'user', content: message }
         ]
-        const result = await tryProviders(messages, options.ownerId || options.userId || null, { isOwner: !!options.isOwner })
+        const result = await tryProviders(messages, options.ownerId || options.userId || null, { isOwner: !!options.isOwner, action: options.action || '' })
         const value = { reply: result.reply, provider: result.provider, usage: result.usage }
         setCached(message, lang, value, userId)
         await setJSON(redisKey, value, 3600)

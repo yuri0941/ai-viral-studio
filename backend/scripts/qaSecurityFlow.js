@@ -72,6 +72,8 @@ for (const [m, p, body] of [
   ['GET', '/api/owner/audit'],
   ['GET', '/api/owner/subscriptions'],
   ['POST', '/api/owner/promos', { code: 'HACK', discount: 99 }],
+  ['POST', '/api/owner/action-prices', { chatMessageCostCredits: 99 }],
+  ['GET', '/api/owner/action-analytics'],
   ['PUT', '/api/owner/control/flags', { maintenance: true }],
   ['POST', '/api/owner/control/extend-subscription', { email: 'x@x.x', days: 365 }],
   ['POST', '/api/owner/changelog', { version: '0.0.0-hack', text: 'x' }],
