@@ -109,6 +109,14 @@ async function upsertApiKeys() {
 
 async function seed() {
     try {
+        // [REAL-DATA] мок-наполнение (фейковые серверы/платежи/интеграции) запрещено вне явного dev-флага.
+        // Скрипт больше НЕ вставляет демо-цифры: прод и локаль живут на реальных данных.
+        if (process.env.ALLOW_MOCK_SEED !== '1') {
+            console.log('[seed] Мок-данные отключены (REAL-DATA). Для демо-наполнения: ALLOW_MOCK_SEED=1 node scripts/seed.js')
+            console.log('[seed] Тестовые аккаунты — через backend/scripts/createTestAccounts.js')
+            await mongoose.disconnect().catch(() => {})
+            return
+        }
         await mongoose.connect(MONGO_URI)
         console.log('Connected to MongoDB:', MONGO_URI)
 

@@ -2,8 +2,9 @@
 // HELPERS — универсальные функции
 // ============================================
 
-export const formatCurrency = (amount, currency = '$') =>
-    `${currency}${amount?.toLocaleString('en-US') || 0}`
+// [REAL-DATA] валюта по умолчанию — ₽ (сервис продаёт в RUB), формат ru-RU
+export const formatCurrency = (amount, currency = '₽') =>
+    `${amount?.toLocaleString('ru-RU') || 0} ${currency}`
 
 export const parseDate = (dateStr) => {
     if (!dateStr) return null
