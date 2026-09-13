@@ -192,8 +192,9 @@ for (const r of ['/owner', '/admin', '/staff']) {
     const ctx = await newCtx(1280, 'ru', { token: creatorToken, profile: creatorProfile })
     const page = await ctx.newPage()
     await page.goto(`${BASE}${r}`, { waitUntil: 'domcontentloaded' })
-    await page.waitForTimeout(3000)
-    check(`creator на ${r} → /unauthorized (гард цел)`, page.url().includes('/unauthorized'), page.url())
+    // [QA-FIX] под нагрузкой /auth/me медленнее фиксированных 3с → ждём сам редирект (не ослабление: финал обязан быть /unauthorized)
+    const redirected = await page.waitForURL('**/unauthorized**', { timeout: 15000 }).then(() => true).catch(() => false)
+    check(`creator на ${r} → /unauthorized (гард цел)`, redirected || page.url().includes('/unauthorized'), page.url())
     await ctx.close()
 }
 
