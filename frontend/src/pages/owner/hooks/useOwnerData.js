@@ -188,7 +188,8 @@ export function useOwnerData() {
             }
             if (agentsRes.status === 'fulfilled') {
                 const d = agentsRes.value.data
-                setAgents(Array.isArray(d.agents) ? d.agents : [])
+                // [REAL-DATA] документы Mongo имеют _id — нормализуем в id для карточек
+                setAgents(Array.isArray(d.agents) ? d.agents.map(a => ({ ...a, id: a.id || a._id })) : [])
             }
         } catch (err) {
             setError(err.message)
@@ -453,8 +454,8 @@ export function useOwnerData() {
     }, [showToast])
 
     const toggle2FA = useCallback(() => {
-        setSecurity(prev => ({ ...prev, twoFactorEnabled: !prev.twoFactorEnabled }))
-        showToast('2FA обновлена')
+        // [REAL-DATA] серверной 2FA нет — честный ответ вместо фейкового переключателя
+        showToast('Двухфакторная защита пока не подключена на сервере — переключатель ничего не меняет', 'error')
     }, [showToast])
 
     // ============================================

@@ -233,6 +233,26 @@ export function OMEGACoreTab({ data }) {
         }
     }, [showToast])
 
+    // [REAL-DATA З3] Spawn создаёт реального агента в БД (AIAgent через generic CRUD), не «тост-пустышку»
+    const spawnAgent = useCallback(async (kind) => {
+        const names = {
+            content: { name: 'Content Agent', role: 'Контент', description: 'Генерирует и модерирует контент' },
+            analytics: { name: 'Analytics Agent', role: 'Аналитика', description: 'Собирает и визуализирует метрики' },
+            support: { name: 'Support Agent', role: 'Поддержка', description: 'Отвечает на типовые тикеты' },
+            trend: { name: 'Trend Agent', role: 'Тренды', description: 'Отслеживает тренды и темы' },
+        }
+        const meta = names[kind]
+        if (!meta) return
+        try {
+            await request('/owner/agents', { method: 'POST', body: JSON.stringify({ ...meta, status: 'active' }) })
+            const res = await request('/owner/agents').catch(() => null)
+            if (Array.isArray(res?.data?.agents)) setAgents(res.data.agents.map(a => ({ ...a, id: a.id || a._id })))
+            showToast(`${meta.name} создан и активен`)
+        } catch (e) {
+            showToast(`Не удалось создать агента: ${e.message}`, 'error')
+        }
+    }, [setAgents, showToast])
+
     const toggleBtnClass = (on) => on
         ? 'min-h-[44px] bg-green-500/20 border-green-500 text-green-400 rounded-xl px-4 py-2 border'
         : 'min-h-[44px] glass text-[var(--text-muted)] rounded-xl px-4 py-2'
@@ -409,25 +429,25 @@ export function OMEGACoreTab({ data }) {
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs text-[var(--text-muted)] hidden sm:inline">{t('omega.spawn')}:</span>
                             <button type="button"
-                                onClick={() => showToast('Spawn Content Agent: запрос отправлен в Swarm')}
+                                onClick={() => spawnAgent('content')}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs hover:bg-violet-500/20 transition-colors"
                             >
                                 <FileText size={12} /> Content
                             </button>
                             <button type="button"
-                                onClick={() => showToast('Spawn Analytics Agent: запрос отправлен в Swarm')}
+                                onClick={() => spawnAgent('analytics')}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs hover:bg-cyan-500/20 transition-colors"
                             >
                                 <BarChart2 size={12} /> Analytics
                             </button>
                             <button type="button"
-                                onClick={() => showToast('Spawn Support Agent: запрос отправлен в Swarm')}
+                                onClick={() => spawnAgent('support')}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs hover:bg-emerald-500/20 transition-colors"
                             >
                                 <Headphones size={12} /> Support
                             </button>
                             <button type="button"
-                                onClick={() => showToast('Spawn Trend Agent: запрос отправлен в Swarm')}
+                                onClick={() => spawnAgent('trend')}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs hover:bg-amber-500/20 transition-colors"
                             >
                                 <TrendingUp size={12} /> Trend
