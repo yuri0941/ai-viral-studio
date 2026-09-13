@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { DollarSign, PieChart, TrendingUp, Wallet, Bitcoin, AlertTriangle } from 'lucide-react'
 import { KPICard } from '../common/KPICard'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
-import { ownerApi } from '../../../../services/api'
+import { ownerControlApi } from '../../../../services/api'
 
 // [REAL-DATA] План распределения бюджета — это настройка (проценты), применяется к РЕАЛЬНОМУ MRR.
 // Крипто-портфель и «инвестиционные портфели» не имеют реального источника данных → честные empty-state.
@@ -20,7 +20,7 @@ export function OmegaFinanceTab({ data }) {
 
     useEffect(() => {
         let mounted = true
-        ownerApi.metrics()
+        ownerControlApi.metrics()
             .then(res => { if (mounted) setMrr(res?.metrics?.mrr || 0) })
             .catch(() => {})
         return () => { mounted = false }

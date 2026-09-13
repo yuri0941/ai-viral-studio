@@ -242,45 +242,7 @@ function useCountUp(end, duration = 1500) {
 }
 
 // [v6.0] added: sparkline canvas for metric cards
-function Sparkline({ value, height = 40 }) {
-    const canvasRef = useRef(null)
-    useEffect(() => {
-        const canvas = canvasRef.current
-        if (!canvas) return
-        const ctx = canvas.getContext('2d')
-        const dpr = window.devicePixelRatio || 1
-        const w = canvas.clientWidth
-        canvas.width = w * dpr
-        canvas.height = height * dpr
-        ctx.scale(dpr, dpr)
-        const points = 12
-        const data = Array.from({ length: points }, (_, i) => {
-            const seed = Math.sin(value + i * 1.7) * 0.5 + 0.5
-            return 0.2 + seed * 0.6
-        })
-        const step = w / (points - 1)
-        ctx.clearRect(0, 0, w, height)
-        ctx.beginPath()
-        ctx.moveTo(0, height - data[0] * height)
-        data.forEach((d, i) => ctx.lineTo(i * step, height - d * height))
-        ctx.strokeStyle = 'rgba(255,255,255,0.4)'
-        ctx.lineWidth = 2
-        ctx.lineCap = 'round'
-        ctx.lineJoin = 'round'
-        ctx.stroke()
-        ctx.lineTo(w, height)
-        ctx.lineTo(0, height)
-        ctx.closePath()
-        const grad = ctx.createLinearGradient(0, 0, 0, height)
-        grad.addColorStop(0, 'rgba(139,92,246,0.25)')
-        grad.addColorStop(1, 'rgba(139,92,246,0)')
-        ctx.fillStyle = grad
-        ctx.fill()
-    }, [value, height])
-    return <canvas ref={canvasRef} className="w-full mt-3" style={{ height }} />
-}
-
-// [v6.0] added: luxury glass metric card with count-up and sparkline
+// [v6.0] added: luxury glass metric card with count-up (спарклайн-заглушка удалена: выдуманный график)
 function MetricCard({ label, value, suffix = '', icon: Icon, delay = 0 }) {
     const { count, ref } = useCountUp(value, 1500)
     const display = Number.isInteger(value)
@@ -303,7 +265,7 @@ function MetricCard({ label, value, suffix = '', icon: Icon, delay = 0 }) {
                     <Icon className="w-5 h-5 text-violet-400" />
                 </div>
             </div>
-            <Sparkline value={value} />
+            {/* [REAL-DATA] декоративный спарклайн (sin-волна без данных) удалён — график без данных не рисуется */}
         </div>
     )
 }

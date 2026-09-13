@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { KPICard } from '../common/KPICard'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx'
-import { ownerApi, selfImprovementApi } from '../../../../services/api'
+import { ownerControlApi, selfImprovementApi } from '../../../../services/api'
 import { Brain, Wallet, TrendingUp, Lightbulb, UserX } from 'lucide-react'
 
 // [REAL-DATA] AI Аналитика: только реальные источники (churn из self-improvement,
@@ -15,7 +15,7 @@ export function AIAnalyticsTab() {
         let mounted = true
         Promise.all([
             selfImprovementApi.churnStats().catch(() => null),
-            ownerApi.metrics().catch(() => null),
+            ownerControlApi.metrics().catch(() => null),
         ]).then(([churnRes, metricsRes]) => {
             if (!mounted) return
             setChurnStats(churnRes?.data || null)
