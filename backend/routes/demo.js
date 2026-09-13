@@ -5,24 +5,20 @@ import { chatWithAI, extractText } from '../services/aiService.js'
 const router = express.Router()
 
 // In-memory cache по ниши (TTL 1 час)
-const cache = new Map()
+// [MEMORY-FIX] жёсткий лимит 500 записей (LRU) — безлимитный Map ел RAM на Render Free
+import { TtlLruCache } from '../utils/ttlLruCache.js'
+const cache = new TtlLruCache({ ttlMs: 60 * 60 * 1000, maxEntries: 500 })
 
 function getCacheKey(niche) {
     return `demo:${niche.toLowerCase().trim()}`
 }
 
 function getCached(key) {
-    const item = cache.get(key)
-    if (!item) return null
-    if (Date.now() > item.expiresAt) {
-        cache.delete(key)
-        return null
-    }
-    return item.value
+    return cache.get(key)
 }
 
 function setCached(key, value, ttlMs = 60 * 60 * 1000) {
-    cache.set(key, { value, expiresAt: Date.now() + ttlMs })
+    cache.set(key, value, ttlMs)
 }
 
 const demoLimiter = rateLimit({

@@ -1,7 +1,7 @@
 import { MongoClient, BSON } from 'mongodb'
 import JSZip from 'jszip'
 import fs from 'fs/promises'
-import { createWriteStream } from 'fs'
+import { createWriteStream, createReadStream } from 'fs'
 import { createGzip, gunzip as gunzipCb } from 'zlib'
 import { promisify } from 'util'
 import path from 'path'
@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url'
 import { sendEmail } from './emailService.js'
 import { getOwnerBot } from './ownerBot.js'
 import { getOwnerChatId } from '../models/OwnerSettings.js' // [OWNER-REMOTE-CONTROL]
+import { logMemory } from '../utils/memoryLog.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -70,6 +71,8 @@ async function backupCollection(db, collectionName, outDir) {
     return { name: collectionName, count, bytes }
 }
 
+// [MEMORY-FIX] zip стримится на диск (generateNodeStream + streamFiles) —
+// gz-файлы больше не читаются в RAM целиком и весь архив не собирается в одном буфере.
 async function createZipArchive(sourceDir, zipPath) {
     const zip = new JSZip()
     const files = await fs.readdir(sourceDir)
@@ -77,15 +80,22 @@ async function createZipArchive(sourceDir, zipPath) {
         const filePath = path.join(sourceDir, file)
         const stat = await fs.stat(filePath)
         if (stat.isFile()) {
-            zip.file(file, await fs.readFile(filePath))
+            zip.file(file, createReadStream(filePath))
         }
     }
-    const buffer = await zip.generateAsync({
-        type: 'nodebuffer',
-        compression: 'DEFLATE',
-        compressionOptions: { level: 6 },
+    await new Promise((resolve, reject) => {
+        const out = createWriteStream(zipPath)
+        zip.generateNodeStream({
+            type: 'nodebuffer',
+            streamFiles: true,
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 },
+        })
+            .pipe(out)
+            .on('finish', resolve)
+            .on('error', reject)
+        out.on('error', reject)
     })
-    await fs.writeFile(zipPath, buffer)
     return zipPath
 }
 
@@ -156,6 +166,7 @@ export async function runBackup() {
         const db = client.db(dbName)
         const collections = await db.listCollections().toArray()
         const stats = []
+        logMemory('backup:start')
 
         for (const coll of collections) {
             if (coll.name.startsWith('system.')) continue
@@ -176,6 +187,7 @@ export async function runBackup() {
 
         await createZipArchive(outDir, zipPath)
         const zipStat = await fs.stat(zipPath)
+        logMemory('backup:zip-done')
 
         lastBackup = new Date()
         lastBackupStatus = 'success'

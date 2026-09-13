@@ -320,6 +320,15 @@ export function invalidateTakeoverCache(chatId) { takeoverCache.delete(String(ch
 const freeTextRate = global.omegaFreeTextRate || new Map()
 global.omegaFreeTextRate = freeTextRate
 
+// [MEMORY-FIX] периодический sweep накопленных состояний ботов (без него ключи chatId копятся вечно)
+setInterval(() => {
+  const now = Date.now()
+  for (const [k, v] of freeTextRate) { if (now - v > 60 * 60 * 1000) freeTextRate.delete(k) }
+  for (const [k, v] of takeoverCache) { if (now - (v?.at || 0) > 5 * 60 * 1000) takeoverCache.delete(k) }
+  for (const [k, v] of videoState) { if (now - (v?.since || 0) > 30 * 60 * 1000) videoState.delete(k) }
+  for (const [k, v] of supportState) { if (now - (v?.since || 0) > 24 * 60 * 60 * 1000) supportState.delete(k) }
+}, 10 * 60 * 1000).unref?.()
+
 function createStubBot() {
   return {
     __isStub: true, // [OWNER-OMEGA] маркер заглушки — botReloader не трогает stub
@@ -1072,7 +1081,7 @@ export const initOmegaBot = () => {
       }
       if (data === 'video:start') {
         bot.sendMessage(chatId, `🎬 <b>Создание видео</b>\n━━━━━━━━━━━━━━\nНапишите тему (например: "как продвигать кофейню в TikTok")`, { parse_mode: 'HTML' })
-        videoState.set(chatId, { step: 'awaiting_topic' })
+        videoState.set(chatId, { step: 'awaiting_topic', since: Date.now() })
         return
       }
       if (data === 'ideas:more') {

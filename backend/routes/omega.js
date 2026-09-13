@@ -5,6 +5,7 @@ import { getReflectionStatus } from '../ai/omega/selfReflection.js'
 import { speechToText } from '../services/voiceService.js'
 import { analyzeCSV, generateChartData, generateInsights } from '../ai/omega/codeInterpreter.js'
 import { analyzeImage } from '../ai/omega/visionCore.js'
+import { logMemory } from '../utils/memoryLog.js'
 import {
     getStatus,
     chat,
@@ -408,9 +409,12 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
         }
 
         const frameList = Array.isArray(frames) ? frames.filter(f => typeof f === 'string' && f.startsWith('data:image/')).slice(0, 6) : []
+        // [MEMORY-FIX] замер RSS на тяжёлой операции (vision-разбор)
+        logMemory('vision:start')
         // [OMEGA-VIDEO ДОП-2] кадры параллельно (Promise.allSettled): последовательный цикл давал
         // N×(цикл провайдеров с таймаутами) — разбор не успевал за разумное время (факт из гейта).
         const visionResults = await Promise.allSettled(frameList.map(f => analyzeImage(f)))
+        logMemory('vision:frames-done')
         const frameDescriptions = []
         let visionAvailable = false
         for (let i = 0; i < frameList.length; i++) {

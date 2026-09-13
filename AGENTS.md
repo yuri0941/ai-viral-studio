@@ -70,6 +70,7 @@
 - [REAL-DATA] consumeGeneration/refund НЕ трогаем без action-тега: AiUsageLog.action заполняется через `chatWithAI(..., { action })` → tryProviders → logAiUsage.
 - [REAL-DATA] seed.js (мок-наполнение серверов/платежей) заблокирован без `ALLOW_MOCK_SEED=1`; старые мок-ряды в локальной БД вычищены. Композер чата на 360px: `flex-wrap` + `max-sm:min-w-[140px]` у omega-input — иначе ряд кнопок сжимал инпут до w=0 (сломан гейт З5).
 - [REAL-DATA] Локальный e2e: backend поднимать с `OWNER_IP=127.0.0.1` (как CI — иначе матрица ролей выжигает rate-limit и ловит 429 на /auth/me), vite preview — `--host 127.0.0.1` (на Windows vite 6 встаёт на [::1], curl/некоторые клиенты не достукиваются).
+- [MEMORY-FIX] Потолок Render Free 512MB. In-memory кэши — ТОЛЬКО с TTL + лимитом записей: хелпер `backend/utils/ttlLruCache.js` (LRU + sweep); безразмерные Map/массивы на модульном уровне запрещены. Лог памяти: `backend/utils/memoryLog.js` (`[MEM] tag rss=… heap=…`, интервал 5 мин в healthMonitor + точечно vision/backup/upload). HealthMonitor: RAM WARN 420MB (console), FAIL 490MB, RAM-алерт не чаще 1/30мин и повтор только при росте RSS (не-RAM сбои — сразу). Бэкап zip — стриминг (`JSZip.generateNodeStream({streamFiles:true})`, gz не читаются в RAM). Upload `/api/upload/media` — multer diskStorage (видео до 250МБ стримится на диск, НЕ в heap; `/image` остался memoryStorage 10МБ для sharp). Sweep-интервалы ботов/кэшей — с `.unref?.()`.
 
 ## Актуализация AGENTS.md (постоянное правило)
 
