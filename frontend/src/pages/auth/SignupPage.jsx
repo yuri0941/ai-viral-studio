@@ -222,8 +222,7 @@ export default function SignupPage() {
                     <CreditCard className="w-6 h-6 text-[var(--primary)]" />
                     <div className="font-semibold">{plans[form.plan]?.name || form.plan} — {plans[form.plan]?.price || PLANS.find(p => p.id === form.plan)?.price} ₽/мес</div>
                   </div>
-                  <p className="text-sm text-[var(--text-muted)] mb-4">Сейчас включён mock-режим. После нажатия «Оплатить» подписка активируется автоматически для теста.</p>
-                  <button disabled className="w-full py-3 rounded-xl bg-[var(--primary)]/20 text-[var(--text-muted)] text-sm font-medium cursor-not-allowed">Mock-оплата</button>
+                  <p className="text-sm text-[var(--text-muted)]">Оплата подключается после регистрации — в личном кабинете (Настройки → Подписка) через ЮKassa.</p>
                 </div>
               )}
             </div>

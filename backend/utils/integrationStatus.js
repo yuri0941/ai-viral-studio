@@ -36,8 +36,9 @@ export async function integrationStatus(name, userId) {
       return { configured, healthy, reason }
     }
     case 'yookassa': {
-      const shopId = await getProviderKey('yookassa_shop_id') || process.env.YOOKASSA_SHOP_ID
-      const secret = await getProviderKey('yookassa_secret') || process.env.YOOKASSA_SECRET_KEY
+      // [REAL-DATA-2] env-фолбэк после getProviderKey запрещён (HOTFIX-FINAL-2): выключенный ключ = полный запрет
+      const shopId = await getProviderKey('yookassa_shop_id')
+      const secret = await getProviderKey('yookassa_secret')
       const configured = !!(shopId && secret)
       return { configured, healthy: configured ? true : null, reason: configured ? 'ready' : 'missing_keys' }
     }

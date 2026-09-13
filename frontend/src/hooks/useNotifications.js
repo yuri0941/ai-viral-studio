@@ -1,42 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { playSound } from './useSound.js'
 
-const STORAGE_KEY = 'app_notifications'
+// [REAL-DATA-2] мок-уведомления (TechBrand/$29/8.5/10) удалены; ключ v2 — старый кэш с моками не подхватывается
+const STORAGE_KEY = 'app_notifications_v2'
 const PERMISSION_ASKED_KEY = 'notifications_permission_asked'
-
-const DEFAULT_NOTIFICATIONS = [
-    {
-        id: 1,
-        type: 'campaign',
-        title: 'Новая кампания на утверждение',
-        message: 'Рекламодатель "TechBrand" заказал размещение на вашем канале. Проверьте детали.',
-        time: '2 мин назад',
-        read: false,
-    },
-    {
-        id: 2,
-        type: 'subscription',
-        title: 'Оплата прошла успешно',
-        message: 'Ваш тариф Pro продлён до 21.08.2026. Сумма списания: $29.',
-        time: '1 час назад',
-        read: false,
-    },
-    {
-        id: 3,
-        type: 'ai',
-        title: 'Анализ контента готов',
-        message: 'AI завершил разбор вашего TikTok-видео. Результат: 8.5/10.',
-        time: '3 часа назад',
-        read: true,
-    },
-]
 
 function loadNotifications() {
     try {
         const saved = localStorage.getItem(STORAGE_KEY)
-        return saved ? JSON.parse(saved) : DEFAULT_NOTIFICATIONS
+        return saved ? JSON.parse(saved) : []
     } catch {
-        return DEFAULT_NOTIFICATIONS
+        return []
     }
 }
 

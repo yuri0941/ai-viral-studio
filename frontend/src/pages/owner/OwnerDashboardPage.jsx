@@ -96,11 +96,6 @@ import { EditStaffModal } from './components/modals/EditStaffModal'
 import { CreateCampaignModal } from './components/modals/CreateCampaignModal'
 import { CreatePromoModal } from './components/modals/CreatePromoModal'
 import { CreateNewsModal } from './components/modals/CreateNewsModal'
-import { AddTaskModal } from './components/modals/AddTaskModal'
-import { AddAPIKeyModal } from './components/modals/AddAPIKeyModal'
-import { CreateAgentModal } from './components/modals/CreateAgentModal'
-import { SendEmailModal } from './components/modals/SendEmailModal'
-import { OmegaApprovalModal } from './components/modals/OmegaApprovalModal'
 
 // Floating widgets
 import { OmegaChatWidget } from '../../components/omega/OmegaChatWidget'
@@ -465,36 +460,6 @@ export default function OwnerDashboardPage() {
                 isOpen={modal?.type === 'createNews'}
                 onClose={() => setModal(null)}
                 onCreate={ownerData.addNews}
-            />
-
-            <AddTaskModal
-                isOpen={modal?.type === 'addTask'}
-                onClose={() => setModal(null)}
-                onAdd={ownerData.addTask}
-                staffList={ownerData.staff}
-            />
-            <AddAPIKeyModal
-                isOpen={modal?.type === 'addApiKey'}
-                onClose={() => setModal(null)}
-                onAdd={ownerData.addApiKey}
-            />
-            <CreateAgentModal
-                isOpen={modal?.type === 'createAgent'}
-                onClose={() => setModal(null)}
-                onCreate={ownerData.addAgent}
-            />
-            <SendEmailModal
-                isOpen={modal?.type === 'sendEmail'}
-                onClose={() => setModal(null)}
-                onSend={ownerData.sendEmail}
-                recipients={ownerData.staff}
-            />
-            <OmegaApprovalModal
-                isOpen={modal?.type === 'omegaApproval'}
-                onClose={() => setModal(null)}
-                request={modal?.data}
-                onApprove={(req) => ownerData.approveRequest(req.id, req.comment)}
-                onReject={(req) => ownerData.rejectRequest(req.id, req.comment)}
             />
 
             {/* Toasts */}

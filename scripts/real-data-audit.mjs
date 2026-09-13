@@ -31,8 +31,15 @@ const check = (name, ok, detail = '') => {
 // Известные моки из ТЗ — ни одного на экране быть не должно
 const MOCK_PATTERNS = [
     /AI Worker/i, /CDN Node/i, /35\s?936/, /\$32\s?300/, /\+324/, /99\.0\s?%/,
-    /DEMO50/, /до 40%/, /TechBrand/, /Анна Петрова/, /Uptime/i,
+    /DEMO50/, /до 40%/, /TechBrand/, /Анна Петрова/, /Uptime.{0,12}9\d(\.\d+)?\s?%/i,
     /\+\$5/, /15\.2%/, /22\.1%/, /Quick.*Growth.*Wealth/s, /churn.{0,20}2\.1/i,
+    // [REAL-DATA-2] хвосты: фейк-логи агентов, mock-оплата, тестовые карты
+    /Pricing Agent ::/i, /Revenue Agent ::/i, /Mock-оплата|mock-режим по умолчанию/i, /5555\s?5555/,
+]
+// Сырые ключи/секреты не должны светиться в теле страницы
+const RAW_KEY_PATTERNS = [
+    /sk_live_[\w-]{8,}/, /sk_test_[\w-]{8,}/, /gsk_[\w-]{8,}/, /sk-or-[\w-]{8,}/,
+    /xox[bap]-[\w-]{8,}/, /AKIA[0-9A-Z]{12,}/, /-----BEGIN [A-Z ]*PRIVATE KEY/,
 ]
 
 async function proxyApi(context) {
@@ -76,47 +83,92 @@ async function withPage(browser, { token, theme = 'dark', width = 1280 }, fn) {
     try { await fn(page, errors) } finally { await context.close() }
 }
 
-async function auditScreen(browser, { token, theme, url, name, width = 1280 }) {
+async function auditScreen(browser, { token, theme, url, name, width = 1280, wait = 2500, shot = true }) {
     await withPage(browser, { token, theme, width }, async (page, errors) => {
         await page.goto(`${BASE}${url}`, { waitUntil: 'domcontentloaded' })
-        await page.waitForTimeout(4000)
+        await page.waitForTimeout(wait)
+        const tag = `${name} [${theme} ${width}]`
         const body = await page.locator('body').innerText().catch(() => '')
         const hits = MOCK_PATTERNS.filter(re => re.test(body)).map(String)
-        check(`${name} [${theme}]: моков нет`, hits.length === 0, hits.join(', '))
-        check(`${name} [${theme}]: без pageerror`, errors.length === 0, errors[0] || '')
-        await page.screenshot({ path: `${OUT}/${name}-${theme}.png`, fullPage: false })
-        console.log(`📸 ${name}-${theme}.png`)
+        check(`${tag}: моков нет`, hits.length === 0, hits.join(', '))
+        const keyHits = RAW_KEY_PATTERNS.filter(re => re.test(body)).map(String)
+        check(`${tag}: сырых ключей нет`, keyHits.length === 0, keyHits.join(', '))
+        check(`${tag}: без pageerror`, errors.length === 0, errors[0] || '')
+        const hScroll = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth).catch(() => 0)
+        check(`${tag}: без горизонтального скролла`, hScroll <= 1, `overflow=${hScroll}px`)
+        if (shot) {
+            await page.screenshot({ path: `${OUT}/${name}-${theme}-${width}.png`, fullPage: false })
+            console.log(`📸 ${name}-${theme}-${width}.png`)
+        }
     })
 }
 
 async function main() {
     const ownerToken = await login('owner.test@aiviral-studio.ru', 'TestOwner123!')
     const clientToken = await login('creator.test@aiviral-studio.ru', 'TestCreator123!')
+    const advertiserToken = await login('advertiser.test@aiviral-studio.ru', 'TestAdvertiser123!')
     check('вход owner', !!ownerToken)
     check('вход client', !!clientToken)
+    check('вход advertiser', !!advertiserToken)
 
     const browser = await chromium.launch()
     try {
-        // ── A. Экраны owner × обе темы ──
-        const ownerScreens = [
-            ['/owner?tab=overview', 'owner-overview'],
-            ['/owner?tab=finance', 'owner-finance'],
-            ['/owner?tab=aiAnalytics', 'owner-ai-analytics'],
-            ['/owner?tab=omega', 'owner-omega-core'],
-            ['/owner?tab=omegaFinance', 'owner-omega-finance'],
-            ['/owner?tab=subscriptions', 'owner-subscriptions'],
-            ['/owner?tab=referrals', 'owner-referrals'],
-            ['/owner?tab=apiKeys', 'owner-apikeys'],
+        // ── A. Полный обход: ВСЕ табы owner × 2 темы × 360/1280 (скрины только dark) ──
+        const ownerTabs = [
+            'overview', 'team', 'cabinets', 'finance', 'legal', 'audit', 'subscriptions',
+            'addonsManage', 'payments', 'subscribers', 'servers', 'updates', 'promo', 'news',
+            'referrals', 'advertising', 'pricing', 'security', 'integrations', 'aiAnalytics',
+            'logs', 'agents', 'chat', 'omega', 'neural', 'tasks', 'apiKeys', 'externalKeys',
+            'supreme', 'notifications', 'help', 'feedback', 'devStudio', 'devstudio', 'swarm',
+            'autofix', 'autoImprove', 'abTest', 'learning', 'research', 'monitoring', 'resources',
+            'roadmap', 'brainviz', 'memory', 'boardroom', 'prediction', 'investment', 'telegram',
+            'support', 'channelManager', 'adOrders', 'salesMetrics', 'omegaFinance', 'omegaSkills',
+            'omegaMemory', 'personality', 'dream', 'requisites', 'legalSettings', 'clients',
+            'monetization', 'brandVoice', 'templates', 'scout', 'whiteLabel', 'workspaces',
+            'developer', 'qr', 'franchise', 'fleet', 'selfHealing', 'selfOptimize', 'sandbox',
+            'approvalQueue', 'factory', 'analytics', 'scheduler',
         ]
-        for (const [url, name] of ownerScreens) {
+        for (const tab of ownerTabs) {
             for (const theme of ['dark', 'light']) {
-                await auditScreen(browser, { token: ownerToken, theme, url, name })
+                for (const width of [1280, 360]) {
+                    await auditScreen(browser, {
+                        token: ownerToken, theme, width,
+                        url: `/owner?tab=${tab}`, name: `owner-${tab}`,
+                        shot: theme === 'dark',
+                    })
+                }
             }
         }
-        // ── Клиент ──
-        for (const theme of ['dark', 'light']) {
-            await auditScreen(browser, { token: clientToken, theme, url: '/dashboard', name: 'client-dashboard' })
-            await auditScreen(browser, { token: clientToken, theme, url: '/analytics', name: 'client-analytics' })
+        // ── Creator (client) ──
+        const clientScreens = [
+            ['/dashboard', 'client-dashboard'],
+            ['/analytics', 'client-analytics'],
+            ['/settings', 'client-settings'],
+            ['/credits', 'client-credits'],
+            ['/scheduler', 'client-scheduler'],
+            ['/creative-hub/chat', 'client-hub-chat'],
+            ['/creative-hub/analyzer', 'client-hub-analyzer'],
+            ['/creative-hub/viral', 'client-hub-viral'],
+            ['/creative-hub/planner', 'client-hub-planner'],
+        ]
+        for (const [url, name] of clientScreens) {
+            for (const theme of ['dark', 'light']) {
+                for (const width of [1280, 360]) {
+                    await auditScreen(browser, { token: clientToken, theme, width, url, name, shot: theme === 'dark' })
+                }
+            }
+        }
+        // ── Advertiser ──
+        const advertiserScreens = [
+            ['/advertiser', 'adv-cabinet'],
+            ['/advertiser-requests', 'adv-requests'],
+        ]
+        for (const [url, name] of advertiserScreens) {
+            for (const theme of ['dark', 'light']) {
+                for (const width of [1280, 360]) {
+                    await auditScreen(browser, { token: advertiserToken, theme, width, url, name, shot: theme === 'dark' })
+                }
+            }
         }
     } finally {
         await browser.close()

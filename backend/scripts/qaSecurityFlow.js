@@ -82,6 +82,9 @@ for (const [m, p, body] of [
   ['PUT', '/api/plan-config/pro', { price: 1 }],
   ['GET', '/api/admin/users'],
   ['POST', '/api/admin/emergency-stop'],
+  ['GET', '/api/admin/refunds'],
+  ['POST', '/api/admin/refunds', { userId: 'x', amount: 1 }],
+  ['POST', '/api/admin/refunds/000000000000000000000000/process'],
 ]) {
   const r = await req(m, p, ct, body)
   check(`B: client ${m} ${p} → 403`, r.status === 403, r.status)
@@ -96,6 +99,8 @@ for (const [m, p, body] of [
   ['PUT', '/api/plan-config/pro', { price: 1 }],
   ['PUT', '/api/admin/payment-providers', { provider: 'yookassa' }],
   ['POST', '/api/admin/emergency-stop'],
+  ['GET', '/api/admin/refunds'],
+  ['POST', '/api/admin/refunds', { userId: 'x', amount: 1 }],
 ]) {
   const r = await req(m, p, st, body)
   check(`C: staff ${m} ${p} → 403`, r.status === 403, r.status)

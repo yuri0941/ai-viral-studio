@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.join(__dirname, '../.env') })
 
-const API = 'http://localhost:18080'
+const API = process.env.QA_API_URL || 'http://localhost:18080'
 await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai_viral_studio')
 const { default: User } = await import('../models/User.js')
 
