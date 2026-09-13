@@ -187,7 +187,7 @@ router.post('/users/:id/unblock', protect, authorize('owner', 'admin'), async (r
 // === Refunds ===
 router.get('/refunds', protect, authorize('owner', 'admin'), async (req, res) => {
   try {
-    res.json({ success: true, refunds: listRefunds(req.query.status), stats: getRefundStats() })
+    res.json({ success: true, refunds: await listRefunds(req.query.status), stats: await getRefundStats() })
   } catch (err) {
     console.error('[admin:refunds:list]', err.message)
     res.status(500).json({ success: false, error: err.message })
@@ -209,11 +209,20 @@ router.post('/refunds/:id/process', protect, authorize('owner', 'admin'), async 
     // [REAL-DATA] ключи ЮKassa — из ApiKeys (кабинет, hot-reload), не из env
     const { getProviderKey } = await import('../services/aiService.js')
     const yookassaEnabled = !!(await getProviderKey('yookassa_shop_id')) && !!(await getProviderKey('yookassa_secret'))
+    // [REAL-DATA-2] выключенный ключ = ПОЛНЫЙ запрет (без env-фолбэков)
+    if (!yookassaEnabled) return res.status(400).json({ success: false, error: 'Ключи ЮKassa не настроены в кабинете (API Keys) — возврат запрещён' })
     const refund = await processRefund(req.params.id, req.user.id || req.user._id, yookassaEnabled)
     res.json({ success: true, refund })
   } catch (err) {
     console.error('[admin:refunds:process]', err.message)
-    res.status(err.message === 'Refund not found' ? 404 : 500).json({ success: false, error: err.message })
+    if (err.message === 'Refund not found') return res.status(404).json({ success: false, error: err.message })
+    if (err.message === 'Refund already processed') return res.status(409).json({ success: false, error: err.message })
+    if (err.message.startsWith('Без ID платежа')) return res.status(400).json({ success: false, error: err.message })
+    // сбой API ЮKassa — как в adminRefundHandler: 502 + алерт владельцу (HTML-экранирование)
+    const { alertOwner } = await import('../services/ownerBot.js').catch(() => ({}))
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    alertOwner?.(`⚠️ Возврат ЮKassa НЕ прошёл (заявка ${esc(req.params.id)}): ${esc(String(err.message).slice(0, 160))}`, 'payment')
+    res.status(502).json({ success: false, error: `Возврат ЮKassa не выполнен: ${err.message}` })
   }
 })
 

@@ -71,13 +71,8 @@ export function MonetizationTab({ data }) {
   async function processRefund(id) {
     setProcessingId(id)
     try {
-      const res = await api.post(`/admin/refunds/${id}/process`)
-      const refund = res.data?.refund
-      if (refund?.mock) {
-        pushToast('warning', refund.message || 'Mock-режим. Подключите ЮKassa в API Keys')
-      } else {
-        pushToast('success', 'Возврат выполнен')
-      }
+      await api.post(`/admin/refunds/${id}/process`)
+      pushToast('success', 'Возврат выполнен через ЮKassa')
       loadRefunds()
     } catch (err) {
       pushToast('error', err.response?.data?.error || 'Ошибка обработки возврата')
@@ -101,7 +96,7 @@ export function MonetizationTab({ data }) {
             <CreditCard className="w-6 h-6 text-[var(--primary)]" />
             💸 Монетизация — Возвраты
           </h2>
-          <p className="text-[var(--text-muted)] mt-1">Управление возвратами средств. ЮKassa-ready (mock-режим по умолчанию).</p>
+          <p className="text-[var(--text-muted)] mt-1">Управление возвратами средств. Реальные возвраты — через ЮKassa API.</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -178,8 +173,8 @@ export function MonetizationTab({ data }) {
               ) : refunds.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-[var(--text-muted)]">Нет запросов на возврат</td></tr>
               ) : refunds.map((r) => (
-                <tr key={r.id} className="hover:bg-[var(--bg-secondary)]/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-[var(--text-muted)]">{r.id}</td>
+                <tr key={r._id} className="hover:bg-[var(--bg-secondary)]/50 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs text-[var(--text-muted)]" title={r.lastError || undefined}>{r._id}</td>
                   <td className="px-4 py-3 text-[var(--text)]">{r.userId}</td>
                   <td className="px-4 py-3 text-[var(--text)] font-mono">{r.amount} ₽</td>
                   <td className="px-4 py-3 text-[var(--text)]">{r.reason || '—'}</td>
@@ -190,11 +185,11 @@ export function MonetizationTab({ data }) {
                   <td className="px-4 py-3 text-right">
                     {r.status === 'pending' ? (
                       <button
-                        onClick={() => processRefund(r.id)}
-                        disabled={processingId === r.id}
+                        onClick={() => processRefund(r._id)}
+                        disabled={processingId === r._id}
                         className="flex items-center gap-1 ml-auto px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs disabled:opacity-50"
                       >
-                        {processingId === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <DollarSign size={14} />}
+                        {processingId === r._id ? <Loader2 className="w-3 h-3 animate-spin" /> : <DollarSign size={14} />}
                         Вернуть деньги
                       </button>
                     ) : (
@@ -211,8 +206,8 @@ export function MonetizationTab({ data }) {
       <div className="flex items-start gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm">
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
         <div>
-          <p className="font-medium">Mock-режим возвратов</p>
-          <p className="opacity-80">Для реальных возвратов через ЮKassa добавьте YOOKASSA_SHOP_ID и YOOKASSA_SECRET_KEY в переменные окружения.</p>
+          <p className="font-medium">Реальные возвраты через ЮKassa</p>
+          <p className="opacity-80">Кнопка «Вернуть деньги» выполняет возврат через ЮKassa API по ID платежа. Ключи — в кабинете владельца (API Keys). Без ключей или без ID платежа возврат не выполняется.</p>
         </div>
       </div>
     </div>
