@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from 'react'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { Sparkline } from './Sparkline'
 
-export function KPICard({ title, value, prefix = '', suffix = '', change = 0, sparklineData = [], icon: Icon, color = 'emerald', onClick }) {
+// [REAL-DATA] change без дефолта: нет реальных данных о динамике — строка тренда не рисуется
+export function KPICard({ title, value, prefix = '', suffix = '', change, sparklineData = [], icon: Icon, color = 'emerald', onClick }) {
     const [displayValue, setDisplayValue] = useState(0)
     const [animated, setAnimated] = useState(false)
     const ref = useRef(null)

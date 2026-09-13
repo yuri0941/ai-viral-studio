@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useOwnerData } from './hooks/useOwnerData'
 import { TAB_LABELS } from './data/initialData'
+import { ownerApi } from '../../services/api'
 
 // Tabs
 import { OverviewTab } from './components/tabs/OverviewTab'
@@ -323,17 +324,23 @@ function QuickAction({ icon: Icon, label, onClick }) {
 }
 
 // [v6.0] added: glass dashboard header (greeting + metrics + quick actions)
+// [REAL-DATA] все 4 метрики — из /owner/overview (БД). Нет данных → честный 0, без фолбэков.
 function DashboardHeader({ data }) {
     const navigate = useNavigate()
     const { user } = useAuth()
     const hour = new Date().getHours()
     const greeting = hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер'
-    const mrr = (data?.subscriptions || []).reduce((a, b) => a + (b.price || 0) * (b.users || 0), 0)
+    const [ov, setOv] = useState(null)
+    useEffect(() => {
+        let mounted = true
+        ownerApi.overview().then(res => { if (mounted) setOv(res?.data || null) }).catch(() => {})
+        return () => { mounted = false }
+    }, [])
     const metrics = [
-        { label: 'MRR', value: mrr || 39000, suffix: ' ₽', icon: DollarSign },
-        { label: 'Пользователи', value: 1247, icon: Users },
-        { label: 'AI-генераций', value: 8543, icon: Zap },
-        { label: 'Uptime', value: 99.0, suffix: '%', icon: Brain },
+        { label: 'MRR', value: ov?.mrr ?? 0, suffix: ' ₽', icon: DollarSign },
+        { label: 'Пользователи', value: ov?.totalUsers ?? 0, icon: Users },
+        { label: 'AI-вызовов за 30 дней', value: ov?.aiCallsMonth ?? 0, icon: Zap },
+        { label: 'Платящих подписчиков', value: ov?.paying ?? 0, icon: Brain },
     ]
     return (
         <div className="space-y-6 mb-6">

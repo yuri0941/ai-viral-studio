@@ -2,24 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DataTable } from '../common/DataTable'
 import { EmptyState } from '../../../../components/common/EmptyState.jsx' // [v6.0] added
-import { formatCurrency, formatDate, getSparklineData } from '../../utils/helpers'
-import { invoicesApi, yookassaApi, ownerExpensesApi } from '../../../../services/api.js'
+import { formatCurrency, formatDate } from '../../utils/helpers'
+import { invoicesApi, yookassaApi, ownerExpensesApi, ownerApi } from '../../../../services/api.js'
 import toast from 'react-hot-toast'
-import { useSmartData } from '../../../../hooks/useSmartData'
-import { API_BASE_URL } from '../../../../config.js'
 import {
     TrendingDown, TrendingUp, Wallet,
     Receipt, Plus, Loader2, ExternalLink, CreditCard, Trash2
 } from 'lucide-react'
 
-// [PLANCONFIG-ADMIN] demo-данные приведены к реальным тарифам PlanConfig (Pro 990 / Agency 4990)
-const DEMO_TRANSACTIONS = [
-    { date: '25.07.2026', source: 'Подписки Pro', amount: 990, status: 'В обработке' },
-    { date: '24.07.2026', source: 'Подписки Pro', amount: 990, status: 'Успешно' },
-    { date: '23.07.2026', source: 'Реклама', amount: -1200, status: 'Выполнено' },
-    { date: '22.07.2026', source: 'Подписки Agency', amount: 4990, status: 'Успешно' },
-    { date: '21.07.2026', source: 'Подписки Agency', amount: 4990, status: 'Успешно' },
-]
+// [REAL-DATA] транзакции — только реальные платежи из /owner/finance (Payment). Демо-фолбэк удалён.
 
 function normalizeTransaction(t) {
     const rawAmount = t.amount ?? 0
@@ -52,9 +43,9 @@ function ShimmerCard() {
 export function FinanceTab({ data }) {
     const { t } = useTranslation()
     const { toasts, setToasts } = data
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
-    const { data: transactions, isDemo } = useSmartData(`${API_BASE_URL}/finance/transactions`, DEMO_TRANSACTIONS, token)
+    // [REAL-DATA] платежи приходят из useOwnerData (API /owner/finance) — без демо-фолбэка
+    const transactions = data?.payments || []
 
     const normalizedTransactions = useMemo(() => {
         const list = Array.isArray(transactions) ? transactions : []
@@ -203,11 +194,7 @@ export function FinanceTab({ data }) {
                 <h2 className="text-2xl font-bold text-[var(--text)]">{t('finance.title', 'Финансы')}</h2>
             </div>
 
-            {isDemo && (
-                <div className="bg-yellow-900/30 text-yellow-400 text-sm rounded-lg px-3 py-2 mb-4">
-                    📊 {t('finance.demoNotice', 'Пример данных — появятся после первой реальной транзакции')}
-                </div>
-            )}
+            {/* [REAL-DATA] демо-плашка удалена: нет транзакций → честный empty-state таблицы */}
 
             {/* [P16-FIX] added: gradient bg + glass overlay metric cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -224,12 +211,6 @@ export function FinanceTab({ data }) {
                                 </div>
                                 <div className="text-2xl font-bold text-[var(--text)] font-mono">
                                     {formatCurrency(stats[m.key])}
-                                </div>
-                                <div className="mt-1 text-xs text-[var(--text-muted)]">
-                                    {m.key === 'income' && '+15.2%'}
-                                    {m.key === 'expense' && '-4.3%'}
-                                    {m.key === 'profit' && '+22.1%'}
-                                    <span className="ml-1">{t('finance.vsLastPeriod', 'к прошлому периоду')}</span>
                                 </div>
                             </div>
                         </div>

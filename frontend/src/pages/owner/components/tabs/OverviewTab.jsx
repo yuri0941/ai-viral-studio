@@ -391,7 +391,7 @@ export function OverviewTab({ data }) {
     const activeKeys = apiKeys.filter(k => k.status === 'active' || k.value).length
     const missingKeys = apiKeys.length - activeKeys
 
-    const businessHealth = data.aiAnalytics?.businessHealth ?? 87
+    // [REAL-DATA] выдуманного «индекса здоровья 87%» нет — карточка показывает реальный churn
 
     const go = (route) => navigate(route)
 
@@ -488,8 +488,8 @@ export function OverviewTab({ data }) {
 
                 <BentoCard
                     title="Аналитика"
-                    value={`${businessHealth}%`}
-                    subtext="Индекс здоровья бизнеса"
+                    value={churnStats?.atRisk ?? 0}
+                    subtext="Клиентов в риске оттока"
                     icon={BarChart}
                     color="pink"
                     onClick={() => go('/owner?tab=aiAnalytics')}
