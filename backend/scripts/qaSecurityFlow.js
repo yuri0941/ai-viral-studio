@@ -130,7 +130,44 @@ const rDup = await req('POST', '/api/owner/staff', ot, { email: staffEmail, name
 check('C2: дубль email → 409', rDup.status === 409, rDup.status)
 const rOwnerRole = await req('POST', '/api/owner/staff', ot, { email: `qa-owner-${Date.now()}@test.ru`, name: 'QA Owner', role: 'owner' })
 check('C2: role=owner отклоняется → 400', rOwnerRole.status === 400, rOwnerRole.status)
+
+// ============ C3. [STAFF-MGMT] PATCH/DELETE /api/owner/staff/:id — owner-only, гарды, AuditLog ============
+const { default: AuditLog } = await import('../models/AuditLog.js')
+const mgmtId = rCreate.json?.staff?.id
+// негативы: staff/admin/client → 403 (admin — временный аккаунт)
+const qaAdmin = await User.create({ email: `qa-admin-${Date.now()}@test.ru`, name: 'QA Admin', password: 'qa-admin-pass-1', role: 'admin', status: 'active' })
+const at = qaAdmin.generateToken()
+const rPatchStaff = await req('PATCH', `/api/owner/staff/${mgmtId}`, st, { name: 'X' })
+check('C3: staff PATCH /api/owner/staff/:id → 403', rPatchStaff.status === 403, rPatchStaff.status)
+const rPatchAdmin = await req('PATCH', `/api/owner/staff/${mgmtId}`, at, { name: 'X' })
+check('C3: admin PATCH /api/owner/staff/:id → 403', rPatchAdmin.status === 403, rPatchAdmin.status)
+const rDelClient = await req('DELETE', `/api/owner/staff/${mgmtId}`, ct)
+check('C3: client DELETE /api/owner/staff/:id → 403', rDelClient.status === 403, rDelClient.status)
+const rDelAdmin = await req('DELETE', `/api/owner/staff/${mgmtId}`, at)
+check('C3: admin DELETE /api/owner/staff/:id → 403', rDelAdmin.status === 403, rDelAdmin.status)
+// owner может редактировать: имя+email меняются фактом, AuditLog пишет diff до/после
+const mgmtEmail2 = `qa-staff2-${Date.now()}@test.ru`
+const rPatch = await req('PATCH', `/api/owner/staff/${mgmtId}`, ot, { name: 'QA Staff Renamed', email: mgmtEmail2 })
+check('C3: owner PATCH → success + changed', rPatch.status === 200 && rPatch.json?.success === true && rPatch.json?.staff?.name === 'QA Staff Renamed' && rPatch.json?.staff?.email === mgmtEmail2, JSON.stringify(rPatch.json).slice(0, 80))
+const auditUpd = await AuditLog.findOne({ 'metadata.targetId': String(mgmtId), action: /^staff_updated/ }).lean()
+check('C3: AuditLog staff_updated с diff до/после', !!auditUpd && auditUpd.metadata?.before?.email === staffEmail && auditUpd.metadata?.after?.email === mgmtEmail2, auditUpd?.action || 'нет записи')
+// гарды: нельзя удалить/понизить себя и аккаунт owner
+const rSelfRole = await req('PATCH', `/api/owner/staff/${owner._id}`, ot, { role: 'admin' })
+check('C3: owner понижает себя → 403', rSelfRole.status === 403, rSelfRole.status)
+const rSelfDel = await req('DELETE', `/api/owner/staff/${owner._id}`, ot)
+check('C3: owner удаляет себя/owner-аккаунт → 403', rSelfDel.status === 403, rSelfDel.status)
+// owner удаляет: soft-delete фактом (исчез из /owner/team), AuditLog high, email освобождён
+const rDel = await req('DELETE', `/api/owner/staff/${mgmtId}`, ot)
+check('C3: owner DELETE → success', rDel.status === 200 && rDel.json?.success === true, rDel.status)
+const gone = await User.findById(mgmtId).lean()
+check('C3: аккаунт soft-deleted (status deleted, не активен)', gone?.status === 'deleted' && gone?.isActive === false, gone?.status)
+const auditDel = await AuditLog.findOne({ 'metadata.targetId': String(mgmtId), action: /^staff_deleted/ }).lean()
+check('C3: AuditLog staff_deleted (severity high)', !!auditDel && auditDel.severity === 'high', auditDel?.action || 'нет записи')
+const rRehire = await req('POST', '/api/owner/staff', ot, { email: staffEmail, name: 'QA Rehire' })
+check('C3: email освобождён после удаления → повторный найм 201', rRehire.status === 201, rRehire.status)
 await User.deleteOne({ email: staffEmail })
+await User.deleteOne({ _id: qaAdmin._id })
+await AuditLog.deleteMany({ 'metadata.targetId': String(mgmtId) })
 
 // ============ D. IDOR ============
 const rIdor1 = await req('GET', `/api/analytics/churn-risk/${owner._id}`, ct)

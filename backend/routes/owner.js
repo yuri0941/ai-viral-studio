@@ -150,6 +150,47 @@ router.post('/staff', protect, authorize('owner'), async (req, res) => {
     }
 })
 
+// [STAFF-MGMT] редактирование/удаление staff-аккаунта — owner-only (admin/staff → 403),
+// гарды в userManager: нельзя трогать owner-аккаунт, удалить/понизить себя; AuditLog с diff.
+// ВАЖНО: объявлены ВЫШЕ generic router.patch/delete('/:entity/:id') — иначе 'staff' улетает в CRUD.
+router.patch('/staff/:id', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { updateManagedUser } = await import('../services/userManager.js')
+        const actor = { id: req.user?._id || req.user?.id, email: req.user?.email }
+        const { email, name, password, role } = req.body || {}
+        const { user, changed } = await updateManagedUser(req.params.id, { email, name, password, role }, actor)
+        res.json({
+            success: true,
+            changed,
+            staff: { id: String(user._id), email: user.email, name: user.name, role: user.role },
+        })
+    } catch (err) {
+        console.error('[owner/staff:update]', err.message)
+        const msg = err.message || 'Ошибка сервера'
+        const status = /не найден/.test(msg) ? 404
+            : /уже существует/.test(msg) ? 409
+            : /владельца|своего аккаунта|свой аккаунт/.test(msg) ? 403
+            : /Некорректный|Недопустим|Пароль|Не staff/.test(msg) ? 400 : 500
+        res.status(status).json({ success: false, error: msg })
+    }
+})
+
+router.delete('/staff/:id', protect, authorize('owner'), async (req, res) => {
+    try {
+        const { deleteManagedUser } = await import('../services/userManager.js')
+        const actor = { id: req.user?._id || req.user?.id, email: req.user?.email }
+        const result = await deleteManagedUser(req.params.id, actor)
+        res.json({ success: true, ...result })
+    } catch (err) {
+        console.error('[owner/staff:delete]', err.message)
+        const msg = err.message || 'Ошибка сервера'
+        const status = /не найден/.test(msg) ? 404
+            : /владельца|свой аккаунт/.test(msg) ? 403
+            : /Не staff/.test(msg) ? 400 : 500
+        res.status(status).json({ success: false, error: msg })
+    }
+})
+
 // [OMEGA-VIDEO ДОП-З1] лимит веса медиа-загрузки (МБ) из кабинета владельца; hot-reload ≤60с, без деплоя.
 // ВАЖНО: объявлены ВЫШЕ generic router.post('/:entity') — иначе 'media-limit' улетает в createEntity.
 router.get('/media-limit', protect, authorize('owner', 'admin'), async (req, res) => {
