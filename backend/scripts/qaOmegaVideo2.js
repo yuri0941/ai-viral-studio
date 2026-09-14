@@ -208,6 +208,16 @@ const lowVariants = await generateCoverVariants({ topic: 'тест', coverText: 
 const lowMeta = await sharpQa(lowVariants[0].buffer).metadata()
 check('fullFrames: нет апскейла выше исходника (960×540 → 960×540)', lowVariants.length === 1 && lowMeta.width === 960 && lowMeta.height === 540, `${lowMeta.width}x${lowMeta.height}`)
 
+// 5d. [COVERS-FRAMES ДОР-2] один базовый кадр (YouTube-thumbnail / повтор кадра при нехватке) →
+// 3 визуально РАЗЛИЧИМЫХ варианта: разные кропы/зум кадра + разные цветовые схемы/сила скрима
+const oneVariants = await generateCoverVariants({ topic: 'разбор кадра', coverText: 'Главный секрет ролика', platform: 'youtube', count: 3, frames: [frameDataUrls[2]] })
+const sameBase = oneVariants.length === 3 && oneVariants.every(v => v.source === 'frame' && v.frameIndex === 0)
+const oneRaws = []
+for (const v of oneVariants) oneRaws.push(await sharpQa(v.buffer).resize(64, 36, { fit: 'fill' }).raw().toBuffer())
+const pairDiff = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length }
+const d01 = pairDiff(oneRaws[0], oneRaws[1]); const d02 = pairDiff(oneRaws[0], oneRaws[2]); const d12 = pairDiff(oneRaws[1], oneRaws[2])
+check('один кадр → 3 визуально различимых варианта (кроп/зум + схема текста)', sameBase && d01 > 8 && d02 > 8 && d12 > 8, `diff=${d01.toFixed(1)},${d02.toFixed(1)},${d12.toFixed(1)}`)
+
 // 6. конкуренты ниши: без ключа — честный отказ, никаких выдуманных цифр
 const compTiktok = await req('GET', '/api/omega/niche-competitors?niche=финансы&platform=tiktok', ct)
 check('конкуренты tiktok без ключа → available:false + requiredKey', compTiktok.status === 200 && compTiktok.json.available === false && compTiktok.json.requiredKey === 'tiktok' && !compTiktok.json.rows, `reason=${compTiktok.json.reason}`)
