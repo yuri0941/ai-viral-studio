@@ -50,6 +50,12 @@ function textOverlaySvg({ width, height, text, variant = 0 }) {
     const padY = Math.round(fontSize * 0.55)
     const blockH = lines.length * lineHeight + padY * 2
     const layout = variant === 2 ? 'top-left' : variant === 1 ? 'bottom-left' : 'bottom-center'
+    // [COVERS-FRAMES ДОР-2] различимость вариантов: разные цветовые схемы текста и сила скрима
+    const scheme = variant === 1
+        ? { fill: '#ffd60a', scrim: 0.84 } // акцентный жёлтый + сильный скрим
+        : variant === 2
+            ? { fill: '#ffffff', scrim: 0.56 } // лёгкий скрим сверху
+            : { fill: '#ffffff', scrim: 0.72 } // базовая схема
     const isTop = layout === 'top-left'
     const alignLeft = layout !== 'bottom-center'
     const rectY = isTop
@@ -59,7 +65,7 @@ function textOverlaySvg({ width, height, text, variant = 0 }) {
     const scrimY = isTop ? 0 : height - scrimH
     const gradId = `scrim${variant}`
     const grad = `<linearGradient id="${gradId}" x1="0" y1="${isTop ? 0 : 1}" x2="0" y2="${isTop ? 1 : 0}">
-    <stop offset="0" stop-color="rgba(0,0,0,0.72)"/><stop offset="1" stop-color="rgba(0,0,0,0)"/>
+    <stop offset="0" stop-color="rgba(0,0,0,${scheme.scrim})"/><stop offset="1" stop-color="rgba(0,0,0,0)"/>
   </linearGradient>`
     const plaque = layout === 'bottom-center'
         ? `<rect x="${padX}" y="${rectY}" width="${width - padX * 2}" height="${blockH}" rx="${Math.round(fontSize * 0.4)}" fill="rgba(0,0,0,0.58)"/>`
@@ -69,7 +75,7 @@ function textOverlaySvg({ width, height, text, variant = 0 }) {
     const anchor = alignLeft ? 'start' : 'middle'
     const textSpans = lines.map((line, i) => {
         const y = rectY + padY + i * lineHeight + Math.round(fontSize * 0.85)
-        return `<text x="${xPos}" y="${y}" text-anchor="${anchor}" font-family="DejaVu Sans, Arial, sans-serif" font-weight="700" font-size="${fontSize}" fill="#ffffff" paint-order="stroke" stroke="rgba(0,0,0,0.85)" stroke-width="${strokeW}" stroke-linejoin="round">${escapeXml(line)}</text>`
+        return `<text x="${xPos}" y="${y}" text-anchor="${anchor}" font-family="DejaVu Sans, Arial, sans-serif" font-weight="700" font-size="${fontSize}" fill="${scheme.fill}" paint-order="stroke" stroke="rgba(0,0,0,0.85)" stroke-width="${strokeW}" stroke-linejoin="round">${escapeXml(line)}</text>`
     }).join('')
     const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
   <defs>${grad}</defs>
@@ -171,11 +177,33 @@ export async function pickBestFrames(frameBuffers, count = 3) {
     return picked
 }
 
+// [COVERS-FRAMES ДОР-2] различимость вариантов при ОДНОМ базовом кадре (YouTube-thumbnail,
+// повтор кадра при нехватке): разные кропы/зум. Вариант 0 — кадр целиком; 1 — зум к центру
+// с уклоном вверх (лицо крупнее); 2 — смещение вправо-вниз (текст вверху слева, зона свободна).
+async function variantCrop(buffer, variant) {
+    if (!variant) return buffer
+    try {
+        const meta = await sharp(buffer).metadata()
+        const w = meta.width || 0
+        const h = meta.height || 0
+        if (w < 128 || h < 128) return buffer
+        if (variant === 1) {
+            const cw = Math.round(w * 0.7)
+            const ch = Math.round(h * 0.7)
+            return await sharp(buffer).extract({ left: Math.round((w - cw) / 2), top: Math.round((h - ch) * 0.35), width: cw, height: ch }).toBuffer()
+        }
+        const cw = Math.round(w * 0.78)
+        const ch = Math.round(h * 0.78)
+        return await sharp(buffer).extract({ left: w - cw, top: h - ch, width: cw, height: ch }).toBuffer()
+    } catch { return buffer }
+}
+
 // [COVERS-FRAMES ДОР] noUpscale: рендер из полноразмерного кадра — без апскейла выше исходника
 // (720p → 1280×720 нативно; исходник мельче цели — кроп без увеличения, оверлей строится
 // по ФАКТИЧЕСКИМ размерам результата, иначе composite 1280×720 на 960×540 падает).
 async function composeCover({ bgBuffer, width, height, text, variant, noUpscale = false }) {
-    let base = sharp(bgBuffer).resize(width, height, { fit: 'cover', withoutEnlargement: noUpscale })
+    const cropped = await variantCrop(bgBuffer, variant)
+    let base = sharp(cropped).resize(width, height, { fit: 'cover', withoutEnlargement: noUpscale })
     let outW = width
     let outH = height
     if (noUpscale) {
