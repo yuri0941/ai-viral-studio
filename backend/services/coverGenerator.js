@@ -1,6 +1,7 @@
 import axios from 'axios'
 import sharp from 'sharp'
 import { generateImage } from './aiService.js'
+import { extractYouTubeFrames } from './ytFrames.js'
 
 // [COVERS-FRAMES] Основа обложки — РЕАЛЬНЫЙ кадр: из кадров загруженного видео (те же ≤6,
 // что клиент извлекает video+canvas для vision-разбора) или официальный thumbnail YouTube
@@ -231,7 +232,7 @@ async function composeCover({ bgBuffer, width, height, text, variant, noUpscale 
  * индекса, БЕЗ апскейла выше исходника. Нет fullFrames — легаси-поведение (рендер из frames).
  * sourceUrl — ссылка на YouTube (thumbnail по факту доступности). Нет кадров/ссылки — фолбэк на AI.
  */
-export async function generateCoverVariants({ topic, coverText, platform, count = 3, forceFallback = false, frames = [], fullFrames = [], sourceUrl = '', mode = 'frame' }) {
+export async function generateCoverVariants({ topic, coverText, platform, count = 3, forceFallback = false, frames = [], fullFrames = [], sourceUrl = '', mode = 'frame', ytFramesProvider = null }) {
     const { width, height } = coverSizeForPlatform(platform)
     const text = coverText || topic
 
@@ -266,6 +267,36 @@ export async function generateCoverVariants({ topic, coverText, platform, count 
         }
         const ytId = extractYouTubeId(sourceUrl)
         if (ytId) {
+            // [YT-FRAMES] сначала кадры САМОГО видео (yt-dlp ≤720p → ffmpeg → скор → 3 кадра);
+            // любой сбой (anti-bot, приватное, лимиты, нет бинарей) → null → прежний thumbnail-фолбэк.
+            // ytFramesProvider — тестовый шов qa-гейтов (CI без сети/yt-dlp).
+            const framesRes = ytFramesProvider
+                ? await ytFramesProvider(ytId).catch(() => null)
+                : await extractYouTubeFrames(ytId).catch(() => null)
+            if (framesRes?.frames?.length) {
+                const picked = await pickBestFrames(framesRes.frames, count)
+                const variants = []
+                for (let i = 0; i < picked.length; i++) {
+                    const { buffer, overlay, outWidth, outHeight } = await composeCover({
+                        // noUpscale только для v0 (кадр целиком — не выше исходника); v1/v2 — кроп/зум,
+                        // зум по определению увеличивает выбранную область до размера платформы
+                        bgBuffer: picked[i].buffer, width, height, text, variant: i % 3, noUpscale: (i % 3) === 0,
+                    })
+                    variants.push({
+                        buffer,
+                        width: outWidth,
+                        height: outHeight,
+                        seed: picked[i].index,
+                        provider: 'youtube-frames',
+                        source: 'youtube-frames',
+                        frameIndex: picked[i].index,
+                        bgFullRes: true, // кадры в исходном разрешении потока (≤720p), без апскейла
+                        textHeightRatio: overlay ? overlay.textHeightRatio : 0,
+                        textLines: overlay ? overlay.lines : 0,
+                    })
+                }
+                if (variants.length) return variants
+            }
             const thumb = await fetchYouTubeThumbnail(ytId).catch(() => null)
             if (thumb?.buffer) {
                 const variants = []
