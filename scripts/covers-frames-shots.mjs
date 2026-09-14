@@ -78,6 +78,27 @@ async function makeFrames() {
   return frames
 }
 
+// [COVERS-FRAMES ДОР] fullFrames — те же 6 таймкодов в 1920×1080, фон ЗЕЛЁНЫЙ (маркер:
+// 640px-кадры тёмные — если фон обложки собран из них, зелёный канал не доминирует)
+async function makeFullFrames() {
+  const frames = []
+  for (let i = 0; i < 6; i++) {
+    const x = 270 + i * 240
+    const svg = `<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1920" height="1080" fill="#135c17"/>
+  <rect y="780" width="1920" height="300" fill="#0e4a12"/>
+  <circle cx="${x}" cy="510" r="210" fill="#7c5cff"/>
+  <circle cx="${x - 60}" cy="450" r="36" fill="#ffffff"/>
+  <circle cx="${x + 60}" cy="450" r="36" fill="#ffffff"/>
+  <rect x="1290" y="120" width="510" height="180" rx="30" fill="#e5484d"/>
+  <text x="1545" y="234" text-anchor="middle" font-family="Arial" font-weight="700" font-size="78" fill="#fff">REC ${i + 1}</text>
+</svg>`
+    const buf = await sharp(Buffer.from(svg)).jpeg({ quality: 80 }).toBuffer()
+    frames.push(`data:image/jpeg;base64,${buf.toString('base64')}`)
+  }
+  return frames
+}
+
 const consoleErrors = []
 
 async function withPage(browser, { token, theme = 'dark', vw = 1280, vh = 900, seedMessages = [] }, fn) {
@@ -117,10 +138,10 @@ async function gotoChat(page) {
 }
 
 const now = Date.now()
-const videoMsg = (frames) => ({
+const videoMsg = (frames, fullFrames = []) => ({
   id: 'cov-vid-1', role: 'omega', timestamp: new Date(now).toISOString(),
   text: 'Разбор ролика «my-video.mp4»: хук в первые 3с — субъект в движении, удержание среднее, добавьте CTA.',
-  action: { type: 'videoAnalysis', name: 'my-video.mp4', frames },
+  action: { type: 'videoAnalysis', name: 'my-video.mp4', frames, ...(fullFrames.length ? { fullFrames } : {}) },
 })
 const ytMsg = {
   id: 'cov-yt-1', role: 'omega', timestamp: new Date(now + 1).toISOString(),
@@ -135,7 +156,7 @@ const ytMsg = {
   },
 }
 
-async function runCoverFlow(page, { name, expectSource, shotPrefix }) {
+async function runCoverFlow(page, { name, expectSource, shotPrefix, expectFullRes = false }) {
   const btn = page.locator('[data-testid="covers-generate"]').first()
   check(`${name}: кнопка «Обложки N✦» видна (живой чип цены)`, await btn.isVisible().catch(() => false))
   const btnText = await btn.innerText().catch(() => '')
@@ -147,6 +168,29 @@ async function runCoverFlow(page, { name, expectSource, shotPrefix }) {
   if (!gridOk) return false
   const tiles = await grid.locator('img').count()
   check(`${name}: ровно 3 превью`, tiles === 3, `tiles=${tiles}`)
+  // картинка реально загрузилась (не битая): naturalWidth > 0 + URL отдаёт 200
+  const firstImg = grid.locator('img').first()
+  await firstImg.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
+  await page.waitForTimeout(1000)
+  const imgLoaded = await firstImg.evaluate(el => el.complete && el.naturalWidth > 0).catch(() => false)
+  check(`${name}: превью загружено (naturalWidth>0, не broken image)`, imgLoaded)
+  const coverSrcAttr = await firstImg.getAttribute('src').catch(() => null)
+  if (coverSrcAttr) {
+    const resp = await fetch(coverSrcAttr.replace(API_ORIGIN, LOCAL_API)).catch(() => null)
+    check(`${name}: URL обложки отдаёт 200`, resp?.status === 200, `status=${resp?.status}`)
+    // [COVERS-FRAMES ДОР] разрешение: исходник 1920×1080 → обложка 1280×720 из ПОЛНОРАЗМЕРНОГО
+    // кадра (зелёный маркер фона — 640px-кадры тёмные, апскейл-мыло маркер не даёт)
+    if (expectFullRes && resp?.status === 200) {
+      const buf = Buffer.from(await resp.arrayBuffer())
+      const meta = await sharp(buf).metadata()
+      const stats = await sharp(buf).stats()
+      const rM = stats.channels[0]?.mean || 0
+      const gM = stats.channels[1]?.mean || 0
+      const bM = stats.channels[2]?.mean || 0
+      check(`${name}: ширина фона ≥1280 при исходнике 1920 (факт ${meta.width}×${meta.height})`, (meta.width || 0) >= 1280 && (meta.height || 0) >= 720, `${meta.width}x${meta.height}`)
+      check(`${name}: фон из полноразмерного кадра (зелёный маркер)`, gM > rM + 20 && gM > bM + 5, `rgb=${rM.toFixed(0)},${gM.toFixed(0)},${bM.toFixed(0)}`)
+    }
+  }
   // source=frame/youtube — факт по ответу API (последний лог прокси) + превью не градиент-фолбэк
   await page.waitForTimeout(800)
   await shot(page, `${shotPrefix}-grid`)
@@ -176,11 +220,12 @@ try {
   const token = await loginToken(OWNER)
   check('логин owner', !!token)
   const frames = await makeFrames()
+  const fullFrames = await makeFullFrames()
 
-  // ── 1) 1280 dark: видео → обложки из кадров ЭТОГО видео ──
-  await withPage(browser, { token, theme: 'dark', seedMessages: [videoMsg(frames)] }, async (page) => {
+  // ── 1) 1280 dark: видео → обложки из кадров ЭТОГО видео (рендер из полноразмерных 1920×1080) ──
+  await withPage(browser, { token, theme: 'dark', seedMessages: [videoMsg(frames, fullFrames)] }, async (page) => {
     await gotoChat(page)
-    const ok = await runCoverFlow(page, { name: 'видео 1280 dark', expectSource: 'frame', shotPrefix: 'video-1280-dark' })
+    const ok = await runCoverFlow(page, { name: 'видео 1280 dark', expectSource: 'frame', shotPrefix: 'video-1280-dark', expectFullRes: true })
     if (ok) {
       // перегенерация стиля: source становится ai (Pollinations/фолбэк), кнопка пропадает
       await page.locator('[data-testid="covers-regenerate-style"]').click()
@@ -189,6 +234,22 @@ try {
       const gridAgain = await page.locator('[data-testid="covers-grid"]').waitFor({ state: 'visible', timeout: 90000 }).then(() => true).catch(() => false)
       check('видео 1280 dark: перегенерация стиля → новая сетка', gridAgain)
       await shot(page, 'video-1280-dark-ai-style')
+      // [COVERS-FRAMES ДОР] персистентность: F5 → сетка в ленте из истории, картинка 200
+      await page.reload({ waitUntil: 'networkidle', timeout: 90000 }).catch(() => {})
+      await gotoChat(page)
+      const gridReload = await page.locator('[data-testid="covers-grid"]').waitFor({ state: 'visible', timeout: 30000 }).then(() => true).catch(() => false)
+      check('видео 1280 dark: после F5 сетка обложек на месте (история)', gridReload)
+      if (gridReload) {
+        const img = page.locator('[data-testid="covers-grid"] img').first()
+        await img.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
+        await page.waitForTimeout(1000)
+        const loaded = await img.evaluate(el => el.complete && el.naturalWidth > 0).catch(() => false)
+        check('видео 1280 dark: после F5 картинка не битая (naturalWidth>0)', loaded)
+        const src = await img.getAttribute('src').catch(() => null)
+        const resp = src ? await fetch(src.replace(API_ORIGIN, LOCAL_API)).catch(() => null) : null
+        check('видео 1280 dark: после F5 URL обложки → 200', resp?.status === 200, `status=${resp?.status}`)
+        await shot(page, 'video-1280-dark-after-reload')
+      }
     }
   })
 
