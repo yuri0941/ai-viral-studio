@@ -1603,6 +1603,7 @@
   "chat.scriptPlannerTitle": "Сценарий от OMEGA",
   "chat.scriptPlannerOk": "Драфт создан в Планировщике",
   "chat.coversGenerateBtn": "Обложки — {{cost}}✦",
+  "chat.coversReadyMsg": "🖼 Обложка готова — выбери вариант:",
   "chat.coverRegenerateStyle": "Перегенерировать стиль — {{cost}}✦",
   "chat.coverPickHint": "Клик — выбрать, двойной клик — превью 1:1",
   "chat.coverPreviewBtn": "Превью 1:1",

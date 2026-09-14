@@ -117,6 +117,11 @@ export function useOmegaChat(options = {}) {
         if (Array.isArray(msgs) && msgs.length) setMessages(prev => [...prev, ...msgs])
     }, [])
 
+    // [COVERS-FRAMES ДОР] точечное обновление сообщения (напр. варианты обложек живут в истории — переживают F5)
+    const updateMessage = useCallback((id, patch) => {
+        setMessages(prev => prev.map(m => (m.id === id ? { ...m, ...(typeof patch === 'function' ? patch(m) : patch) } : m)))
+    }, [])
+
     const removeMessage = useCallback((id) => {
         setMessages(prev => prev.filter(m => m.id !== id))
     }, [])
@@ -142,6 +147,7 @@ export function useOmegaChat(options = {}) {
         sendMessage,
         clearHistory,
         injectMessages,
+        updateMessage,
         removeMessage,
         rateMessage,
     }
@@ -158,9 +164,13 @@ function loadHistory() {
 
 function saveHistory(messages) {
     try {
-        // [COVERS-FRAMES] кадры обложек (dataURL, ~40КБ×6) в историю не пишем — localStorage 5МБ;
-        // после перезагрузки обложки для старого видео честно уходят в AI-фолбэк
-        const slim = messages.slice(-100).map(m => (m?.action?.frames ? { ...m, action: { ...m.action, frames: undefined } } : m))
+        // [COVERS-FRAMES] кадры обложек (dataURL: 640px ~40КБ×6, full-res до ~2МБ×6) в историю
+        // не пишем — localStorage 5МБ; после перезагрузки обложки для старого видео честно уходят
+        // в AI-фолбэк. Готовые обложки (action.variants — только URL) сохраняются: картинка
+        // живёт на сервере вечно (mediaCleanup cover-* не трогает).
+        const slim = messages.slice(-100).map(m => (m?.action?.frames || m?.action?.fullFrames
+            ? { ...m, action: { ...m.action, frames: undefined, fullFrames: undefined } }
+            : m))
         localStorage.setItem(STORAGE_KEY, JSON.stringify(slim))
     } catch {
         // ignore
