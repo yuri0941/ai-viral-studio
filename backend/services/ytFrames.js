@@ -12,6 +12,7 @@ import os from 'node:os'
 import path from 'node:path'
 import axios from 'axios'
 import { logMemory } from '../utils/memoryLog.js'
+import { TtlLruCache } from '../utils/ttlLruCache.js'
 
 const MAX_DURATION_SEC = 15 * 60
 const MAX_FILE_BYTES = 150 * 1024 * 1024
@@ -169,10 +170,14 @@ export async function framesFromVideoFile(videoPath, { durationSec = 0, count = 
 }
 
 // ── основной вход: YouTube videoId → кадры | null (фолбэк на thumbnail — решение вызывающего) ──
+// Кэш (TTL 30 мин, ≤8 видео): повторная генерация/регенерация по той же ссылке не качает заново.
+const framesCache = new TtlLruCache({ ttlMs: 30 * 60 * 1000, maxEntries: 8 })
 export async function extractYouTubeFrames(videoId) {
     lastSkipReason = ''
     if (process.env.YT_FRAMES_DISABLE === '1') { lastSkipReason = 'disabled'; return null }
     if (!/^[a-zA-Z0-9_-]{11}$/.test(String(videoId || ''))) { lastSkipReason = 'bad_video_id'; return null }
+    const cached = framesCache.get(videoId)
+    if (cached) return cached
     logMemory('yt-frames:start')
     await acquireSlot()
     const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aiviral-yt-'))
@@ -201,7 +206,9 @@ export async function extractYouTubeFrames(videoId) {
         const r = await extractFramesFromVideo(ffmpeg, videoPath, workDir, probe.durationSec)
         if (!r.ok) { lastSkipReason = r.reason; return null }
         logMemory('yt-frames:done')
-        return { frames: r.frames, durationSec: probe.durationSec, width: 0, height: 0 }
+        const result = { frames: r.frames, durationSec: probe.durationSec }
+        framesCache.set(videoId, result)
+        return result
     } finally {
         releaseSlot()
         // файл видео и кадры на диске удаляются СРАЗУ — в память ушли только jpeg-буферы кадров

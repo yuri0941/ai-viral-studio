@@ -278,7 +278,9 @@ export async function generateCoverVariants({ topic, coverText, platform, count 
                 const variants = []
                 for (let i = 0; i < picked.length; i++) {
                     const { buffer, overlay, outWidth, outHeight } = await composeCover({
-                        bgBuffer: picked[i].buffer, width, height, text, variant: i % 3, noUpscale: true,
+                        // noUpscale только для v0 (кадр целиком — не выше исходника); v1/v2 — кроп/зум,
+                        // зум по определению увеличивает выбранную область до размера платформы
+                        bgBuffer: picked[i].buffer, width, height, text, variant: i % 3, noUpscale: (i % 3) === 0,
                     })
                     variants.push({
                         buffer,

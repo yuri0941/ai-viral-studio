@@ -36,7 +36,7 @@ async function proxyApi(context) {
     try {
       const headers = { ...req.headers() }
       delete headers.host; delete headers.origin; delete headers.referer
-      const resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
+      const resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined, timeout: 180000 }) // [YT-FRAMES] скачивание YouTube ~60–90с
       const body = await resp.body()
       if (url.includes('cover-variants')) {
         console.log(`[proxy] cover-variants → ${resp.status()}: ${body.toString().slice(0, 160)}`)
@@ -288,7 +288,7 @@ try {
     if (ytSource === 'youtube-frames') {
       const idx = new Set(ytVariants.map(v => v.frameIndex))
       check('youtube: обложки из КАДРОВ видео (3 разных момента)', ytVariants.length === 3 && idx.size === 3, `frameIndex=${ytVariants.map(v => v.frameIndex).join(',')}`)
-      check('youtube: кадры в разрешении потока ≤720p (фон ≥1280 при 720p+)', ytVariants.every(v => v.width >= 640), `w=${ytVariants.map(v => v.width).join(',')}`)
+      check('youtube: кадры из потока ≤720p, обложки в размере платформы (зум-кропы до 1280×720)', ytVariants.every(v => v.width === 1280 && v.height === 720), `w=${ytVariants.map(v => `${v.width}x${v.height}`).join(',')}`)
     } else {
       check('youtube: ЧЕСТНЫЙ фолбэк на thumbnail (yt-dlp/anti-bot/лимит — НЕ ошибка клиенту)', ok && ytSource === 'youtube', `source=${ytSource || 'нет'}`)
     }
@@ -300,7 +300,7 @@ try {
     await gotoChat(page)
     const btn = page.locator('[data-testid="covers-generate"]').first()
     await btn.click().catch(() => {})
-    const gridOk = await page.locator('[data-testid="covers-grid"]').waitFor({ state: 'visible', timeout: 90000 }).then(() => true).catch(() => false)
+    const gridOk = await page.locator('[data-testid="covers-grid"]').waitFor({ state: 'visible', timeout: 180000 }).then(() => true).catch(() => false) // AI-фолбэк (3 генерации) может идти >90с
     check('недоступное видео: сетка обложек появилась (фолбэк-цепочка, без ошибки)', gridOk, `source=${lastCoverResp?.variants?.[0]?.source || 'нет'}`)
     await page.waitForTimeout(800)
     await shot(page, 'yt-dead-fallback-grid')
@@ -322,7 +322,7 @@ try {
     await gotoChat(page)
     const btn = page.locator('[data-testid="covers-generate"]').first()
     await btn.click().catch(() => {})
-    const gridOk = await page.locator('[data-testid="covers-grid"]').waitFor({ state: 'visible', timeout: 60000 }).then(() => true).catch(() => false)
+    const gridOk = await page.locator('[data-testid="covers-grid"]').waitFor({ state: 'visible', timeout: 150000 }).then(() => true).catch(() => false)
     check('youtube 1280 light: сетка обложек', gridOk)
     await page.waitForTimeout(800)
     await shot(page, 'yt-1280-light-grid')
