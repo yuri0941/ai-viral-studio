@@ -171,38 +171,62 @@ export async function pickBestFrames(frameBuffers, count = 3) {
     return picked
 }
 
-async function composeCover({ bgBuffer, width, height, text, variant }) {
+// [COVERS-FRAMES ДОР] noUpscale: рендер из полноразмерного кадра — без апскейла выше исходника
+// (720p → 1280×720 нативно; portrait 720×1280 под youtube-цель — кроп без увеличения).
+async function composeCover({ bgBuffer, width, height, text, variant, noUpscale = false }) {
     const overlay = textOverlaySvg({ width, height, text, variant })
-    let pipeline = sharp(bgBuffer).resize(width, height, { fit: 'cover' })
+    let pipeline = sharp(bgBuffer).resize(width, height, { fit: 'cover', withoutEnlargement: noUpscale })
     if (overlay) pipeline = pipeline.composite([{ input: overlay.svg, top: 0, left: 0 }])
     const buffer = await pipeline.jpeg({ quality: 88 }).toBuffer()
-    return { buffer, overlay }
+    // фактические размеры результата (при noUpscale могут быть меньше целевых)
+    let outW = width
+    let outH = height
+    if (noUpscale) {
+        try {
+            const meta = await sharp(buffer).metadata()
+            outW = meta.width || width
+            outH = meta.height || height
+        } catch { /* остаются целевые */ }
+    }
+    return { buffer, overlay, outWidth: outW, outHeight: outH }
 }
 
 /**
  * 3 варианта обложки: { buffer, width, height, seed, provider, source, textHeightRatio }.
  * mode: 'frame' (дефолт — реальный кадр видео/YouTube) | 'ai' (Pollinations text-to-image).
- * frames — dataURL'ы кадров загруженного видео (client canvas, те же, что для vision-разбора).
+ * frames — dataURL'ы кадров загруженного видео (640px, client canvas, для скора).
+ * [COVERS-FRAMES ДОР] fullFrames — те же таймкоды в исходном разрешении (до 1920×1080):
+ * скор-выбор идёт по 640px (быстро), финальный рендер — из полноразмерного кадра того же
+ * индекса, БЕЗ апскейла выше исходника. Нет fullFrames — легаси-поведение (рендер из frames).
  * sourceUrl — ссылка на YouTube (thumbnail по факту доступности). Нет кадров/ссылки — фолбэк на AI.
  */
-export async function generateCoverVariants({ topic, coverText, platform, count = 3, forceFallback = false, frames = [], sourceUrl = '', mode = 'frame' }) {
+export async function generateCoverVariants({ topic, coverText, platform, count = 3, forceFallback = false, frames = [], fullFrames = [], sourceUrl = '', mode = 'frame' }) {
     const { width, height } = coverSizeForPlatform(platform)
     const text = coverText || topic
 
     // [COVERS-FRAMES] дефолт: реальный кадр. 3 разных кадра × 3 композиции текста.
     if (mode !== 'ai') {
         const frameBuffers = (Array.isArray(frames) ? frames : []).map(frameDataUrlToBuffer).filter(Boolean).slice(0, 6)
+        // полноразмерные кадры — строго по тем же индексам, что и 640px (клиент шлёт параллельные массивы)
+        const fullBuffers = (Array.isArray(fullFrames) ? fullFrames : []).map(frameDataUrlToBuffer)
         if (frameBuffers.length) {
             const picked = await pickBestFrames(frameBuffers, count)
             const variants = []
             for (let i = 0; i < picked.length; i++) {
-                const { buffer, overlay } = await composeCover({ bgBuffer: picked[i].buffer, width, height, text, variant: i % 3 })
+                const fullBuf = fullBuffers[picked[i].index] || null
+                const bgBuffer = fullBuf || picked[i].buffer
+                const { buffer, overlay, outWidth, outHeight } = await composeCover({
+                    bgBuffer, width, height, text, variant: i % 3, noUpscale: !!fullBuf,
+                })
                 variants.push({
-                    buffer, width, height,
+                    buffer,
+                    width: outWidth,
+                    height: outHeight,
                     seed: picked[i].index,
                     provider: 'video-frame',
                     source: 'frame',
                     frameIndex: picked[i].index,
+                    bgFullRes: !!fullBuf, // факт: фон собран из полноразмерного кадра
                     textHeightRatio: overlay ? overlay.textHeightRatio : 0,
                     textLines: overlay ? overlay.lines : 0,
                 })

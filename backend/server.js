@@ -506,7 +506,13 @@ app.use('/api/', checkBlockedIP, apiLimiter)
 // [OWNER-REMOTE-CONTROL] рубильник техработ: 503 { maintenance: true } для не-владельцев
 app.use('/api/', maintenanceMode)
 
-app.use('/uploads', express.static('uploads'))
+// [COVERS-FRAMES ДОР] helmet() выше ставит Cross-Origin-Resource-Policy: same-origin — на проде
+// фронт (aiviral-studio.ru) встраивает картинки с aiviral-backend.onrender.com и браузер их режет
+// (битая обложка в чате). Для публичных /uploads разрешаем cross-origin встраивание.
+app.use('/uploads', (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+    next()
+}, express.static('uploads'))
 
 // White-label detection — applies to all requests so custom branding can be detected
 app.use(detectWhiteLabel)

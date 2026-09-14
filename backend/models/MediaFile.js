@@ -11,7 +11,7 @@ const mediaFileSchema = new mongoose.Schema(
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
         url: { type: String, required: true, unique: true }, // /uploads/<userId>/<file>
         sizeBytes: { type: Number, default: 0 },
-        kind: { type: String, enum: ['video', 'image', 'other'], default: 'other' },
+        kind: { type: String, enum: ['video', 'image', 'cover', 'other'], default: 'other' }, // cover — готовая обложка: вечная, TTL/сироты не трогают
         analyzedAt: { type: Date, default: null }, // факт успешного разбора
         deleteAt: { type: Date, default: null, index: true }, // null = удалён сразу после разбора / без TTL
         status: { type: String, enum: ['stored', 'deleted'], default: 'stored', index: true },
