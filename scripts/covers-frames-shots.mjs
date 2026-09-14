@@ -1,6 +1,8 @@
 // [COVERS-FRAMES] Пруф-гейт обложек из реальных кадров: seeded видео-разбор (кадры в action)
 // → «Обложки N✦» (живой чип цены) → 3 варианта с source=frame → превью 1:1 → «Скачать» →
-// «🎨 Перегенерировать стиль» (mode ai). YouTube-сообщение → обложка из официального thumbnail.
+// «🎨 Перегенерировать стиль» (mode ai). [YT-FRAMES] YouTube-сообщение → обложки из КАДРОВ
+// видео (source=youtube-frames, 3 разных frameIndex; при сбое — честный фолбэк thumbnail),
+// недоступное видео → фолбэк-цепочка без ошибки клиенту.
 // Скрины: сетка 1280 dark/light, 390, превью-модалка, кроп тайла (читаемость в мелкой сетке).
 // Запуск: backend :18080 + preview :4173 (127.0.0.1) + node scripts/covers-frames-shots.mjs
 import fs from 'node:fs'
@@ -26,6 +28,7 @@ function check(name, ok, detail = '') {
   console.log(`${ok ? '✅' : '❌'} ${name}${detail ? ' — ' + detail : ''}`)
 }
 
+let lastCoverResp = null
 async function proxyApi(context) {
   await context.route(`${API_ORIGIN}/**`, async (route) => {
     const req = route.request()
@@ -35,7 +38,10 @@ async function proxyApi(context) {
       delete headers.host; delete headers.origin; delete headers.referer
       const resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
       const body = await resp.body()
-      if (url.includes('cover-variants')) console.log(`[proxy] cover-variants → ${resp.status()}: ${body.toString().slice(0, 160)}`)
+      if (url.includes('cover-variants')) {
+        console.log(`[proxy] cover-variants → ${resp.status()}: ${body.toString().slice(0, 160)}`)
+        try { lastCoverResp = JSON.parse(body.toString()) } catch { lastCoverResp = null }
+      }
       await route.fulfill({ status: resp.status(), headers: { 'content-type': resp.headers()['content-type'] || 'application/json', 'access-control-allow-origin': '*' }, body })
     } catch (e) {
       await route.fulfill({ status: 502, headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ error: String(e) }) })
@@ -163,7 +169,7 @@ async function runCoverFlow(page, { name, expectSource, shotPrefix, expectFullRe
   check(`${name}: цена ✦ на кнопке ДО генерации`, /\d+✦/.test(btnText), btnText.trim())
   await btn.click()
   const grid = page.locator('[data-testid="covers-grid"]')
-  const gridOk = await grid.waitFor({ state: 'visible', timeout: 60000 }).then(() => true).catch(() => false)
+  const gridOk = await grid.waitFor({ state: 'visible', timeout: 150000 }).then(() => true).catch(() => false) // [YT-FRAMES] скачивание+нарезка кадров YouTube ~60–90с
   check(`${name}: сетка 3 вариантов появилась`, gridOk)
   if (!gridOk) return false
   const tiles = await grid.locator('img').count()
@@ -272,10 +278,32 @@ try {
     }
   })
 
-  // ── 2) 1280 dark: YouTube-ссылка → обложка из официального thumbnail ──
+  // ── 2) 1280 dark: YouTube-ссылка → [YT-FRAMES] обложки из КАДРОВ видео (фолбэк: thumbnail) ──
   await withPage(browser, { token, theme: 'dark', seedMessages: [ytMsg] }, async (page) => {
     await gotoChat(page)
-    await runCoverFlow(page, { name: 'youtube 1280 dark', expectSource: 'youtube', shotPrefix: 'yt-1280-dark' })
+    const ok = await runCoverFlow(page, { name: 'youtube 1280 dark', expectSource: 'youtube-frames', shotPrefix: 'yt-1280-dark' })
+    // [YT-FRAMES] источник фактом из ответа API: кадры видео (3 разных) или честный фолбэк на thumbnail
+    const ytVariants = lastCoverResp?.variants || []
+    const ytSource = ytVariants[0]?.source || ''
+    if (ytSource === 'youtube-frames') {
+      const idx = new Set(ytVariants.map(v => v.frameIndex))
+      check('youtube: обложки из КАДРОВ видео (3 разных момента)', ytVariants.length === 3 && idx.size === 3, `frameIndex=${ytVariants.map(v => v.frameIndex).join(',')}`)
+      check('youtube: кадры в разрешении потока ≤720p (фон ≥1280 при 720p+)', ytVariants.every(v => v.width >= 640), `w=${ytVariants.map(v => v.width).join(',')}`)
+    } else {
+      check('youtube: ЧЕСТНЫЙ фолбэк на thumbnail (yt-dlp/anti-bot/лимит — НЕ ошибка клиенту)', ok && ytSource === 'youtube', `source=${ytSource || 'нет'}`)
+    }
+  })
+
+  // ── 2b) недоступное видео (приватное/404) → фолбэк-цепочка БЕЗ ошибки клиенту ──
+  const ytDeadMsg = { ...ytMsg, id: 'cov-yt-dead', videoAnalysis: { ...ytMsg.videoAnalysis, videoId: 'aaaaaaaaaaa', url: 'https://youtu.be/aaaaaaaaaaa', thumbnail: 'https://img.youtube.com/vi/aaaaaaaaaaa/hqdefault.jpg' } }
+  await withPage(browser, { token, theme: 'dark', seedMessages: [ytDeadMsg] }, async (page) => {
+    await gotoChat(page)
+    const btn = page.locator('[data-testid="covers-generate"]').first()
+    await btn.click().catch(() => {})
+    const gridOk = await page.locator('[data-testid="covers-grid"]').waitFor({ state: 'visible', timeout: 90000 }).then(() => true).catch(() => false)
+    check('недоступное видео: сетка обложек появилась (фолбэк-цепочка, без ошибки)', gridOk, `source=${lastCoverResp?.variants?.[0]?.source || 'нет'}`)
+    await page.waitForTimeout(800)
+    await shot(page, 'yt-dead-fallback-grid')
   })
 
   // ── 3) 390 dark: мелкая сетка — текст читаем ──

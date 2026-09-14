@@ -9,6 +9,7 @@ import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import path from 'path'
 import fs from 'fs'
+import { spawn } from 'child_process'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -217,6 +218,51 @@ for (const v of oneVariants) oneRaws.push(await sharpQa(v.buffer).resize(64, 36,
 const pairDiff = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length }
 const d01 = pairDiff(oneRaws[0], oneRaws[1]); const d02 = pairDiff(oneRaws[0], oneRaws[2]); const d12 = pairDiff(oneRaws[1], oneRaws[2])
 check('один кадр → 3 визуально различимых варианта (кроп/зум + схема текста)', sameBase && d01 > 8 && d02 > 8 && d12 > 8, `diff=${d01.toFixed(1)},${d02.toFixed(1)},${d12.toFixed(1)}`)
+
+// 5e. [YT-FRAMES] кадры из YouTube-видео: ffmpeg-извлечение (файл удаляется сразу), 3 разных кадра,
+// честные фолбэки без ошибки клиенту. Сеть/yt-dlp в гейте НЕ нужны — синтетика + тестовый шов.
+const { framesFromVideoFile, extractYouTubeFrames: extractYtFramesGate, getLastYtFramesSkip } = await import('../services/ytFrames.js')
+const ffmpegStatic = (await import('ffmpeg-static')).default
+const tmpVid = path.join(dir, 'gate-yt.mp4')
+await new Promise((resolve, reject) => {
+  const p = spawn(ffmpegStatic, ['-f', 'lavfi', '-i', 'testsrc=size=640x360:rate=30:duration=5', '-pix_fmt', 'yuv420p', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-y', tmpVid], { stdio: 'ignore' })
+  p.on('close', c => (c === 0 ? resolve() : reject(new Error(`ffmpeg_exit_${c}`))))
+  p.on('error', reject)
+})
+const vidExisted = fs.existsSync(tmpVid)
+const ytFramesRes = await framesFromVideoFile(tmpVid, { durationSec: 5 })
+check('yt-frames: 8–10 кадров из видео равномерно по длительности', !!ytFramesRes && ytFramesRes.frames.length >= 8 && ytFramesRes.frames.length <= 10, `frames=${ytFramesRes?.frames?.length}`)
+check('yt-frames: файл видео удалён СРАЗУ после извлечения кадров', vidExisted && !fs.existsSync(tmpVid), `exists=${fs.existsSync(tmpVid)}`)
+const ytFrameMeta = ytFramesRes ? await sharpQa(ytFramesRes.frames[0]).metadata() : {}
+check('yt-frames: кадр нативного разрешения потока (640×360, без апскейла)', ytFrameMeta.width === 640 && ytFrameMeta.height === 360, `${ytFrameMeta.width}x${ytFrameMeta.height}`)
+// pipeline: те же кадры → generateCoverVariants (тестовый шов ytFramesProvider) → 3 РАЗНЫХ кадра
+const ytVar = await generateCoverVariants({
+  topic: 'разбор', coverText: 'Главный секрет ролика', platform: 'youtube', count: 3,
+  sourceUrl: 'https://youtu.be/dQw4w9WgXcQ',
+  ytFramesProvider: async () => ytFramesRes,
+})
+const ytDiffs = []
+if (ytVar.length === 3) {
+  const raws2 = []
+  for (const v of ytVar) raws2.push(await sharpQa(v.buffer).resize(64, 36, { fit: 'fill' }).raw().toBuffer())
+  for (const [i, j] of [[0, 1], [0, 2], [1, 2]]) { let s = 0; for (let k = 0; k < raws2[i].length; k++) s += Math.abs(raws2[i][k] - raws2[j][k]); ytDiffs.push(s / raws2[i].length) }
+}
+const ytIdx = new Set(ytVar.map(v => v.frameIndex))
+check('yt-frames: 3 обложки из РАЗНЫХ кадров видео, визуально различимы', ytVar.length === 3 && ytVar.every(v => v.source === 'youtube-frames') && ytIdx.size === 3 && ytDiffs.every(d => d > 8), `idx=${ytVar.map(v => v.frameIndex).join(',')} diff=${ytDiffs.map(d => d.toFixed(1)).join(',')}`)
+// фолбэк: кадры недоступны → прежняя цепочка (thumbnail → AI), клиенту НЕ ошибка
+const fbVar = await generateCoverVariants({
+  topic: 'разбор', coverText: 'Главный секрет ролика', platform: 'youtube', count: 3, forceFallback: true,
+  sourceUrl: 'https://youtu.be/dQw4w9WgXcQ',
+  ytFramesProvider: async () => null,
+})
+check('yt-frames: сбой кадров → фолбэк (thumbnail/AI), 3 варианта без ошибки', fbVar.length === 3 && fbVar.every(v => v.source === 'youtube' || v.source === 'ai'), `src=${fbVar[0]?.source}`)
+// kill-switch и мусорный id → честный null + reason
+process.env.YT_FRAMES_DISABLE = '1'
+const dis = await extractYtFramesGate('dQw4w9WgXcQ')
+delete process.env.YT_FRAMES_DISABLE
+check('yt-frames: YT_FRAMES_DISABLE=1 → null + reason (честный фолбэк)', dis === null && getLastYtFramesSkip() === 'disabled', `reason=${getLastYtFramesSkip()}`)
+const badId = await extractYtFramesGate('../../etc/passwd')
+check('yt-frames: мусорный videoId → null (в fetch не уходит)', badId === null && getLastYtFramesSkip() === 'bad_video_id', `reason=${getLastYtFramesSkip()}`)
 
 // 6. конкуренты ниши: без ключа — честный отказ, никаких выдуманных цифр
 const compTiktok = await req('GET', '/api/omega/niche-competitors?niche=финансы&platform=tiktok', ct)
