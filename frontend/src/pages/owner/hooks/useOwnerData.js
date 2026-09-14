@@ -278,13 +278,31 @@ export function useOwnerData() {
         return { staff: created, tempPassword: res?.tempPassword }
     }, [showToast])
 
-    // [REAL-DATA-2] редактирования/удаления staff на сервере нет (удаление данных — approve-зона) — честный ответ
-    const updateStaff = useCallback(() => {
-        showToast('Редактирование сотрудника на сервере не поддерживается — пока только создание', 'error')
+    // [STAFF-MGMT] реальное редактирование/удаление staff через PATCH/DELETE /owner/staff/:id
+    // (owner-only на бэкенде, AuditLog с diff). Удаление — только после confirm-диалога в TeamTab.
+    const updateStaff = useCallback(async (id, patch) => {
+        try {
+            const res = await ownerApi.updateStaff(id, patch)
+            const updated = res?.staff || {}
+            setStaff(prev => prev.map(s => (String(s.id) === String(id) ? { ...s, ...updated } : s)))
+            if (res?.changed) showToast(`Сотрудник ${updated.name || ''} обновлён`)
+            else showToast('Изменений нет')
+            return res
+        } catch (err) {
+            showToast(err?.message || 'Не удалось обновить сотрудника', 'error')
+            throw err
+        }
     }, [showToast])
 
-    const removeStaff = useCallback(() => {
-        showToast('Удаление аккаунта сотрудника выполняется вручную через поддержку — авто-удаление отключено', 'error')
+    const removeStaff = useCallback(async (id) => {
+        try {
+            await ownerApi.deleteStaff(id)
+            setStaff(prev => prev.filter(s => String(s.id) !== String(id)))
+            showToast('Аккаунт сотрудника удалён')
+        } catch (err) {
+            showToast(err?.message || 'Не удалось удалить сотрудника', 'error')
+            throw err
+        }
     }, [showToast])
 
     // ============================================

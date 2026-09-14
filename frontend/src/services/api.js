@@ -231,6 +231,9 @@ export const ownerApi = {
     subscriptions: () => request('/owner/subscriptions'),
     // [STAFF-DOP] создание staff-аккаунта из owner-кабинета (owner-only на бэкенде)
     createStaff: (data) => request('/owner/staff', { method: 'POST', body: JSON.stringify(data) }),
+    // [STAFF-MGMT] редактирование/удаление staff-аккаунта (owner-only; admin → 403)
+    updateStaff: (id, data) => request(`/owner/staff/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    deleteStaff: (id) => request(`/owner/staff/${id}`, { method: 'DELETE' }),
     teamActivity: () => request('/owner/team-activity'),
     aiProviderStatus: () => request('/owner/ai-providers/status'),
     toggleAiProvider: (id, enabled) => request(`/owner/ai-providers/${id}/toggle`, {

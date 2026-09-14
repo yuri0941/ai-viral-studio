@@ -2,13 +2,28 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DataTable } from '../common/DataTable'
 import { StatusBadge } from '../common/StatusBadge'
+import { ModalShell } from '../common/ModalShell'
 import { generateGradient, getInitials } from '../../utils/helpers'
 import { Users, Plus, Search } from 'lucide-react'
 
 export function TeamTab({ data }) {
     const { t } = useTranslation()
     const [search, setSearch] = useState('')
+    const [deleteCandidate, setDeleteCandidate] = useState(null) // { id, name, email }
+    const [deleteBusy, setDeleteBusy] = useState(false)
     const { staff, setModal } = data
+
+    // [STAFF-MGMT] удаление — только с подтверждением, имя аккаунта в диалоге
+    const confirmDelete = async () => {
+        if (!deleteCandidate || deleteBusy) return
+        setDeleteBusy(true)
+        try {
+            await data.removeStaff(deleteCandidate.id)
+            setDeleteCandidate(null)
+        } catch { /* тост уже показан в removeStaff */ } finally {
+            setDeleteBusy(false)
+        }
+    }
 
     const filtered = staff.filter(s =>
         s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -83,10 +98,49 @@ export function TeamTab({ data }) {
                 data={filtered}
                 columns={columns}
                 onEdit={(row) => setModal({ type: 'editStaff', data: row })}
-                onDelete={(id) => data.removeStaff(id)}
+                onDelete={(id) => {
+                    const row = staff.find(s => String(s.id) === String(id))
+                    if (row) setDeleteCandidate({ id: row.id, name: row.name, email: row.email })
+                }}
                 emptyText={t('team.noEmployees', 'Нет сотрудников')}
                 rowClassName={() => 'hover:bg-[var(--primary-soft)] transition-colors'}
             />
+
+            {/* [STAFF-MGMT] подтверждение удаления: имя/email аккаунта в диалоге */}
+            <ModalShell
+                isOpen={!!deleteCandidate}
+                onClose={() => !deleteBusy && setDeleteCandidate(null)}
+                title={t('team.deleteTitle', 'Удалить сотрудника?')}
+                maxWidth="max-w-md"
+            >
+                {deleteCandidate && (
+                    <div className="space-y-4" data-testid="staff-delete-confirm">
+                        <p className="text-sm text-[var(--text-muted)]">
+                            {t('team.deleteConfirm', 'Аккаунт будет удалён без возможности восстановления:')}
+                        </p>
+                        <p className="text-sm font-semibold text-[var(--text)]">{deleteCandidate.name} <span className="text-[var(--text-muted)] font-normal">({deleteCandidate.email})</span></p>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                disabled={deleteBusy}
+                                onClick={() => setDeleteCandidate(null)}
+                                className="flex-1 px-4 py-2.5 min-h-[44px] rounded-xl border border-[var(--border)] text-sm text-[var(--text-muted)] hover:bg-[var(--surface)] transition-colors"
+                            >
+                                {t('common.cancel', 'Отмена')}
+                            </button>
+                            <button
+                                type="button"
+                                disabled={deleteBusy}
+                                onClick={confirmDelete}
+                                data-testid="staff-delete-confirm-btn"
+                                className="flex-1 px-4 py-2.5 min-h-[44px] rounded-xl bg-red-500/20 border border-red-500/30 text-sm text-red-400 font-medium hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                            >
+                                {deleteBusy ? t('common.loading', 'Загрузка...') : t('team.deleteBtn', 'Удалить навсегда')}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </ModalShell>
         </div>
     )
 }
