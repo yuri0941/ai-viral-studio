@@ -38,6 +38,13 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+// [COVERS-FRAMES ДОР] готовые обложки (cover-*.jpg) — вечный инвентарь чата: ни TTL исходника,
+// ни сирота-свип, ни 7-дневная/лимитная зачистка их не трогают (картинка в истории = 200 всегда).
+const COVER_FILE_RE = /(^|[\\/])cover-[^\\/]+\.jpg$/
+function isCoverFile(filePath) {
+  return COVER_FILE_RE.test(filePath)
+}
+
 async function listFiles(dir) {
   const files = []
   try {
@@ -99,6 +106,7 @@ export async function runMediaCleanup() {
     for (const rec of stale) {
       const rel = String(rec.url || '').replace(/^\/+/, '')
       if (!rel.startsWith('uploads/') || rel.includes('..')) continue
+      if (isCoverFile(rel)) continue // [COVERS-FRAMES ДОР] обложки — не сироты (legacy-записи без analyzedAt)
       try {
         fs.unlinkSync(path.join(process.cwd(), rel))
         deleted++
@@ -117,6 +125,7 @@ export async function runMediaCleanup() {
   // 1. Delete unreferenced files older than 7 days.
   for (const file of allFiles) {
     if (now - file.mtime.getTime() < ORPHAN_AGE_MS) continue
+    if (isCoverFile(file.path)) continue // [COVERS-FRAMES ДОР] обложки вечны — референс живёт в истории чата
     const ref = await isReferenced(file.path)
     if (ref) continue
     try {
@@ -139,6 +148,7 @@ export async function runMediaCleanup() {
     const rel = path.relative(uploadsDir, file.path).replace(/\\/g, '/')
     const userId = rel.split('/')[0]
     if (!userId) continue
+    if (isCoverFile(file.path)) continue // [COVERS-FRAMES ДОР] обложки не участвуют в квотной зачистке
     const ref = await isReferenced(file.path)
     if (ref) continue // referenced files count against the user too, but we do not delete them
     if (!byUser[userId]) byUser[userId] = []

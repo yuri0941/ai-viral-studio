@@ -587,10 +587,15 @@ router.post('/cover-variants', protect, async (req, res) => {
         if (!topic || typeof topic !== 'string' || !topic.trim()) {
             return res.status(400).json({ success: false, error: 'topic_required' })
         }
-        // [COVERS-FRAMES] frames — те же dataURL-кадры, что шли в vision-разбор (≤6, ≤350КБ каждый);
+        // [COVERS-FRAMES] frames — 640px dataURL-кадры для скора (≤6, ≤350КБ каждый);
+        // [COVERS-FRAMES ДОР] fullFrames — те же таймкоды в исходном разрешении (до 1920×1080)
+        // для финального рендера без мыла (≤6, ≤4.5МБ base64 каждый; индексы совпадают с frames);
         // sourceUrl — только YouTube-ссылка (thumbnail по факту); mode:'ai' — кнопка «Перегенерировать стиль».
         const frameList = Array.isArray(frames)
             ? frames.filter(f => typeof f === 'string' && /^data:image\/(jpeg|jpg|png|webp);base64,/.test(f) && f.length <= 500000).slice(0, 6)
+            : []
+        const fullFrameList = Array.isArray(req.body?.fullFrames)
+            ? req.body.fullFrames.filter(f => typeof f === 'string' && /^data:image\/(jpeg|jpg|png|webp);base64,/.test(f) && f.length <= 4500000).slice(0, 6)
             : []
         const { extractYouTubeId } = await import('../services/coverGenerator.js')
         const ytUrl = typeof sourceUrl === 'string' && extractYouTubeId(sourceUrl) ? sourceUrl.slice(0, 300) : ''
@@ -613,7 +618,7 @@ router.post('/cover-variants', protect, async (req, res) => {
         const { generateCoverVariants } = await import('../services/coverGenerator.js')
         let variants = []
         try {
-            variants = await generateCoverVariants({ topic: topic.trim(), coverText: String(coverText || '').trim(), platform, count: 3, frames: frameList, sourceUrl: ytUrl, mode: coverMode })
+            variants = await generateCoverVariants({ topic: topic.trim(), coverText: String(coverText || '').trim(), platform, count: 3, frames: frameList, fullFrames: fullFrameList, sourceUrl: ytUrl, mode: coverMode })
         } catch (e) {
             console.error('[cover-variants] generation failed:', e.message)
         }
@@ -633,9 +638,12 @@ router.post('/cover-variants', protect, async (req, res) => {
             const filename = `cover-${Date.now()}-${randomBytes(4).toString('hex')}.jpg`
             await writeFile(`${dir}/${filename}`, v.buffer)
             const url = `/uploads/${userId}/${filename}`
+            // [COVERS-FRAMES ДОР] обложка — готовый артефакт клиента, НЕ исходник: TTL исходного
+            // видео на неё не распространяется (deleteAt не ставим) и сиротой она не считается
+            // (analyzedAt проставлен). Крон mediaCleanup cover-* не трогает.
             await MediaFile.findOneAndUpdate(
                 { url },
-                { $setOnInsert: { userId, url, sizeBytes: v.buffer.length, kind: 'image' } },
+                { $setOnInsert: { userId, url, sizeBytes: v.buffer.length, kind: 'cover', analyzedAt: new Date() } },
                 { upsert: true }
             ).catch(() => {})
             out.push({ url, width: v.width, height: v.height, seed: v.seed, provider: v.provider, source: v.source || 'ai', frameIndex: v.frameIndex, textHeightRatio: v.textHeightRatio })

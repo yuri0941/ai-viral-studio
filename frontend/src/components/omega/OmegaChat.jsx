@@ -271,6 +271,8 @@ export default function OmegaChat({
   userRole: externalUserRole,
   // [OMEGA-VIDEO ДОП-З1] внешний режим: добавка сообщений разбора видео в общую ленту (useOmegaChat)
   injectMessages,
+  // [COVERS-FRAMES ДОР] точечное обновление сообщения (варианты обложек — в истории, переживают F5)
+  updateMessage,
   embedded = false,
   // [CHAT-PRO З3] поиск по ленте: непустая строка фильтрует сообщения (presentational, история не трогается)
   searchQuery = '',
@@ -292,6 +294,7 @@ export default function OmegaChat({
   const [mediaLimitMb, setMediaLimitMb] = useState(null);
   const videoXhrRef = useRef(null);
   const videoFramesRef = useRef([]);
+  const videoFullFramesRef = useRef([]); // [COVERS-FRAMES ДОР] полноразмерные кадры для фона обложек
   const videoMetaRef = useRef({});
   const [variantCount, setVariantCount] = useState(3);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
@@ -627,6 +630,8 @@ export default function OmegaChat({
   };
 
   // [OMEGA-VIDEO ДОП-З1 П5] кадры для разбора тянем на клиенте (canvas), ffmpeg не нужен
+  // [COVERS-FRAMES ДОР] параллельно извлекаем ПОЛНОРАЗМЕРНЫЕ кадры тех же таймкодов
+  // (исходник, максимум 1920 по ширине, без апскейла) — фон обложек; 640px — только скор/vision.
   const extractVideoFrames = (file, count = 6) => new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const video = document.createElement('video');
@@ -643,7 +648,13 @@ export default function OmegaChat({
         canvas.width = Math.max(1, Math.round((video.videoWidth || 640) * scale));
         canvas.height = Math.max(1, Math.round((video.videoHeight || 360) * scale));
         const ctx = canvas.getContext('2d');
+        const fullCanvas = document.createElement('canvas');
+        const fullScale = Math.min(1, 1920 / (video.videoWidth || 1920));
+        fullCanvas.width = Math.max(1, Math.round((video.videoWidth || 1280) * fullScale));
+        fullCanvas.height = Math.max(1, Math.round((video.videoHeight || 720) * fullScale));
+        const fullCtx = fullCanvas.getContext('2d');
         const frames = [];
+        const fullFrames = [];
         for (let i = 0; i < count; i++) {
           const time = duration ? Math.min((duration * i) / (count - 1), Math.max(0, duration - 0.1)) : 0;
           await new Promise((res) => {
@@ -655,10 +666,14 @@ export default function OmegaChat({
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             frames.push(canvas.toDataURL('image/jpeg', 0.6));
           } catch { /* кадр пропущен */ }
+          try {
+            fullCtx.drawImage(video, 0, 0, fullCanvas.width, fullCanvas.height);
+            fullFrames.push(fullCanvas.toDataURL('image/jpeg', 0.8));
+          } catch { fullFrames.push(null); } // индексы fullFrames строго совпадают с frames
         }
         clearTimeout(timer);
         URL.revokeObjectURL(url);
-        resolve({ frames, meta: { durationSec: duration, width: video.videoWidth, height: video.videoHeight } });
+        resolve({ frames, fullFrames, meta: { durationSec: duration, width: video.videoWidth, height: video.videoHeight } });
       } catch (err) {
         clearTimeout(timer);
         URL.revokeObjectURL(url);
@@ -715,13 +730,20 @@ export default function OmegaChat({
         text: res?.analysis || '...',
         // [OMEGA-VIDEO ДОП-2 З5] из разбора можно сразу собрать обложки (тема = файл/разбор)
         // [COVERS-FRAMES] кадры сохраняем в action — основа обложек = реальный кадр ЭТОГО видео
-        action: { type: 'videoAnalysis', name: video.name, frames: (videoFramesRef.current || []).slice(0, 6) },
+        // [COVERS-FRAMES ДОР] fullFrames — те же таймкоды в исходном разрешении (рендер фона без мыла)
+        action: {
+          type: 'videoAnalysis',
+          name: video.name,
+          frames: (videoFramesRef.current || []).slice(0, 6),
+          fullFrames: (videoFullFramesRef.current || []).slice(0, 6),
+        },
         timestamp: Date.now(),
         id: `a-${Date.now()}`,
       }]);
       playSound('notification');
       setVideoUpload(null);
       videoFramesRef.current = [];
+      videoFullFramesRef.current = [];
       videoMetaRef.current = {};
       if (res?.quota?.trialTokens !== undefined) {
         setQuota(prev => prev ? { ...prev, trialTokens: res.quota.trialTokens } : prev);
@@ -793,6 +815,7 @@ export default function OmegaChat({
     videoXhrRef.current = null;
     setVideoUpload(null);
     videoFramesRef.current = [];
+    videoFullFramesRef.current = [];
     videoMetaRef.current = {};
   };
 
@@ -809,11 +832,12 @@ export default function OmegaChat({
     }
     setAttachment(null);
     videoFramesRef.current = [];
+    videoFullFramesRef.current = [];
     videoMetaRef.current = {};
     // [OMEGA-VIDEO ДОП-2] цена на чипе ДО анализа — живая из кабинета владельца (поставил 3✦ → клиент видит 3✦ сразу)
     refreshUploadLimits();
     extractVideoFrames(file)
-      .then(({ frames, meta }) => { videoFramesRef.current = frames; videoMetaRef.current = meta; })
+      .then(({ frames, fullFrames, meta }) => { videoFramesRef.current = frames; videoFullFramesRef.current = fullFrames || []; videoMetaRef.current = meta; })
       .catch(() => {});
     startVideoUpload(file);
   };
@@ -932,30 +956,49 @@ export default function OmegaChat({
     return raw.split(/\s+/).filter(Boolean).slice(0, 4).join(' ');
   };
 
+  // [COVERS-FRAMES ДОР] точечное обновление сообщения ленты (внешний режим — через useOmegaChat)
+  const updateChatMessage = (id, patch) => {
+    if (isExternal) updateMessage?.(id, patch);
+    else setInternalMessages(prev => prev.map(m => (m.id === id ? { ...m, ...(typeof patch === 'function' ? patch(m) : patch) } : m)));
+  };
+
   // [COVERS-FRAMES] дефолт mode='frame': основа = реальный кадр (frames загруженного видео /
   // официальный thumbnail YouTube-ссылки). styleMode='ai' — кнопка «Перегенерировать стиль» (Pollinations).
+  // [COVERS-FRAMES ДОР] результат — сообщение action.type 'covers' (только URL) в истории: сетка
+  // переживает F5/перезаход; регенерация обновляет covers-сообщение на месте, кадры для неё ищем
+  // по sourceMsgId в живой ленте (после F5 кадры stripped → честный AI-фолбэк, как и было).
   const generateCovers = async (msg, styleMode) => {
     if (coversBusyId) return;
     refreshUploadLimits();
     setCoversBusyId(msg.id);
     playSound('message-sent');
     try {
-      const ytData = msg.videoAnalysis || null;
-      const topic = msg.action?.niche || msg.action?.name || ytData?.title || (msg.text || '').split('\n')[0].slice(0, 120);
-      const coverText = msg.action?.type === 'script'
-        ? coverTextFromScript(msg.text, msg.action?.niche || topic)
-        : String(msg.action?.name || ytData?.title || topic).replace(/\.[a-z0-9]+$/i, '').split(/\s+/).slice(0, 4).join(' ');
-      const videoFrames = Array.isArray(msg.action?.frames) ? msg.action.frames.slice(0, 6) : [];
+      const isCoversMsg = msg.action?.type === 'covers';
+      const srcMsg = isCoversMsg ? (messages.find(m => m.id === msg.action?.sourceMsgId) || null) : msg;
+      const ytData = srcMsg?.videoAnalysis || null;
+      const topic = isCoversMsg
+        ? msg.action.topic
+        : (msg.action?.niche || msg.action?.name || ytData?.title || (msg.text || '').split('\n')[0].slice(0, 120));
+      const coverText = isCoversMsg
+        ? msg.action.coverText
+        : (msg.action?.type === 'script'
+          ? coverTextFromScript(msg.text, msg.action?.niche || topic)
+          : String(msg.action?.name || ytData?.title || topic).replace(/\.[a-z0-9]+$/i, '').split(/\s+/).slice(0, 4).join(' '));
+      const platform = isCoversMsg ? (msg.action.platform || 'youtube') : (msg.action?.platform || 'youtube');
+      const sourceUrl = isCoversMsg ? (msg.action.sourceUrl || '') : (ytData?.url || '');
+      const videoFrames = Array.isArray(srcMsg?.action?.frames) ? srcMsg.action.frames.slice(0, 6) : [];
+      const fullFrames = Array.isArray(srcMsg?.action?.fullFrames) ? srcMsg.action.fullFrames.slice(0, 6) : [];
       const res = await request('/omega/cover-variants', {
         method: 'POST',
         noRetry: true,
         body: JSON.stringify({
           topic,
           coverText,
-          platform: msg.action?.platform || 'youtube',
+          platform,
           mode: styleMode === 'ai' ? 'ai' : 'frame',
           ...(videoFrames.length && styleMode !== 'ai' ? { frames: videoFrames } : {}),
-          ...(ytData?.url ? { sourceUrl: ytData.url } : {}),
+          ...(fullFrames.length && styleMode !== 'ai' ? { fullFrames } : {}),
+          ...(sourceUrl ? { sourceUrl } : {}),
         }),
       });
       if (res && res.success === false) {
@@ -966,7 +1009,27 @@ export default function OmegaChat({
         return;
       }
       if (Array.isArray(res?.variants) && res.variants.length) {
-        setCoversByMsg(prev => ({ ...prev, [msg.id]: { variants: res.variants, selected: 0 } }));
+        if (isCoversMsg) {
+          updateChatMessage(msg.id, { action: { ...msg.action, variants: res.variants } });
+          setCoversByMsg(prev => ({ ...prev, [msg.id]: { selected: 0 } }));
+        } else {
+          pushChatMessages([{
+            role: 'omega',
+            text: t('chat.coversReadyMsg'),
+            action: {
+              type: 'covers',
+              variants: res.variants,
+              topic,
+              coverText,
+              platform,
+              sourceUrl,
+              postId: postIdByMsg[msg.id] || null,
+              sourceMsgId: msg.id,
+            },
+            timestamp: Date.now(),
+            id: `cov-${Date.now()}`,
+          }]);
+        }
         playSound('notification');
         if (res?.quota?.trialTokens !== undefined) {
           setQuota(prev => prev ? { ...prev, trialTokens: res.quota.trialTokens } : prev);
@@ -984,9 +1047,10 @@ export default function OmegaChat({
 
   // Применить выбранную обложку к драфту в Планировщике (если драфт создан)
   const applyCoverToPost = async (msg) => {
-    const state = coversByMsg[msg.id];
-    const variant = state?.variants?.[state.selected];
-    const postId = postIdByMsg[msg.id];
+    const variants = msg.action?.type === 'covers' ? msg.action.variants : coversByMsg[msg.id]?.variants;
+    const selected = coversByMsg[msg.id]?.selected ?? 0;
+    const variant = variants?.[selected];
+    const postId = msg.action?.type === 'covers' ? msg.action.postId : postIdByMsg[msg.id];
     if (!variant || !postId || coverBusyApply) return;
     setCoverBusyApply(true);
     try {
@@ -1251,71 +1315,78 @@ export default function OmegaChat({
                         {coversBusyId === msg.id ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🎨'} {t('chat.coversGenerateBtn', { cost: actionPricing.coverGenerationCost })}
                       </button>
                     </div>
-                    {coversByMsg[msg.id]?.variants && (
-                      <div className="mt-3" data-testid="covers-grid">
-                        <div className="grid grid-cols-3 gap-2">
-                          {coversByMsg[msg.id].variants.map((v, idx) => (
-                            <button
-                              key={v.url}
-                              type="button"
-                              onClick={() => setCoversByMsg(prev => ({ ...prev, [msg.id]: { ...prev[msg.id], selected: idx } }))}
-                              onDoubleClick={() => setCoverPreview(v)}
-                              className={`relative rounded-lg overflow-hidden border-2 transition ${coversByMsg[msg.id].selected === idx ? 'border-violet-400' : 'border-white/10 hover:border-white/25'}`}
-                              data-testid={`cover-variant-${idx}`}
-                              title={t('chat.coverPickHint')}
-                            >
-                              <img src={coverSrc(v.url)} alt={`cover ${idx + 1}`} className="w-full h-auto block" loading="lazy" />
-                              {coversByMsg[msg.id].selected === idx && (
-                                <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-violet-500 text-white text-[11px] flex items-center justify-center">✓</span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <button
-                            type="button"
-                            onClick={() => setCoverPreview(coversByMsg[msg.id].variants[coversByMsg[msg.id].selected])}
-                            className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-white/[0.1] transition flex items-center gap-1.5"
-                          >
-                            <Eye size={13} /> {t('chat.coverPreviewBtn')}
-                          </button>
-                          {postIdByMsg[msg.id] && (
-                            <button
-                              type="button"
-                              disabled={coverBusyApply}
-                              onClick={() => applyCoverToPost(msg)}
-                              data-testid="cover-apply"
-                              className="px-3 py-1.5 min-h-[44px] rounded-full bg-violet-500/20 border border-violet-500/30 text-xs text-violet-200 hover:bg-violet-500/30 transition disabled:opacity-50 flex items-center gap-1.5"
-                            >
-                              <Check size={13} /> {t('chat.coverApplyBtn')}
-                            </button>
-                          )}
-                          <a
-                            href={coverSrc(coversByMsg[msg.id].variants[coversByMsg[msg.id].selected]?.url)}
-                            download="cover.jpg"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-white/[0.1] transition flex items-center gap-1.5"
-                          >
-                            ⬇ {t('chat.coverDownloadBtn')}
-                          </a>
-                          {/* [COVERS-FRAMES] text-to-image НЕ удалён: отдельная кнопка, НЕ дефолт */}
-                          {coversByMsg[msg.id].variants[0]?.source !== 'ai' && (
-                            <button
-                              type="button"
-                              disabled={coversBusyId === msg.id}
-                              onClick={() => generateCovers(msg, 'ai')}
-                              data-testid="covers-regenerate-style"
-                              className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-violet-500/20 hover:text-violet-200 transition disabled:opacity-50 flex items-center gap-1.5"
-                            >
-                              🎨 {t('chat.coverRegenerateStyle', { cost: actionPricing.coverGenerationCost })}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
+                {/* [COVERS-FRAMES ДОР] сетка обложек — персистентное сообщение ленты (action.variants = URL),
+                    переживает F5/перезаход; выбор варианта — локальный state по id сообщения */}
+                {msg.action?.type === 'covers' && Array.isArray(msg.action.variants) && (() => {
+                  const variants = msg.action.variants;
+                  const selected = coversByMsg[msg.id]?.selected ?? 0;
+                  const selVariant = variants[selected] || variants[0];
+                  return (
+                    <div className="w-full max-w-[95%] mx-auto mb-3" data-testid="covers-grid">
+                      <div className="grid grid-cols-3 gap-2">
+                        {variants.map((v, idx) => (
+                          <button
+                            key={v.url}
+                            type="button"
+                            onClick={() => setCoversByMsg(prev => ({ ...prev, [msg.id]: { selected: idx } }))}
+                            onDoubleClick={() => setCoverPreview(v)}
+                            className={`relative rounded-lg overflow-hidden border-2 transition ${selected === idx ? 'border-violet-400' : 'border-white/10 hover:border-white/25'}`}
+                            data-testid={`cover-variant-${idx}`}
+                            title={t('chat.coverPickHint')}
+                          >
+                            <img src={coverSrc(v.url)} alt={`cover ${idx + 1}`} className="w-full h-auto block" loading="lazy" />
+                            {selected === idx && (
+                              <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-violet-500 text-white text-[11px] flex items-center justify-center">✓</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setCoverPreview(selVariant)}
+                          className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-white/[0.1] transition flex items-center gap-1.5"
+                        >
+                          <Eye size={13} /> {t('chat.coverPreviewBtn')}
+                        </button>
+                        {msg.action.postId && (
+                          <button
+                            type="button"
+                            disabled={coverBusyApply}
+                            onClick={() => applyCoverToPost(msg)}
+                            data-testid="cover-apply"
+                            className="px-3 py-1.5 min-h-[44px] rounded-full bg-violet-500/20 border border-violet-500/30 text-xs text-violet-200 hover:bg-violet-500/30 transition disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            <Check size={13} /> {t('chat.coverApplyBtn')}
+                          </button>
+                        )}
+                        <a
+                          href={coverSrc(selVariant?.url)}
+                          download="cover.jpg"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-white/[0.1] transition flex items-center gap-1.5"
+                        >
+                          ⬇ {t('chat.coverDownloadBtn')}
+                        </a>
+                        {/* [COVERS-FRAMES] text-to-image НЕ удалён: отдельная кнопка, НЕ дефолт */}
+                        {variants[0]?.source !== 'ai' && (
+                          <button
+                            type="button"
+                            disabled={coversBusyId === msg.id}
+                            onClick={() => generateCovers(msg, 'ai')}
+                            data-testid="covers-regenerate-style"
+                            className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-violet-500/20 hover:text-violet-200 transition disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            {coversBusyId === msg.id ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🎨'} {t('chat.coverRegenerateStyle', { cost: actionPricing.coverGenerationCost })}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {msg.action?.type === 'competitors' && Array.isArray(msg.action.rows) && (
                   <div className="w-full max-w-[95%] mx-auto mb-3 space-y-2" data-testid="competitors-table">
                     {msg.action.rows.map((row) => (

@@ -1575,6 +1575,7 @@
   "chat.scriptPlannerTitle": "Script by OMEGA",
   "chat.scriptPlannerOk": "Draft created in the Planner",
   "chat.coversGenerateBtn": "Covers — {{cost}}✦",
+  "chat.coversReadyMsg": "🖼 Cover is ready — pick a variant:",
   "chat.coverRegenerateStyle": "Regenerate style — {{cost}}✦",
   "team.deleteTitle": "Delete staff member?",
   "team.deleteConfirm": "The account will be permanently deleted:",
