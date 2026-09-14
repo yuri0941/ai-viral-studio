@@ -714,7 +714,8 @@ export default function OmegaChat({
         role: 'omega',
         text: res?.analysis || '...',
         // [OMEGA-VIDEO ДОП-2 З5] из разбора можно сразу собрать обложки (тема = файл/разбор)
-        action: { type: 'videoAnalysis', name: video.name },
+        // [COVERS-FRAMES] кадры сохраняем в action — основа обложек = реальный кадр ЭТОГО видео
+        action: { type: 'videoAnalysis', name: video.name, frames: (videoFramesRef.current || []).slice(0, 6) },
         timestamp: Date.now(),
         id: `a-${Date.now()}`,
       }]);
@@ -931,20 +932,31 @@ export default function OmegaChat({
     return raw.split(/\s+/).filter(Boolean).slice(0, 4).join(' ');
   };
 
-  const generateCovers = async (msg) => {
+  // [COVERS-FRAMES] дефолт mode='frame': основа = реальный кадр (frames загруженного видео /
+  // официальный thumbnail YouTube-ссылки). styleMode='ai' — кнопка «Перегенерировать стиль» (Pollinations).
+  const generateCovers = async (msg, styleMode) => {
     if (coversBusyId) return;
     refreshUploadLimits();
     setCoversBusyId(msg.id);
     playSound('message-sent');
     try {
-      const topic = msg.action?.niche || msg.action?.name || (msg.text || '').split('\n')[0].slice(0, 120);
+      const ytData = msg.videoAnalysis || null;
+      const topic = msg.action?.niche || msg.action?.name || ytData?.title || (msg.text || '').split('\n')[0].slice(0, 120);
       const coverText = msg.action?.type === 'script'
         ? coverTextFromScript(msg.text, msg.action?.niche || topic)
-        : String(msg.action?.name || topic).replace(/\.[a-z0-9]+$/i, '').split(/\s+/).slice(0, 4).join(' ');
+        : String(msg.action?.name || ytData?.title || topic).replace(/\.[a-z0-9]+$/i, '').split(/\s+/).slice(0, 4).join(' ');
+      const videoFrames = Array.isArray(msg.action?.frames) ? msg.action.frames.slice(0, 6) : [];
       const res = await request('/omega/cover-variants', {
         method: 'POST',
         noRetry: true,
-        body: JSON.stringify({ topic, coverText, platform: msg.action?.platform || 'youtube' }),
+        body: JSON.stringify({
+          topic,
+          coverText,
+          platform: msg.action?.platform || 'youtube',
+          mode: styleMode === 'ai' ? 'ai' : 'frame',
+          ...(videoFrames.length && styleMode !== 'ai' ? { frames: videoFrames } : {}),
+          ...(ytData?.url ? { sourceUrl: ytData.url } : {}),
+        }),
       });
       if (res && res.success === false) {
         const quotaError = res.code === 'TRIAL_EXHAUSTED' || res.code === 'QUOTA_EXCEEDED';
@@ -1201,9 +1213,10 @@ export default function OmegaChat({
                     <img src={msg.action.url} alt="AI cover" className="w-full rounded-2xl border border-white/10" loading="lazy" />
                   </div>
                 )}
-                {(msg.action?.type === 'script' || msg.action?.type === 'videoAnalysis') && (
+                {/* [COVERS-FRAMES] обложки доступны и для YouTube-ссылки (msg.videoAnalysis) — основа = официальный thumbnail */}
+                {(msg.action?.type === 'script' || msg.action?.type === 'videoAnalysis' || msg.videoAnalysis?.videoId) && (
                   <div className="w-full max-w-[95%] mx-auto mb-3" data-testid="script-action">
-                    {msg.action.nicheStats?.available && Array.isArray(msg.action.nicheStats.videos) && (
+                    {msg.action?.nicheStats?.available && Array.isArray(msg.action.nicheStats.videos) && (
                       <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-2">
                         <p className="text-[11px] text-gray-400 mb-1.5">{t('chat.scriptNicheTop')}</p>
                         {msg.action.nicheStats.videos.map(v => (
@@ -1213,7 +1226,7 @@ export default function OmegaChat({
                         ))}
                       </div>
                     )}
-                    {msg.action.nicheStats && !msg.action.nicheStats.available && (
+                    {msg.action?.nicheStats && !msg.action.nicheStats.available && (
                       <p className="text-[11px] text-amber-400/80 mb-2">{t('chat.scriptNicheUnavailable')}</p>
                     )}
                     <div className="flex flex-wrap gap-2">
@@ -1286,6 +1299,18 @@ export default function OmegaChat({
                           >
                             ⬇ {t('chat.coverDownloadBtn')}
                           </a>
+                          {/* [COVERS-FRAMES] text-to-image НЕ удалён: отдельная кнопка, НЕ дефолт */}
+                          {coversByMsg[msg.id].variants[0]?.source !== 'ai' && (
+                            <button
+                              type="button"
+                              disabled={coversBusyId === msg.id}
+                              onClick={() => generateCovers(msg, 'ai')}
+                              data-testid="covers-regenerate-style"
+                              className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-violet-500/20 hover:text-violet-200 transition disabled:opacity-50 flex items-center gap-1.5"
+                            >
+                              🎨 {t('chat.coverRegenerateStyle', { cost: actionPricing.coverGenerationCost })}
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1798,6 +1823,19 @@ export default function OmegaChat({
               <button onClick={() => setCoverPreview(null)} aria-label={t('common.cancel', 'Отмена')} className="text-gray-400 hover:text-white min-w-[32px] min-h-[32px] flex items-center justify-center"><X size={18} /></button>
             </div>
             <img src={coverSrc(coverPreview.url)} alt="cover preview" className="w-full h-auto rounded-xl border border-white/10" />
+            {/* [COVERS-FRAMES] превью 1:1 → скачивание прямо из модалки */}
+            <div className="flex justify-end mt-3">
+              <a
+                href={coverSrc(coverPreview.url)}
+                download={`cover-${coverPreview.width}x${coverPreview.height}.jpg`}
+                target="_blank"
+                rel="noreferrer"
+                data-testid="cover-preview-download"
+                className="px-4 py-2 min-h-[44px] rounded-full bg-violet-500/20 border border-violet-500/30 text-xs text-violet-200 hover:bg-violet-500/30 transition flex items-center gap-1.5"
+              >
+                ⬇ {t('chat.coverDownloadBtn')}
+              </a>
+            </div>
           </div>
         </div>
       )}

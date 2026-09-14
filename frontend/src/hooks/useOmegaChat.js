@@ -158,7 +158,10 @@ function loadHistory() {
 
 function saveHistory(messages) {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-100)))
+        // [COVERS-FRAMES] кадры обложек (dataURL, ~40КБ×6) в историю не пишем — localStorage 5МБ;
+        // после перезагрузки обложки для старого видео честно уходят в AI-фолбэк
+        const slim = messages.slice(-100).map(m => (m?.action?.frames ? { ...m, action: { ...m.action, frames: undefined } } : m))
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(slim))
     } catch {
         // ignore
     }

@@ -582,11 +582,19 @@ router.post('/script-from-idea', protect, async (req, res) => {
 // факт для гейта читаемости (мелкая сетка ленты).
 router.post('/cover-variants', protect, async (req, res) => {
     try {
-        const { topic, coverText, platform } = req.body || {}
+        const { topic, coverText, platform, frames, sourceUrl, mode } = req.body || {}
         const userId = (req.user?._id || req.user?.id || '').toString()
         if (!topic || typeof topic !== 'string' || !topic.trim()) {
             return res.status(400).json({ success: false, error: 'topic_required' })
         }
+        // [COVERS-FRAMES] frames — те же dataURL-кадры, что шли в vision-разбор (≤6, ≤350КБ каждый);
+        // sourceUrl — только YouTube-ссылка (thumbnail по факту); mode:'ai' — кнопка «Перегенерировать стиль».
+        const frameList = Array.isArray(frames)
+            ? frames.filter(f => typeof f === 'string' && /^data:image\/(jpeg|jpg|png|webp);base64,/.test(f) && f.length <= 500000).slice(0, 6)
+            : []
+        const { extractYouTubeId } = await import('../services/coverGenerator.js')
+        const ytUrl = typeof sourceUrl === 'string' && extractYouTubeId(sourceUrl) ? sourceUrl.slice(0, 300) : ''
+        const coverMode = mode === 'ai' ? 'ai' : 'frame'
         const { getVideoSettings } = await import('../models/OwnerSettings.js')
         const { coverGenerationCostCredits: cost } = await getVideoSettings()
 
@@ -605,7 +613,7 @@ router.post('/cover-variants', protect, async (req, res) => {
         const { generateCoverVariants } = await import('../services/coverGenerator.js')
         let variants = []
         try {
-            variants = await generateCoverVariants({ topic: topic.trim(), coverText: String(coverText || '').trim(), platform, count: 3 })
+            variants = await generateCoverVariants({ topic: topic.trim(), coverText: String(coverText || '').trim(), platform, count: 3, frames: frameList, sourceUrl: ytUrl, mode: coverMode })
         } catch (e) {
             console.error('[cover-variants] generation failed:', e.message)
         }
@@ -630,7 +638,7 @@ router.post('/cover-variants', protect, async (req, res) => {
                 { $setOnInsert: { userId, url, sizeBytes: v.buffer.length, kind: 'image' } },
                 { upsert: true }
             ).catch(() => {})
-            out.push({ url, width: v.width, height: v.height, seed: v.seed, provider: v.provider, textHeightRatio: v.textHeightRatio })
+            out.push({ url, width: v.width, height: v.height, seed: v.seed, provider: v.provider, source: v.source || 'ai', frameIndex: v.frameIndex, textHeightRatio: v.textHeightRatio })
         }
 
         res.json({

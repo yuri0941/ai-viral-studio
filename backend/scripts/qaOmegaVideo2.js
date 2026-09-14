@@ -137,6 +137,44 @@ for (const [platform, expect] of [['youtube', { width: 1280, height: 720 }], ['t
 const sizeVk = coverSizeForPlatform('vk')
 check('размеры платформ: vk/telegram 1280×720', sizeVk.width === 1280 && sizeVk.height === 720, `${sizeVk.width}×${sizeVk.height}`)
 
+// 5b. [COVERS-FRAMES] основа = реальный кадр: 3 лучших кадра по скору, source='frame', НЕ pollinations
+const { extractYouTubeId, pickBestFrames } = await import('../services/coverGenerator.js')
+const sharpQa = (await import('sharp')).default
+const mkFrame = async (kind) => {
+  let img
+  if (kind === 'noise') { // контрастный детальный кадр — должен выигрывать скор
+    const raw = Buffer.alloc(640 * 360 * 3)
+    for (let i = 0; i < raw.length; i++) raw[i] = Math.floor(Math.random() * 256)
+    img = sharpQa(raw, { raw: { width: 640, height: 360, channels: 3 } })
+  } else if (kind === 'dark') {
+    img = sharpQa({ create: { width: 640, height: 360, channels: 3, background: { r: 8, g: 8, b: 10 } } })
+  } else {
+    img = sharpQa({ create: { width: 640, height: 360, channels: 3, background: { r: 120, g: 120, b: 124 } } })
+  }
+  const buf = await img.jpeg({ quality: 70 }).toBuffer()
+  return `data:image/jpeg;base64,${buf.toString('base64')}`
+}
+const frameDataUrls = [await mkFrame('dark'), await mkFrame('flat'), await mkFrame('noise'), await mkFrame('flat')]
+const frameVariants = await generateCoverVariants({ topic: 'разбор кадра', coverText: 'Главный секрет ролика', platform: 'youtube', count: 3, frames: frameDataUrls })
+const frameOk = frameVariants.length === 3
+  && frameVariants.every(v => v.source === 'frame' && v.provider === 'video-frame')
+  && frameVariants.every(v => v.width === 1280 && v.height === 720)
+  && frameVariants.every(v => v.textHeightRatio >= COVER_TEXT_MIN_RATIO)
+const noiseFirst = frameVariants[0]?.frameIndex === 2
+check('обложки frame-режим: 3 варианта из реальных кадров, лучший (шумный) первый', frameOk && noiseFirst, `frames=${frameVariants.map(v => v.frameIndex).join(',')} src=${frameVariants[0]?.source}`)
+// скор кадров: шумный кадр выше плоского фактом
+const picked = await pickBestFrames(frameDataUrls.map(u => Buffer.from(u.split(',')[1], 'base64')), 3)
+check('pickBestFrames: шумный кадр имеет топ-скор', picked[0]?.index === 2, `order=${picked.map(p => p.index).join(',')}`)
+// YouTube-ссылка: videoId из любой формы; мусор → null (не уходит в fetch)
+const ytOk = extractYouTubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ') === 'dQw4w9WgXcQ'
+  && extractYouTubeId('https://youtu.be/dQw4w9WgXcQ') === 'dQw4w9WgXcQ'
+  && extractYouTubeId('https://www.youtube.com/shorts/dQw4w9WgXcQ') === 'dQw4w9WgXcQ'
+  && extractYouTubeId('https://evil.example.com/watch?v=dQw4w9WgXcQ') === null
+check('extractYouTubeId: watch/youtu.be/shorts → id, чужой домен → null', ytOk, '')
+// mode:'ai' остаётся text-to-image (кнопка «Перегенерировать стиль»), forceFallback — детерминированный фон
+const aiVariants = await generateCoverVariants({ topic: 'тест', coverText: 'Стиль заново', platform: 'youtube', count: 3, forceFallback: true, mode: 'ai', frames: frameDataUrls })
+check('mode ai: кадры игнорируются, source=ai (перегенерация стиля)', aiVariants.length === 3 && aiVariants.every(v => v.source === 'ai'), `src=${aiVariants[0]?.source}`)
+
 // 6. конкуренты ниши: без ключа — честный отказ, никаких выдуманных цифр
 const compTiktok = await req('GET', '/api/omega/niche-competitors?niche=финансы&platform=tiktok', ct)
 check('конкуренты tiktok без ключа → available:false + requiredKey', compTiktok.status === 200 && compTiktok.json.available === false && compTiktok.json.requiredKey === 'tiktok' && !compTiktok.json.rows, `reason=${compTiktok.json.reason}`)
