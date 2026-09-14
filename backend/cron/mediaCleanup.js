@@ -120,6 +120,38 @@ export async function runMediaCleanup() {
     console.warn('[mediaCleanup] orphan sweep failed:', e.message)
   }
 
+  // [SMART-TTL З2] 0c. Событие «клиент покинул задачу»: heartbeat молчит дольше
+  //    OwnerSettings.videoIdleMinutes → исходник удаляется. Только файлы с lastSeenAt (heartbeat
+  //    хотя бы раз приходил) — легаси-файлы без heartbeat идут по старым свипам. Обложки не трогаем.
+  //    TTL-потолок (deleteAt, свип 0) срабатывает в любом случае — независимо от heartbeat.
+  let idleDeleted = 0
+  try {
+    const { getVideoSettings } = await import('../models/OwnerSettings.js')
+    const idleMin = (await getVideoSettings()).videoIdleMinutes || 30
+    const idleBefore = new Date(now - idleMin * 60 * 1000)
+    const idle = await MediaFile.find({
+      status: 'stored',
+      kind: 'video',
+      lastSeenAt: { $ne: null, $lt: idleBefore },
+    }).lean()
+    for (const rec of idle) {
+      const rel = String(rec.url || '').replace(/^\/+/, '')
+      if (!rel.startsWith('uploads/') || rel.includes('..')) continue
+      if (isCoverFile(rel)) continue
+      try {
+        fs.unlinkSync(path.join(process.cwd(), rel))
+        deleted++
+        idleDeleted++
+        freed += rec.sizeBytes || 0
+      } catch (e) {
+        if (e.code !== 'ENOENT') console.warn('[mediaCleanup] idle unlink failed:', rel, e.message)
+      }
+      await markDeleted(rec.url)
+    }
+  } catch (e) {
+    console.warn('[mediaCleanup] idle sweep failed:', e.message)
+  }
+
   const allFiles = await listFiles(uploadsDir)
 
   // 1. Delete unreferenced files older than 7 days.
@@ -179,7 +211,7 @@ export async function runMediaCleanup() {
   if (deleted > 0) {
     try {
       const { sendOwnerAlert } = await import('../services/ownerBot.js')
-      await sendOwnerAlert(`🧹 Авто-очистка медиа: удалено ${deleted} файл(ов), освобождено ${(freed / (1024 * 1024)).toFixed(1)} МБ`)
+      await sendOwnerAlert(`🧹 Авто-очистка медиа: удалено ${deleted} файл(ов), освобождено ${(freed / (1024 * 1024)).toFixed(1)} МБ${idleDeleted ? ` (в т.ч. по бездействию клиента: ${idleDeleted})` : ''}`)
     } catch (e) {
       console.warn('[mediaCleanup] owner alert failed:', e.message)
     }

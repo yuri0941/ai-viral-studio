@@ -66,6 +66,10 @@ const ownerSettingsSchema = new mongoose.Schema({
     nicheCompetitorsCostCredits: { type: Number, default: 0, min: 0, max: 100 },
     // 0 = удалить файл сразу после разбора (дефолт); результат анализа (текст в чате) остаётся навсегда.
     videoStorageTtlHours: { type: Number, default: 0, min: 0, max: 720 },
+    // [SMART-TTL] таймер бездействия (минуты): клиент покинул задачу (нет heartbeat N мин) →
+    // исходный видеофайл удаляется кроном. Жёсткий потолок videoStorageTtlHours работает поверх.
+    // Результаты (обложки/разбор/сценарии) не трогаются никогда.
+    videoIdleMinutes: { type: Number, default: 30, min: 1, max: 1440 },
     // [OMEGA-CONTROL] рубильники автономных контуров OMEGA (owner-бот /omega, TG).
     // Дефолт true = текущее поведение прода не меняется; выключение — только с превью ✅ владельца.
     omegaControl: {
@@ -240,6 +244,7 @@ const VIDEO_SETTINGS_DEFAULTS = {
     coverGenerationCostCredits: 1,
     scriptGenerationCostCredits: 2,
     videoStorageTtlHours: 0,
+    videoIdleMinutes: 30,
 }
 const VIDEO_SETTINGS_TTL_MS = 60 * 1000
 let videoSettingsCache = { value: null, at: 0 }
@@ -268,6 +273,7 @@ export async function getVideoSettings() {
                     coverGenerationCostCredits: clampInt(doc.coverGenerationCostCredits, 1, 100, 1),
                     scriptGenerationCostCredits: clampInt(doc.scriptGenerationCostCredits, 1, 100, 2),
                     videoStorageTtlHours: clampInt(doc.videoStorageTtlHours, 0, 720, 0),
+                    videoIdleMinutes: clampInt(doc.videoIdleMinutes, 1, 1440, 30),
                 }
             }
         }
@@ -295,6 +301,10 @@ export async function setVideoSettings(patch = {}) {
     if (patch.videoStorageTtlHours !== undefined) {
         next.videoStorageTtlHours = clampInt(patch.videoStorageTtlHours, 0, 720, NaN)
         if (!Number.isFinite(next.videoStorageTtlHours)) throw new Error('videoStorageTtlHours must be a number 0–720')
+    }
+    if (patch.videoIdleMinutes !== undefined) {
+        next.videoIdleMinutes = clampInt(patch.videoIdleMinutes, 1, 1440, NaN)
+        if (!Number.isFinite(next.videoIdleMinutes)) throw new Error('videoIdleMinutes must be a number 1–1440')
     }
     if (!Object.keys(next).length) throw new Error('no video settings fields provided')
     let doc = await OwnerSettings.findOne().sort({ updatedAt: -1 })

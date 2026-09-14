@@ -202,8 +202,51 @@ router.get('/limits', protect, async (req, res) => {
     coverGenerationCost: video.coverGenerationCostCredits,
     scriptGenerationCost: video.scriptGenerationCostCredits,
     videoStorageTtlHours: video.videoStorageTtlHours,
+    // [SMART-TTL З2] таймер бездействия (мин) — клиенту для мягкой подсказки; hot-reload ≤60с
+    videoIdleMinutes: video.videoIdleMinutes,
     actionPrices,
   })
+})
+
+// [SMART-TTL З1] событие «результат принят» (обложка скачана/применена к посту, драфт создан):
+// исходный видеофайл удаляется немедленно. Только свой файл, обложки (cover-*) не удаляются никогда.
+const USED_REASONS = new Set(['cover_download', 'cover_applied', 'script_draft'])
+router.post('/used', protect, async (req, res) => {
+  try {
+    const { url, reason } = req.body || {}
+    const userId = (req.user?._id || req.user?.id || '').toString()
+    if (!url || typeof url !== 'string') return res.status(400).json({ success: false, error: 'url is required' })
+    if (!url.startsWith(`/uploads/${userId}/`) || url.includes('..')) {
+      return res.status(403).json({ success: false, error: 'forbidden_url' })
+    }
+    const { deleteMediaNow } = await import('../services/videoStorage.js')
+    const result = await deleteMediaNow({
+      videoUrl: url,
+      userId,
+      reason: USED_REASONS.has(reason) ? reason : 'accepted',
+    })
+    res.json({ success: true, ...result })
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+// [SMART-TTL З2] heartbeat «задача на экране»: молчание дольше OwnerSettings.videoIdleMinutes
+// (кабинет владельца, hot-reload ≤60с) → крон mediaCleanup удаляет исходник. TTL-потолок поверх.
+router.post('/heartbeat', protect, async (req, res) => {
+  try {
+    const { url } = req.body || {}
+    const userId = (req.user?._id || req.user?.id || '').toString()
+    if (!url || typeof url !== 'string') return res.status(400).json({ success: false, error: 'url is required' })
+    if (!url.startsWith(`/uploads/${userId}/`) || url.includes('..')) {
+      return res.status(403).json({ success: false, error: 'forbidden_url' })
+    }
+    const { markMediaHeartbeat } = await import('../services/videoStorage.js')
+    const result = await markMediaHeartbeat({ videoUrl: url, userId })
+    res.json({ success: true, ...result })
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message })
+  }
 })
 
 // [OMEGA-VIDEO ДОП-2] счётчик хранилища клиента — фактом с диска (uploads/<userId>/),
