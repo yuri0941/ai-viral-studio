@@ -35,10 +35,10 @@ function handleError(res, err, fallback) {
 
 import { getJSON, setJSON, cacheKey } from '../config/redis.js'
 
-async function safeFind(model, filter = {}, limit = 100) {
+async function safeFind(model, filter = {}, limit = 100, sortField = 'createdAt') {
     try {
         if (!model) return []
-        return await model.find(filter).sort({ createdAt: -1 }).limit(limit).lean()
+        return await model.find(filter).sort({ [sortField]: -1 }).limit(limit).lean()
     } catch {
         return []
     }
@@ -84,7 +84,7 @@ export async function getOverview(req, res) {
                 { $match: { status: 'succeeded', createdAt: { $gte: since30 } } },
                 { $group: { _id: null, total: { $sum: '$amount' } } },
             ]).catch(() => []),
-            safeFind(AuditLog, {}, 5),
+            safeFind(AuditLog, {}, 5, 'timestamp'),
             calcMRR(),
             getFunnel(7),
             getExpensesSummary().catch(() => null),
@@ -222,7 +222,7 @@ export async function getAudit(req, res) {
         if (type) filter.type = type
         if (severity) filter.severity = severity
 
-        const logs = await safeFind(AuditLog, filter, 500)
+        const logs = await safeFind(AuditLog, filter, 500, 'timestamp')
         const start = (page - 1) * limit
         const paginated = logs.slice(start, start + Number(limit))
 
