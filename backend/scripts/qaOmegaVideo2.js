@@ -219,6 +219,7 @@ const pairDiff = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += 
 const d01 = pairDiff(oneRaws[0], oneRaws[1]); const d02 = pairDiff(oneRaws[0], oneRaws[2]); const d12 = pairDiff(oneRaws[1], oneRaws[2])
 check('один кадр → 3 визуально различимых варианта (кроп/зум + схема текста)', sameBase && d01 > 8 && d02 > 8 && d12 > 8, `diff=${d01.toFixed(1)},${d02.toFixed(1)},${d12.toFixed(1)}`)
 
+
 // 5e. [YT-FRAMES] кадры из YouTube-видео: ffmpeg-извлечение (файл удаляется сразу), 3 разных кадра,
 // честные фолбэки без ошибки клиенту. Сеть/yt-dlp в гейте НЕ нужны — синтетика + тестовый шов.
 const { framesFromVideoFile, extractYouTubeFrames: extractYtFramesGate, getLastYtFramesSkip } = await import('../services/ytFrames.js')
@@ -263,6 +264,8 @@ delete process.env.YT_FRAMES_DISABLE
 check('yt-frames: YT_FRAMES_DISABLE=1 → null + reason (честный фолбэк)', dis === null && getLastYtFramesSkip() === 'disabled', `reason=${getLastYtFramesSkip()}`)
 const badId = await extractYtFramesGate('../../etc/passwd')
 check('yt-frames: мусорный videoId → null (в fetch не уходит)', badId === null && getLastYtFramesSkip() === 'bad_video_id', `reason=${getLastYtFramesSkip()}`)
+
+
 
 // 6. конкуренты ниши: без ключа — честный отказ, никаких выдуманных цифр
 const compTiktok = await req('GET', '/api/omega/niche-competitors?niche=финансы&platform=tiktok', ct)

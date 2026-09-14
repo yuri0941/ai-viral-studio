@@ -1,6 +1,7 @@
 
  
  
+
 ## 2026-09-14 — YT-FRAMES: обложки из кадров YouTube-видео (ветка fix/yt-frames)
 - [БАЗА] Ветка от свежего origin/main. Факт: merge fix/covers-frames → main (9470976c, approve TG) забрал ветку ДО коммитов ДОР-2 (различимость вариантов) — они перенесены cherry-pick'ом (f3b1b759/1a1b92b8/e7101627), З3 этого батча на них опирается.
 - [З1 КАДРЫ ИЗ YOUTUBE] Новый `backend/services/ytFrames.js`: yt-dlp ТОЛЬКО скачивает (формат `bestvideo[height<=720]` — YouTube отдаёт только DASH video-only, комбинированных «best» больше нет; probe `-j` ≤15 мин, стримы/приватные/возрастные → отказ; ≤150МБ `--max-filesize` + проверка фактом; таймауты probe 30с/download 180с/ffmpeg 60с; диск-гард statfs ≥400МБ; семафор max 2 параллельных). ffmpeg-static режет 9 кадров равномерно (5–95% длительности) в НАТИВНОМ разрешении потока (720p → 1280×720 без апскейла). workdir (видео+кадры) удаляется СРАЗУ в finally — факт по диску в гейте. Кэш TtlLruCache(8 видео, 30 мин) — повтор/регенерация не качает заново. Бинарь yt-dlp: YTDLP_PATH → PATH → ленивая загрузка pinned 2026.08.19 в tmpdir/aiviral-bin (2025.09.05 падал probe «The page needs to be reloaded»). [MEM] до/после: rss 236→234МБ (не растёт, кадры ~450КБ в heap).
@@ -10,6 +11,7 @@
 - [РЕГРЕССИЯ] qa-launch 24/24 ✅ (вкл. qa-bots — webhook owner-бота на проде жив); covers-frames-shots ALL GREEN (все прежние COVERS-FRAMES проверки на месте: frame-режим, full-res маркер, F5-персистентность, diff сетки); omega-video-upload-shots ALL GREEN; build 0 ошибок (index 574.59КБ — фронт не тронут); i18n-parity 0-diff; прод curl / + /creative-hub/chat + /owner → 200, 0 редиректов.
 - [НЕ ТРОНУТО] COVERS-FRAMES целиком (frame-режим загруженных видео, fullFrames, оверлей скрим+обводка, размеры платформ, превью 1:1 + «Скачать», «🎨 Перегенерировать стиль — N✦», живой чип цены, вечный инвентарь обложек), реестр цен, платежи/ЮKassa, refunds-контур, боты, house-ads, qa-харнес, CHAT-PRO, OMEGA-VIDEO механика (vision/списание/refund/TTL исходника).
 - [GIT] fix/yt-frames от origin/main. Compare: https://github.com/yuri0941/ai-viral-studio/compare/main...fix/yt-frames. Merge — только по ✅ владельца в TG.
+
 
 ## 2026-09-14 — COVERS-FRAMES ДОРАБОТКА-2: различимость 3 вариантов при 1 базовом кадре (ветка fix/covers-frames)
 - [З3 РАЗЛИЧИМОСТЬ] Факт владельца: по YouTube-ссылке 3 обложки выглядели одинаково (1 thumbnail × 3 текста). Фикс в `coverGenerator.js`: `variantCrop` — разные кропы/зум базового кадра (v0 целиком, v1 зум 0.7 к центру с уклоном вверх — «лицо крупнее», v2 смещение 0.78 вправо-вниз — зона под текст top-left свободна) + разные цветовые схемы/сила скрима в `textOverlaySvg` (v0 белый+плашка+скрим 0.72, v1 акцентный #ffd60a+скрим 0.84, v2 белый+скрим 0.56 сверху). Работает для ВСЕХ режимов с 1 кадром (YouTube-thumbnail, повтор кадра при нехватке, AI-фолбэк); режим 3 разных кадров не сломан — v0 без кропа, сданные гейты §5b/§5c зелёные без изменений.
