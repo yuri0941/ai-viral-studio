@@ -191,6 +191,25 @@ async function runCoverFlow(page, { name, expectSource, shotPrefix, expectFullRe
       check(`${name}: фон из полноразмерного кадра (зелёный маркер)`, gM > rM + 20 && gM > bM + 5, `rgb=${rM.toFixed(0)},${gM.toFixed(0)},${bM.toFixed(0)}`)
     }
   }
+  // [COVERS-FRAMES ДОР-2] 3 превью визуально РАЗЛИЧИМЫ — факт по пикселям загруженных картинок
+  const tileSrcs = await grid.locator('img').evaluateAll(els => els.map(e => e.getAttribute('src')).filter(Boolean)).catch(() => [])
+  if (tileSrcs.length === 3) {
+    const bufs = []
+    for (const s of tileSrcs) {
+      const r = await fetch(s.replace(API_ORIGIN, LOCAL_API)).catch(() => null)
+      bufs.push(r && r.status === 200 ? Buffer.from(await r.arrayBuffer()) : null)
+    }
+    if (bufs.every(Boolean)) {
+      const raws = []
+      for (const b of bufs) raws.push(await sharp(b).resize(64, 36, { fit: 'fill' }).raw().toBuffer())
+      const diffs = [[0, 1], [0, 2], [1, 2]].map(([i, j]) => {
+        let s = 0
+        for (let k = 0; k < raws[i].length; k++) s += Math.abs(raws[i][k] - raws[j][k])
+        return s / raws[i].length
+      })
+      check(`${name}: 3 варианта визуально различимы (пиксельный diff сетки)`, diffs.every(d => d > 6), `diff=${diffs.map(d => d.toFixed(1)).join(',')}`)
+    }
+  }
   // source=frame/youtube — факт по ответу API (последний лог прокси) + превью не градиент-фолбэк
   await page.waitForTimeout(800)
   await shot(page, `${shotPrefix}-grid`)
