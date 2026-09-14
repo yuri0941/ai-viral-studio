@@ -109,6 +109,17 @@ await MediaFile.create({ userId: quser._id, url: urlOrph, sizeBytes: 1024 * 100,
 await runMediaCleanup()
 check('сирота (без разбора >24ч): удалена кроном', !fs.existsSync(path.join(dir, 'orphan.mp4')), 'файл удалён')
 
+// [COVERS-FRAMES ДОР] обложка НЕ живёт по TTL исходника: legacy-запись (kind image, analyzedAt null)
+// старше 24ч + mtime старше 7 дней — крон обязан оставить cover-*.jpg на диске (вечный инвентарь чата)
+const urlCov = mkFile('cover-qa-protect.jpg')
+await MediaFile.create({ userId: quser._id, url: urlCov, sizeBytes: 1024, kind: 'image', createdAt: new Date(Date.now() - 25 * 3600 * 1000) })
+const oldMtime = new Date(Date.now() - 8 * 24 * 3600 * 1000)
+fs.utimesSync(path.join(dir, 'cover-qa-protect.jpg'), oldMtime, oldMtime)
+await runMediaCleanup()
+check('обложка cover-*.jpg: крон НЕ удаляет (ни сирота-свип, ни 7-дневный)', fs.existsSync(path.join(dir, 'cover-qa-protect.jpg')), 'файл на месте')
+fs.unlinkSync(path.join(dir, 'cover-qa-protect.jpg'))
+await MediaFile.deleteOne({ url: urlCov })
+
 // 4. счётчик хранилища клиента — фактом с диска
 const urlCnt = mkFile('counter.mp4', 100 * 1024 * 1024) // 100 МБ
 const qt = quser.generateToken()
@@ -174,6 +185,28 @@ check('extractYouTubeId: watch/youtu.be/shorts → id, чужой домен →
 // mode:'ai' остаётся text-to-image (кнопка «Перегенерировать стиль»), forceFallback — детерминированный фон
 const aiVariants = await generateCoverVariants({ topic: 'тест', coverText: 'Стиль заново', platform: 'youtube', count: 3, forceFallback: true, mode: 'ai', frames: frameDataUrls })
 check('mode ai: кадры игнорируются, source=ai (перегенерация стиля)', aiVariants.length === 3 && aiVariants.every(v => v.source === 'ai'), `src=${aiVariants[0]?.source}`)
+
+// 5c. [COVERS-FRAMES ДОР] рендер из полноразмерного кадра: скор на 640px, фон — исходник до 1920×1080
+const mkSolid = async (w, h, rgb) => {
+  const buf = await sharpQa({ create: { width: w, height: h, channels: 3, background: rgb } }).jpeg({ quality: 80 }).toBuffer()
+  return `data:image/jpeg;base64,${buf.toString('base64')}`
+}
+// скор-кадры 640px: шумный (индекс 2) побеждает; полноразмерный кадр того же индекса — ярко-зелёный маркер
+const fullDataUrls = [await mkSolid(1920, 1080, { r: 200, g: 30, b: 30 }), await mkSolid(1920, 1080, { r: 30, g: 30, b: 200 }), await mkSolid(1920, 1080, { r: 20, g: 210, b: 20 }), await mkSolid(1920, 1080, { r: 200, g: 200, b: 30 })]
+const hiVariants = await generateCoverVariants({ topic: 'разбор кадра', coverText: 'Главный секрет ролика', platform: 'youtube', count: 3, frames: frameDataUrls, fullFrames: fullDataUrls })
+const hiMeta = await sharpQa(hiVariants[0].buffer).metadata()
+const hiStats = await sharpQa(hiVariants[0].buffer).stats()
+const rMean = hiStats.channels[0]?.mean || 0
+const gMean = hiStats.channels[1]?.mean || 0
+const bMean = hiStats.channels[2]?.mean || 0
+check('fullFrames: фон из полноразмерного кадра 1920×1080 → 1280×720 (зелёный маркер)',
+  hiVariants.length === 3 && hiVariants[0].frameIndex === 2 && hiVariants[0].bgFullRes === true
+    && hiMeta.width === 1280 && hiMeta.height === 720 && gMean > rMean + 40 && gMean > bMean + 40,
+  `idx=${hiVariants[0]?.frameIndex} ${hiMeta.width}x${hiMeta.height} rgb=${rMean.toFixed(0)},${gMean.toFixed(0)},${bMean.toFixed(0)}`)
+// исходник меньше цели → без апскейла выше исходника (960×540 не растягивается до 1280×720)
+const lowVariants = await generateCoverVariants({ topic: 'тест', coverText: 'Маленький исходник', platform: 'youtube', count: 1, frames: [frameDataUrls[2]], fullFrames: [await mkSolid(960, 540, { r: 40, g: 40, b: 180 })] })
+const lowMeta = await sharpQa(lowVariants[0].buffer).metadata()
+check('fullFrames: нет апскейла выше исходника (960×540 → 960×540)', lowVariants.length === 1 && lowMeta.width === 960 && lowMeta.height === 540, `${lowMeta.width}x${lowMeta.height}`)
 
 // 6. конкуренты ниши: без ключа — честный отказ, никаких выдуманных цифр
 const compTiktok = await req('GET', '/api/omega/niche-competitors?niche=финансы&platform=tiktok', ct)

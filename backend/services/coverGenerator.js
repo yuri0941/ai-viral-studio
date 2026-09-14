@@ -172,22 +172,25 @@ export async function pickBestFrames(frameBuffers, count = 3) {
 }
 
 // [COVERS-FRAMES ДОР] noUpscale: рендер из полноразмерного кадра — без апскейла выше исходника
-// (720p → 1280×720 нативно; portrait 720×1280 под youtube-цель — кроп без увеличения).
+// (720p → 1280×720 нативно; исходник мельче цели — кроп без увеличения, оверлей строится
+// по ФАКТИЧЕСКИМ размерам результата, иначе composite 1280×720 на 960×540 падает).
 async function composeCover({ bgBuffer, width, height, text, variant, noUpscale = false }) {
-    const overlay = textOverlaySvg({ width, height, text, variant })
-    let pipeline = sharp(bgBuffer).resize(width, height, { fit: 'cover', withoutEnlargement: noUpscale })
-    if (overlay) pipeline = pipeline.composite([{ input: overlay.svg, top: 0, left: 0 }])
-    const buffer = await pipeline.jpeg({ quality: 88 }).toBuffer()
-    // фактические размеры результата (при noUpscale могут быть меньше целевых)
+    let base = sharp(bgBuffer).resize(width, height, { fit: 'cover', withoutEnlargement: noUpscale })
     let outW = width
     let outH = height
     if (noUpscale) {
+        const resized = await base.toBuffer()
         try {
-            const meta = await sharp(buffer).metadata()
+            const meta = await sharp(resized).metadata()
             outW = meta.width || width
             outH = meta.height || height
         } catch { /* остаются целевые */ }
+        base = sharp(resized)
     }
+    const overlay = textOverlaySvg({ width: outW, height: outH, text, variant })
+    let pipeline = base
+    if (overlay) pipeline = pipeline.composite([{ input: overlay.svg, top: 0, left: 0 }])
+    const buffer = await pipeline.jpeg({ quality: 88 }).toBuffer()
     return { buffer, overlay, outWidth: outW, outHeight: outH }
 }
 
