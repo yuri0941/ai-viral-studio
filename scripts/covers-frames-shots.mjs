@@ -118,7 +118,7 @@ async function withPage(browser, { token, theme = 'dark', vw = 1280, vh = 900, s
     localStorage.setItem('i18n-lang', 'ru')
     localStorage.setItem('app_language', 'ru')
     localStorage.setItem('cookie_consent', 'accepted')
-    if (msgs?.length) localStorage.setItem('omega_chat_history', JSON.stringify(msgs))
+    if (msgs?.length && !localStorage.getItem('omega_chat_history')) localStorage.setItem('omega_chat_history', JSON.stringify(msgs))
   }, [token, theme, seedMessages])
   try {
     await fn(page)
