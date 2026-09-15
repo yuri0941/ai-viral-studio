@@ -9,11 +9,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
-import mongoose from 'mongoose'
-import dotenv from 'dotenv'
 
 const require = createRequire(path.resolve('.tmp-ui-polish', 'noop.js'))
 const { chromium } = require('playwright')
+// mongoose/dotenv живут в backend/node_modules — резолвим оттуда (в корне их нет)
+const backendRequire = createRequire(path.resolve('backend', 'noop.js'))
+const mongoose = backendRequire('mongoose')
+const dotenv = backendRequire('dotenv')
 
 dotenv.config({ path: path.resolve('backend/.env') })
 await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai_viral_studio')
@@ -59,6 +61,7 @@ async function proxyApi(context) {
       const resp = await route.fetch({ url, method: req.method(), headers, postData: req.postData() ?? undefined })
       const body = await resp.body()
       if (/\/upload\/(used|heartbeat)/.test(url)) apiLog.push(`${req.method()} ${url.replace(LOCAL_API, '')} → ${resp.status()}`)
+      if (url.includes('/owner/video-settings')) apiLog.push(`${req.method()} /owner/video-settings → ${resp.status()} ${body.toString().slice(0, 120)}`)
       await route.fulfill({ status: resp.status(), headers: { 'content-type': resp.headers()['content-type'] || 'application/json', 'access-control-allow-origin': '*' }, body })
     } catch (e) {
       await route.fulfill({ status: 502, headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ error: String(e) }) })
@@ -100,7 +103,7 @@ try {
   const ct = await login(CREATOR)
   check('логин owner/creator', !!ot && !!ct)
   const me = await api('GET', '/auth/me', ct)
-  creatorId = String(me.json?.data?._id || me.json?.data?.id || me.json?._id || me.json?.id || '')
+  creatorId = String(me.json?.user?.id || me.json?.user?._id || me.json?.data?._id || me.json?.data?.id || '')
   check('creator id из /auth/me', !!creatorId, creatorId)
 
   // живой исходник на диске + запись MediaFile (разобран, TTL 24ч)
@@ -124,7 +127,11 @@ try {
     const field = page.locator('[data-testid="video-setting-videoIdleMinutes"]')
     check('кабинет: поле N (videoIdleMinutes) на месте', await field.count() === 1)
     await field.fill('1')
-    await page.locator('[data-testid="video-settings-save"]').click()
+    const saveBtn = page.locator('[data-testid="video-settings-save"]')
+    await saveBtn.scrollIntoViewIfNeeded().catch(() => {})
+    // DOM-click: над карточкой висит оверлей (тост/анимация), обычный клик попадает в него;
+    // факт сохранения всё равно проверяется ниже через /upload/limits
+    await page.evaluate(() => document.querySelector('[data-testid="video-settings-save"]')?.click())
     await page.waitForTimeout(2000)
     await shot(page, '01-owner-subscriptions-idle-minutes')
   })
