@@ -26,8 +26,51 @@ const TTL = {
 const YT_API_URL = 'https://www.googleapis.com/youtube/v3'
 
 export async function getYoutubeApiKey(ownerId = null) {
-    const key = await getProviderKey('youtube', ownerId)
-    return key || process.env.YOUTUBE_API_KEY || null
+    // env-запасной вариант уже внутри getProviderKey (envMap.youtube). Если ключ выключен
+    // в кабинете — getProviderKey вернул null = явный запрет владельца, env НЕ воскрешаем
+    // ([HOTFIX-FINAL-2]: мёртвый ключ не должен подниматься обратно в ротацию).
+    return (await getProviderKey('youtube', ownerId)) || null
+}
+
+// [YT-DATA-FIX] Классификация сбоев Google API:
+//   постоянные (битый/выключенный/ограниченный ключ) → disableProviderKey: isActive=false в БД,
+//     стоп кэша, карточка «invalid» в кабинете + TG-алерт (механика HOTFIX-FINAL-2, раньше была
+//     подключена только для replicate — поэтому на проде 15.09 ключ/квота умерли молча).
+//   quotaExceeded/dailyLimitExceeded — временные (сброс после 10:00 МСК): ключ НЕ трогаем,
+//     только троттленный TG-алерт (не чаще 1 раза в 6 ч).
+const PERMANENT_KEY_REASONS = new Set(['keyInvalid', 'accessNotConfigured', 'ipRefererBlocked', 'forbidden'])
+const QUOTA_REASONS = new Set(['quotaExceeded', 'dailyLimitExceeded'])
+let lastYtOwnerAlertAt = 0
+async function alertYoutubeOwnerThrottled(html) {
+    if (Date.now() - lastYtOwnerAlertAt < 6 * 3600 * 1000) return
+    lastYtOwnerAlertAt = Date.now()
+    try {
+        const { sendOwnerAlert } = await import('./ownerBot.js')
+        await sendOwnerAlert(html, 'warning')
+    } catch (e) {
+        console.warn('[youtubeData] owner alert failed:', e.message)
+    }
+}
+
+async function handleYoutubeApiError(mapped, context) {
+    if (PERMANENT_KEY_REASONS.has(mapped.code)) {
+        try {
+            const { disableProviderKey } = await import('../utils/providerKeyGuard.js')
+            await disableProviderKey('youtube', `${mapped.code} @ ${context}`)
+        } catch (e) {
+            console.warn('[youtubeData] key-guard failed:', e.message)
+        }
+    } else if (QUOTA_REASONS.has(mapped.code)) {
+        await alertYoutubeOwnerThrottled(
+            `📉 Дневная квота YouTube Data API исчерпана (${context}).\nСтатистика видео недоступна до сброса (после 10:00 МСК). Ключ НЕ отключён.`
+        )
+    }
+}
+
+async function alertYoutubeNoKey(context) {
+    await alertYoutubeOwnerThrottled(
+        `🔑 YouTube Data API ключ не подключён или выключен — статистика видео недоступна (${context}).\nДобавьте/включите ключ: Кабинет → API Ключи → youtube.`
+    )
 }
 
 // Человеческие причины ошибок Google (переиспользуется в модалке/тостах/чате)
@@ -83,7 +126,10 @@ export async function fetchVideoStats(videoId, { ownerId = null } = {}) {
     if (cached) return { ...cached, cached: true }
 
     const key = await getYoutubeApiKey(ownerId)
-    if (!key) return unavailable('no_api_key', 'YouTube Data API ключ не подключён — статистика недоступна')
+    if (!key) {
+        await alertYoutubeNoKey(`video:${videoId}`)
+        return unavailable('no_api_key', 'YouTube Data API ключ не подключён — статистика недоступна')
+    }
 
     try {
         const res = await axios.get(`${YT_API_URL}/videos`, {
@@ -116,6 +162,7 @@ export async function fetchVideoStats(videoId, { ownerId = null } = {}) {
     } catch (err) {
         const mapped = mapYoutubeError(err)
         console.warn(`[youtubeData] fetchVideoStats ${videoId} failed: ${mapped.code} — ${mapped.message}`)
+        await handleYoutubeApiError(mapped, `video:${videoId}`)
         return unavailable(mapped.code, mapped.message)
     }
 }
@@ -157,6 +204,7 @@ export async function fetchChannelStats(channelId, { ownerId = null } = {}) {
     } catch (err) {
         const mapped = mapYoutubeError(err)
         console.warn(`[youtubeData] fetchChannelStats ${channelId} failed: ${mapped.code} — ${mapped.message}`)
+        await handleYoutubeApiError(mapped, `channel:${channelId}`)
         return unavailable(mapped.code, mapped.message)
     }
 }
@@ -200,6 +248,7 @@ export async function searchYoutubeVideos(query, { maxResults = 10, ownerId = nu
     } catch (err) {
         const mapped = mapYoutubeError(err)
         console.warn(`[youtubeData] search "${query}" failed: ${mapped.code} — ${mapped.message}`)
+        await handleYoutubeApiError(mapped, `search:${String(query).slice(0, 40)}`)
         return unavailable(mapped.code, mapped.message)
     }
 }
@@ -239,6 +288,7 @@ export async function fetchTrendingVideos(regionCode = 'RU', { categoryId = null
     } catch (err) {
         const mapped = mapYoutubeError(err)
         console.warn(`[youtubeData] trending ${regionCode} failed: ${mapped.code} — ${mapped.message}`)
+        await handleYoutubeApiError(mapped, `trending:${regionCode}`)
         return unavailable(mapped.code, mapped.message)
     }
 }

@@ -1,7 +1,7 @@
 import axios from 'axios'
 import sharp from 'sharp'
 import { generateImage } from './aiService.js'
-import { extractYouTubeFrames } from './ytFrames.js'
+import { extractYouTubeFrames, getLastYtFramesSkip } from './ytFrames.js'
 
 // [COVERS-FRAMES] Основа обложки — РЕАЛЬНЫЙ кадр: из кадров загруженного видео (те же ≤6,
 // что клиент извлекает video+canvas для vision-разбора) или официальный thumbnail YouTube
@@ -296,6 +296,9 @@ export async function generateCoverVariants({ topic, coverText, platform, count 
                     })
                 }
                 if (variants.length) return variants
+            } else if (!ytFramesProvider) {
+                // [YT-DATA-FIX] reason фолбэка — в лог (на проде 15.09 цепочка уходила в AI молча)
+                console.warn(`[coverGenerator] yt-frames недоступны для ${ytId}: ${getLastYtFramesSkip() || 'unknown'} — пробую официальный thumbnail`)
             }
             const thumb = await fetchYouTubeThumbnail(ytId).catch(() => null)
             if (thumb?.buffer) {
@@ -313,6 +316,8 @@ export async function generateCoverVariants({ topic, coverText, platform, count 
                     })
                 }
                 if (variants.length) return variants
+            } else {
+                console.warn(`[coverGenerator] thumbnail недоступен для ${ytId} — AI-фолбэк (Pollinations)`)
             }
         }
     }
