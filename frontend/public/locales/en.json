@@ -844,6 +844,9 @@
     "videoTtlLabel": "Keep uploaded video for",
     "videoTtlHint": "Hours (0 = delete file right after analysis). The analysis result is kept forever",
     "videoTtlUnit": "h",
+    "videoIdleLabel": "Delete source after inactivity",
+    "videoIdleHint": "Minutes of client inactivity in the task (left the screen/closed the tab). Results (covers, analysis, scripts) are never deleted",
+    "videoIdleUnit": "min",
     "videoSettingsSave": "Save pricing & TTL",
     "videoSettingsSaved": "Pricing and TTL saved — applied to clients within a minute",
     "actionPrices": {
@@ -1584,6 +1587,8 @@
   "chat.coverApplyBtn": "Apply to post",
   "chat.coverDownloadBtn": "Download",
   "chat.coverApplied": "Cover applied to the Planner draft",
+  "chat.sourceTtlNotice": "🗂 The source file is stored for up to {{hours}} h and is cleared after {{idle}} min of inactivity — the analysis, covers and scripts stay forever.",
+  "chat.sourceClearedNotice": "🧹 Source file cleared — the results (analysis, covers, scripts) are saved forever.",
   "chat.coverPreviewTitle": "Cover {{w}}×{{h}} — preview before applying",
   "chat.compModalTitle": "Niche top — competitors",
   "chat.compSubmitBtn": "Show niche top",
