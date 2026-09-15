@@ -27,6 +27,14 @@ const YTDLP_VERSION = '2026.08.19'
 let lastSkipReason = ''
 export function getLastYtFramesSkip() { return lastSkipReason }
 
+// [YT-DATA-FIX] каждый уход в фолбэк логируется с reason — на проде 15.09 yt-frames падал
+// молча (в логе был только [MEM] yt-frames:start), диагностика была невозможна.
+function skip(videoId, reason) {
+    lastSkipReason = reason
+    console.warn(`[yt-frames] fallback ${videoId}: ${reason}`)
+    return null
+}
+
 // ── семафор: max 2 параллельных скачивания ──
 let active = 0
 const waiters = []
@@ -174,8 +182,8 @@ export async function framesFromVideoFile(videoPath, { durationSec = 0, count = 
 const framesCache = new TtlLruCache({ ttlMs: 30 * 60 * 1000, maxEntries: 8 })
 export async function extractYouTubeFrames(videoId) {
     lastSkipReason = ''
-    if (process.env.YT_FRAMES_DISABLE === '1') { lastSkipReason = 'disabled'; return null }
-    if (!/^[a-zA-Z0-9_-]{11}$/.test(String(videoId || ''))) { lastSkipReason = 'bad_video_id'; return null }
+    if (process.env.YT_FRAMES_DISABLE === '1') return skip(videoId, 'disabled')
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(String(videoId || ''))) return skip(videoId, 'bad_video_id')
     const cached = framesCache.get(videoId)
     if (cached) return cached
     logMemory('yt-frames:start')
@@ -183,12 +191,12 @@ export async function extractYouTubeFrames(videoId) {
     const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aiviral-yt-'))
     try {
         const [ytDlp, ffmpeg] = await Promise.all([ensureYtDlp(), getFfmpegPath()])
-        if (!ytDlp || !ffmpeg) { lastSkipReason = `no_binary:${!ytDlp ? 'yt-dlp' : 'ffmpeg'}`; return null }
+        if (!ytDlp || !ffmpeg) return skip(videoId, `no_binary:${!ytDlp ? 'yt-dlp' : 'ffmpeg'}`)
         let freeBytes = Infinity
         try { const st = fs.statfsSync(os.tmpdir()); freeBytes = st.bavail * st.bsize } catch { /* платформа без statfs — не блокируем */ }
-        if (freeBytes < MIN_FREE_BYTES) { lastSkipReason = 'disk_low'; return null }
+        if (freeBytes < MIN_FREE_BYTES) return skip(videoId, 'disk_low')
         const probe = await probeYouTube(ytDlp, videoId)
-        if (!probe.ok) { lastSkipReason = probe.reason; return null }
+        if (!probe.ok) return skip(videoId, probe.reason)
         const videoPath = path.join(workDir, 'video.mp4')
         const dl = await run(ytDlp, [
             '--no-playlist', '--no-warnings',
@@ -199,12 +207,11 @@ export async function extractYouTubeFrames(videoId) {
             `https://www.youtube.com/watch?v=${videoId}`,
         ], DOWNLOAD_TIMEOUT_MS)
         if (dl.code !== 0 || !fs.existsSync(videoPath)) {
-            lastSkipReason = `download_failed:${(dl.err || '').slice(0, 120)}`
-            return null
+            return skip(videoId, `download_failed:${(dl.err || '').slice(0, 120)}`)
         }
-        if (fs.statSync(videoPath).size > MAX_FILE_BYTES) { lastSkipReason = 'file_too_big'; return null }
+        if (fs.statSync(videoPath).size > MAX_FILE_BYTES) return skip(videoId, 'file_too_big')
         const r = await extractFramesFromVideo(ffmpeg, videoPath, workDir, probe.durationSec)
-        if (!r.ok) { lastSkipReason = r.reason; return null }
+        if (!r.ok) return skip(videoId, r.reason)
         logMemory('yt-frames:done')
         const result = { frames: r.frames, durationSec: probe.durationSec }
         framesCache.set(videoId, result)

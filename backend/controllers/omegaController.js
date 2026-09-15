@@ -201,6 +201,12 @@ export async function chat(req, res) {
         }
 
         // [YT-DATA-REAL-STATS] ссылка на YouTube в чате → реальный fetch статистики (кэш 1 ч/6 ч)
+        // [YT-DATA-FIX] интенты действий посчитаны заранее: при недоступной статистике без
+        // явного действия — честный отказ БЕЗ вызова AI и БЕЗ списания ✦ (инцидент 15.09:
+        // 4 ссылки → шаблонное «нет данных» на списанные генерации).
+        const wantsCover = /(сделай|создай|сгенерируй|придумай)\S*\s+обложк|обложку (для|к)|make.{0,15}cover|generate.{0,15}(cover|thumbnail)/i.test(message)
+        const wantsPost = /(создай|запланируй|сохрани)\S*\s+(пост|драфт|draft)|создай пост|create.{0,10}(post|draft)/i.test(message)
+        const wantsBestTime = /когда (постить|публиковать|выкладывать|лучше)|лучшее время|best time/i.test(message)
         const ytUrlMatch = message.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?[^\s]*v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
         let ytChatAnalysis = null
         let ytChatContext = ''
@@ -232,6 +238,33 @@ export async function chat(req, res) {
                 ytChatContext = ytV?.available
                     ? `Реальная статистика видео из YouTube Data API (используй ТОЛЬКО эти цифры, ничего не выдумывай): "${ytV.title}" канала "${ytV.channelTitle}". Просмотры=${ytV.views}, лайки=${ytV.likes ?? 'скрыты автором'}, комментарии=${ytV.comments ?? 'скрыты автором'}, подписчики=${ytC?.available ? ytC.subscribers : 'неизвестно'}, опубликовано=${ytV.publishedAt}.${rt ? ` AI-рейтинг=${rt.score}/100 (виральность=${rt.bars.virality}, вовлечённость=${rt.bars.engagement}, удержание=${rt.bars.retention}, seo=${rt.bars.seo}, рост=${rt.bars.growth}).` : ''}`
                     : `Пользователь прислал ссылку на YouTube-видео, но статистика недоступна (${ytV?.error?.message || 'нет API-ключа'}). Скажи честно, что статистика недоступна, и НЕ выдумывай цифры. Качественный разбор (хуки/CTA/структура) — можно, без метрик.`
+
+                // [YT-DATA-FIX] статистика недоступна и явного действия (обложка/драфт/best time) нет →
+                // честный отказ с причиной БЕЗ вызова AI, ✦ возвращаем (refund по фактической цене).
+                if (!ytV?.available && !wantsCover && !wantsPost && !wantsBestTime) {
+                    console.warn(`[omegaController:chat] youtube stats unavailable for ${ytUrlMatch[1]}: ${ytV?.error?.code || 'unknown'} — honest refusal, quota refunded`)
+                    if (quotaConsumed && userId) {
+                        try {
+                            const { refundGeneration } = await import('../services/usageQuotaService.js')
+                            await refundGeneration(userId, chatCostCredits)
+                            quotaConsumed = false
+                        } catch { /* best-effort */ }
+                    }
+                    const reason = ytV?.error?.message || 'нет API-ключа'
+                    const response = lang === 'en'
+                        ? `Couldn't fetch YouTube data: ${reason}. I won't invent numbers — try again later or send a screenshot of the video stats.`
+                        : `Не удалось получить данные YouTube: ${reason}. Цифры выдумывать не буду — попробуйте позже или пришлите скриншот статистики ролика.`
+                    return res.json({
+                        status: 'success',
+                        data: {
+                            response,
+                            honest: true,
+                            source: 'youtube-unavailable',
+                            videoAnalysis: ytChatAnalysis,
+                            action: null,
+                        },
+                    })
+                }
             } catch (err) {
                 console.warn('[omegaController:chat] youtube fetch failed:', err.message)
             }
@@ -241,11 +274,7 @@ export async function chat(req, res) {
         // Реальные вызовы сервисов (imageGeneration / ScheduledPost / bestTimeService), невозможно → честное сообщение
         let chatAction = null
         {
-            const lowerMsg = message.toLowerCase()
             const videoTopic = ytChatAnalysis?.title || ''
-            const wantsCover = /(сделай|создай|сгенерируй|придумай)\S*\s+обложк|обложку (для|к)|make.{0,15}cover|generate.{0,15}(cover|thumbnail)/i.test(message)
-            const wantsPost = /(создай|запланируй|сохрани)\S*\s+(пост|драфт|draft)|создай пост|create.{0,10}(post|draft)/i.test(message)
-            const wantsBestTime = /когда (постить|публиковать|выкладывать|лучше)|лучшее время|best time/i.test(message)
 
             if (wantsCover) {
                 try {
