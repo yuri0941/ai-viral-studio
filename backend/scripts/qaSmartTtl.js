@@ -109,13 +109,13 @@ await mkVideoRec(urlCeil, { lastSeenAt: new Date(), deleteAt: new Date(Date.now(
 await runMediaCleanup()
 check('З3: TTL-потолок срабатывает поверх свежего heartbeat', !fs.existsSync(path.join(dir, 'ceiling.mp4')), 'файл удалён кроном')
 
-// 5. З5: storage-usage фактом до/после
+// 5. З5: storage-usage фактом до/после (после = только alive.mp4 100КБ + обложка 1КБ)
 const urlCnt = mkFile('usage.mp4', 50 * 1024 * 1024)
 await mkVideoRec(urlCnt)
 const usageBefore = await req('GET', '/api/upload/storage-usage', qt)
 await req('POST', '/api/upload/used', qt, { url: urlCnt, reason: 'script_draft' })
 const usageAfter = await req('GET', '/api/upload/storage-usage', qt)
-check('З5: storage-usage до ≈50МБ, после ≈1КБ (только обложка)', usageBefore.json.usedMb >= 49 && usageAfter.json.usedBytes < 1024 * 100, `до=${usageBefore.json.usedMb}МБ после=${usageAfter.json.usedBytes}Б`)
+check('З5: storage-usage до ≈50МБ, после ≤200КБ (alive+обложка)', usageBefore.json.usedMb >= 49 && usageAfter.json.usedBytes <= 200 * 1024, `до=${usageBefore.json.usedMb}МБ после=${usageAfter.json.usedBytes}Б`)
 
 // возврат N в дефолт 30 (кабинет не должен остаться на тестовом значении)
 const backN = await req('POST', '/api/owner/video-settings', ot, { videoIdleMinutes: 30 })
