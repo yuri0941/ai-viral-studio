@@ -13,6 +13,9 @@ const mediaFileSchema = new mongoose.Schema(
         sizeBytes: { type: Number, default: 0 },
         kind: { type: String, enum: ['video', 'image', 'cover', 'other'], default: 'other' }, // cover — готовая обложка: вечная, TTL/сироты не трогают
         analyzedAt: { type: Date, default: null }, // факт успешного разбора
+        // [SMART-TTL] последний heartbeat клиента по этому файлу: молчание дольше
+        // OwnerSettings.videoIdleMinutes → исходник удаляется кроном (клиент покинул задачу).
+        lastSeenAt: { type: Date, default: null, index: true },
         deleteAt: { type: Date, default: null, index: true }, // null = удалён сразу после разбора / без TTL
         status: { type: String, enum: ['stored', 'deleted'], default: 'stored', index: true },
         deletedAt: { type: Date, default: null },

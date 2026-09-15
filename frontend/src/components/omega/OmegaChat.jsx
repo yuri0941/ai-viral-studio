@@ -584,7 +584,7 @@ export default function OmegaChat({
 
   // [OMEGA-VIDEO ДОП-З1 П3] лимит веса медиа — из кабинета владельца (/api/upload/limits, hot-reload ≤60с)
   // [OMEGA-VIDEO ДОП-2] та же ручка отдаёт живые цены ✦ (разбор/обложка/сценарий) и TTL хранения
-  const [actionPricing, setActionPricing] = useState({ videoAnalysisCost: 1, coverGenerationCost: 1, scriptGenerationCost: 2, videoStorageTtlHours: 0 });
+  const [actionPricing, setActionPricing] = useState({ videoAnalysisCost: 1, coverGenerationCost: 1, scriptGenerationCost: 2, videoStorageTtlHours: 0, videoIdleMinutes: 30 });
   const refreshUploadLimits = () => {
     request('/upload/limits', { timeout: 8000, noRetry: true })
       .then(res => {
@@ -595,6 +595,8 @@ export default function OmegaChat({
             coverGenerationCost: res.coverGenerationCost ?? 1,
             scriptGenerationCost: res.scriptGenerationCost ?? 2,
             videoStorageTtlHours: res.videoStorageTtlHours ?? 0,
+            // [SMART-TTL] таймер бездействия N мин — живой из кабинета владельца
+            videoIdleMinutes: res.videoIdleMinutes ?? 30,
           });
         }
       })
@@ -603,6 +605,32 @@ export default function OmegaChat({
   useEffect(() => {
     refreshUploadLimits();
   }, []);
+
+  // [SMART-TTL] исходник разобранного видео: URL живёт в action сообщения (кадры stripped — URL нет).
+  // Для covers-сообщения исходник — по sourceMsgId; фолбэк — последний разбор в ленте.
+  const sourceVideoUrlOf = (msg) => {
+    if (msg?.action?.videoUrl) return msg.action.videoUrl;
+    const src = messages.find(m => m.id === msg?.action?.sourceMsgId);
+    if (src?.action?.videoUrl) return src.action.videoUrl;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const u = messages[i]?.action?.videoUrl;
+      if (u) return u;
+    }
+    return null;
+  };
+  // [SMART-TTL З1] «результат принят» (обложка скачана/применена, драфт создан) → исходник
+  // удаляется немедленно на бэке; клиенту — мягкое уведомление, результаты сохранены навсегда.
+  const markSourceUsed = (msg, reason) => {
+    const url = sourceVideoUrlOf(msg);
+    if (!url) return;
+    request('/upload/used', { method: 'POST', noRetry: true, body: JSON.stringify({ url, reason }) })
+      .then(res => {
+        if (res?.deleted) {
+          pushChatMessages([{ role: 'omega', text: t('chat.sourceClearedNotice'), timestamp: Date.now(), id: `sys-${Date.now()}` }]);
+        }
+      })
+      .catch(() => {});
+  };
 
   const VIDEO_EXT_RE = /\.(mp4|mov|webm)$/i;
   const isVideoFile = (file) => file.type.startsWith('video/') || VIDEO_EXT_RE.test(file.name || '');
@@ -690,6 +718,24 @@ export default function OmegaChat({
     else setInternalMessages(prev => [...prev, ...stamped]);
   };
 
+  // [SMART-TTL З2] heartbeat «задача на экране»: пока открыт чат с исходником (TTL>0) — бьём раз в 30с.
+  // Ушёл с экрана / закрыл вкладку / начал новую задачу (другой исходник) → молчание > N мин
+  // (OwnerSettings.videoIdleMinutes) → крон mediaCleanup удаляет исходник. TTL-потолок поверх всегда.
+  const lastVideoUrl = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const u = messages[i]?.action?.videoUrl;
+      if (u) return u;
+    }
+    return null;
+  })();
+  useEffect(() => {
+    if (!lastVideoUrl || !(actionPricing.videoStorageTtlHours > 0)) return undefined;
+    const beat = () => request('/upload/heartbeat', { method: 'POST', noRetry: true, body: JSON.stringify({ url: lastVideoUrl }) }).catch(() => {});
+    beat();
+    const id = setInterval(beat, 30000);
+    return () => clearInterval(id);
+  }, [lastVideoUrl, actionPricing.videoStorageTtlHours]);
+
   // [OMEGA-VIDEO ДОП-З1 П5] после загрузки файл сразу уходит в работу Омеге (таймкоды/хук/удержание)
   const runVideoAnalysis = async (video) => {
     const pushMsgs = pushChatMessages;
@@ -731,15 +777,26 @@ export default function OmegaChat({
         // [OMEGA-VIDEO ДОП-2 З5] из разбора можно сразу собрать обложки (тема = файл/разбор)
         // [COVERS-FRAMES] кадры сохраняем в action — основа обложек = реальный кадр ЭТОГО видео
         // [COVERS-FRAMES ДОР] fullFrames — те же таймкоды в исходном разрешении (рендер фона без мыла)
+        // [SMART-TTL] videoUrl исходника — событийная очистка (used/heartbeat) по этому URL
         action: {
           type: 'videoAnalysis',
           name: video.name,
+          videoUrl: video.url,
           frames: (videoFramesRef.current || []).slice(0, 6),
           fullFrames: (videoFullFramesRef.current || []).slice(0, 6),
         },
         timestamp: Date.now(),
         id: `a-${Date.now()}`,
       }]);
+      // [SMART-TTL З4] TTL>0 → мягкое уведомление ДО удаления: исходник временный, результаты навсегда
+      if ((res?.storageTtlHours ?? 0) > 0) {
+        pushMsgs([{
+          role: 'omega',
+          text: t('chat.sourceTtlNotice', { hours: res.storageTtlHours, idle: actionPricing.videoIdleMinutes || 30 }),
+          timestamp: Date.now(),
+          id: `sys-${Date.now()}`,
+        }]);
+      }
       playSound('notification');
       setVideoUpload(null);
       videoFramesRef.current = [];
@@ -924,6 +981,8 @@ export default function OmegaChat({
       });
       if (res?.status === 'success') {
         toast.success(t('chat.scriptPlannerOk'), { duration: 4000, icon: '📅' });
+        // [SMART-TTL З1] драфт создан = результат принят → исходник удаляется немедленно
+        markSourceUsed(msg, 'script_draft');
         // [OMEGA-VIDEO ДОП-2 З5.3] запоминаем драфт — обложку «Применить к посту» вешаем на него
         const postId = res?.data?._id || res?.data?.id;
         if (postId) setPostIdByMsg(prev => ({ ...prev, [msg.id]: postId }));
@@ -1058,7 +1117,11 @@ export default function OmegaChat({
         method: 'PATCH',
         body: JSON.stringify({ mediaUrl: coverSrc(variant.url), mediaType: 'image', mediaName: 'cover.jpg' }),
       });
-      if (res?.status === 'success') toast.success(t('chat.coverApplied'), { duration: 4000, icon: '✅' });
+      if (res?.status === 'success') {
+        toast.success(t('chat.coverApplied'), { duration: 4000, icon: '✅' });
+        // [SMART-TTL З1] обложка использована в посте = результат принят → исходник удаляется
+        markSourceUsed(msg, 'cover_applied');
+      }
       else toast.error(res?.message || t('chat.serverUnavailable'), { duration: 4000 });
     } catch (err) {
       toast.error(err?.message || t('chat.serverUnavailable'), { duration: 4000 });
@@ -1367,6 +1430,7 @@ export default function OmegaChat({
                           download="cover.jpg"
                           target="_blank"
                           rel="noreferrer"
+                          onClick={() => markSourceUsed(msg, 'cover_download')}
                           className="px-3 py-1.5 min-h-[44px] rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-gray-300 hover:bg-white/[0.1] transition flex items-center gap-1.5"
                         >
                           ⬇ {t('chat.coverDownloadBtn')}
@@ -1902,6 +1966,7 @@ export default function OmegaChat({
                 target="_blank"
                 rel="noreferrer"
                 data-testid="cover-preview-download"
+                onClick={() => markSourceUsed(null, 'cover_download')}
                 className="px-4 py-2 min-h-[44px] rounded-full bg-violet-500/20 border border-violet-500/30 text-xs text-violet-200 hover:bg-violet-500/30 transition flex items-center gap-1.5"
               >
                 ⬇ {t('chat.coverDownloadBtn')}

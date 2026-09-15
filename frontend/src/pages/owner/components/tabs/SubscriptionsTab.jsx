@@ -91,7 +91,8 @@ export function SubscriptionsTab({ data }) {
     const [mediaLimitMb, setMediaLimitMb] = useState(250)
     const [savingMediaLimit, setSavingMediaLimit] = useState(false)
     // [OMEGA-VIDEO ДОП-2] цены AI-действий (✦) + TTL хранения видео — OwnerSettings, hot-reload ≤60с
-    const [videoSettings, setVideoSettings] = useState({ videoAnalysisCostCredits: 1, coverGenerationCostCredits: 1, scriptGenerationCostCredits: 2, videoStorageTtlHours: 0 })
+    // [SMART-TTL] + videoIdleMinutes: таймер бездействия клиента (мин), после него исходник очищается
+    const [videoSettings, setVideoSettings] = useState({ videoAnalysisCostCredits: 1, coverGenerationCostCredits: 1, scriptGenerationCostCredits: 2, videoStorageTtlHours: 0, videoIdleMinutes: 30 })
     const [savingVideoSettings, setSavingVideoSettings] = useState(false)
     const [pricingOpen, setPricingOpen] = useState(false)
     const [dynamicEnabled, setDynamicEnabled] = useState(() => {
@@ -259,6 +260,7 @@ export function SubscriptionsTab({ data }) {
                         coverGenerationCostCredits: json.coverGenerationCostCredits ?? 1,
                         scriptGenerationCostCredits: json.scriptGenerationCostCredits ?? 2,
                         videoStorageTtlHours: json.videoStorageTtlHours ?? 0,
+                        videoIdleMinutes: json.videoIdleMinutes ?? 30,
                     })
                 }
             })
@@ -282,6 +284,7 @@ export function SubscriptionsTab({ data }) {
                     coverGenerationCostCredits: json.coverGenerationCostCredits,
                     scriptGenerationCostCredits: json.scriptGenerationCostCredits,
                     videoStorageTtlHours: json.videoStorageTtlHours,
+                    videoIdleMinutes: json.videoIdleMinutes ?? 30,
                 })
                 pushToast('success', t('subscriptions.videoSettingsSaved'))
             } else {
@@ -813,6 +816,7 @@ export function SubscriptionsTab({ data }) {
                             { key: 'coverGenerationCostCredits', label: t('subscriptions.coverCostLabel'), hint: t('subscriptions.coverCostHint'), min: 1, max: 100, suffix: '✦' },
                             { key: 'scriptGenerationCostCredits', label: t('subscriptions.scriptCostLabel'), hint: t('subscriptions.scriptCostHint'), min: 1, max: 100, suffix: '✦' },
                             { key: 'videoStorageTtlHours', label: t('subscriptions.videoTtlLabel'), hint: t('subscriptions.videoTtlHint'), min: 0, max: 720, suffix: t('subscriptions.videoTtlUnit') },
+                            { key: 'videoIdleMinutes', label: t('subscriptions.videoIdleLabel'), hint: t('subscriptions.videoIdleHint'), min: 1, max: 1440, suffix: t('subscriptions.videoIdleUnit') },
                         ].map(field => (
                             <div key={field.key}>
                                 <label className="text-xs text-[var(--text-muted)] block mb-1">{field.label}</label>
