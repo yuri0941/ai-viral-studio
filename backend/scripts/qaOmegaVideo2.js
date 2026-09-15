@@ -183,6 +183,11 @@ const ytOk = extractYouTubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ') ===
   && extractYouTubeId('https://www.youtube.com/shorts/dQw4w9WgXcQ') === 'dQw4w9WgXcQ'
   && extractYouTubeId('https://evil.example.com/watch?v=dQw4w9WgXcQ') === null
 check('extractYouTubeId: watch/youtu.be/shorts → id, чужой домен → null', ytOk, '')
+// [YT-DATA-FIX] регресс parse Shorts-URL с si-параметром (инцидент 15.09 — подозрение на сломанный parse)
+const ytSi = extractYouTubeId('https://youtube.com/shorts/dQw4w9WgXcQ?si=xyz123') === 'dQw4w9WgXcQ'
+  && extractYouTubeId('https://youtu.be/dQw4w9WgXcQ?si=xyz123') === 'dQw4w9WgXcQ'
+  && extractYouTubeId('https://youtube.com/watch?v=dQw4w9WgXcQ&si=xyz123') === 'dQw4w9WgXcQ'
+check('extractYouTubeId: si-параметр не ломает id (shorts/youtu.be/watch)', ytSi, '')
 // mode:'ai' остаётся text-to-image (кнопка «Перегенерировать стиль»), forceFallback — детерминированный фон
 const aiVariants = await generateCoverVariants({ topic: 'тест', coverText: 'Стиль заново', platform: 'youtube', count: 3, forceFallback: true, mode: 'ai', frames: frameDataUrls })
 check('mode ai: кадры игнорируются, source=ai (перегенерация стиля)', aiVariants.length === 3 && aiVariants.every(v => v.source === 'ai'), `src=${aiVariants[0]?.source}`)
@@ -278,6 +283,37 @@ const clarify = await req('POST', '/api/omega/script-from-idea', ct, { idea: 'р
 check('сценарий: неполная цель → needClarification без списания', clarify.status === 200 && clarify.json.needClarification === true && clarify.json.missing?.length >= 1, `missing=${(clarify.json.missing || []).join(',')}`)
 const clarifyCost = typeof clarify.json.cost === 'number' && clarify.json.cost >= 1
 check('сценарий: цена ✦ показана до запуска', clarifyCost, `cost=${clarify.json.cost}`)
+
+// 8. [YT-DATA-FIX] YouTube-ссылка в чате: статистика недоступна → честный отказ с причиной,
+// БЕЗ шаблонного ответа AI и БЕЗ списания ✦ (инцидент 15.09: 4 ссылки → «нет данных» на списанные генерации).
+// Несуществующий id (11 символов, формат валиден) → video_not_found при живом ключе / no_api_key без ключа —
+// обе ветки детерминированно сходятся на честном отказе.
+const qayt = await User.create({ email: `qa-yt-${stamp}@test.local`, password: 'Test12345!', name: 'QA YT', role: 'creator' })
+await UsageQuota.create({ userId: qayt._id, plan: 'free', trialTokens: 10, trialUsed: 0, generationsLimit: 0, generationsUsed: 0, cycleStartedAt: new Date(), cycleEndsAt: new Date(Date.now() + 86400000) })
+const qaytToken = qayt.generateToken()
+const chatYt = await req('POST', '/api/omega/chat', qaytToken, { message: 'разбор https://youtu.be/AAAAAAAAAAZ', lang: 'ru' })
+check('chat yt-link: статистика недоступна → honest-отказ (не шаблон AI)',
+  chatYt.status === 200 && chatYt.json?.data?.honest === true && chatYt.json?.data?.source === 'youtube-unavailable'
+    && /Не удалось получить данные YouTube/.test(chatYt.json?.data?.response || ''),
+  `status=${chatYt.status} src=${chatYt.json?.data?.source}`)
+check('chat yt-link: карточка с причиной (statsAvailable:false + statsError)',
+  chatYt.json?.data?.videoAnalysis?.statsAvailable === false && typeof chatYt.json?.data?.videoAnalysis?.statsError === 'string' && chatYt.json.data.videoAnalysis.statsError.length > 3,
+  `err=${String(chatYt.json?.data?.videoAnalysis?.statsError || '').slice(0, 60)}`)
+const qaytQuota = await UsageQuota.findOne({ userId: qayt._id }).lean()
+check('chat yt-link: ✦ НЕ списан при честном отказе (trialTokens 10)', qaytQuota?.trialTokens === 10, `tokens=${qaytQuota?.trialTokens}`)
+// живое состояние ключа: доступен → реальные цифры фактом; нет → честный unavailable с reason (не мок)
+const { fetchVideoStats: fetchVideoStatsGate, mapYoutubeError: mapYtErrGate } = await import('../services/youtubeDataService.js')
+const liveStats = await fetchVideoStatsGate('887uCBMcnIM')
+check('youtubeDataService: живой API (views>0) ИЛИ честный unavailable с кодом причины',
+  liveStats.available === true ? (liveStats.views > 0 && !!liveStats.title) : (liveStats.available === false && typeof liveStats.error?.code === 'string' && liveStats.error.code.length > 2),
+  liveStats.available ? `views=${liveStats.views}` : `code=${liveStats.error?.code}`)
+// mapYoutubeError: квота ≠ битый ключ (квота НЕ должна выводить ключ из ротации)
+const quotaMapped = mapYtErrGate({ response: { status: 403, data: { error: { errors: [{ reason: 'quotaExceeded' }], message: 'quota' } } } })
+const badKeyMapped = mapYtErrGate({ response: { status: 400, data: { error: { errors: [{ reason: 'keyInvalid' }], message: 'bad key' } } } })
+check('mapYoutubeError: quotaExceeded и keyInvalid различимы (разная обработка)',
+  quotaMapped.code === 'quotaExceeded' && badKeyMapped.code === 'keyInvalid', `quota=${quotaMapped.code} key=${badKeyMapped.code}`)
+await UsageQuota.deleteMany({ userId: qayt._id })
+await User.deleteOne({ _id: qayt._id })
 
 // cleanup
 await MediaFile.deleteMany({ userId: quser._id })
