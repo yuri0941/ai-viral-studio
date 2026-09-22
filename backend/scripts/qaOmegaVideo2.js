@@ -307,16 +307,22 @@ check('yt-frames: мусорный videoId → null (в fetch не уходит)
   const vv = vVars[0]
   let blurOk = false
   if (vv && vv.width === 1080 && vv.height === 1920) {
-    const topS = await sharpQa(vv.buffer).extract({ left: 0, top: 30, width: 1080, height: 120 }).stats()
-    const botS = await sharpQa(vv.buffer).extract({ left: 0, top: 1770, width: 1080, height: 120 }).stats()
-    const topR = topS.channels[0].mean, topB = topS.channels[2].mean
-    const botR = botS.channels[0].mean, botB = botS.channels[2].mean
-    // blur-fill: верхняя полоса — размытая копия кадра целиком (красный+синий смешаны),
-    // при center-crop верх был бы чисто красным
-    blurOk = topB > 40 && botR > 40 // в обеих полосах есть ОБА цвета = размытая копия
-    void topR; void botB
+    // sharp: stats() игнорирует extract (считает по входу) — материализуем регионы.
+    // Маркеры blur-fill (факт по пикселям): верхняя полоса — размытая И затемнённая копия
+    // (stdev≈0, красный приглушён 204→~134), fg в центре — резкий и ПОЛНОЙ яркости (R≈204),
+    // шов fg резкий (stdev высокий). При center-crop fg-зона была бы единственной (без полос).
+    const reg = async (top, height, left = 200, width = 680) => {
+      const b = await sharpQa(vv.buffer).extract({ left, top, width, height }).toBuffer()
+      return sharpQa(b).stats()
+    }
+    const band = await reg(30, 120)
+    const fgRed = await reg(800, 60)
+    const seam = await reg(930, 60)
+    const bandStd = (band.channels[0].stdev + band.channels[1].stdev + band.channels[2].stdev) / 3
+    const seamStd = (seam.channels[0].stdev + seam.channels[1].stdev + seam.channels[2].stdev) / 3
+    blurOk = bandStd < 12 && fgRed.channels[0].mean > 180 && band.channels[0].mean > 70 && band.channels[0].mean < 180 && seamStd > 25
   }
-  check('supreme: вертикаль 1080×1920 с blur-fill полосами (оба цвета в полосах)', !!vv && vv.width === 1080 && vv.height === 1920 && vv.blurFilled === true && blurOk, `blur=${vv?.blurFilled}`)
+  check('supreme: вертикаль 1080×1920 с blur-fill полосами (полоса размыта+затемнена, fg резкий)', !!vv && vv.width === 1080 && vv.height === 1920 && vv.blurFilled === true && blurOk, `blur=${vv?.blurFilled}`)
   // AI-режим: текст НЕ передаётся в image-провайдер (жёсткий strip — только тема/сцена)
   const prompt = buildBackgroundPrompt('обзор игры', 'dark cave with dragon')
   check('supreme: AI-промпт без текста обложки (текст только sharp-оверлей)', !prompt.includes('СЕКРЕТ') && !prompt.includes('Финальный босс пал') && prompt.includes('no text'), prompt.slice(0, 60))

@@ -12,7 +12,9 @@ async function regionLuma(buffer, { left, top, width, height }) {
         const t = Math.max(0, Math.min(H - 8, Math.round(top)))
         const w = Math.max(8, Math.min(W - l, Math.round(width)))
         const h = Math.max(8, Math.min(H - t, Math.round(height)))
-        const stats = await sharp(buffer).extract({ left: l, top: t, width: w, height: h }).stats()
+        // sharp: stats() игнорирует extract в пайплайне (считает по входу) — материализуем регион
+        const regionBuf = await sharp(buffer).extract({ left: l, top: t, width: w, height: h }).toBuffer()
+        const stats = await sharp(regionBuf).stats()
         const m = stats.channels
         return m?.length >= 3 ? (0.2126 * m[0].mean + 0.7152 * m[1].mean + 0.0722 * m[2].mean) : null
     } catch { return null }

@@ -252,11 +252,16 @@ async function runCoverFlow(page, { name, expectSource, shotPrefix, expectFullRe
     const rv = await fetch(`${LOCAL_API}/api/omega/cover-export?url=${encodeURIComponent(firstUrl)}&platform=shorts`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
     if (rv?.status === 200) {
       const buf = Buffer.from(await rv.arrayBuffer())
-      const topS = await sharp(buf).extract({ left: 0, top: 40, width: 1080, height: 100 }).stats()
-      const midS = await sharp(buf).extract({ left: 0, top: 900, width: 1080, height: 100 }).stats()
+      // sharp: stats() считает по входу, игнорируя extract — материализуем регионы.
+      // fg (кадр) в вертикали 1080×1920 из 16:9 — центральная полоса (y≈656–1263), текст — в её низу;
+      // верхняя полоса (y=40) — ТОЛЬКО blur-fill (blur 40, затемнение) → stdev ниже текстовой зоны fg.
+      const topBuf = await sharp(buf).extract({ left: 0, top: 40, width: 1080, height: 100 }).toBuffer()
+      const midBuf = await sharp(buf).extract({ left: 0, top: 1100, width: 1080, height: 100 }).toBuffer()
+      const topS = await sharp(topBuf).stats()
+      const midS = await sharp(midBuf).stats()
       const topStd = (topS.channels[0].stdev + topS.channels[1].stdev + topS.channels[2].stdev) / 3
       const midStd = (midS.channels[0].stdev + midS.channels[1].stdev + midS.channels[2].stdev) / 3
-      check(`${name}: вертикаль blur-fill — верхняя полоса размыта (stdev ниже центра)`, topStd < midStd, `top=${topStd.toFixed(1)} mid=${midStd.toFixed(1)}`)
+      check(`${name}: вертикаль blur-fill — верхняя полоса размыта (stdev ниже зоны текста)`, topStd < midStd, `top=${topStd.toFixed(1)} text=${midStd.toFixed(1)}`)
     }
   }
   await shot(page, `${shotPrefix}-grid`)

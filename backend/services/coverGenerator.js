@@ -103,7 +103,9 @@ async function scoreFrameBase(buffer) {
         if (w >= 64 && h >= 64) {
             const cw = Math.round(w / 2)
             const ch = Math.round(h / 2)
-            const cStats = await sharp(buffer).extract({ left: Math.round((w - cw) / 2), top: Math.round((h - ch) / 2), width: cw, height: ch }).stats()
+            // sharp: stats() считается по ИСХОДНОМУ буферу, игнорируя extract — материализуем
+            const cBuf = await sharp(buffer).extract({ left: Math.round((w - cw) / 2), top: Math.round((h - ch) / 2), width: cw, height: ch }).toBuffer()
+            const cStats = await sharp(cBuf).stats()
             const cContrast = cStats.channels?.length
                 ? cStats.channels.slice(0, 3).reduce((s, c) => s + (c.stdev || 0), 0) / Math.min(3, cStats.channels.length)
                 : 0
@@ -320,6 +322,17 @@ export async function generateCoverVariants({ topic, coverText, platform, count 
     const text = coverText || topic
     // З1: пресет стиля ниши из РЕАЛЬНЫХ топ-обложек; нет данных → универсальный вирусный
     const preset = await getNicheStylePreset({ topic, niche, ownerId }).catch(() => null)
+    // З6 (Self-Optimize): схемы композиции по реальным выборам клиентов — любимую схему
+    // получает лучший момент. Выборок < 8 → нейтральный порядок 0,1,2.
+    let schemeOrder = [0, 1, 2]
+    try {
+        const { getChoiceBias } = await import('../models/CoverChoiceLog.js')
+        const bias = await getChoiceBias()
+        if (bias?.samples >= 8) {
+            schemeOrder = [0, 1, 2].sort((a, b) => (bias.schemeBoost[b] || 0) - (bias.schemeBoost[a] || 0))
+        }
+    } catch { /* нейтральный порядок */ }
+    const schemeFor = (i) => schemeOrder[i % 3]
 
     const finish = (variants) => {
         // З6: лучший первый — по AI-скору; при равенстве/отсутствии скора — порядок выбора момента
@@ -336,12 +349,20 @@ export async function generateCoverVariants({ topic, coverText, platform, count 
             const scored = await scoreFramesSmart(frameBuffers, { withVision: true })
             const picked = scored.slice(0, Math.max(1, count))
             while (picked.length < count && scored.length) picked.push(scored[picked.length % scored.length])
+            // З4 PRO (ключ Replicate): img2img-стилизация лучшего кадра по сцене из vision
+            // (текст в промпт НЕ передаётся никогда). Нет ключа/сбой → обычный цветокор.
+            let proBg = null
+            const scene = picked[0]?.analysis?.subject
+            if (scene) {
+                const fullBuf0 = fullBuffers[picked[0].index] || null
+                proBg = await stylizeBackgroundPro(fullBuf0 || picked[0].buffer, buildBackgroundPrompt(topic, scene)).catch(() => null)
+            }
             const variants = []
             for (let i = 0; i < picked.length; i++) {
                 const fullBuf = fullBuffers[picked[i].index] || null
-                const bgBuffer = fullBuf || picked[i].buffer
+                const bgBuffer = (i === 0 && proBg) ? proBg : (fullBuf || picked[i].buffer)
                 const composed = await composeCover({
-                    bgBuffer, width, height, text, variant: i % 3, noUpscale: !!fullBuf,
+                    bgBuffer, width, height, text, variant: schemeFor(i), noUpscale: !!fullBuf && !(i === 0 && proBg),
                     preset, analysis: picked[i].analysis,
                 })
                 variants.push(variantOut({
@@ -372,7 +393,7 @@ export async function generateCoverVariants({ topic, coverText, platform, count 
                 const variants = []
                 for (let i = 0; i < picked.length; i++) {
                     const composed = await composeCover({
-                        bgBuffer: picked[i].buffer, width, height, text, variant: i % 3, noUpscale: (i % 3) === 0,
+                        bgBuffer: picked[i].buffer, width, height, text, variant: schemeFor(i), noUpscale: schemeFor(i) === 0,
                         preset, analysis: picked[i].analysis,
                     })
                     variants.push(variantOut({
@@ -397,7 +418,7 @@ export async function generateCoverVariants({ topic, coverText, platform, count 
                 const analysis = await analyzeFrame(thumb.buffer, { withVision: true }).catch(() => null)
                 const variants = []
                 for (let i = 0; i < count; i++) {
-                    const composed = await composeCover({ bgBuffer: thumb.buffer, width, height, text, variant: i % 3, preset, analysis })
+                    const composed = await composeCover({ bgBuffer: thumb.buffer, width, height, text, variant: schemeFor(i), preset, analysis })
                     variants.push(variantOut({
                         composed,
                         extra: { seed: i, provider: 'youtube-thumbnail', source: 'youtube', thumbQuality: thumb.quality },
@@ -430,7 +451,7 @@ export async function generateCoverVariants({ topic, coverText, platform, count 
             bgBuffer = gradientSvg({ width, height, seed })
             provider = 'local-fallback'
         }
-        const composed = await composeCover({ bgBuffer, width, height, text, variant: i % 3, preset, analysis: null })
+        const composed = await composeCover({ bgBuffer, width, height, text, variant: schemeFor(i), preset, analysis: null })
         variants.push(variantOut({
             composed,
             extra: { seed, provider, source: 'ai' },
