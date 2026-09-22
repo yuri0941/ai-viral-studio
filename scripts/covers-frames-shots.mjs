@@ -218,6 +218,47 @@ async function runCoverFlow(page, { name, expectSource, shotPrefix, expectFullRe
   }
   // source=frame/youtube — факт по ответу API (последний лог прокси) + превью не градиент-фолбэк
   await page.waitForTimeout(800)
+  // [COVERS-SUPREME] новые проверки по факту ответа API: AI-скор у всех 3, лучший первый,
+  // текст-блок ≥25% кадра, стикер у видео с объектом (organic без ключа — не пусто, не ошибка)
+  const sup = lastCoverResp?.variants || []
+  if (sup.length === 3) {
+    check(`${name}: AI-скор у всех 3 вариантов (0–100)`, sup.every(v => typeof v.score === 'number' && v.score >= 1 && v.score <= 100), `scores=${sup.map(v => v.score).join(',')}`)
+    check(`${name}: лучший первый (best + scores desc)`, sup[0].best === true && sup[0].score >= sup[1].score && sup[1].score >= sup[2].score, `best=${sup.map(v => v.best).join(',')}`)
+    check(`${name}: текст-блок ≥25% кадра (Russo One авто-фит)`, sup.every(v => (v.textBlockRatio || 0) >= 0.25), `block=${sup.map(v => (v.textBlockRatio || 0).toFixed(2)).join(',')}`)
+    if (expectSource === 'frame') {
+      check(`${name}: стикер-объект с обводкой (organic/pro)`, sup.some(v => v.sticker === 'organic' || v.sticker === 'pro'), `sticker=${sup.map(v => v.sticker).join(',')}`)
+    }
+  }
+  // бейджи скора на тайлах + пресет-чип под сеткой
+  check(`${name}: бейдж AI-скора на тайле`, await page.locator('[data-testid="cover-score-0"]').isVisible().catch(() => false))
+  check(`${name}: пресет-чип под сеткой (niche/universal)`, await page.locator('[data-testid="cover-preset"]').isVisible().catch(() => false))
+  // З7: ряд форматов + все 4 формата скачиваются (cover-export, 200 + jpeg платформенного размера)
+  check(`${name}: ряд «Скачать под формат» виден`, await page.locator('[data-testid="cover-formats"]').isVisible().catch(() => false))
+  const firstUrl = sup[0]?.url
+  if (firstUrl && lastCoverResp) {
+    const token = await loginToken(OWNER)
+    const sizes = { youtube: [1280, 720], shorts: [1080, 1920], vk: [1280, 720], telegram: [1280, 720] }
+    let allOk = true
+    const details = []
+    for (const [pf, [ew, eh]] of Object.entries(sizes)) {
+      const r = await fetch(`${LOCAL_API}/api/omega/cover-export?url=${encodeURIComponent(firstUrl)}&platform=${pf}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
+      if (!r || r.status !== 200) { allOk = false; details.push(`${pf}:${r?.status}`); continue }
+      const buf = Buffer.from(await r.arrayBuffer())
+      const m = await sharp(buf).metadata()
+      if (m.width !== ew || m.height !== eh) { allOk = false; details.push(`${pf}:${m.width}x${m.height}`) }
+    }
+    check(`${name}: все 4 формата скачиваются (cover-export 200, размер платформы)`, allOk, details.join(','))
+    // вертикаль Shorts — blur-fill фактом (полосы размыты, флаг из API генерации shorts отдельно не зовём)
+    const rv = await fetch(`${LOCAL_API}/api/omega/cover-export?url=${encodeURIComponent(firstUrl)}&platform=shorts`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
+    if (rv?.status === 200) {
+      const buf = Buffer.from(await rv.arrayBuffer())
+      const topS = await sharp(buf).extract({ left: 0, top: 40, width: 1080, height: 100 }).stats()
+      const midS = await sharp(buf).extract({ left: 0, top: 900, width: 1080, height: 100 }).stats()
+      const topStd = (topS.channels[0].stdev + topS.channels[1].stdev + topS.channels[2].stdev) / 3
+      const midStd = (midS.channels[0].stdev + midS.channels[1].stdev + midS.channels[2].stdev) / 3
+      check(`${name}: вертикаль blur-fill — верхняя полоса размыта (stdev ниже центра)`, topStd < midStd, `top=${topStd.toFixed(1)} mid=${midStd.toFixed(1)}`)
+    }
+  }
   await shot(page, `${shotPrefix}-grid`)
   // мелкая сетка: кроп первого тайла — текст читаем в превью-размере
   const tile = grid.locator('[data-testid="cover-variant-0"]')

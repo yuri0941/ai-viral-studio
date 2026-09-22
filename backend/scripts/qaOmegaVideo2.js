@@ -172,8 +172,13 @@ const frameOk = frameVariants.length === 3
   && frameVariants.every(v => v.source === 'frame' && v.provider === 'video-frame')
   && frameVariants.every(v => v.width === 1280 && v.height === 720)
   && frameVariants.every(v => v.textHeightRatio >= COVER_TEXT_MIN_RATIO)
-const noiseFirst = frameVariants[0]?.frameIndex === 2
-check('обложки frame-режим: 3 варианта из реальных кадров, лучший (шумный) первый', frameOk && noiseFirst, `frames=${frameVariants.map(v => v.frameIndex).join(',')} src=${frameVariants[0]?.source}`)
+// [COVERS-SUPREME З6] порядок вариантов — по AI-скору (лучший первый), не по скору кадра;
+// шумный кадр (лучший момент) обязан попасть в выборку, скоры отсортированы desc, best ровно один
+const noisePicked = frameVariants.some(v => v.frameIndex === 2)
+const scoresDesc = frameVariants.every(v => typeof v.score === 'number' && v.score >= 1 && v.score <= 100)
+  && frameVariants[0].score >= frameVariants[1].score && frameVariants[1].score >= frameVariants[2].score
+  && frameVariants.filter(v => v.best).length === 1 && frameVariants[0].best === true
+check('обложки frame-режим: 3 варианта из реальных кадров, лучший момент в выборке, AI-скор у всех, лучший первый', frameOk && noisePicked && scoresDesc, `frames=${frameVariants.map(v => v.frameIndex).join(',')} scores=${frameVariants.map(v => v.score).join(',')}`)
 // скор кадров: шумный кадр выше плоского фактом
 const picked = await pickBestFrames(frameDataUrls.map(u => Buffer.from(u.split(',')[1], 'base64')), 3)
 check('pickBestFrames: шумный кадр имеет топ-скор', picked[0]?.index === 2, `order=${picked.map(p => p.index).join(',')}`)
@@ -200,15 +205,17 @@ const mkSolid = async (w, h, rgb) => {
 // скор-кадры 640px: шумный (индекс 2) побеждает; полноразмерный кадр того же индекса — ярко-зелёный маркер
 const fullDataUrls = [await mkSolid(1920, 1080, { r: 200, g: 30, b: 30 }), await mkSolid(1920, 1080, { r: 30, g: 30, b: 200 }), await mkSolid(1920, 1080, { r: 20, g: 210, b: 20 }), await mkSolid(1920, 1080, { r: 200, g: 200, b: 30 })]
 const hiVariants = await generateCoverVariants({ topic: 'разбор кадра', coverText: 'Главный секрет ролика', platform: 'youtube', count: 3, frames: frameDataUrls, fullFrames: fullDataUrls })
-const hiMeta = await sharpQa(hiVariants[0].buffer).metadata()
-const hiStats = await sharpQa(hiVariants[0].buffer).stats()
+// [COVERS-SUPREME З6] порядок — по AI-скору; маркер смотрим у варианта с лучшим моментом (frameIndex 2)
+const hiBest = hiVariants.find(v => v.frameIndex === 2) || hiVariants[0]
+const hiMeta = await sharpQa(hiBest.buffer).metadata()
+const hiStats = await sharpQa(hiBest.buffer).stats()
 const rMean = hiStats.channels[0]?.mean || 0
 const gMean = hiStats.channels[1]?.mean || 0
 const bMean = hiStats.channels[2]?.mean || 0
 check('fullFrames: фон из полноразмерного кадра 1920×1080 → 1280×720 (зелёный маркер)',
-  hiVariants.length === 3 && hiVariants[0].frameIndex === 2 && hiVariants[0].bgFullRes === true
+  hiVariants.length === 3 && hiBest.frameIndex === 2 && hiBest.bgFullRes === true
     && hiMeta.width === 1280 && hiMeta.height === 720 && gMean > rMean + 40 && gMean > bMean + 40,
-  `idx=${hiVariants[0]?.frameIndex} ${hiMeta.width}x${hiMeta.height} rgb=${rMean.toFixed(0)},${gMean.toFixed(0)},${bMean.toFixed(0)}`)
+  `idx=${hiBest?.frameIndex} ${hiMeta.width}x${hiMeta.height} rgb=${rMean.toFixed(0)},${gMean.toFixed(0)},${bMean.toFixed(0)}`)
 // исходник меньше цели → без апскейла выше исходника (960×540 не растягивается до 1280×720)
 const lowVariants = await generateCoverVariants({ topic: 'тест', coverText: 'Маленький исходник', platform: 'youtube', count: 1, frames: [frameDataUrls[2]], fullFrames: [await mkSolid(960, 540, { r: 40, g: 40, b: 180 })] })
 const lowMeta = await sharpQa(lowVariants[0].buffer).metadata()
@@ -271,6 +278,74 @@ const badId = await extractYtFramesGate('../../etc/passwd')
 check('yt-frames: мусорный videoId → null (в fetch не уходит)', badId === null && getLastYtFramesSkip() === 'bad_video_id', `reason=${getLastYtFramesSkip()}`)
 
 
+
+// 5f. [COVERS-SUPREME] стикер с обводкой, текст-блок ≥25% кадра, blur-fill на вертикали,
+// AI-режим без запечённого текста, AI-скор у всех 3 вариантов, экспорт во все 4 формата.
+{
+  const { buildBackgroundPrompt } = await import('../services/coverGenerator.js')
+  // стикер: кадр с ярким объектом на тёмном фоне БЕЗ белых пикселей (белое в результате = обводка)
+  const circleSvg = `<svg width="1280" height="720" xmlns="http://www.w3.org/2000/svg"><rect width="1280" height="720" fill="#202028"/><circle cx="400" cy="360" r="170" fill="#ff5533"/></svg>`
+  const circleFrame = `data:image/jpeg;base64,${(await sharpQa(Buffer.from(circleSvg)).jpeg({ quality: 80 }).toBuffer()).toString('base64')}`
+  const stVars = await generateCoverVariants({ topic: 'обзор босса', coverText: 'Финальный босс пал', platform: 'youtube', count: 3, frames: [circleFrame] })
+  const stVar = stVars.find(v => v.sticker)
+  check('supreme: стикер-объект собран (organic без ключа / pro с ключом)', !!stVar && ['organic', 'pro'].includes(stVar.sticker), `sticker=${stVar?.sticker}`)
+  if (stVar) {
+    const { data, info } = await sharpQa(stVar.buffer).raw().toBuffer({ resolveWithObject: true })
+    let white = 0
+    for (let i = 0; i < data.length; i += 3) {
+      if (data[i] > 235 && data[i + 1] > 235 && data[i + 2] > 235) white++
+    }
+    const whiteRatio = white / (info.width * info.height)
+    check('supreme: у стикера есть светлая обводка/свечение (белые пиксели фактом)', whiteRatio > 0.0005, `white=${(whiteRatio * 100).toFixed(2)}%`)
+  }
+  // текст-блок ≥25% кадра (Russo One авто-фит)
+  check('supreme: текст-блок ≥25% высоты кадра', stVars.every(v => (v.textBlockRatio || 0) >= 0.25), `block=${stVars.map(v => (v.textBlockRatio || 0).toFixed(2)).join(',')}`)
+  // blur-fill: горизонтальный кадр → вертикаль Shorts: полосы = размытая копия (не center-crop)
+  const halfSvg = `<svg width="1280" height="720" xmlns="http://www.w3.org/2000/svg"><rect width="1280" height="360" fill="#cc2222"/><rect y="360" width="1280" height="360" fill="#2222cc"/></svg>`
+  const halfFrame = `data:image/jpeg;base64,${(await sharpQa(Buffer.from(halfSvg)).jpeg({ quality: 80 }).toBuffer()).toString('base64')}`
+  const vVars = await generateCoverVariants({ topic: 'вертикаль', coverText: 'Шортс тест вертикали', platform: 'shorts', count: 1, frames: [halfFrame] })
+  const vv = vVars[0]
+  let blurOk = false
+  if (vv && vv.width === 1080 && vv.height === 1920) {
+    const topS = await sharpQa(vv.buffer).extract({ left: 0, top: 30, width: 1080, height: 120 }).stats()
+    const botS = await sharpQa(vv.buffer).extract({ left: 0, top: 1770, width: 1080, height: 120 }).stats()
+    const topR = topS.channels[0].mean, topB = topS.channels[2].mean
+    const botR = botS.channels[0].mean, botB = botS.channels[2].mean
+    // blur-fill: верхняя полоса — размытая копия кадра целиком (красный+синий смешаны),
+    // при center-crop верх был бы чисто красным
+    blurOk = topB > 40 && botR > 40 // в обеих полосах есть ОБА цвета = размытая копия
+    void topR; void botB
+  }
+  check('supreme: вертикаль 1080×1920 с blur-fill полосами (оба цвета в полосах)', !!vv && vv.width === 1080 && vv.height === 1920 && vv.blurFilled === true && blurOk, `blur=${vv?.blurFilled}`)
+  // AI-режим: текст НЕ передаётся в image-провайдер (жёсткий strip — только тема/сцена)
+  const prompt = buildBackgroundPrompt('обзор игры', 'dark cave with dragon')
+  check('supreme: AI-промпт без текста обложки (текст только sharp-оверлей)', !prompt.includes('СЕКРЕТ') && !prompt.includes('Финальный босс пал') && prompt.includes('no text'), prompt.slice(0, 60))
+  // niche-пресет: без данных → честный универсальный фолбэк (не мок)
+  const { getNicheStylePreset } = await import('../services/nicheStyleService.js')
+  const presetEmpty = await getNicheStylePreset({ topic: '', niche: '' })
+  check('supreme: пресет без данных ниши → universal (честный фолбэк)', presetEmpty.source === 'universal', presetEmpty.source)
+  // cover-choice: лог выбора пишется, bias читается
+  const { default: CoverChoiceLog, getChoiceBias } = await import('../models/CoverChoiceLog.js')
+  await CoverChoiceLog.create({ userId: quser._id, topic: 'qa', platform: 'youtube', chosenIndex: 0, scheme: 0, source: 'frame', score: 90, bestScore: 90, pickedBest: true })
+  const bias = await getChoiceBias()
+  check('supreme: выбор клиента логируется (Self-Optimize)', bias && typeof bias.samples === 'number', `samples=${bias?.samples}`)
+  const choiceAnon = await req('POST', '/api/omega/cover-choice', 'broken.token.here', { chosenIndex: 0 })
+  check('cover-choice anon → 401', choiceAnon.status === 401, choiceAnon.status)
+  const choiceBad = await req('POST', '/api/omega/cover-choice', qt, {})
+  check('cover-choice без chosenIndex → 400', choiceBad.status === 400, choiceBad.status)
+  // экспорт во все 4 формата: свой файл → 200 + размер платформы; чужой → 403
+  const exportSrc = mkFile('cover-export-src.jpg')
+  fs.writeFileSync(path.join(dir, 'cover-export-src.jpg'), stVars[0].buffer)
+  for (const [pf, ew, eh] of [['youtube', 1280, 720], ['shorts', 1080, 1920], ['vk', 1280, 720], ['telegram', 1280, 720]]) {
+    const r = await fetch(`${API}/api/omega/cover-export?url=${encodeURIComponent(exportSrc)}&platform=${pf}`, { headers: H(qt) })
+    const buf = Buffer.from(await r.arrayBuffer())
+    const m = await sharpQa(buf).metadata()
+    check(`cover-export ${pf}: 200, ${ew}×${eh}`, r.status === 200 && m.width === ew && m.height === eh, `status=${r.status} ${m.width}x${m.height}`)
+  }
+  const exportForeign = await req('GET', `/api/omega/cover-export?url=${encodeURIComponent(`/uploads/${owner._id}/x.jpg`)}&platform=youtube`, qt)
+  check('cover-export чужой файл → 403', exportForeign.status === 403, exportForeign.status)
+  fs.unlinkSync(path.join(dir, 'cover-export-src.jpg'))
+}
 
 // 6. конкуренты ниши: без ключа — честный отказ, никаких выдуманных цифр
 const compTiktok = await req('GET', '/api/omega/niche-competitors?niche=финансы&platform=tiktok', ct)
