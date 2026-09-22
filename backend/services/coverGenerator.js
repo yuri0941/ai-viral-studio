@@ -257,6 +257,7 @@ async function composeCover({ bgBuffer, width, height, text, variant, noUpscale 
 
     return {
         buffer, overlay, outWidth: outW, outHeight: outH,
+        scheme,
         stickerSource: sticker?.source || null,
         blurFilled: fit.blurred,
         score: scored.score,
@@ -290,11 +291,12 @@ async function stylizeBackgroundPro(buffer, prompt) {
 }
 
 function variantOut({ composed, extra }) {
-    const { buffer, overlay, outWidth, outHeight, stickerSource, blurFilled, score, scoreBreakdown } = composed
+    const { buffer, overlay, outWidth, outHeight, scheme, stickerSource, blurFilled, score, scoreBreakdown } = composed
     return {
         buffer,
         width: outWidth,
         height: outHeight,
+        scheme,
         textHeightRatio: overlay ? overlay.textHeightRatio : 0,
         textLines: overlay ? overlay.lines : 0,
         textBlockRatio: overlay?.blockRatio ?? null,

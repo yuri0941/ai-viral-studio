@@ -1037,6 +1037,7 @@
       "gemini": "aistudio.google.com → Get API key",
       "elevenlabs": "elevenlabs.io → Profile → API Key",
       "replicate": "replicate.com → Account → API tokens",
+      "removebg": "remove.bg → Dashboard → API Keys",
       "serpapi": "serpapi.com → API Key",
       "youtube": "console.cloud.google.com → Credentials → API key (YouTube Data API v3)",
       "cloudflare": "dash.cloudflare.com → Workers AI → API token",
@@ -1071,7 +1072,9 @@
     },
     "requiredFor": {
       "link": "Получить ключ →",
-      "youtube": "Требуется для: разведка конкурентов ниши и цифры топ-видео в сценариях (OMEGA-видео)."
+      "youtube": "Требуется для: разведка конкурентов ниши и цифры топ-видео в сценариях (OMEGA-видео).",
+      "replicate": "Требуется для: vision-скор эмоций кадров и PRO-стилизация фона обложек (COVERS-SUPREME).",
+      "removebg": "Требуется для: PRO-вырез объекта на обложке — стикер без фона (COVERS-SUPREME)."
     },
     "botHotReloadHint": "После сохранения бот переподключится автоматически (webhook обновится без деплоя). Env-токен останется запасным."
   },
