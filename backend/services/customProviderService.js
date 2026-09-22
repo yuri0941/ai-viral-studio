@@ -28,8 +28,10 @@ export async function getCustomChatProviders() {
 
 function normalizeBaseUrl(raw) {
     const u = String(raw || '').trim().replace(/\/+$/, '')
-    if (!/^https:\/\//i.test(u)) return null // только https (SSRF-гигиена)
-    return u
+    if (/^https:\/\//i.test(u)) return u
+    // тестовый шов: http допустим только для localhost/127.0.0.1 (qa stub-сервер)
+    if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(u)) return u
+    return null // SSRF-гигиена: прод-слоты только https
 }
 
 /**
