@@ -436,13 +436,17 @@ router.post('/analyze-video-upload', protect, async (req, res) => {
             meta.sizeMb ? `Вес: ${meta.sizeMb} МБ` : null,
         ].filter(Boolean).join(', ')
 
+        // [KNOWLEDGE-PACK] разбор по мировым методикам: хук по формулам, удержание по алгоритму 2026
+        const { buildHooksBlock, buildAlgorithmBlock } = await import('../services/knowledgeService.js')
+        const analysisKnowledge = `\n${buildHooksBlock(lang, { max: 8 })}\n${buildAlgorithmBlock(lang)}\n`
         const aiResult = await chatWithAI(
             `Ты — эксперт по виральному видео. Дан разбор загруженного ролика.\n${metaLine}\n` +
             (frameDescriptions.length ? `Описания кадров:\n${frameDescriptions.join('\n')}\n` : 'Кадры недоступны — работай только по метаданным, честно отметь это.\n') +
+            analysisKnowledge +
             `Дай структурированный разбор на языке "${lang}":\n` +
             `1) Таймкоды: ключевые моменты по секундам (опирайся на кадры).\n` +
-            `2) Хук (первые 3 секунды): оценка 0–100 и как усилить.\n` +
-            `3) Удержание: где зритель likely свайпнет и что переснять.\n` +
+            `2) Хук (первые 3 секунды): оценка 0–100, ближайшая формула из списка выше (id) и как усилить.\n` +
+            `3) Удержание: где зритель likely свайпнет и что переснять (правила первых 30 секунд выше).\n` +
             `4) 3 конкретные рекомендации.\nБез воды, по делу.`,
             [], lang,
             { role: req.user?.role || 'guest', userId }
@@ -538,16 +542,20 @@ router.post('/script-from-idea', protect, async (req, res) => {
             ? `Реальные цифры топ-видео ниши (YouTube Data API, сейчас):\n${nicheStats.videos.map(v => `- «${v.title}» (${v.channelTitle}): ${v.views} просмотров, ${v.likes ?? '—'} лайков, ${v.comments ?? '—'} комментариев`).join('\n')}\n`
             : `Цифры топ-видео ниши недоступны (${nicheStats.reason || 'нет подключённого ключа YouTube Data API'}) — НЕ выдумывай числа, честно отметь это в ответе.\n`
 
+        // [KNOWLEDGE-PACK] сценарий по формулам: хук (0–3с) из knowledge/hooks, биты удержания, СНГ-паттерны для RU
+        const { buildHooksBlock, buildAlgorithmBlock, buildCisBlock } = await import('../services/knowledgeService.js')
+        const knowledgeBlock = `\n${buildHooksBlock(lang, { max: 10 })}\n${buildAlgorithmBlock(lang)}\n${lang === 'ru' ? buildCisBlock() + '\n' : ''}`
         const aiResult = await chatWithAI(
             `Ты — сценарист виральных видео. Идея клиента (в свободной форме): "${idea.trim().slice(0, 2000)}"\n` +
-            `Платформа: ${platform}. Ниша: ${niche}. Желаемый диапазон просмотров: ${viewsRange}.\n${statsBlock}` +
+            `Платформа: ${platform}. Ниша: ${niche}. Желаемый диапазон просмотров: ${viewsRange}.\n${statsBlock}${knowledgeBlock}` +
             `Собери сценарий на языке "${lang}" строго по структуре:\n` +
-            `1) ХУК (0–3с): точный текст + что в кадре.\n` +
-            `2) СТРУКТУРА ПО ТАЙМКОДАМ: секунды → действие/фраза.\n` +
+            `1) ХУК (0–3с): точный текст + что в кадре. Выбери ОДНУ формулу из списка выше и назови её id.\n` +
+            `2) СТРУКТУРА ПО ТАЙМКОДАМ: секунды → действие/фраза (ре-хук на 30–60с обязателен).\n` +
             `3) ТЕКСТ ОЗВУЧКИ: полный, как говорить.\n` +
-            `4) ОБЛОЖКА: 2–4 слова текста + описание фона/кадра.\n` +
-            `5) CTA: одна фраза.\n` +
-            `6) КАК ПОПАСТЬ В ДИАПАЗОН ${viewsRange}: конкретные шаги, опираясь на цифры топ-видео выше (если они есть) — не общие фразы.\n` +
+            `4) ОБЛОЖКА: 2–4 слова текста + описание фона/кадра (текст НЕ повторяет тайтл — обложка эмоция/образ, тайтл интрига).\n` +
+            `5) ТАЙТЛ: 40–60 знаков, главные слова в начале, по одной формуле тайтла.\n` +
+            `6) CTA: одна фраза.\n` +
+            `7) КАК ПОПАСТЬ В ДИАПАЗОН ${viewsRange}: конкретные шаги, опираясь на цифры топ-видео выше (если они есть) — не общие фразы.\n` +
             `Без воды, по делу.`,
             [], lang,
             { role: req.user?.role || 'guest', userId }
@@ -582,10 +590,29 @@ router.post('/script-from-idea', protect, async (req, res) => {
 // факт для гейта читаемости (мелкая сетка ленты).
 router.post('/cover-variants', protect, async (req, res) => {
     try {
-        const { topic, coverText, platform, frames, sourceUrl, mode, niche } = req.body || {}
+        const { topic, coverText, platform, frames, sourceUrl, mode, niche, videoTitle } = req.body || {}
         const userId = (req.user?._id || req.user?.id || '').toString()
         if (!topic || typeof topic !== 'string' || !topic.trim()) {
             return res.status(400).json({ success: false, error: 'topic_required' })
+        }
+        // [KNOWLEDGE-PACK З2] линт пары «тайтл ↔ текст обложки»: дубль значимых слов запрещён
+        // (обложка = эмоция/образ, тайтл = интрига; суммарно один триггер). При дубле общие слова
+        // вырезаются из текста обложки ДО генерации — пара собирается как единое целое.
+        const { lintPair } = await import('../services/viralScorer.js')
+        const titleStr = String(videoTitle || '').trim().slice(0, 200)
+        let coverTextFinal = String(coverText || '').trim()
+        let pairCheck = null
+        if (titleStr && coverTextFinal) {
+            pairCheck = lintPair(titleStr, coverTextFinal)
+            if (pairCheck.duplicate) {
+                const sharedSet = new Set(pairCheck.shared)
+                const stripped = coverTextFinal.split(/\s+/).filter(w => !sharedSet.has(w.toLowerCase().replace(/[^a-zа-яё0-9%$₽]/gi, ''))).join(' ').trim()
+                if (stripped) {
+                    pairCheck.fixed = stripped
+                    coverTextFinal = stripped
+                    pairCheck = { ...lintPair(titleStr, coverTextFinal), fixed: stripped, original: String(coverText).trim() }
+                }
+            }
         }
         // [COVERS-FRAMES] frames — 640px dataURL-кадры для скора (≤6, ≤350КБ каждый);
         // [COVERS-FRAMES ДОР] fullFrames — те же таймкоды в исходном разрешении (до 1920×1080)
@@ -619,7 +646,7 @@ router.post('/cover-variants', protect, async (req, res) => {
         let variants = []
         try {
             // [COVERS-SUPREME З1] niche — явная ниша (из сценария/анализа) для пресета стиля
-            variants = await generateCoverVariants({ topic: topic.trim(), coverText: String(coverText || '').trim(), platform, count: 3, frames: frameList, fullFrames: fullFrameList, sourceUrl: ytUrl, mode: coverMode, niche: String(niche || '').trim().slice(0, 120), ownerId: userId })
+            variants = await generateCoverVariants({ topic: topic.trim(), coverText: coverTextFinal, platform, count: 3, frames: frameList, fullFrames: fullFrameList, sourceUrl: ytUrl, mode: coverMode, niche: String(niche || '').trim().slice(0, 120), ownerId: userId })
         } catch (e) {
             console.error('[cover-variants] generation failed:', e.message)
         }
@@ -671,6 +698,9 @@ router.post('/cover-variants', protect, async (req, res) => {
             variants: out,
             platform: platform || 'default',
             cost,
+            // [KNOWLEDGE-PACK З2] результат линта пары тайтл↔обложка (дубль вырезан до генерации)
+            pairCheck,
+            coverTextUsed: coverTextFinal || null,
             // З1: какой пресет применён (niche = из реальных топ-обложек ниши, universal = фолбэк)
             preset: preset ? { source: preset.source, accentColor: preset.accentColor, mood: preset.mood, samples: preset.sampleCount || 0 } : null,
             proFeatures: { cutout: proCutout },
@@ -678,6 +708,131 @@ router.post('/cover-variants', protect, async (req, res) => {
         })
     } catch (e) {
         console.error('[Omega] cover-variants error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
+
+// [KNOWLEDGE-PACK З3] Мультиязычная упаковка: ОДНА генерация → пакеты по языкам (EN первым —
+// приоритет зарубеж, список из кабинета владельца hot-reload) × площадкам (VK/Дзен исключены).
+// Формулы пересобираются под язык (НЕ дословный перевод): RU-пакет идёт с СНГ-паттернами (cis.json).
+// З4: тайтлы каждого пакета скорятся линтом (viralScorer), лучший первым; линт пары с обложкой.
+router.post('/meta-package', protect, async (req, res) => {
+    try {
+        const { topic, niche = '', videoTitle = '', platforms = null, lang = 'ru' } = req.body || {}
+        const userId = (req.user?._id || req.user?.id || '').toString()
+        if (!topic || typeof topic !== 'string' || !topic.trim()) {
+            return res.status(400).json({ success: false, error: 'topic_required' })
+        }
+        const { getPackagingLanguages } = await import('../models/OwnerSettings.js')
+        const ks = await import('../services/knowledgeService.js')
+        const langs = await getPackagingLanguages()
+        const enabled = ks.listEnabledPlatforms()
+        const platformIds = (Array.isArray(platforms) && platforms.length ? platforms : enabled)
+            .map(p => String(p).toLowerCase()).filter(p => enabled.includes(p))
+
+        const perLangPlan = langs.map(lg => {
+            const cis = lg === 'ru' ? '\n' + ks.buildCisBlock() : ''
+            return `Язык "${lg}"${lg === 'ru' ? ' (СНГ-аудитория — паттерны ниже обязательны)' : ''}:${cis}\n` +
+                platformIds.map(pid => {
+                    const spec = ks.getPlatformSpec(pid, lg)
+                    return spec ? `  - ${pid}: ${spec.styleText}` : null
+                }).filter(Boolean).join('\n')
+        }).join('\n')
+
+        const aiResult = await chatWithAI(
+            `Ты — мировой эксперт по вирусной упаковке видео. Тема: "${topic.trim().slice(0, 500)}"${niche ? `. Ниша: ${String(niche).slice(0, 120)}` : ''}${videoTitle ? `. Рабочий тайтл: "${String(videoTitle).slice(0, 200)}"` : ''}.\n` +
+            `${ks.buildTitlesBlock(lang)}\n${ks.buildSeoBlock(lang)}\n${ks.buildHooksBlock(lang, { max: 8 })}\n\n` +
+            `Собери упаковку ДЛЯ КАЖДОГО языка и КАЖДОЙ площадки из плана (формулы пересобери под язык — НЕ дословный перевод):\n${perLangPlan}\n\n` +
+            `Ответь СТРОГО одним JSON-объектом без markdown и пояснений:\n` +
+            `{"<lang>": {"<platform>": {"titles": ["вариант 1","вариант 2","вариант 3"], "description": "текст (для youtube — с хуком в первых 150 знаках и главами 0:00…)", "tags": ["тег1","тег2"], "hashtags": ["#a","#b"], "hook": "первая фраза/панч"}}}\n` +
+            `Правила: titles — 3 варианта по РАЗНЫМ формулам, соблюдай titleCap площадки; tags — ≤15, только релевантные; x — короткий панч; twitch — контекст клипа; telegram — первая строка = хук.`,
+            [], lang,
+            { role: req.user?.role || 'guest', userId }
+        )
+
+        const provider = aiResult?.provider || ''
+        const raw = aiResult ? extractText(aiResult) : ''
+        if (!aiResult || aiResult.success === false || provider.includes('fallback') || provider.includes('template')) {
+            return res.json({ success: false, error: 'ai_unavailable', message: 'AI-провайдеры недоступны — попробуйте позже.' })
+        }
+        const jsonMatch = String(raw).replace(/```(?:json)?/gi, '').match(/\{[\s\S]*\}/)
+        let packs = null
+        try { packs = jsonMatch ? JSON.parse(jsonMatch[0]) : null } catch { packs = null }
+        if (!packs || typeof packs !== 'object') {
+            return res.json({ success: false, error: 'ai_bad_format', message: 'AI вернул не-JSON — попробуйте ещё раз.' })
+        }
+
+        // З4: скоринг тайтлов каждого пакета, лучший первым; З2: линт пары с текстом обложки
+        const { rankTitles, lintPair } = await import('../services/viralScorer.js')
+        const coverText = String(req.body?.coverText || '').trim()
+        for (const lg of Object.keys(packs)) {
+            const pack = packs[lg]
+            if (!pack || typeof pack !== 'object') continue
+            for (const pid of Object.keys(pack)) {
+                const p = pack[pid]
+                if (!p || typeof p !== 'object') continue
+                if (Array.isArray(p.titles) && p.titles.length) {
+                    const ranked = rankTitles(p.titles.map(t => String(t)), { thumb: coverText, lang: lg })
+                    p.titleVariants = ranked.map(r => ({ text: r.title, score: r.score, band: r.band, issues: r.issues.map(i => i.kind), best: r.best }))
+                    p.titles = ranked.map(r => r.title)
+                }
+                if (coverText && Array.isArray(p.titles) && p.titles[0]) {
+                    p.pairCheck = lintPair(p.titles[0], coverText, lg)
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            packages: packs,
+            languages: langs,
+            platforms: platformIds,
+            knowledge: ks.knowledgeVersions(),
+            quota: null,
+        })
+    } catch (e) {
+        console.error('[Omega] meta-package error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
+
+// [KNOWLEDGE-PACK З4] Выбор клиентом варианта упаковки → Self-Optimize (паттерн cover-choice):
+// MetaChoiceLog + write-through в procedural-память раз в 8 выборок.
+router.post('/meta-choice', protect, async (req, res) => {
+    try {
+        const { kind = 'title', topic = '', platform = 'youtube', lang = 'en', chosenIndex, formula = null, score = null, bestScore = null } = req.body || {}
+        const idx = Number(chosenIndex)
+        if (!Number.isFinite(idx) || idx < 0 || idx > 19) {
+            return res.status(400).json({ success: false, error: 'chosenIndex required' })
+        }
+        if (!['title', 'hook', 'description'].includes(kind)) {
+            return res.status(400).json({ success: false, error: 'bad kind' })
+        }
+        const { default: MetaChoiceLog, getMetaChoiceBias } = await import('../models/MetaChoiceLog.js')
+        await MetaChoiceLog.create({
+            userId: req.user._id || req.user.id,
+            kind,
+            topic: String(topic || '').slice(0, 200),
+            platform: String(platform || 'youtube').slice(0, 20),
+            lang: String(lang || 'en').slice(0, 5),
+            chosenIndex: idx,
+            formula: formula ? String(formula).slice(0, 60) : null,
+            score: Number.isFinite(Number(score)) ? Number(score) : null,
+            bestScore: Number.isFinite(Number(bestScore)) ? Number(bestScore) : null,
+            pickedBest: Number.isFinite(Number(score)) && Number.isFinite(Number(bestScore)) ? Number(score) >= Number(bestScore) : false,
+        })
+        const bias = await getMetaChoiceBias(kind)
+        if (bias.samples >= 8 && bias.samples % 8 === 0) {
+            const { addMemoryEntry } = await import('../services/memoryLayerService.js')
+            addMemoryEntry?.('procedural', {
+                type: 'pattern',
+                content: `Упаковка (${kind}): клиенты выбирают формулы ${JSON.stringify(bias.formulaBoost)}, согласие с AI-ранжированием ${Math.round((bias.agreeRate || 0) * 100)}% (${bias.samples} выборов)`,
+                tags: ['knowledge-pack', 'self-optimize'],
+            })
+        }
+        res.json({ success: true, agreeRate: bias.agreeRate, samples: bias.samples })
+    } catch (e) {
+        console.error('[Omega] meta-choice error:', e)
         res.status(500).json({ success: false, error: e.message })
     }
 })
@@ -1248,8 +1403,22 @@ async function omegaGenerate(req, res, prompt) {
     }
 }
 
+// [KNOWLEDGE-PACK З1/З4] хуки по 21 формуле + детерминированный скоринг, лучший первым
 router.post('/generate-hook', protect, async (req, res) => {
-    await omegaGenerate(req, res, 'Сгенерируй 5 цепляющих хуков для вирусного контента.')
+    try {
+        const { message = '', lang = 'ru' } = req.body
+        const { buildHooksBlock, buildCisBlock } = await import('../services/knowledgeService.js')
+        const prompt = `${SYSTEM_PROMPT}\n\nСгенерируй 5 цепляющих хуков для вирусного контента${message ? ` (${message})` : ''}. Каждый — по одной формуле ниже, укажи id формулы в квадратных скобках.\n${buildHooksBlock(lang)}${lang === 'ru' ? '\n' + buildCisBlock() : ''}`
+        const result = await chatWithAI(prompt, [], lang, { userRole: req.user?.role || 'guest', userId: req.user?._id || req.user?.id })
+        const text = extractText(result)
+        const lines = String(text).split('\n').map(l => l.replace(/^\s*\d+[.)]\s*/, '').trim()).filter(l => l.length >= 12)
+        const { rankHooks } = await import('../services/viralScorer.js')
+        const scored = rankHooks(lines.slice(0, 8), lang)
+        res.json({ status: 'success', data: result, variants: scored })
+    } catch (err) {
+        console.error('[omega/generate-hook]', err.message)
+        res.status(500).json({ status: 'error', message: err.message })
+    }
 })
 
 router.post('/generate-script', protect, async (req, res) => {

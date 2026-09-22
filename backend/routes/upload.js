@@ -193,8 +193,10 @@ router.get('/limits', protect, async (req, res) => {
   const maxMb = await getMediaUploadLimitMb()
   const video = await getVideoSettings()
   // [REAL-DATA З5.3] полный реестр цен действий — клиент показывает цену ДО запуска
-  const { getActionPrices } = await import('../models/OwnerSettings.js')
+  const { getActionPrices, getPackagingLanguages } = await import('../models/OwnerSettings.js')
   const actionPrices = await getActionPrices()
+  // [KNOWLEDGE-PACK З3] языки упаковки из кабинета владельца (EN первым), hot-reload ≤60с
+  const packagingLanguages = await getPackagingLanguages()
   res.json({
     success: true,
     maxMb,
@@ -205,6 +207,7 @@ router.get('/limits', protect, async (req, res) => {
     // [SMART-TTL З2] таймер бездействия (мин) — клиенту для мягкой подсказки; hot-reload ≤60с
     videoIdleMinutes: video.videoIdleMinutes,
     actionPrices,
+    packagingLanguages,
   })
 })
 

@@ -235,6 +235,34 @@ router.post('/video-settings', protect, authorize('owner', 'admin'), async (req,
     }
 })
 
+// [KNOWLEDGE-PACK З3] языки упаковки (EN всегда первым) + версии базы знаний; hot-reload ≤60с.
+// ВАЖНО: объявлены ВЫШЕ generic router.post('/:entity') — иначе 'knowledge-settings' улетает в createEntity.
+router.get('/knowledge-settings', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { getPackagingLanguages, PACKAGING_LANGS_ALLOWED } = await import('../models/OwnerSettings.js')
+        const { knowledgeVersions, listEnabledPlatforms } = await import('../services/knowledgeService.js')
+        res.json({
+            success: true,
+            packagingLanguages: await getPackagingLanguages(),
+            allowed: PACKAGING_LANGS_ALLOWED,
+            platforms: listEnabledPlatforms(),
+            knowledge: knowledgeVersions(),
+        })
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message })
+    }
+})
+
+router.post('/knowledge-settings', protect, authorize('owner', 'admin'), async (req, res) => {
+    try {
+        const { setPackagingLanguages } = await import('../models/OwnerSettings.js')
+        const langs = await setPackagingLanguages(req.body?.packagingLanguages)
+        res.json({ success: true, packagingLanguages: langs })
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message })
+    }
+})
+
 // [REAL-DATA З5.3] Реестр цен действий (✦) + себестоимость + маржа; hot-reload ≤60с.
 // ВАЖНО: объявлены ВЫШЕ generic router.post('/:entity') — иначе 'action-prices' улетает в createEntity.
 router.get('/action-prices', protect, authorize('owner', 'admin'), async (req, res) => {
