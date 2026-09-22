@@ -1054,6 +1054,8 @@ export default function OmegaChat({
           topic,
           coverText,
           platform,
+          // [COVERS-SUPREME З1] ниша — для пресета стиля из реальных топ-обложек ниши
+          niche: srcMsg?.action?.niche || '',
           mode: styleMode === 'ai' ? 'ai' : 'frame',
           ...(videoFrames.length && styleMode !== 'ai' ? { frames: videoFrames } : {}),
           ...(fullFrames.length && styleMode !== 'ai' ? { fullFrames } : {}),
@@ -1069,7 +1071,7 @@ export default function OmegaChat({
       }
       if (Array.isArray(res?.variants) && res.variants.length) {
         if (isCoversMsg) {
-          updateChatMessage(msg.id, { action: { ...msg.action, variants: res.variants } });
+          updateChatMessage(msg.id, { action: { ...msg.action, variants: res.variants, preset: res.preset || msg.action.preset || null, proCutout: res.proFeatures?.cutout ?? msg.action.proCutout ?? null } });
           setCoversByMsg(prev => ({ ...prev, [msg.id]: { selected: 0 } }));
         } else {
           pushChatMessages([{
@@ -1082,6 +1084,9 @@ export default function OmegaChat({
               coverText,
               platform,
               sourceUrl,
+              // [COVERS-SUPREME З1/З8] пресет ниши + PRO-статус — показываем под сеткой
+              preset: res.preset || null,
+              proCutout: res.proFeatures?.cutout ?? null,
               postId: postIdByMsg[msg.id] || null,
               sourceMsgId: msg.id,
             },
@@ -1129,6 +1134,59 @@ export default function OmegaChat({
       setCoverBusyApply(false);
     }
   };
+
+  // [COVERS-SUPREME З6] выбор варианта → Self-Optimize: лог реального выбора (fire-and-forget)
+  const logCoverChoice = (msg, idx) => {
+    const variants = msg.action?.variants || [];
+    const v = variants[idx];
+    if (!v) return;
+    const bestScore = variants.find(x => x.best)?.score ?? variants[0]?.score ?? null;
+    request('/omega/cover-choice', {
+      method: 'POST',
+      noRetry: true,
+      body: JSON.stringify({
+        topic: msg.action?.topic || '',
+        platform: msg.action?.platform || 'youtube',
+        chosenIndex: idx,
+        scheme: v.scheme ?? idx % 3,
+        source: v.source || 'frame',
+        score: v.score ?? null,
+        bestScore,
+      }),
+    }).catch(() => {});
+  };
+
+  // [COVERS-SUPREME З7] скачать выбранную обложку под конкретный формат (blur-fill на бэке)
+  const [coverExportBusy, setCoverExportBusy] = useState(null);
+  const COVER_FORMATS = [
+    { id: 'youtube', label: 'YouTube' },
+    { id: 'shorts', label: 'Shorts/Reels' },
+    { id: 'vk', label: 'VK' },
+    { id: 'telegram', label: 'TG' },
+  ];
+  const downloadCoverFormat = async (msg, variant, platform) => {
+    if (!variant?.url || coverExportBusy) return;
+    setCoverExportBusy(platform);
+    try {
+      const resp = await fetch(`${API_URL}/omega/cover-export?url=${encodeURIComponent(variant.url)}&platform=${platform}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `cover-${platform}.jpg`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      // [SMART-TTL З1] скачивание = результат принят → исходник удаляется (по канону used)
+      markSourceUsed(msg, 'cover_download');
+    } catch (e) {
+      toast.error(t('chat.serverUnavailable'), { duration: 4000 });
+    } finally {
+      setCoverExportBusy(null);
+    }
+  };
+
 
   // [OMEGA-VIDEO ДОП-2 З6] «Топ ниши X в соцсети Y» — реальные цифры через подключённые API.
   // Нет ключа → честное «скоро» клиенту; владельцу — подсказка про ApiKeysTab + ссылка на консоль.
@@ -1393,7 +1451,7 @@ export default function OmegaChat({
                           <button
                             key={v.url}
                             type="button"
-                            onClick={() => setCoversByMsg(prev => ({ ...prev, [msg.id]: { selected: idx } }))}
+                            onClick={() => { setCoversByMsg(prev => ({ ...prev, [msg.id]: { selected: idx } })); logCoverChoice(msg, idx); }}
                             onDoubleClick={() => setCoverPreview(v)}
                             className={`relative rounded-lg overflow-hidden border-2 transition ${selected === idx ? 'border-violet-400' : 'border-white/10 hover:border-white/25'}`}
                             data-testid={`cover-variant-${idx}`}
@@ -1403,9 +1461,28 @@ export default function OmegaChat({
                             {selected === idx && (
                               <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-violet-500 text-white text-[11px] flex items-center justify-center">✓</span>
                             )}
+                            {/* [COVERS-SUPREME З6] AI-скор CTR варианта + корона лучшему (лучший — первый) */}
+                            {typeof v.score === 'number' && (
+                              <span
+                                data-testid={`cover-score-${idx}`}
+                                title={v.scoreBreakdown ? `${t('chat.coverScoreTitle')}: ${v.score}/100` : `${v.score}/100`}
+                                className={`absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold backdrop-blur-sm border ${v.best ? 'bg-amber-400/90 text-black border-amber-300' : 'bg-black/60 text-white border-white/20'}`}
+                              >
+                                {v.best ? `★ ${v.score}` : v.score}
+                              </span>
+                            )}
                           </button>
                         ))}
                       </div>
+                      {/* [COVERS-SUPREME З1] пресет ниши (реальные топ-обложки) / универсальный фолбэк */}
+                      {msg.action.preset && (
+                        <p className="text-[10px] text-gray-400 mt-1.5" data-testid="cover-preset">
+                          {msg.action.preset.source === 'niche'
+                            ? `🎯 ${t('chat.coverPresetNiche', { color: msg.action.preset.accentColor, n: msg.action.preset.samples || 0 })}`
+                            : `⚡ ${t('chat.coverPresetUniversal')}`}
+                          {msg.action.proCutout === false && isOwnerRole ? ` · ${t('chat.coverProHint')}` : ''}
+                        </p>
+                      )}
                       <div className="flex flex-wrap gap-2 mt-2">
                         <button
                           type="button"
@@ -1447,6 +1524,22 @@ export default function OmegaChat({
                             {coversBusyId === msg.id ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🎨'} {t('chat.coverRegenerateStyle', { cost: actionPricing.coverGenerationCost })}
                           </button>
                         )}
+                      </div>
+                      {/* [COVERS-SUPREME З7] одна генерация → все форматы: скачать выбранную под платформу */}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2" data-testid="cover-formats">
+                        <span className="text-[10px] text-gray-500 mr-0.5">{t('chat.coverFormatsTitle')}</span>
+                        {COVER_FORMATS.map(f => (
+                          <button
+                            key={f.id}
+                            type="button"
+                            disabled={coverExportBusy === f.id}
+                            onClick={() => downloadCoverFormat(msg, selVariant, f.id)}
+                            data-testid={`cover-format-${f.id}`}
+                            className="px-2.5 py-1 min-h-[32px] rounded-full bg-white/[0.05] border border-white/[0.1] text-[11px] text-gray-300 hover:bg-violet-500/20 hover:text-violet-200 transition disabled:opacity-50"
+                          >
+                            {coverExportBusy === f.id ? '…' : f.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   );

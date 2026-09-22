@@ -22,6 +22,8 @@ const PROVIDERS = [
   { id: 'gemini', name: 'Google Gemini', desc: 'Google AI', icon: Brain, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', group: 'ai_text' },
   { id: 'elevenlabs', name: 'ElevenLabs', desc: 'Голосовой AI / TTS', icon: Mic, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', group: 'ai_text' },
   { id: 'replicate', name: 'Replicate', desc: 'AI Video / Images', icon: Image, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', group: 'ai_image' },
+  // [COVERS-SUPREME З3/З8] PRO-вырез объекта обложки (стикер без фона)
+  { id: 'removebg', name: 'remove.bg', desc: 'Cutout объектов для обложек', placeholder: 'вставьте API-ключ remove.bg', icon: Image, color: 'text-lime-400', bg: 'bg-lime-500/10', border: 'border-lime-500/20', group: 'ai_image', consoleLink: 'https://www.remove.bg/api' },
   { id: 'serpapi', name: 'SerpAPI', desc: 'Поиск Google / Maps', icon: Search, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', group: 'ai_text' },
   { id: 'youtube', name: 'YouTube Data API', desc: 'Аналитика YouTube', icon: Youtube, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', group: 'social', consoleLink: 'https://console.cloud.google.com/apis/library/youtube.googleapis.com' },
   { id: 'cloudflare', name: 'Cloudflare AI', desc: 'Workers AI', icon: Cloud, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', group: 'ai_image' },

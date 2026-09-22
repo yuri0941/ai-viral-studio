@@ -279,6 +279,8 @@ const envMap = {
     mistral: 'MISTRAL_API_KEY',
     cohere: 'COHERE_API_KEY',
     replicate: 'REPLICATE_API_TOKEN',
+    // [COVERS-SUPREME З3/З8] remove.bg — PRO-вырез объекта обложки без фона (карточка в ApiKeysTab)
+    removebg: 'REMOVEBG_API_KEY',
     youtube: 'YOUTUBE_API_KEY',
     together: 'TOGETHER_API_KEY',
     fireworks: 'FIREWORKS_API_KEY',

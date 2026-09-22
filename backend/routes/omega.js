@@ -582,7 +582,7 @@ router.post('/script-from-idea', protect, async (req, res) => {
 // факт для гейта читаемости (мелкая сетка ленты).
 router.post('/cover-variants', protect, async (req, res) => {
     try {
-        const { topic, coverText, platform, frames, sourceUrl, mode } = req.body || {}
+        const { topic, coverText, platform, frames, sourceUrl, mode, niche } = req.body || {}
         const userId = (req.user?._id || req.user?.id || '').toString()
         if (!topic || typeof topic !== 'string' || !topic.trim()) {
             return res.status(400).json({ success: false, error: 'topic_required' })
@@ -618,7 +618,8 @@ router.post('/cover-variants', protect, async (req, res) => {
         const { generateCoverVariants } = await import('../services/coverGenerator.js')
         let variants = []
         try {
-            variants = await generateCoverVariants({ topic: topic.trim(), coverText: String(coverText || '').trim(), platform, count: 3, frames: frameList, fullFrames: fullFrameList, sourceUrl: ytUrl, mode: coverMode })
+            // [COVERS-SUPREME З1] niche — явная ниша (из сценария/анализа) для пресета стиля
+            variants = await generateCoverVariants({ topic: topic.trim(), coverText: String(coverText || '').trim(), platform, count: 3, frames: frameList, fullFrames: fullFrameList, sourceUrl: ytUrl, mode: coverMode, niche: String(niche || '').trim().slice(0, 120), ownerId: userId })
         } catch (e) {
             console.error('[cover-variants] generation failed:', e.message)
         }
@@ -646,18 +647,106 @@ router.post('/cover-variants', protect, async (req, res) => {
                 { $setOnInsert: { userId, url, sizeBytes: v.buffer.length, kind: 'cover', analyzedAt: new Date() } },
                 { upsert: true }
             ).catch(() => {})
-            out.push({ url, width: v.width, height: v.height, seed: v.seed, provider: v.provider, source: v.source || 'ai', frameIndex: v.frameIndex, textHeightRatio: v.textHeightRatio })
+            out.push({
+                url, width: v.width, height: v.height, seed: v.seed, provider: v.provider,
+                source: v.source || 'ai', frameIndex: v.frameIndex, textHeightRatio: v.textHeightRatio,
+                // [COVERS-SUPREME] AI-скор CTR (З6), стикер (З3), blur-fill (З4), лучший первый
+                score: v.score ?? null, scoreBreakdown: v.scoreBreakdown || null, best: !!v.best,
+                scheme: v.scheme ?? null,
+                sticker: v.sticker || null, blurFilled: !!v.blurFilled,
+                moment: v.moment || null, textBlockRatio: v.textBlockRatio ?? null,
+            })
         }
+
+        // [COVERS-SUPREME З8] PRO-статус ключей: без ключа — базовый режим (никогда не пусто,
+        // не ошибка, ✦ за PRO не списываются); владельцу — карточка «Требуется ключ» в ApiKeysTab.
+        const { getProviderKey } = await import('../services/aiService.js')
+        const proCutout = !!(await getProviderKey('removebg').catch(() => null)) || !!(await getProviderKey('replicate').catch(() => null))
+        // З1: пресет ниши — из кэша nicheStyleService (генерация уже запрашивала его), без повторного API-вызова
+        const { getNicheStylePreset } = await import('../services/nicheStyleService.js')
+        const preset = await getNicheStylePreset({ topic: topic.trim(), niche: String(niche || '').trim().slice(0, 120), ownerId: userId }).catch(() => null)
 
         res.json({
             success: true,
             variants: out,
             platform: platform || 'default',
             cost,
+            // З1: какой пресет применён (niche = из реальных топ-обложек ниши, universal = фолбэк)
+            preset: preset ? { source: preset.source, accentColor: preset.accentColor, mood: preset.mood, samples: preset.sampleCount || 0 } : null,
+            proFeatures: { cutout: proCutout },
             quota: { trialTokens: quota.trialTokens, remaining: quota.remaining },
         })
     } catch (e) {
         console.error('[Omega] cover-variants error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
+
+// [COVERS-SUPREME З6] Выбор клиента → Self-Optimize (память Омеги): какие схемы/варианты берут
+// чаще — пресеты композиции подстраиваются (getChoiceBias), agreeRate с AI-ранжированием виден владельцу.
+router.post('/cover-choice', protect, async (req, res) => {
+    try {
+        const { topic, platform, chosenIndex, scheme, source, score, bestScore } = req.body || {}
+        const idx = Number(chosenIndex)
+        if (!Number.isFinite(idx) || idx < 0 || idx > 9) {
+            return res.status(400).json({ success: false, error: 'chosenIndex required' })
+        }
+        const { default: CoverChoiceLog, getChoiceBias } = await import('../models/CoverChoiceLog.js')
+        await CoverChoiceLog.create({
+            userId: req.user._id || req.user.id,
+            topic: String(topic || '').slice(0, 200),
+            platform: String(platform || 'youtube').slice(0, 20),
+            chosenIndex: idx,
+            scheme: Number.isFinite(Number(scheme)) ? Number(scheme) : 0,
+            source: String(source || 'frame').slice(0, 20),
+            score: Number.isFinite(Number(score)) ? Number(score) : null,
+            bestScore: Number.isFinite(Number(bestScore)) ? Number(bestScore) : null,
+            pickedBest: Number.isFinite(Number(score)) && Number.isFinite(Number(bestScore)) ? Number(score) >= Number(bestScore) : false,
+        })
+        // write-through в procedural-слой памяти (не чаще раза в час — learnCoverPattern сам троттлит)
+        const bias = await getChoiceBias()
+        if (bias.samples >= 8 && bias.samples % 8 === 0) {
+            const { addMemoryEntry } = await import('../services/memoryLayerService.js')
+            addMemoryEntry?.('procedural', {
+                type: 'pattern',
+                content: `Обложки: клиенты выбирают схемы ${JSON.stringify(bias.schemeBoost)}, согласие с AI-ранжированием ${Math.round((bias.agreeRate || 0) * 100)}% (${bias.samples} выборов)`,
+                tags: ['covers', 'self-optimize'],
+            })
+        }
+        res.json({ success: true, agreeRate: bias.agreeRate, samples: bias.samples })
+    } catch (e) {
+        console.error('[Omega] cover-choice error:', e)
+        res.status(500).json({ success: false, error: e.message })
+    }
+})
+
+// [COVERS-SUPREME З7] Одна генерация → все форматы: экспорт собранной обложки под платформу
+// (blur-fill переформат, sharp). Только СВОЙ файл из /uploads/<userId>/ — как у cover-variants.
+router.get('/cover-export', protect, async (req, res) => {
+    try {
+        const url = String(req.query.url || '')
+        const platform = String(req.query.platform || 'youtube').toLowerCase()
+        const userId = (req.user?._id || req.user?.id || '').toString()
+        const safePrefix = `/uploads/${userId}/`
+        if (!url.startsWith(safePrefix) || url.includes('..')) {
+            return res.status(403).json({ success: false, error: 'forbidden_url' })
+        }
+        const path = await import('path')
+        const fs = await import('fs/promises')
+        const filePath = path.join(process.cwd(), url.replace(/^\//, ''))
+        let buf
+        try { buf = await fs.readFile(filePath) } catch { return res.status(404).json({ success: false, error: 'not_found' }) }
+        const { coverSizeForPlatform } = await import('../services/coverGenerator.js')
+        const { blurFillCompose } = await import('../services/coverFx.js')
+        const size = coverSizeForPlatform(platform)
+        const fit = await blurFillCompose(buf, size.width, size.height, { noUpscale: false })
+        const sharp = (await import('sharp')).default
+        const out = await sharp(fit.buffer).jpeg({ quality: 90 }).toBuffer()
+        res.setHeader('Content-Type', 'image/jpeg')
+        res.setHeader('Content-Disposition', `attachment; filename="cover-${platform}.jpg"`)
+        res.send(out)
+    } catch (e) {
+        console.error('[Omega] cover-export error:', e)
         res.status(500).json({ success: false, error: e.message })
     }
 })

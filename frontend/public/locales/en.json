@@ -949,6 +949,7 @@
       "gemini": "aistudio.google.com → Get API key",
       "elevenlabs": "elevenlabs.io → Profile → API Key",
       "replicate": "replicate.com → Account → API tokens",
+      "removebg": "remove.bg → Dashboard → API Keys",
       "serpapi": "serpapi.com → API Key",
       "youtube": "console.cloud.google.com → Credentials → API key (YouTube Data API v3)",
       "cloudflare": "dash.cloudflare.com → Workers AI → API token",
@@ -983,7 +984,9 @@
     },
     "requiredFor": {
       "link": "Get the key →",
-      "youtube": "Required for: niche competitor scouting and top-video numbers in scripts (OMEGA video)."
+      "youtube": "Required for: niche competitor scouting and top-video numbers in scripts (OMEGA video).",
+      "replicate": "Required for: frame emotion vision scoring and PRO cover background stylization (COVERS-SUPREME).",
+      "removebg": "Required for: PRO cover subject cutout — sticker without background (COVERS-SUPREME)."
     },
     "botHotReloadHint": "After saving, the bot reconnects automatically (webhook is updated without a deploy). The env token stays as a fallback."
   },
@@ -1587,6 +1590,11 @@
   "chat.coverApplyBtn": "Apply to post",
   "chat.coverDownloadBtn": "Download",
   "chat.coverApplied": "Cover applied to the Planner draft",
+  "chat.coverScoreTitle": "OMEGA CTR score",
+  "chat.coverPresetNiche": "Niche preset: accent {{color}}, from {{n}} top thumbnails",
+  "chat.coverPresetUniversal": "Universal viral preset",
+  "chat.coverProHint": "PRO cutout: add a remove.bg key in Cabinet → API Keys",
+  "chat.coverFormatsTitle": "Download for:",
   "chat.sourceTtlNotice": "🗂 The source file is stored for up to {{hours}} h and is cleared after {{idle}} min of inactivity — the analysis, covers and scripts stay forever.",
   "chat.sourceClearedNotice": "🧹 Source file cleared — the results (analysis, covers, scripts) are saved forever.",
   "chat.coverPreviewTitle": "Cover {{w}}×{{h}} — preview before applying",
