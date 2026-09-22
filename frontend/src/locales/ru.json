@@ -1076,7 +1076,22 @@
       "replicate": "Требуется для: vision-скор эмоций кадров и PRO-стилизация фона обложек (COVERS-SUPREME).",
       "removebg": "Требуется для: PRO-вырез объекта на обложке — стикер без фона (COVERS-SUPREME)."
     },
-    "botHotReloadHint": "После сохранения бот переподключится автоматически (webhook обновится без деплоя). Env-токен останется запасным."
+    "botHotReloadHint": "После сохранения бот переподключится автоматически (webhook обновится без деплоя). Env-токен останется запасным.",
+    "checkSaved": "🔄 Проверить",
+    "customTitle": "Свои провайдеры",
+    "customSubtitle": "Подключите любой OpenAI-совместимый сервис (Kling, Veo, Kimi, Claude…) — ключ проверяется живым запросом и сразу входит в ротацию без деплоя.",
+    "customAdd": "Добавить провайдера",
+    "customName": "Название (например: Kling)",
+    "customBaseUrl": "Base URL (https://…/v1)",
+    "customKey": "API-ключ",
+    "customModel": "Модель (например: gpt-4o-mini)",
+    "customFunctions": "Привязка к функциям",
+    "customFunctionChat": "Чат OMEGA",
+    "customEnabled": "Включён",
+    "customDisabled": "Выключен",
+    "customDeleteConfirm": "Удалить слот «{{name}}»? Ключ будет удалён без возможности восстановления.",
+    "customEmpty": "Пока нет своих провайдеров — добавьте первый за 2 минуты.",
+    "customEdit": "Изменить"
   },
   "externalApiKeys": {
     "title": "Внешние API-ключи",
