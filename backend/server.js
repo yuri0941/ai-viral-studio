@@ -78,6 +78,7 @@ import neuroSalesRoutes from './routes/neuroSales.js'  // [v8.0-PART1] Neuro-Sal
 import externalApiKeysRoutes from './routes/externalApiKeys.js'  // [v8.1-PART1] External API keys manager
 import omegaSupremeRoutes from './routes/omegaSupreme.js'  // [v9.0-ARCH] OMEGA Supreme
 import apiKeyRoutes from './routes/apiKeys.js'  // [v9.9.15-REAL] owner API keys
+import customProviderRoutes from './routes/customProviders.js'  // [KEYS-UNIVERSAL З3] универсальный слот «Свой провайдер»
 import projectFactoryRoutes from './routes/projectFactory.js'  // [v9.2-SELF-CODING] Project Factory: cognitive mesh, swarm, memory, scaler, wallet
 import personalityRoutes from './routes/personality.js'  // [v9.1-PERSONALITY] Digital Twin, Voice Clone, Dream Mode
 import predictionRoutes from './routes/prediction.js'  // [v9.3-PREDICTION] Trend Engine, Investment Scout, Boardroom
@@ -603,6 +604,7 @@ app.use('/api/plan-config', planConfigRoutes)  // [P1.6-PREP] живые тар�
 app.use('/api/credits', creditPackRoutes)  // [HOTFIX-FINAL] витрина пакетов кредитов
 app.use('/api/owner', ownerRoutes)  // ← НОВОЕ: Owner Dashboard API
 app.use('/api/api-keys', apiKeyRoutes)  // [v9.9.19-HOTFIX] owner-managed API keys (hot-reload)
+app.use('/api/custom-providers', customProviderRoutes)  // [KEYS-UNIVERSAL З3] универсальный слот «Свой провайдер»
 app.use('/api/owner/apikeys', apiKeyRoutes)  // [v9.9.15-REAL] legacy owner API keys
 app.use('/api/feedback', feedbackRoutes)  // [v9.9.17-ANTI-FAIL] feedback 👍/👎
 app.use('/api/owner/omega-finance', omegaFinanceRoutes)  // [v7.1-PART2] OMEGA Finance

@@ -44,6 +44,7 @@ export { AIProviderSetting } from './AIProviderSetting.js'
 export { default as OmegaApproval } from './OmegaApproval.js'
 export { OwnerSettings } from './OwnerSettings.js'
 export { AdPricing } from './AdPricing.js'
+export { CustomProvider } from './CustomProvider.js'
 
 export { AgentLog } from './AgentLog.js'
 export { ResearchLog } from './ResearchLog.js'

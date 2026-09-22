@@ -124,6 +124,35 @@ router.post('/', protect, requireRole('owner'), async (req, res) => {
   }
 })
 
+// POST /api/api-keys/test-saved — [KEYS-UNIVERSAL З4] кнопка «🔄 Проверить» на карточке:
+// живой re-test УЖЕ сохранённого ключа, статус обновляется в БД (valid → active / invalid).
+router.post('/test-saved', protect, requireRole('owner'), async (req, res) => {
+  try {
+    const { provider } = req.body
+    if (!provider) {
+      return res.status(400).json({ success: false, error: 'Provider required' })
+    }
+    const scope = getOwnerKeyScope(req)
+    const doc = await ApiKey.findOne({ ...scope, provider })
+    if (!doc || !(doc.key || doc.keyValue)) {
+      return res.status(404).json({ success: false, ok: false, message: '❌ Ключ не сохранён — сначала подключите его' })
+    }
+    const result = await validateApiKey(provider, doc.key || doc.keyValue)
+    doc.isValid = result.valid
+    doc.status = result.valid ? 'active' : 'invalid'
+    doc.lastError = result.valid ? null : (result.error || 'проверка не пройдена')
+    doc.lastUsed = new Date()
+    await doc.save()
+    const message = result.valid
+      ? (result.warning ? `✅ Ключ работает (${result.warning})` : '✅ Ключ работает')
+      : `❌ ${result.status ? `HTTP ${result.status}: ` : ''}${result.error || 'проверка не пройдена'}`
+    res.json({ success: result.valid, ok: result.valid, message, warning: result.warning || null })
+  } catch (err) {
+    console.error('[ApiKeys] TEST-SAVED error:', err.message)
+    res.json({ success: false, ok: false, message: '❌ Проверка недоступна' })
+  }
+})
+
 // DELETE /api/api-keys/:provider
 router.delete('/:provider', protect, requireRole('owner'), async (req, res) => {
   try {
@@ -263,6 +292,11 @@ async function validateApiKey(provider, key) {
       case 'replicate': {
         const r = await axios.get('https://api.replicate.com/v1/models', { headers: { Authorization: `Token ${key}` }, timeout: 10000 })
         return { valid: r.status === 200, provider }
+      }
+      case 'removebg': {
+        // [KEYS-UNIVERSAL З2] живая проверка: GET /v1.0/account (бесплатный эндпоинт, кредиты не тратит)
+        const r = await axios.get('https://api.remove.bg/v1.0/account', { headers: { 'X-Api-Key': key }, timeout: 10000 })
+        return { valid: r.status === 200 && !!r.data?.data?.attributes?.api, provider }
       }
       case 'serpapi': {
         const r = await axios.get(`https://serpapi.com/search?q=test&api_key=${key}`, { timeout: 10000 })

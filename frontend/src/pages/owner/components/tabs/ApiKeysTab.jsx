@@ -88,6 +88,15 @@ export default function ApiKeysTab() {
   const [searchParams] = useSearchParams();
   const youtubeCallbackShown = useRef(false);
 
+  // [KEYS-UNIVERSAL З3] универсальный слот «Свой провайдер»
+  const [customProviders, setCustomProviders] = useState([]);
+  const [customModal, setCustomModal] = useState(null); // null | { mode:'create' } | { mode:'edit', provider }
+  const [customForm, setCustomForm] = useState({ name: '', baseUrl: '', apiKey: '', model: '', functions: ['chat'] });
+  const [customBusy, setCustomBusy] = useState(false);
+  const [customShowKey, setCustomShowKey] = useState(false);
+  // [KEYS-UNIVERSAL З4] «🔄 Проверить» на карточке сохранённого ключа
+  const [checking, setChecking] = useState({});
+
   // [v9.9.19.17.0] YouTube OAuth pair (Client ID + Client Secret) for video upload spike
   const [youtubeClientId, setYoutubeClientId] = useState('');
   const [youtubeClientSecret, setYoutubeClientSecret] = useState('');
@@ -104,7 +113,101 @@ export default function ApiKeysTab() {
 
   useEffect(() => {
     loadKeys();
+    loadCustomProviders();
   }, []);
+
+  const loadCustomProviders = async () => {
+    try {
+      const data = await request('/custom-providers');
+      setCustomProviders(Array.isArray(data?.providers) ? data.providers : []);
+    } catch (e) {
+      console.error('[ApiKeysTab] custom providers load failed:', e.message);
+    }
+  };
+
+  // [KEYS-UNIVERSAL З4] живой re-test уже сохранённого ключа (статус обновляется на бэке)
+  const testSavedKey = async (providerId) => {
+    setChecking(prev => ({ ...prev, [providerId]: true }));
+    try {
+      const data = await request('/api-keys/test-saved', { method: 'POST', body: JSON.stringify({ provider: providerId }) });
+      setSaved(prev => ({ ...prev, [providerId]: data.ok ? 'valid' : 'invalid' }));
+      if (data.ok) toast.success(data.message || '✅ Ключ работает');
+      else toast.error(data.message || '❌ Проверка не пройдена');
+      loadKeys();
+    } catch (e) {
+      toast.error('❌ ' + e.message);
+    } finally {
+      setChecking(prev => ({ ...prev, [providerId]: false }));
+    }
+  };
+
+  // [KEYS-UNIVERSAL З3] CRUD универсального слота
+  const openCustomModal = (provider = null) => {
+    setCustomForm(provider
+      ? { name: provider.name, baseUrl: provider.baseUrl, apiKey: '', model: provider.model, functions: provider.functions?.length ? provider.functions : ['chat'] }
+      : { name: '', baseUrl: '', apiKey: '', model: '', functions: ['chat'] });
+    setCustomModal(provider ? { mode: 'edit', provider } : { mode: 'create' });
+    setCustomShowKey(false);
+  };
+  const closeCustomModal = () => { setCustomModal(null); setCustomShowKey(false); };
+
+  const saveCustomProvider = async () => {
+    if (customBusy) return;
+    setCustomBusy(true);
+    try {
+      const body = { name: customForm.name, baseUrl: customForm.baseUrl, model: customForm.model, functions: customForm.functions };
+      if (customForm.apiKey) body.apiKey = customForm.apiKey;
+      const isEdit = customModal?.mode === 'edit';
+      if (isEdit && !customForm.apiKey && customForm.baseUrl === customModal.provider.baseUrl && customForm.model === customModal.provider.model) {
+        // только имя/привязка — без живой проверки
+      }
+      const data = isEdit
+        ? await request(`/custom-providers/${customModal.provider.id}`, { method: 'PATCH', body: JSON.stringify(body) })
+        : await request('/custom-providers', { method: 'POST', body: JSON.stringify({ ...body, apiKey: customForm.apiKey }) });
+      toast.success(data.message || '✅ Готово');
+      closeCustomModal();
+      loadCustomProviders();
+    } catch (e) {
+      toast.error('❌ ' + e.message);
+    } finally {
+      setCustomBusy(false);
+    }
+  };
+
+  const toggleCustomProvider = async (p) => {
+    try {
+      await request(`/custom-providers/${p.id}`, { method: 'PATCH', body: JSON.stringify({ isActive: !p.isActive }) });
+      toast.success(p.isActive ? '⏸ Слот выключен' : '▶ Слот включён');
+      loadCustomProviders();
+    } catch (e) {
+      toast.error('❌ ' + e.message);
+    }
+  };
+
+  const testCustomSlot = async (p) => {
+    setChecking(prev => ({ ...prev, [`custom_${p.id}`]: true }));
+    try {
+      const data = await request(`/custom-providers/${p.id}/test`, { method: 'POST' });
+      if (data.success) toast.success(data.message || '✅ Слот работает');
+      else toast.error(data.message || '❌ Проверка не пройдена');
+      loadCustomProviders();
+    } catch (e) {
+      toast.error('❌ ' + e.message);
+    } finally {
+      setChecking(prev => ({ ...prev, [`custom_${p.id}`]: false }));
+    }
+  };
+
+  const removeCustomProvider = async (p) => {
+    if (!window.confirm((t('apiKeys.customDeleteConfirm') || 'Удалить слот «{{name}}»?').replace('{{name}}', p.name))) return;
+    try {
+      await request(`/custom-providers/${p.id}`, { method: 'DELETE' });
+      toast.success('🗑 Слот удалён');
+      loadCustomProviders();
+    } catch (e) {
+      toast.error('❌ ' + e.message);
+    }
+  };
 
   // [v9.9.19.17.2] show YouTube OAuth callback result once after redirect from Google
   useEffect(() => {
@@ -389,6 +492,10 @@ export default function ApiKeysTab() {
                     <button onClick={() => openModal(p)} className="flex-1 px-3 py-2 rounded-lg bg-purple-600/15 text-purple-400 text-sm font-medium hover:bg-purple-600/25 border border-purple-500/20 transition-colors flex items-center justify-center gap-2">
                       <Check className="w-4 h-4" /> Обновить
                     </button>
+                    {/* [KEYS-UNIVERSAL З4] живой re-test сохранённого ключа */}
+                    <button onClick={() => testSavedKey(p.id)} disabled={!!checking[p.id]} title={t('apiKeys.checkSaved') || '🔄 Проверить'} className="p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/20 transition-colors disabled:opacity-50">
+                      <RefreshCw className={`w-4 h-4 ${checking[p.id] ? 'animate-spin' : ''}`} />
+                    </button>
                     <button onClick={() => removeKey(p.id)} className="p-2.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -523,6 +630,114 @@ export default function ApiKeysTab() {
           </div>
         )}
       </div>
+
+      {/* [KEYS-UNIVERSAL З3] Универсальный слот «Свой провайдер» */}
+      <div className="pt-4 border-t border-[var(--border)]">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2"><Server className="w-5 h-5 text-cyan-400" /> {t('apiKeys.customTitle')}</h3>
+            <p className="text-xs text-[var(--text-muted)] mt-1 max-w-2xl">{t('apiKeys.customSubtitle')}</p>
+          </div>
+          <button onClick={() => openCustomModal()} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium transition-colors flex items-center gap-2">
+            <Key className="w-4 h-4" /> {t('apiKeys.customAdd')}
+          </button>
+        </div>
+        {customProviders.length === 0 ? (
+          <div className="glass-luxury rounded-xl p-6 border border-dashed border-[var(--border)] text-center text-sm text-[var(--text-muted)]">
+            {t('apiKeys.customEmpty')}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {customProviders.map(cp => (
+              <div key={cp.id} className={`glass-luxury rounded-xl p-5 border transition-all ${cp.isActive ? 'border-cyan-500/20' : 'border-[var(--border)] opacity-60'}`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                    <Server className="w-5 h-5 text-cyan-400" />
+                  </div>
+                  <div title={cp.lastError || ''} className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 ${!cp.isActive ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' : cp.isValid ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-red-500/15 text-red-400 border-red-500/30'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${!cp.isActive ? 'bg-gray-500' : cp.isValid ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                    {!cp.isActive ? t('apiKeys.customDisabled') : cp.isValid ? '✅ Работает' : '🔴 Ошибка'}
+                  </div>
+                </div>
+                <h4 className="font-semibold text-base mb-0.5 truncate" title={cp.name}>{cp.name}</h4>
+                <p className="text-xs text-[var(--text-muted)] font-mono truncate" title={cp.baseUrl}>{cp.baseUrl}</p>
+                <p className="text-xs text-[var(--text-muted)] mb-1 truncate">модель: {cp.model}</p>
+                {cp.maskedKey && <p className="text-xs text-[var(--text-muted)] mb-1 font-mono">{cp.maskedKey}</p>}
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {(cp.functions || []).map(f => (
+                    <span key={f} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                      {f === 'chat' ? t('apiKeys.customFunctionChat') : f}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => toggleCustomProvider(cp)} className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${cp.isActive ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 hover:bg-yellow-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'}`}>
+                    {cp.isActive ? '⏸ ' + t('apiKeys.customDisabled') : '▶ ' + t('apiKeys.customEnabled')}
+                  </button>
+                  <button onClick={() => testCustomSlot(cp)} disabled={!!checking[`custom_${cp.id}`]} title={t('apiKeys.checkSaved')} className="p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/20 transition-colors disabled:opacity-50">
+                    <RefreshCw className={`w-4 h-4 ${checking[`custom_${cp.id}`] ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button onClick={() => openCustomModal(cp)} title={t('apiKeys.customEdit')} className="p-2.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/20 transition-colors">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => removeCustomProvider(cp)} className="p-2.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-colors">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* [KEYS-UNIVERSAL З3] модалка универсального слота */}
+      {customModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={closeCustomModal}>
+          <div className="glass-luxury rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto border border-[var(--border)] space-y-4 relative" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold flex items-center gap-2"><Server className="w-5 h-5 text-cyan-400" /> {customModal.mode === 'edit' ? t('apiKeys.customEdit') : t('apiKeys.customAdd')}</h3>
+              <button onClick={closeCustomModal} className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-xs text-[var(--text-muted)]">{t('apiKeys.customSubtitle')}</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('apiKeys.customName')}</label>
+                <input value={customForm.name} onChange={e => setCustomForm(f => ({ ...f, name: e.target.value }))} placeholder="Kling" className="w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] p-2.5 text-sm focus:border-cyan-500/50 focus:outline-none transition-colors" />
+              </div>
+              <div>
+                <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('apiKeys.customBaseUrl')}</label>
+                <input value={customForm.baseUrl} onChange={e => setCustomForm(f => ({ ...f, baseUrl: e.target.value }))} placeholder="https://api.example.com/v1" className="w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] p-2.5 text-sm font-mono focus:border-cyan-500/50 focus:outline-none transition-colors" />
+              </div>
+              <div>
+                <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('apiKeys.customKey')}{customModal.mode === 'edit' ? ' (оставьте пустым — ключ не меняется)' : ''}</label>
+                <div className="relative">
+                  <input type={customShowKey ? 'text' : 'password'} value={customForm.apiKey} onChange={e => setCustomForm(f => ({ ...f, apiKey: e.target.value }))} placeholder="sk-..." className="w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] p-2.5 pr-10 text-sm font-mono focus:border-cyan-500/50 focus:outline-none transition-colors" />
+                  <button onClick={() => setCustomShowKey(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[var(--text-muted)] hover:text-white transition-colors">
+                    {customShowKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('apiKeys.customModel')}</label>
+                <input value={customForm.model} onChange={e => setCustomForm(f => ({ ...f, model: e.target.value }))} placeholder="gpt-4o-mini" className="w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] p-2.5 text-sm font-mono focus:border-cyan-500/50 focus:outline-none transition-colors" />
+              </div>
+              <div>
+                <label className="text-xs text-[var(--text-muted)] mb-1 block">{t('apiKeys.customFunctions')}</label>
+                <label className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] cursor-pointer">
+                  <input type="checkbox" checked={customForm.functions.includes('chat')} onChange={e => setCustomForm(f => ({ ...f, functions: e.target.checked ? ['chat'] : [] }))} className="accent-cyan-500" />
+                  {t('apiKeys.customFunctionChat')}
+                </label>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={closeCustomModal} className="flex-1 px-4 py-2.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] hover:bg-[var(--bg-hover)] text-sm transition-colors">Отмена</button>
+              <button onClick={saveCustomProvider} disabled={customBusy || !customForm.name || !customForm.baseUrl || !customForm.model || (customModal.mode === 'create' && !customForm.apiKey) || !customForm.functions.length} className="flex-[2] px-4 py-2.5 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-white text-sm font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+                {customBusy ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Сохранить и применить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {modalOpen && activeProvider && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={closeModal}>

@@ -988,7 +988,22 @@
       "replicate": "Required for: frame emotion vision scoring and PRO cover background stylization (COVERS-SUPREME).",
       "removebg": "Required for: PRO cover subject cutout — sticker without background (COVERS-SUPREME)."
     },
-    "botHotReloadHint": "After saving, the bot reconnects automatically (webhook is updated without a deploy). The env token stays as a fallback."
+    "botHotReloadHint": "After saving, the bot reconnects automatically (webhook is updated without a deploy). The env token stays as a fallback.",
+    "checkSaved": "🔄 Re-check",
+    "customTitle": "Custom providers",
+    "customSubtitle": "Connect any OpenAI-compatible service (Kling, Veo, Kimi, Claude…) — the key is verified by a live request and joins the rotation instantly, no deploy.",
+    "customAdd": "Add provider",
+    "customName": "Name (e.g. Kling)",
+    "customBaseUrl": "Base URL (https://…/v1)",
+    "customKey": "API key",
+    "customModel": "Model (e.g. gpt-4o-mini)",
+    "customFunctions": "Bound functions",
+    "customFunctionChat": "OMEGA chat",
+    "customEnabled": "Enabled",
+    "customDisabled": "Disabled",
+    "customDeleteConfirm": "Delete slot \"{{name}}\"? The key will be permanently removed.",
+    "customEmpty": "No custom providers yet — add the first one in 2 minutes.",
+    "customEdit": "Edit"
   },
   "externalApiKeys": {
     "title": "External API Keys",
