@@ -1092,6 +1092,32 @@ const tryProviders = async (messages, ownerId = null, { isOwner = false, action 
         }
     }
 
+    // [KEYS-UNIVERSAL З3] слоты «Свой провайдер» (привязка chat, hot-reload ≤30с):
+    // идут после встроенной цепочки, до Local Brain. Мёртвый ключ (401/402/403)
+    // авто-отключается в callCustomProvider (isActive=false + TG-алерт) — здесь просто skip.
+    try {
+        const { getCustomChatProviders, callCustomProvider } = await import('./customProviderService.js')
+        const customProviders = await getCustomChatProviders()
+        for (const cp of customProviders) {
+            const slotId = `custom:${cp.name}`
+            try {
+                console.log(`🤖 Trying custom slot ${cp.name}...`)
+                const text = await callCustomProvider(cp, prompt)
+                console.log(`[AI] provider=custom:${cp.name} model=${cp.model}`)
+                import('./expenseTracker.js')
+                    .then(m => m.logAiUsage(slotId, prompt, text, { isOwner, action }))
+                    .catch(() => {})
+                return { reply: text, provider: slotId, usage: null }
+            } catch (error) {
+                console.log(`⏭️ custom slot ${cp.name} failed (status ${error.response?.status || 'N/A'}): ${error.message}`)
+                errors.push(`custom:${cp.name}: ${error.message}`)
+                await sleep(200)
+            }
+        }
+    } catch (e) {
+        console.warn('[AI] custom providers stage failed:', e.message)
+    }
+
     // [P16-FINAL] All providers failed — try Local Brain, then Smart Fallback
     const lastUserMessage = messages[messages.length - 1]?.content || ''
     try {
