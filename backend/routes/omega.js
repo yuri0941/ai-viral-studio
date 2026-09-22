@@ -1004,7 +1004,14 @@ router.get('/niche-competitors', protect, async (req, res) => {
             return res.json({ success: true, available: false, reason: 'no_stats', message: 'Не удалось получить статистику видео ниши' })
         }
         rows.sort((a, b) => b.views - a.views)
-        res.json({ success: true, available: true, platform, niche, rows })
+        // [KNOWLEDGE-PACK З5] методология оценки ниши — кратность к медиане канала (swipe.py, MIT):
+        // сырые просмотры ранжируют размер канала, а не идею. Честно прикладываем метод к ответу.
+        const { getKnowledge } = await import('../services/knowledgeService.js')
+        const nr = getKnowledge('algorithm')?.nicheRanking
+        res.json({
+            success: true, available: true, platform, niche, rows,
+            nicheRanking: nr ? { method: nr.method, minVideosPerChannel: nr.minVideosPerChannel, note: nr.ru } : null,
+        })
     } catch (e) {
         console.error('[Omega] niche-competitors error:', e)
         res.status(500).json({ success: false, error: e.message })
