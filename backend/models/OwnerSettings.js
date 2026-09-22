@@ -70,6 +70,9 @@ const ownerSettingsSchema = new mongoose.Schema({
     // исходный видеофайл удаляется кроном. Жёсткий потолок videoStorageTtlHours работает поверх.
     // Результаты (обложки/разбор/сценарии) не трогаются никогда.
     videoIdleMinutes: { type: Number, default: 30, min: 1, max: 1440 },
+    // [KNOWLEDGE-PACK З3] языки мультиязычной упаковки (meta-package). EN ВСЕГДА первым
+    // (приоритет зарубеж — решение владельца), дальше — список из кабинета, hot-reload ≤60с.
+    packagingLanguages: { type: [String], default: ['en', 'ru'] },
     // [OMEGA-CONTROL] рубильники автономных контуров OMEGA (owner-бот /omega, TG).
     // Дефолт true = текущее поведение прода не меняется; выключение — только с превью ✅ владельца.
     omegaControl: {
@@ -317,6 +320,55 @@ export async function setVideoSettings(patch = {}) {
     await doc.save()
     invalidateVideoSettingsCache()
     return getVideoSettings()
+}
+
+// [KNOWLEDGE-PACK З3] языки упаковки из кабинета владельца: EN всегда первым (приоритет зарубеж),
+// кэш ≤60с (паттерн videoSettings). Допустимые языки — фиксированный список.
+export const PACKAGING_LANGS_ALLOWED = ['en', 'ru', 'de', 'es', 'fr', 'pt', 'it', 'pl', 'uk', 'tr', 'hi', 'ja', 'ko', 'zh']
+const PACKAGING_LANGS_TTL_MS = 60 * 1000
+let packagingLangsCache = { value: null, at: 0 }
+
+export function invalidatePackagingLangsCache() {
+    packagingLangsCache = { value: null, at: 0 }
+}
+
+export async function getPackagingLanguages() {
+    if (packagingLangsCache.at && Date.now() - packagingLangsCache.at < PACKAGING_LANGS_TTL_MS) {
+        return packagingLangsCache.value
+    }
+    let value = ['en', 'ru']
+    try {
+        if (mongoose.connection?.readyState === 1) {
+            const doc = await OwnerSettings.findOne().sort({ updatedAt: -1 }).lean()
+            const raw = Array.isArray(doc?.packagingLanguages) ? doc.packagingLanguages : null
+            if (raw?.length) {
+                const clean = raw.map(l => String(l).toLowerCase().trim()).filter(l => PACKAGING_LANGS_ALLOWED.includes(l))
+                if (clean.length) value = ['en', ...clean.filter(l => l !== 'en')].slice(0, 4)
+            }
+        }
+    } catch (e) {
+        console.warn('[OwnerSettings] getPackagingLanguages db read failed:', e.message)
+    }
+    value = ['en', ...value.filter(l => l !== 'en')] // EN всегда первым
+    packagingLangsCache = { value, at: Date.now() }
+    return value
+}
+
+export async function setPackagingLanguages(langs) {
+    if (!Array.isArray(langs) || !langs.length) throw new Error('packagingLanguages must be a non-empty array')
+    const clean = langs.map(l => String(l).toLowerCase().trim()).filter(l => PACKAGING_LANGS_ALLOWED.includes(l))
+    if (!clean.length) throw new Error(`allowed languages: ${PACKAGING_LANGS_ALLOWED.join(', ')}`)
+    const next = ['en', ...clean.filter(l => l !== 'en')].slice(0, 4)
+    let doc = await OwnerSettings.findOne().sort({ updatedAt: -1 })
+    if (!doc) {
+        const ownerUser = await mongoose.model('User').findOne({ role: 'owner' }).select('_id').lean()
+        if (!ownerUser) throw new Error('OwnerSettings document not found')
+        doc = new OwnerSettings({ ownerId: ownerUser._id })
+    }
+    doc.packagingLanguages = next
+    await doc.save()
+    invalidatePackagingLangsCache()
+    return getPackagingLanguages()
 }
 
 // [OMEGA-CONTROL] рубильники контуров автономии. Чтение без кэша (кроны 5–60 мин — свежести достаточно),
