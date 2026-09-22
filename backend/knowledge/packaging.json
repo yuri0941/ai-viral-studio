@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-09-15",
+  "license": "MIT",
+  "sources": [
+    "github.com/sergebulaev/youtube-skills (MIT): thumbnail-principles + brief template",
+    "github.com/Jakeschincariol/youtube-agent-skill (MIT): yt-package pairing rules + title.py dup lint"
+  ],
+  "pairRule": {
+    "en": "Title and thumbnail are ONE unit, seen together in under a second. The thumbnail must not repeat the title's words. The title says the context, the number, the search phrase; the thumbnail shows the face, the emotion, the result. Together they carry exactly one trigger.",
+    "ru": "Тайтл и обложка — ОДНА пара, их видят вместе меньше чем за секунду. Обложка не повторяет слова тайтла. Тайтл несёт контекст, цифру, поисковую фразу; обложка показывает лицо, эмоцию, результат. В сумме — ровно один триггер."
+  },
+  "loadSplit": {
+    "titleSays": { "en": "the context, the number, the search phrase", "ru": "контекст, цифру, поисковую фразу" },
+    "thumbnailShows": { "en": "the face, the emotion, the result", "ru": "лицо, эмоцию, результат" }
+  },
+  "thumbnailNonNegotiables": {
+    "en": [
+      "One focal point — a single subject the eye lands on instantly.",
+      "A legible emotion — a real expression that matches the video's actual feeling.",
+      "High contrast and separation — the subject pops off the background at 120px.",
+      "At most 3-4 words of text, words the title does NOT also say.",
+      "Reads at 120 pixels — if it fails shrunk, it fails."
+    ],
+    "ru": [
+      "Одна точка фокуса — единственный объект, на который падает взгляд.",
+      "Читаемая эмоция — настоящее выражение, совпадающее с тоном видео.",
+      "Высокий контраст и отрыв от фона — объект читается на 120px.",
+      "Максимум 3–4 слова текста, и это НЕ слова из тайтла.",
+      "Читается на 120 пикселях — не читается в мелком виде = провал."
+    ]
+  },
+  "dupLint": {
+    "description": { "en": "Thumbnail/cover text must not repeat the title. Shared content words (minus stop words) = duplicate violation.", "ru": "Текст обложки не должен повторять тайтл. Общие значимые слова (минус стоп-слова) = нарушение дубля." },
+    "minSharedWordsToFlag": 1,
+    "thumbnailMaxWords": 4
+  },
+  "compositionCues": {
+    "en": [
+      "Rule of thirds: face off-center, text on the opposite side.",
+      "Gaze direction pulls the eye toward the text or object.",
+      "Sharp subject on softened background survives shrinking.",
+      "Color contrast over color matching: pick a dominant color the niche feed is not saturated with.",
+      "Negative space is allowed: one subject plus breathing room beats a busy collage."
+    ],
+    "ru": [
+      "Правило третей: лицо не по центру, текст — на противоположной стороне.",
+      "Направление взгляда тянет глаз зрителя к тексту или объекту.",
+      "Резкий объект на смягчённом фоне переживает уменьшение.",
+      "Контраст цвета важнее подбора цвета: доминанта, которой нет в ленте ниши.",
+      "Воздух разрешён: один объект и свобода бьют перегруженный коллаж."
+    ]
+  },
+  "abTesting": {
+    "en": "Produce 2-3 concepts, vary ONE big thing (face vs object, text vs no text, color). YouTube Test & Compare scores by watch-time share, not raw CTR — favor the concept that attracts the right viewer.",
+    "ru": "Делай 2–3 концепта, меняй ОДНУ крупную вещь (лицо против объекта, текст против без текста, цвет). YouTube Test & Compare оценивает по доле времени просмотра, не по сырому CTR — выбирай концепт, привлекающий правильного зрителя."
+  },
+  "shortsThumbnail": {
+    "en": "In the Shorts feed the thumbnail barely shows: the first video frame doubles as the thumbnail. Make frame one arresting on its own.",
+    "ru": "В ленте Shorts обложку почти не видно: первый кадр видео сам работает обложкой. Первый кадр должен цеплять сам по себе."
+  }
+}

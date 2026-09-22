@@ -1,0 +1,100 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-09-15",
+  "license": "MIT",
+  "note": "Platform packaging specs. Owner decision 2026-09: VK Video and Dzen are EXCLUDED (not developed). Priority is international: YouTube/Shorts, TikTok, Instagram Reels, X, Twitch clips. Telegram — posts/bots only. EN packaging has priority over RU.",
+  "languagePriority": ["en", "ru"],
+  "platforms": [
+    {
+      "id": "youtube",
+      "label": "YouTube (long-form)",
+      "enabled": true,
+      "titleCap": 100,
+      "titleSweetSpot": [40, 60],
+      "descriptionCap": 5000,
+      "chapters": true,
+      "tags": { "max": 15, "charLimit": 500 },
+      "hashtags": { "count": [3, 5], "placement": "end of description" },
+      "style": {
+        "en": "Title 40-60 chars, click-deciding words front-loaded, one specific number, formula-tagged. Description per SEO skeleton: hook in first 150 chars, chapters (00:00 first, >=3, >=10s each), labeled links, 3-5 hashtags, one-line specific CTA.",
+        "ru": "Тайтл 40–60 знаков, решающие слова в начале, одна конкретная цифра, пометка формулы. Описание по SEO-скелету: хук в первых 150 знаках, главы (первая 00:00, >=3, каждая >=10с), подписанные ссылки, 3–5 хэштегов, однострочный конкретный CTA."
+      }
+    },
+    {
+      "id": "shorts",
+      "label": "YouTube Shorts",
+      "enabled": true,
+      "titleCap": 40,
+      "chapters": false,
+      "hashtags": { "count": [2, 3], "placement": "end", "mustInclude": "#Shorts" },
+      "style": {
+        "en": "Title <=40 chars, declarative, echoes the 3-second hook. The first video frame doubles as the thumbnail. Description: one-line hook with keyword, one link, #Shorts + topic hashtags. Ending designed to loop.",
+        "ru": "Тайтл <=40 знаков, декларативный, эхо 3-секундного хука. Первый кадр видео = обложка. Описание: однострочный хук с ключом, одна ссылка, #Shorts + тематические хэштеги. Финал зациклен на начало."
+      }
+    },
+    {
+      "id": "tiktok",
+      "label": "TikTok",
+      "enabled": true,
+      "titleCap": 40,
+      "chapters": false,
+      "hashtags": { "count": [3, 5], "placement": "caption", "mix": "1-2 broad + 1-2 niche + 1 branded" },
+      "style": {
+        "en": "Caption <=40 chars declarative hook echoing the first frame; question bait drives comments. Hook on frame one with on-screen text (sound-off safe).",
+        "ru": "Подпись <=40 знаков, декларативный хук, эхо первого кадра; вопрос-приманка тянет комментарии. Хук на первом кадре текстом (читается без звука)."
+      }
+    },
+    {
+      "id": "reels",
+      "label": "Instagram Reels",
+      "enabled": true,
+      "titleCap": 40,
+      "chapters": false,
+      "hashtags": { "count": [3, 5], "placement": "caption end" },
+      "style": {
+        "en": "First caption line <=40 chars carries the hook (it is all that shows before 'more'). Cover frame legible at grid size. No TikTok watermarks.",
+        "ru": "Первая строка подписи <=40 знаков несёт хук (видно только её до «ещё»). Обложка читается в размере сетки. Без вотермарок TikTok."
+      }
+    },
+    {
+      "id": "x",
+      "label": "X (Twitter)",
+      "enabled": true,
+      "titleCap": 80,
+      "chapters": false,
+      "hashtags": { "count": [0, 2], "placement": "inline or end" },
+      "style": {
+        "en": "Short punch: one claim or one number that makes the clip worth the tap. Third-person case-study shape ('How X built Y from zero') tops X as well. No hashtag walls.",
+        "ru": "Короткий панч: одно утверждение или одна цифра, ради которых стоит тапнуть. Форма чужого кейса («Как X построил Y с нуля») топит и на X. Без стен хэштегов."
+      }
+    },
+    {
+      "id": "twitch",
+      "label": "Twitch (clips)",
+      "enabled": true,
+      "titleCap": 100,
+      "chapters": false,
+      "hashtags": { "count": [0, 0] },
+      "style": {
+        "en": "Clip title gives the context the clipped moment lacks: what just happened and why it is absurd/impressive. Present-tense, names the game/topic, no clickbait the VOD cannot honor.",
+        "ru": "Название клипа даёт контекст, которого у вырванного момента нет: что только что произошло и почему это дико/круто. Настоящее время, игра/тема названа, без кликбейта, который VOD не отработает."
+      }
+    },
+    {
+      "id": "telegram",
+      "label": "Telegram (post)",
+      "enabled": true,
+      "titleCap": 60,
+      "chapters": false,
+      "hashtags": { "count": [0, 3], "placement": "end" },
+      "style": {
+        "en": "First line = hook (Telegram shows it in previews). Short paragraphs, one link, bold on the key phrase. CIS-audience patterns allowed for RU packs.",
+        "ru": "Первая строка = хук (её видно в превью). Короткие абзацы, одна ссылка, жирным — ключевая фраза. Для RU-пакетов допустимы СНГ-паттерны."
+      }
+    }
+  ],
+  "excluded": [
+    { "id": "vk", "reason": "Owner decision 2026-09: VK Video excluded, not developed." },
+    { "id": "dzen", "reason": "Owner decision 2026-09: Dzen excluded, not developed." }
+  ]
+}

@@ -1,0 +1,283 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-09-15",
+  "license": "MIT",
+  "sources": [
+    "github.com/Jakeschincariol/youtube-agent-skill (MIT): 21 hook formula + hookscore",
+    "github.com/sergebulaev/youtube-skills (MIT): Y7-Y10 opening structures, Shorts 3s hook, pairing table"
+  ],
+  "rules": {
+    "en": [
+      "Confirm the title in the first sentence. A hook that ignores its own title is why people leave at 0:08.",
+      "One idea. A hook carrying two promises keeps neither.",
+      "Specific beats big: '400 to 200,000 in seven months' outperforms 'massive growth'.",
+      "Show the artifact inside 20 seconds if you promised one.",
+      "Never open with who you are. The subscribe pitch has not been earned yet.",
+      "No greeting, no logo sting, no intro animation before the hook.",
+      "Shorts: payoff or tension on frame one, with on-screen text so it lands muted.",
+      "Shorts: design the ending to flow back into the opening line — loop-throughs are the strongest Shorts signal."
+    ],
+    "ru": [
+      "Первой фразой подтверди обещание тайтла. Хук, игнорирующий свой тайтл, — причина ухода на 0:08.",
+      "Одна идея. Хук с двумя обещаниями не удерживает ни одно.",
+      "Конкретика бьёт громкость: «с 400 до 200 000 за семь месяцев» сильнее «огромный рост».",
+      "Обещал артефакт — покажи его в первые 20 секунд.",
+      "Никогда не начинай с представления себя. Просьбу подписаться ещё надо заработать.",
+      "Никаких приветствий, заставок и интро до хука.",
+      "Shorts: выгода или напряжение — на первом кадре, текстом на экране (читается без звука).",
+      "Shorts: финал пиши так, чтобы он стекал обратно в первую фразу — досмотры по кругу сильнейший сигнал."
+    ]
+  },
+  "hooks": [
+    {
+      "id": "the-statistic",
+      "name": "The Statistic",
+      "nameRu": "Цифра-шок",
+      "goal": "retention",
+      "shape": { "en": "A number the viewer did not know, stated flat, then the consequence.", "ru": "Цифра, которую зритель не знал, подана сухо — затем следствие." },
+      "example": { "en": "97% of the people who start a channel quit before video 30. Here is what the other 3% do differently.", "ru": "97% тех, кто заводит канал, бросают до тридцатого видео. Вот что остальные 3% делают иначе." },
+      "failsWhen": { "en": "Dies if the number is vague or unverifiable. Say the source out loud.", "ru": "Умирает, если цифра размыта или непроверяема. Назови источник вслух." },
+      "match": { "en": ["\\b\\d+(\\.\\d+)?\\s?%", "\\b\\d+ (out of|in) \\d+\\b", "\\b\\d{2,}([, ]\\d{3})+\\b"], "ru": ["\\b\\d+(\\.\\d+)?\\s?%", "\\b\\d+ из \\d+\\b", "\\b\\d{2,}([ ,]\\d{3})+\\b"] }
+    },
+    {
+      "id": "someone-elses-result",
+      "name": "Someone Else's Result",
+      "nameRu": "Чужой результат",
+      "goal": "retention",
+      "shape": { "en": "A named person's outcome, then the mechanism.", "ru": "Результат конкретного человека/канала — затем механизм." },
+      "example": { "en": "This channel went from 400 subscribers to 200,000 in seven months on one format. I mapped it.", "ru": "Этот канал прошёл путь от 400 подписчиков до 200 000 за семь месяцев на одном формате. Я его разобрал." },
+      "failsWhen": { "en": "Do not invent the number. If you cannot name the channel, use a different formula.", "ru": "Цифру не выдумывать. Не можешь назвать канал — бери другую формулу." },
+      "match": { "en": ["\\bthis (channel|guy|creator|account)\\b", "\\bwent from .* to\\b", "\\bin (a|one|two|three|\\d+) (week|month|year)s?\\b"], "ru": ["\\bэтот (канал|блогер|автор|аккаунт)\\b", "\\bот .* до\\b", "\\bза \\d+ (неделю|месяц|год|месяца|месяцев|дней|дня)\\b"] }
+    },
+    {
+      "id": "the-mistake",
+      "name": "The Mistake",
+      "nameRu": "Ошибка",
+      "goal": "retention",
+      "shape": { "en": "Name the error the viewer is probably making right now.", "ru": "Назови ошибку, которую зритель, скорее всего, делает прямо сейчас." },
+      "example": { "en": "Your first 30 seconds are why nobody finishes your videos. It is not the topic.", "ru": "Ваши первые 30 секунд — вот почему никто не досматривает ваши видео. Дело не в теме." },
+      "failsWhen": { "en": "Only works if the mistake is common and the viewer can check it in one second.", "ru": "Работает, только если ошибка массовая и зритель проверяет её за секунду." },
+      "match": { "en": ["\\byou('re| are) (probably |still )?(doing|making)\\b", "\\bthe (mistake|reason) (everyone|most people|nobody)\\b", "\\bstop (doing )?\\b"], "ru": ["\\bвы (до сих пор )?(делаете|совершаете)\\b", "\\b(ошибка|причина), (которую|о которой)\\b", "\\bперестаньте\\b", "\\bхватит\\b"] }
+    },
+    {
+      "id": "contrarian-flip",
+      "name": "Contrarian Flip",
+      "nameRu": "Разворот против всех",
+      "goal": "ctr",
+      "shape": { "en": "State the accepted advice, then reject it.", "ru": "Сформулируй общепринятый совет — и отвергни его." },
+      "example": { "en": "Everyone says post daily. I posted once a week for a year and tripled the channel.", "ru": "Все говорят: публикуйтесь каждый день. Я выкладывал раз в неделю год и утроил канал." },
+      "failsWhen": { "en": "Needs evidence in the next 15 seconds or it reads as contrarian for its own sake.", "ru": "Без доказательства в следующие 15 секунд выглядит спором ради спора." },
+      "match": { "en": ["\\beveryone (says|thinks|tells you)\\b", "\\bis (actually )?wrong\\b", "\\bnobody (tells|talks about)\\b"], "ru": ["\\bвсе (говорят|думают|советуют)\\b", "\\bникто (не говорит|не расскажет)\\b", "\\bэто неправда\\b"] }
+    },
+    {
+      "id": "the-reveal",
+      "name": "The Reveal",
+      "nameRu": "Показ",
+      "goal": "retention",
+      "shape": { "en": "Promise a specific thing will be shown, then show it.", "ru": "Пообещай конкретную вещь — и покажи её." },
+      "example": { "en": "I am going to show you the exact prompt, on screen, that wrote this video.", "ru": "Я покажу вам точный промпт, на экране, которым написано это видео." },
+      "failsWhen": { "en": "You have to actually show it, early. A reveal at 8:00 is a retention cliff at 1:00.", "ru": "Показать надо реально и рано. Показ на 8:00 — это обрыв удержания на 1:00." },
+      "match": { "en": ["\\bI('m| am) going to show you\\b", "\\bhere('s| is) (the|exactly)\\b", "\\bon screen\\b"], "ru": ["\\bя (вам )?покажу\\b", "\\bвот (точный|конкретный|сам)\\b", "\\bна экране\\b"] }
+    },
+    {
+      "id": "the-superlative",
+      "name": "The Superlative",
+      "nameRu": "Суперлатив",
+      "goal": "ctr",
+      "shape": { "en": "The single best/worst/fastest of a category.", "ru": "Самый лучший/худший/быстрый в категории — один." },
+      "example": { "en": "This is the fastest way to turn one long video into thirty Shorts.", "ru": "Это самый быстрый способ превратить одно длинное видео в тридцать Shorts." },
+      "failsWhen": { "en": "Superlatives are cheap. Earn it by naming what it beat.", "ru": "Суперлативы дёшевы. Заслужи его — назови, что именно он побил." },
+      "match": { "en": ["\\bthe (best|worst|fastest|easiest|only)\\b", "\\bnumber one\\b"], "ru": ["\\bсамы[йе] (быстр|прост|лучш|худш|сильн)\\w*\\b", "\\bединственн\\w+ способ\\b"] }
+    },
+    {
+      "id": "the-clock",
+      "name": "The Clock",
+      "nameRu": "Часы",
+      "goal": "retention",
+      "shape": { "en": "Bound the payoff in time.", "ru": "Ограничь выгоду рамкой по времени." },
+      "example": { "en": "In the next six minutes you will have a working title, thumbnail and script for your next video.", "ru": "Через шесть минут у вас будут рабочий тайтл, обложка и сценарий для следующего видео." },
+      "failsWhen": { "en": "The clock has to be true. Overrun it and the next video's hook is not believed.", "ru": "Часы обязаны быть честными. Перерасход — и хуку следующего видео не верят." },
+      "match": { "en": ["\\bin (the next )?\\d+ (seconds|minutes|hours)\\b", "\\bby the end of this video\\b", "\\bunder \\d+\\b"], "ru": ["\\bза \\d+ (секунд|минут|часов|минуты|часа)\\b", "\\bк концу (этого )?видео\\b", "\\bменьше чем за \\d+\\b"] }
+    },
+    {
+      "id": "i-tried-it",
+      "name": "I Tried It",
+      "nameRu": "Я попробовал",
+      "goal": "ctr",
+      "shape": { "en": "First-person experiment with a stated cost.", "ru": "Эксперимент от первого лица с названной ценой (время/деньги/риск)." },
+      "example": { "en": "I let an AI run my channel for 30 days. I did not touch the uploads.", "ru": "Я отдал канал нейросети на 30 дней. К загрузкам не прикасался." },
+      "failsWhen": { "en": "Needs a real cost - time, money, risk - or there is no stake.", "ru": "Нужна реальная цена — время, деньги, риск. Без ставки не работает." },
+      "match": { "en": ["\\bI (tried|spent|tested|let|gave)\\b", "\\bfor \\d+ (days|weeks|months)\\b", "\\bso you don'?t have to\\b"], "ru": ["\\bя (попробовал|потратил|проверил|отдал|дал)\\b", "\\b\\d+ (дней|недель|месяцев|дня|неделю|месяц)\\b", "\\bчтобы вам не пришлось\\b"] }
+    },
+    {
+      "id": "the-question",
+      "name": "The Question",
+      "nameRu": "Вопрос",
+      "goal": "retention",
+      "shape": { "en": "Ask the exact question the viewer typed into search.", "ru": "Задай ровно тот вопрос, который зритель вбивал в поиск." },
+      "example": { "en": "Why do your videos die at 30 seconds when the topic is fine?", "ru": "Почему ваши видео умирают на 30-й секунде, хотя тема нормальная?" },
+      "failsWhen": { "en": "Must be the viewer's question, not yours. Pull it from your own comments.", "ru": "Это должен быть вопрос зрителя, не автора. Бери из своих комментариев." },
+      "match": { "en": ["^(why|how|what|when|should|can|do|does|is)\\b", "\\?\\s*$"], "ru": ["^(почему|как|что|когда|стоит ли|можно ли|зачем)\\b", "\\?\\s*$"] }
+    },
+    {
+      "id": "the-before-after",
+      "name": "Before and After",
+      "nameRu": "До и после",
+      "goal": "ctr",
+      "shape": { "en": "Two states, one cut between them.", "ru": "Два состояния, одна склейка между ними." },
+      "example": { "en": "This was my thumbnail. This is my thumbnail now. Same video, four times the click-through.", "ru": "Это была моя обложка. Это — моя обложка теперь. То же видео, кликабельность в четыре раза выше." },
+      "failsWhen": { "en": "Only works with a visual. Do not use it on a talking-head-only video.", "ru": "Работает только с визуалом. Для говорящей головы без картинки не бери." },
+      "match": { "en": ["\\bbefore\\b.*\\bafter\\b", "\\bthis was\\b.*\\bthis is\\b", "\\bused to\\b"], "ru": ["\\bбыло\\b.*\\bстало\\b", "\\bэто было\\b.*\\bэто\\b", "\\bраньше\\b"] }
+    },
+    {
+      "id": "the-teardown",
+      "name": "The Teardown",
+      "nameRu": "Разбор",
+      "goal": "retention",
+      "shape": { "en": "Take a real thing apart in public.", "ru": "Разбери реальную вещь публично, по винтикам." },
+      "example": { "en": "I pulled the nine most-viewed AI videos of the month and broke down what the titles share.", "ru": "Я взял девять самых просматриваемых AI-видео месяца и разобрал, что общего у их заголовков." },
+      "failsWhen": { "en": "Name what you pulled and how many. A teardown of one example is an anecdote.", "ru": "Назови, что взял и сколько. Разбор одного примера — это анекдот." },
+      "match": { "en": ["\\b(broke|break|breaking) (it )?down\\b", "\\bteardown\\b", "\\banalys(e|ed|is)\\b", "\\bI pulled\\b"], "ru": ["\\bразобрал\\b", "\\bразбор\\b", "\\bя взял\\b", "\\bпроанализировал\\b"] }
+    },
+    {
+      "id": "the-stack",
+      "name": "The Stack",
+      "nameRu": "Связка",
+      "goal": "ctr",
+      "shape": { "en": "Two named tools combined into one outcome.", "ru": "Два названных инструмента, соединённые в один результат." },
+      "example": { "en": "Claude plus your YouTube Studio export gives you next week's upload schedule in one prompt.", "ru": "Claude плюс выгрузка из YouTube Studio дают расписание загрузок на неделю одним промптом." },
+      "failsWhen": { "en": "Both tools must be nameable and the outcome must need both.", "ru": "Оба инструмента называются по имени, и результату нужны оба." },
+      "match": { "en": ["\\b\\w+ (plus|\\+) \\w+\\b", "\\bcombine\\b", "\\btogether\\b"], "ru": ["\\b\\w+ (плюс|\\+) \\w+\\b", "\\bвместе\\b", "\\bсвязка\\b"] }
+    },
+    {
+      "id": "the-warning",
+      "name": "The Warning",
+      "nameRu": "Предупреждение",
+      "goal": "ctr",
+      "shape": { "en": "A cost the viewer is about to pay.", "ru": "Цена, которую зритель вот-вот заплатит." },
+      "example": { "en": "Do not upload another video until you check this one setting.", "ru": "Не загружайте следующее видео, пока не проверите эту настройку." },
+      "failsWhen": { "en": "If the cost is small the hook is a lie. Reserve it.", "ru": "Если цена мелкая — хук врёт. Береги формулу." },
+      "match": { "en": ["\\bdo not\\b", "\\bdon'?t (upload|post|publish|start)\\b", "\\bbefore you\\b", "\\bstop\\b"], "ru": ["\\bне (загружайте|публикуйте|начинайте|запускайте)\\b", "\\bпрежде чем\\b", "\\bпока не\\b"] }
+    },
+    {
+      "id": "the-list",
+      "name": "The List",
+      "nameRu": "Список",
+      "goal": "ctr",
+      "shape": { "en": "A counted set, with the count in the first line.", "ru": "Пронумерованный набор, количество — в первой фразе." },
+      "example": { "en": "Seven things I would do differently if I started a channel in 2026.", "ru": "Семь вещей, которые я бы делал иначе, начни я канал в 2026-м." },
+      "failsWhen": { "en": "The count must be exact and every item must be different in kind.", "ru": "Количество точное, и каждый пункт отличается по сути." },
+      "match": { "en": ["^\\d+ \\w+", "\\b(here are|these are) \\d+\\b"], "ru": ["^\\d+ \\w+", "\\b\\d+ (вещей|способов|ошибок|причин|шагов|инструментов)\\b"] }
+    },
+    {
+      "id": "the-receipt",
+      "name": "The Receipt",
+      "nameRu": "Чек",
+      "goal": "retention",
+      "shape": { "en": "Show the artifact first, explain second.", "ru": "Сначала покажи артефакт, объясняй потом." },
+      "example": { "en": "This is the analytics page. This video did 40% of the channel's watch time. Here is why.", "ru": "Это страница аналитики. Это видео дало 40% времени просмотра канала. Вот почему." },
+      "failsWhen": { "en": "Requires a real screenshot. A described receipt is not a receipt.", "ru": "Нужен настоящий скриншот. Описанный чек — не чек." },
+      "match": { "en": ["\\bthis is (the|my)\\b", "\\bscreenshot\\b", "\\bproof\\b", "\\breceipts?\\b"], "ru": ["\\bэто (моя|мой|страница|скриншот)\\b", "\\bскриншот\\b", "\\bдоказательств\\b"] }
+    },
+    {
+      "id": "the-insider",
+      "name": "The Insider",
+      "nameRu": "Инсайд",
+      "goal": "ctr",
+      "shape": { "en": "Information from inside a system.", "ru": "Информация изнутри системы." },
+      "example": { "en": "YouTube tells you which videos are underperforming. Almost nobody opens the report.", "ru": "YouTube сам показывает, какие видео проседают. Почти никто не открывает этот отчёт." },
+      "failsWhen": { "en": "Do not claim insider access you do not have.", "ru": "Не заявляй доступ, которого у тебя нет." },
+      "match": { "en": ["\\b(nobody|almost nobody|most people) (knows?|opens?|uses?)\\b", "\\bhidden\\b", "\\bburied\\b"], "ru": ["\\b(никто|почти никто|большинство) не (знает|открывает|использует)\\b", "\\bскрыт\\w+\\b", "\\bзарыт\\w+\\b"] }
+    },
+    {
+      "id": "the-impossible",
+      "name": "The Impossible Claim",
+      "nameRu": "Невозможное",
+      "goal": "ctr",
+      "shape": { "en": "State something that sounds untrue, then prove it.", "ru": "Заяви то, что звучит неправдой, — и докажи." },
+      "example": { "en": "You can write, title, thumbnail and schedule a week of videos without opening a single editor.", "ru": "Можно написать, озаглавить, упаковать обложками и запланировать неделю видео, не открывая ни одного редактора." },
+      "failsWhen": { "en": "The proof has to start within 20 seconds or it reads as clickbait.", "ru": "Доказательство начинается в первые 20 секунд, иначе это кликбейт." },
+      "match": { "en": ["\\bwithout\\b", "\\bnever\\b", "\\bin one\\b", "\\bzero\\b"], "ru": ["\\bбез (единого|ни одного)\\b", "\\bникогда\\b", "\\bнул\\w+\\b"] }
+    },
+    {
+      "id": "the-comparison",
+      "name": "The Comparison",
+      "nameRu": "Сравнение",
+      "goal": "ctr",
+      "shape": { "en": "Two named options, one winner.", "ru": "Два названных варианта, один победитель." },
+      "example": { "en": "I wrote the same video three ways. One of them held 62% and the other two did not.", "ru": "Я написал одно и то же видео тремя способами. Один удержал 62%, два других — нет." },
+      "failsWhen": { "en": "Say the losing option out loud. A comparison with no loser is an advert.", "ru": "Назови проигравший вариант вслух. Сравнение без проигравшего — реклама." },
+      "match": { "en": ["\\bvs\\.?\\b", "\\bversus\\b", "\\bwhich (one )?(is|wins)\\b", "\\bsame .* (three|two) ways\\b"], "ru": ["\\bпротив\\b", "\\bили\\b.*\\bчто лучше\\b", "\\bодинаков\\w+ .* (тремя|двумя) способами\\b"] }
+    },
+    {
+      "id": "the-origin",
+      "name": "The Origin",
+      "nameRu": "Источник",
+      "goal": "retention",
+      "shape": { "en": "Where a result actually came from.", "ru": "Откуда результат взялся на самом деле." },
+      "example": { "en": "Every video on this channel starts in the same 12-line file. Here it is.", "ru": "Каждое видео на этом канале начинается в одном и том же файле на 12 строк. Вот он." },
+      "failsWhen": { "en": "Works once per channel. It is a reveal about you, and you only have one.", "ru": "Срабатывает раз на канал. Это показ про тебя, а он у тебя один." },
+      "match": { "en": ["\\bevery (video|post) .* starts\\b", "\\bit all (starts|started)\\b", "\\bthe (real )?reason\\b"], "ru": ["\\bкаждое (видео|видео на этом канале)\\b", "\\bвсё началось\\b", "\\b(настоящая|реальная) причина\\b"] }
+    },
+    {
+      "id": "the-deadline",
+      "name": "The Deadline",
+      "nameRu": "Дедлайн",
+      "goal": "ctr",
+      "shape": { "en": "Something is changing on a date.", "ru": "Что-то меняется к конкретной дате." },
+      "example": { "en": "The old description format stops mattering this month. Here is what replaces it.", "ru": "Старый формат описаний перестаёт работать в этом месяце. Вот что его заменяет." },
+      "failsWhen": { "en": "Only use with a real, checkable date. This is the fastest formula to lose trust with.", "ru": "Только с реальной, проверяемой датой. Быстрее всего этой формулой теряют доверие." },
+      "match": { "en": ["\\b(this|next) (week|month|year)\\b", "\\bis changing\\b", "\\bno longer\\b", "\\bas of\\b"], "ru": ["\\b(на этой|со следующей) неделе\\b", "\\bв этом месяце\\b", "\\bбольше не\\b", "\\bс \\d+\\s?(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\\b"] }
+    },
+    {
+      "id": "the-direct-address",
+      "name": "The Direct Address",
+      "nameRu": "Прямое обращение",
+      "goal": "ctr",
+      "shape": { "en": "Name the exact viewer in the first six words.", "ru": "Назови точного зрителя в первых шести словах." },
+      "example": { "en": "If you have under a thousand subscribers, this is the only video you need this week.", "ru": "Если у вас меньше тысячи подписчиков, это единственное видео, которое нужно на этой неделе." },
+      "failsWhen": { "en": "Narrow beats broad. 'If you make videos' addresses nobody.", "ru": "Узкое бьёт широкое. «Если вы снимаете видео» — ни к кому не обращено." },
+      "match": { "en": ["^if you\\b", "\\bfor (anyone|everyone|people) who\\b", "\\byou specifically\\b"], "ru": ["^если (у вас|вы)\\b", "\\bдля тех, кто\\b", "\\bименно вам\\b"] }
+    }
+  ],
+  "openingStructures": [
+    {
+      "id": "Y7-restate-and-raise",
+      "name": "Restate-and-Raise",
+      "surface": "longform",
+      "goal": "retention",
+      "beats": { "en": "One line that lands the exact promise the title made, in spoken voice → one line that raises the stakes or names the obstacle → by the end of this you will {concrete capability}.", "ru": "Одна фраза, приземляющая обещание тайтла разговорно → одна фраза, повышающая ставки или называющая препятствие → «к концу видео вы сможете {конкретное}»." }
+    },
+    {
+      "id": "Y8-cold-open-payoff",
+      "name": "Cold-Open Payoff Tease",
+      "surface": "longform",
+      "goal": "retention",
+      "beats": { "en": "3-8 second flash of the most dramatic moment or result → cut back to setup: but to get here I had to {obstacle}.", "ru": "3–8 секунд самого драматичного момента/результата в самом начале → срез к началу истории: «но чтобы сюда попасть, мне пришлось {препятствие}»." }
+    },
+    {
+      "id": "Y9-question-and-contract",
+      "name": "Question-and-Contract",
+      "surface": "longform",
+      "goal": "retention",
+      "beats": { "en": "The precise question the title implied → short answer, a real partial one → but the part that matters is {deeper thing} → stick around, by the end you also get {bonus}.", "ru": "Точный вопрос, который подразумевал тайтл → короткий честный частичный ответ → «но главное — {глубже}» → «досмотрите, в конце ещё {бонус}»." }
+    },
+    {
+      "id": "Y10-shorts-3s",
+      "name": "Shorts 3-Second Hook",
+      "surface": "shorts",
+      "goal": "retention",
+      "beats": { "en": "One spoken line or on-screen text that states the payoff or the tension on frame one. Ending flows back into the opening so the Short loops.", "ru": "Одна фраза вслух или текст на первом кадре, называющая выгоду или напряжение. Финал стекает обратно в начало — Short зацикливается." }
+    }
+  ],
+  "pairingTable": [
+    { "titleFormula": "Y1-curiosity-gap", "openingHook": "Y7-restate-and-raise" },
+    { "titleFormula": "Y2-number-listicle", "openingHook": "Y9-question-and-contract" },
+    { "titleFormula": "Y3-how-i-outcome", "openingHook": "Y8-cold-open-payoff" },
+    { "titleFormula": "Y4-mistake-negativity", "openingHook": "Y7-restate-and-raise" },
+    { "titleFormula": "Y5-transformation", "openingHook": "Y8-cold-open-payoff" },
+    { "titleFormula": "Y6-versus", "openingHook": "Y9-question-and-contract" },
+    { "titleFormula": "Y11-third-party-story", "openingHook": "Y8-cold-open-payoff" },
+    { "titleFormula": "any-short", "openingHook": "Y10-shorts-3s" }
+  ]
+}

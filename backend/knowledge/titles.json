@@ -1,0 +1,143 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-09-15",
+  "license": "MIT",
+  "sources": [
+    "github.com/sergebulaev/youtube-skills (MIT): title formulas Y1-Y6/Y11 2026 + title-checklist",
+    "github.com/Jakeschincariol/youtube-agent-skill (MIT): title.py lint rules"
+  ],
+  "limits": {
+    "hardCap": 100,
+    "desktopCut": 60,
+    "mobileCut": 40,
+    "sweetSpot": [40, 60],
+    "shortFormCap": 40,
+    "maxCapsWords": 2,
+    "maxEmDash": 1,
+    "maxEmoji": 1,
+    "thumbnailMaxWords": 4
+  },
+  "formulas": [
+    {
+      "id": "Y1-curiosity-gap",
+      "name": "Curiosity-Gap",
+      "nameRu": "Разрыв любопытства",
+      "goal": "ctr",
+      "validated": "corpus-confirmed (214-video pull, 2026-07)",
+      "skeleton": { "en": "{Surprising result or claim}. Here is what nobody tells you. / Why {common thing} {breaks / works the opposite way}", "ru": "{Неожиданный результат или тезис}. Вот о чём все молчат. / Почему {привычная вещь} {ломается / работает наоборот}" },
+      "warning": { "en": "A gap with a thin payoff trains the algorithm that your clicks are low quality.", "ru": "Разрыв с пустым ответом учит алгоритм, что ваши клики низкого качества." }
+    },
+    {
+      "id": "Y2-number-listicle",
+      "name": "Number / Listicle",
+      "nameRu": "Число / список",
+      "goal": "ctr",
+      "validated": "niche-dependent: number wins attached to money or time-invested frame",
+      "skeleton": { "en": "{N} {things} that {specific payoff} (number {X} {surprised me})", "ru": "{N} {вещей}, которые {конкретная выгода} ({X}-я {удивила меня})" },
+      "warning": { "en": "Padding to a round number dilutes the payoff; 5 real tips beat 10 weak ones.", "ru": "Натяжка до круглого числа размывает выгоду: 5 настоящих советов бьют 10 слабых." }
+    },
+    {
+      "id": "Y3-how-i-outcome",
+      "name": "How-I Outcome",
+      "nameRu": "Как я добился",
+      "goal": "ctr",
+      "validated": "corpus-confirmed; odd-precision money sub-variant strongest ($24,937/mo, not $25k)",
+      "skeleton": { "en": "How I {specific result with a number} in {timeframe} ({constraint})", "ru": "Как я {конкретный результат с цифрой} за {срок} ({ограничение})" },
+      "warning": { "en": "'How I' beats 'How to': a lived result carries proof. The result must be true and yours.", "ru": "«Как я» бьёт «Как сделать»: прожитый результат несёт доказательство. Результат должен быть правдой и вашим." }
+    },
+    {
+      "id": "Y4-mistake-negativity",
+      "name": "Mistake / Negativity",
+      "nameRu": "Ошибка / негатив",
+      "goal": "ctr",
+      "validated": "real in gear/tutorial niches; absent among business-creator over-performers (corpus 2026-07)",
+      "skeleton": { "en": "Stop {common action}. You are {losing / wasting / killing} {specific thing}.", "ru": "Хватит {привычное действие}. Вы {теряете / убиваете} {конкретное}." },
+      "warning": { "en": "Do not manufacture a problem that is not real; fear-bait gets the click and loses the subscribe.", "ru": "Не выдумывай несуществующую проблему: страх даёт клик и отбирает подписку." }
+    },
+    {
+      "id": "Y5-transformation",
+      "name": "Transformation / Before-After",
+      "nameRu": "Трансформация / до-после",
+      "goal": "ctr",
+      "validated": "corpus-confirmed",
+      "skeleton": { "en": "I {did hard thing} for {timeframe}. Here is what changed.", "ru": "Я {сделал сложное} в течение {срока}. Вот что изменилось." },
+      "warning": { "en": "The arc has to have a real turn; a boring middle loses retention by the two-minute mark.", "ru": "В дуге нужен настоящий поворот; скучная середина сливает удержание к второй минуте." }
+    },
+    {
+      "id": "Y6-versus",
+      "name": "Versus / Comparison",
+      "nameRu": "Против / сравнение",
+      "goal": "ctr",
+      "validated": "niche-dependent: strong in gear/software niches, zero in business corpus",
+      "skeleton": { "en": "{Option A} vs {Option B}: {the one that actually wins / the surprise}", "ru": "{Вариант А} против {варианта Б}: {кто реально побеждает / неожиданность}" },
+      "warning": { "en": "Show the real tradeoff or you lose the comment section.", "ru": "Покажи настоящий trade-off, иначе потеряешь комментарии." }
+    },
+    {
+      "id": "Y11-third-party-story",
+      "name": "Third-Party Success Story",
+      "nameRu": "Чужая история успеха",
+      "goal": "ctr",
+      "validated": "single most-frequent EN long-form shape in corpus 2026-07",
+      "skeleton": { "en": "How {named person or archetype} Built {big round number} From {Zero / Nothing}", "ru": "Как {названный человек или архетип} построил {крупное круглое число} {с нуля / из ничего}" },
+      "warning": { "en": "The number and the story have to be real and checkable; name a real person, not a strawman.", "ru": "Цифра и история обязаны быть реальными и проверяемыми; называй реального человека, не соломенное чучело." }
+    }
+  ],
+  "lint": {
+    "vagueWords": {
+      "en": ["amazing", "incredible", "insane", "crazy", "huge", "massive", "ultimate", "best", "powerful", "secret", "revolutionary", "mindblowing", "epic", "perfect", "complete", "everything", "game-changer", "game changer"],
+      "ru": ["невероятно", "сумасшедший", "шокирующий", "гигантский", "мощнейший", "секретный", "революционный", "эпичный", "идеальный", "лучший в мире", "бомба", "жесть", "имба"]
+    },
+    "aiMarkers": {
+      "en": ["leverage", "fundamentally", "significant", "game-changer", "deep dive", "unlock", "elevate", "delve", "landscape", "harness"],
+      "ru": ["погрузимся", "гейм-чейнджер", "прокачать на новый уровень", "экосистема возможностей", "фундаментально"]
+    },
+    "stopWords": {
+      "en": ["the", "a", "an", "of", "for", "to", "in", "on", "and", "or", "is", "are", "with", "your", "you", "my", "i", "this", "that", "it", "how", "what", "why"],
+      "ru": ["и", "в", "на", "с", "как", "что", "это", "для", "по", "из", "у", "о", "за", "от", "до", "не", "мы", "вы", "я", "все", "или", "а", "the", "a", "of", "to", "in", "and", "how", "what"]
+    },
+    "revealBridges": {
+      "en": ["here's what nobody tells you", "you won't believe", "honestly?", "real talk"],
+      "ru": ["вот о чём все молчат", "вы не поверите", "честно говоря", "по-честному"]
+    }
+  },
+  "microRules": {
+    "en": [
+      "Title and thumbnail never repeat each other; together they read in under a second.",
+      "'How I' beats 'How to' — first-person results carry proof.",
+      "Front-load the title: mobile cuts around 60 chars, the click-deciding words go first.",
+      "One specific number in the title raises CTR and sets a watch-contract.",
+      "At most one em dash, no ALL CAPS beyond one emphasized word, 0-1 emoji.",
+      "No keyword stuffing: the search phrase appears once, naturally.",
+      "At least 3 variants (ideally 5) spanning at least 2 different formulas, each tagged with formula and char count."
+    ],
+    "ru": [
+      "Тайтл и обложка никогда не повторяют друг друга; вместе они читаются меньше чем за секунду.",
+      "«Как я» бьёт «Как сделать» — результат от первого лица несёт доказательство.",
+      "Главные слова — в начало тайтла: мобильная лента режет около 60 знаков.",
+      "Одна конкретная цифра в тайтле поднимает CTR и задаёт контракт на просмотр.",
+      "Максимум одно тире, КАПС — не больше одного слова акцента, 0–1 эмодзи.",
+      "Без напихивания ключей: поисковая фраза встречается один раз, естественно.",
+      "Минимум 3 варианта (лучше 5) минимум по 2 разным формулам, каждый с пометкой формулы и длины."
+    ]
+  },
+  "neverDo": {
+    "en": [
+      "Overpromise in the title past what the first 30 seconds can honor (fast click-away is a ranking penalty).",
+      "Keyword-stuff the title to chase search.",
+      "Use ALL CAPS or 4 emoji to fake intensity.",
+      "Write a title and thumbnail in isolation from each other."
+    ],
+    "ru": [
+      "Обещать в тайтле больше, чем выдерживают первые 30 секунд (быстрый уход — штраф в ранжировании).",
+      "Набивать тайтл ключами ради поиска.",
+      "Использовать КАПС или 4 эмодзи для имитации накала.",
+      "Писать тайтл и обложку по отдельности."
+    ]
+  },
+  "browseVsSearch": [
+    { "videoType": "broad-appeal, feed-driven", "leadWith": "curiosity + emotion", "example": "I posted a Short every day for 30 days" },
+    { "videoType": "how-to / tutorial", "leadWith": "the exact search phrase", "example": "How to color grade in DaVinci Resolve (fast)" },
+    { "videoType": "comparison / decision", "leadWith": "the two named options", "example": "Final Cut vs DaVinci Resolve" },
+    { "videoType": "personal / story", "leadWith": "the transformation arc", "example": "How I got my first 1000 subscribers" }
+  ]
+}
