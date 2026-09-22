@@ -22,3 +22,8 @@ reports/
 MASTER_PLAN*.md
 OMEGA_*PLAN*.md
 agent-reports/
+
+# локальные загрузки qa/тестов — не коммитим
+backend/uploads/
+.tmp-rd2/
+.tmp-ui-polish/
