@@ -22,6 +22,10 @@ const wordsOf = (t, lang) => {
 }
 const langOf = (t) => (/[а-яё]/i.test(String(t)) ? 'ru' : 'en')
 
+// JS \b — только ASCII: кириллица у \b не «word char», RU-паттерны молча не матчились.
+// b() переводит \b в юникодную границу (край строки / пробел / пунктуация) — для .test() этого достаточно.
+const b = (p, flags = 'iu') => new RegExp(String(p).replace(/\\b/g, '([\\s\\p{P}]|^|$)'), flags)
+
 function lintLists() {
     const k = getKnowledge('titles') || {}
     const lint = k.lint || {}
@@ -41,21 +45,21 @@ export function scoreHook(text, lang) {
     const { vague } = lintLists()
     if (!w.length) return { verdict: 0, band: 'WEAK', properties: {}, formula: 'Unclassified', matched: 0 }
 
-    const nums = (t.match(new RegExp(RE.concrete.source, 'gi')) || []).length
+    const nums = (t.match(b(RE.concrete.source, 'giu')) || []).length
     const vagueN = w.filter(x => vague[lg === 'ru' ? 'ru' : 'en'].has(x)).length
     const fillerN = w.filter(x => FILLER[lg].has(x)).length
     const proper = t.split(/\s+/).slice(1).filter(x => /^[A-ZА-ЯЁ]/.test(x)).length
     const specificity = clamp(34 + nums * 22 - vagueN * 16 - fillerN * 5 + Math.min(18, proper * 6))
 
-    const youN = (t.match(new RegExp(RE.you.source, 'gi')) || []).length
+    const youN = (t.match(b(RE.you.source, 'giu')) || []).length
     const first6 = t.split(/\s+/).slice(0, 6).join(' ')
-    const address = clamp(26 + youN * 20 + (RE.you.test(first6) ? 30 : 0))
+    const address = clamp(26 + youN * 20 + (b(RE.you.source).test(first6) ? 30 : 0))
 
-    const stakeN = (t.match(new RegExp(RE.stake.source, 'gi')) || []).length
-    const stakes = clamp(22 + stakeN * 26 + (RE.concrete.test(t) ? 14 : 0))
+    const stakeN = (t.match(b(RE.stake.source, 'giu')) || []).length
+    const stakes = clamp(22 + stakeN * 26 + (b(RE.concrete.source).test(t) ? 14 : 0))
 
-    const curN = (t.match(new RegExp(RE.curiosity.source, 'gi')) || []).length
-    const curiosity = clamp(24 + curN * 17 + (t.endsWith('?') ? 18 : 0) + (RE.closedLoop.test(t) ? -18 : 0))
+    const curN = (t.match(b(RE.curiosity.source, 'giu')) || []).length
+    const curiosity = clamp(24 + curN * 17 + (t.endsWith('?') ? 18 : 0) + (b(RE.closedLoop.source).test(t) ? -18 : 0))
 
     const n = w.length
     const brevity = n >= 9 && n <= 24 ? 100 : n < 9 ? Math.max(30, 100 - (9 - n) * 11) : Math.max(10, 100 - (n - 24) * 7)
@@ -74,7 +78,7 @@ export function classifyHook(text, lang) {
     let hits = 0
     for (const f of k?.hooks || []) {
         const pats = [...(f.match?.en || []), ...(f.match?.ru || [])]
-        const n = pats.filter(p => { try { return new RegExp(p, 'i').test(text) } catch { return false } }).length
+        const n = pats.filter(p => { try { return b(p).test(text) } catch { return false } }).length
         if (n > hits) { hits = n; best = lang === 'ru' ? (f.nameRu || f.name) : f.name }
     }
     return { formula: best, hits }
