@@ -85,7 +85,7 @@
   "lint": {
     "vagueWords": {
       "en": ["amazing", "incredible", "insane", "crazy", "huge", "massive", "ultimate", "best", "powerful", "secret", "revolutionary", "mindblowing", "epic", "perfect", "complete", "everything", "game-changer", "game changer"],
-      "ru": ["невероятно", "сумасшедший", "шокирующий", "гигантский", "мощнейший", "секретный", "революционный", "эпичный", "идеальный", "лучший в мире", "бомба", "жесть", "имба"]
+      "ru": ["невероятно", "невероятный", "невероятная", "сумасшедший", "сумасшедшая", "шокирующий", "шокирующая", "гигантский", "мощнейший", "секретный", "секретная", "революционный", "эпичный", "идеальный", "лучший в мире", "бомба", "жесть", "имба"]
     },
     "aiMarkers": {
       "en": ["leverage", "fundamentally", "significant", "game-changer", "deep dive", "unlock", "elevate", "delve", "landscape", "harness"],

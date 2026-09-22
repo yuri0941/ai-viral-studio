@@ -1056,6 +1056,8 @@ export default function OmegaChat({
           platform,
           // [COVERS-SUPREME З1] ниша — для пресета стиля из реальных топ-обложек ниши
           niche: srcMsg?.action?.niche || '',
+          // [KNOWLEDGE-PACK З2] тайтл видео — линт пары «тайтл ↔ текст обложки» (дубль вырезается на бэке)
+          videoTitle: ytData?.title || (msg.action?.type === 'script' ? String(msg.action?.niche || '') : '') || undefined,
           mode: styleMode === 'ai' ? 'ai' : 'frame',
           ...(videoFrames.length && styleMode !== 'ai' ? { frames: videoFrames } : {}),
           ...(fullFrames.length && styleMode !== 'ai' ? { fullFrames } : {}),
