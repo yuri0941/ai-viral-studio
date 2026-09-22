@@ -43,8 +43,16 @@ export async function analyzeBestTime({ platform, audienceTimezone = 'UTC', hist
     const platformName = platform || 'instagram'
     const fallback = pickDefaultTime(platformName)
 
+    // [KNOWLEDGE-PACK З5] окна тайминга — из knowledge/algorithm.json (мировые эвристики 2026),
+    // а не «на вкус модели»; hot-reload ≤60с без деплоя
+    const { getKnowledge } = await import('./knowledgeService.js')
+    const timing = getKnowledge('algorithm')?.timing
+    const timingBlock = timing
+        ? `\nОкна публикации (эвристика 2026):\n${timing.windows.map(w => `- ${w.audience}: ${w.best}`).join('\n')}\nПравило: ${timing.windows.find(w => w.audience === 'global mixed')?.best || ''}. Каденс: ${timing.cadence?.ru || ''}`
+        : ''
+
     const prompt = `Ты — SMM-аналитик. Пользователь публикует контент в ${platformName}${niche ? `, ниша: ${niche}` : ''}. Аудитория в часовом поясе ${audienceTimezone}.
-${historicalPosts.length > 0 ? `Исторические публикации (UTC ISO): ${JSON.stringify(historicalPosts.slice(0, 10))}.` : 'Исторических данных нет.'}
+${historicalPosts.length > 0 ? `Исторические публикации (UTC ISO): ${JSON.stringify(historicalPosts.slice(0, 10))}.` : 'Исторических данных нет.'}${timingBlock}
 
 Верни ТОЛЬКО JSON без Markdown:
 {

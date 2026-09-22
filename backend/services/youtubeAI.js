@@ -56,10 +56,17 @@ export async function analyzeChannel(channelId) {
   }
 }
 
-export async function generateShortsScript(topic, niche, duration = 30) {
-  const prompt = `Создай сценарий YouTube Shorts длительностью ${duration} секунд на тему "${topic}" для ниши "${niche}". Разбей по таймкодам: хук, основная часть, CTA. Ответ на русском.`
+export async function generateShortsScript(topic, niche, duration = 30, lang = 'ru') {
+  // [KNOWLEDGE-PACK] Shorts: хук первых 3 сек + петля (knowledge hooks/algorithm)
+  const { buildHooksBlock, buildAlgorithmBlock, buildCisBlock } = await import('./knowledgeService.js')
+  const prompt =
+    `Создай сценарий YouTube Shorts длительностью ${duration} секунд на тему "${topic}" для ниши "${niche}".\n` +
+    `Строго: хук на первом кадре (текст на экране, читается без звука), середина без воды, финал зациклен на первую фразу. Таймкоды: хук, основная часть, CTA.\n` +
+    buildHooksBlock(lang, { max: 8 }) + '\n' + buildAlgorithmBlock(lang) + '\n' +
+    (lang === 'ru' ? buildCisBlock() + '\n' : '') +
+    `Язык ответа: ${lang === 'ru' ? 'русский' : 'английский'}.`
   try {
-    const result = await chatWithAI(prompt, [], 'ru')
+    const result = await chatWithAI(prompt, [], lang)
     return { success: result.success, script: extractText(result), provider: result.provider }
   } catch (err) {
     return { success: false, error: err.message }
@@ -88,11 +95,29 @@ export async function generateAutoSubtitles(videoUrl) {
   }
 }
 
-export async function generateTitles(topic, niche, count = 5) {
-  const prompt = `Сгенерируй ${count} цепляющих заголовков YouTube-видео на тему "${topic}" для ниши "${niche}". Верни только нумерованный список без лишнего текста.`
+export async function generateTitles(topic, niche, count = 5, lang = 'ru') {
+  // [KNOWLEDGE-PACK З1/З4] тайтлы по формулам 2026 (knowledge/titles.json), затем детерминированный
+  // скоринг линтом (viralScorer) — 3–5 вариантов, лучший первым, каждый с формулой и скором.
+  const { buildTitlesBlock, buildCisBlock } = await import('./knowledgeService.js')
+  const n = Math.min(10, Math.max(3, Number(count) || 5))
+  const prompt =
+    `Сгенерируй ${n} цепляющих заголовков YouTube-видео на тему "${topic}" для ниши "${niche}".\n` +
+    `Каждый вариант — по ОДНОЙ из формул ниже (варианты минимум по 2 разным формулам), 40–60 знаков, главные слова в начале, одна конкретная цифра где уместно. Без КАПСА и лишних эмодзи.\n` +
+    buildTitlesBlock(lang) + '\n' +
+    (lang === 'ru' ? buildCisBlock() + '\n' : '') +
+    `Верни ТОЛЬКО нумерованный список вида "1. [формула-id] Заголовок", без лишнего текста. Язык: ${lang === 'ru' ? 'русский' : 'английский'}.`
   try {
-    const result = await chatWithAI(prompt, [], 'ru')
-    return { success: result.success, titles: extractText(result), provider: result.provider }
+    const result = await chatWithAI(prompt, [], lang)
+    const raw = extractText(result)
+    const parsed = String(raw).split('\n')
+      .map(l => l.match(/^\s*\d+[.)]\s*(?:\[([a-z0-9-]+)\]\s*)?(.+)$/i))
+      .filter(Boolean)
+      .map(m => ({ formula: m[1] || null, text: m[2].trim() }))
+      .filter(v => v.text.length >= 8)
+    const { rankTitles } = await import('./viralScorer.js')
+    const scored = rankTitles(parsed.map(v => v.text), { lang })
+    const variants = scored.map((s, i) => ({ ...s, formula: parsed.find(p => p.text === s.title)?.formula || null, best: i === 0 }))
+    return { success: result.success, titles: raw, variants, provider: result.provider }
   } catch (err) {
     return { success: false, error: err.message }
   }

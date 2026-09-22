@@ -1,0 +1,56 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-09-15",
+  "license": "MIT",
+  "sources": [
+    "github.com/sergebulaev/youtube-skills (MIT): algorithm-heuristics 2026",
+    "github.com/Jakeschincariol/youtube-agent-skill (MIT): yt-plan cadence"
+  ],
+  "coreModel": {
+    "formula": "expected value of an impression ~= P(click) x P(satisfied watch | click)",
+    "en": "YouTube predicts and optimizes satisfied watch-time per impression. Packaging (title+thumbnail) drives P(click); the first 30 seconds (3 on a Short) drive P(satisfied watch). A 12% CTR with 20% retention loses to 6% CTR with 55% retention.",
+    "ru": "YouTube предсказывает и оптимизирует удовлетворённое время просмотра на показ. Упаковка (тайтл+обложка) даёт P(клик); первые 30 секунд (3 на Short) дают P(удовлетворённый просмотр). CTR 12% с удержанием 20% проигрывает CTR 6% с удержанием 55%."
+  },
+  "signalWeights": [
+    { "signal": "average view duration / % viewed", "weight": "highest" },
+    { "signal": "satisfied sessions (viewer stays on platform)", "weight": "very high" },
+    { "signal": "CTR in context", "weight": "high" },
+    { "signal": "returning viewers / subscribes from a video", "weight": "high" },
+    { "signal": "watch-time per impression", "weight": "high" },
+    { "signal": "likes, comments, shares", "weight": "medium" },
+    { "signal": "'Not interested' / fast click-away", "weight": "heavy penalty" }
+  ],
+  "firstSeconds": {
+    "longform30": {
+      "en": ["No intro before the hook: no logo sting, no 'welcome back', open mid-action on the promise.", "Restate the title's promise in your own voice by 0:10, then raise the stakes to open a loop by 0:18.", "A visible drop at 0:15-0:30 means the open over-promised; re-cut the first lines first."],
+      "ru": ["Никакого интро до хука: ни заставки, ни «с возвращением» — открытие сразу в обещании.", "Своими словами подтверди обещание тайтла к 0:10, к 0:18 повысь ставки — открой петлю.", "Просадка на 0:15–0:30 = открытие переобещало; переписывай первые фразы в первую очередь."]
+    },
+    "shorts3": {
+      "en": ["Ranked primarily on swipe-away rate and loop/re-watch; the first frame is the whole funnel.", "Payoff or tension on frame one with on-screen text; no greeting, no logo, no slow zoom.", "Design the ending to flow back into the start; loop-throughs are the strongest signal.", "Vertical 9:16, under 60s performs best; a Short that loops past 100% beats a longer one at 70%."],
+      "ru": ["Ранжируется по свайпам мимо и досмотрам по кругу; первый кадр — вся воронка.", "Выгода или напряжение на первом кадре текстом; без приветствий, лого и медленных наездов.", "Финал пиши так, чтобы стекал в начало; досмотры по кругу — сильнейший сигнал.", "Вертикаль 9:16, до 60 секунд работает лучше; зацикленный Short на 100%+ бьёт длинный с 70%."]
+    }
+  },
+  "suppressors": {
+    "en": ["Title over-promising what the first 30 seconds deliver.", "Slow intros bleeding opening retention.", "Keyword-stuffed titles and tag dumps.", "Re-used or misleading thumbnails.", "Shorts and long-form with no through-line."],
+    "ru": ["Тайтл обещает больше, чем отрабатывают первые 30 секунд.", "Медленные интро, сливающие удержание открытия.", "Набитые ключами тайтлы и стены тегов.", "Переиспользованные или вводящие в заблуждение обложки.", "Shorts и длинные видео без связки между собой."]
+  },
+  "amplifiers": {
+    "en": ["A retention curve that stays flat or rises in the middle (re-hooks, payoff bumps).", "Chapters help UX and the 'key moments' surface in search.", "End screens and a clear next video keep the session on-platform.", "Consistent packaging style trains the audience to recognize and click.", "Replying to early comments in the first hour seeds suggested distribution."],
+    "ru": ["Кривая удержания, которая держится или растёт в середине (ре-хуки, выдачи выгоды).", "Главы помогают UX и поверхности «ключевые моменты» в поиске.", "Конечные заставки и понятное «следующее видео» держат сессию на платформе.", "Узнаваемый стиль упаковки учит аудиторию кликать именно вас.", "Ответы на ранние комментарии в первый час подогревают рекомендации."]
+  },
+  "timing": {
+    "windows": [
+      { "audience": "US general / education", "best": "Tue-Thu and Sat-Sun, publish 2-4h before peak viewing" },
+      { "audience": "working professionals", "best": "weekday evenings 18:00-21:00, weekend mornings" },
+      { "audience": "global mixed", "best": "first 24h overlaps largest timezone's evening" }
+    ],
+    "cadence": { "en": "A healthy 2026 cadence: 1 long-form per week + 3-5 Shorts. Consistency beats volume; pick a rhythm you can hold for 12 weeks.", "ru": "Здоровый ритм 2026: 1 длинное видео в неделю + 3–5 Shorts. Регулярность бьёт объём; выбери ритм, который выдержишь 12 недель." }
+  },
+  "nicheRanking": {
+    "method": "multiple-of-median",
+    "minVideosPerChannel": 4,
+    "outlierThreshold": 1.5,
+    "en": "Rank a video not by raw views but as a multiple of its OWN channel's median views. A 400k video on a 2M-sub channel is a normal Tuesday; 400k on a channel with a 30k median is the thing worth studying. Needs >=4 videos per channel, otherwise the median is noise.",
+    "ru": "Оценивай видео не по сырым просмотрам, а как кратность к МЕДИАНЕ собственного канала. 400k на канале с 2M подписчиков — обычный вторник; 400k при медиане 30k — то, что стоит изучать. Нужно >=4 видео на канал, иначе медиана — шум."
+  }
+}

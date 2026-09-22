@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-09-15",
+  "note": "CIS/RU packaging patterns for RU packs. Formulas are REBUILT per language from the same formula id — never a literal translation of the EN line. Applied to RU packages only.",
+  "patterns": {
+    "addressForm": {
+      "rule": "Default to «вы» (polite plural) in educational/business niches; «ты» only in entertainment/young-audience niches. Never mix within one package.",
+      "markerWords": { "vy": ["вы", "ваш", "вам", "вас"], "ty": ["ты", "твой", "тебе", "тебя"] }
+    },
+    "moneyFraming": {
+      "rule": "Money hooks work with ruble figures and CIS-plausible scales (₽, подписчики, просмотры). Odd precision works the same: «247 300 ₽/мес» beats «250 тысяч».",
+      "examples": ["Как я вышел на 247 300 ₽/мес на одном формате", "От 0 до 100 000 подписчиков за 5 месяцев — вся схема"]
+    },
+    "skepticismGuard": {
+      "rule": "CIS audiences punish perceived boasting harder: a first-person result needs the method named in the same breath, or it reads as «успешный успех». Pair every «я сделал X» with «вот как именно».",
+      "bad": "Я заработал миллион на Shorts",
+      "good": "Я заработал первый миллион на Shorts — вот все цифры и ошибки по порядку"
+    },
+    "colloquialMarkers": {
+      "rule": "Spoken-word markers raise authenticity in the first line: «вот», «короче» (max one), «смотрите». Banned: «лойс», «имба» in business niches; caps-lock storms.",
+      "allowed": ["вот", "смотрите", "короче (не больше одного)"],
+      "bannedBusiness": ["лойс", "имба", "жесть", "чётко"]
+    },
+    "questionForms": {
+      "rule": "RU search questions keep their word order: «как сделать», «почему не работает», «что будет если». Put the search phrase verbatim in the first 150 chars of the description.",
+      "commonQueries": ["как сделать", "почему не работает", "что будет если", "сколько зарабатывает", "как выйти на"]
+    },
+    "hookAdaptations": [
+      { "formulaId": "the-statistic", "ruShape": "Цифра сухо + следствие. Источник называть («по статистике YouTube»), иначе не верят." },
+      { "formulaId": "the-warning", "ruShape": "«Не делайте X, пока не…» — сильнейшая форма для RU how-to." },
+      { "formulaId": "the-direct-address", "ruShape": "«Если у вас меньше N подписчиков…» — порог подбирать под медиану ниши." },
+      { "formulaId": "contrarian-flip", "ruShape": "«Все говорят X. Я год делал наоборот — вот результат.» Доказательство в первые 15 секунд обязательно." },
+      { "formulaId": "the-clock", "ruShape": "«За N минут у вас будет…» — обещание должно быть честным, иначе следующему видео не верят." }
+    ]
+  }
+}

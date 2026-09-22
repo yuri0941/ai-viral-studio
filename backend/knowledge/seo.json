@@ -1,0 +1,65 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-09-15",
+  "license": "MIT",
+  "sources": [
+    "github.com/sergebulaev/youtube-skills (MIT): yt-description-writer template + keyword map",
+    "github.com/Jakeschincariol/youtube-agent-skill (MIT): yt-seo + yt-chapters rules"
+  ],
+  "description": {
+    "hardCap": 5000,
+    "firstLineVisibleChars": 150,
+    "realisticTarget": [600, 1500],
+    "rules": {
+      "en": [
+        "The first ~150 chars are the only text shown before 'Show more' and the snippet in search: lead with the payoff or question plus the primary keyword. Never a greeting.",
+        "Primary keyword once in the first 150 chars and once in the body, in natural sentences.",
+        "2-4 short paragraphs restating what the viewer gets; the single most important link right there, labeled.",
+        "Hashtags: 3-5 at the very end, broadest first; more than 15 makes YouTube ignore all of them.",
+        "CTA: one specific line ('new editing breakdown every Thursday'), not 'smash like and subscribe'.",
+        "At most about one em dash per 100 words; no AI vocabulary cluster (3+ markers in a paragraph)."
+      ],
+      "ru": [
+        "Первые ~150 знаков — единственный текст до «ещё» и сниппет в поиске: выгода или вопрос + основной ключ. Никогда не приветствие.",
+        "Основной ключ — один раз в первых 150 знаках и один раз в теле, в естественных предложениях.",
+        "2–4 коротких абзаца о том, что получит зритель; самая важная ссылка — здесь же, подписанная.",
+        "Хэштеги: 3–5 в самом конце, сначала самый широкий; больше 15 — YouTube игнорирует все.",
+        "CTA: одна конкретная строка («новый разбор монтажа каждый четверг»), не «лойс и подписка».",
+        "Не больше ~одного тире на 100 слов; без кластера AI-лексики (3+ маркера в абзаце)."
+      ]
+    },
+    "skeleton": {
+      "en": "{Payoff or question with primary keyword — first ~150 chars} → {2-4 short paragraphs, keywords in natural sentences, main link labeled} → CHAPTERS → LINKS → CONNECT → {one-line specific CTA} → #{primary} #{secondary} #{third}",
+      "ru": "{Выгода или вопрос с основным ключом — первые ~150 знаков} → {2–4 коротких абзаца, ключи в естественных фразах, главная ссылка подписана} → ГЛАВЫ → ССЫЛКИ → СОЦСЕТИ → {однострочный конкретный CTA} → #{основной} #{второй} #{третий}"
+    }
+  },
+  "chapters": {
+    "rules": {
+      "en": [
+        "The first entry must be 00:00.",
+        "At least three chapters, or YouTube does not render them.",
+        "Each chapter at least 10 seconds long.",
+        "Retitle every line as the promise of that section, 3-5 words; a section that cannot be named in five words is two sections or filler."
+      ],
+      "ru": [
+        "Первая глава обязана быть 00:00.",
+        "Минимум три главы, иначе YouTube их не отрисует.",
+        "Каждая глава — не короче 10 секунд.",
+        "Каждая строка — обещание секции в 3–5 слов; секция, которую нельзя назвать пятью словами, — это две секции или вода."
+      ]
+    },
+    "shortsSkip": true
+  },
+  "tags": {
+    "combinedCharLimit": 500,
+    "maxCount": 15,
+    "honesty": {
+      "en": "Tags are a weak signal; use them for disambiguation (spellings, tool names, abbreviations people actually type) and stop. A wall of tags is not a strategy; unrelated stuffing violates the terms.",
+      "ru": "Теги — слабый сигнал; используй их для разрешения неоднозначности (варианты написания, имена инструментов, аббревиатуры, которые реально вбивают) — и остановись. Стена тегов — не стратегия; нерелевантная набивка нарушает правила."
+    }
+  },
+  "queryTest": {
+    "en": "Write the three search queries this video should win, then check the title and the first two description lines contain the words in those queries. If they do not, the problem is the title, not the description.",
+    "ru": "Выпиши три поисковых запроса, которые видео обязано выиграть, и проверь, что слова из них есть в тайтле и первых двух строках описания. Если нет — проблема в тайтле, а не в описании."
+  }
+}
