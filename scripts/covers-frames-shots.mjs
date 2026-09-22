@@ -141,6 +141,10 @@ async function gotoChat(page) {
     if (!(await nextBtn.isVisible().catch(() => false))) break
     await nextBtn.click(); await page.waitForTimeout(400)
   }
+  // [COVERS-SUPREME] флак на 390px: поповер тура перехватывал клик «Обложки» (click().catch молчал).
+  // Ждём фактического исчезновения поповера/оверлея ДО действий по странице.
+  await page.locator('.driver-popover').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {})
+  await page.locator('#driver-dummy-element, .driver-overlay').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {})
 }
 
 const now = Date.now()
@@ -357,7 +361,12 @@ try {
     await gotoChat(page)
     const btn = page.locator('[data-testid="covers-generate"]').first()
     await btn.click().catch(() => {})
-    const gridOk = await page.locator('[data-testid="covers-grid"]').waitFor({ state: 'visible', timeout: 60000 }).then(() => true).catch(() => false)
+    // [COVERS-SUPREME] анти-флак: если клик проглотило (оверлей/тур), пробуем ещё раз
+    let gridOk = await page.locator('[data-testid="covers-grid"]').waitFor({ state: 'visible', timeout: 60000 }).then(() => true).catch(() => false)
+    if (!gridOk) {
+      await btn.click().catch(() => {})
+      gridOk = await page.locator('[data-testid="covers-grid"]').waitFor({ state: 'visible', timeout: 60000 }).then(() => true).catch(() => false)
+    }
     check('видео 390 dark: сетка обложек на мобильном', gridOk)
     await page.waitForTimeout(800)
     await shot(page, 'video-390-dark-grid')

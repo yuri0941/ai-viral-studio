@@ -315,7 +315,8 @@ check('yt-frames: мусорный videoId → null (в fetch не уходит)
       const b = await sharpQa(vv.buffer).extract({ left, top, width, height }).toBuffer()
       return sharpQa(b).stats()
     }
-    const band = await reg(30, 120)
+    // вертикаль: текст СВЕРХУ (y≈96–450), fg — центр (y≈656+): чистая blur-полоса — между ними
+    const band = await reg(490, 110)
     const fgRed = await reg(800, 60)
     const seam = await reg(930, 60)
     const bandStd = (band.channels[0].stdev + band.channels[1].stdev + band.channels[2].stdev) / 3

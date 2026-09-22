@@ -238,8 +238,10 @@ async function composeCover({ bgBuffer, width, height, text, variant, noUpscale 
         base = base.composite(sticker.layers.map(l => ({ input: l.input, left: stickerPos.left, top: stickerPos.top, blend: l.blend || 'over' })))
     }
 
-    // З5: типографика (Russo One, градиент/обводка/свечение/3D, акцентное слово)
-    let overlay = await titleOverlaySvg({ width: outW, height: outH, text, scheme, accentColor: preset?.accentColor || '#ffd60a' }).catch(() => null)
+    // З5: типографика (Russo One, градиент/обводка/свечение/3D, акцентное слово).
+    // З7: вертикаль — текст СВЕРХУ крупно, объект снизу (стикер уже внизу).
+    const layoutOverride = vertical ? (scheme === 1 ? 'top-left' : 'top-center') : null
+    let overlay = await titleOverlaySvg({ width: outW, height: outH, text, scheme, accentColor: preset?.accentColor || '#ffd60a', layoutOverride }).catch(() => null)
     if (overlay?.fallback || !overlay?.svg) overlay = legacyTextSvg({ width: outW, height: outH, text, variant: scheme })
 
     let pipeline = base
@@ -248,7 +250,8 @@ async function composeCover({ bgBuffer, width, height, text, variant, noUpscale 
 
     // З6: AI-скор варианта по CTR-чек-листу (факт по собранному jpeg)
     const stickerArea = sticker && stickerPos ? (sticker.width * sticker.height) / (outW * outH) : 0
-    const bandY = overlay ? Math.max(0, (scheme === 2 ? outH * 0.05 : outH - (overlay.blockRatio || 0.32) * outH - outH * 0.07)) : 0
+    const isTopBand = scheme === 2 || vertical
+    const bandY = overlay ? Math.max(0, (isTopBand ? outH * 0.05 : outH - (overlay.blockRatio || 0.32) * outH - outH * 0.07)) : 0
     const scored = await scoreCover(buffer, {
         textHeightRatio: overlay?.textHeightRatio || 0,
         width: outW, height: outH,

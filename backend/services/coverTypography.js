@@ -83,8 +83,9 @@ function wordRun(font, word) {
  * SVG-блок типографики → { svg, fontSize, textHeightRatio, blockRatio, lines } | { fallback: true } | null.
  * scheme: 0 белый+плашка (низ-центр), 1 жёлтый акцент (низ-слева), 2 белый (верх-слева).
  */
-export async function titleOverlaySvg({ width, height, text, accentColor = '#ffd60a', scheme = 0, effect3d = true }) {
-    const layout = scheme === 2 ? 'top-left' : scheme === 1 ? 'bottom-left' : 'bottom-center'
+export async function titleOverlaySvg({ width, height, text, accentColor = '#ffd60a', scheme = 0, effect3d = true, layoutOverride = null }) {
+    // [COVERS-SUPREME З7] вертикаль (Shorts/Reels/TikTok): текст СВЕРХУ крупно, объект снизу
+    const layout = layoutOverride || (scheme === 2 ? 'top-left' : scheme === 1 ? 'bottom-left' : 'bottom-center')
     const words = String(text || '').trim().toUpperCase().split(/\s+/).filter(Boolean).slice(0, 6)
     if (!words.length) return null
     const font = await loadFont()
@@ -115,8 +116,8 @@ export async function titleOverlaySvg({ width, height, text, accentColor = '#ffd
     const lineHeight = Math.round(fontSize * 1.12)
     const blockH = lineHeight * best.lines.length
     const padX = Math.round(fontSize * 0.5)
-    const isTop = layout === 'top-left'
-    const alignLeft = layout !== 'bottom-center'
+    const isTop = layout.startsWith('top')
+    const alignLeft = layout !== 'bottom-center' && layout !== 'top-center'
     const rectY = isTop
         ? Math.round(height * 0.05)
         : Math.max(Math.round(height * 0.1), height - blockH - Math.round(height * 0.07))
@@ -155,7 +156,7 @@ export async function titleOverlaySvg({ width, height, text, accentColor = '#ffd
         return parts.join('')
     }).join('\n')
 
-    const plaque = layout === 'bottom-center'
+    const plaque = layout === 'bottom-center' || layout === 'top-center'
         ? `<rect x="${padX}" y="${rectY - Math.round(fontSize * 0.22)}" width="${width - padX * 2}" height="${blockH + Math.round(fontSize * 0.42)}" rx="${Math.round(fontSize * 0.28)}" fill="rgba(0,0,0,0.42)"/>`
         : ''
     const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
