@@ -605,10 +605,21 @@ router.post('/cover-variants', protect, async (req, res) => {
         if (titleStr && coverTextFinal) {
             pairCheck = lintPair(titleStr, coverTextFinal)
             if (pairCheck.duplicate) {
+                const { getKnowledge } = await import('../services/knowledgeService.js')
+                const stop = new Set([...(getKnowledge('titles')?.lint?.stopWords?.en || []), ...(getKnowledge('titles')?.lint?.stopWords?.ru || [])])
                 const sharedSet = new Set(pairCheck.shared)
-                const stripped = coverTextFinal.split(/\s+/).filter(w => !sharedSet.has(w.toLowerCase().replace(/[^a-zа-яё0-9%$₽]/gi, ''))).join(' ').trim()
-                if (stripped) {
-                    pairCheck.fixed = stripped
+                const kept = coverTextFinal.split(/\s+/).filter(w => {
+                    const clean = w.toLowerCase().replace(/[^a-zа-яё0-9%$₽]/gi, '')
+                    if (!clean) return false // голая пунктуация («—», «:») тоже уходит
+                    return !sharedSet.has(clean)
+                })
+                // Фикс применяем, только если осталось ≥1 значимое слово — иначе обложка превратится в предлог
+                const hasContent = kept.some(w => {
+                    const clean = w.toLowerCase().replace(/[^a-zа-яё0-9%$₽]/gi, '')
+                    return clean && !stop.has(clean)
+                })
+                const stripped = kept.join(' ').trim()
+                if (stripped && hasContent) {
                     coverTextFinal = stripped
                     pairCheck = { ...lintPair(titleStr, coverTextFinal), fixed: stripped, original: String(coverText).trim() }
                 }
