@@ -78,6 +78,7 @@ async function withPage(browser, { token, theme = 'dark', vw = 1280, vh = 900 },
   context.setDefaultTimeout(30000)
   await proxyApi(context)
   const page = await context.newPage()
+  page.on('dialog', d => d.accept()) // window.confirm удаления слота — принимаем
   page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text().slice(0, 160)) })
   page.on('pageerror', (err) => consoleErrors.push(`pageerror: ${String(err).slice(0, 160)}`))
   await page.addInitScript(([tk, th]) => {
@@ -148,7 +149,8 @@ try {
   const slot = (list.json?.providers || []).find(p => p.name === SLOT_NAME)
   check('API: слот сохранён (id есть)', !!slot?.id)
   {
-    const mongoose = (await import('mongoose')).default
+    const backendRequire = createRequire(path.resolve('backend', 'noop.js'))
+    const mongoose = backendRequire('mongoose')
     await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/ai_viral_studio')
     const { default: CustomProvider } = await import('../backend/models/CustomProvider.js')
     const { callCustomProvider, getCustomChatProviders, invalidateCustomProviderCache } = await import('../backend/services/customProviderService.js')
