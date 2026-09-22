@@ -23,7 +23,7 @@ import axios from 'axios'
 import { checkQuota, consumeGeneration } from '../services/usageQuotaService.js'
 import { isOwner } from '../utils/canUse.js'
 import { scrapeVideo } from '../services/youtubeScraper.js'
-import { fetchVideoStats, fetchChannelStats, computeVideoRating } from '../services/youtubeDataService.js'
+import { fetchVideoStats, fetchChannelStats, computeVideoRating, fetchPlaylistInfo, extractPlaylistId } from '../services/youtubeDataService.js'
 import dialogueEvolution from '../ai/omega/dialogueEvolution.js'
 import { findNiche, NICHE_REGISTRY } from '../data/niches.js'
 import { isDataQuestion, noDataReply } from '../ai/omega/honestyGuard.js'
@@ -210,6 +210,54 @@ export async function chat(req, res) {
         const ytUrlMatch = message.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?[^\s]*v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
         let ytChatAnalysis = null
         let ytChatContext = ''
+        // [KEYS-UNIVERSAL З6] плейлист-URL без конкретного видео → анализ плейлиста:
+        // список видео (playlistItems), топ-5 по просмотрам, честное «это плейлист из N видео».
+        const ytPlaylistId = !ytUrlMatch ? extractPlaylistId(message) : null
+        if (ytPlaylistId) {
+            try {
+                const pl = await fetchPlaylistInfo(ytPlaylistId, { ownerId: userId })
+                if (pl?.available) {
+                    const topLines = pl.topByViews.map((v, i) => `${i + 1}. «${v.title}» — ${v.views.toLocaleString('ru-RU')} просмотров${v.likes !== null ? `, ${v.likes.toLocaleString('ru-RU')} лайков` : ''}`).join('\n')
+                    ytChatAnalysis = {
+                        playlist: true,
+                        playlistId: ytPlaylistId,
+                        url: `https://www.youtube.com/playlist?list=${ytPlaylistId}`,
+                        title: pl.title,
+                        channelTitle: pl.channelTitle,
+                        itemCount: pl.itemCount,
+                        topByViews: pl.topByViews,
+                        statsAvailable: true,
+                    }
+                    ytChatContext = `Пользователь прислал ссылку на ПЛЕЙЛИСТ YouTube (не одно видео). Реальные данные из YouTube Data API (используй ТОЛЬКО их, ничего не выдумывай): плейлист «${pl.title}» канала «${pl.channelTitle}», всего видео: ${pl.itemCount} (проанализировано ${pl.analyzedCount}). Топ-5 по просмотрам:\n${topLines}\nОтвет обязательно начни с честного «Это плейлист из ${pl.itemCount} видео», затем разбор топ-5: какие темы/заголовки заходят, что объединяет лидеров.`
+                } else {
+                    // [YT-DATA-FIX паттерн] недоступно → честный отказ БЕЗ вызова AI и БЕЗ списания ✦
+                    console.warn(`[omegaController:chat] playlist ${ytPlaylistId} unavailable: ${pl?.error?.code || 'unknown'} — honest refusal, quota refunded`)
+                    if (quotaConsumed && userId) {
+                        try {
+                            const { refundGeneration } = await import('../services/usageQuotaService.js')
+                            await refundGeneration(userId, chatCostCredits)
+                            quotaConsumed = false
+                        } catch { /* best-effort */ }
+                    }
+                    const reason = pl?.error?.message || 'нет API-ключа'
+                    const response = lang === 'en'
+                        ? `This is a YouTube playlist, but I couldn't fetch its data: ${reason}. I won't invent numbers — try again later.`
+                        : `Это плейлист YouTube, но получить его данные не удалось: ${reason}. Цифры выдумывать не буду — попробуйте позже.`
+                    return res.json({
+                        status: 'success',
+                        data: {
+                            response,
+                            honest: true,
+                            source: 'youtube-playlist-unavailable',
+                            videoAnalysis: { playlist: true, playlistId: ytPlaylistId, statsAvailable: false, statsError: reason },
+                            action: null,
+                        },
+                    })
+                }
+            } catch (err) {
+                console.warn('[omegaController:chat] playlist fetch failed:', err.message)
+            }
+        }
         if (ytUrlMatch) {
             try {
                 const ytV = await fetchVideoStats(ytUrlMatch[1], { ownerId: userId })

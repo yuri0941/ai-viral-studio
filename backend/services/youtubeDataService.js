@@ -294,6 +294,86 @@ export async function fetchTrendingVideos(regionCode = 'RU', { categoryId = null
 }
 
 /**
+ * [KEYS-UNIVERSAL З6] Playlist-анализ: playlist-URL → playlists.list (1 ед) +
+ * playlistItems.list (1 ед, до 50 позиций) + videos.list statistics (1 ед на пачку).
+ * Ответ: «это плейлист из N видео» + топ-5 по просмотрам (реальные цифры, не выдумки).
+ * Кэш 1 ч. Нет ключа/ошибка → available:false с человеческой причиной.
+ */
+export function extractPlaylistId(url) {
+    const m = /[?&]list=([a-zA-Z0-9_-]{5,})/.exec(String(url || ''))
+    return m ? m[1] : null
+}
+
+export async function fetchPlaylistInfo(playlistId, { ownerId = null } = {}) {
+    if (!playlistId) return unavailable('no_playlist_id', 'Не удалось извлечь ID плейлиста из ссылки')
+    const cacheId = `yt:playlist:${playlistId}`
+    const cached = await getJSON(cacheId).catch(() => null)
+    if (cached) return { ...cached, cached: true }
+
+    const key = await getYoutubeApiKey(ownerId)
+    if (!key) {
+        await alertYoutubeNoKey(`playlist:${playlistId}`)
+        return unavailable('no_api_key', 'YouTube Data API ключ не подключён — анализ плейлиста недоступен')
+    }
+
+    try {
+        const [plRes, itemsRes] = await Promise.all([
+            axios.get(`${YT_API_URL}/playlists`, {
+                params: { part: 'snippet,contentDetails', id: playlistId, key }, timeout: 15000,
+            }),
+            axios.get(`${YT_API_URL}/playlistItems`, {
+                params: { part: 'snippet,contentDetails', playlistId, maxResults: 50, key }, timeout: 15000,
+            }),
+        ])
+        const pl = plRes.data?.items?.[0]
+        if (!pl) return unavailable('playlist_not_found', 'Плейлист не найден или закрыт владельцем')
+        const items = itemsRes.data?.items || []
+        const videoIds = items.map(i => i.contentDetails?.videoId).filter(Boolean)
+
+        // статистика по всем позициям одним запросом (до 50 id в videos.list)
+        let statsById = {}
+        if (videoIds.length) {
+            const vRes = await axios.get(`${YT_API_URL}/videos`, {
+                params: { part: 'statistics', id: videoIds.join(','), key }, timeout: 15000,
+            })
+            for (const v of vRes.data?.items || []) {
+                statsById[v.id] = { views: Number(v.statistics?.viewCount || 0), likes: v.statistics?.likeCount !== undefined ? Number(v.statistics.likeCount) : null }
+            }
+        }
+
+        const videos = items.map(i => ({
+            videoId: i.contentDetails?.videoId,
+            title: i.snippet?.title || '',
+            position: i.snippet?.position ?? null,
+            publishedAt: i.contentDetails?.videoPublishedAt || null,
+            thumbnail: bestThumbnail(i.snippet?.thumbnails),
+            views: statsById[i.contentDetails?.videoId]?.views ?? 0,
+            likes: statsById[i.contentDetails?.videoId]?.likes ?? null,
+        })).filter(v => v.videoId && v.title !== 'Deleted video' && v.title !== 'Private video')
+
+        const topByViews = [...videos].sort((a, b) => b.views - a.views).slice(0, 5)
+        const result = {
+            success: true,
+            available: true,
+            playlistId,
+            title: pl.snippet?.title || '',
+            channelTitle: pl.snippet?.channelTitle || '',
+            itemCount: Number(pl.contentDetails?.itemCount ?? videos.length),
+            analyzedCount: videos.length,
+            topByViews,
+            firstVideo: videos[0] || null,
+        }
+        await setJSON(cacheId, result, TTL.video).catch(() => {})
+        return result
+    } catch (err) {
+        const mapped = mapYoutubeError(err)
+        console.warn(`[youtubeData] fetchPlaylistInfo ${playlistId} failed: ${mapped.code} — ${mapped.message}`)
+        await handleYoutubeApiError(mapped, `playlist:${playlistId}`)
+        return unavailable(mapped.code, mapped.message)
+    }
+}
+
+/**
  * Прозрачная формула AI-рейтинга (0–100) из РЕАЛЬНЫХ метрик. Никакой магии:
  *
  *   engagement  = (likes + comments) / views * 100, в %; бар = min(100, engagement / 8 * 100)   — 8% вовлечённости = эталон
@@ -374,5 +454,7 @@ export default {
     fetchChannelStats,
     searchYoutubeVideos,
     fetchTrendingVideos,
+    fetchPlaylistInfo,
+    extractPlaylistId,
     computeVideoRating,
 }
