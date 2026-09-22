@@ -32,12 +32,13 @@ async function sideBySide(name, ytId, omegaBuffer) {
 }
 
 const cases = [
-    { name: 'case1-streamer', ytId: 'jfKfPfyJRdk', text: 'Она сделала ЭТО в прямом эфире', note: 'стример/лицо' },
+    { name: 'case1-streamer', ytId: 'jNQXAC9IVRw', text: 'Она сделала ЭТО в прямом эфире', note: 'стример/лицо', only: process.env.PROOF_ONLY ? process.env.PROOF_ONLY === 'case1-streamer' : true },
     { name: 'case2-game', ytId: 'dQw4w9WgXcQ', text: 'Финальный босс пал', note: 'без лица — эпичный объект' },
     { name: 'case3-yt-link', ytId: '9bZkp7q19f0', text: 'Взорвал весь интернет', note: 'YouTube-ссылка' },
 ]
 
 for (const c of cases) {
+    if (process.env.PROOF_ONLY && c.name !== process.env.PROOF_ONLY) continue
     console.log(`\n▶ ${c.name} (${c.note})`)
     const framesRes = await extractYouTubeFrames(c.ytId).catch(() => null)
     const frames = framesRes?.frames?.length ? await toDataUrls(framesRes.frames.slice(0, 6)) : []
