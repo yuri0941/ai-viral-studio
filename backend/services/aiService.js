@@ -1239,20 +1239,31 @@ export const chatWithAI = async (message, history = [], lang = 'ru', options = {
     }
 }
 
+// [KNOWLEDGE-PACK] правило тегов из knowledge/seo.json (теги — слабый сигнал, без стен)
+function getTagsRule(lang) {
+    return 'Tags are a weak ranking signal (2026): max 15, for disambiguation only (spellings, tool names, abbreviations people actually type). Never a wall of unrelated tags.'
+}
+
 export const generateContent = async (type, params) => {
+    // [KNOWLEDGE-PACK] промпты собираются на базе вирусных знаний (backend/knowledge, hot-reload ≤60с)
+    const lang = params.lang || 'ru'
+    const { buildHooksBlock, buildSeoBlock, buildAlgorithmBlock, buildPackagingBlock, buildTitlesBlock, getPlatformSpec } = await import('./knowledgeService.js')
+    const platformSpec = getPlatformSpec(params.platform, lang)
+    const specLine = platformSpec ? `\nПлатформа ${platformSpec.label}: ${platformSpec.styleText}` : (params.platform ? `\nPlatform: ${params.platform}` : '')
     const prompts = {
-        script: `Create a viral ${params.platform || 'TikTok'} script about: ${params.topic}. Duration: ${params.duration || '60 seconds'}. Style: ${params.style || 'engaging and energetic'}.`,
-        hook: `Generate 5 attention-grabbing hooks for: ${params.topic}. Platform: ${params.platform || 'TikTok'}. Max 10 words each.`,
-        description: `Write an SEO-optimized description for: ${params.title}. Platform: ${params.platform || 'YouTube'}. Include relevant hashtags.`,
-        tags: `Generate 15 relevant hashtags for: ${params.topic}. Mix of popular and niche tags. Platform: ${params.platform || 'TikTok'}.`,
-        thumbnail: `Describe an eye-catching thumbnail design for: ${params.title}. Style: ${params.style || 'bold and colorful'}. Include text overlay suggestions.`
+        script: `Create a viral ${params.platform || 'TikTok'} script about: ${params.topic}. Duration: ${params.duration || '60 seconds'}. Style: ${params.style || 'engaging and energetic'}.${specLine}\n${buildHooksBlock(lang, { max: 8 })}\n${buildAlgorithmBlock(lang)}`,
+        hook: `Generate 5 attention-grabbing hooks for: ${params.topic}.${specLine} Each hook must follow one of the proven formulas below (tag each with its formula id). Max 10 words each.\n${buildHooksBlock(lang)}`,
+        description: `Write an SEO-optimized description for: ${params.title}.${specLine}\n${buildSeoBlock(lang)}`,
+        tags: `Generate relevant tags for: ${params.topic}.${specLine}\n${getTagsRule(lang)}`,
+        thumbnail: `Describe an eye-catching thumbnail design for: ${params.title}. Style: ${params.style || 'bold and colorful'}. Include text overlay suggestions.\n${buildPackagingBlock(lang)}`,
+        title: `Generate title variants for: ${params.topic || params.title}.${specLine}\n${buildTitlesBlock(lang)}`
     }
 
     const prompt = prompts[type] || prompts.script
 
     try {
         const messages = [
-            { role: 'system', content: 'You are a viral content expert. Be creative and specific.' },
+            { role: 'system', content: `You are a viral content expert trained on the knowledge-pack formulas (world-class YouTube/TikTok methodology). Be creative and specific. Answer in ${lang === 'ru' ? 'Russian' : 'English'}.` },
             { role: 'user', content: prompt }
         ]
         const result = await tryProviders(messages, params.ownerId || null)
