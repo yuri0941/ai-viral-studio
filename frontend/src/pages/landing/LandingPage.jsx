@@ -301,9 +301,9 @@ export default function LandingPage({ authMode = null }) {
                 value={waitlistEmail}
                 onChange={(e) => setWaitlistEmail(e.target.value)}
                 placeholder={t('landing.hero.waitlistPlaceholder')}
-                className="flex-1 min-w-0 bg-transparent outline-none text-sm px-2 min-h-[40px]"
+                className="flex-1 min-w-0 bg-transparent outline-none text-base px-2 min-h-[44px]"
               />
-              <button type="submit" disabled={waitlistLoading} className="btn-lux px-4 py-2 min-h-[40px] rounded-xl text-sm font-semibold whitespace-nowrap shrink-0 disabled:opacity-60">
+              <button type="submit" disabled={waitlistLoading} className="btn-lux px-4 py-2 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap shrink-0 disabled:opacity-60">
                 {waitlistLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('landing.hero.waitlistButton')}
               </button>
             </form>

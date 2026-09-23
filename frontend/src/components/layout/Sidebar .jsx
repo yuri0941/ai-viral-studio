@@ -272,7 +272,7 @@ function Sidebar() {
                                 <button
                                     key={cabinet.id}
                                     onClick={() => handleNav('/owner')}
-                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/5 transition-all group text-left"
+                                    className="w-full flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-xl hover:bg-white/5 transition-all group text-left"
                                 >
                                     <div className="relative">
                                         <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
@@ -346,7 +346,7 @@ function Sidebar() {
                 <div className="p-3 border-t border-white/5">
                     <button
                         onClick={() => handleNav('/settings')}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-all group ${collapsed ? 'justify-center' : ''}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-xl hover:bg-white/5 transition-all group ${collapsed ? 'justify-center' : ''}`}
                     >
                         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center flex-shrink-0">
                             <span className="text-sm font-bold text-white">{user?.name?.charAt(0) || 'O'}</span>
