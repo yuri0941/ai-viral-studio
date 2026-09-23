@@ -208,7 +208,7 @@ export default function LandingPage({ authMode = null }) {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] overflow-x-hidden">
       {/* Header */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[var(--bg)]/80 backdrop-blur-xl border-b border-[var(--border)]' : 'bg-transparent'}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${scrolled ? 'bg-[var(--bg)]/80 backdrop-blur-xl border-b border-[var(--border)]' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-bold text-lg">
             <Sparkles className="w-5 h-5 text-[var(--primary)]" /> AI Viral Studio
@@ -342,7 +342,7 @@ export default function LandingPage({ authMode = null }) {
               const isLarge = i === 0
               return (
                 <Reveal key={key} delay={i * 80} className={isLarge ? 'md:col-span-2' : ''}>
-                  <div className="spotlight glass-card rounded-2xl p-6 md:p-8 border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all duration-500 hover:scale-[1.01] h-full">
+                  <div className="spotlight glass-card rounded-2xl p-6 md:p-8 border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all duration-200 hover:scale-[1.01] h-full">
                     <div className={`rounded-xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] mb-4 ${isLarge ? 'w-14 h-14' : 'w-12 h-12'}`}>
                       <Icon className={isLarge ? 'w-7 h-7' : 'w-6 h-6'} />
                     </div>
@@ -380,7 +380,7 @@ export default function LandingPage({ authMode = null }) {
                 const isPopular = p.plan === 'pro'
                 return (
                   <Reveal key={p.plan} delay={i * 100} className="h-full">
-                    <div className={`relative rounded-2xl p-6 border h-full flex flex-col transition-all duration-500 hover:scale-[1.02] ${isPopular ? 'border-[var(--primary)] bg-[var(--primary)]/5 shadow-[0_0_50px_rgba(0,255,65,0.12)]' : 'border-[var(--border)] glass-card'}`}>
+                    <div className={`relative rounded-2xl p-6 border h-full flex flex-col transition-all duration-200 hover:scale-[1.02] ${isPopular ? 'border-[var(--primary)] bg-[var(--primary)]/5 shadow-[0_0_50px_rgba(0,255,65,0.12)]' : 'border-[var(--border)] glass-card'}`}>
                       {isPopular && <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[var(--primary)] text-black text-xs font-bold whitespace-nowrap">{t('landing.plans.popular')}</span>}
                       <h3 className="text-xl font-bold mb-2 capitalize">{p.plan}</h3>
                       <div className="text-3xl font-black mb-1">{p.price} <span className="text-sm text-[var(--text-muted)] font-normal">{t('landing.plans.perMonth')}</span></div>

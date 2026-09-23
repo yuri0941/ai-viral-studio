@@ -104,9 +104,14 @@ async function auditThresholds(page, screen, vw) {
       document.querySelectorAll('button, a[href], [role="button"], input, select, textarea').forEach(el => {
         const b = el.getBoundingClientRect()
         const st = getComputedStyle(el)
+        // закрытые дропдауны (opacity-0 pointer-events-none) не считаем — они невидимы
+        if (st.opacity === '0' || st.pointerEvents === 'none' || el.closest('.opacity-0')) return
         if (b.width > 0 && b.height > 0 && st.visibility !== 'hidden' && st.display !== 'none') {
-          if (b.top >= 0 && b.top < window.innerHeight && (b.height < touchMin || b.width < Math.min(touchMin, b.width < 30 ? touchMin : 0))) {
-            if (b.height < touchMin) small.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 30)} ${Math.round(b.width)}x${Math.round(b.height)}`)
+          // design.json fitts.thresholds: iconButtonMinPx=40 для иконочных (без текста), иначе 44
+          const iconOnly = !(el.innerText || '').trim() && (el.querySelector('svg') || el.getAttribute('aria-label'))
+          const minH = iconOnly ? 40 : touchMin
+          if (b.top >= 0 && b.top < window.innerHeight && b.height < minH) {
+            small.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 30)} ${Math.round(b.width)}x${Math.round(b.height)}`)
           }
         }
       })
@@ -132,8 +137,8 @@ async function auditThresholds(page, screen, vw) {
       if (longTransitions.size > 12) return
     })
     out.longTransitions = [...longTransitions].slice(0, 8)
-    const bodyText = document.body.innerText || ''
-    // домены (console.groq.com и т.п.) — не i18n-ключи
+    const bodyText = (document.body.innerText || '').replace(/\S+@\S+/g, '') // email — не i18n-ключи
+    // домены (console.groq.com и т.п.) — тоже не i18n-ключи
     out.rawI18n = (bodyText.match(/\b[a-z]+\.[a-zA-Z]+\.[a-zA-Z]+\b/g) || [])
       .filter(m => !/\.(com|ru|net|org|io|ai|dev|app)\b/i.test(m)).slice(0, 5)
     return out

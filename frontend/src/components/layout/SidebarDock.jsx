@@ -210,7 +210,7 @@ export function SidebarDock({ userRole = 'creator', user, onLogout }) {
         <div
             onMouseEnter={() => setExpanded(true)}
             onMouseLeave={() => setExpanded(false)}
-            className={`fixed left-0 top-16 h-[calc(100vh-64px)] z-30 hidden lg:flex flex-col bg-[var(--bg)] border-r border-[var(--border)] transition-[width] duration-300 ease-out overflow-hidden ${
+            className={`fixed left-0 top-16 h-[calc(100vh-64px)] z-30 hidden lg:flex flex-col bg-[var(--bg)] border-r border-[var(--border)] transition-[width] duration-200 ease-out overflow-hidden ${
                 expanded ? 'w-[260px] px-3' : 'w-[72px] px-2'
             }`}
         >

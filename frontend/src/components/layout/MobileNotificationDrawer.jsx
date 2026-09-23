@@ -21,7 +21,7 @@ export function MobileNotificationDrawer({ isOpen, onClose, notifications, onMar
                 />
             )}
             <div
-                className={`fixed bottom-0 left-0 right-0 bg-[#0f0f1a] border-t border-white/[0.06] z-50 transform transition-transform duration-300 ease-in-out rounded-t-2xl shadow-2xl lg:hidden max-h-[70vh] flex flex-col ${
+                className={`fixed bottom-0 left-0 right-0 bg-[#0f0f1a] border-t border-white/[0.06] z-50 transform transition-transform duration-200 ease-in-out rounded-t-2xl shadow-2xl lg:hidden max-h-[70vh] flex flex-col ${
                     isOpen ? 'translate-y-0' : 'translate-y-full'
                 }`}
             >
