@@ -3,6 +3,13 @@ import { NetworkOnly, StaleWhileRevalidate } from 'workbox-strategies'
 import { registerRoute, setCatchHandler } from 'workbox-routing'
 import { CacheFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
+import { clientsClaim } from 'workbox-core'
+
+// [PERF-AUDIT П4] stale-кэш: новый SW активируется сразу (без ожидания закрытия всех вкладок —
+// на мобильном PWA вкладка может жить днями, клиент сидел на старой версии). Смешение версий
+// ленивых чанков ловит VersionCheck-модалка обновления.
+self.skipWaiting()
+clientsClaim()
 
 // VitePWA injects the precache manifest here
 precacheAndRoute(self.__WB_MANIFEST)

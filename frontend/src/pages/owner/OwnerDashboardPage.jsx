@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, lazy } from 'react'
+import { useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useOwnerData } from './hooks/useOwnerData'
@@ -7,79 +7,80 @@ import { ownerApi } from '../../services/api'
 
 // Tabs
 import { OverviewTab } from './components/tabs/OverviewTab'
-import { TeamTab } from './components/tabs/TeamTab'
-import { CabinetsTab } from './components/tabs/CabinetsTab'
-import { FinanceTab } from './components/tabs/FinanceTab'
-import { SubscriptionsTab } from './components/tabs/SubscriptionsTab'
-import AddonMarketplace from '../../components/subscriptions/AddonMarketplace.jsx' // [ADDONS-MARKETPLACE-RESTORE] owner-редактор аддонов (тот же компонент, что витрина)
-import { AdvertisingTab } from './components/tabs/AdvertisingTab'
-import { PricingTab } from './components/tabs/PricingTab' // [25-TARIFF-GATES]
-import { SecurityTab } from './components/tabs/SecurityTab'
-import { AgentsTab } from './components/tabs/AgentsTab'
-import { ChatTab } from './components/tabs/ChatTab'
+const TeamTab = lazy(() => import('./components/tabs/TeamTab').then(m => ({ default: m.TeamTab })))
+const CabinetsTab = lazy(() => import('./components/tabs/CabinetsTab').then(m => ({ default: m.CabinetsTab })))
+const FinanceTab = lazy(() => import('./components/tabs/FinanceTab').then(m => ({ default: m.FinanceTab })))
+const SubscriptionsTab = lazy(() => import('./components/tabs/SubscriptionsTab').then(m => ({ default: m.SubscriptionsTab })))
+// [ADDONS-MARKETPLACE-RESTORE] owner-редактор аддонов (тот же компонент, что витрина)
+const AddonMarketplace = lazy(() => import('../../components/subscriptions/AddonMarketplace.jsx'))
+const AdvertisingTab = lazy(() => import('./components/tabs/AdvertisingTab').then(m => ({ default: m.AdvertisingTab })))
+const PricingTab = lazy(() => import('./components/tabs/PricingTab').then(m => ({ default: m.PricingTab })))
+const SecurityTab = lazy(() => import('./components/tabs/SecurityTab').then(m => ({ default: m.SecurityTab })))
+const AgentsTab = lazy(() => import('./components/tabs/AgentsTab').then(m => ({ default: m.AgentsTab })))
+const ChatTab = lazy(() => import('./components/tabs/ChatTab').then(m => ({ default: m.ChatTab })))
 
-import { LegalTab } from './components/tabs/LegalTab'
-import { AuditTab } from './components/tabs/AuditTab'
-import { ServersTab } from './components/tabs/ServersTab'
-import { UpdatesTab } from './components/tabs/UpdatesTab'
-import { PromoTab } from './components/tabs/PromoTab'
-import { NewsTab } from './components/tabs/NewsTab'
-import { ReferralsTab } from './components/tabs/ReferralsTab'
-import { IntegrationsTab } from './components/tabs/IntegrationsTab'
-import { AIAnalyticsTab } from './components/tabs/AIAnalyticsTab'
-import { LogsTab } from './components/tabs/LogsTab'
-import { OMEGACoreTab } from './components/tabs/OMEGACoreTab'
+const LegalTab = lazy(() => import('./components/tabs/LegalTab').then(m => ({ default: m.LegalTab })))
+const AuditTab = lazy(() => import('./components/tabs/AuditTab').then(m => ({ default: m.AuditTab })))
+const ServersTab = lazy(() => import('./components/tabs/ServersTab').then(m => ({ default: m.ServersTab })))
+const UpdatesTab = lazy(() => import('./components/tabs/UpdatesTab').then(m => ({ default: m.UpdatesTab })))
+const PromoTab = lazy(() => import('./components/tabs/PromoTab').then(m => ({ default: m.PromoTab })))
+const NewsTab = lazy(() => import('./components/tabs/NewsTab').then(m => ({ default: m.NewsTab })))
+const ReferralsTab = lazy(() => import('./components/tabs/ReferralsTab').then(m => ({ default: m.ReferralsTab })))
+const IntegrationsTab = lazy(() => import('./components/tabs/IntegrationsTab').then(m => ({ default: m.IntegrationsTab })))
+const AIAnalyticsTab = lazy(() => import('./components/tabs/AIAnalyticsTab').then(m => ({ default: m.AIAnalyticsTab })))
+const LogsTab = lazy(() => import('./components/tabs/LogsTab').then(m => ({ default: m.LogsTab })))
+const OMEGACoreTab = lazy(() => import('./components/tabs/OMEGACoreTab').then(m => ({ default: m.OMEGACoreTab })))
 
-import { TasksTab } from './components/tabs/TasksTab'
-import ApiKeysTab from './components/tabs/ApiKeysTab'
-import ExternalApiKeysTab from './components/tabs/ExternalApiKeysTab'
-import { NotificationsTab } from './components/tabs/NotificationsTab'
-import { HelpTab } from './components/tabs/HelpTab'
-import { FeedbackTab } from './components/tabs/FeedbackTab'
-import { DevStudioTab } from './components/tabs/DevStudioTab'
-import { PaymentProvidersTab } from './components/tabs/PaymentProvidersTab.jsx'
-import { SubscribersTab } from './components/tabs/SubscribersTab.jsx'
-import { OmegaFinanceTab } from './components/tabs/OmegaFinanceTab'
-import { OmegaSkillsTab } from './components/tabs/OmegaSkillsTab'
-import { OmegaMemoryTab } from './components/tabs/OmegaMemoryTab'
-import { OmegaApprovalQueue } from '../../components/omega/OmegaApprovalQueue.jsx'
-import NeuralGraphTab from './components/tabs/NeuralGraphTab.jsx'
-import OmegaDevStudioTab from './components/tabs/OmegaDevStudioTab.jsx'
-import OmegaSwarmDashboard from '../../components/omega/OmegaSwarmDashboard.jsx'
-import OmegaAutoFixDashboard from '../../components/omega/OmegaAutoFixDashboard.jsx'
-import OmegaLearningDashboard from '../../components/omega/OmegaLearningDashboard.jsx'
-import OmegaResearchDashboard from '../../components/omega/OmegaResearchDashboard.jsx'
-import MonitoringDashboard from '../../components/admin/MonitoringDashboard.jsx'
-import OmegaResourceManager from '../../components/omega/OmegaResourceManager.jsx'
-import OmegaRoadmap from '../../components/omega/OmegaRoadmap.jsx'
-import OmegaMemoryExplorer from '../../components/omega/OmegaMemoryExplorer.jsx'
-import OmegaBoardroom from '../../components/omega/OmegaBoardroom.jsx'
-import { OwnerRequisitesTab } from './components/tabs/OwnerRequisitesTab'
-import { LegalSettingsTab } from './components/tabs/LegalSettingsTab'
-import { ClientsTab } from './components/tabs/ClientsTab'
-import { MonetizationTab } from './components/tabs/MonetizationTab'
-import { BrandVoiceTab } from './components/tabs/BrandVoiceTab'
-import PersonalityTab from './components/tabs/PersonalityTab'
-import DreamModeTab from './components/tabs/DreamModeTab'
-import { TemplatesTab } from './components/tabs/TemplatesTab'
-import { ScoutTab } from './components/tabs/ScoutTab'
-import { AutoImprovementTab } from './components/tabs/AutoImprovementTab'
-import { ABTestingTab } from './components/tabs/ABTestingTab'
-import { WhiteLabelTab } from './components/tabs/WhiteLabelTab'
-import { WorkspacesTab } from './components/tabs/WorkspacesTab'
-import { DeveloperTab } from './components/tabs/DeveloperTab'
-import { QRPrintTab } from './components/tabs/QRPrintTab'
-import { FranchiseTab } from './components/tabs/FranchiseTab'
-import { FleetTab } from './components/tabs/FleetTab'
-import { SelfHealingCrisisTab } from './components/tabs/SelfHealingCrisisTab'
-import { SandboxPanel } from './components/tabs/SandboxPanel'
-import { SelfOptimizeTab } from './components/tabs/SelfOptimizeTab'
-import TelegramTab from './components/tabs/TelegramTab'
-import { SupportTab } from './components/tabs/SupportTab'
-import TicketsTab from './components/tabs/TicketsTab.jsx'
-import { ChannelManagerTab } from './components/tabs/ChannelManagerTab'
-import { AdOrdersTab } from './components/tabs/AdOrdersTab'
-import SalesMetricsTab from './components/tabs/SalesMetricsTab.jsx'
+const TasksTab = lazy(() => import('./components/tabs/TasksTab').then(m => ({ default: m.TasksTab })))
+const ApiKeysTab = lazy(() => import('./components/tabs/ApiKeysTab'))
+const ExternalApiKeysTab = lazy(() => import('./components/tabs/ExternalApiKeysTab'))
+const NotificationsTab = lazy(() => import('./components/tabs/NotificationsTab').then(m => ({ default: m.NotificationsTab })))
+const HelpTab = lazy(() => import('./components/tabs/HelpTab').then(m => ({ default: m.HelpTab })))
+const FeedbackTab = lazy(() => import('./components/tabs/FeedbackTab').then(m => ({ default: m.FeedbackTab })))
+const DevStudioTab = lazy(() => import('./components/tabs/DevStudioTab').then(m => ({ default: m.DevStudioTab })))
+const PaymentProvidersTab = lazy(() => import('./components/tabs/PaymentProvidersTab.jsx').then(m => ({ default: m.PaymentProvidersTab })))
+const SubscribersTab = lazy(() => import('./components/tabs/SubscribersTab.jsx').then(m => ({ default: m.SubscribersTab })))
+const OmegaFinanceTab = lazy(() => import('./components/tabs/OmegaFinanceTab').then(m => ({ default: m.OmegaFinanceTab })))
+const OmegaSkillsTab = lazy(() => import('./components/tabs/OmegaSkillsTab').then(m => ({ default: m.OmegaSkillsTab })))
+const OmegaMemoryTab = lazy(() => import('./components/tabs/OmegaMemoryTab').then(m => ({ default: m.OmegaMemoryTab })))
+const OmegaApprovalQueue = lazy(() => import('../../components/omega/OmegaApprovalQueue.jsx').then(m => ({ default: m.OmegaApprovalQueue })))
+const NeuralGraphTab = lazy(() => import('./components/tabs/NeuralGraphTab.jsx'))
+const OmegaDevStudioTab = lazy(() => import('./components/tabs/OmegaDevStudioTab.jsx'))
+const OmegaSwarmDashboard = lazy(() => import('../../components/omega/OmegaSwarmDashboard.jsx'))
+const OmegaAutoFixDashboard = lazy(() => import('../../components/omega/OmegaAutoFixDashboard.jsx'))
+const OmegaLearningDashboard = lazy(() => import('../../components/omega/OmegaLearningDashboard.jsx'))
+const OmegaResearchDashboard = lazy(() => import('../../components/omega/OmegaResearchDashboard.jsx'))
+const MonitoringDashboard = lazy(() => import('../../components/admin/MonitoringDashboard.jsx'))
+const OmegaResourceManager = lazy(() => import('../../components/omega/OmegaResourceManager.jsx'))
+const OmegaRoadmap = lazy(() => import('../../components/omega/OmegaRoadmap.jsx'))
+const OmegaMemoryExplorer = lazy(() => import('../../components/omega/OmegaMemoryExplorer.jsx'))
+const OmegaBoardroom = lazy(() => import('../../components/omega/OmegaBoardroom.jsx'))
+const OwnerRequisitesTab = lazy(() => import('./components/tabs/OwnerRequisitesTab').then(m => ({ default: m.OwnerRequisitesTab })))
+const LegalSettingsTab = lazy(() => import('./components/tabs/LegalSettingsTab').then(m => ({ default: m.LegalSettingsTab })))
+const ClientsTab = lazy(() => import('./components/tabs/ClientsTab').then(m => ({ default: m.ClientsTab })))
+const MonetizationTab = lazy(() => import('./components/tabs/MonetizationTab').then(m => ({ default: m.MonetizationTab })))
+const BrandVoiceTab = lazy(() => import('./components/tabs/BrandVoiceTab').then(m => ({ default: m.BrandVoiceTab })))
+const PersonalityTab = lazy(() => import('./components/tabs/PersonalityTab'))
+const DreamModeTab = lazy(() => import('./components/tabs/DreamModeTab'))
+const TemplatesTab = lazy(() => import('./components/tabs/TemplatesTab').then(m => ({ default: m.TemplatesTab })))
+const ScoutTab = lazy(() => import('./components/tabs/ScoutTab').then(m => ({ default: m.ScoutTab })))
+const AutoImprovementTab = lazy(() => import('./components/tabs/AutoImprovementTab').then(m => ({ default: m.AutoImprovementTab })))
+const ABTestingTab = lazy(() => import('./components/tabs/ABTestingTab').then(m => ({ default: m.ABTestingTab })))
+const WhiteLabelTab = lazy(() => import('./components/tabs/WhiteLabelTab').then(m => ({ default: m.WhiteLabelTab })))
+const WorkspacesTab = lazy(() => import('./components/tabs/WorkspacesTab').then(m => ({ default: m.WorkspacesTab })))
+const DeveloperTab = lazy(() => import('./components/tabs/DeveloperTab').then(m => ({ default: m.DeveloperTab })))
+const QRPrintTab = lazy(() => import('./components/tabs/QRPrintTab').then(m => ({ default: m.QRPrintTab })))
+const FranchiseTab = lazy(() => import('./components/tabs/FranchiseTab').then(m => ({ default: m.FranchiseTab })))
+const FleetTab = lazy(() => import('./components/tabs/FleetTab').then(m => ({ default: m.FleetTab })))
+const SelfHealingCrisisTab = lazy(() => import('./components/tabs/SelfHealingCrisisTab').then(m => ({ default: m.SelfHealingCrisisTab })))
+const SandboxPanel = lazy(() => import('./components/tabs/SandboxPanel').then(m => ({ default: m.SandboxPanel })))
+const SelfOptimizeTab = lazy(() => import('./components/tabs/SelfOptimizeTab').then(m => ({ default: m.SelfOptimizeTab })))
+const TelegramTab = lazy(() => import('./components/tabs/TelegramTab'))
+const SupportTab = lazy(() => import('./components/tabs/SupportTab').then(m => ({ default: m.SupportTab })))
+const TicketsTab = lazy(() => import('./components/tabs/TicketsTab.jsx'))
+const ChannelManagerTab = lazy(() => import('./components/tabs/ChannelManagerTab').then(m => ({ default: m.ChannelManagerTab })))
+const AdOrdersTab = lazy(() => import('./components/tabs/AdOrdersTab').then(m => ({ default: m.AdOrdersTab })))
+const SalesMetricsTab = lazy(() => import('./components/tabs/SalesMetricsTab.jsx'))
 
 const AnalyticsPage = lazy(() => import('../AnalyticsPage'))
 const ProjectFactoryPage = lazy(() => import('../project-factory/ProjectFactoryPage.jsx'))
@@ -98,7 +99,7 @@ import { CreatePromoModal } from './components/modals/CreatePromoModal'
 import { CreateNewsModal } from './components/modals/CreateNewsModal'
 
 // Floating widgets
-import { OmegaChatWidget } from '../../components/omega/OmegaChatWidget'
+const OmegaChatWidget = lazy(() => import('../../components/omega/OmegaChatWidget').then(m => ({ default: m.OmegaChatWidget })))
 import { ResponsiveAdBanner } from '../../components/ads/ResponsiveAdBanner'
 
 import {
@@ -431,7 +432,7 @@ export default function OwnerDashboardPage() {
             {/* Content */}
             <div className="p-4 lg:p-6 max-w-[1600px] mx-auto">
                 {activeTab === 'overview' && <DashboardHeader data={ownerData} />}
-                {renderTab()}
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><div className="animate-spin w-8 h-8 border-2 border-[#00ff41] border-t-transparent rounded-full" /></div>}>{renderTab()}</Suspense>
             </div>
 
             {/* Modals */}

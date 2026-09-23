@@ -137,7 +137,7 @@ function exportPdf(data, rating, t) {
   win.document.close();
 }
 
-export function YouTubeAnalysisCard({ data, variant = 'compact', onAction }) {
+function YouTubeAnalysisCard({ data, variant = 'compact', onAction }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState('');
@@ -369,4 +369,7 @@ export function YouTubeAnalysisCard({ data, variant = 'compact', onAction }) {
   );
 }
 
-export default YouTubeAnalysisCard;
+// [PERF-AUDIT П3] memo: карточка разбора не перерендеривается на keystroke в инпуте чата
+const MemoYouTubeAnalysisCard = React.memo(YouTubeAnalysisCard);
+export { MemoYouTubeAnalysisCard as YouTubeAnalysisCard };
+export default MemoYouTubeAnalysisCard;

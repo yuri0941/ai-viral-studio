@@ -1926,16 +1926,23 @@ const sendOwnerMenu = (chatId) => {
 }
 
 const sendStatus = (chatId) => {
-  safeSendMessage(chatId, `<b>🟢 Server Status</b>\n\n⏰ ${new Date().toLocaleString('ru-RU')}\n🗄 MongoDB: ${process.env.MONGO_URI ? '✅' : '⚠️'}\n🤖 OMEGA: ✅\n💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅' : '⚠️'}\n📱 Telegram: ✅`, { parse_mode: 'HTML' })
+  // [PERF-AUDIT Д1] Stripe-контур сохранён под будущее (решение владельца), но НИКОГДА не тестировался
+  // end-to-end — честный статус вместо ✅ по одному наличию env-ключа.
+  const stripeLine = process.env.STRIPE_SECRET_KEY
+    ? '💳 Stripe: ключ есть, не протестирован'
+    : '💳 Stripe: не подключён'
+  safeSendMessage(chatId, `<b>🟢 Server Status</b>\n\n⏰ ${new Date().toLocaleString('ru-RU')}\n🗄 MongoDB: ${process.env.MONGO_URI ? '✅' : '⚠️'}\n🤖 OMEGA: ✅\n${stripeLine}\n📱 Telegram: ✅`, { parse_mode: 'HTML' })
 }
 
 const sendStats = async (chatId) => {
   // [v9.9.19.3] реальные цифры вместо хардкод-моков
   try {
-    const users = await User.countDocuments({}).catch(() => 0)
+    // [PERF-AUDIT Д2] «Клиентов» — корректный фильтр из ownerController (без deleted/тестовых),
+    // раньше был сырой count всех users (включал owner/staff/тест-аккаунты)
+    const users = await User.countDocuments({ status: { $ne: 'deleted' }, isTestAccount: { $ne: true } }).catch(() => 0)
     const tickets = await SupportTicket.countDocuments({ status: { $in: ['open', 'needs_owner'] } }).catch(() => 0)
     const orders = await AdOrder.countDocuments({}).catch(() => 0)
-    safeSendMessage(chatId, `<b>💎 Analytics</b>\n\n👥 Пользователей: ${users}\n🎫 Открытые тикеты: ${tickets}\n🛒 Заказы рекламы: ${orders}\n\n<i>Полная аналитика — в Dashboard</i>`, { parse_mode: 'HTML' })
+    safeSendMessage(chatId, `<b>💎 Analytics</b>\n\n👥 Клиентов: ${users}\n🎫 Открытые тикеты: ${tickets}\n🛒 Заказы рекламы: ${orders}\n\n<i>Полная аналитика — в Dashboard</i>`, { parse_mode: 'HTML' })
   } catch (e) {
     safeSendMessage(chatId, '<b>💎 Analytics</b>\n\n⚠️ Данные временно недоступны — смотрите Dashboard.', { parse_mode: 'HTML' })
   }

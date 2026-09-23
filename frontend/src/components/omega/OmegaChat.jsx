@@ -129,7 +129,9 @@ function CodeBlock({ code, t }) {
   );
 }
 
-export function AiMessageContent({ text, t }) {
+// [PERF-AUDIT П3] memo: лента не перерендеривается на каждый keystroke инпута
+// (работает вместе со стабильной t() из useTranslation — см. PERF-AUDIT там же)
+export const AiMessageContent = React.memo(function AiMessageContent({ text, t }) {
   if (!text || typeof text !== 'string') return null;
 
   // Full HTML preview
@@ -211,7 +213,7 @@ export function AiMessageContent({ text, t }) {
       </div>
     </div>
   );
-}
+})
 
 export function ReasoningSteps({ reasoning, t }) {
   const [expanded, setExpanded] = useState(false);
