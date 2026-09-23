@@ -5,6 +5,7 @@ import {
     Instagram, Twitter, Linkedin, Facebook
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { ErrorState } from '../../../../components/common/ErrorState.jsx'
 import { API_BASE_URL } from '../../../../config.js'
 
 // [REAL-DATA] тиры зеркалят backend referralService.TIER_REWARDS (обещание = механика)
@@ -174,8 +175,9 @@ export function ReferralsTab() {
         }
     }
 
-    if (loading) return <div className="text-center py-12 text-[var(--text-muted)]">Загрузка…</div>
-    if (!data) return <div className="text-center py-12 text-[var(--text-muted)]">Не удалось загрузить реферальные данные. Обновите страницу.</div>
+    if (loading) return <div className="text-center py-12 text-[var(--text-muted)]" role="status">Загрузка…</div>
+    // [DESIGN-PRO З2] error-state по спеке design.json: что случилось + кнопка повтора
+    if (!data) return <ErrorState title="Не удалось загрузить реферальные данные" description="Проверьте соединение и попробуйте ещё раз." onRetry={() => window.location.reload()} />
 
     return (
         <div className="space-y-6">

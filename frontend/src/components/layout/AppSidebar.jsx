@@ -287,7 +287,7 @@ export function AppSidebar({
         <div
             onMouseEnter={() => !isMobile && setHovered(true)}
             onMouseLeave={() => !isMobile && setHovered(false)}
-            className={`flex flex-col h-full bg-[var(--bg)] border-r border-[var(--border)] transition-[width] duration-300 z-50 relative ${
+            className={`flex flex-col h-full bg-[var(--bg)] border-r border-[var(--border)] transition-[width] duration-200 z-50 relative ${
                 isExpanded ? 'w-[280px]' : 'w-[72px]'
             }`}
         >

@@ -60,7 +60,7 @@ body {
         -webkit-backdrop-filter: blur(20px);
         border: 1px solid var(--border);
         border-radius: 16px;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
     }
 
     .glass:hover {
@@ -81,7 +81,7 @@ body {
         border: none;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
         font-size: 15px;
         display: inline-flex;
         align-items: center;
@@ -335,7 +335,7 @@ input[type="radio"] {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: #000;
     box-shadow: 0 4px 15px rgba(0, 255, 65, 0.25);
-    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
     cursor: pointer;
 }
 

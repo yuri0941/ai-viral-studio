@@ -1,0 +1,133 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-09-22",
+  "sources": [
+    "Laws of UX (Jon Yablonski) — lawsofux.com, CC-licensed summaries of published research",
+    "Refactoring UI (Adam Wathan & Steve Schoger) — published design heuristics",
+    "WCAG 2.2 AA (W3C) — w3.org/TR/WCAG22, open standard",
+    "Nielsen Norman Group — public articles on mobile usability & SaaS conversion",
+    "Baymard Institute — public checkout/form UX research summaries"
+  ],
+  "laws": [
+    {
+      "id": "hick",
+      "name": "Hick's Law",
+      "nameRu": "Закон Хика",
+      "rule": "Время решения растёт с числом вариантов. На старте и в ключевых действиях — минимум выборов.",
+      "thresholds": { "primaryNavItemsMax": 7, "onboardingChoicesPerStepMax": 3, "heroCtaCount": 1, "pricingPlansHighlighted": 1 },
+      "apply": ["landing", "onboarding", "pricing", "chat"]
+    },
+    {
+      "id": "fitts",
+      "name": "Fitts's Law",
+      "nameRu": "Закон Фиттса",
+      "rule": "Время нажатия зависит от размера и расстояния до цели. Главные действия — крупные и близко к точке внимания.",
+      "thresholds": { "touchTargetMinPx": 44, "primaryButtonMinHeightPx": 44, "iconButtonMinPx": 40, "destructiveConfirmSeparated": true },
+      "apply": ["mobile", "chat", "covers", "owner"]
+    },
+    {
+      "id": "jakob",
+      "name": "Jakob's Law",
+      "nameRu": "Закон Якоба",
+      "rule": "Пользователи ждут знакомые паттерны из других приложений. Не изобретать навигацию/жесты заново.",
+      "thresholds": { "standardPatterns": ["logo-left-home", "search-top", "profile-avatar-right", "bottom-nav-mobile", "esc-closes-modal"] },
+      "apply": ["landing", "chat", "owner", "mobile"]
+    },
+    {
+      "id": "peak-end",
+      "name": "Peak-End Rule",
+      "nameRu": "Правило пика и конца",
+      "rule": "Запоминается пик и ФИНАЛ взаимодействия. Последнее состояние экрана (успех/пусто/ошибка) — приятное и с понятным следующим шагом.",
+      "thresholds": { "everyScreenHasEndState": true, "emptyStateHasAction": true, "successHasNextStep": true },
+      "apply": ["chat", "covers", "payment", "onboarding"]
+    },
+    {
+      "id": "miller",
+      "name": "Miller's Law",
+      "nameRu": "Закон Миллера",
+      "rule": "Рабочая память держит ~7±2 элемента. Группировать контент в чанки по 3–5.",
+      "thresholds": { "chunkSizeMax": 5, "formFieldsPerScreenMax": 7 },
+      "apply": ["onboarding", "settings", "owner"]
+    },
+    {
+      "id": "aesthetic-usability",
+      "name": "Aesthetic-Usability Effect",
+      "nameRu": "Эффект эстетики",
+      "rule": "Эстетичный интерфейс воспринимается как более простой и надёжный. Визуальный шум снижает доверие.",
+      "thresholds": { "maxFontsPerScreen": 2, "maxAccentColorsPerScreen": 2 },
+      "apply": ["landing", "chat", "pricing"]
+    },
+    {
+      "id": "goal-gradient",
+      "name": "Goal-Gradient Effect",
+      "nameRu": "Эффект приближения к цели",
+      "rule": "Мотивация растёт ближе к финишу. Показывать прогресс онбординга/загрузки/квоты.",
+      "thresholds": { "multiStepHasProgress": true, "uploadHasPercent": true, "quotaVisible": true },
+      "apply": ["onboarding", "chat", "pricing"]
+    },
+    {
+      "id": "doherty",
+      "name": "Doherty Threshold",
+      "nameRu": "Порог Доэрти",
+      "rule": "Отклик <400ms удерживает поток. Если дольше — skeleton/прогресс, не спиннер-неизвестность и не скачок.",
+      "thresholds": { "interactionFeedbackMs": 100, "skeletonInsteadOfBlank": true, "transitionMsMax": 200 },
+      "apply": ["all"]
+    }
+  ],
+  "refactoringUi": {
+    "hierarchy": [
+      { "id": "rui-h1", "rule": "Иерархия через вес/размер/цвет, НЕ через рамки и фоны: заголовок жирнее/крупнее, вторичное — приглушённое", "check": "на экране ≤3 уровня текста; muted-текст контрастом ниже основного" },
+      { "id": "rui-h2", "rule": "Основной текст не чисто чёрный/белый: dark #1a1a2e-class / light-theme text on dark ~#f0f0f5", "check": "body-текст не #000 и не #fff" },
+      { "id": "rui-h3", "rule": "Одно primary-действие на экран; вторичные — ghost/outline", "check": "не больше одной solid-primary кнопки в вьюпорте" }
+    ],
+    "spacing": [
+      { "id": "rui-s1", "rule": "Шкала отступов кратна 4: 4/8/12/16/24/32/48/64; элементы одной группы ближе, чем соседние группы", "check": "gap/padding из шкалы; схлопываний 3px/7px нет" },
+      { "id": "rui-s2", "rule": "Начинать с большего воздуха: секции 64–96px desktop, 40–48px mobile", "check": "секции лендинга не липнут друг к другу" },
+      { "id": "rui-s3", "rule": "Карточки: внутренний padding ≥ внешнего gap", "check": "padding карточки ≥ gap сетки" }
+    ],
+    "typography": [
+      { "id": "rui-t1", "rule": "Шкала типографики фиксирована: 12/14/16/20/24/32/40; line-height 1.2 заголовки, 1.5–1.6 текст", "check": "нет произвольных 13px/17px/23px" },
+      { "id": "rui-t2", "rule": "Длина строки 45–75 символов для читабельного текста", "check": "параграфы лендинга не во всю ширину 1440" }
+    ],
+    "color": [
+      { "id": "rui-c1", "rule": "Состояния цветом семантичны: success/warning/danger из токенов, не ad-hoc hex", "check": "grep ad-hoc #hex в компонентах состояний" },
+      { "id": "rui-c2", "rule": "Статус не только цветом (иконка/текст) — дальтонизм", "check": "ошибки формы имеют текст, не только красную рамку" }
+    ]
+  },
+  "saasConversion": [
+    { "id": "conv-1", "rule": "Ценность за 5 секунд: заголовок = что получит клиент + для кого; подзаголовок = как; CTA виден без скролла", "screen": "landing" },
+    { "id": "conv-2", "rule": "Пруф рядом с CTA: цифра/кейс/скрин результата в первом экране", "screen": "landing" },
+    { "id": "conv-3", "rule": "Один primary CTA повторяется после каждой смысловой секции; secondary — ghost", "screen": "landing" },
+    { "id": "conv-4", "rule": "Тарифы: рекомендуемый выделен визуально, ценность тарифа читается без скролла, цена в валюте клиента (₽), нет простыни фич-матрицы", "screen": "pricing" },
+    { "id": "conv-5", "rule": "Регистрация: ≤3 полей на первом шаге, соц-вход/магия вместо пароля где возможно, ошибки inline с текстом", "screen": "register" },
+    { "id": "conv-6", "rule": "Первый результат за минимум шагов: onboarding ведёт к одному готовому артефакту (обложка/разбор), не к экскурсии по меню", "screen": "onboarding" }
+  ],
+  "wcag": {
+    "level": "AA",
+    "contrast": { "normalTextMin": 4.5, "largeTextMin": 3.0, "uiComponentsMin": 3.0 },
+    "focus": { "visibleRing": true, "keyboardReachable": true, "focusTrapModals": true, "escCloses": true },
+    "aria": { "iconOnlyButtonsHaveLabel": true, "formFieldsHaveLabel": true, "liveRegionForAsync": true, "imagesHaveAlt": true },
+    "motion": { "respectReducedMotion": true, "noAutoPlayOver5s": true }
+  },
+  "mobile": {
+    "touchTargetMinPx": 44,
+    "safeArea": "env(safe-area-inset-*) у нижних/верхних панелей",
+    "thumbZone": "primary-действия в нижней половине на <768px",
+    "noHorizontalScroll": "360px — ничего не обрезано, нет горизонтального скролла",
+    "fontSizeMinPx": 14,
+    "inputsFontSizeMinPx": 16,
+    "inputsNote": "input <16px на iOS триггерит зум — инпуты ≥16px"
+  },
+  "states": {
+    "loading": "skeleton повторяет геометрию контента (нет layout-скачка); спиннер только для <400ms",
+    "empty": "empty-state = иконка + что здесь будет + кнопка действия; не мёртвый «Нет данных»",
+    "error": "ошибка = что случилось + что делать + кнопка (повторить/вернуться); без сырых кодов",
+    "success": "успех = подтверждение + следующий шаг (peak-end)"
+  },
+  "microFinish": {
+    "transitionMsMax": 200,
+    "noBlackout": "смена темы/роута без белой вспышки (цвет фона на html до гидрации)",
+    "scrollbars": "thin, тематические, без нативных громоздких",
+    "icons": "единый набор (lucide), одинаковый stroke/size в одном контексте"
+  }
+}

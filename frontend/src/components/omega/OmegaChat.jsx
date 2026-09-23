@@ -1773,14 +1773,14 @@ export default function OmegaChat({
             <button
               type="button"
               onClick={() => setSupportMode(true)}
-              className="flex items-center gap-1.5 px-3 min-h-[40px] rounded-lg bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] text-xs text-gray-300 hover:text-white transition"
+              className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] text-xs text-gray-300 hover:text-white transition"
             >
               <MessageCircle className="w-3.5 h-3.5" /> {t('chat.support') || 'Поддержка'}
             </button>
             <button
               type="button"
               onClick={() => window.open(CLIENT_BOT_URL, '_blank')}
-              className="flex items-center gap-1.5 px-3 min-h-[40px] rounded-lg bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] text-xs text-gray-300 hover:text-white transition"
+              className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] text-xs text-gray-300 hover:text-white transition"
             >
               <TelegramIcon className="w-3.5 h-3.5" /> {t('chat.telegram') || 'Telegram'}
             </button>

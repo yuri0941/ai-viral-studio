@@ -198,10 +198,10 @@ export function DashboardHeader({
                 <div className="flex items-center gap-3 min-w-0">
                     {onMenuClick && (
                         <button onClick={onMenuClick} className="lg:hidden p-2 -ml-2 rounded-xl hover:bg-white/5 transition-colors flex-shrink-0" aria-label={t('header.openMenu')}>
-                            <Menu className="w-5 h-5 text-white" />
+                            <Menu className="w-5 h-5 text-[var(--text)]" />
                         </button>
                     )}
-                    <h1 className="text-lg font-bold text-white tracking-tight truncate">{title}</h1>
+                    <h1 className="text-lg font-bold text-[var(--text)] tracking-tight truncate">{title}</h1>
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
@@ -236,7 +236,7 @@ export function DashboardHeader({
 
                     <button
                         onClick={onThemeToggle}
-                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-white"
+                        className="p-2 rounded-xl bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-[var(--text)]"
                         aria-label={t('header.toggleTheme')}
                     >
                         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -340,7 +340,7 @@ export function DashboardHeader({
                                                 className={`p-2.5 rounded-xl cursor-pointer text-xs border ${n.read ? 'opacity-50 bg-white/[0.02] border-white/[0.05]' : 'bg-[var(--primary)]/5 border-[var(--primary)]/20'}`}
                                             >
                                                 <div className="flex items-start justify-between gap-2">
-                                                    <span className={`font-medium ${n.read ? 'text-gray-300' : 'text-white'}`}>{n.title}</span>
+                                                    <span className={`font-medium ${n.read ? 'text-[var(--text-muted)]' : 'text-[var(--text)]'}`}>{n.title}</span>
                                                     {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shrink-0 mt-1" />}
                                                 </div>
                                                 <p className="text-[var(--text-muted)] mt-0.5 line-clamp-2">{n.message}</p>

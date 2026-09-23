@@ -12,8 +12,8 @@ function RegisterForm({ onSuccess }) {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
-    const [confirmPassword, setConfirmPassword] = useState('')
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    // [DESIGN-PRO З3 conv-5] поле «Подтвердите пароль» убрано: ≤3 полей на первом шаге,
+    // самопроверка — через «показать пароль» (глазок)
     const [consent, setConsent] = useState({
         acceptedTerms: false,
         acceptedPrivacy: false,
@@ -50,11 +50,6 @@ function RegisterForm({ onSuccess }) {
 
         if (!allConsentsChecked) {
             setError('Примите все обязательные условия')
-            return
-        }
-
-        if (password !== confirmPassword) {
-            setError('Пароли не совпадают')
             return
         }
 
@@ -153,13 +148,12 @@ function RegisterForm({ onSuccess }) {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="min-h-[3rem]">
-                {error && (
-                    <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs leading-snug">
-                        {error}
-                    </div>
-                )}
-            </div>
+            {/* [DESIGN-PRO З3] ошибка только по факту — резерв min-h съедал 48px и угонял CTA под фолд */}
+            {error && (
+                <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs leading-snug" role="alert">
+                    {error}
+                </div>
+            )}
 
             <div>
                 <label className="block text-sm text-gray-400 mb-1.5">Имя</label>
@@ -207,29 +201,7 @@ function RegisterForm({ onSuccess }) {
                 </div>
             </div>
 
-            <div>
-                <label className="block text-sm text-gray-400 mb-1.5">Подтвердите пароль</label>
-                <div className="relative">
-                    <input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full max-w-full pl-4 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#00ff41]/30 focus:ring-1 focus:ring-[#00ff41]/20 transition-colors"
-                        placeholder="Повторите пароль"
-                        required
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(v => !v)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
-                        aria-label={showConfirmPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                    >
-                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                </div>
-            </div>
-
-            <div className="space-y-3 pt-2 max-w-full overflow-hidden">
+            <div className="space-y-2 pt-1 max-w-full overflow-hidden">
                 <p className="text-sm text-gray-400 font-medium">Обязательные согласия</p>
 
                 <Checkbox

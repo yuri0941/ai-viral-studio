@@ -144,7 +144,7 @@ export function DashboardShell({
     }, [sidebarOpen, mobileNotifOpen, viewport.isMobile])
 
     return (
-        <div className="flex min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300 relative animated-gradient-bg">
+        <div className="flex min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-200 relative animated-gradient-bg">
             {/* Mobile sidebar overlay */}
             {sidebarOpen && viewport.isMobile && (
                 <div
@@ -164,7 +164,7 @@ export function DashboardShell({
             {/* Desktop sidebar: collapsed 1024-1439, full ≥1440 */}
             {!viewport.isMobile && (
                 <aside
-                    className="fixed top-0 left-0 h-full z-30 transition-all duration-300"
+                    className="fixed top-0 left-0 h-full z-30 transition-all duration-200"
                     style={viewAsActive ? { top: `calc(${VIEW_AS_BANNER_HEIGHT}px + env(safe-area-inset-top, 0px))` } : undefined}
                 >
                     <AppSidebar
@@ -187,7 +187,7 @@ export function DashboardShell({
                     onTouchMove={handleSidebarTouchMove}
                     className={`
                         fixed top-0 left-0 h-full z-[60] overflow-y-auto
-                        transform transition-transform duration-300 ease-out
+                        transform transition-transform duration-200 ease-out
                         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                     `}
                     style={viewAsActive ? { top: `calc(${VIEW_AS_BANNER_HEIGHT}px + env(safe-area-inset-top, 0px))` } : undefined}

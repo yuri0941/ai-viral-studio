@@ -2,7 +2,7 @@ export function TabNavigation({ tabs, activeTab, onChange }) {
     if (!tabs?.length) return null
 
     return (
-        <div className="sticky top-0 z-20 bg-[var(--bg)]/95 backdrop-blur-md border-b border-[var(--border)] transition-colors duration-300">
+        <div className="sticky top-0 z-20 bg-[var(--bg)]/95 backdrop-blur-md border-b border-[var(--border)] transition-colors duration-200">
             <div className="px-4 py-3">
                 <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide touch-pan-x pb-1">
                     {tabs.map(tab => {

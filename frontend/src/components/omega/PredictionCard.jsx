@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Sparkles, TrendingUp, TrendingDown, X, Loader2, Trophy, AlertCircle } from 'lucide-react'
+import { Sparkles, TrendingUp, TrendingDown, X, Loader2, Trophy } from 'lucide-react'
+import { ErrorState } from '../common/ErrorState.jsx'
 import { API_URL } from '../../config.js'
 
 function getAuthHeaders() {
@@ -79,11 +80,14 @@ export function PredictionCard({ postId, content, platform = 'tiktok', niche = '
     }
 
     if (error) {
+        // [DESIGN-PRO З2] error-state по спеке design.json: что случилось + что делать, без сырых кодов
         return (
-            <div className="rounded-2xl bg-[#0f0f1a] border border-white/5 p-5 flex items-start gap-3 text-sm text-red-400">
-                <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                <div>Не удалось загрузить прогноз: {error}</div>
-            </div>
+            <ErrorState
+                compact
+                title="Не удалось загрузить прогноз"
+                description="OMEGA не смогла построить прогноз. Попробуйте обновить страницу."
+                onRetry={() => window.location.reload()}
+            />
         )
     }
 

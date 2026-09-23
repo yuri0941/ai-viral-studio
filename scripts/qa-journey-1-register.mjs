@@ -98,7 +98,7 @@ async function run(attempt) {
     await nameInput.fill('QA Journey')
     await modal.locator('input[placeholder="your@email.com"]').fill(email)
     await modal.locator('input[placeholder="Минимум 6 символов"]').fill(password)
-    await modal.locator('input[placeholder="Повторите пароль"]').fill(password)
+    // [DESIGN-PRO З3 conv-5] поле «Повторите пароль» удалено из формы — не заполняем
     const cbs = modal.locator('input[type="checkbox"]')
     const cbCount = await cbs.count()
     for (let i = 0; i < cbCount; i++) {

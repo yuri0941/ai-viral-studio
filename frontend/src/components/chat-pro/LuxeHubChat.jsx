@@ -121,7 +121,7 @@ export default function LuxeHubChat({ chat, suggestions = [], onSuggestion, mode
                   aria-selected={active}
                   title={t(m.labelKey)}
                   onClick={() => onModeChange?.(m.key)}
-                  className={`min-w-[40px] min-h-[36px] flex items-center justify-center rounded-lg transition-all ${active ? 'bg-violet-500/15 text-violet-300 border border-violet-500/30' : 'border border-transparent'}`}
+                  className={`min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg transition-all ${active ? 'bg-violet-500/15 text-violet-300 border border-violet-500/30' : 'border border-transparent'}`}
                   style={active ? undefined : { color: 'var(--cp-muted)' }}
                 >
                   <Icon size={16} />
@@ -161,7 +161,7 @@ export default function LuxeHubChat({ chat, suggestions = [], onSuggestion, mode
           data-tour="token-counter"
           onClick={() => setQuotaOpen(true)}
           aria-label={t('quota.title')}
-          className="shrink-0 min-h-[36px] px-3 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-500 text-xs font-bold font-mono hover:border-violet-500/40 transition-colors"
+          className="shrink-0 min-h-[44px] px-3 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-500 text-xs font-bold font-mono hover:border-violet-500/40 transition-colors"
         >
           ⚡ {unlimited ? '∞' : `${left}✦`}
         </button>

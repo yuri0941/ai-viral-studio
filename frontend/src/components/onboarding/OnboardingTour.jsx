@@ -110,7 +110,7 @@ function drive(t, onFinish) {
             skip.type = 'button'
             skip.className = 'omega-tour-skip'
             skip.textContent = t('tour.skip')
-            skip.style.cssText = 'margin-right:auto;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:13px;text-decoration:underline;padding:4px 0;'
+            skip.style.cssText = 'margin-right:auto;margin-left:8px;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:13px;text-decoration:underline;padding:4px 0;'
             skip.addEventListener('click', () => { markTourDone(); d.destroy() })
             popover.footerButtons.prepend(skip)
         },
