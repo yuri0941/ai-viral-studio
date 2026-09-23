@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getTranslation, detectLanguage } from '../i18n/index.js'
 
 export const useTranslation = () => {
@@ -11,7 +11,10 @@ export const useTranslation = () => {
     }
   }, [lang])
 
-  const t = (key, params) => getTranslation(lang, key, params)
+  // [PERF-AUDIT П3] стабильная ссылка на t между рендерами (меняется только со сменой языка) —
+  // иначе React.memo на тяжёлых потомках (AiMessageContent и др.) никогда не срабатывал:
+  // каждый keystroke в инпуте чата перерендеривал всю ленту с markdown-парсингом.
+  const t = useCallback((key, params) => getTranslation(lang, key, params), [lang])
 
   return { t, lang, setLang }
 }

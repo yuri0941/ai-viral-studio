@@ -54,7 +54,14 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(err => {
+                navigator.serviceWorker.register('/sw.js').then(reg => {
+                    // [PERF-AUDIT П4] периодическая проверка свежести SW: без неё обновление
+                    // подхватывалось только при полном перезапуске браузера (stale-кэш днями)
+                    setInterval(() => reg.update().catch(() => {}), 30 * 60 * 1000)
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') reg.update().catch(() => {})
+                    })
+                }).catch(err => {
                     console.warn('[SW] registration failed:', err)
                 })
             })
